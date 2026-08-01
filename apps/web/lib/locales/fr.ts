@@ -310,4 +310,15 @@ export const fr: Dictionary = {
   'causes.narrower_note': 'Les cagnottes ne sont pas classées à ce niveau de détail ; cette page affiche donc les catégories les plus proches que nous enregistrons.',
 
   'nav.start_fundraiser': 'Lancer une cagnotte',
+
+  // ── /causes/[slug] ─────────────────────────────────────────────────────────
+  'cause.load_failed_title': 'Nous n’avons pas pu charger les cagnottes',
+  'cause.load_failed_body': 'Le problème vient de nous, la cause n’est pas vide. Réessayez dans un instant.',
+  'cause.empty_title': 'Aucune cagnotte en cours pour {cause}',
+  'cause.empty_body': 'Lancez la première, ou parcourez toutes les cagnottes sur CharitMe.',
+  'cause.browse_all': 'Parcourir toutes les cagnottes',
+  'cause.see_more': 'Voir plus de cagnottes',
+  'cause.narrower_prefix': 'Les cagnottes ne sont pas encore classées aussi précisément ; cette page affiche donc tout dans',
+  'cause.narrower_one_suffix': 'catégorie. Utilisez la recherche sur toutes les cagnottes pour affiner.',
+  'cause.narrower_many_suffix': 'catégories. Utilisez la recherche sur toutes les cagnottes pour affiner.',
 };

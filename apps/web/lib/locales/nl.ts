@@ -309,4 +309,15 @@ export const nl: Dictionary = {
   'causes.narrower_note': 'Acties worden niet op dit detailniveau gelabeld, dus deze pagina toont de dichtstbijzijnde categorieën die we wel vastleggen.',
 
   'nav.start_fundraiser': 'Actie starten',
+
+  // ── /causes/[slug] ─────────────────────────────────────────────────────────
+  'cause.load_failed_title': 'We konden de acties nu niet laden',
+  'cause.load_failed_body': 'Dit ligt aan ons, niet aan een leeg doel. Ververs zo meteen.',
+  'cause.empty_title': 'Op dit moment geen lopende acties voor {cause}',
+  'cause.empty_body': 'Start als eerste een actie, of bekijk alle acties op CharitMe.',
+  'cause.browse_all': 'Alle acties bekijken',
+  'cause.see_more': 'Meer acties bekijken',
+  'cause.narrower_prefix': 'Acties worden nog niet zo precies gelabeld, dus deze pagina toont alles in',
+  'cause.narrower_one_suffix': 'categorie. Gebruik de zoekfunctie bij alle acties om verder te filteren.',
+  'cause.narrower_many_suffix': 'categorieën. Gebruik de zoekfunctie bij alle acties om verder te filteren.',
 };

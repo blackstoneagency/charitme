@@ -309,4 +309,15 @@ export const pt: Dictionary = {
   'causes.narrower_note': 'As campanhas não são classificadas a este nível de detalhe, por isso esta página mostra as categorias mais próximas que registamos.',
 
   'nav.start_fundraiser': 'Criar uma campanha',
+
+  // ── /causes/[slug] ─────────────────────────────────────────────────────────
+  'cause.load_failed_title': 'Não conseguimos carregar as campanhas agora',
+  'cause.load_failed_body': 'É um problema nosso, não uma causa vazia. Atualize dentro de momentos.',
+  'cause.empty_title': 'Sem campanhas ativas de {cause} neste momento',
+  'cause.empty_body': 'Seja o primeiro a criar uma ou explore todas as campanhas do CharitMe.',
+  'cause.browse_all': 'Explorar todas as campanhas',
+  'cause.see_more': 'Ver mais campanhas',
+  'cause.narrower_prefix': 'As campanhas ainda não são classificadas com esta precisão, por isso esta página mostra tudo em',
+  'cause.narrower_one_suffix': 'categoria. Use a pesquisa em todas as campanhas para refinar.',
+  'cause.narrower_many_suffix': 'categorias. Use a pesquisa em todas as campanhas para refinar.',
 };

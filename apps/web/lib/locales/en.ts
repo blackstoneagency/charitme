@@ -331,4 +331,15 @@ export const en: Dictionary = {
   'causes.narrower_note': 'Campaigns are not tagged at this level of detail, so this page shows the closest categories we do record.',
 
   'nav.start_fundraiser': 'Start a fundraiser',
+
+  // ── /causes/[slug] ─────────────────────────────────────────────────────────
+  'cause.load_failed_title': "We couldn't load campaigns just now",
+  'cause.load_failed_body': 'This is a problem on our side, not an empty cause. Please refresh in a moment.',
+  'cause.empty_title': 'No live {cause} campaigns right now',
+  'cause.empty_body': 'Be the first to start one, or browse every campaign on CharitMe.',
+  'cause.browse_all': 'Browse all campaigns',
+  'cause.see_more': 'See more campaigns',
+  'cause.narrower_prefix': 'Campaigns are not tagged this precisely yet, so this page shows everything in',
+  'cause.narrower_one_suffix': 'category. Use the search on all campaigns to narrow it further.',
+  'cause.narrower_many_suffix': 'categories. Use the search on all campaigns to narrow it further.',
 };

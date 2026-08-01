@@ -309,4 +309,15 @@ export const it: Dictionary = {
   'causes.narrower_note': 'Le raccolte non sono classificate a questo livello di dettaglio, quindi questa pagina mostra le categorie più vicine che registriamo.',
 
   'nav.start_fundraiser': 'Avvia una raccolta',
+
+  // ── /causes/[slug] ─────────────────────────────────────────────────────────
+  'cause.load_failed_title': 'Non siamo riusciti a caricare le raccolte',
+  'cause.load_failed_body': 'È un problema nostro, non una causa vuota. Riprova tra poco.',
+  'cause.empty_title': 'Al momento nessuna raccolta attiva per {cause}',
+  'cause.empty_body': 'Avvia tu la prima oppure sfoglia tutte le raccolte su CharitMe.',
+  'cause.browse_all': 'Sfoglia tutte le raccolte',
+  'cause.see_more': 'Vedi altre raccolte',
+  'cause.narrower_prefix': 'Le raccolte non sono ancora classificate così nel dettaglio, quindi questa pagina mostra tutto in',
+  'cause.narrower_one_suffix': 'categoria. Usa la ricerca su tutte le raccolte per restringere ancora.',
+  'cause.narrower_many_suffix': 'categorie. Usa la ricerca su tutte le raccolte per restringere ancora.',
 };

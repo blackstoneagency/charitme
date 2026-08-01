@@ -6,6 +6,7 @@ import { campaignColumns, applyLiveFilters } from '../../../lib/campaign-visibil
 import { CAUSES, getCause, type Cause } from '../../../lib/causes';
 import { CampaignCard, CampaignGrid, type CampaignCardData } from '../../../components/CampaignCard';
 import { EmptyState } from '../../../components/ui';
+import { getTranslator } from '../../../lib/locale-server';
 
 const PAGE_SIZE = 24;
 
@@ -55,6 +56,7 @@ async function getCampaigns(cause: Cause): Promise<CampaignCardData[] | null> {
 }
 
 export default async function CausePage({ params }: { params: Promise<{ slug: string }> }) {
+  const t = await getTranslator();
   const { slug } = await params;
   const cause = getCause(slug);
   if (!cause) notFound();
@@ -95,16 +97,11 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
               borderRadius: 'var(--r)',
             }}
           >
-            Campaigns aren&rsquo;t tagged this precisely yet, so this page shows everything
-            in {cause.categories.length === 1 ? 'the' : ''}{' '}
+            {t('cause.narrower_prefix')}{' '}
             <strong style={{ color: 'var(--t1)', fontWeight: 700 }}>
               {cause.categories.join(' and ')}
             </strong>{' '}
-            {cause.categories.length === 1 ? 'category' : 'categories'}. Use the search on{' '}
-            <Link href="/campaigns" style={{ color: 'var(--green-text)', fontWeight: 650 }}>
-              all campaigns
-            </Link>{' '}
-            to narrow it further.
+            {cause.categories.length === 1 ? t('cause.narrower_one_suffix') : t('cause.narrower_many_suffix')}
           </p>
         )}
       </header>
@@ -112,22 +109,22 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
       {campaigns === null ? (
         <EmptyState
           icon="⚠️"
-          title="We couldn't load campaigns just now"
-          body="This is a problem on our side, not an empty cause. Please refresh in a moment."
+          title={t('cause.load_failed_title')}
+          body={t('cause.load_failed_body')}
           action={
             <Link href={`/causes/${cause.slug}`} style={{ fontSize: '14px', color: 'var(--green-text)', fontWeight: 600 }}>
-              Try again
+              {t('action.retry')}
             </Link>
           }
         />
       ) : campaigns.length === 0 ? (
         <EmptyState
           icon="🌱"
-          title={`No live ${cause.label.toLowerCase()} campaigns right now`}
-          body="Be the first to start one, or browse every campaign on CharitMe."
+          title={t('cause.empty_title', { cause: t(`nav.cause.${cause.slug}`) })}
+          body={t('cause.empty_body')}
           action={
             <Link href="/campaigns" style={{ fontSize: '14px', color: 'var(--green-text)', fontWeight: 600 }}>
-              Browse all campaigns
+              {t('cause.browse_all')}
             </Link>
           }
         />
@@ -147,7 +144,7 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
                 }
                 style={{ padding: '11px 22px', borderRadius: 'var(--r)', border: '1px solid var(--b2)', color: 'var(--t1)', fontSize: '14px', fontWeight: 700, textDecoration: 'none' }}
               >
-                See more campaigns
+                {t('cause.see_more')}
               </Link>
             </div>
           )}
