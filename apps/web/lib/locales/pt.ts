@@ -422,4 +422,14 @@ export const pt: Dictionary = {
   'saved.failed_title': 'Não conseguimos carregar as suas causas guardadas',
   'saved.failed_body': 'É um problema nosso. Nada foi removido da sua lista.',
   'campaign.ended_short': 'terminada',
+
+  // ── /thank-you ─────────────────────────────────────────────────────────────
+  'thanks.title': 'Obrigado!',
+  'thanks.subtitle': 'O seu donativo foi efetuado com sucesso.',
+  'thanks.receipt_sent': 'Acabou de fazer uma diferença real. O recibo está a caminho do seu e-mail.',
+  'thanks.summary': 'Resumo do donativo',
+  'thanks.cause': 'Causa',
+  'thanks.date': 'Data',
+  'thanks.reference': 'Referência',
+  'thanks.back_to_cause': 'Voltar à causa',
 };

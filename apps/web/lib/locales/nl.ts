@@ -422,4 +422,14 @@ export const nl: Dictionary = {
   'saved.failed_title': 'We konden je bewaarde doelen niet laden',
   'saved.failed_body': 'Dit ligt aan ons. Er is niets uit je lijst verwijderd.',
   'campaign.ended_short': 'afgelopen',
+
+  // ── /thank-you ─────────────────────────────────────────────────────────────
+  'thanks.title': 'Bedankt!',
+  'thanks.subtitle': 'Je donatie is gelukt.',
+  'thanks.receipt_sent': 'Je hebt zojuist echt verschil gemaakt. De bevestiging is onderweg naar je inbox.',
+  'thanks.summary': 'Overzicht van je donatie',
+  'thanks.cause': 'Doel',
+  'thanks.date': 'Datum',
+  'thanks.reference': 'Referentie',
+  'thanks.back_to_cause': 'Terug naar het doel',
 };

@@ -444,4 +444,14 @@ export const en: Dictionary = {
   'saved.failed_title': 'We could not load your saved causes',
   'saved.failed_body': 'This is a problem on our side. Nothing has been removed from your list.',
   'campaign.ended_short': 'ended',
+
+  // ── /thank-you ─────────────────────────────────────────────────────────────
+  'thanks.title': 'Thank you!',
+  'thanks.subtitle': 'Your donation was successful.',
+  'thanks.receipt_sent': 'You have just made a real difference. A receipt is on its way to your inbox.',
+  'thanks.summary': 'Donation summary',
+  'thanks.cause': 'Cause',
+  'thanks.date': 'Date',
+  'thanks.reference': 'Reference',
+  'thanks.back_to_cause': 'Back to the cause',
 };

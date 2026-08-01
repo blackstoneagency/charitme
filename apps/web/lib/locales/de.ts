@@ -422,4 +422,14 @@ export const de: Dictionary = {
   'saved.failed_title': 'Ihre gemerkten Ziele konnten nicht geladen werden',
   'saved.failed_body': 'Das liegt an uns. Aus Ihrer Liste wurde nichts entfernt.',
   'campaign.ended_short': 'beendet',
+
+  // ── /thank-you ─────────────────────────────────────────────────────────────
+  'thanks.title': 'Vielen Dank!',
+  'thanks.subtitle': 'Ihre Spende war erfolgreich.',
+  'thanks.receipt_sent': 'Sie haben gerade wirklich etwas bewirkt. Eine Bestätigung ist bereits unterwegs.',
+  'thanks.summary': 'Spendenübersicht',
+  'thanks.cause': 'Zweck',
+  'thanks.date': 'Datum',
+  'thanks.reference': 'Referenz',
+  'thanks.back_to_cause': 'Zurück zum Zweck',
 };
