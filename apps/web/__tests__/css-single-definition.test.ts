@@ -103,6 +103,43 @@ describe('the primary CTA has one definition', () => {
   });
 });
 
+describe('the type scale has three sizes, not six', () => {
+  it('defines the scale tokens', () => {
+    for (const t of ['--fs-hero', '--fs-h1', '--fs-h2']) {
+      expect(CODE, `${t} is missing`).toMatch(new RegExp(`${t}:\\s*clamp\\(`));
+    }
+  });
+
+  it('does not grow a fourth heading-sized clamp', () => {
+    // Measured across the four design families at 1280px: h1 ran 36→86px and h2
+    // ran 21→48px. Six unrelated scales, not one. Anything clamping into
+    // heading territory (max ≥ 24px) that is not one of the three tokens is a
+    // seventh scale starting up.
+    //
+    // 9 survive, and none is a section heading:
+    //   · display numerals — .mirror-metric-grid dd, .about-stat-num,
+    //     .about-impact-num, .home-metrics dd
+    //   · pull quotes — .about-manifesto-quote, .about-testimonial-quote
+    //   · a form question — .cr2-step-q
+    //   · two MOBILE overrides inside @media that deliberately shrink a hero
+    //     below the token floor (.mirror-hero h1, .about-hero-h1)
+    //
+    // Attribute before exempting: three entries that looked like decoration on
+    // this list — `.kind-hero h1`, `.home-hero h1`, `.cr2-launch-header h2` —
+    // turned out to be real headings that had escaped, and were routed.
+    const heading = [...CODE.matchAll(/font-size:\s*clamp\(\s*[\d.]+px\s*,[^,]+,\s*(\d+)px\s*\)/g)]
+      .filter((m) => Number(m[1]) >= 24);
+
+    expect(
+      heading.length,
+      `heading-sized clamps outside the token set: ${heading.length}\n` +
+        heading.map((m) => m[0]).join('\n') +
+        '\nUse var(--fs-hero) for a full-bleed hero h1, var(--fs-h1) for a page ' +
+        'header, var(--fs-h2) for a section heading. Lower this ceiling, never raise it.',
+    ).toBeLessThanOrEqual(9);
+  });
+});
+
 describe('no class is fully redefined with conflicting values', () => {
   it('reports the known duplicate-definition conflicts and no more', () => {
     // `.kf-primary` and `.kf-outline` are each declared TWICE at top level, far

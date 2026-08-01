@@ -68,8 +68,32 @@ Both looked like defects and were verified before "fixing" them:
   as coverage while measuring nothing.
 - **Four design families still coexist**: the homepage's `mirror-*`, `PageShell`
   (26 pages), legacy `kind-`/`pub-` (21 pages), and bespoke (31). They share the
-  dark palette and chrome so the site reads as coherent, but the type scale and
-  section rhythm differ.
+  dark palette and chrome so the site reads as coherent.
+  - **Type scale: unified.** Measured first, at 1280px: h1 ran **36→86px** and h2
+    ran **21→48px** across the families — six unrelated scales, not one. Someone
+    moving from `/about-us` to `/support` was looking at two different websites.
+    Now three tokens, anchored to the homepage because it is the design target
+    (`--fs-h2` is literally the homepage's own section heading):
+
+    | | before | after |
+    |---|---|---|
+    | hero h1 | 58 / 68 / 77 / 78 / 86 | **72** (`--fs-hero`) |
+    | page-header h1 | 36 / 46 / 51 / 56 | **52** (`--fs-h1`) |
+    | section h2 | 21 / 22 / 23 / 24 / 25 / 27 / 28 / 31 / 34 / 42 / 48 | **38** (`--fs-h2`) |
+
+    Nine heading-sized clamps survive and each was attributed before being
+    exempted — display numerals, two pull quotes, a form question, and two
+    `@media` overrides that deliberately shrink a hero on mobile. Attributing
+    rather than eyeballing mattered: three entries that looked decorative on that
+    list (`.kind-hero h1`, `.home-hero h1`, `.cr2-launch-header h2`) turned out to
+    be real headings that had escaped, and were routed.
+  - **Still open — section rhythm.** Section `padding-top` still runs 0→100px
+    across families (`/support` 0, `/how-it-works` 34, `/about-us` 100). Same
+    problem as the type scale, not yet tokenised.
+  - **Still open — the h2-as-card-title tier.** ~20 rules use `h2` for a card or
+    panel title at 19–28px. Those are correctly *not* on `--fs-h2` (a card title
+    is an h3-scale element that is an `h2` for document-outline reasons), but
+    they drift among themselves and want a fourth token.
 
 
 ## ✅ CI IS ALIVE AGAIN — red checks are real now (2026-08-01)

@@ -102,7 +102,7 @@ export default async function CausesPage() {
       </header>
 
       <section aria-labelledby="popular-causes" style={{ marginBottom: '48px' }}>
-        <h2 id="popular-causes" style={{ fontSize: '20px', fontWeight: 750, color: 'var(--t1)', marginBottom: '18px' }}>
+        <h2 id="popular-causes" style={{ fontSize: 'var(--fs-h2)', fontWeight: 750, color: 'var(--t1)', marginBottom: '18px' }}>
           {t('nav.causes.popular')}
         </h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 260px), 1fr))', gap: '18px' }}>
@@ -113,7 +113,7 @@ export default async function CausesPage() {
       </section>
 
       <section aria-labelledby="all-causes">
-        <h2 id="all-causes" style={{ fontSize: '20px', fontWeight: 750, color: 'var(--t1)', marginBottom: '18px' }}>
+        <h2 id="all-causes" style={{ fontSize: 'var(--fs-h2)', fontWeight: 750, color: 'var(--t1)', marginBottom: '18px' }}>
           {t('nav.causes.all')}
         </h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 260px), 1fr))', gap: '18px' }}>

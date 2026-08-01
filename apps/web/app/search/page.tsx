@@ -119,7 +119,7 @@ export default async function SearchPage({ searchParams }: Props) {
 
   return (
     <div className="container" style={{ padding: '40px 0 72px' }}>
-      <h1 style={{ fontSize: 'clamp(26px, 4vw, 36px)', fontWeight: 800, color: 'var(--t1)', letterSpacing: '-.02em' }}>
+      <h1 style={{ fontSize: 'var(--fs-h1)', fontWeight: 800, color: 'var(--t1)', letterSpacing: '-.02em' }}>
         {q ? `Search results for “${q}”` : 'Search CharitMe'}
       </h1>
       <p style={{ fontSize: '15px', color: 'var(--t3)', marginTop: '8px', maxWidth: '620px', lineHeight: 1.6 }}>
