@@ -321,4 +321,13 @@ export const fr: Dictionary = {
   'cause.narrower_prefix': 'Les cagnottes ne sont pas encore classées aussi précisément ; cette page affiche donc tout dans',
   'cause.narrower_one_suffix': 'catégorie. Utilisez la recherche sur toutes les cagnottes pour affiner.',
   'cause.narrower_many_suffix': 'catégories. Utilisez la recherche sur toutes les cagnottes pour affiner.',
+
+  // ── /dashboard/saved ───────────────────────────────────────────────────────
+  'saved.title': 'Causes enregistrées',
+  'saved.subtitle': 'Les causes qui vous tiennent à cœur, enregistrées pour plus tard.',
+  'saved.empty_title': 'Vous n’avez encore enregistré aucune cause',
+  'saved.empty_body': 'Touchez le cœur sur une cagnotte et elle apparaîtra ici.',
+  'saved.failed_title': 'Nous n’avons pas pu charger vos causes enregistrées',
+  'saved.failed_body': 'Le problème vient de nous. Rien n’a été retiré de votre liste.',
+  'campaign.ended_short': 'terminée',
 };

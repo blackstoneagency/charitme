@@ -375,11 +375,19 @@ export default function RefundForm({
             padding: '0 28px',
             border: 0,
             borderRadius: 10,
+            // Disabled is a MUTED SURFACE, not a faded brand fill. The old
+            // rgba(108,53,255,.4) composited to light lavender and left white
+            // label text at 1.93:1 — unreadable, and it also made a dead control
+            // look like a live one. Muted surface + muted text reads as disabled
+            // and passes AA.
             background:
               submitting || !eligible || !reason.trim() || overLimit
-                ? 'rgba(108,53,255,.4)'
-                : 'linear-gradient(135deg, var(--violet, var(--violet)), #4d1ee0)',
-            color: '#fff',
+                ? 'var(--s3)'
+                : 'linear-gradient(135deg, var(--fill-brand), #4d1ee0)',
+            color:
+              submitting || !eligible || !reason.trim() || overLimit
+                ? 'var(--t3)'
+                : '#fff',
             fontWeight: 650,
             fontSize: 14,
             cursor:

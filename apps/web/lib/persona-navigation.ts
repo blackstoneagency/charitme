@@ -17,6 +17,10 @@ const SETTINGS = { label: 'Settings', href: '/dashboard/settings', icon: 'gear' 
 const DONOR_NAV: readonly DashboardNavItem[] = [
   DASHBOARD,
   GIVING_HISTORY,
+  // Saved causes sits with giving history: both are 'things I already engaged
+  // with'. Without a nav entry the page exists but is unreachable, which is how
+  // saved_campaigns ended up with 240 rows and no reader.
+  { label: 'Saved Causes', href: '/dashboard/saved', icon: 'heart' },
   TAX_DOCUMENTS,
   { label: 'Recurring Gifts', href: '/dashboard/recurring', icon: 'gift' },
   VOLUNTEERING,

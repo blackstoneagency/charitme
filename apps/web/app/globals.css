@@ -37,6 +37,12 @@
        --green-text  : green figures and labels (#0f9f54 measured 3.1:1 on white)
        --orange-text : amber/orange status text (#f97316 on its own tint) */
   --brand-text: #551cf2;
+  /* Button FILLS that carry white text. Deliberately separate from the *-text
+     tokens: those are meant to be READ ON a surface, so they go lighter in dark
+     mode, and using one as a fill inverts the relationship — white on
+     rgb(196,174,255) measured 1.93:1. A fill under white text must stay dark in
+     BOTH themes, so this has no dark override. */
+  --fill-brand: #5b21b6;
   --green-text: #08763b;
   --orange-text: #9a4a06;
   --red-text: #c2263c;

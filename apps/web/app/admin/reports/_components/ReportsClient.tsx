@@ -206,9 +206,13 @@ export default function ReportsClient({ reports, categories, totalReports, sched
                   style={{
                     height: 34, padding: '0 14px', borderRadius: 8, fontSize: 12, fontWeight: 650,
                     border: '1px solid', cursor: 'pointer',
-                    borderColor: activeCategory === cat ? '#6c35ff' : '#e0e4ef',
-                    background: activeCategory === cat ? '#f0eaff' : '#fff',
-                    color: activeCategory === cat ? 'var(--brand-text)' : '#111944',
+                    // All three were hardcoded light values under a THEMED text
+                    // colour. In dark mode --brand-text goes light (#b9a5ff) and
+                    // landed on the fixed #f0eaff chip at 1.81:1. Surface and
+                    // text have to move together.
+                    borderColor: activeCategory === cat ? 'var(--brand-text)' : 'var(--b1)',
+                    background: activeCategory === cat ? 'var(--tint-violet)' : 'var(--s1)',
+                    color: activeCategory === cat ? 'var(--brand-text)' : 'var(--t1)',
                   }}
                 >
                   {cat}

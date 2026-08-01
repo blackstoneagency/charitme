@@ -322,4 +322,13 @@ export const es: Dictionary = {
   'cause.narrower_prefix': 'Las campañas aún no se etiquetan con esta precisión, así que esta página muestra todo en',
   'cause.narrower_one_suffix': 'categoría. Usa la búsqueda en todas las campañas para acotar más.',
   'cause.narrower_many_suffix': 'categorías. Usa la búsqueda en todas las campañas para acotar más.',
+
+  // ── /dashboard/saved ───────────────────────────────────────────────────────
+  'saved.title': 'Causas guardadas',
+  'saved.subtitle': 'Causas que te importan, guardadas para más tarde.',
+  'saved.empty_title': 'Todavía no has guardado ninguna causa',
+  'saved.empty_body': 'Toca el corazón en cualquier campaña y aparecerá aquí.',
+  'saved.failed_title': 'No pudimos cargar tus causas guardadas',
+  'saved.failed_body': 'Es un problema nuestro. No se ha eliminado nada de tu lista.',
+  'campaign.ended_short': 'finalizada',
 };

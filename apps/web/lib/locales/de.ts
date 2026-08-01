@@ -320,4 +320,13 @@ export const de: Dictionary = {
   'cause.narrower_prefix': 'Kampagnen werden noch nicht so genau kategorisiert; diese Seite zeigt daher alles in',
   'cause.narrower_one_suffix': 'Kategorie. Nutzen Sie die Suche unter „Alle Kampagnen“, um weiter einzugrenzen.',
   'cause.narrower_many_suffix': 'Kategorien. Nutzen Sie die Suche unter „Alle Kampagnen“, um weiter einzugrenzen.',
+
+  // ── /dashboard/saved ───────────────────────────────────────────────────────
+  'saved.title': 'Gemerkte Ziele',
+  'saved.subtitle': 'Ziele, die Ihnen wichtig sind — für später gemerkt.',
+  'saved.empty_title': 'Sie haben noch keine Ziele gemerkt',
+  'saved.empty_body': 'Tippen Sie bei einer Kampagne auf das Herz — sie erscheint dann hier.',
+  'saved.failed_title': 'Ihre gemerkten Ziele konnten nicht geladen werden',
+  'saved.failed_body': 'Das liegt an uns. Aus Ihrer Liste wurde nichts entfernt.',
+  'campaign.ended_short': 'beendet',
 };

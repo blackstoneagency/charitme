@@ -342,4 +342,13 @@ export const en: Dictionary = {
   'cause.narrower_prefix': 'Campaigns are not tagged this precisely yet, so this page shows everything in',
   'cause.narrower_one_suffix': 'category. Use the search on all campaigns to narrow it further.',
   'cause.narrower_many_suffix': 'categories. Use the search on all campaigns to narrow it further.',
+
+  // ── /dashboard/saved ───────────────────────────────────────────────────────
+  'saved.title': 'Saved causes',
+  'saved.subtitle': 'Causes you care about, saved for later.',
+  'saved.empty_title': 'You have not saved any causes yet',
+  'saved.empty_body': 'Tap the heart on any campaign and it will show up here.',
+  'saved.failed_title': 'We could not load your saved causes',
+  'saved.failed_body': 'This is a problem on our side. Nothing has been removed from your list.',
+  'campaign.ended_short': 'ended',
 };

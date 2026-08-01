@@ -10,7 +10,7 @@
     "sweeps were auditing the login page under two other names and passing.",
     "",
     "Before adding a route to `public`, load it signed-out and confirm it renders",
-    "itself. If it redirects, it belongs in `authGated` instead — the sweeps assert",
+    "itself. If it redirects, it belongs in `authGated` instead \u2014 the sweeps assert",
     "the landed path matches the requested one and will fail loudly either way."
   ],
   "public": [
@@ -154,6 +154,7 @@
       "/dashboard/recurring/cancel",
       "/dashboard/referrals",
       "/dashboard/refund",
+      "/dashboard/saved",
       "/dashboard/settings",
       "/dashboard/settings/mfa",
       "/dashboard/tax",

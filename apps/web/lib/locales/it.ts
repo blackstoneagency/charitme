@@ -320,4 +320,13 @@ export const it: Dictionary = {
   'cause.narrower_prefix': 'Le raccolte non sono ancora classificate così nel dettaglio, quindi questa pagina mostra tutto in',
   'cause.narrower_one_suffix': 'categoria. Usa la ricerca su tutte le raccolte per restringere ancora.',
   'cause.narrower_many_suffix': 'categorie. Usa la ricerca su tutte le raccolte per restringere ancora.',
+
+  // ── /dashboard/saved ───────────────────────────────────────────────────────
+  'saved.title': 'Cause salvate',
+  'saved.subtitle': 'Le cause a cui tieni, salvate per dopo.',
+  'saved.empty_title': 'Non hai ancora salvato nessuna causa',
+  'saved.empty_body': 'Tocca il cuore su una raccolta e comparirà qui.',
+  'saved.failed_title': 'Non siamo riusciti a caricare le tue cause salvate',
+  'saved.failed_body': 'È un problema nostro. Non è stato rimosso nulla dal tuo elenco.',
+  'campaign.ended_short': 'conclusa',
 };
