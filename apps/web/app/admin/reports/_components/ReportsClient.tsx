@@ -221,6 +221,9 @@ export default function ReportsClient({ reports, categories, totalReports, sched
             </div>
           </div>
 
+          {/* Header and rows share ONE scroll box: two boxes would scroll
+              independently and the columns would drift out of alignment. */}
+          <div className="kf-table-scroll">
           {/* Table header */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 110px 120px 90px 80px 80px', gap: 12, padding: '8px 20px', background: 'var(--s2)', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase' }}>
             <span>Report Name</span>
@@ -254,6 +257,7 @@ export default function ReportsClient({ reports, categories, totalReports, sched
               </div>
             </div>
           ))}
+          </div>
 
           {filtered.length === 0 && (
             <div style={{ textAlign: 'center', padding: 32, color: 'var(--t3)', fontSize: 13 }}>

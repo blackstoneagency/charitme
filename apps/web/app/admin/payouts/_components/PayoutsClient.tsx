@@ -482,6 +482,8 @@ export default function PayoutsClient({
               <button type="button" style={{ height: 42, padding: '0 18px', border: '1px solid #e0e4ef', borderRadius: 9, background: 'var(--s1)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }} onClick={() => exportCsv(filtered)}>Export CSV</button>
             </div>
 
+            {/* Header and rows in ONE scroll box, so their columns stay aligned. */}
+            <div className="kf-table-scroll">
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 120px 130px', gap: 12, padding: '10px 20px', background: 'var(--s2)', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
               <span>Recipient</span>
               <span>Campaign</span>
@@ -512,6 +514,7 @@ export default function PayoutsClient({
                 <div style={{ fontSize: 12, color: 'var(--t3)' }}>{fmtDate(p.created_at)}</div>
               </div>
             ))}
+            </div>
 
             {currentPage.length === 0 && <div style={{ padding: '32px', textAlign: 'center', color: 'var(--t3)', fontSize: 14 }}>No payouts found</div>}
 

@@ -4668,7 +4668,15 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 
 /* ── Generic admin helpers — wide tables, filter grids, fixed side panels ── */
 .kf-grid-6 { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; }
-.kf-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+/* The TABLE scrolls, not the page. These tables are CSS grids with fixed pixel
+   columns declared in INLINE styles, which cannot carry a media query — a row
+   with 410px of fixed track is 410px wide on a 320px phone whatever the
+   stylesheet says. Collapsing the rows would destroy the alignment that makes a
+   ledger readable, so the row keeps its shape and the box scrolls.
+   `min-width: max-content` on the children keeps the header and the rows in the
+   same scroll box so they cannot drift out of alignment with each other. */
+.kf-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-inline: contain; scrollbar-width: thin; }
+.kf-table-scroll > * { min-width: max-content; }
 .kf-grid-aside { display: grid; grid-template-columns: 300px 1fr; gap: 20px; align-items: start; }
 .kf-grid-main-aside { display: grid; grid-template-columns: 1fr 320px; gap: 18px; align-items: start; }
 .kf-modal-responsive { max-width: calc(100vw - 32px) !important; }
@@ -4714,7 +4722,13 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 .ac-list-head h2 { font-size: 22px; font-weight: 800; color: #0f1238; margin: 0; }
 .ac-btn-new { display: inline-flex; align-items: center; gap: 7px; height: 40px; padding: 0 20px; background: var(--grad-brand); color: #fff; border: none; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; }
 .ac-btn-new:hover { opacity: .9; }
-.ac-status-tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 2px solid #eef0f7; }
+/* The strip scrolls, not the page. Its tabs are `white-space: nowrap` by design
+   — a wrapped tab label reads as two tabs — and there are eight of them, so
+   measured at 320px this row was 1020px wide and took the whole /admin/campaigns
+   document with it. `flex: none` keeps each tab at its natural width instead of
+   squeezing eight of them into unreadable slivers. */
+.ac-status-tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 2px solid #eef0f7; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-width: thin; }
+.ac-status-tabs > * { flex: none; }
 .ac-stab { height: 38px; padding: 0 16px; border: none; background: none; font-size: 13px; font-weight: 600; color: var(--t3); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; white-space: nowrap; }
 .ac-stab.active { color: var(--brand-text); border-bottom-color: var(--brand-text); font-weight: 700; }
 .ac-stab:hover { color: var(--brand-text); }
