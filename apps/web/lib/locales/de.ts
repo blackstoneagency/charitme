@@ -432,4 +432,15 @@ export const de: Dictionary = {
   'thanks.date': 'Datum',
   'thanks.reference': 'Referenz',
   'thanks.back_to_cause': 'Zurück zum Zweck',
+
+  // ── /verify-email ──────────────────────────────────────────────────────────
+  'verify.title': 'Bestätigen Sie Ihre E-Mail',
+  'verify.sent_to': 'Wir haben einen Bestätigungslink gesendet an',
+  'verify.sent_generic': 'Wir haben Ihnen einen Bestätigungslink gesendet.',
+  'verify.check_spam': 'Klicken Sie auf den Link, um Ihr Konto einzurichten. Falls nichts ankommt, prüfen Sie bitte Ihren Spam-Ordner.',
+  'verify.resend': 'E-Mail erneut senden',
+  'verify.change_email': 'Andere E-Mail verwenden',
+  'verify.resent': 'Gesendet. Schauen Sie gleich noch einmal in Ihr Postfach.',
+  'verify.rate_limited': 'Bitte warten Sie einen Moment, bevor Sie eine weitere E-Mail anfordern.',
+  'verify.no_email': 'Uns ist keine Adresse bekannt. Bitte melden Sie sich an.',
 };

@@ -454,4 +454,15 @@ export const en: Dictionary = {
   'thanks.date': 'Date',
   'thanks.reference': 'Reference',
   'thanks.back_to_cause': 'Back to the cause',
+
+  // ── /verify-email ──────────────────────────────────────────────────────────
+  'verify.title': 'Verify your email',
+  'verify.sent_to': 'We have sent a verification link to',
+  'verify.sent_generic': 'We have sent you a verification link.',
+  'verify.check_spam': 'Click the link to finish setting up your account. If it has not arrived within a few minutes, check your spam folder.',
+  'verify.resend': 'Resend email',
+  'verify.change_email': 'Use a different email',
+  'verify.resent': 'Sent. Check your inbox again in a moment.',
+  'verify.rate_limited': 'Please wait a moment before requesting another email.',
+  'verify.no_email': 'We do not know which address to send to. Sign in to continue.',
 };

@@ -433,4 +433,15 @@ export const fr: Dictionary = {
   'thanks.date': 'Date',
   'thanks.reference': 'Référence',
   'thanks.back_to_cause': 'Retour à la cause',
+
+  // ── /verify-email ──────────────────────────────────────────────────────────
+  'verify.title': 'Vérifiez votre e-mail',
+  'verify.sent_to': 'Nous avons envoyé un lien de vérification à',
+  'verify.sent_generic': 'Nous vous avons envoyé un lien de vérification.',
+  'verify.check_spam': 'Cliquez sur le lien pour finaliser votre compte. S’il n’arrive pas d’ici quelques minutes, vérifiez vos spams.',
+  'verify.resend': 'Renvoyer l’e-mail',
+  'verify.change_email': 'Utiliser une autre adresse',
+  'verify.resent': 'Envoyé. Consultez votre boîte de réception dans un instant.',
+  'verify.rate_limited': 'Patientez un instant avant de demander un nouvel e-mail.',
+  'verify.no_email': 'Nous ne savons pas à quelle adresse écrire. Connectez-vous pour continuer.',
 };

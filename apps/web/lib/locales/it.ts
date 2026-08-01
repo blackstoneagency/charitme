@@ -432,4 +432,15 @@ export const it: Dictionary = {
   'thanks.date': 'Data',
   'thanks.reference': 'Riferimento',
   'thanks.back_to_cause': 'Torna alla causa',
+
+  // ── /verify-email ──────────────────────────────────────────────────────────
+  'verify.title': 'Verifica la tua email',
+  'verify.sent_to': 'Abbiamo inviato un link di verifica a',
+  'verify.sent_generic': 'Ti abbiamo inviato un link di verifica.',
+  'verify.check_spam': 'Clicca sul link per completare la configurazione del tuo account. Se non arriva entro qualche minuto, controlla la cartella spam.',
+  'verify.resend': 'Invia di nuovo',
+  'verify.change_email': 'Usa un’altra email',
+  'verify.resent': 'Inviata. Ricontrolla la tua casella tra poco.',
+  'verify.rate_limited': 'Attendi un momento prima di richiedere un’altra email.',
+  'verify.no_email': 'Non sappiamo a quale indirizzo inviare. Accedi per continuare.',
 };
