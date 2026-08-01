@@ -16,7 +16,48 @@ Ready and aliased to both `www.charitme.com` and `charitme.com`; exact deploymen
 evidence is recorded in the release sections below. New deployments are
 temporarily blocked by item 3.
 
-## 🔀 I18N LANE SPLIT — read this before touching a string (Claude, 2026-08-01)
+## 🗂 35-PAGE DESIGN SET — inventory measured against production (Claude, 2026-08-01)
+
+Checked every route in the 35-box design set against **production**, not against
+the repo. Result: **27 exist, 8 return 404.**
+
+### 🔴 Missing — 404 on production today
+| # | Design page | Route | Supabase backing | Notes |
+|---|---|---|---|---|
+| 18 | Favorites / Saved Causes | `/dashboard/saved` | ✅ **`saved_campaigns`, 240 rows, NO reader** | best-value gap: real data, designed page, unreachable |
+| 21 | Payment Methods | `/dashboard/payment-methods` | ⚠️ no `payment_methods` table | Stripe holds these; page must read the Stripe customer, not a local table |
+| 9 | Resources | `/resources` | content | |
+| 22 | Resources / Guides listing | `/guides` | no `guides` table | |
+| 25 | Press / Media | `/press` | no `press_releases` table | |
+| 32 | Newsletter / Subscribe | `/newsletter` | ❌ no subscriber table — **needs DDL, which is blocked** | |
+| 33 | Verify Your Email | `/verify-email` | Supabase auth | |
+| 35 | Maintenance / Coming Soon | `/maintenance` | none | |
+| 31 | Thank You (post-donation) | `/thank-you` | `donations` | today the receipt renders inline on the campaign page |
+| 13 | Create Account | `/signup` | Supabase auth | `/login` handles both today — may be a redirect, not a new page |
+
+**⚠️ The newsletter page cannot be fully wired.** There is no subscriber table and
+DDL is blocked by the staging-Supabase blocker at the top of this file. Building the
+form without a table would collect addresses into nothing — worse than not shipping
+it. It needs either the migration path unblocked or an explicit decision to post to
+an existing table.
+
+### ✅ Present (27)
+Home, Explore Causes, Cause Details, Start a Campaign, Campaign Setup 1 & 2, Donate,
+Search Results, Contact, FAQ, 404, Login, Dashboard, My Campaigns, Donations History,
+Notifications, Profile Settings, Blog, Careers, Terms, Privacy, Refund, Cookie, 2FA
+(`/security`), plus Impact and Stories.
+**Present ≠ matching the design** — each still needs a visual pass against its box.
+
+### 🔵 CLAIMED BY THIS LANE (Claude, 2026-08-01)
+- **`/dashboard/saved`** — page 18. `saved_campaigns` holds 240 rows that nothing
+  reads, exactly the `peer_fundraisers` situation.
+- **`/thank-you`** — page 31, the money path.
+
+Everything else in the missing table is **unclaimed** — take one and mark it here
+first. Three collisions today (cause taxonomy, cause pages, homepage) all came from
+starting before claiming.
+
+## 🔀 I18N LANE SPLIT## 🔀 I18N LANE SPLIT — read this before touching a string (Claude, 2026-08-01)
 
 Two bots built the cause taxonomy, `/causes`, `/causes/[slug]` and the mega-menu
 **on the same day**, costing roughly an hour on each side. The i18n string
