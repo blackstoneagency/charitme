@@ -4346,6 +4346,17 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 }
 
 @media (max-width: 760px) {
+  /* The card is the scroll boundary for the table inside it.
+     These admin/dashboard tables carry FIXED pixel columns — 120px + 120px +
+     130px is 370px of track before any flexible column — so no amount of
+     shrinking the `1fr` parts fits them on a 320px screen. The row keeps its
+     shape, because columns lining up between rows is what makes a ledger
+     readable, and the card scrolls instead of the document.
+     `min-width: 0` is the half that actually does the work: a card that is a
+     grid or flex item defaults to `min-width: auto`, so its own minimum is its
+     content's max-content and the track holding it just grows — the overflow
+     property then has nothing to clip against. */
+  .kf-card { min-width: 0; overflow-x: auto; }
   .pub-hero, .stories-hero, .pricing-hero, .simple-public > section:first-of-type { padding: 28px 20px 38px; }
   .legal-body { padding: 4px 20px 56px; }
   .legal-body h2 { font-size: 21px; margin-top: 34px; }
@@ -4675,7 +4686,13 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
    ledger readable, so the row keeps its shape and the box scrolls.
    `min-width: max-content` on the children keeps the header and the rows in the
    same scroll box so they cannot drift out of alignment with each other. */
-.kf-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-inline: contain; scrollbar-width: thin; }
+/* `min-width: 0` on the box ITSELF is what makes the scrolling work. A grid or
+   flex item defaults to `min-width: auto`, so the container's own minimum is its
+   content's max-content — 720px for these tables — and the track holding it
+   simply grows to fit. The overflow property then has nothing to clip against
+   and the page scrolls instead of the table. This is the same auto-minimum that
+   the 1fr tracks had, one level down. */
+.kf-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-inline: contain; scrollbar-width: thin; min-width: 0; max-width: 100%; }
 .kf-table-scroll > * { min-width: max-content; }
 .kf-grid-aside { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 20px; align-items: start; }
 .kf-grid-main-aside { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; align-items: start; }
