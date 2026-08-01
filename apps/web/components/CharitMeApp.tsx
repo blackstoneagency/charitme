@@ -71,6 +71,7 @@ const adminNav = [
   // responds but had no way to say what happened or that anyone knew.
   ['Incidents & Maintenance', '/admin/incidents', 'audit'],
   ['Data Retention', '/admin/retention', 'sliders'],
+  ['Backups & Recovery', '/admin/backups', 'audit'],
   ['Supported Countries', '/admin/countries', 'globe'],
   ['⚙ Setup Diagnostic', '/admin/setup', 'check'],
 ] as const;
