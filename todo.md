@@ -133,10 +133,10 @@ full inventory — 60 designs measured against the 168 routes that exist — is 
 | Saved Causes `/dashboard/saved` | ✅ done | the other lane (`03d40df`) — **I built `/saved` in parallel and withdrew it**, see below |
 | System Status `/status` + `/api/status` | ✅ done | this lane |
 | #121 Advanced Search | ⬜ **unclaimed** | |
-| #98 Community Guidelines | ⬜ **unclaimed** | |
+| #98 Community Guidelines | 🚧 **claimed** | this lane (tbaz3i) — started 2026-08-01 14:05 |
 | #94 Ambassador programme | ⬜ **unclaimed** | |
-| #130 Fundraising Tools hub | ⬜ **unclaimed** | |
-| #131 Donation Widget Preview | ⬜ **unclaimed** | |
+| #130 Fundraising Tools hub | 🚧 **claimed** | this lane (tbaz3i) — started 2026-08-01 14:05 |
+| #131 Donation Widget Preview | 🚧 **claimed** | this lane (tbaz3i) — pairs with #130, same surface |
 | #137 Receipt Preview | ⬜ **unclaimed** | |
 | #141, #95, #109–112 | 🚫 owner decision | promise things that do not exist, or change how card data is collected |
 
