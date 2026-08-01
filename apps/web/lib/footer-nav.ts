@@ -81,6 +81,7 @@ export const FOOTER_SECTIONS: Record<FooterSectionName, readonly FooterLink[]> =
   ],
   Legal: [
     { label: 'Trust & Safety', href: '/trust-safety', labelKey: 'footer.link.trust_safety' },
+    { label: 'Community Guidelines', href: '/community-guidelines', labelKey: 'footer.link.community_guidelines' },
     { label: 'System Status', href: '/status', labelKey: 'footer.link.status' },
     { label: 'Our Impact', href: '/impact', labelKey: 'footer.link.impact' },
     { label: 'Transparency Center', href: '/transparency', labelKey: 'footer.link.transparency' },

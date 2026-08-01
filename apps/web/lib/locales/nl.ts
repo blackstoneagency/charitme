@@ -345,6 +345,7 @@ export const nl: Dictionary = {
   'footer.link.supported_countries': 'Ondersteunde landen',
   'footer.link.trust_safety': 'Vertrouwen en veiligheid',
   'footer.link.status': 'Systeemstatus',
+  'footer.link.community_guidelines': 'Communityrichtlijnen',
   'footer.link.impact': 'Onze impact',
   'footer.link.transparency': 'Transparantiecentrum',
   'footer.link.fees': 'Kostenbeleid',

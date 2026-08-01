@@ -347,6 +347,7 @@ export const es: Dictionary = {
   'footer.link.supported_countries': 'Países disponibles',
   'footer.link.trust_safety': 'Confianza y seguridad',
   'footer.link.status': 'Estado del sistema',
+  'footer.link.community_guidelines': 'Normas de la comunidad',
   'footer.link.impact': 'Nuestro impacto',
   'footer.link.transparency': 'Centro de transparencia',
   'footer.link.fees': 'Política de comisiones',

@@ -10,7 +10,7 @@
     "sweeps were auditing the login page under two other names and passing.",
     "",
     "Before adding a route to `public`, load it signed-out and confirm it renders",
-    "itself. If it redirects, it belongs in `authGated` instead \u2014 the sweeps assert",
+    "itself. If it redirects, it belongs in `authGated` instead — the sweeps assert",
     "the landed path matches the requested one and will fail loudly either way."
   ],
   "public": [
@@ -26,6 +26,7 @@
     "/careers",
     "/causes",
     "/causes/mental-health",
+    "/community-guidelines",
     "/contact",
     "/cookies",
     "/corporate-partnerships",
@@ -163,6 +164,7 @@
       "/dashboard/settings/mfa",
       "/dashboard/tax",
       "/dashboard/team",
+      "/dashboard/tools",
       "/dashboard/updates",
       "/dashboard/updates/new",
       "/dashboard/volunteer"
@@ -265,6 +267,10 @@
       {
         "template": "/dashboard/campaigns/[id]/updates",
         "path": "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/updates"
+      },
+      {
+        "template": "/dashboard/campaigns/[id]/widget",
+        "path": "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/widget"
       },
       {
         "template": "/dashboard/tax/fundraiser/[year]",

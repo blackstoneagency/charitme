@@ -326,6 +326,7 @@ export const en: Dictionary = {
   'footer.link.supported_countries': 'Supported Countries',
   'footer.link.trust_safety': 'Trust & Safety',
   'footer.link.status': 'System Status',
+  'footer.link.community_guidelines': 'Community Guidelines',
   'footer.link.impact': 'Our Impact',
   'footer.link.transparency': 'Transparency Center',
   'footer.link.fees': 'Fee Policy',

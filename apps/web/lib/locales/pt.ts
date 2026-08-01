@@ -345,6 +345,7 @@ export const pt: Dictionary = {
   'footer.link.supported_countries': 'Países suportados',
   'footer.link.trust_safety': 'Confiança e segurança',
   'footer.link.status': 'Estado do sistema',
+  'footer.link.community_guidelines': 'Diretrizes da comunidade',
   'footer.link.impact': 'O nosso impacto',
   'footer.link.transparency': 'Centro de transparência',
   'footer.link.fees': 'Política de taxas',

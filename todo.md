@@ -133,10 +133,10 @@ full inventory — 60 designs measured against the 168 routes that exist — is 
 | Saved Causes `/dashboard/saved` | ✅ done | the other lane (`03d40df`) — **I built `/saved` in parallel and withdrew it**, see below |
 | System Status `/status` + `/api/status` | ✅ done | this lane |
 | #121 Advanced Search | ⬜ **unclaimed** | |
-| #98 Community Guidelines | 🚧 **claimed** | this lane (tbaz3i) — started 2026-08-01 14:05 |
+| #98 Community Guidelines | ✅ done | this lane — `/community-guidelines` |
 | #94 Ambassador programme | ⬜ **unclaimed** | |
-| #130 Fundraising Tools hub | 🚧 **claimed** | this lane (tbaz3i) — started 2026-08-01 14:05 |
-| #131 Donation Widget Preview | 🚧 **claimed** | this lane (tbaz3i) — pairs with #130, same surface |
+| #130 Fundraising Tools hub | ✅ done | this lane — `/dashboard/tools` |
+| #131 Donation Widget Preview | ✅ done | this lane — `/dashboard/campaigns/[id]/widget` |
 | #137 Receipt Preview | ⬜ **unclaimed** | |
 | #141, #95, #109–112 | 🚫 owner decision | promise things that do not exist, or change how card data is collected |
 
@@ -15742,15 +15742,48 @@ and an unconfigured dependency is **degraded, never operational**.
 With `STRIPE_SECRET_KEY`/`RESEND_API_KEY` blanked: **"Some systems are degraded"**
 with two honest per-subsystem reasons. A green-only status page proves nothing.
 
+### 🟢 SHIPPED — #98, #130, #131 (2026-08-01)
+
+| # | Page | Route | Notes |
+|---|---|---|---|
+| 131 | Donation Widget Preview | `/dashboard/campaigns/[id]/widget` | Configurator with a **real iframe preview**, not a mock-up of one. |
+| 130 | Fundraising Tools | `/dashboard/tools` | A router, not a new feature — see below. |
+| 98 | Community Guidelines | `/community-guidelines` | Conduct standard + how reporting works. Deliberately not a second copy of the Prohibited Use Policy. |
+
+**#131 — the preview and the snippet are the same URL.** `lib/widget-embed.ts`
+(21 tests) builds both from one option set, and `/campaigns/[slug]/embed` parses
+them back with `parseWidgetOptions`. A hand-drawn preview panel is the failure
+this page exists to avoid: it looks right on the day the widget is broken, and it
+drifts the moment either side changes. Round-tripping is asserted directly.
+
+Three things the tests pin that are easy to get wrong:
+- **Default theme is `light`, not `auto`.** Widget snippets are already pasted on
+  third-party sites carrying no `theme` param, and `.campaign-embed` has always
+  painted light. Defaulting to `auto` would silently repaint every live widget.
+- **A malformed query renders the DEFAULT widget, never an error.** The visitor
+  inside a fundraiser's iframe cannot fix the URL; an error page there is a dead
+  donation box on someone else's site.
+- **Height is derived from the visible parts.** A fixed `height="500"` leaves a
+  blank band under a widget with the cover turned off, and nobody edits a pasted
+  snippet.
+
+**#130 — every tool on it already existed.** The QR poster, the widget, the share
+kit, the ledger, the FAQ builder, the thank-donor mailer: all reachable ONLY from
+a tab strip inside one campaign's workspace. A fundraiser had to already know a
+tool existed, and had to pick a campaign before they could find out what the
+platform could do. The page reads campaigns rather than hardcoding links, because
+a tools page whose links 404 for a user with no campaigns is worse than none.
+
+**#98 links to `/prohibited-use` rather than restating it.** Two pages that
+restate each other drift, and the day they disagree, which one a moderator quotes
+is a coin flip.
+
 ### 🔴 REMAINING GAPS (design → route)
 
 | # | Page | Status |
 |---|---|---|
 | 121 | Advanced Search | `/campaigns` has filters; no dedicated advanced-search route |
-| 98 | Community Guidelines | no route — content page, belongs in the footer legal column |
 | 94 | Affiliate / Ambassador | `/dashboard/referrals` exists; no public programme page |
-| 130 | Fundraising Tools | no route — hub for widget/QR/share assets that exist piecemeal |
-| 131 | Donation Widget Preview | `/campaigns/[slug]/embed` exists; no preview/configurator |
 | 137 | Receipt Preview | receipts send; no preview surface |
 | 141 | Mobile App Settings | no route — **needs a product decision, there is no mobile app** |
 | 95 | Roadmap / Coming Soon | no route — **needs owner input on what to promise** |
