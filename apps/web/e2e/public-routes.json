@@ -278,6 +278,10 @@
         "path": "/dashboard/tax/fundraiser/2025"
       },
       {
+        "template": "/donor/receipt/[donationId]",
+        "path": "/donor/receipt/dona0000-0000-4000-8000-000000000001"
+      },
+      {
         "template": "/donor/tax-statement/[year]",
         "path": "/donor/tax-statement/2025"
       },

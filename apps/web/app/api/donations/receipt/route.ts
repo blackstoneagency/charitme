@@ -2,33 +2,22 @@ import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { supabaseAdmin } from '../../../../lib/supabase';
-import { isAdmin } from '../../../../lib/roles';
 import { createClient } from '../../../../lib/supabase-server';
 import { sendReceiptEmail, sendTaxReceiptEmail } from '../../../../lib/email';
 import { formatCents } from '../../../../lib/stripe';
-import {
-  canAccessDonationReceipt,
-  normalizeReceiptEmail,
-} from '../../../../lib/tax-receipt-access';
+import { loadReceiptForUser } from '../../../../lib/receipt-load';
 import { checkRateLimitDurable } from '../../../../lib/rate-limit-durable';
 
 const Schema = z.object({ donationId: z.string().uuid() });
 
-type DonationRow = {
-  id: string;
-  donor_id: string | null;
-  amount_cents: number;
-  tip_cents: number | null;
-  processing_fee_cents: number | null;
-  currency: string | null;
-  campaign_id: string;
-  status: string;
-  created_at: string;
-  stripe_payment_intent_id: string | null;
-  stripe_checkout_session_id: string | null;
-  campaigns: { title: string; slug: string } | null;
-};
-
+/**
+ * POST resends the receipt. GET renders it for the preview surface.
+ *
+ * Both go through `loadReceiptForUser`, which owns the authorization. Splitting
+ * that check across two handlers is how a read-only surface ends up leaking
+ * donor names and amounts — the resend path gets the careful check and the
+ * "harmless" one gets a lighter version, and nothing looks wrong.
+ */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -45,85 +34,26 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'donationId required', code: 'INVALID_INPUT' }, { status: 400 });
   }
 
-  const { data: donation, error: donationError } = await supabaseAdmin
-    .from('donations')
-    .select('id, donor_id, amount_cents, tip_cents, processing_fee_cents, currency, campaign_id, status, created_at, stripe_payment_intent_id, stripe_checkout_session_id, campaigns:campaign_id(title, slug)')
-    .eq('id', parsed.data.donationId)
-    .maybeSingle();
-  if (donationError) {
-    return NextResponse.json({ error: 'Receipt data unavailable', code: 'RECEIPT_DATA_UNAVAILABLE' }, { status: 503 });
+  const loaded = await loadReceiptForUser(parsed.data.donationId, user);
+  if (!loaded.ok) {
+    return NextResponse.json({ error: loaded.error, code: loaded.code }, { status: loaded.status });
   }
-  if (!donation) {
-    return NextResponse.json({ error: 'Donation not found', code: 'NOT_FOUND' }, { status: 404 });
-  }
-  const don = donation as unknown as DonationRow;
-
-  const { data: receipt, error: receiptLoadError } = await supabaseAdmin
-    .from('donation_receipts')
-    .select('id, donor_id, donor_email, donor_name, receipt_number, receipt_type')
-    .eq('donation_id', don.id)
-    .limit(1)
-    .maybeSingle();
-  if (receiptLoadError) {
-    return NextResponse.json({ error: 'Receipt data unavailable', code: 'RECEIPT_DATA_UNAVAILABLE' }, { status: 503 });
-  }
-
-  const ownsReceipt = canAccessDonationReceipt({
-    userId: user.id,
-    userEmail: user.email,
-    donationDonorId: don.donor_id,
-    receiptDonorId: receipt?.donor_id ?? null,
-    receiptEmail: receipt?.donor_email ?? null,
-  });
-  if (!ownsReceipt && !(await isAdmin(user.id, user.email))) {
-    return NextResponse.json({ error: 'Forbidden', code: 'FORBIDDEN' }, { status: 403 });
-  }
-  if (don.status !== 'completed') {
-    return NextResponse.json({ error: 'Donation not completed', code: 'DONATION_NOT_COMPLETED' }, { status: 400 });
-  }
-  if (!don.campaigns) {
-    return NextResponse.json({ error: 'Campaign not found', code: 'CAMPAIGN_NOT_FOUND' }, { status: 404 });
-  }
-
-  const { data: profile } = don.donor_id
-    ? await supabaseAdmin
-      .from('profiles')
-      .select('full_name, email')
-      .eq('id', don.donor_id)
-      .maybeSingle()
-    : { data: null };
-  const donorEmail = normalizeReceiptEmail(
-    (profile as { email?: string | null } | null)?.email
-      ?? receipt?.donor_email
-      ?? (ownsReceipt ? user.email : null),
-  );
-  const donorName = (profile as { full_name?: string | null } | null)?.full_name
-    ?? receipt?.donor_name
-    ?? null;
+  const { donation: don, existingReceipt, taxReceipt, donorEmail, donorName } = loaded;
   if (!donorEmail) {
     return NextResponse.json({ error: 'No donor email on file', code: 'NO_RECIPIENT' }, { status: 422 });
   }
 
-  const { data: taxReceipt, error: taxReceiptError } = await supabaseAdmin
-    .from('tax_receipts')
-    .select('receipt_number, nonprofit_name, nonprofit_ein, campaign_title')
-    .eq('donation_id', don.id)
-    .maybeSingle();
-  if (taxReceiptError) {
-    return NextResponse.json({ error: 'Receipt data unavailable', code: 'RECEIPT_DATA_UNAVAILABLE' }, { status: 503 });
-  }
-
-  const amountFormatted = formatCents(don.amount_cents, don.currency ?? 'usd');
-  const delivery = taxReceipt?.nonprofit_name && taxReceipt.nonprofit_ein
+  const amountFormatted = formatCents(don.amountCents, don.currency);
+  const delivery = taxReceipt
     ? await sendTaxReceiptEmail({
       to: donorEmail,
       donorName,
-      nonprofitName: taxReceipt.nonprofit_name,
-      nonprofitEin: taxReceipt.nonprofit_ein,
-      campaignTitle: taxReceipt.campaign_title ?? don.campaigns.title,
+      nonprofitName: taxReceipt.nonprofitName,
+      nonprofitEin: taxReceipt.nonprofitEin,
+      campaignTitle: don.campaignTitle,
       amountFormatted,
-      receiptNumber: taxReceipt.receipt_number,
-      donationDate: new Date(don.created_at).toLocaleDateString(
+      receiptNumber: taxReceipt.receiptNumber,
+      donationDate: new Date(don.createdAt).toLocaleDateString(
         'en-US',
         { month: 'long', day: 'numeric', year: 'numeric' },
       ),
@@ -131,8 +61,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     : await sendReceiptEmail({
       to: donorEmail,
       donorName,
-      campaignTitle: don.campaigns.title,
-      campaignSlug: don.campaigns.slug,
+      campaignTitle: don.campaignTitle,
+      campaignSlug: don.campaignSlug,
       amountFormatted,
       donationId: don.id,
     });
@@ -144,34 +74,34 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   const deliveredAt = new Date().toISOString();
-  const receiptNumber = taxReceipt?.receipt_number
-    ?? receipt?.receipt_number
-    ?? `RCP-${new Date(don.created_at).getUTCFullYear()}-${don.id.slice(0, 8).toUpperCase()}`;
+  const receiptNumber = taxReceipt?.receiptNumber
+    ?? existingReceipt?.receiptNumber
+    ?? `RCP-${new Date(don.createdAt).getUTCFullYear()}-${don.id.slice(0, 8).toUpperCase()}`;
   const receiptValues = {
     donation_id: don.id,
-    donor_id: don.donor_id,
-    campaign_id: don.campaign_id,
+    donor_id: don.donorId,
+    campaign_id: don.campaignId,
     receipt_number: receiptNumber,
-    amount_cents: don.amount_cents,
-    tip_cents: don.tip_cents ?? 0,
-    processing_fee_cents: don.processing_fee_cents ?? 0,
-    currency: don.currency ?? 'usd',
+    amount_cents: don.amountCents,
+    tip_cents: don.tipCents,
+    processing_fee_cents: don.processingFeeCents,
+    currency: don.currency,
     is_tax_deductible: Boolean(taxReceipt),
-    nonprofit_ein: taxReceipt?.nonprofit_ein ?? null,
-    campaign_title: don.campaigns.title,
+    nonprofit_ein: taxReceipt?.nonprofitEin ?? null,
+    campaign_title: don.campaignTitle,
     donor_name: donorName,
     donor_email: donorEmail,
     email_sent_at: deliveredAt,
     resent_at: deliveredAt,
-    stripe_payment_intent_id: don.stripe_payment_intent_id,
-    stripe_checkout_session_id: don.stripe_checkout_session_id,
-    receipt_type: receipt?.receipt_type ?? 'donation',
+    stripe_payment_intent_id: don.stripePaymentIntentId,
+    stripe_checkout_session_id: don.stripeCheckoutSessionId,
+    receipt_type: existingReceipt?.receiptType ?? 'donation',
   };
-  const { error: receiptError } = receipt
+  const { error: receiptError } = existingReceipt
     ? await supabaseAdmin
       .from('donation_receipts')
       .update(receiptValues)
-      .eq('id', receipt.id)
+      .eq('id', existingReceipt.id)
     : await supabaseAdmin.from('donation_receipts').insert(receiptValues);
   if (receiptError) {
     return NextResponse.json({
@@ -182,4 +112,40 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   return NextResponse.json({ ok: true, receiptNumber });
+}
+
+/**
+ * The receipt itself, as HTML, for the preview iframe.
+ *
+ * Returns the document `sendReceiptEmail` would send — not a re-creation of it.
+ * `X-Frame-Options: SAMEORIGIN` because this is framed by our own page and by
+ * nothing else; `noindex` because a receipt must never reach a search engine.
+ */
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 });
+  }
+
+  const parsed = Schema.safeParse({ donationId: request.nextUrl.searchParams.get('donationId') ?? '' });
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'donationId required', code: 'INVALID_INPUT' }, { status: 400 });
+  }
+
+  const loaded = await loadReceiptForUser(parsed.data.donationId, user);
+  if (!loaded.ok) {
+    return NextResponse.json({ error: loaded.error, code: loaded.code }, { status: loaded.status });
+  }
+
+  return new NextResponse(loaded.mail.html, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'private, no-store',
+      'X-Frame-Options': 'SAMEORIGIN',
+      'X-Robots-Tag': 'noindex, nofollow',
+      'Referrer-Policy': 'no-referrer',
+    },
+  });
 }

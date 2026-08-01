@@ -138,8 +138,13 @@ full inventory — 60 designs measured against the 168 routes that exist — is 
 | #94 Ambassador programme | ✅ done | this lane — `/ambassadors`, tiers read from `lib/referrals.ts` |
 | #130 Fundraising Tools hub | ✅ done | this lane — `/dashboard/tools` |
 | #131 Donation Widget Preview | ✅ done | this lane — `/dashboard/campaigns/[id]/widget` |
-| #137 Receipt Preview | 🚧 **claimed** | this lane (tbaz3i) — extract the receipt HTML so the preview IS the sent receipt |
+| #137 Receipt Preview | ✅ done | this lane — `/donor/receipt/[donationId]` + `GET /api/donations/receipt` |
 | #141, #95, #109–112 | 🚫 owner decision | promise things that do not exist, or change how card data is collected |
+
+**Every design-deck page an agent can build is now built.** What is left in the
+deck is the four rows above, all of which need the owner rather than code:
+#141 and #95 would promise a mobile app and a roadmap that do not exist, and
+#109–112 would move card entry in-house.
 
 ## ⚠️ THIRD COLLISION — homepage, and how it was resolved (wcu7oh, 2026-08-01)
 
@@ -15867,12 +15872,43 @@ Footer balance: Ways to Give took Donor Wall and Ambassador Programme, so
 Verification moved into the Legal column to keep the four columns within one of
 each other net of the legal bar.
 
+### 🟢 SHIPPED — #137 Receipt Preview (2026-08-01)
+
+`/donor/receipt/[donationId]` frames `GET /api/donations/receipt`, which returns
+**the document `sendReceiptEmail` would send** — not a re-creation of it. The
+templates moved out of `lib/email.ts` into `lib/receipt-template.ts`, which
+imports neither Resend nor `server-only`, so the preview route and the tests can
+render a receipt with no email provider configured.
+
+**Three things this pass fixed that were not the feature:**
+
+1. **HTML injection in every receipt email.** The templates concatenated
+   `campaignTitle`, `donorName` and `nonprofitName` straight into HTML. All three
+   are user-controlled and the output is an email delivered to a donor — an
+   injection with a recipient list attached. Every interpolation is escaped now,
+   with tests that feed `</td></table><script>` through both templates.
+2. **Two authorization paths would have become one leak.** Loading and
+   authorization moved to `lib/receipt-load.ts`, used by the resend (POST) and
+   the preview (GET). A read-only surface with its own lighter check is how donor
+   names, amounts and email addresses escape, and nothing about the page looks
+   wrong. A test asserts the route file contains **no** authorization of its own
+   and calls `loadReceiptForUser` exactly twice.
+3. **A donor could only re-send a receipt, never look at one.** `/donor` offered
+   "Email receipt" and nothing else — the only way to see your own receipt was to
+   have it sent again and wait.
+
+403 and 404 both render `notFound()`, deliberately: distinguishing them confirms
+that a guessed donation id is real. The response carries `no-store`,
+`SAMEORIGIN`, `noindex` and `no-referrer`.
+
+`route-list-single-source` now scans all of `app/donor` instead of naming
+`tax-statement`, so the next gated dynamic page under `/donor` cannot be
+invisible to it.
+
 ### 🔴 REMAINING GAPS (design → route)
 
 | # | Page | Status |
 |---|---|---|
-| 121 | Advanced Search | `/campaigns` has filters; no dedicated advanced-search route |
-| 137 | Receipt Preview | receipts send; no preview surface |
 | 141 | Mobile App Settings | no route — **needs a product decision, there is no mobile app** |
 | 95 | Roadmap / Coming Soon | no route — **needs owner input on what to promise** |
 | 109–112 | 4-step donation checkout | ⚠️ **design conflicts with reality**: donations use Stripe-hosted Checkout. Rebuilding as 4 in-app steps means handling card data surface ourselves. Not a formatting task — flagging rather than silently doing it. |

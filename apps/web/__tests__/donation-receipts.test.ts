@@ -13,6 +13,10 @@ const read = (p: string) => readFileSync(join(WEB_ROOT, p), 'utf8');
 
 const ADMIN_ROUTE = 'app/api/admin/donations/[id]/receipt/route.ts';
 const DONOR_ROUTE = 'app/api/donations/receipt/route.ts';
+// The donor route's loading and authorization moved into this module so that the
+// resend (POST) and the preview (GET) share ONE authorization path. The
+// assertions below follow the behaviour to its new home rather than relaxing.
+const RECEIPT_LOAD = 'lib/receipt-load.ts';
 const STRIPE_WEBHOOK = 'app/api/stripe/webhook/route.ts';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -76,7 +80,7 @@ describe('receipt endpoints record only what actually happened', () => {
   });
 
   it('both routes address the donor, never the requesting user', () => {
-    const donor = read(DONOR_ROUTE);
+    const donor = read(RECEIPT_LOAD);
     expect(donor).toContain("canAccessDonationReceipt({");
     expect(donor).toContain(".eq('id', don.donor_id)");
     expect(donor).not.toMatch(/select\('full_name, email'\)\s*\n?\s*\.eq\('id', user\.id\)/);
@@ -101,7 +105,7 @@ describe('receipt endpoints record only what actually happened', () => {
   });
 
   it('authorises with isAdmin(), not a raw roles array check', () => {
-    const src = read(DONOR_ROUTE);
+    const src = read(RECEIPT_LOAD);
     expect(src).toContain('await isAdmin(');
     // The raw check missed hardcoded owner emails, ADMIN_EMAILS, and super admins
     // who do not also hold `admin`.
@@ -109,17 +113,36 @@ describe('receipt endpoints record only what actually happened', () => {
   });
 
   it('lets an authenticated former guest re-send only an unclaimed email-owned receipt', () => {
-    const src = read(DONOR_ROUTE);
+    const src = read(RECEIPT_LOAD);
     expect(src).toContain('canAccessDonationReceipt({');
     expect(src).toContain('receiptEmail: receipt?.donor_email ?? null');
     expect(src).toContain('if (!ownsReceipt && !(await isAdmin(');
   });
 
   it('preserves official tax receipt details on re-send', () => {
+    expect(read(RECEIPT_LOAD)).toContain("from('tax_receipts')");
     const src = read(DONOR_ROUTE);
-    expect(src).toContain("from('tax_receipts')");
     expect(src).toContain('await sendTaxReceiptEmail({');
-    expect(src).toContain('receiptNumber: taxReceipt.receipt_number');
+    expect(src).toContain('receiptNumber: taxReceipt.receiptNumber');
+  });
+
+  it('the preview and the resend share one authorization path', () => {
+    // Two implementations of "may this person see this receipt" is how a
+    // read-only surface leaks donor names, amounts and email addresses: the
+    // resend gets the careful check, the harmless-looking one gets a lighter
+    // version, and nothing about the resulting page looks wrong.
+    const src = read(DONOR_ROUTE);
+    expect(src).toContain('export async function GET');
+    const authInRoute = src.match(/canAccessDonationReceipt|isAdmin\(/g) ?? [];
+    expect(authInRoute, 'authorization belongs in receipt-load, not the route').toEqual([]);
+    expect((src.match(/await loadReceiptForUser\(/g) ?? []).length).toBe(2);
+  });
+
+  it('never lets a receipt be framed off-site or indexed', () => {
+    const src = read(DONOR_ROUTE);
+    expect(src).toContain("'X-Frame-Options': 'SAMEORIGIN'");
+    expect(src).toContain('noindex');
+    expect(src).toContain("'Cache-Control': 'private, no-store'");
   });
 
   it('durably rate limits donor and admin receipt sends', () => {
