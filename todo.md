@@ -191,8 +191,35 @@ had made up. Corrected status:
 | **174 Webhooks** | `outbound_webhook_endpoints` ✅ exists | only `/admin/system` — **no user-facing management UI** |
 | **146 Email Templates** | `marketing_email_templates` ✅ exists | only the admin automations route — **no template CRUD page** |
 
-Both are therefore buildable *now*, on the same footing as #148, and are the two
-to take next. Not claimed yet — whoever takes one, claim it here first.
+Both are therefore buildable *now*, on the same footing as #148.
+
+**✅ #146 Email Templates — BUILT** (this lane): `/admin/marketing/templates`, full
+CRUD on `marketing_email_templates`, linked from the marketing hub.
+**#174 Webhooks is still unclaimed** — whoever takes it, claim it here first.
+
+**🟠 FOUND while wiring #146 — automations pick a template ambiguously.**
+The automations runner resolves the template it is about to send with:
+
+```ts
+.eq('category', cfg.template_category ?? 'general').limit(1).maybeSingle()
+```
+
+No `order()`. With two templates in one category, **which one gets emailed is
+whatever Postgres returns first**, and that can differ between calls — the same
+ambiguous-resolution family as the `donation_forms.slug` collision, except the
+output here is a message to real contacts.
+
+Mitigated, not fixed: the API refuses to move a **built-in** template out of its
+category, and the UI flags any category holding more than one template. The
+underlying fix is a decision — either a unique index on `category` for system
+templates, or an explicit `template_id` on the automation config — so it is
+recorded rather than guessed at.
+
+⚠️ **A guard I wrote first protected the wrong field.** I asserted automations
+looked templates up *by name* and blocked renames on that basis. Reading the
+resolver showed it keys on **category**; the name is read by nothing. Had I
+shipped the assumption, the guard would have blocked a harmless edit while
+leaving the damaging one open.
 
 ⚠️ **This is why the deck is not "just build 17 pages".** 12 of them would land as
 code with no table behind them in production, repeating exactly the
