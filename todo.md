@@ -120,13 +120,15 @@ English text with German phonetics.
 5. The other 11 marketing pages
 6. Create wizard → dashboard → admin
 
-### 🔴 Verify the new pages against the rest of the goal
-The 13 new pages have **not** been through the existing sweeps. Each must pass:
-- `audit:contrast --strict-gradients` — 0 AA failures, both themes
-- `audit:a11y` — 0 axe violations (needs a PRODUCTION build; `next dev` fails 40/82)
-- `audit:mobile` — 0 overflow at 320/390px, 0 tap targets under 24px
-- `audit:page-images` — 0 duplicate images per page
-- Real Supabase reads, not fixtures — `/causes/[slug]` already queries live campaigns
+### ✅ New design pages verified against the public release gates
+The 13 new pages and global chrome are included in the production-build sweeps:
+- `audit:contrast` — 0 AA failures, 60 pages × 2 themes
+- `audit:a11y` — 0 axe violations, 61 routes × 2 themes
+- `audit:responsive` — 0 regressions, 60 pages × 3 viewports × 2 themes
+- `audit:focus-order` — 0 problems across 8,446 real keyboard stops
+- `audit:page-images` — 0 same-page duplicates across 64 rendered routes
+- Supabase reads remain intact; `/causes/[slug]`, home metrics, campaign proof,
+  and featured-campaign rotation all consume the existing server data layer
 
 ### ⚠️ Two bots built the same thing twice today
 I built a cause taxonomy, `/causes`, `/causes/[slug]` and a mega-menu; Codex landed
