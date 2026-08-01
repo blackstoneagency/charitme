@@ -788,6 +788,10 @@ export function buildFixtures() {
           // config and used the default".
           payment: { featuredCampaignPriceCents: 1750 },
           branding: { productName: 'CharitMe' },
+          maintenanceMode: false,
+          maintenanceMessage: 'We are making CharitMe better. Please check back soon.',
+          maintenanceExpectedBackAt: '',
+          supportEmail: 'support@charitme.com',
         },
         created_at: daysAgo(200),
         updated_at: daysAgo(1),

@@ -6,6 +6,7 @@ export type PlatformConfig = {
   platformName?: string; tagline?: string; supportEmail?: string; supportPhone?: string;
   currency?: string; platformFeePercent?: number; donationFeePercent?: number;
   defaultDonorTipPercent?: number; maintenanceMode?: boolean; allowNewRegistrations?: boolean;
+  maintenanceMessage?: string; maintenanceExpectedBackAt?: string;
   /** Stored under config.payment; surfaced here in DOLLARS and sent as cents. */
   featuredCampaignPriceDollars?: number;
 };
@@ -22,6 +23,14 @@ function Field({ label, k, value, type = 'text', ph, onSet }: { label: string; k
   );
 }
 
+function toDateTimeLocal(value: string | undefined): string {
+  if (!value) return '';
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return '';
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 16);
+}
+
 function Toggle({ label, k, on, warn, onSet }: { label: string; k: keyof PlatformConfig; on: boolean; warn?: boolean; onSet: (k: keyof PlatformConfig, v: unknown) => void }) {
   return (
     <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--t2)', padding: '8px 0' }}>
@@ -35,7 +44,10 @@ function Toggle({ label, k, on, warn, onSet }: { label: string; k: keyof Platfor
 }
 
 export default function SettingsClient({ config: initial }: { config: PlatformConfig }) {
-  const [c, setC] = useState<PlatformConfig>(initial);
+  const [c, setC] = useState<PlatformConfig>({
+    ...initial,
+    maintenanceExpectedBackAt: toDateTimeLocal(initial.maintenanceExpectedBackAt),
+  });
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const flash = (m: string) => { setToast(m); setTimeout(() => setToast(null), 3000); };
@@ -50,6 +62,9 @@ export default function SettingsClient({ config: initial }: { config: PlatformCo
       // alongside the cents value it duplicates.
       const { featuredCampaignPriceDollars, ...rest } = c;
       const payload: Record<string, unknown> = { ...rest };
+      payload.maintenanceExpectedBackAt = c.maintenanceExpectedBackAt
+        ? new Date(c.maintenanceExpectedBackAt).toISOString()
+        : '';
       const dollars = Number(featuredCampaignPriceDollars);
       if (Number.isFinite(dollars) && dollars > 0) {
         payload.featuredCampaignPriceCents = Math.round(dollars * 100);
@@ -62,6 +77,7 @@ export default function SettingsClient({ config: initial }: { config: PlatformCo
       const savedCents = Number((j.config?.payment as Record<string, unknown> | undefined)?.featuredCampaignPriceCents);
       setC({
         ...j.config,
+        maintenanceExpectedBackAt: toDateTimeLocal(j.config?.maintenanceExpectedBackAt),
         featuredCampaignPriceDollars: Number.isFinite(savedCents) && savedCents > 0 ? savedCents / 100 : undefined,
       });
       flash('Settings saved');
@@ -102,7 +118,30 @@ export default function SettingsClient({ config: initial }: { config: PlatformCo
       <section className="kf-card" style={{ padding: 18, marginTop: 18 }}>
         <h3 style={{ margin: '0 0 8px', fontSize: 15 }}>Platform controls</h3>
         <Toggle label="Allow new registrations" k="allowNewRegistrations" on={!!c.allowNewRegistrations} onSet={set} />
-        <Toggle label="Maintenance mode (shows a maintenance banner)" k="maintenanceMode" on={!!c.maintenanceMode} warn onSet={set} />
+        <Toggle label="Maintenance mode (redirects visitors to the maintenance page)" k="maintenanceMode" on={!!c.maintenanceMode} warn onSet={set} />
+        {c.maintenanceMode && (
+          <div className="super-maintenance-fields">
+            <label>
+              Maintenance message
+              <textarea
+                style={{ ...input, minHeight: 92, resize: 'vertical' }}
+                maxLength={240}
+                value={c.maintenanceMessage ?? ''}
+                placeholder="Tell visitors what is happening and when to check back."
+                onChange={(event) => set('maintenanceMessage', event.target.value)}
+              />
+              <span>{(c.maintenanceMessage ?? '').length}/240</span>
+            </label>
+            <Field
+              label="Expected return (optional)"
+              k="maintenanceExpectedBackAt"
+              value={c.maintenanceExpectedBackAt}
+              type="datetime-local"
+              onSet={set}
+            />
+            <a href="/maintenance" target="_blank" rel="noreferrer">Preview maintenance page</a>
+          </div>
+        )}
       </section>
 
       <div style={{ marginTop: 20, display: 'flex', gap: 12, alignItems: 'center' }}>

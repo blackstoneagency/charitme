@@ -133,6 +133,46 @@ test('the dropdown is operable by keyboard alone', async ({ page }) => {
   await expect(trigger).toHaveAttribute('aria-expanded', 'true');
 });
 
+test('a click pins the dropdown open until an explicit dismissal', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+
+  const trigger = page.locator('.kind-menu-trigger', { hasText: 'Explore Causes' });
+  await trigger.click();
+  await expect(page.locator('.kind-menu-panel')).toBeVisible();
+
+  await page.mouse.move(4, 500);
+  await expect(page.locator('.kind-menu-panel')).toBeVisible();
+
+  await page.mouse.down();
+  await page.mouse.up();
+  await expect(page.locator('.kind-menu-panel')).toHaveCount(0);
+});
+
+test('a hover-opened dropdown survives the gap into its panel', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+
+  const trigger = page.locator('.kind-menu-trigger', { hasText: 'Resources' });
+  await trigger.hover();
+  const panel = page.locator('.kind-menu-panel');
+  await expect(panel).toBeVisible();
+
+  const target = await panel.locator('a').first().boundingBox();
+  expect(target).not.toBeNull();
+  if (!target) throw new Error('Resources panel rendered no clickable link');
+  await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2, { steps: 12 });
+  await expect(panel).toBeVisible();
+});
+
+test('the dark-theme global navigation uses a true black surface', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+  await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
+
+  await expect(page.locator('.kind-header')).toHaveCSS('background-color', 'rgb(0, 0, 0)');
+});
+
 test('closed dropdowns keep their links out of the tab order', async ({ page }) => {
   // Keeping the panels mounted and hidden with CSS would leave ~34 extra tab
   // stops in the header of every page on the site.

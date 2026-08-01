@@ -198,7 +198,19 @@ function send(res, status, body, headers = {}) {
   res.end(payload);
 }
 
-const server = createServer((req, res) => {
+async function readJsonBody(req) {
+  const chunks = [];
+  for await (const chunk of req) chunks.push(chunk);
+  if (chunks.length === 0) return {};
+  try {
+    const parsed = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+const server = createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', `http://127.0.0.1:${PORT}`);
   const path = url.pathname;
 
@@ -226,10 +238,16 @@ const server = createServer((req, res) => {
   if (path.startsWith('/rest/v1/')) {
     const table = path.slice('/rest/v1/'.length);
 
-    // Writes are accepted and discarded. A sweep should never mutate anything,
-    // but a page that fires a write on render (last_seen_at, and similar) must
-    // not see a failure and switch to an error state.
+    // Most writes are accepted and discarded. A sweep should never mutate
+    // product data, but pages that write last_seen_at on render must not enter
+    // an error state. platform_settings is the one deliberate exception: the
+    // maintenance-mode audit must independently read back the operator's save.
     if (req.method && req.method !== 'GET' && req.method !== 'HEAD') {
+      if (table === 'platform_settings' && req.method === 'PATCH') {
+        const payload = await readJsonBody(req);
+        const { rows } = query(table, url.searchParams);
+        for (const row of rows) Object.assign(row, payload);
+      }
       return send(res, 201, [], { 'content-range': '*/1' });
     }
 
