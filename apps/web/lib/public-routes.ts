@@ -19,6 +19,13 @@ export const CHARITME_ORIGIN = 'https://www.charitme.com';
 
 export const INDEXABLE_PUBLIC_ROUTES: PublicRoute[] = [
   {
+    path: '/supporter-space',
+    title: 'Supporter Space',
+    description: 'Where should you give? Answered from live campaign data — what is closing soonest, verified, and furthest from its goal.',
+    priority: 0.8,
+    changeFrequency: 'daily',
+  },
+  {
     path: '/causes',
     title: 'Browse Causes',
     description: 'Explore every cause on CharitMe — medical, education, animals, environment, disaster relief, and more.',

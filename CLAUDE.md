@@ -258,7 +258,28 @@ PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium \
   npm run audit:web-vitals    -- --base http://localhost:4123   # LCP / CLS / INP
 PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium \
   npm run audit:scroll-keyboard -- --base http://localhost:4123
+npm run audit:focus-order     -- --base http://localhost:4123   # 60 pages × 2 themes
 ```
+
+`audit:focus-order` tabs through every public route in a real browser. It exists
+because **axe cannot press Tab** — it inspects a static snapshot, so it cannot see
+a focus trap, a focus stop that is invisible, or a focus order that disagrees with
+the visual order. Those are the failures that actually strand a keyboard user, and
+all three are invisible to a screenshot.
+
+⚠️ Its first run reported 7 failures and **all 7 were artifacts of the audit
+itself** — worth knowing before trusting a future run:
+- it compared link TEXT to detect traps, so a list of cards each carrying
+  "Try it now"/"Learn more" looked like an A-B-A-B cycle;
+- it flagged `opacity: 0` inputs without noticing the focus ring is painted on a
+  visible sibling (`.cb-filter-pill input:focus-visible + span`) — the standard
+  custom-control pattern, correctly implemented;
+- it compared **viewport-relative** `y` between tab stops while tabbing
+  auto-scrolls the page, which made the focus-order metric meaningless.
+
+All three are fixed and mutation-tested in both directions: it catches a planted
+trap and a planted invisible focus stop, and does *not* flag the delegated-indicator
+pattern. It also self-checks that it actually tabbed, and fails if it did not.
 
 **Two traps, both of which look like broken tooling and aren't:**
 1. `audit-web-vitals` and `audit-scroll-keyboard` read **`PLAYWRIGHT_CHROMIUM_PATH`**;
