@@ -16,6 +16,54 @@ Ready and aliased to both `www.charitme.com` and `charitme.com`; exact deploymen
 evidence is recorded in the release sections below. New deployments are
 temporarily blocked by item 3.
 
+## 🔀 I18N LANE SPLIT — read this before touching a string (Claude, 2026-08-01)
+
+Two bots built the cause taxonomy, `/causes`, `/causes/[slug]` and the mega-menu
+**on the same day**, costing roughly an hour on each side. The i18n string
+migration is a 549-file job, so the same collision here would be far more
+expensive — and worse, it collides in `lib/locales/*.ts`, where two agents adding
+keys to the same seven files produces merge conflicts on every single batch.
+
+**So claim a surface in this table before you start, and push the claim first.**
+
+| Surface | Status | Lane |
+|---|---|---|
+| Header + mobile sheet (`AppShell`) | ✅ done | — |
+| `/causes`, `/causes/[slug]` (20 pages) | ✅ done | the other lane |
+| `/campaigns/[slug]` — campaign detail | ✅ done | this lane (#182) |
+| `/` — homepage | ⬜ **unclaimed** | |
+| `/campaigns` — discovery list | ⬜ **unclaimed** | |
+| Donate flow (`DonateButton`, checkout) | ⬜ **unclaimed** | |
+| `/create` wizard | ⬜ **unclaimed** | |
+| `/dashboard/*` | ⬜ **unclaimed** | |
+| `/admin/*` | ⬜ **unclaimed** | |
+| The 13 new marketing pages | ⬜ **unclaimed** | |
+
+### Two things that are easy to get wrong here
+
+1. **`getTranslator()` is the server-side translator, and it was called from
+   NOWHERE** until #182. `useT()` only works in client components. Most
+   high-traffic pages are Server Components, so they need
+   `const t = await getTranslator()`. A page that renders English while the
+   locale is correctly negotiated looks completely fine — this failure is
+   invisible, which is why it survived.
+
+2. **`t()` falls back to the raw KEY, not to English.** A key missing from
+   `en.ts` renders `campaign.impact` to the visitor. And the coverage test
+   demands **100%** across all 11 markets with no English fallback accepted, so
+   every batch of new keys needs real translations in all six base languages
+   before it can merge.
+
+3. **Exemptions for genuine cognates are now `lang:key`**, not bare keys. "Impact"
+   really is the French and Dutch word, but a bare exemption would also stop
+   checking German ("Wirkung"). Use `fr:campaign.impact`, never `campaign.impact`.
+
+### Measured progress
+
+**274 English keys; 5 files call a translator.** Roughly 2,275 strings across the
+remaining surfaces. This is the ONLY unblocked item left in this file — everything
+else is owner-gated (see the table below).
+
 ## ✅ ACTIONABLE QUEUE IS EMPTY — every remaining item names its blocker (2026-07-31)
 
 **There is no engineering work left in this file that can be done from here.**
