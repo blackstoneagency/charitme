@@ -182,7 +182,8 @@
       "/dashboard/tools",
       "/dashboard/updates",
       "/dashboard/updates/new",
-      "/dashboard/volunteer"
+      "/dashboard/volunteer",
+      "/dashboard/webhooks"
     ],
     "redirects": [
       {

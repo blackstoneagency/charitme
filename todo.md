@@ -195,7 +195,39 @@ Both are therefore buildable *now*, on the same footing as #148.
 
 **✅ #146 Email Templates — BUILT** (this lane): `/admin/marketing/templates`, full
 CRUD on `marketing_email_templates`, linked from the marketing hub.
-**#174 Webhooks is still unclaimed** — whoever takes it, claim it here first.
+**✅ #174 Webhooks — BUILT** (this lane): `/dashboard/webhooks`, real endpoint
+CRUD on `outbound_webhook_endpoints` (second orphan table in this deck — shipped
+since 20260525002000, read only by a row count on `/admin/system`).
+
+**🔴 BUT the feature cannot actually deliver, and the schema is why.**
+Two findings, both of which stopped the design from being built as drawn:
+
+1. **Nothing dispatches an outbound webhook.** There is no sender anywhere in the
+   codebase, and no delivery-log table — `webhook_events` and
+   `campaign_payment_webhook_events` are both **inbound** Stripe records.
+2. **Signing is impossible on the current schema.** The table stores
+   `secret_hash` and nothing else. HMAC-signing a payload needs the **secret**,
+   and SHA-256 cannot be reversed to recover it. There is no key to sign with.
+
+So the design's *"Last Triggered"* column and *Webhook Logs* panel were
+**deliberately not built**. A "Last triggered: never" column implies a mechanism
+that would eventually fill it; `Delivered ✓` rows would be invented outright. The
+page says plainly that delivery is not live instead of implying it is.
+
+**Owner decision needed before delivery can ship** — pick one:
+| option | trade |
+|---|---|
+| store the secret **encrypted** (app-held key) | standard (Stripe does this); needs a key-management decision |
+| **asymmetric** signing — store a public key per endpoint | no shared secret to leak; subscribers must verify a signature |
+| sign with `secret_hash` itself | no migration, but the "hash" *becomes* the shared secret, so storing it plaintext-equivalent defeats the point |
+
+Plus a `webhook_deliveries` table for the log. Both are migrations, so they land
+inert until the runbook is run.
+
+**What IS production-ready here:** endpoint CRUD, https-only + private-host
+rejection (SSRF: `169.254.169.254` is the metadata endpoint), re-validated on
+**update** as well as create, closed event list, secret shown once and stored
+only as a hash, never returned by any route. 18 tests pin it.
 
 **🟠 FOUND while wiring #146 — automations pick a template ambiguously.**
 The automations runner resolves the template it is about to send with:
