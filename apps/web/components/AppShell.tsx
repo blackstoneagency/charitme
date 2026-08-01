@@ -11,6 +11,7 @@ import FooterLocalePicker from './FooterLocalePicker';
 import { useT } from './LocaleProvider';
 import { FOOTER_LEGAL_BAR, FOOTER_SETTINGS_DEFAULTS, resolveFooterSections, type FooterSettings } from '../lib/footer-nav';
 import { MAIN_NAV, flattenNav, type NavItem } from '../lib/main-nav';
+import { getPhotosForCategory } from '../lib/photo-catalog';
 
 // Structure lives in lib/main-nav.ts so the desktop bar and the mobile sheet
 // render from ONE source. When each held its own list, a link added to one
@@ -31,6 +32,36 @@ const ACCOUNT_MENU = [
 // lists here by hand is how "Terms of Service" and "Terms" ended up as two links
 // to /terms in the same footer.
 const FOOTER_SECTIONS_RENDERED = resolveFooterSections();
+
+const CAUSE_PROMO_IMAGES = [
+  { src: getPhotosForCategory('Sports', 2)[1], alt: 'A young athlete on a football field' },
+  { src: getPhotosForCategory('Community', 3)[2], alt: 'Volunteers working together' },
+  { src: getPhotosForCategory('Animal', 2)[1], alt: 'A dog outdoors' },
+  { src: getPhotosForCategory('Education', 2)[1], alt: 'A student learning in a classroom' },
+  { src: getPhotosForCategory('Medical', 2)[1], alt: 'A caregiver supporting a patient' },
+  { src: getPhotosForCategory('Environment', 2)[1], alt: 'People caring for the environment' },
+] as const;
+
+const RESOURCE_PROMO_IMAGE = getPhotosForCategory('Community', 4)[3];
+
+const MENU_ICON_PATHS = [
+  <><circle key="a" cx="12" cy="12" r="8" /><path key="b" d="m8 15 3-6 2 3 3-4" /></>,
+  <><path key="a" d="M4 12c2-5 6-7 8-2 2-5 6-3 8 2-2 5-6 8-8 9-2-1-6-4-8-9Z" /><path key="b" d="M7 13h10" /></>,
+  <><path key="a" d="m3 11 9-8 9 8" /><path key="b" d="M5 10v10h14V10M9 20v-6h6v6" /></>,
+  <><path key="a" d="M3 12h4l2-5 4 10 2-5h6" /><path key="b" d="M4 5a4 4 0 0 1 7-1l1 1 1-1a4 4 0 0 1 7 1" /></>,
+  <><path key="a" d="M3 8l9-5 9 5-9 5-9-5Z" /><path key="b" d="M7 11v5c3 3 7 3 10 0v-5" /></>,
+  <><circle key="a" cx="7" cy="8" r="2" /><circle key="b" cx="17" cy="8" r="2" /><path key="c" d="M5 20v-3a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v3" /></>,
+] as const;
+
+function MenuLinkIcon({ index }: { index: number }) {
+  return (
+    <span className="kind-menu-link-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        {MENU_ICON_PATHS[index % MENU_ICON_PATHS.length]}
+      </svg>
+    </span>
+  );
+}
 
 // Bypass the public marketing shell for routes that have their own shell (dashboard/admin)
 // NOTE: /campaigns is intentionally NOT bypassed — public campaign pages need the header
@@ -139,19 +170,26 @@ function NavMenu({
       {/* Rendered only when open. Keeping it mounted and hidden with CSS would
           leave up to 20 links in the tab order on every page of the site. */}
       {open && (
-        <div id={`nav-panel-${item.id}`} className={`kind-menu-panel align-${align}`}>
+        <div id={`nav-panel-${item.id}`} className={`kind-menu-panel kind-menu-panel-${item.id} align-${align}`}>
+          <div className={`kind-menu-layout kind-menu-layout-${item.id}`}>
           <div className="kind-menu-cols" data-cols={item.columns.length}>
-            {item.columns.map((col) => (
+            {item.columns.map((col, columnIndex) => (
               <div key={col.heading} className="kind-menu-col">
                 <h2 className="kind-menu-heading">{col.headingKey ? t(col.headingKey) : col.heading}</h2>
                 <ul>
-                  {col.links.map((link) => (
+                  {col.links.map((link, linkIndex) => (
                     <li key={`${col.heading}-${link.href}-${link.label}`}>
                       <Link href={link.href} onClick={() => onClose(false)}>
-                        <span className="kind-menu-label">{link.labelKey ? t(link.labelKey) : link.label}</span>
-                        {link.description && (
-                          <span className="kind-menu-desc">{link.description}</span>
-                        )}
+                        <MenuLinkIcon index={(columnIndex * 3) + linkIndex} />
+                        <span className="kind-menu-link-copy">
+                          <span className="kind-menu-label">{link.labelKey ? t(link.labelKey) : link.label}</span>
+                          {link.description && (
+                            <span className="kind-menu-desc">{link.description}</span>
+                          )}
+                        </span>
+                        <svg className="kind-menu-link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="m9 18 6-6-6-6" />
+                        </svg>
                       </Link>
                     </li>
                   ))}
@@ -163,6 +201,37 @@ function NavMenu({
                 )}
               </div>
             ))}
+          </div>
+          {item.id === 'explore-causes' ? (
+            <aside className="kind-menu-promo kind-menu-promo-causes" aria-label="Explore every cause">
+              <h2>Find a Cause<br />That Speaks to You</h2>
+              <p>Explore hundreds of causes making a real difference every day.</p>
+              <Link className="kind-menu-promo-cta" href="/causes" onClick={() => onClose(false)}>
+                Browse All Causes <span aria-hidden="true">&#8594;</span>
+              </Link>
+              <div className="kind-menu-mosaic">
+                {CAUSE_PROMO_IMAGES.map((image) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img key={image.src} src={image.src} alt={image.alt} width={220} height={150} loading="lazy" />
+                ))}
+              </div>
+              <div className="kind-menu-promo-note"><span aria-hidden="true">&#10022;</span> Every cause. Every community.<br />Every act of kindness matters.</div>
+            </aside>
+          ) : (
+            <aside className="kind-menu-promo kind-menu-promo-resources" aria-label="Resource center">
+              <h2>Resources to<br />Inspire Action</h2>
+              <p>Knowledge, tools, and support to help you make a bigger difference.</p>
+              <Link className="kind-menu-promo-cta" href="/help" onClick={() => onClose(false)}>
+                Visit Resource Center <span aria-hidden="true">&#8594;</span>
+              </Link>
+              <div className="kind-menu-resource-photo">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={RESOURCE_PROMO_IMAGE} alt="Hands joined in support" width={460} height={300} loading="lazy" />
+                <span aria-hidden="true">&#9825;</span>
+              </div>
+              <div className="kind-menu-promo-note"><span aria-hidden="true">&#10022;</span> Together, we have the power<br />to build a better tomorrow.</div>
+            </aside>
+          )}
           </div>
         </div>
       )}

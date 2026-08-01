@@ -66,7 +66,7 @@ describe('per-campaign covers never use the per-category helper', () => {
     const calls = [...src.matchAll(/getCoverForCategory\([^)]*\)/g)];
     expect(calls.length, 'unexpected getCoverForCategory call — is it per-campaign?').toBe(1);
     const at = src.indexOf(calls[0][0]);
-    expect(src.slice(Math.max(0, at - 400), at)).toContain('home-cause-media');
+    expect(src.slice(Math.max(0, at - 400), at)).toMatch(/(?:home|mirror)-cause-media/);
   });
 
   it('CampaignImage prefers the campaign-keyed cover when given a key', () => {

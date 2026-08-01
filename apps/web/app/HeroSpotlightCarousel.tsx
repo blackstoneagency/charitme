@@ -44,7 +44,13 @@ function Ic({ name, className = 'hi' }: { name: string; className?: string }) {
   );
 }
 
-export default function HeroSpotlightCarousel({ items }: { items: HeroSpotItem[] }) {
+export default function HeroSpotlightCarousel({
+  items,
+  variant = 'card',
+}: {
+  items: HeroSpotItem[];
+  variant?: 'card' | 'mirror';
+}) {
   const count = items.length;
   const [active, setActive] = useState(0);
   const [fading, setFading] = useState(false);
@@ -82,6 +88,19 @@ export default function HeroSpotlightCarousel({ items }: { items: HeroSpotItem[]
     return () => clearInterval(t);
   }, [active, count, paused, goTo]);
 
+  if (count === 0 && variant === 'mirror') {
+    return (
+      <aside className="mirror-hero-story">
+        <span className="mirror-story-icon"><Ic name="heart" /></span>
+        <div>
+          <h2>Real People.<br />Real Impact.</h2>
+          <p>Every act of kindness creates a story worth sharing.</p>
+          <Link href="/success-stories">View Stories <Ic name="arrow" /></Link>
+        </div>
+      </aside>
+    );
+  }
+
   if (count === 0) {
     // No live campaigns yet — static invitation card (no controls).
     return (
@@ -102,6 +121,35 @@ export default function HeroSpotlightCarousel({ items }: { items: HeroSpotItem[]
 
   const c = items[active];
   const fadeStyle = { transition: 'opacity .28s ease', opacity: fading ? 0 : 1 } as const;
+
+  if (variant === 'mirror') {
+    return (
+      // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+      <div
+        className="mirror-hero-story"
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+        onFocusCapture={() => setPaused(true)}
+        onBlurCapture={() => setPaused(false)}
+        aria-roledescription="carousel"
+        aria-label="Featured campaigns"
+      >
+        <span className="mirror-story-icon"><Ic name="heart" /></span>
+        <div style={fadeStyle}>
+          <p className="mirror-story-label">Featured campaign</p>
+          <h2>{c.title}</h2>
+          <p>{formatMoneyCompact(c.raised, c.currency)} raised by {c.backers.toLocaleString()} donors.</p>
+          <Link href={c.href}>View Campaign <Ic name="arrow" /></Link>
+        </div>
+        {count > 1 && (
+          <div className="mirror-story-clock" aria-hidden="true">
+            <span key={active} className={paused ? 'is-paused' : ''} />
+          </div>
+        )}
+        <p className="sr-only" aria-live="polite">Featured campaign {active + 1} of {count}: {c.title}</p>
+      </div>
+    );
+  }
 
   return (
     // Pause-on-hover is a mouse enhancement; keyboard users get the equivalent via
