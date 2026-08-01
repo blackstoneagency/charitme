@@ -15169,3 +15169,66 @@ Blocked on the owner, and no further sandbox work moves them:
 **Highest-leverage owner action: allowlist `*.supabase.co`,
 `images.unsplash.com` and `www.charitme.com` for the sandbox.** That single
 change converts four blocked goal lines into work an agent can finish.
+
+## 🎨 DESIGN-DECK BUILD-OUT (pages 84–143) — Claude lane, started 2026-08-01
+
+Owner asked for all ~60 designed pages to be real, wired to Supabase, and
+navigable. **Inventory first** — most already exist, so the value is in finding
+the ones that do not rather than rebuilding what does.
+
+Mapped all 60 designs against the **168 routes** that exist today.
+
+### ✅ Already shipped (46 of 60)
+Admin Dashboard `/admin` · Manage Campaigns `/admin/campaigns` · Payouts
+`/admin/payouts` · Notifications `/dashboard/notifications` · Messages
+`/dashboard/messages` · Badges `/achievements` · Leaderboard `/leaderboard` ·
+Developers `/developers` · Privacy `/privacy` · Terms `/terms` · Cookies
+`/cookies` · Account Settings `/dashboard/settings` · 2FA
+`/dashboard/settings/mfa` · Roles `/admin/super/roles` · Thank You `/give/thanks`
+· Recurring `/dashboard/recurring` · Tax Receipt `/donor/tax-statement/[year]` ·
+Impact Stories `/success-stories` + `/impact` · Create a Cause `/create` ·
+Contact `/contact` · Explore `/campaigns` · Campaign Updates
+`/dashboard/updates` · Campaign Analytics `/dashboard/campaigns/[id]/analytics` ·
+Team `/dashboard/team` · Events `/events` + `/events/[slug]` · Reports
+`/admin/reports` · User Management `/admin/users` · Payouts History
+`/admin/payouts` · Donation Receipts `/admin/donations` · System Settings
+`/admin/settings` · Audit Log `/admin/audit-log` · API Keys
+`/dashboard/developers` · Help Center `/help` · Onboarding `/admin/setup` …
+
+### 🟢 SHIPPED THIS PASS
+
+| # | Page | Route | Notes |
+|---|---|---|---|
+| 122 | Saved / Bookmarked Causes | `/saved` | ⚠️ `saved_campaigns` had a table, RLS, a working `GET/POST /api/saved-campaigns` **and a save button on every campaign** — with **no destination**. The feature was write-only: you could bookmark causes and never see them. Fourth instance of the "shipped but unreachable" shape (after `creator_profiles`, `api_keys`, `exclusive_posts`). Server-rendered; private/deleted campaigns are excluded so a bookmark cannot resurface something the owner withdrew. |
+| 107 | System Status | `/status` + `/api/status` | Distinct from `/api/health`, which gates diagnostics behind an admin session and so cannot back a public page. **Every subsystem is probed**, nothing hardcoded green. Exposes no counts, key values or error text — "is it working", not "what is it". |
+
+**Why the status page has its own pure module** (`lib/status-core.ts`, 11 tests):
+a status page that reads "All systems operational" because the string is
+hardcoded is *worse than none* — it turns an outage into a contradiction the
+visitor cannot resolve and is indistinguishable from a working page on the day it
+matters. `overallStatus` takes the **worst** subsystem, never an average
+(averaging is how three broken things out of ten become "mostly operational"),
+and an unconfigured dependency is **degraded, never operational**.
+
+⚠️ **Verified in both directions.** With keys present: "All systems operational".
+With `STRIPE_SECRET_KEY`/`RESEND_API_KEY` blanked: **"Some systems are degraded"**
+with two honest per-subsystem reasons. A green-only status page proves nothing.
+
+### 🔴 REMAINING GAPS (design → route)
+
+| # | Page | Status |
+|---|---|---|
+| 121 | Advanced Search | `/campaigns` has filters; no dedicated advanced-search route |
+| 98 | Community Guidelines | no route — content page, belongs in the footer legal column |
+| 94 | Affiliate / Ambassador | `/dashboard/referrals` exists; no public programme page |
+| 130 | Fundraising Tools | no route — hub for widget/QR/share assets that exist piecemeal |
+| 131 | Donation Widget Preview | `/campaigns/[slug]/embed` exists; no preview/configurator |
+| 137 | Receipt Preview | receipts send; no preview surface |
+| 141 | Mobile App Settings | no route — **needs a product decision, there is no mobile app** |
+| 95 | Roadmap / Coming Soon | no route — **needs owner input on what to promise** |
+| 109–112 | 4-step donation checkout | ⚠️ **design conflicts with reality**: donations use Stripe-hosted Checkout. Rebuilding as 4 in-app steps means handling card data surface ourselves. Not a formatting task — flagging rather than silently doing it. |
+| 92 | Mobile app screens | design artifact, not a web page — no action |
+
+**Not started, deliberately**: 141 and 95 promise things that do not exist, and
+109–112 would change how card data is collected. Those want an owner decision
+before code.

@@ -56,6 +56,7 @@
     "/roles",
     "/security",
     "/sponsor",
+    "/status",
     "/success-stories",
     "/supported-countries",
     "/terms",
@@ -74,6 +75,7 @@
       "/matching/manage",
       "/privacy-center",
       "/profile",
+      "/saved",
       "/sponsor/manage",
       "/volunteer/hours"
     ],

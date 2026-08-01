@@ -70,6 +70,7 @@ export const FOOTER_SECTIONS: Record<FooterSectionName, readonly FooterLink[]> =
   ],
   Legal: [
     { label: 'Trust & Safety', href: '/trust-safety' },
+    { label: 'System Status', href: '/status' },
     { label: 'Our Impact', href: '/impact' },
     { label: 'Transparency Center', href: '/transparency' },
     { label: 'Fee Policy', href: '/fees' },

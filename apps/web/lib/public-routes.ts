@@ -100,6 +100,15 @@ export const INDEXABLE_PUBLIC_ROUTES: PublicRoute[] = [
     changeFrequency: 'daily',
   },
   {
+    // Public status. Indexed on purpose: during an incident people search for
+    // "charitme status", and a status page nobody can find is not a status page.
+    path: '/status',
+    title: 'System Status',
+    description: 'Live operational status of CharitMe campaigns, donations, accounts and email.',
+    priority: 0.5,
+    changeFrequency: 'always',
+  },
+  {
     path: '/for-donors',
     title: 'Giving For Donors',
     description: 'Find trusted campaigns, give quickly, and follow the impact of your donations.',

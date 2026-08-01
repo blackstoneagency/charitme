@@ -9,6 +9,7 @@ export type DashboardNavItem = Readonly<{
 
 const DASHBOARD = { label: 'Dashboard', href: '/dashboard', icon: 'home' } as const;
 const GIVING_HISTORY = { label: 'Giving History', href: '/donor', icon: 'gift' } as const;
+const SAVED_CAUSES = { label: 'Saved Causes', href: '/saved', icon: 'gift' } as const;
 const TAX_DOCUMENTS = { label: 'Tax Documents', href: '/dashboard/tax', icon: 'doc' } as const;
 const VOLUNTEERING = { label: 'Volunteering', href: '/dashboard/volunteer', icon: 'team' } as const;
 const MESSAGES = { label: 'Messages', href: '/dashboard/messages', icon: 'chat' } as const;
@@ -17,6 +18,7 @@ const SETTINGS = { label: 'Settings', href: '/dashboard/settings', icon: 'gear' 
 const DONOR_NAV: readonly DashboardNavItem[] = [
   DASHBOARD,
   GIVING_HISTORY,
+  SAVED_CAUSES,
   TAX_DOCUMENTS,
   { label: 'Recurring Gifts', href: '/dashboard/recurring', icon: 'gift' },
   VOLUNTEERING,
@@ -51,6 +53,7 @@ const BENEFICIARY_NAV: readonly DashboardNavItem[] = [
   DASHBOARD,
   { label: 'Campaigns for You', href: '/dashboard/beneficiary', icon: 'gift' },
   GIVING_HISTORY,
+  SAVED_CAUSES,
   TAX_DOCUMENTS,
   VOLUNTEERING,
   MESSAGES,
