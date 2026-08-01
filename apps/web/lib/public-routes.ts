@@ -389,6 +389,13 @@ export const INDEXABLE_PUBLIC_ROUTES: PublicRoute[] = [
     changeFrequency: 'weekly',
   },
   {
+    path: '/changelog',
+    title: 'Product Changelog',
+    description: 'New features, improvements and fixes shipped to CharitMe, by date.',
+    priority: 0.5,
+    changeFrequency: 'weekly',
+  },
+  {
     path: '/success-stories',
     title: 'Fundraising Success Stories',
     description: 'Learn from successful campaigns and real fundraising playbooks on CharitMe.',

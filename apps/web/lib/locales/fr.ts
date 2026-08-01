@@ -353,6 +353,7 @@ export const fr: Dictionary = {
   'footer.link.for_individuals': 'Pour les particuliers',
   'footer.link.for_donors': 'Pour les donateurs',
   'footer.link.blog': 'Blog',
+  'footer.link.changelog': 'Nouveautés',
   'footer.link.help': 'Centre d’aide',
   'footer.link.faq': 'FAQ',
   'footer.link.supported_countries': 'Pays pris en charge',

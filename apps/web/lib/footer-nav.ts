@@ -83,6 +83,7 @@ export const FOOTER_SECTIONS: Record<FooterSectionName, readonly FooterLink[]> =
     { label: 'For Individuals', href: '/for-individuals', labelKey: 'footer.link.for_individuals' },
     { label: 'For Donors', href: '/for-donors', labelKey: 'footer.link.for_donors' },
     { label: 'Blog', href: '/blog', labelKey: 'footer.link.blog' },
+    { label: 'Changelog', href: '/changelog', labelKey: 'footer.link.changelog' },
     { label: 'Help Center', href: '/help', labelKey: 'footer.link.help' },
     { label: 'FAQ', href: '/faq', labelKey: 'footer.link.faq' },
     { label: 'Supported Countries', href: '/supported-countries', labelKey: 'footer.link.supported_countries' },

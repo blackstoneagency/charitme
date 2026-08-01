@@ -352,6 +352,7 @@ export const nl: Dictionary = {
   'footer.link.for_individuals': 'Voor particulieren',
   'footer.link.for_donors': 'Voor donateurs',
   'footer.link.blog': 'Blog',
+  'footer.link.changelog': 'Wijzigingen',
   'footer.link.help': 'Helpcentrum',
   'footer.link.faq': 'Veelgestelde vragen',
   'footer.link.supported_countries': 'Ondersteunde landen',

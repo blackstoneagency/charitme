@@ -354,6 +354,7 @@ export const es: Dictionary = {
   'footer.link.for_individuals': 'Para particulares',
   'footer.link.for_donors': 'Para donantes',
   'footer.link.blog': 'Blog',
+  'footer.link.changelog': 'Novedades',
   'footer.link.help': 'Centro de ayuda',
   'footer.link.faq': 'Preguntas frecuentes',
   'footer.link.supported_countries': 'Países disponibles',
