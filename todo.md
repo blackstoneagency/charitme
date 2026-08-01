@@ -132,7 +132,8 @@ full inventory — 60 designs measured against the 168 routes that exist — is 
 |---|---|---|
 | Saved Causes `/dashboard/saved` | ✅ done | the other lane (`03d40df`) — **I built `/saved` in parallel and withdrew it**, see below |
 | System Status `/status` + `/api/status` | ✅ done | this lane |
-| #121 Advanced Search | ⬜ **unclaimed** | |
+| #121 Advanced Search | 🚧 **claimed** | this lane (tbaz3i) — `/search` ALREADY EXISTS and is linked from nowhere; this is nav wiring, not a build |
+| Nav orphans (10 indexable routes) | 🚧 **claimed** | this lane (tbaz3i) — measured 2026-08-01, see below |
 | #98 Community Guidelines | ✅ done | this lane — `/community-guidelines` |
 | #94 Ambassador programme | ⬜ **unclaimed** | |
 | #130 Fundraising Tools hub | ✅ done | this lane — `/dashboard/tools` |
@@ -161,6 +162,30 @@ that was not duplicated.
 
 **The lesson, third time running:** pushing the claim to a BRANCH is not
 claiming. Push the claim to master before starting.
+
+## ⚠️ MEASURED: 10 indexable public routes are linked from NOWHERE (2026-08-01)
+
+Checked every `INDEXABLE_PUBLIC_ROUTES` path against the union of the header
+mega-menu (`flattenNav()`) and both footer structures. **59 indexable routes, 10
+with no inbound link from the global chrome:**
+
+```
+/search   /teams   /donor-wall   /supporter-space   /causes/mental-health
+/get-involved   /gallery   /careers   /   /roles
+```
+
+`/` is reachable via the logo. The other nine are in the sitemap, are crawlable,
+and cannot be reached by a human using the site — the same "shipped but
+unreachable" shape as `saved_campaigns`, `creator_profiles`, `api_keys` and
+`exclusive_posts`, but for whole pages.
+
+**`/search` is the sharpest case, and it is design #121.** The header's
+magnifying-glass button is labelled *"Search campaigns"* and links to
+`/campaigns`. The one control on the site that says *search* does not reach the
+search page — which already supports query, cause, location and sort. So #121
+needed wiring, not building.
+
+Being fixed in this lane.
 
 ## 🔀 I18N LANE SPLIT — read this before touching a string (Claude, 2026-08-01)
 
