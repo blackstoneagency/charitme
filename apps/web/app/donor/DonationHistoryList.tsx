@@ -187,6 +187,12 @@ export default function DonationHistoryList({
                   }}>{d.status}</span>
                   {d.status === 'completed' && (
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                      {/* "Email receipt" alone gave a donor no way to LOOK at
+                          the receipt — only to have it sent again and wait. */}
+                      <Link href={`/donor/receipt/${d.id}`}
+                        style={{ fontSize: 11, fontWeight: 600, color: 'var(--brand-text)', textDecoration: 'none' }}>
+                        View receipt
+                      </Link>
                       <ReceiptButton donationId={d.id} />
                       <Link href={`/dashboard/refund?donation_id=${d.id}`}
                         style={{ fontSize: 11, color: 'var(--t3)', textDecoration: 'none' }}>

@@ -9,6 +9,7 @@ import SharePanel from './SharePanel';
 import ThankDonorsPanel from './ThankDonorsPanel';
 import LedgerPanel from './LedgerPanel';
 import FaqsPanel from './FaqsPanel';
+import WidgetPanel from './WidgetPanel';
 import EditCampaignPanel from './EditCampaignPanel';
 import UpdatesPanel from './UpdatesPanel';
 import AnalyticsPanel from './AnalyticsPanel';
@@ -16,7 +17,7 @@ import SettingsPanel from './SettingsPanel';
 
 type ToolKey =
   | 'supporters' | 'share' | 'thank-donors' | 'ledger' | 'faqs'
-  | 'qr-poster' | 'updates' | 'analytics' | 'settings' | 'edit';
+  | 'qr-poster' | 'widget' | 'updates' | 'analytics' | 'settings' | 'edit';
 
 const TOOLS: { key: ToolKey; icon: string; label: string; desc: string }[] = [
   { key: 'supporters', icon: 'users', label: 'My Supporters', desc: 'Donor CRM + re-engagement' },
@@ -25,6 +26,7 @@ const TOOLS: { key: ToolKey; icon: string; label: string; desc: string }[] = [
   { key: 'ledger', icon: 'doc', label: 'Fund Ledger', desc: 'Track how funds are used' },
   { key: 'faqs', icon: 'doc', label: 'Manage FAQs', desc: 'AI-generated Q&A' },
   { key: 'qr-poster', icon: 'send', label: 'Print QR Poster', desc: 'Download & print' },
+  { key: 'widget', icon: 'link', label: 'Donation Widget', desc: 'Embed on your site' },
   { key: 'updates', icon: 'doc', label: 'Post Update', desc: 'Keep donors informed' },
   { key: 'analytics', icon: 'chart', label: 'Analytics', desc: 'Trends & attribution' },
   { key: 'settings', icon: 'settings', label: 'Settings', desc: 'Visibility & donations' },
@@ -122,6 +124,7 @@ export default function CampaignWorkspace({
         {activeTool === 'ledger' && <LedgerPanel campaignId={campaignId} />}
         {activeTool === 'faqs' && <FaqsPanel campaignId={campaignId} />}
         {activeTool === 'qr-poster' && <QrPosterPanel campaignId={campaignId} />}
+        {activeTool === 'widget' && <WidgetPanel campaignId={campaignId} />}
         {activeTool === 'updates' && <UpdatesPanel campaignId={campaignId} />}
         {activeTool === 'analytics' && <AnalyticsPanel campaignId={campaignId} />}
         {activeTool === 'settings' && <SettingsPanel campaignId={campaignId} />}

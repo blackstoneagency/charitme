@@ -51,7 +51,13 @@ describe('header structure', () => {
     expect(causes.columns.every((c) => c.footer?.href === '/causes')).toBe(true);
 
     expect(resources.columns.map((c) => c.heading)).toEqual(['Learn', 'Get Involved', 'For Organizations']);
-    expect(resources.columns.map((c) => c.links.length)).toEqual([4, 4, 4]);
+    // Six apiece, not the original four: a sweep of INDEXABLE_PUBLIC_ROUTES
+    // against the header and footer found ten public pages with no inbound link
+    // anywhere in the global chrome, and /roles, /supporter-space, /teams and
+    // /get-involved belong in this menu. The columns are still EQUAL, which is
+    // what the design actually constrains — a menu with 6/6/4 columns looks
+    // like a bug, and the header's horizontal budget is unaffected by depth.
+    expect(resources.columns.map((c) => c.links.length)).toEqual([6, 6, 6]);
   });
 });
 

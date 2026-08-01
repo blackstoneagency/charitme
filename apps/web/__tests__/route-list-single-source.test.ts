@@ -290,10 +290,10 @@ describe('signed-in console routes are derived from the app directory', () => {
   ].sort();
   const signedInDynamicOnDisk = [
     ...consoleOnDisk.filter((route) => route.includes('[')),
-    ...pageRoutes(
-      path.join(WEB_ROOT, 'app', 'donor', 'tax-statement'),
-      '/donor/tax-statement',
-    ).filter((route) => route.includes('[')),
+    // Scans all of /donor rather than naming tax-statement specifically: a new
+    // gated dynamic page under /donor would otherwise be invisible to this
+    // check, which is the exact drift the file exists to prevent.
+    ...pageRoutes(path.join(WEB_ROOT, 'app', 'donor'), '/donor').filter((route) => route.includes('[')),
     ...pageRoutes(
       path.join(WEB_ROOT, 'app', 'volunteer', 'manage'),
       '/volunteer/manage',

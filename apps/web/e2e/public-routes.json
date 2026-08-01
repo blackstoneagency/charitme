@@ -19,6 +19,7 @@
     "/accessibility",
     "/ai-campaign",
     "/ai-fundraising",
+    "/ambassadors",
     "/beneficiary/accept",
     "/blog",
     "/campaigns",
@@ -26,6 +27,7 @@
     "/careers",
     "/causes",
     "/causes/mental-health",
+    "/community-guidelines",
     "/contact",
     "/cookies",
     "/corporate-partnerships",
@@ -168,6 +170,7 @@
       "/dashboard/settings/mfa",
       "/dashboard/tax",
       "/dashboard/team",
+      "/dashboard/tools",
       "/dashboard/updates",
       "/dashboard/updates/new",
       "/dashboard/volunteer"
@@ -272,8 +275,16 @@
         "path": "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/updates"
       },
       {
+        "template": "/dashboard/campaigns/[id]/widget",
+        "path": "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/widget"
+      },
+      {
         "template": "/dashboard/tax/fundraiser/[year]",
         "path": "/dashboard/tax/fundraiser/2025"
+      },
+      {
+        "template": "/donor/receipt/[donationId]",
+        "path": "/donor/receipt/dona0000-0000-4000-8000-000000000001"
       },
       {
         "template": "/donor/tax-statement/[year]",

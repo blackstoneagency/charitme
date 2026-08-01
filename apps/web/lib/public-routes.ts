@@ -445,6 +445,20 @@ export const INDEXABLE_PUBLIC_ROUTES: PublicRoute[] = [
     changeFrequency: 'yearly',
   },
   {
+    path: '/ambassadors',
+    title: 'Ambassador Programme',
+    description: 'Share campaigns with your own link and get credited for every donation you inspire — five recognition tiers, nothing to apply for.',
+    priority: 0.5,
+    changeFrequency: 'monthly',
+  },
+  {
+    path: '/community-guidelines',
+    title: 'Community Guidelines',
+    description: 'How to fundraise, give and comment on CharitMe — how to report a problem, and what we do about it.',
+    priority: 0.4,
+    changeFrequency: 'yearly',
+  },
+  {
     path: '/prohibited-use',
     title: 'Prohibited Use Policy',
     description: 'Review prohibited fundraising categories and platform integrity rules for CharitMe.',

@@ -132,13 +132,19 @@ full inventory — 60 designs measured against the 168 routes that exist — is 
 |---|---|---|
 | Saved Causes `/dashboard/saved` | ✅ done | the other lane (`03d40df`) — **I built `/saved` in parallel and withdrew it**, see below |
 | System Status `/status` + `/api/status` | ✅ done | this lane |
-| #121 Advanced Search | ⬜ **unclaimed** | |
-| #98 Community Guidelines | 🚧 **claimed** | this lane (tbaz3i) — started 2026-08-01 14:05 |
-| #94 Ambassador programme | ⬜ **unclaimed** | |
-| #130 Fundraising Tools hub | 🚧 **claimed** | this lane (tbaz3i) — started 2026-08-01 14:05 |
-| #131 Donation Widget Preview | 🚧 **claimed** | this lane (tbaz3i) — pairs with #130, same surface |
-| #137 Receipt Preview | ⬜ **unclaimed** | |
+| #121 Advanced Search | ✅ done | this lane — `/search` existed; wired the header search button to it |
+| Nav orphans (10 indexable routes) | ✅ done | this lane — 7 wired, 3 exempted with a checked reason |
+| #98 Community Guidelines | ✅ done | this lane — `/community-guidelines` |
+| #94 Ambassador programme | ✅ done | this lane — `/ambassadors`, tiers read from `lib/referrals.ts` |
+| #130 Fundraising Tools hub | ✅ done | this lane — `/dashboard/tools` |
+| #131 Donation Widget Preview | ✅ done | this lane — `/dashboard/campaigns/[id]/widget` |
+| #137 Receipt Preview | ✅ done | this lane — `/donor/receipt/[donationId]` + `GET /api/donations/receipt` |
 | #141, #95, #109–112 | 🚫 owner decision | promise things that do not exist, or change how card data is collected |
+
+**Every design-deck page an agent can build is now built.** What is left in the
+deck is the four rows above, all of which need the owner rather than code:
+#141 and #95 would promise a mobile app and a roadmap that do not exist, and
+#109–112 would move card entry in-house.
 
 ## ⚠️ THIRD COLLISION — homepage, and how it was resolved (wcu7oh, 2026-08-01)
 
@@ -161,6 +167,54 @@ that was not duplicated.
 
 **The lesson, third time running:** pushing the claim to a BRANCH is not
 claiming. Push the claim to master before starting.
+
+## ⚠️ MEASURED: 10 indexable public routes are linked from NOWHERE (2026-08-01)
+
+Checked every `INDEXABLE_PUBLIC_ROUTES` path against the union of the header
+mega-menu (`flattenNav()`) and both footer structures. **59 indexable routes, 10
+with no inbound link from the global chrome:**
+
+```
+/search   /teams   /donor-wall   /supporter-space   /causes/mental-health
+/get-involved   /gallery   /careers   /   /roles
+```
+
+`/` is reachable via the logo. The other nine are in the sitemap, are crawlable,
+and cannot be reached by a human using the site — the same "shipped but
+unreachable" shape as `saved_campaigns`, `creator_profiles`, `api_keys` and
+`exclusive_posts`, but for whole pages.
+
+**`/search` is the sharpest case, and it is design #121.** The header's
+magnifying-glass button is labelled *"Search campaigns"* and links to
+`/campaigns`. The one control on the site that says *search* does not reach the
+search page — which already supports query, cause, location and sort. So #121
+needed wiring, not building.
+
+**Fixed. Seven wired, three exempted with a reason the test CHECKS:**
+
+| Route | Now reachable from |
+|---|---|
+| `/search` | the header search button — it pointed at `/campaigns` |
+| `/roles` | Resources → Learn |
+| `/supporter-space` | Resources → Learn ("Where to Give") |
+| `/teams` | Resources → Get Involved |
+| `/get-involved` | Resources → Get Involved |
+| `/gallery` | footer → Platform |
+| `/donor-wall` | footer → Ways to Give |
+| `/careers` | footer → Company |
+
+Exempt: `/` (the logo), `/search` (the header button — and the test asserts that
+button's href, so the exemption cannot quietly become a lie), and
+`/causes/mental-health` (a cause detail page reached from `/causes`, which is in
+the menu; linking all 20 individually would bury it).
+
+The Resources columns went 4/4/4 → **6/6/6** — still equal, which is what the
+design constrains. `/matching` and `/grants` joined For Organizations to keep
+them so, and both belong there anyway.
+
+`__tests__/nav-orphans.test.ts` pins this, and includes a check that the sweep
+can fail plus one that no exemption is stale — an exemption nobody verifies is a
+silenced test.
 
 ## 🔀 I18N LANE SPLIT — read this before touching a string (Claude, 2026-08-01)
 
@@ -15742,16 +15796,119 @@ and an unconfigured dependency is **degraded, never operational**.
 With `STRIPE_SECRET_KEY`/`RESEND_API_KEY` blanked: **"Some systems are degraded"**
 with two honest per-subsystem reasons. A green-only status page proves nothing.
 
+### 🟢 SHIPPED — #98, #130, #131 (2026-08-01)
+
+| # | Page | Route | Notes |
+|---|---|---|---|
+| 131 | Donation Widget Preview | `/dashboard/campaigns/[id]/widget` | Configurator with a **real iframe preview**, not a mock-up of one. |
+| 130 | Fundraising Tools | `/dashboard/tools` | A router, not a new feature — see below. |
+| 98 | Community Guidelines | `/community-guidelines` | Conduct standard + how reporting works. Deliberately not a second copy of the Prohibited Use Policy. |
+
+**#131 — the preview and the snippet are the same URL.** `lib/widget-embed.ts`
+(21 tests) builds both from one option set, and `/campaigns/[slug]/embed` parses
+them back with `parseWidgetOptions`. A hand-drawn preview panel is the failure
+this page exists to avoid: it looks right on the day the widget is broken, and it
+drifts the moment either side changes. Round-tripping is asserted directly.
+
+Three things the tests pin that are easy to get wrong:
+- **Default theme is `light`, not `auto`.** Widget snippets are already pasted on
+  third-party sites carrying no `theme` param, and `.campaign-embed` has always
+  painted light. Defaulting to `auto` would silently repaint every live widget.
+- **A malformed query renders the DEFAULT widget, never an error.** The visitor
+  inside a fundraiser's iframe cannot fix the URL; an error page there is a dead
+  donation box on someone else's site.
+- **Height is derived from the visible parts.** A fixed `height="500"` leaves a
+  blank band under a widget with the cover turned off, and nobody edits a pasted
+  snippet.
+
+**⚠️ Measured against a running server, not assumed.** Built against
+`scripts/supabase-stub.mjs`, served with `next start`, and each option probed
+over HTTP:
+
+```
+cover imgs: default=1 cover0=0
+donor line: default=1 progress0=0 donors0=0
+PASS default shows the cover (negative control: the probe CAN see it)
+PASS cover=0 removes the cover
+PASS default shows the donor line (negative control)
+PASS donors=0 removes the donor line
+PASS progress=0 removes the donor line with the block
+PASS garbage query renders the DEFAULT widget
+```
+
+Every assertion carries a negative control, because the first version of this
+harness reported two FALSE failures — it grepped for `<img` (matching the
+DonateButton's tip logo) and for `donors` (matching the site meta description).
+A probe that has never been shown to see the thing it is looking for proves
+nothing in either direction. The garbage-query check also had to compare the
+rendered `<main>` rather than the whole document: the RSC flight payload echoes
+the request URL, so the bytes differ by design.
+
+**#130 — every tool on it already existed.** The QR poster, the widget, the share
+kit, the ledger, the FAQ builder, the thank-donor mailer: all reachable ONLY from
+a tab strip inside one campaign's workspace. A fundraiser had to already know a
+tool existed, and had to pick a campaign before they could find out what the
+platform could do. The page reads campaigns rather than hardcoding links, because
+a tools page whose links 404 for a user with no campaigns is worse than none.
+
+**#98 links to `/prohibited-use` rather than restating it.** Two pages that
+restate each other drift, and the day they disagree, which one a moderator quotes
+is a coin flip.
+
+### 🟢 SHIPPED — #94 Ambassador Programme (2026-08-01)
+
+`/ambassadors` renders `REFERRAL_TIERS` from `lib/referrals.ts` — the same
+constant the signed-in dashboard scores against. A public page holding its own
+copy of the thresholds becomes a promise the product stops keeping the moment
+either side changes, and nobody can see it happen because the page still looks
+correct. `CAMPAIGN_CATEGORIES` already cost this repo three copies that drifted.
+
+**It says plainly that the reward is recognition, not commission.** There is no
+payout in `getReferralStats` and no affiliate cut anywhere in the codebase, so a
+page implying one would recruit people on a false promise — and the money would
+have to come out of the campaign.
+
+Footer balance: Ways to Give took Donor Wall and Ambassador Programme, so
+Verification moved into the Legal column to keep the four columns within one of
+each other net of the legal bar.
+
+### 🟢 SHIPPED — #137 Receipt Preview (2026-08-01)
+
+`/donor/receipt/[donationId]` frames `GET /api/donations/receipt`, which returns
+**the document `sendReceiptEmail` would send** — not a re-creation of it. The
+templates moved out of `lib/email.ts` into `lib/receipt-template.ts`, which
+imports neither Resend nor `server-only`, so the preview route and the tests can
+render a receipt with no email provider configured.
+
+**Three things this pass fixed that were not the feature:**
+
+1. **HTML injection in every receipt email.** The templates concatenated
+   `campaignTitle`, `donorName` and `nonprofitName` straight into HTML. All three
+   are user-controlled and the output is an email delivered to a donor — an
+   injection with a recipient list attached. Every interpolation is escaped now,
+   with tests that feed `</td></table><script>` through both templates.
+2. **Two authorization paths would have become one leak.** Loading and
+   authorization moved to `lib/receipt-load.ts`, used by the resend (POST) and
+   the preview (GET). A read-only surface with its own lighter check is how donor
+   names, amounts and email addresses escape, and nothing about the page looks
+   wrong. A test asserts the route file contains **no** authorization of its own
+   and calls `loadReceiptForUser` exactly twice.
+3. **A donor could only re-send a receipt, never look at one.** `/donor` offered
+   "Email receipt" and nothing else — the only way to see your own receipt was to
+   have it sent again and wait.
+
+403 and 404 both render `notFound()`, deliberately: distinguishing them confirms
+that a guessed donation id is real. The response carries `no-store`,
+`SAMEORIGIN`, `noindex` and `no-referrer`.
+
+`route-list-single-source` now scans all of `app/donor` instead of naming
+`tax-statement`, so the next gated dynamic page under `/donor` cannot be
+invisible to it.
+
 ### 🔴 REMAINING GAPS (design → route)
 
 | # | Page | Status |
 |---|---|---|
-| 121 | Advanced Search | `/campaigns` has filters; no dedicated advanced-search route |
-| 98 | Community Guidelines | no route — content page, belongs in the footer legal column |
-| 94 | Affiliate / Ambassador | `/dashboard/referrals` exists; no public programme page |
-| 130 | Fundraising Tools | no route — hub for widget/QR/share assets that exist piecemeal |
-| 131 | Donation Widget Preview | `/campaigns/[slug]/embed` exists; no preview/configurator |
-| 137 | Receipt Preview | receipts send; no preview surface |
 | 141 | Mobile App Settings | no route — **needs a product decision, there is no mobile app** |
 | 95 | Roadmap / Coming Soon | no route — **needs owner input on what to promise** |
 | 109–112 | 4-step donation checkout | ⚠️ **design conflicts with reality**: donations use Stripe-hosted Checkout. Rebuilding as 4 in-app steps means handling card data surface ourselves. Not a formatting task — flagging rather than silently doing it. |

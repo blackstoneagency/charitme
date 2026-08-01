@@ -32,6 +32,10 @@ const DONOR_NAV: readonly DashboardNavItem[] = [
 const ORGANIZER_NAV: readonly DashboardNavItem[] = [
   DASHBOARD,
   { label: 'My Campaigns', href: '/dashboard/campaigns', icon: 'stack' },
+  // Every tool behind this link already existed, reachable only from a tab strip
+  // inside one campaign's workspace — so a fundraiser had to know the tool
+  // existed before they could find it.
+  { label: 'Fundraising Tools', href: '/dashboard/tools', icon: 'stack' },
   { label: 'AI Growth Plan', href: '/dashboard/ai-growth-plan', icon: 'send', badge: 'New' },
   { label: 'AI Coach', href: '/dashboard/ai-coach', icon: 'send', badge: 'AI' },
   { label: 'Donations Received', href: '/dashboard/donations', icon: 'gift' },
