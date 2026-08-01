@@ -135,10 +135,10 @@ full inventory — 60 designs measured against the 168 routes that exist — is 
 | #121 Advanced Search | ✅ done | this lane — `/search` existed; wired the header search button to it |
 | Nav orphans (10 indexable routes) | ✅ done | this lane — 7 wired, 3 exempted with a checked reason |
 | #98 Community Guidelines | ✅ done | this lane — `/community-guidelines` |
-| #94 Ambassador programme | ⬜ **unclaimed** | |
+| #94 Ambassador programme | 🚧 **claimed** | this lane (tbaz3i) — public page over the EXISTING referral tiers |
 | #130 Fundraising Tools hub | ✅ done | this lane — `/dashboard/tools` |
 | #131 Donation Widget Preview | ✅ done | this lane — `/dashboard/campaigns/[id]/widget` |
-| #137 Receipt Preview | ⬜ **unclaimed** | |
+| #137 Receipt Preview | 🚧 **claimed** | this lane (tbaz3i) — extract the receipt HTML so the preview IS the sent receipt |
 | #141, #95, #109–112 | 🚫 owner decision | promise things that do not exist, or change how card data is collected |
 
 ## ⚠️ THIRD COLLISION — homepage, and how it was resolved (wcu7oh, 2026-08-01)
