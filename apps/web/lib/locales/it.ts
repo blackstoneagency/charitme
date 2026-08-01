@@ -2,6 +2,34 @@
 import type { Dictionary } from '../i18n';
 
 export const it: Dictionary = {
+  // ── Campaign detail page (i18n string migration, traffic order #1) ────────
+  // The hottest public page. These keys existed as vocabulary for some strings
+  // already; these are the ones that did not.
+  'campaign.score': 'Punteggio CharitMe',
+  'campaign.story': 'Storia',
+  'campaign.impact': 'Impatto',
+  'campaign.verified': 'Verificato',
+  'campaign.tax_deductible': 'Detraibile',
+  'campaign.message': 'Messaggio',
+  'campaign.monthly_boost': 'Aumenta il tuo impatto donando ogni mese 🌱',
+  'campaign.created_with_ai': 'Campagna creata con l\'IA',
+  'campaign.impact_tracker': 'Monitoraggio dell\'impatto',
+  'campaign.generosity': 'La tua generosità fa la differenza',
+  'campaign.momentum': 'Slancio',
+  'campaign.raising_per_day': 'Raccolta al giorno',
+  'campaign.on_pace': 'Obiettivo raggiunto tra',
+  'campaign.secure': 'Donazioni sicure',
+  'campaign.no_platform_fee': 'Nessuna commissione obbligatoria',
+  'campaign.optional_tips': 'Le mance facoltative sostengono CharitMe.',
+  'campaign.trust_tools': 'Gli strumenti di fiducia e sicurezza proteggono ogni campagna.',
+  'campaign.ssl': 'Pagamento cifrato SSL tramite Stripe.',
+  'campaign.faq': 'Domande frequenti',
+  'campaign.co_organizers': 'Co-organizzatori',
+  'campaign.video': 'Video della campagna',
+  'campaign.breadcrumb': 'Percorso di navigazione',
+  'campaign.ai_story': 'Assistente narrativo IA',
+  'campaign.ai_growth': 'Strategia di crescita IA',
+  'campaign.ai_outreach': 'Piano di comunicazione IA',
   // ── Header mega-menu (design-mirror build) ────────────────────────────────
   // Added with the Explore Causes / Resources dropdowns. The coverage test
   // requires 100% — English fallback is not accepted here, deliberately, so a
@@ -130,7 +158,6 @@ export const it: Dictionary = {
   'campaign.team_together': '{amount} insieme',
   'campaign.goal_reached': 'Obiettivo raggiunto',
   'campaign.milestones': 'Traguardi e obiettivi extra',
-  'campaign.faq': 'Domande frequenti',
   'campaign.rewards': 'Ricompense',
 
   'donate.amount': 'Importo',

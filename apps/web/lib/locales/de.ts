@@ -2,6 +2,34 @@
 import type { Dictionary } from '../i18n';
 
 export const de: Dictionary = {
+  // ── Campaign detail page (i18n string migration, traffic order #1) ────────
+  // The hottest public page. These keys existed as vocabulary for some strings
+  // already; these are the ones that did not.
+  'campaign.score': 'CharitMe-Score',
+  'campaign.story': 'Geschichte',
+  'campaign.impact': 'Wirkung',
+  'campaign.verified': 'Verifiziert',
+  'campaign.tax_deductible': 'Steuerlich absetzbar',
+  'campaign.message': 'Nachricht',
+  'campaign.monthly_boost': 'Verstärke deine Wirkung mit einer monatlichen Spende 🌱',
+  'campaign.created_with_ai': 'Kampagne mit KI erstellt',
+  'campaign.impact_tracker': 'Wirkungs-Tracker',
+  'campaign.generosity': 'Deine Großzügigkeit macht den Unterschied',
+  'campaign.momentum': 'Dynamik',
+  'campaign.raising_per_day': 'Pro Tag gesammelt',
+  'campaign.on_pace': 'Ziel erreicht in',
+  'campaign.secure': 'Sichere Spenden',
+  'campaign.no_platform_fee': 'Keine verpflichtende Plattformgebühr',
+  'campaign.optional_tips': 'Freiwillige Trinkgelder finanzieren CharitMe.',
+  'campaign.trust_tools': 'Vertrauens- und Sicherheitswerkzeuge schützen jede Kampagne.',
+  'campaign.ssl': 'SSL-verschlüsselte Zahlung über Stripe.',
+  'campaign.faq': 'Häufige Fragen',
+  'campaign.co_organizers': 'Mitorganisatoren',
+  'campaign.video': 'Kampagnenvideo',
+  'campaign.breadcrumb': 'Brotkrumennavigation',
+  'campaign.ai_story': 'KI-Story-Assistent',
+  'campaign.ai_growth': 'KI-Wachstumsstrategie',
+  'campaign.ai_outreach': 'KI-Outreach-Plan',
   // ── Header mega-menu (design-mirror build) ────────────────────────────────
   // Added with the Explore Causes / Resources dropdowns. The coverage test
   // requires 100% — English fallback is not accepted here, deliberately, so a
@@ -130,7 +158,6 @@ export const de: Dictionary = {
   'campaign.team_together': 'zusammen {amount}',
   'campaign.goal_reached': 'Ziel erreicht',
   'campaign.milestones': 'Meilensteine und Etappenziele',
-  'campaign.faq': 'Häufige Fragen',
   'campaign.rewards': 'Dankeschöns',
 
   'donate.amount': 'Betrag',

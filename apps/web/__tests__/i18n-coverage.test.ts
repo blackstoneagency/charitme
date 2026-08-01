@@ -68,13 +68,21 @@ describe('translation coverage', () => {
       // English 'Home' for a site's landing page. German/Spanish/Portuguese do not,
       // and are still held to the rule.
       'nav.group.causes', 'nav.home',
+      // Per-LANGUAGE exemptions, written `lang:key`. A bare key exempts a string
+      // in every language at once, which is too blunt: 'Impact' really is the
+      // French and Dutch word, but German says 'Wirkung' and Spanish 'Impacto',
+      // and a bare exemption would stop checking those too. So these four are
+      // scoped to the language that genuinely shares the English spelling.
+      'fr:campaign.impact', 'fr:campaign.message',
+      'nl:campaign.impact', 'nl:campaign.momentum',
     ]);
     const leaks: string[] = [];
     for (const code of SUPPORTED_LOCALE_CODES) {
       if (code === 'en') continue;
       const dict = getDictionary(code);
       for (const [key, english] of Object.entries(en)) {
-        if (IDENTICAL_IS_FINE.has(key)) continue;
+        // A bare key exempts every language; `lang:key` exempts just one.
+        if (IDENTICAL_IS_FINE.has(key) || IDENTICAL_IS_FINE.has(`${code}:${key}`)) continue;
         if (dict[key] === english) leaks.push(`${code}:${key}`);
       }
     }
