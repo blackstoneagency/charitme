@@ -135,7 +135,7 @@ full inventory — 60 designs measured against the 168 routes that exist — is 
 | #121 Advanced Search | ✅ done | this lane — `/search` existed; wired the header search button to it |
 | Nav orphans (10 indexable routes) | ✅ done | this lane — 7 wired, 3 exempted with a checked reason |
 | #98 Community Guidelines | ✅ done | this lane — `/community-guidelines` |
-| #94 Ambassador programme | 🚧 **claimed** | this lane (tbaz3i) — public page over the EXISTING referral tiers |
+| #94 Ambassador programme | ✅ done | this lane — `/ambassadors`, tiers read from `lib/referrals.ts` |
 | #130 Fundraising Tools hub | ✅ done | this lane — `/dashboard/tools` |
 | #131 Donation Widget Preview | ✅ done | this lane — `/dashboard/campaigns/[id]/widget` |
 | #137 Receipt Preview | 🚧 **claimed** | this lane (tbaz3i) — extract the receipt HTML so the preview IS the sent receipt |
@@ -15850,12 +15850,28 @@ a tools page whose links 404 for a user with no campaigns is worse than none.
 restate each other drift, and the day they disagree, which one a moderator quotes
 is a coin flip.
 
+### 🟢 SHIPPED — #94 Ambassador Programme (2026-08-01)
+
+`/ambassadors` renders `REFERRAL_TIERS` from `lib/referrals.ts` — the same
+constant the signed-in dashboard scores against. A public page holding its own
+copy of the thresholds becomes a promise the product stops keeping the moment
+either side changes, and nobody can see it happen because the page still looks
+correct. `CAMPAIGN_CATEGORIES` already cost this repo three copies that drifted.
+
+**It says plainly that the reward is recognition, not commission.** There is no
+payout in `getReferralStats` and no affiliate cut anywhere in the codebase, so a
+page implying one would recruit people on a false promise — and the money would
+have to come out of the campaign.
+
+Footer balance: Ways to Give took Donor Wall and Ambassador Programme, so
+Verification moved into the Legal column to keep the four columns within one of
+each other net of the legal bar.
+
 ### 🔴 REMAINING GAPS (design → route)
 
 | # | Page | Status |
 |---|---|---|
 | 121 | Advanced Search | `/campaigns` has filters; no dedicated advanced-search route |
-| 94 | Affiliate / Ambassador | `/dashboard/referrals` exists; no public programme page |
 | 137 | Receipt Preview | receipts send; no preview surface |
 | 141 | Mobile App Settings | no route — **needs a product decision, there is no mobile app** |
 | 95 | Roadmap / Coming Soon | no route — **needs owner input on what to promise** |

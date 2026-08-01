@@ -69,6 +69,7 @@ export const FOOTER_SECTIONS: Record<FooterSectionName, readonly FooterLink[]> =
     { label: 'Grants', href: '/grants', labelKey: 'footer.link.grants' },
     { label: 'Events', href: '/events', labelKey: 'footer.link.events' },
     { label: 'Donor Wall', href: '/donor-wall', labelKey: 'footer.link.donor_wall' },
+    { label: 'Ambassador Programme', href: '/ambassadors', labelKey: 'footer.link.ambassadors' },
   ],
   Company: [
     { label: 'About Us', href: '/about-us', labelKey: 'footer.link.about_us' },
@@ -85,6 +86,7 @@ export const FOOTER_SECTIONS: Record<FooterSectionName, readonly FooterLink[]> =
   Legal: [
     { label: 'Trust & Safety', href: '/trust-safety', labelKey: 'footer.link.trust_safety' },
     { label: 'Community Guidelines', href: '/community-guidelines', labelKey: 'footer.link.community_guidelines' },
+    { label: 'Verification', href: '/verification', labelKey: 'footer.link.verification' },
     { label: 'System Status', href: '/status', labelKey: 'footer.link.status' },
     { label: 'Our Impact', href: '/impact', labelKey: 'footer.link.impact' },
     { label: 'Transparency Center', href: '/transparency', labelKey: 'footer.link.transparency' },
