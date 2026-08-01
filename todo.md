@@ -967,6 +967,7 @@ into CSS classes, or to give the tables a scroll container of their own.
 | + `.ac-status-tabs` scroll, `.kf-table-scroll` on 3 tables | 46 | 27 | `/admin/campaigns` 1020px → 470px |
 | + inline `minmax(0, 1fr)` ×74 | 43 | 25 | `/admin/reports` 890px and `/admin/audit-log` 880px gone |
 | + top-level & wide-block CSS ×156 | **43** | **25** | ⚠️ **no change — see below** |
+| + scroll boundary (`min-width: 0` + `.kf-card` overflow) | **21** | **13** | the fix the previous pass was missing |
 
 ### ⚠️ A NEGATIVE RESULT: 156 declarations fixed, zero overflows removed
 
