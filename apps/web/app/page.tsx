@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type React from 'react';
 import type { Metadata } from 'next';
+import { getTranslator } from '../lib/locale-server';
 import { seoMetadata } from '../lib/seo';
 import { safeJsonLd } from '../lib/json-ld';
 import { getHomeData, getCategoryStats, getRecentDonations, profileName } from '../lib/home-data';
@@ -65,25 +66,25 @@ function Icon({ name, className = 'h-5 w-5' }: { name: string; className?: strin
 }
 
 // ── Static content (real routes, no fake buttons) ────────────────────────────
-const FEATURES: { icon: string; tone: string; title: string; body: string; href: string }[] = [
-  { icon: 'rocket', tone: 'violet', title: 'Start a fundraiser', body: 'Launch a trusted campaign in minutes with AI writing your story, goal, and plan.', href: '/create' },
-  { icon: 'heart', tone: 'pink', title: 'Donate securely', body: 'Give with confidence through encrypted, PCI-compliant Stripe payments.', href: '/campaigns' },
-  { icon: 'book', tone: 'blue', title: 'Grants & funding', body: 'Discover grant opportunities and apply with AI-assisted matching and drafts.', href: '/grants' },
-  { icon: 'users', tone: 'teal', title: 'Volunteer', body: 'Find volunteer opportunities near you and match your skills to real needs.', href: '/volunteer' },
-  { icon: 'building', tone: 'indigo', title: 'Corporate giving', body: 'Match employee donations and sponsor causes with measurable impact reporting.', href: '/for-nonprofits' },
-  { icon: 'refresh', tone: 'green', title: 'Recurring giving', body: 'Turn a single gift into lasting change with flexible monthly support.', href: '/campaigns' },
-  { icon: 'flag', tone: 'orange', title: 'Emergency relief', body: 'Respond fast to medical crises, disasters, and urgent family needs.', href: '/campaigns?category=Emergency' },
-  { icon: 'sparkle', tone: 'violet', title: 'AI charity copilot', body: 'Describe who you want to help — AI finds the right causes and next steps.', href: '/ai-campaign' },
-  { icon: 'chart', tone: 'teal', title: 'Transparent reporting', body: 'Every dollar is tracked with verified updates and an open impact ledger.', href: '/trust-safety' },
+const FEATURES: { icon: string; tone: string; titleKey: string; bodyKey: string; href: string }[] = [
+  { icon: 'rocket', tone: 'violet', titleKey: 'home.feature.start.t', bodyKey: 'home.feature.start.b', href: '/create' },
+  { icon: 'heart', tone: 'pink', titleKey: 'home.feature.donate.t', bodyKey: 'home.feature.donate.b', href: '/campaigns' },
+  { icon: 'book', tone: 'blue', titleKey: 'home.feature.grants.t', bodyKey: 'home.feature.grants.b', href: '/grants' },
+  { icon: 'users', tone: 'teal', titleKey: 'home.feature.volunteer.t', bodyKey: 'home.feature.volunteer.b', href: '/volunteer' },
+  { icon: 'building', tone: 'indigo', titleKey: 'home.feature.corporate.t', bodyKey: 'home.feature.corporate.b', href: '/for-nonprofits' },
+  { icon: 'refresh', tone: 'green', titleKey: 'home.feature.recurring.t', bodyKey: 'home.feature.recurring.b', href: '/campaigns' },
+  { icon: 'flag', tone: 'orange', titleKey: 'home.feature.emergency.t', bodyKey: 'home.feature.emergency.b', href: '/campaigns?category=Emergency' },
+  { icon: 'sparkle', tone: 'violet', titleKey: 'home.ai_copilot', bodyKey: 'home.feature.copilot.b', href: '/ai-campaign' },
+  { icon: 'chart', tone: 'teal', titleKey: 'home.feature.reporting.t', bodyKey: 'home.feature.reporting.b', href: '/trust-safety' },
 ];
 
 // Meet CharitMe AI — the AI "team" cards shown directly under the hero.
-const AI_TEAM: { icon: string; tone: string; title: string; body: string; href: string }[] = [
-  { icon: 'edit', tone: 'violet', title: 'CharitMe AI Builder', body: 'Write your entire fundraiser in seconds — title, story, goal, and strategy — powered by CharitMe AI.', href: '/ai-campaign' },
-  { icon: 'rocket', tone: 'green', title: 'AI Growth Engine', body: 'CharitMe AI finds your ideal donors, optimizes your campaign, and grows donations automatically.', href: '/ai-fundraising' },
-  { icon: 'shield', tone: 'blue', title: 'CharitScore™ Trust', body: 'Our AI-powered trust score gives every campaign a 0–100 CharitScore so donors give with confidence.', href: '/trust-safety' },
-  { icon: 'chart', tone: 'orange', title: 'AI Optimization', body: 'Real-time AI insights, next-best-action suggestions, and campaign health monitoring 24/7.', href: '/ai-fundraising' },
-  { icon: 'heart', tone: 'pink', title: 'AI Donor Relationships', body: 'CharitMe AI writes thank-you notes, updates, and donor messages that feel personal and real.', href: '/ai-fundraising' },
+const AI_TEAM: { icon: string; tone: string; titleKey: string; bodyKey: string; href: string }[] = [
+  { icon: 'edit', tone: 'violet', titleKey: 'home.ai.builder.t', bodyKey: 'home.ai.builder.b', href: '/ai-campaign' },
+  { icon: 'rocket', tone: 'green', titleKey: 'home.ai.growth.t', bodyKey: 'home.ai.growth.b', href: '/ai-fundraising' },
+  { icon: 'shield', tone: 'blue', titleKey: 'home.ai.trust.t', bodyKey: 'home.ai.trust.b', href: '/trust-safety' },
+  { icon: 'chart', tone: 'orange', titleKey: 'home.ai.optimize.t', bodyKey: 'home.ai.optimize.b', href: '/ai-fundraising' },
+  { icon: 'heart', tone: 'pink', titleKey: 'home.ai.donors.t', bodyKey: 'home.ai.donors.b', href: '/ai-fundraising' },
 ];
 
 const CATEGORY_META: Record<string, { icon: string; label: string }> = {
@@ -116,10 +117,10 @@ const TRUST_SIGNALS: { icon: string; label: string }[] = [
   { icon: 'chart', label: 'Transparent 0% platform fee' },
 ];
 
-const STEPS: { n: string; icon: string; title: string; body: string }[] = [
-  { n: '1', icon: 'globe', title: 'Choose a cause', body: 'Search or let AI recommend verified fundraisers and nonprofits that match what you care about.' },
-  { n: '2', icon: 'heart', title: 'Give or start a fundraiser', body: 'Donate securely in seconds, or launch your own campaign with an AI-written story and goal.' },
-  { n: '3', icon: 'chart', title: 'See your impact', body: 'Follow verified updates, photos, and an open ledger showing exactly where every dollar goes.' },
+const STEPS: { n: string; icon: string; titleKey: string; bodyKey: string }[] = [
+  { n: '1', icon: 'globe', titleKey: 'home.step.choose.t', bodyKey: 'home.step.choose.b' },
+  { n: '2', icon: 'heart', titleKey: 'home.step.give.t', bodyKey: 'home.step.give.b' },
+  { n: '3', icon: 'chart', titleKey: 'home.step.impact.t', bodyKey: 'home.step.impact.b' },
 ];
 
 const GIVING_TIERS: { amount: string; body: string }[] = [
@@ -203,6 +204,11 @@ const NO_HOME_DATA = {
 } satisfies Awaited<ReturnType<typeof getHomeData>>;
 
 export default async function HomePage() {
+  // Server-side translator: this page is a Server Component, so `useT()` does
+  // not apply. `getTranslator()` was called from nowhere until the migration
+  // started — a page rendering English under a correctly negotiated locale looks
+  // completely fine, which is why it went unnoticed.
+  const t = await getTranslator();
   const [home, categoryStatsResult, recentDonationsResult] = await Promise.all([
     loadOrDegrade(getHomeData({}), NO_HOME_DATA),
     loadOrDegrade(getCategoryStats(), [] as Awaited<ReturnType<typeof getCategoryStats>>),
@@ -305,9 +311,9 @@ export default async function HomePage() {
         <div className="home-hero-aura" aria-hidden="true" />
         <div className="home-wrap home-hero-grid">
           <div className="home-hero-copy">
-            <p className="home-badge"><Icon name="sparkle" className="hi" /> The AI Crowdfunding Platform</p>
+            <p className="home-badge"><Icon name="sparkle" className="hi" /> {t('home.eyebrow')}</p>
             <h1 id="home-hero-title">
-              Raise More.<br />Faster. <span>With AI.</span>
+              {t('home.hero_raise')}<br />{t('home.hero_faster')} <span>{t('home.hero_with_ai')}</span>
             </h1>
             <p className="home-hero-sub">
               CharitMe is the world&rsquo;s first AI-powered fundraising platform that helps
@@ -315,8 +321,8 @@ export default async function HomePage() {
             </p>
 
             <div className="home-hero-cta">
-              <Link href="/create/choose-path" className="home-btn home-btn-primary">Create My Fundraiser Now!</Link>
-              <Link href="/campaigns" className="home-btn home-btn-donate">Donate Now <Icon name="arrowSolid" className="hi hi-arrow" /></Link>
+              <Link href="/create/choose-path" className="home-btn home-btn-primary">{t('home.create_cta')}</Link>
+              <Link href="/campaigns" className="home-btn home-btn-donate">{t('home.donate_now')} <Icon name="arrowSolid" className="hi hi-arrow" /></Link>
             </div>
 
             <p className="home-hero-trust">
@@ -326,7 +332,7 @@ export default async function HomePage() {
 
           {/* Live featured-campaign spotlight — a rotating carousel of real
               campaigns from Supabase (auto-advances, pause on hover, dots + arrows). */}
-          <Reveal className="home-spot" as="article" aria-label="Featured campaigns">
+          <Reveal className="home-spot" as="article" aria-label={t('home.featured')}>
             <HeroSpotlightCarousel items={heroItems} />
           </Reveal>
         </div>
@@ -337,11 +343,11 @@ export default async function HomePage() {
             neutral placeholder, and it is the first thing a visitor sees. */}
         {metricsAvailable && (
         <div className="home-wrap">
-          <dl className="home-metrics" aria-label="Platform impact">
-            <div><dt>Raised on CharitMe</dt><dd><CountUp value={metrics.raisedCents} kind="money" /></dd></div>
-            <div><dt>Active campaigns</dt><dd><CountUp value={metrics.campaigns} kind="int" /></dd></div>
-            <div><dt>Donations recorded</dt><dd><CountUp value={metrics.donations} kind="int" /></dd></div>
-            <div><dt>Avg. trust score</dt><dd><CountUp value={metrics.trustAvg} kind="percent" /></dd></div>
+          <dl className="home-metrics" aria-label={t('home.platform_impact')}>
+            <div><dt>{t('home.raised_on')}</dt><dd><CountUp value={metrics.raisedCents} kind="money" /></dd></div>
+            <div><dt>{t('home.active_campaigns')}</dt><dd><CountUp value={metrics.campaigns} kind="int" /></dd></div>
+            <div><dt>{t('home.donations_recorded')}</dt><dd><CountUp value={metrics.donations} kind="int" /></dd></div>
+            <div><dt>{t('home.avg_trust')}</dt><dd><CountUp value={metrics.trustAvg} kind="percent" /></dd></div>
           </dl>
         </div>
         )}
@@ -351,16 +357,16 @@ export default async function HomePage() {
       <section className="home-section" aria-labelledby="home-aiteam-title">
         <div className="home-wrap">
           <Reveal className="home-head home-head--center">
-            <h2 id="home-aiteam-title">Meet CharitMe AI — Your Personal Fundraising Team.</h2>
+            <h2 id="home-aiteam-title">{t('home.ai_team')}</h2>
           </Reveal>
           <div className="home-feature-grid">
             {AI_TEAM.map((f, i) => (
-              <Reveal as="article" key={f.title} className="home-feature" delay={(i % 3) * 70}>
+              <Reveal as="article" key={t(f.titleKey)} className="home-feature" delay={(i % 3) * 70}>
                 <Link href={f.href} className="home-feature-link">
                   <span className={`home-fi home-fi-${f.tone}`}><Icon name={f.icon} /></span>
-                  <h3>{f.title}</h3>
-                  <p>{f.body}</p>
-                  <span className="home-feature-more">Learn more <Icon name="arrow" className="hi" /></span>
+                  <h3>{t(f.titleKey)}</h3>
+                  <p>{t(f.bodyKey)}</p>
+                  <span className="home-feature-more">{t('home.learn_more')} <Icon name="arrow" className="hi" /></span>
                 </Link>
               </Reveal>
             ))}
@@ -369,7 +375,7 @@ export default async function HomePage() {
       </section>
 
       {/* ── TRUST BAR ────────────────────────────────────────────────────── */}
-      <section className="home-trustbar" aria-label="Why CharitMe is trusted">
+      <section className="home-trustbar" aria-label={t('home.trusted')}>
         <div className="home-wrap home-trustbar-row">
           {TRUST_SIGNALS.map((t) => (
             <span key={t.label} className="home-trust-chip"><Icon name={t.icon} className="hi" /> {t.label}</span>
@@ -381,17 +387,17 @@ export default async function HomePage() {
       <section className="home-section" aria-labelledby="home-features-title">
         <div className="home-wrap">
           <Reveal className="home-head">
-            <p className="home-eyebrow">Everything you need to do good</p>
-            <h2 id="home-features-title">One platform for every act of kindness.</h2>
+            <p className="home-eyebrow">{t('home.everything')}</p>
+            <h2 id="home-features-title">{t('home.everything_sub')}</h2>
           </Reveal>
           <div className="home-feature-grid">
             {FEATURES.map((f, i) => (
-              <Reveal as="article" key={f.title} className="home-feature" delay={(i % 3) * 70}>
+              <Reveal as="article" key={t(f.titleKey)} className="home-feature" delay={(i % 3) * 70}>
                 <Link href={f.href} className="home-feature-link">
                   <span className={`home-fi home-fi-${f.tone}`}><Icon name={f.icon} /></span>
-                  <h3>{f.title}</h3>
-                  <p>{f.body}</p>
-                  <span className="home-feature-more">Learn more <Icon name="arrow" className="hi" /></span>
+                  <h3>{t(f.titleKey)}</h3>
+                  <p>{t(f.bodyKey)}</p>
+                  <span className="home-feature-more">{t('home.learn_more')} <Icon name="arrow" className="hi" /></span>
                 </Link>
               </Reveal>
             ))}
@@ -403,8 +409,8 @@ export default async function HomePage() {
       <section className="home-section home-copilot" aria-labelledby="home-ai-title">
         <div className="home-wrap home-copilot-inner">
           <Reveal className="home-head home-head--center">
-            <p className="home-eyebrow home-eyebrow--light"><Icon name="sparkle" className="hi" /> AI charity copilot</p>
-            <h2 id="home-ai-title">Tell us who you want to help.</h2>
+            <p className="home-eyebrow home-eyebrow--light"><Icon name="sparkle" className="hi" /> {t('home.ai_copilot')}</p>
+            <h2 id="home-ai-title">{t('home.tell_us')}</h2>
             <p className="home-copilot-sub">
               {`Describe it in your own words — "children in Africa," "animals," "I lost my home" — and AI instantly finds verified fundraisers, nonprofits, and ways to help.`}
             </p>
@@ -418,10 +424,10 @@ export default async function HomePage() {
         <div className="home-wrap">
           <Reveal className="home-head home-head--row">
             <div>
-              <p className="home-eyebrow">Discover causes</p>
-              <h2 id="home-causes-title">Find a cause close to your heart.</h2>
+              <p className="home-eyebrow">{t('home.discover')}</p>
+              <h2 id="home-causes-title">{t('home.discover_sub')}</h2>
             </div>
-            <Link href="/campaigns" className="home-btn home-btn-ghost home-head-cta">Browse all <Icon name="arrow" className="hi" /></Link>
+            <Link href="/campaigns" className="home-btn home-btn-ghost home-head-cta">{t('home.browse_all')} <Icon name="arrow" className="hi" /></Link>
           </Reveal>
           {causes.length > 0 ? (
             <div className="home-causes">
@@ -456,10 +462,10 @@ export default async function HomePage() {
           <div className="home-wrap">
             <Reveal className="home-head home-head--row">
               <div>
-                <p className="home-eyebrow">Featured fundraisers</p>
-                <h2 id="home-featured-title">Real people. Real impact. Right now.</h2>
+                <p className="home-eyebrow">{t('home.featured_fund')}</p>
+                <h2 id="home-featured-title">{t('home.real_people')}</h2>
               </div>
-              <Link href="/campaigns" className="home-btn home-btn-ghost home-head-cta">See all <Icon name="arrow" className="hi" /></Link>
+              <Link href="/campaigns" className="home-btn home-btn-ghost home-head-cta">{t('home.see_all')} <Icon name="arrow" className="hi" /></Link>
             </Reveal>
             <div className="home-cards">
               {featured.map((c, i) => (
@@ -492,19 +498,19 @@ export default async function HomePage() {
       <section className="home-section home-impact" aria-labelledby="home-impact-title">
         <div className="home-wrap home-impact-grid">
           <Reveal className="home-impact-copy">
-            <p className="home-eyebrow">Live impact</p>
-            <h2 id="home-impact-title">See kindness happen in real time.</h2>
+            <p className="home-eyebrow">{t('home.live_impact')}</p>
+            <h2 id="home-impact-title">{t('home.live_impact_sub')}</h2>
             <p className="home-impact-sub">Every gift is recorded, verified, and shown transparently. Here is what your generosity can do:</p>
             <ul className="home-tiers">
               {GIVING_TIERS.map((t) => (
                 <li key={t.amount}><span className="home-tier-amt">{t.amount}</span><span className="home-tier-body">{t.body}</span></li>
               ))}
             </ul>
-            <Link href="/campaigns" className="home-btn home-btn-primary">Give now</Link>
+            <Link href="/campaigns" className="home-btn home-btn-primary">{t('home.give_now')}</Link>
           </Reveal>
 
           <Reveal className="home-feed" delay={80}>
-            <div className="home-feed-head"><span className="home-live-dot" aria-hidden="true" /> Recent donations</div>
+            <div className="home-feed-head"><span className="home-live-dot" aria-hidden="true" /> {t('home.recent_donations')}</div>
             {recentDonations.length > 0 ? (
               <ul>
                 {recentDonations.map((d) => (
@@ -518,7 +524,7 @@ export default async function HomePage() {
                 ))}
               </ul>
             ) : (
-              <p className="home-empty home-empty--feed">Be the first to make a gift today.</p>
+              <p className="home-empty home-empty--feed">{t('home.be_first')}</p>
             )}
           </Reveal>
         </div>
@@ -528,16 +534,16 @@ export default async function HomePage() {
       <section className="home-section" aria-labelledby="home-how-title">
         <div className="home-wrap">
           <Reveal className="home-head home-head--center">
-            <p className="home-eyebrow">How it works</p>
-            <h2 id="home-how-title">Change a life in three simple steps.</h2>
+            <p className="home-eyebrow">{t('nav.how_it_works')}</p>
+            <h2 id="home-how-title">{t('home.how_sub')}</h2>
           </Reveal>
           <ol className="home-steps">
             {STEPS.map((s, i) => (
               <Reveal as="li" key={s.n} className="home-step" delay={i * 90}>
                 <span className="home-step-ic"><Icon name={s.icon} /></span>
                 <span className="home-step-n">{s.n}</span>
-                <h3>{s.title}</h3>
-                <p>{s.body}</p>
+                <h3>{t(s.titleKey)}</h3>
+                <p>{t(s.bodyKey)}</p>
               </Reveal>
             ))}
           </ol>
@@ -548,8 +554,8 @@ export default async function HomePage() {
       <section className="home-section home-faq" aria-labelledby="home-faq-title">
         <div className="home-wrap home-faq-inner">
           <Reveal className="home-head home-head--center">
-            <p className="home-eyebrow">Questions, answered</p>
-            <h2 id="home-faq-title">Everything you need to feel confident.</h2>
+            <p className="home-eyebrow">{t('home.questions')}</p>
+            <h2 id="home-faq-title">{t('home.trusted_sub')}</h2>
           </Reveal>
           <div className="home-faq-list">
             {FAQS.map((f) => (
@@ -570,8 +576,8 @@ export default async function HomePage() {
             <h2>{`You have the power to change someone's life today.`}</h2>
             <p>Join a community of givers, organizers, and volunteers turning compassion into real, measurable impact.</p>
             <div className="home-final-cta">
-              <Link href="/create/choose-path" className="home-btn home-btn-white">Start a fundraiser</Link>
-              <Link href="/campaigns" className="home-btn home-btn-outline-light">Donate now</Link>
+              <Link href="/create/choose-path" className="home-btn home-btn-white">{t('nav.start_fundraiser')}</Link>
+              <Link href="/campaigns" className="home-btn home-btn-outline-light">{t('home.donate_now')}</Link>
             </div>
           </Reveal>
         </div>
