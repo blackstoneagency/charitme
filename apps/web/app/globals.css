@@ -2019,6 +2019,21 @@ img, video, iframe { max-width: 100%; }
 .auth-kicker { color: var(--violet-ink); font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin: 0 0 14px; }
 .auth-copy h1 { margin: 0; font-size: var(--fs-hero); line-height: .98; letter-spacing: -.04em; color: var(--ink); max-width: 620px; }
 .auth-copy p:not(.auth-kicker) { color: var(--muted); font-size: 17px; line-height: 1.7; max-width: 570px; margin: 22px 0 0; }
+/* Signup benefit bullets (design 13). Tokenised rather than hardcoded — this
+   panel is a normal themed surface, unlike the hero aside which sits on a
+   photograph, so --t2 here adapts correctly in both themes. */
+.auth-benefits { list-style: none; margin: 26px 0 0; padding: 0; display: grid; gap: 13px; }
+.auth-benefits li {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  color: var(--t2);
+  font-size: 15px;
+  line-height: 1.5;
+  font-weight: 600;
+}
+.auth-benefits svg { flex: none; margin-top: 3px; color: var(--pink-btn, #ec39c3); }
+
 .auth-proof { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 38px; }
 .auth-proof span { border: 1px solid #ded6ff; border-radius: 999px; padding: 10px 14px; color: #4d31c9; background: #faf8ff; font-size: 13px; font-weight: 650; }
 .auth-card { padding: 34px; display: flex; flex-direction: column; gap: 16px; }

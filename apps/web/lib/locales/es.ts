@@ -11,6 +11,7 @@ export const es: Dictionary = {
   'footer.link.brand_assets': 'Recursos de marca',
   'footer.link.resources': 'Recursos',
   'footer.link.create_team': 'Crear un equipo',
+  'footer.link.signup': 'Crear una cuenta',
   'footer.link.mobile_app': 'CharitMe en el móvil',
   'footer.link.impact_map': 'Mapa de impacto',
   'footer.link.glossary': 'Glosario',

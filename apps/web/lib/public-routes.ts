@@ -459,6 +459,16 @@ export const INDEXABLE_PUBLIC_ROUTES: PublicRoute[] = [
     changeFrequency: 'monthly',
   },
   {
+    // High priority deliberately: this is the top of the conversion funnel and,
+    // until now, it had no URL at all — it existed only as /login?mode=signup.
+    path: '/signup',
+    title: 'Create Your CharitMe Account',
+    description:
+      'Create a free CharitMe account to donate to causes you care about, start a fundraiser, and track your impact in one place.',
+    priority: 0.72,
+    changeFrequency: 'monthly',
+  },
+  {
     path: '/about-us',
     title: 'About CharitMe',
     description: 'Learn about CharitMe and the mission to make fundraising faster, trusted, and more accessible.',

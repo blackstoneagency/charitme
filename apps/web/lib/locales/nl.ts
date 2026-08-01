@@ -9,6 +9,7 @@ export const nl: Dictionary = {
   'footer.link.brand_assets': 'Merkmateriaal',
   'footer.link.resources': 'Bronnen',
   'footer.link.create_team': 'Start een team',
+  'footer.link.signup': 'Account aanmaken',
   'footer.link.mobile_app': 'CharitMe op mobiel',
   'footer.link.impact_map': 'Impactkaart',
   'footer.link.glossary': 'Woordenlijst',
