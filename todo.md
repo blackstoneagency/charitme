@@ -501,6 +501,50 @@ Three fixes, at the level each belongs:
 - the mobile hero track becomes `minmax(0, 1fr)`, so a wide child can never again
   stretch the text column.
 
+### ⚠️ A SWEEP THAT MEASURED UNSTYLED PAGES — and how it announced itself as 46 bugs
+
+After the hero fix I re-ran the sweep and it reported **46 findings across 18
+routes**, dominated by "overlapping controls" on nearly every page. It looked
+exactly like a sitewide footer regression, and the natural next move was to go
+fix the footer.
+
+**It was not real.** `.kind-footer-links` computed to `display: block` with
+`grid-template-columns: none`, and enumerating the matching CSS rules from inside
+the page returned **an empty list** — no rule for that class existed in the
+served stylesheet at all. Fetching the stylesheet directly:
+
+```
+css=/_next/static/css/7b3236d973ddd710.css   status=400   bytes=2022
+```
+
+**Three orphaned `next-server` processes** were still bound to the port, serving
+HTML from a build whose `.next` had since been deleted. Every "defect" was an
+unstyled element at its intrinsic size.
+
+Two things this changes:
+
+1. **The homepage fix was NOT verified by that run** — an unstyled page cannot
+   exhibit a grid-track overflow, so its silence proved nothing. Re-verified
+   against a build whose CSS is confirmed to load.
+2. `pkill -f "next start"` does not kill these. `next start` re-execs as
+   **`next-server`**, so the original pattern misses it — which is how three
+   accumulated. Kill by scanning `/proc/*/cmdline` for `next-server`.
+
+`audit-responsive.mjs` now refuses to measure a page whose stylesheets contain
+zero rules, the guard `audit-mobile.mjs` has carried for a while. And the runner
+verifies the CSS returns 200 *and* contains a known rule before sweeping at all.
+A sweep against an unstyled page is not a failed sweep — it is a confidently
+wrong one, and it reads exactly like a real regression.
+
+**Re-run with the guard in place:**
+
+```
+· CSS ok (/_next/static/css/571308145b2d152b.css, 418224 bytes)
+✅ No responsive/theme regressions across 78 pages × 3 viewports × 2 themes.
+```
+
+Zero findings. The hero fix is verified, and all 46 "defects" were the artifact.
+
 ### In flight
 
 `audit-mobile.mjs` gains `--auth` and sweeps the gated routes from the same

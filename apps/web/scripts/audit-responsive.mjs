@@ -109,6 +109,29 @@ for (const vp of VIEWPORTS) {
           findings++;
           continue;
         }
+        // Refuse to measure an UNSTYLED page.
+        //
+        // audit-mobile.mjs has carried this guard for a while; this script did
+        // not, and it cost a full sweep on 2026-08-01: three orphaned
+        // `next-server` processes were serving stale HTML against a rebuilt
+        // .next, the stylesheet 404'd/400'd, and this audit reported 46 layout
+        // defects across 18 routes. Every one was an unstyled element at its
+        // intrinsic size — including a "fixed" homepage that only looked fixed
+        // because there was no CSS to lay it out wrongly.
+        //
+        // A sweep against an unstyled page is not a failed sweep. It is a
+        // confidently wrong one, and it reads exactly like a real regression.
+        const ruleCount = await page.evaluate(() =>
+          [...document.styleSheets].reduce((n, sheet) => {
+            try { return n + sheet.cssRules.length; } catch { return n; }
+          }, 0),
+        );
+        if (ruleCount === 0) {
+          console.log(`✗ ${vp.name}/${theme} ${path} — stylesheet has 0 rules; page is UNSTYLED, refusing to measure`);
+          findings++;
+          continue;
+        }
+
         // Readiness gate, not a guess.
         //
         // `domcontentloaded` fires before stylesheets and webfonts are applied, so
