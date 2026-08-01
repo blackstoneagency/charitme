@@ -26,6 +26,14 @@ the *actionable* queue is empty, not that the history has been deleted.
 
 ### Closed this session
 
+- **Homepage design mirror release candidate — done.** Rebuilt the public home
+  surface around the supplied community reference: owned full-bleed hero art,
+  Supabase-backed impact metrics and campaign proof, all eligible paid featured
+  campaigns in a timed carousel that pauses on hover/focus, mobile cause rail,
+  and the compact trust/CTA composition. Expanded both desktop mega menus to
+  match the supplied content hierarchy and preserved click, hover, keyboard,
+  Escape, focus-return, and route-close behavior. Verified on the exact
+  integrated production build; release is through this PR's normal workflow.
 - **Design mirror — done.** Two header mega-dropdowns (Explore Causes,
   Resources) plus **13 new pages**: `/causes` + 20 `/causes/[slug]`,
   `/fundraising-guide`, `/impact-education`, `/reports`, `/donate`, `/partner`,
@@ -57,9 +65,10 @@ the *actionable* queue is empty, not that the history has been deleted.
 | axe WCAG 2.0/2.1/**2.2** A+AA, both themes | **0 violations**, 61 routes |
 | `audit:contrast` | **0 AA failures**, 60 pages × 2 themes |
 | `audit:responsive` | **0 regressions**, 60 pages × 3 viewports × 2 themes |
-| `audit:focus-order` | **0 problems**, 8,179 focus stops |
-| header hit-test + `e2e/header-nav.spec.ts` | ALL CLEAR / 22 passed |
-| vitest / typecheck / lint / build | **2239 pass**, all clean |
+| `audit:focus-order` | **0 problems**, 8,446 focus stops across 61 pages × 2 themes |
+| rendered image uniqueness | **0 same-page duplicates**, 64 routes / 189 distinct images |
+| header hit-test + focused Playwright smoke | ALL CLEAR / **44 passed** across desktop + mobile projects |
+| vitest / typecheck / lint / build | **2239 pass**, all clean / **190 pages generated** |
 
 ### The complete list of what is left, and why it cannot be done here
 
