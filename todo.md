@@ -58,12 +58,12 @@ volunteer (44/45), events (48), matching (55), accessibility (68), safety (69 �
 | 5 | `/donor-wall` — hall of thanks / recognition | 62, 81 | 🔵 **CLAIMED wcu7oh** |
 | 6 | `/glossary` | 73 | ✅ **BUILT wcu7oh** |
 | 7 | `/press` — press releases + detail | 77 | ⬜ unclaimed |
-| 8 | `/brand-assets` — media kit | 78 | ⬜ unclaimed |
+| 8 | `/brand-assets` — media kit | 78 | ✅ **BUILT wcu7oh** |
 | 9 | `/mobile-app` | 67 | ✅ **BUILT wcu7oh** |
-| 10 | `/webinars` + detail | 76 | ⬜ unclaimed |
+| 10 | `/webinars` + detail | 76 | ✅ **BUILT wcu7oh** |
 | 11 | `/resources` — guide index + detail | 75 | ✅ **BUILT wcu7oh** |
-| 12 | `/community` — social feed | 82 | ⬜ unclaimed |
-| 13 | `/support/chat` — live support | 71 | ⬜ unclaimed |
+| 12 | `/community` — social feed | 82 | ✅ **BUILT wcu7oh** |
+| 13 | `/support/chat` — live support | 71 | ✅ **BUILT wcu7oh** |
 | 14 | `/internships` | 46 | ✅ **BUILT wcu7oh** |
 | 15 | `/feedback` | 47 | ✅ **BUILT wcu7oh** |
 | 16 | `/certificate` — donor certificate | 64 | 🔵 **CLAIMED wcu7oh 14:10** |

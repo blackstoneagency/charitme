@@ -3,6 +3,11 @@
 import type { Dictionary } from '../i18n';
 
 export const fr: Dictionary = {
+  'footer.link.webinars': 'Webinaires',
+  'footer.link.community': 'Communauté',
+  'footer.link.support': 'Assistance',
+  'footer.link.press': 'Presse',
+  'footer.link.brand_assets': 'Ressources de marque',
   'footer.link.resources': 'Ressources',
   'footer.link.create_team': 'Créer une équipe',
   'footer.link.mobile_app': 'CharitMe sur mobile',

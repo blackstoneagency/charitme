@@ -77,6 +77,10 @@ describe('translation coverage', () => {
       // French and Dutch word, but German says 'Wirkung' and Spanish 'Impacto',
       // and a bare exemption would stop checking those too. So these four are
       // scoped to the language that genuinely shares the English spelling.
+      // 'Community' is an established loanword in German and Dutch, and Dutch
+      // uses the English 'Webinars' plural. Portuguese does NOT — it says
+      // 'Webinários' — so it stays checked rather than being swept up here.
+      'de:footer.link.community', 'nl:footer.link.community', 'nl:footer.link.webinars',
       'fr:campaign.impact', 'fr:campaign.message',
       'nl:campaign.impact', 'nl:campaign.momentum',
     ]);
