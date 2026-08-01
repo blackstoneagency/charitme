@@ -6,6 +6,7 @@ import {
   FOOTER_SECTION_ORDER,
   FOOTER_LEGAL_BAR,
   resolveFooterSections,
+  type FooterSectionName,
 } from '../lib/footer-nav';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -62,13 +63,21 @@ describe('global footer links', () => {
     expect(dupes.map(([h, v]) => `${h} ← ${v.join(' + ')}`)).toEqual([]);
   });
 
-  it('is authored with columns of equal length', () => {
+  it('is authored with columns of equal length, net of the legal bar', () => {
     // The layout problem was CONTENT: 13 links against 5/6/8 made one column run
     // roughly twice as long as its neighbours and left dead space beside it.
     // Balancing here fixes it at the source, so no CSS has to compensate.
-    const counts = FOOTER_SECTION_ORDER.map((n) => FOOTER_SECTIONS[n].length);
-    const named = Object.fromEntries(FOOTER_SECTION_ORDER.map((n) => [n, FOOTER_SECTIONS[n].length]));
-    expect(Math.max(...counts) - Math.min(...counts), `ragged authored columns: ${JSON.stringify(named)}`)
+    //
+    // The count that matters is what SURVIVES de-duplication, not what is
+    // authored. Legal deliberately authors /terms and /privacy that the legal
+    // bar then strips, so a raw authored count reports Legal as two links longer
+    // than it renders — and "fixing" that by deleting two real links would make
+    // the rendered footer ragged in the other direction.
+    const owned = new Set(FOOTER_LEGAL_BAR.map((l) => l.href));
+    const net = (n: FooterSectionName) => FOOTER_SECTIONS[n].filter((l) => !owned.has(l.href)).length;
+    const counts = FOOTER_SECTION_ORDER.map(net);
+    const named = Object.fromEntries(FOOTER_SECTION_ORDER.map((n) => [n, net(n)]));
+    expect(Math.max(...counts) - Math.min(...counts), `ragged columns: ${JSON.stringify(named)}`)
       .toBeLessThanOrEqual(1);
   });
 

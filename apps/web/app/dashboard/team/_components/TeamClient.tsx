@@ -153,7 +153,7 @@ export function TeamClient({ campaigns, initialMembers, profiles, currentUserId 
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '40px 1fr 160px 110px 110px 110px',
+            gridTemplateColumns: '40px minmax(0, 1fr) 160px 110px 110px 110px',
             gap: 12,
             padding: '8px 20px',
             fontSize: 11,
@@ -188,7 +188,7 @@ export function TeamClient({ campaigns, initialMembers, profiles, currentUserId 
                   className="kf-row"
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: '40px 1fr 160px 110px 110px 110px',
+                    gridTemplateColumns: '40px minmax(0, 1fr) 160px 110px 110px 110px',
                     gap: 12,
                     alignItems: 'center',
                   }}

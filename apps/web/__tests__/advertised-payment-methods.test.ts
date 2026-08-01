@@ -57,8 +57,13 @@ describe('the public site does not advertise payment methods checkout rejects', 
 
   it('the fee page still documents the methods that DO work', () => {
     // The fix must not become "delete the fee table" — donors need the rates.
+    // The card rate is no longer a literal here: it is rendered from
+    // PROCESSING_FEE_COPY, which is derived from @shared/fees, because nine
+    // pages had spelled it out by hand and four had the tip default wrong. So
+    // assert the row and its source, not the digits.
     const src = read('app/fees/page.tsx');
-    expect(src).toMatch(/2\.9% \+ \$0\.30/);
+    expect(src).toMatch(/Card \/ Google Pay \/ Apple Pay/);
+    expect(src).toContain('PROCESSING_FEE_COPY');
     expect(src).toMatch(/0\.8%/);
   });
 });

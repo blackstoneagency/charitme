@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { safeJsonLd } from '../../lib/json-ld';
 import MoneyCalculator from './MoneyCalculator';
 import JsonLd from '../../components/JsonLd';
+import { PROCESSING_FEE_COPY } from '../../lib/fee-copy';
 
 export const metadata: Metadata = {
   title: 'Transparency Center — Where Your Money Goes | CharitMe',
@@ -25,7 +26,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'What is the processing fee?',
-    a: 'Payment processors (Stripe and others) charge a fee to move money securely — for cards it is 2.9% + $0.30. This goes to the processor, not to CharitMe. If you choose to cover it, 100% of your donation reaches the recipient.',
+    a: 'Payment processors (Stripe and others) charge a fee to move money securely — for cards it is ' + PROCESSING_FEE_COPY + '. This goes to the processor, not to CharitMe. If you choose to cover it, 100% of your donation reaches the recipient.',
   },
   {
     q: 'Does CharitMe ever hold my donation?',
@@ -100,7 +101,7 @@ export default function TransparencyPage() {
             no dark patterns. This is what keeps CharitMe running.
           </li>
           <li>
-            <strong>Processing fee: goes to the processor.</strong> Stripe’s fee (e.g. 2.9% + $0.30 for
+            <strong>Processing fee: goes to the processor.</strong> Stripe’s fee (e.g. {PROCESSING_FEE_COPY} for
             cards) is not CharitMe revenue. Cover it and 100% of your donation reaches the recipient.
           </li>
         </ul>

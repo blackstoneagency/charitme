@@ -151,7 +151,7 @@ export default async function AdminSetupPage() {
           {checks.map((check, i) => {
             const s = STATUS_STYLE[check.status];
             return (
-              <div key={i} style={{ display: 'grid', gridTemplateColumns: '28px 1fr auto', gap: 10, padding: '13px 20px', borderBottom: i < checks.length - 1 ? '1px solid var(--b1)' : 'none', background: check.status !== 'ok' ? s.bg : undefined, alignItems: 'flex-start' }}>
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: '28px minmax(0, 1fr) auto', gap: 10, padding: '13px 20px', borderBottom: i < checks.length - 1 ? '1px solid var(--b1)' : 'none', background: check.status !== 'ok' ? s.bg : undefined, alignItems: 'flex-start' }}>
                 <span style={{ fontSize: 15, fontWeight: 700, color: s.color, paddingTop: 1 }}>{s.icon}</span>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 650, color: 'var(--t1)', fontFamily: 'monospace' }}>{check.label}</div>

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import './globals.css';
 import { AppShell } from '../components/AppShell';
@@ -9,12 +10,16 @@ import { getFooterSettings } from '../lib/footer-settings';
 import { LOCALE_COOKIE } from '../lib/i18n';
 import SessionWatcher from '../components/SessionWatcher';
 import { ThemeProvider } from '../components/ThemeProvider';
+import { LocaleProvider } from '../components/LocaleProvider';
+import { getLocaleTag } from '../lib/locale-server';
 import PWARegister from '../components/PWARegister';
 import InstallPrompt from '../components/InstallPrompt';
 import BackToTop from '../components/BackToTop';
 import MarketingTracker from '../components/MarketingTracker';
 import { safeJsonLd } from '../lib/json-ld';
 import { CHARITME_ORIGIN } from '../lib/public-routes';
+import { getMaintenanceStatus } from '../lib/maintenance-data';
+import { isMaintenanceBypassPath } from '../lib/maintenance-mode';
 
 export const metadata: Metadata = {
   title: { default: 'CharitMe | Raise More Faster With AI', template: '%s | CharitMe' },
@@ -73,25 +78,37 @@ const platformJsonLd = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // Cached (ISR) fetch — keeps the layout statically generated while putting the
   // banner in the initial HTML so it never injects post-hydration (no layout shift).
-  const [initialAnnouncements, bannerAppearance, footerSettings] = await Promise.all([
+  const requestHeaders = await headers();
+  const [initialAnnouncements, bannerAppearance, footerSettings, maintenanceStatus] = await Promise.all([
     getActiveAnnouncements(),
     getBannerSettings(),
     getFooterSettings(),
+    getMaintenanceStatus(),
   ]);
-  const nonce = (await headers()).get('x-nonce') ?? undefined;
+  const path = requestHeaders.get('x-pathname') ?? '/';
+  if (maintenanceStatus.enabled && !isMaintenanceBypassPath(path)) redirect('/maintenance');
+
+  const nonce = requestHeaders.get('x-nonce') ?? undefined;
+  // Resolved by middleware from the locale cookie or the OS's Accept-Language,
+  // so the very first response is already in the visitor's language.
+  const locale = await getLocaleTag();
   // Read straight off the request rather than through cookies(), which would opt
   // the whole layout out of static rendering. Absent → the picker adopts the
   // cookie on hydration instead.
-  const initialLocale = (await headers()).get('cookie')
+  const initialLocale = requestHeaders.get('cookie')
     ?.split('; ').find((c) => c.startsWith(`${LOCALE_COOKIE}=`))
     ?.slice(LOCALE_COOKIE.length + 1);
   return (
-    <html lang="en" suppressHydrationWarning>
+    // `lang` must be the resolved locale, not a hardcoded "en": screen readers
+    // choose pronunciation from it, and German read with English phonetics is
+    // worse than untranslated text.
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeScript }} />
         <script nonce={nonce} type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(platformJsonLd) }} />
       </head>
       <body>
+        <LocaleProvider locale={locale}>
         <ThemeProvider>
           {/* Watches for session expiry and signs out when the browser closes */}
           <SessionWatcher />
@@ -112,6 +129,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               self-excludes the campaign embed widget. */}
           <BackToTop />
         </ThemeProvider>
+        </LocaleProvider>
       </body>
     </html>
   );

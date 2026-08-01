@@ -4,6 +4,7 @@ import { openai, OPENAI_MODEL } from '../../../../lib/openai';
 import { checkRateLimitDurable } from '../../../../lib/rate-limit-durable';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { formatMoney, normalizeCurrency } from '@shared/currencies';
+import { campaignDaysLeft, campaignLifecycle } from '../../../../lib/campaign-lifecycle';
 
 export const dynamic = 'force-dynamic';
 
@@ -112,11 +113,14 @@ export async function GET(request: NextRequest) {
     ? (campaign.raised_amount / campaign.goal_amount) * 100
     : 0;
 
-  let daysLeft: number | null = null;
-  if (campaign.deadline) {
-    const ms = new Date(campaign.deadline).getTime() - Date.now();
-    daysLeft = Math.ceil(ms / (24 * 60 * 60 * 1000));
-  }
+  // null once the campaign is over, so the AI cannot advise a fundraiser (or a
+  // donor) on time that no longer exists. `status` was already selected but was
+  // not consulted here, and the raw arithmetic could also go NEGATIVE for a past
+  // deadline — "-12 days left" fed into a prompt.
+  const daysLeft: number | null =
+    campaignLifecycle({ status: campaign.status, deadline: campaign.deadline }) === 'ended'
+      ? null
+      : campaignDaysLeft(campaign.deadline);
 
   const suggestedAmounts = buildSuggestedAmounts(avgDonationCents);
 

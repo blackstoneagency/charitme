@@ -28,8 +28,8 @@ const SHOW_AFTER_PX = 400;
  *
  * Mounted in the root layout rather than in each shell, so it reaches public
  * pages, the dashboard, admin and anything that renders no shell at all. The one
- * exclusion is the campaign embed widget, which runs inside a third-party
- * iframe and must render no CharitMe chrome.
+ * exclusions are the campaign embed widget, which runs inside a third-party
+ * iframe, and the standalone maintenance screen.
  */
 export default function BackToTop() {
   const path = usePathname();
@@ -66,7 +66,7 @@ export default function BackToTop() {
     }
   }, []);
 
-  if (!visible || isEmbedRoute(path ?? '')) return null;
+  if (!visible || path === '/maintenance' || isEmbedRoute(path ?? '')) return null;
 
   return (
     <button type="button" className="back-to-top" onClick={toTop} aria-label="Back to top">

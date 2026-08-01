@@ -131,7 +131,7 @@ export default function LedgerPanel({ campaignId }: { campaignId: string }) {
               <input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} maxLength={200}
                 placeholder="e.g. Hospital invoice — surgery" style={{ height: 42, border: '1px solid var(--b2)', borderRadius: 9, padding: '0 12px', fontSize: 14 }} />
             </label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)', gap: 14 }}>
               <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
                 Amount ($) <span style={{ fontWeight: 400 }}>optional</span>
                 <input type="number" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} min="0" step="0.01"

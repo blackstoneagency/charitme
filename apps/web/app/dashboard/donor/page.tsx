@@ -279,7 +279,7 @@ export default async function DonorsPage({
     <CharitMeShell active="Donors">
       <TopBar title="Donors" subtitle="Build stronger relationships with your supporters." />
 
-      <div className="kf-content-grid" style={{ gridTemplateColumns: '1fr' }}>
+      <div className="kf-content-grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
         <div className="kf-content-main">
           {unavailable && (
             <DegradedReadNotice title={"We couldn't load your donors"} />
@@ -359,7 +359,7 @@ export default async function DonorsPage({
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 180px 90px 110px 100px',
+                gridTemplateColumns: 'minmax(0, 1fr) 180px 90px 110px 100px',
                 gap: 12,
                 padding: '8px 20px',
                 fontSize: 11,
@@ -386,7 +386,7 @@ export default async function DonorsPage({
                     className="kf-row"
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: '1fr 180px 90px 110px 100px',
+                      gridTemplateColumns: 'minmax(0, 1fr) 180px 90px 110px 100px',
                       gap: 12,
                       alignItems: 'center',
                     }}

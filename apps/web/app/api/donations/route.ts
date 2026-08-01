@@ -333,7 +333,11 @@ export async function POST(request: NextRequest) {
     payment_method_types: ONE_TIME_PAYMENT_METHOD_TYPES,
     line_items: lineItems,
     ...(stripeEmail ? { customer_email: stripeEmail } : {}),
-    success_url: `${origin}/campaigns/${campaign.slug}?donated=1&amount=${amountCents}`,
+    // Routed to /thank-you with the SESSION id, not the amount. The old URL
+    // carried ?amount=, which is visitor-editable — the thank-you page would have
+    // been rendering an official-looking receipt for a number nobody verified.
+    // The session id is exchanged server-side for the real donation row.
+    success_url: `${origin}/thank-you?session_id={CHECKOUT_SESSION_ID}&campaign=${campaign.slug}`,
     cancel_url:  `${origin}/campaigns/${campaign.slug}`,
     metadata: {
       // Core fields

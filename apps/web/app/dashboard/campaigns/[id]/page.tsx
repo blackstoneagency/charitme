@@ -6,6 +6,7 @@ import { supabaseAdmin } from '../../../../lib/supabase';
 import CampaignWorkspace from './_components/CampaignWorkspace';
 import FeatureCampaignButton from './_components/FeatureCampaignButton';
 import { resolveFeaturePriceCents } from '../../../../lib/featured';
+import { campaignTimeLabel } from '../../../../lib/campaign-lifecycle';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,11 +49,16 @@ function fmtDate(iso: string): string {
   });
 }
 
-function daysLeft(deadline: string | null): string {
-  if (!deadline) return '—';
-  const diff = Math.ceil((new Date(deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-  if (diff <= 0) return 'Ended';
-  return `${diff} day${diff !== 1 ? 's' : ''} left`;
+/**
+ * Countdown for the fundraiser's own campaign page.
+ *
+ * Takes `status` because this label renders directly beside the status pill —
+ * reading the deadline alone is how a completed campaign showed "136 days left"
+ * next to a pill saying otherwise. Shared with the public page via
+ * lib/campaign-lifecycle so the fundraiser and their donors see the same thing.
+ */
+function daysLeft(deadline: string | null, status: string | null): string {
+  return campaignTimeLabel({ status, deadline });
 }
 
 function pillTone(status: string) {
@@ -142,7 +148,7 @@ export default async function CampaignDetailPage({
 
   const totalRaisedDisplay = fmtCents(campaign.raised_amount);
   const goalDisplay = fmtCents(campaign.goal_amount);
-  const deadline = daysLeft(campaign.deadline);
+  const deadline = daysLeft(campaign.deadline, campaign.status);
 
   return (
     <CharitMeShell active="My Campaigns">

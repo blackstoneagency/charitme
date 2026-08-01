@@ -50,7 +50,7 @@ export default async function CorporateDashboardPage() {
         subtitle="Review your company's employee matching-gift claims."
       />
 
-      <div className="kf-content-grid" style={{ gridTemplateColumns: '1fr' }}>
+      <div className="kf-content-grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
         <MetricGrid metrics={metrics} />
 
         {programs.length === 0 ? (

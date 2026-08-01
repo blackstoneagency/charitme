@@ -220,7 +220,7 @@ export default function AdminDashboardClient({ metrics, campaigns, donations, we
           <div className="kf-card-head"><h2>Top Campaigns</h2></div>
           <div>
             {campaigns.slice(0, 5).map((c) => (
-              <div key={c.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: '1px solid #eef0f7' }}>
+              <div key={c.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: '1px solid #eef0f7' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                     <StatusPill>{c.status}</StatusPill>

@@ -99,7 +99,7 @@ export default async function TaxStatementPage({ params, searchParams }: { param
         </div>
 
         {/* Summary cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 28 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12, marginBottom: 28 }}>
           {[
             { label: 'Total given', value: formatCents(totals.totalGiftCents, currency), color: 'var(--t1, #0e0520)' },
             { label: 'Tax-deductible', value: formatCents(totals.deductibleCents, currency), color: 'var(--green-text)' },

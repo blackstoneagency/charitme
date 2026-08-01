@@ -16,8 +16,19 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface FooterLink {
+  /** English text. Kept as the fallback and as the source string for translation. */
   label: string;
   href: string;
+  /**
+   * Translation key, resolved at render time.
+   *
+   * The label stays here rather than being replaced by the key: this file is also
+   * read by footer-links.test.ts and by the sitemap tooling, both of which want
+   * human-readable text, and an untranslated key rendering in the footer would be
+   * worse than English. `t()` falls back to English anyway, so a missing key is
+   * invisible rather than broken.
+   */
+  labelKey: string;
 }
 
 export type FooterSectionName = 'Platform' | 'Ways to Give' | 'Company' | 'Legal';
@@ -30,15 +41,19 @@ export const FOOTER_SECTIONS: Record<FooterSectionName, readonly FooterLink[]> =
   // the fix; no CSS can make four lists of wildly different length look
   // deliberate. footer-links.test.ts holds them within one of each other.
   Platform: [
-    { label: 'How It Works', href: '/how-it-works' },
-    { label: 'AI Fundraising', href: '/ai-fundraising' },
-    { label: 'AI Campaign Builder', href: '/ai-campaign' },
-    { label: 'Platform Features', href: '/features' },
-    { label: 'Fast Payouts', href: '/fast-payouts' },
-    { label: 'Pricing', href: '/pricing' },
-    { label: 'Success Stories', href: '/success-stories' },
-    { label: 'Leaderboard', href: '/leaderboard' },
-    { label: 'Developers & API', href: '/developers' },
+    { label: 'How It Works', href: '/how-it-works', labelKey: 'footer.link.how_it_works' },
+    { label: 'AI Fundraising', href: '/ai-fundraising', labelKey: 'footer.link.ai_fundraising' },
+    { label: 'AI Campaign Builder', href: '/ai-campaign', labelKey: 'footer.link.ai_campaign' },
+    { label: 'Platform Features', href: '/features', labelKey: 'footer.link.features' },
+    { label: 'Fast Payouts', href: '/fast-payouts', labelKey: 'footer.link.fast_payouts' },
+    { label: 'Pricing', href: '/pricing', labelKey: 'footer.link.pricing' },
+    { label: 'Success Stories', href: '/success-stories', labelKey: 'footer.link.success_stories' },
+    { label: 'Campaign Gallery', href: '/gallery', labelKey: 'footer.link.gallery' },
+    { label: 'Leaderboard', href: '/leaderboard', labelKey: 'footer.link.leaderboard' },
+    { label: 'Developers & API', href: '/developers', labelKey: 'footer.link.developers' },
+    { label: 'CharitMe on Mobile', href: '/mobile-app', labelKey: 'footer.link.mobile_app' },
+    { label: 'Support', href: '/support', labelKey: 'footer.link.support' },
+    { label: 'Start a Team', href: '/teams/create', labelKey: 'footer.link.create_team' },
   ],
   // Splitting the ways to GIVE out of "Platform" is what balances the grid, and
   // it is better navigation besides: a donor looking for somewhere to give was
@@ -47,41 +62,57 @@ export const FOOTER_SECTIONS: Record<FooterSectionName, readonly FooterLink[]> =
   // /give, /crisis, /nearby and /developers had all shipped and were linked from
   // nowhere in the footer.
   'Ways to Give': [
-    { label: 'Browse Campaigns', href: '/campaigns' },
-    { label: 'Give to Many Causes', href: '/give' },
-    { label: 'Crisis Relief', href: '/crisis' },
-    { label: 'Fundraisers Near You', href: '/nearby' },
-    { label: 'Volunteer', href: '/volunteer' },
-    { label: 'Sponsor a Cause', href: '/sponsor' },
-    { label: 'Matching Gifts', href: '/matching' },
-    { label: 'Grants', href: '/grants' },
-    { label: 'Events', href: '/events' },
+    { label: 'Browse Campaigns', href: '/campaigns', labelKey: 'footer.link.campaigns' },
+    { label: 'Give to Many Causes', href: '/give', labelKey: 'footer.link.give' },
+    { label: 'Crisis Relief', href: '/crisis', labelKey: 'footer.link.crisis' },
+    { label: 'Fundraisers Near You', href: '/nearby', labelKey: 'footer.link.nearby' },
+    { label: 'Volunteer', href: '/volunteer', labelKey: 'footer.link.volunteer' },
+    { label: 'Sponsor a Cause', href: '/sponsor', labelKey: 'footer.link.sponsor' },
+    { label: 'Matching Gifts', href: '/matching', labelKey: 'footer.link.matching' },
+    { label: 'Grants', href: '/grants', labelKey: 'footer.link.grants' },
+    { label: 'Events', href: '/events', labelKey: 'footer.link.events' },
+    { label: 'Webinars', href: '/webinars', labelKey: 'footer.link.webinars' },
+    { label: 'Impact Map', href: '/impact-map', labelKey: 'footer.link.impact_map' },
+    { label: 'Donor Wall', href: '/donor-wall', labelKey: 'footer.link.donor_wall' },
+    { label: 'Ambassador Programme', href: '/ambassadors', labelKey: 'footer.link.ambassadors' },
   ],
   Company: [
-    { label: 'About Us', href: '/about-us' },
-    { label: 'Contact Us', href: '/contact' },
-    { label: 'For Nonprofits', href: '/for-nonprofits' },
-    { label: 'For Individuals', href: '/for-individuals' },
-    { label: 'For Donors', href: '/for-donors' },
-    { label: 'Blog', href: '/blog' },
-    { label: 'Help Center', href: '/help' },
-    { label: 'FAQ', href: '/faq' },
-    { label: 'Supported Countries', href: '/supported-countries' },
+    { label: 'About Us', href: '/about-us', labelKey: 'footer.link.about_us' },
+    { label: 'Contact Us', href: '/contact', labelKey: 'footer.link.contact' },
+    { label: 'For Nonprofits', href: '/for-nonprofits', labelKey: 'footer.link.for_nonprofits' },
+    { label: 'For Individuals', href: '/for-individuals', labelKey: 'footer.link.for_individuals' },
+    { label: 'For Donors', href: '/for-donors', labelKey: 'footer.link.for_donors' },
+    { label: 'Blog', href: '/blog', labelKey: 'footer.link.blog' },
+    { label: 'Changelog', href: '/changelog', labelKey: 'footer.link.changelog' },
+    { label: 'Help Center', href: '/help', labelKey: 'footer.link.help' },
+    { label: 'FAQ', href: '/faq', labelKey: 'footer.link.faq' },
+    { label: 'Supported Countries', href: '/supported-countries', labelKey: 'footer.link.supported_countries' },
+    { label: 'Resources', href: '/resources', labelKey: 'footer.link.resources' },
+    { label: 'Community', href: '/community', labelKey: 'footer.link.community' },
+    { label: 'Glossary', href: '/glossary', labelKey: 'footer.link.glossary' },
+    { label: 'Careers', href: '/careers', labelKey: 'footer.link.careers' },
   ],
   Legal: [
-    { label: 'Trust & Safety', href: '/trust-safety' },
-    { label: 'Our Impact', href: '/impact' },
-    { label: 'Transparency Center', href: '/transparency' },
-    { label: 'Fee Policy', href: '/fees' },
-    { label: 'Refund Policy', href: '/refunds' },
+    { label: 'Trust & Safety', href: '/trust-safety', labelKey: 'footer.link.trust_safety' },
+    { label: 'Community Guidelines', href: '/community-guidelines', labelKey: 'footer.link.community_guidelines' },
+    { label: 'Verification', href: '/verification', labelKey: 'footer.link.verification' },
+    { label: 'System Status', href: '/status', labelKey: 'footer.link.status' },
+    { label: 'Our Impact', href: '/impact', labelKey: 'footer.link.impact' },
+    { label: 'Transparency Center', href: '/transparency', labelKey: 'footer.link.transparency' },
+    { label: 'Fee Policy', href: '/fees', labelKey: 'footer.link.fees' },
+    { label: 'Refund Policy', href: '/refunds', labelKey: 'footer.link.refunds' },
+    { label: 'Send Feedback', href: '/feedback', labelKey: 'footer.link.feedback' },
+    { label: 'Internships', href: '/internships', labelKey: 'footer.link.internships' },
+    { label: 'Press', href: '/press', labelKey: 'footer.link.press' },
+    { label: 'Brand Assets', href: '/brand-assets', labelKey: 'footer.link.brand_assets' },
     // "Privacy Center" (/privacy-center) used to sit here and REQUIRES A SESSION,
     // so a signed-out visitor clicking it from any page landed on /login with no
     // explanation. The legal bar already carries Privacy Notice, Cookie Policy
     // and the privacy controls, so nothing public is lost by dropping it.
-    { label: 'Privacy Policy', href: '/privacy' },
-    { label: 'Terms of Service', href: '/terms' },
-    { label: 'Security', href: '/security' },
-    { label: 'Prohibited Use', href: '/prohibited-use' },
+    { label: 'Privacy Policy', href: '/privacy', labelKey: 'footer.link.privacy_policy' },
+    { label: 'Terms of Service', href: '/terms', labelKey: 'footer.link.terms_of_service' },
+    { label: 'Security', href: '/security', labelKey: 'footer.link.security' },
+    { label: 'Prohibited Use', href: '/prohibited-use', labelKey: 'footer.link.prohibited_use' },
   ],
 };
 
@@ -94,11 +125,11 @@ export const FOOTER_SECTION_ORDER: readonly FooterSectionName[] = [
  * their policies — anything here is stripped from the columns above.
  */
 export const FOOTER_LEGAL_BAR: readonly FooterLink[] = [
-  { label: 'Terms', href: '/terms' },
-  { label: 'Privacy Notice', href: '/privacy' },
-  { label: 'Legal', href: '/legal' },
-  { label: 'Accessibility Statement', href: '/accessibility' },
-  { label: 'Cookie Policy', href: '/cookies' },
+  { label: 'Terms', href: '/terms', labelKey: 'footer.link.terms' },
+  { label: 'Privacy Notice', href: '/privacy', labelKey: 'footer.link.privacy_notice' },
+  { label: 'Legal', href: '/legal', labelKey: 'footer.link.legal' },
+  { label: 'Accessibility Statement', href: '/accessibility', labelKey: 'footer.link.accessibility' },
+  { label: 'Cookie Policy', href: '/cookies', labelKey: 'footer.link.cookies' },
 ];
 
 /** Trailing slash and case are not meaningful differences between two hrefs. */

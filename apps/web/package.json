@@ -17,18 +17,21 @@
     "audit:page-images": "node scripts/audit-page-images.mjs",
     "audit:contrast": "node scripts/audit-contrast.mjs",
     "audit:responsive": "node scripts/audit-responsive.mjs",
+    "audit:focus-order": "node scripts/audit-focus-order.mjs",
     "audit:image-dupes": "node scripts/audit-image-dupes.mjs",
     "audit:signed-in": "node scripts/audit-signed-in.mjs --build --strict-gradients",
     "audit:personas": "node scripts/audit-personas.mjs --build",
     "audit:a11y": "node scripts/audit-a11y.mjs",
     "audit:authed": "node scripts/audit-authed.mjs",
     "audit:mobile": "node scripts/audit-mobile.mjs",
+    "audit:mobile:signed-in": "node scripts/audit-signed-in.mjs --build --mobile",
     "audit:scroll-keyboard": "node scripts/audit-scroll-keyboard.mjs",
     "audit:web-vitals": "node scripts/audit-web-vitals.mjs",
     "audit:campaign-images:live": "node scripts/audit-campaign-images.mjs --live",
     "check:env": "node scripts/check-env.mjs",
     "audit:orphan-tables": "node scripts/audit-orphan-tables.mjs",
-    "audit:shell-seam": "node scripts/audit-shell-seam.mjs"
+    "audit:shell-seam": "node scripts/audit-shell-seam.mjs",
+    "audit:maintenance": "node scripts/audit-maintenance-mode.mjs --build"
   },
   "dependencies": {
     "@shared/fees": "*",

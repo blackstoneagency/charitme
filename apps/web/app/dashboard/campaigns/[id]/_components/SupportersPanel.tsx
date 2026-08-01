@@ -197,7 +197,7 @@ export default function SupportersPanel({
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr minmax(0, 1fr)', gap: 16, alignItems: 'start' }}>
         {/* ── Supporters table ── */}
         <div style={{ ...card, padding: 0, overflow: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>

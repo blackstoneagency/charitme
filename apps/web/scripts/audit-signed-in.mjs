@@ -38,6 +38,11 @@
  * Usage:
  *   npm run build   # with NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
  *   node scripts/audit-signed-in.mjs [--strict-gradients] [--port 3000]
+ *
+ * `--mobile` drives scripts/audit-mobile.mjs instead of the contrast sweep, over
+ * the same stub session. The overflow and tap-target checks had the identical
+ * gap the contrast sweep had — public routes only — and the signed-in half is
+ * where the wide data tables live, so it is the half a phone struggles with.
  */
 
 import { spawn } from 'node:child_process';
@@ -187,14 +192,23 @@ if (probe.status !== 200) {
 if (!AS_JSON) console.log('· signed-in probe: /admin renders (200)');
 
 // ─── 4. sweep ───────────────────────────────────────────────────────────────
-const sweep = spawnChild(process.execPath, [
-  'scripts/audit-contrast.mjs',
-  '--base', BASE,
-  '--auth',
-  ...(AS_JSON ? ['--json'] : []),
-  ...(ONLY ? ['--only', ONLY] : []),
-  ...(argv.includes('--strict-gradients') ? ['--strict-gradients'] : []),
-], {
+const MOBILE = argv.includes('--mobile');
+const sweepArgs = MOBILE
+  ? [
+    'scripts/audit-mobile.mjs',
+    BASE,
+    '--auth',
+    ...(ONLY ? ['--only', ONLY] : []),
+  ]
+  : [
+    'scripts/audit-contrast.mjs',
+    '--base', BASE,
+    '--auth',
+    ...(AS_JSON ? ['--json'] : []),
+    ...(ONLY ? ['--only', ONLY] : []),
+    ...(argv.includes('--strict-gradients') ? ['--strict-gradients'] : []),
+  ];
+const sweep = spawnChild(process.execPath, sweepArgs, {
   env: {
     ...env,
     STUB_SESSION_COOKIE: JSON.stringify({ name: cookieName, value: cookieValue }),

@@ -297,7 +297,7 @@ export default function AdminCountriesClient() {
           <button
             key={f}
             onClick={() => setFilter(f)}
-            style={{ padding: '7px 16px', borderRadius: 999, border: '1.5px solid', borderColor: filter === f ? '#6c35ff' : '#e2e8f0', background: filter === f ? 'var(--tint-violet)' : '#fff', color: filter === f ? 'var(--brand-text)' : 'var(--t3)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+            style={{ padding: '7px 16px', borderRadius: 999, border: '1.5px solid', borderColor: filter === f ? 'var(--brand-text)' : 'var(--b1)', background: filter === f ? 'var(--tint-violet)' : 'var(--s1)', color: filter === f ? 'var(--brand-text)' : 'var(--t2)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
           >
             {f === 'all' ? `All (${countries.length})` : f === 'fundraise' ? `Fundraise (${fundraiseCount})` : `Donate Only (${donateCount})`}
           </button>

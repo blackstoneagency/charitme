@@ -70,7 +70,7 @@ export default async function CreatorDashboardPage() {
         title="Creator Page"
         subtitle="Your public creator profile and membership tiers."
       />
-      <div className="kf-content-grid" style={{ gridTemplateColumns: '1fr' }}>
+      <div className="kf-content-grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
         <div className="kf-content-main">
           <CreatorClient initialProfile={profile} initialTiers={tiers} initialPosts={posts} />
         </div>

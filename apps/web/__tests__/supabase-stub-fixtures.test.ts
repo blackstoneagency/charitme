@@ -3,6 +3,7 @@ import { pathToFileURL } from 'node:url';
 import path from 'node:path';
 
 type FixtureCampaign = {
+  cover_image_url?: unknown;
   slug?: unknown;
   status?: unknown;
   visibility?: unknown;
@@ -45,5 +46,10 @@ describe('Supabase browser-audit fixtures', () => {
       status: 'active',
       visibility: 'public',
     });
+
+    const coverUrls = (fixtures.campaigns as FixtureCampaign[])
+      .map((row) => row.cover_image_url)
+      .filter((value): value is string => typeof value === 'string' && value.length > 0);
+    expect(new Set(coverUrls).size).toBe(coverUrls.length);
   }, 15_000);
 });

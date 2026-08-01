@@ -108,7 +108,7 @@ export default function ReportsClient({ reports, categories, totalReports, sched
   return (
     <div style={{ padding: '0 32px 32px', display: 'grid', gap: 22 }}>
       {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 18 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 18 }}>
         {metrics.map((m) => (
           <article key={m.label} className="kf-card kf-metric">
             <div className={`kf-square ${m.tone}`}><KFIcon name={m.icon} /></div>
@@ -121,7 +121,7 @@ export default function ReportsClient({ reports, categories, totalReports, sched
       </div>
 
       {/* Two-column layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 20, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '300px minmax(0, 1fr)', gap: 20, alignItems: 'start' }}>
         {/* Left: category overview + donut */}
         <div style={{ display: 'grid', gap: 18 }}>
           {/* Category breakdown */}
@@ -206,9 +206,13 @@ export default function ReportsClient({ reports, categories, totalReports, sched
                   style={{
                     height: 34, padding: '0 14px', borderRadius: 8, fontSize: 12, fontWeight: 650,
                     border: '1px solid', cursor: 'pointer',
-                    borderColor: activeCategory === cat ? '#6c35ff' : '#e0e4ef',
-                    background: activeCategory === cat ? '#f0eaff' : '#fff',
-                    color: activeCategory === cat ? 'var(--brand-text)' : '#111944',
+                    // All three were hardcoded light values under a THEMED text
+                    // colour. In dark mode --brand-text goes light (#b9a5ff) and
+                    // landed on the fixed #f0eaff chip at 1.81:1. Surface and
+                    // text have to move together.
+                    borderColor: activeCategory === cat ? 'var(--brand-text)' : 'var(--b1)',
+                    background: activeCategory === cat ? 'var(--tint-violet)' : 'var(--s1)',
+                    color: activeCategory === cat ? 'var(--brand-text)' : 'var(--t1)',
                   }}
                 >
                   {cat}
@@ -217,8 +221,11 @@ export default function ReportsClient({ reports, categories, totalReports, sched
             </div>
           </div>
 
+          {/* Header and rows share ONE scroll box: two boxes would scroll
+              independently and the columns would drift out of alignment. */}
+          <div className="kf-table-scroll">
           {/* Table header */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 110px 120px 90px 80px 80px', gap: 12, padding: '8px 20px', background: 'var(--s2)', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 110px 120px 90px 80px 80px', gap: 12, padding: '8px 20px', background: 'var(--s2)', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase' }}>
             <span>Report Name</span>
             <span>Category</span>
             <span>Created By</span>
@@ -229,7 +236,7 @@ export default function ReportsClient({ reports, categories, totalReports, sched
 
           {/* Table rows */}
           {filtered.map(r => (
-            <div key={r.id} style={{ display: 'grid', gridTemplateColumns: '1fr 110px 120px 90px 80px 80px', gap: 12, padding: '12px 20px', borderBottom: '1px solid #eef0f7', alignItems: 'center' }}>
+            <div key={r.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 110px 120px 90px 80px 80px', gap: 12, padding: '12px 20px', borderBottom: '1px solid #eef0f7', alignItems: 'center' }}>
               <div>
                 <strong style={{ display: 'block', fontSize: 13, fontWeight: 650 }}>{r.name}</strong>
                 <small style={{ color: 'var(--t3)', fontSize: 11 }}>{r.description}</small>
@@ -250,6 +257,7 @@ export default function ReportsClient({ reports, categories, totalReports, sched
               </div>
             </div>
           ))}
+          </div>
 
           {filtered.length === 0 && (
             <div style={{ textAlign: 'center', padding: 32, color: 'var(--t3)', fontSize: 13 }}>

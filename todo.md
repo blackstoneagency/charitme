@@ -1,5 +1,140 @@
 # CharitMe — Execution Tracker
 
+## 🎨 DESIGN UNIFICATION — the primary CTA now has ONE definition (wcu7oh, 2026-08-01)
+
+**Measured before touching anything:** a browser sweep of every public page found
+**15 distinct primary-CTA treatments across 53 pages**, including four
+violet→magenta gradients differing by a handful of RGB points
+(`#7035ff→#ec39c3`, `#6c35ff→#5016e8`, `#7c3aed→#6c35ff`, `#4a18f0→#6023ff`).
+Nobody designed four almost-identical gradients — each is a copy of the last with
+a nudge.
+
+**Fixed:** one `--grad-brand` token (the homepage's gradient, which is the design
+target), used by `.kind-start`, `.kf-primary`, `.pub-btn.primary`,
+`.mirror-btn-primary` and a new `.cta-primary` for content pages. Content pages
+previously used `.kind-start-pill` — a neutral grey pill — so a marketing page's
+main action looked nothing like the homepage's.
+
+**Result, re-measured:** the brand gradient went from **2 pages to 25** as the
+dominant primary CTA.
+
+Safety checked before adopting, not after: all three gradient stops clear AA
+against white text (#6d28d9 = 7.1:1, #a21caf = 6.32:1, #b45309 = 5.02:1), so a
+white label is safe anywhere along the ramp. Contrast re-audited after the
+change: 0 failures over 78 pages × 2 themes.
+
+### Two things this sweep found that are NOT bugs
+
+Both looked like defects and were verified before "fixing" them:
+
+- **Broken cause images on the homepage** — a sandbox artifact only. The images
+  are Unsplash URLs that return 200 and are allowed by the live CSP; the sandbox
+  browser simply cannot reach them.
+- **`.kf-outline` hardcoding `background: #fff`** in a duplicate rule — a
+  `[data-theme="dark"]` override rescues it, and the resolved dark pair measures
+  14.57:1. The duplicate is dead code, not a dark-mode failure.
+
+### Remaining design work (real, measured)
+
+- ~~**28 near-identical violet ramps**~~ → **DONE, 28 → 5.** Twenty-two rules now
+  route through one of two tokens: `--grad-brand` for primary actions,
+  `--grad-violet` for every other violet surface (avatars, step numerals, label
+  chips, secondary buttons). The five left are deliberate and documented in
+  `__tests__/css-single-definition.test.ts`: the token definition itself, two
+  pink-ended ramps that must stay distinguishable from a violet sibling, and the
+  two halves of the decorative `.contact-mug`.
+  - **A real contrast failure fell out of it.** `#b43bef` measures **4.36:1**
+    against the white initials sitting on it (`.dash-account-avatar`,
+    `.growth-brand > span`) — under the 4.5:1 floor, on live signed-in surfaces.
+    **axe cannot see this**: it samples a computed background *colour*, and a
+    gradient has none, so `audit:contrast` reports a clean page regardless of
+    what the ramp does. Gradient stops have to be measured by hand. Both new
+    tokens clear AA at every stop (5.85 / 5.20 / 7.1 / 6.32 / 5.02).
+  - Still uncovered by tooling: **no audit checks text on a gradient.** A
+    stop-sampling contrast check is worth building and is not yet written.
+- ~~**12 genuine CSS conflicts**~~ → **partly done.** The dead `.kf-outline`
+  duplicate is deleted and `.kf-primary`'s dead `border`/`color`/`background` are
+  gone (only its live `box-shadow` remains). The duplicated-class ceiling stays
+  at **25** because most entries are a shared selector list followed by a
+  per-class rule — normal CSS, not a conflict. The test's premise is cruder than
+  the problem; tightening it to flag only genuinely-conflicting redeclarations is
+  open work.
+- **The CTA guard in that test was INERT and has been fixed.** It built its regex
+  as `` `\\${cls.replace('.', '\\.')}` ``, so the pattern began with a literal
+  backslash and matched nothing — it passed while `.kf-primary` was carrying its
+  own violet gradient. It now escapes properly and has a mutation test that
+  plants a violation and requires detection. Worth generalising: **any guard
+  whose only job is to fail needs a test that makes it fail**, or it is counted
+  as coverage while measuring nothing.
+- **Four design families still coexist**: the homepage's `mirror-*`, `PageShell`
+  (26 pages), legacy `kind-`/`pub-` (21 pages), and bespoke (31). They share the
+  dark palette and chrome so the site reads as coherent.
+  - **Type scale: unified.** Measured first, at 1280px: h1 ran **36→86px** and h2
+    ran **21→48px** across the families — six unrelated scales, not one. Someone
+    moving from `/about-us` to `/support` was looking at two different websites.
+    Now three tokens, anchored to the homepage because it is the design target
+    (`--fs-h2` is literally the homepage's own section heading):
+
+    | | before | after |
+    |---|---|---|
+    | hero h1 | 58 / 68 / 77 / 78 / 86 | **72** (`--fs-hero`) |
+    | page-header h1 | 36 / 46 / 51 / 56 | **52** (`--fs-h1`) |
+    | section h2 | 21 / 22 / 23 / 24 / 25 / 27 / 28 / 31 / 34 / 42 / 48 | **38** (`--fs-h2`) |
+
+    Nine heading-sized clamps survive and each was attributed before being
+    exempted — display numerals, two pull quotes, a form question, and two
+    `@media` overrides that deliberately shrink a hero on mobile. Attributing
+    rather than eyeballing mattered: three entries that looked decorative on that
+    list (`.kind-hero h1`, `.home-hero h1`, `.cr2-launch-header h2`) turned out to
+    be real headings that had escaped, and were routed.
+  - **Section rhythm: unified, and it is TWO constructs, not one.** Measuring
+    first stopped a wrong fix. Sections inside `.container` space themselves with
+    `margin-bottom` and were **already consistent at 52px** on every PageShell
+    page; only full-bleed bands had drifted, running
+    **22 / 34 / 38 / 48 / 52 / 64 / 100 / 120px**. Collapsing both onto one
+    number would have destroyed a real distinction, so only the bands are
+    tokenised — `--band-pad: 56px`, again anchored to the homepage. `/about-us`
+    and `/contact` now measure a uniform 56/56 where they were 100/100 and
+    120/120. `.mirror-metrics` and `.mirror-trust` stay at 22px: those are
+    deliberately tight strips, not content bands.
+    - **The `pub-` family is now routed too, and it was not a `hiw-` problem.**
+      `/how-it-works` measured 34–54px, but no `.hiw-section` padding rule
+      exists — the values came from `.pub-hero`/`.pub-section`/`.hiw-cta-band`,
+      shared across all 21 legacy pages. Found by asking the browser which rules
+      actually matched (`CSSOM` + `element.matches`) rather than grepping for the
+      class in the name. Routing those three unified every legacy page at once.
+    - **Measured after:** `/about-us`, `/contact`, `/how-it-works` all report
+      `[56,56,56,56,56]`. `/support` and `/press` report `[0,0,0]` — correct,
+      they are in-container sections spacing via `margin-bottom: 52px`.
+      The homepage keeps one `22px` strip (`.mirror-trust`), deliberately tight.
+    - Checked and correctly NOT routed: `.pricing-grid` (30px), `.pricing-promises`
+      (24px), `.pricing-faq`. Those are component inner-padding — a card grid's
+      gutter and a panel's own padding — which is a third construct again, not a
+      band. Forcing them to 56px would have been the same category error as
+      collapsing sections and bands together.
+  - **Still open — the h2-as-card-title tier.** ~20 rules use `h2` for a card or
+    panel title at 19–28px. Those are correctly *not* on `--fs-h2` (a card title
+    is an h3-scale element that is an `h2` for document-outline reasons), but
+    they drift among themselves and want a fourth token.
+
+
+## ✅ CI IS ALIVE AGAIN — red checks are real now (2026-08-01)
+
+The GitHub Actions outage is OVER. Verified on run `30704209059`:
+`runner_id: 1000001483`, a real runner name, all steps present, 3m09s. The
+outage signature was `runner_id: 0`, empty `runner_name`, created and failed in
+the same second, no steps.
+
+**Every note in this file saying "a red check is not a signal" is superseded.**
+Blocker #1 in the READ FIRST box is cleared.
+
+It immediately earned its keep: it caught five pages that were in the sitemap and
+linked from neither the header nor the footer — a real "wire all navigation"
+failure that the local suite missed because master had gained the guard and this
+branch had not merged it yet. **A local pass with fewer tests than CI is not
+flakiness; merge master before assuming CI is wrong.**
+
+
 ## 🛑 READ FIRST — what is blocked, and by whom (updated 2026-07-29)
 
 Everything below this box is engineering detail. These are the remaining
@@ -7,7 +142,7 @@ external release constraints after the latest production deployment.
 
 | # | Blocker | Evidence | Who can clear it |
 |---|---------|----------|------------------|
-| 1 | **GitHub Actions assigns no runner.** Every CI job fails in ~2s with `runner_id: 0`, `runner_name: ""`, and **no logs at all** (`get_job_logs` → 404). Repo-wide, including pushes straight to `master`. | 30 of 30 most recent runs | **Owner** — Actions minutes / billing |
+| 1 | ~~GitHub Actions assigns no runner~~ — **CLEARED 2026-08-01.** Run `30704209059` shows `runner_id: 1000001483`, a real runner name, all steps, 3m09s. Red checks are real signals again. | run 30704209059 | ✅ resolved |
 | 2 | **No CharitMe staging Supabase project is available.** The account exposes CharitMe production and an unrelated Auto Trading project. Preview Branch creation returns HTTP 402 because the account is not on Pro; dedicated `charitme-staging` creation is also rejected because the owner has reached the two-active-free-project limit. Database release policy correctly blocks production migration application until the same commit is verified on real staging. | Supabase project/branch inventory and both provisioning probes, 2026-07-29 | **Owner** — upgrade Supabase, pause/delete an unrelated project, or provision staging in another organization |
 | 3 | **Vercel's free daily deployment quota is exhausted again.** PR #163 reports `api-deployments-free-per-day` after more than 100 deployments. PR #162 is live, but the subsequent accessibility commit cannot become production in this quota window. | Vercel PR #163 check, 2026-07-29 | **External reset** — retry an exact-master deployment after the 24-hour window or upgrade Vercel |
 
@@ -15,6 +150,1072 @@ external release constraints after the latest production deployment.
 Ready and aliased to both `www.charitme.com` and `charitme.com`; exact deployment
 evidence is recorded in the release sections below. New deployments are
 temporarily blocked by item 3.
+
+## 🚧 DESIGN SHEETS 36–83 — measured gap analysis + lane claims (Claude wcu7oh, 2026-08-01)
+
+Owner supplied four more design sheets covering **pages 36–83 (48 designs)**. Gap
+analysis below is measured against the route tree, not estimated.
+
+**Most of it already exists.** The signed-in equivalents are built: payouts (56),
+bank/payout setup (57), recurring (58), tax receipts (65), integrations (66),
+settings (83), send-thank-you (63) and the AI coach (54) all live under
+`/dashboard/*`. Public ones already live: leaderboard (39), transparency (42),
+volunteer (44/45), events (48), matching (55), accessibility (68), safety (69 →
+`/security` + `/trust-safety`), help (70), FAQ (72), blog detail (74), careers
+(79), partnerships (43 → `/partner` + `/corporate-partnerships`), media gallery
+(61 → `/gallery`), cause category (38 → `/causes/[slug]`).
+
+### The 16 genuinely missing public routes
+
+| # | Route | Design | Lane |
+|---|---|---|---|
+| 1 | `/search` — global + advanced search/filters | 36, 37 | ✅ **BUILT wcu7oh** |
+| 2 | `/teams` — team hub | 49 | ✅ **BUILT wcu7oh** |
+| 3 | `/teams/create` — 5-step wizard | 50–53 | ✅ **BUILT wcu7oh** |
+| 4 | `/impact-map` — global impact map | 59 | ✅ **BUILT wcu7oh** |
+| 5 | `/donor-wall` — hall of thanks / recognition | 62, 81 | ✅ **BUILT wcu7oh** |
+| 6 | `/glossary` | 73 | ✅ **BUILT wcu7oh** |
+| 7 | `/press` — press releases + detail | 77 | ✅ **BUILT wcu7oh** |
+| 8 | `/brand-assets` — media kit | 78 | ✅ **BUILT wcu7oh** |
+| 9 | `/mobile-app` | 67 | ✅ **BUILT wcu7oh** |
+| 10 | `/webinars` + detail | 76 | ✅ **BUILT wcu7oh** |
+| 11 | `/resources` — guide index + detail | 75 | ✅ **BUILT wcu7oh** |
+| 12 | `/community` — social feed | 82 | ✅ **BUILT wcu7oh** |
+| 13 | `/support/chat` — live support | 71 | ✅ **BUILT wcu7oh** |
+| 14 | `/internships` | 46 | ✅ **BUILT wcu7oh** |
+| 15 | `/feedback` | 47 | ✅ **BUILT wcu7oh** |
+| 16 | `/certificate` — donor certificate | 64 | 🟡 **the only one left** — see below |
+
+**15 of the 16 are BUILT and returning 200 on www.charitme.com** (verified by
+fetching every one, 2026-08-01 20:0x). Four rows above said CLAIMED or unclaimed
+when the page had in fact shipped — a stale table is worse than no table,
+because another lane reads it and rebuilds a live page. Status here is now
+checked against the filesystem AND production, not against memory.
+
+`/certificate` is the only genuine gap, and it should **not** be built as a
+separate route. `/donor/receipt/[donationId]` already exists and is owned by the
+donor-receipt lane; a standalone `/certificate` would be a second document
+rendering the same donation with no donation id in the URL — i.e. either a
+mock-up with invented figures, or a duplicate of a page another lane owns.
+Design 64 belongs as a *print/share view* on the existing receipt route. Left
+for that lane deliberately.
+
+### Enhancements to EXISTING pages the sheets ask for
+
+- **`/causes/[slug]` (38)** — add the stats band (active campaigns / raised /
+  lives impacted) and the Active/Top Rated/Most Funded/Ending Soon tabs.
+- **`/transparency` (42)** — add Impact / Financial / Annual report tabs.
+- **`/leaderboard` (39)** — add the Most Funds Raised / Most Donors / Most Lives
+  Impacted / Fastest Growing tabs.
+- **`/donate` receipt (40)** — a post-donation receipt view.
+- **Share cause (41)** — a public share surface for a campaign.
+
+### Rules for this batch
+
+Same as everything else here, and they are what the guards enforce:
+- **Real Supabase data or an honest empty state.** Never a fabricated number —
+  the design mockups show figures like "120+ countries" and "$10M+ collaborated"
+  that we cannot substantiate. Do not copy them as literals.
+- Both themes, 320/768/1920, WCAG 2.2 A+AA, registered in **both**
+  `e2e/public-routes.json` and `lib/public-routes.ts`.
+- Translated, or explicitly listed in the i18n lane table as pending.
+
+## ✅ HOMEPAGE HERO — featured-campaign rotator (Claude, 2026-08-01)
+
+Shipped in `8d0915d`. `HeroSpotlightCarousel` already had both variants; the
+homepage was passing `variant="mirror"` (a minimal text card) where the design
+asks for `variant="card"` (photo + Trust Score/Donors/Funded chips + campaign card
++ dot pagination). One-line change.
+
+### ⚠️ A token that never applies fails exactly like a token that is wrong
+The card variant had **never rendered on this page**, so its dark styling was
+unexercised — and switching to it surfaced **10 AA failures, up to 1.23:1**.
+`.home-spot-card` and `.home-spot-stat` read `var(--h-card, #fff)`. Those tokens
+were scoped to **`.home`**, the PREVIOUS homepage wrapper; the redesigned page
+roots at **`.mirror-home`**, so the token never resolved and the `#fff` fallback
+won — a white card carrying dark-theme text.
+
+**`var(--x, #fff)` fails silently and looks deliberate.** Worth grepping for
+whenever a wrapper class changes: any token scoped to a wrapper stops applying the
+moment that wrapper is renamed, and the fallback is what ships.
+
+### 🔎 And a diagnosis I got wrong first
+Production showed no `home-spot` markup, so I concluded the rotator was falling
+back to its empty state and spent time proving `heroItems` was empty — checking
+eligibility (180 campaigns qualify) and the PostgREST select (200, rows returned).
+Both were fine. **The rotator had been rendering the whole time**; the `mirror`
+variant uses different class names and I had grepped for the card variant's.
+Checking which variant is mounted would have been one step instead of three.
+
+## 🗂 35-PAGE DESIGN SET## 🗂 35-PAGE DESIGN SET — inventory measured against production (Claude, 2026-08-01)
+
+Checked every route in the 35-box design set against **production**, not against
+the repo. Result: **27 exist, 8 return 404.**
+
+### 🔴 Missing — 404 on production today
+| # | Design page | Route | Supabase backing | Notes |
+|---|---|---|---|---|
+| ~~18~~ | ~~Favorites / Saved Causes~~ | `/dashboard/saved` | ✅ **SHIPPED** (`03d40df`) — reads the 240 rows, in nav, in both sweep lists | |
+| 21 | Payment Methods | `/dashboard/payment-methods` | ⚠️ no `payment_methods` table | Stripe holds these; page must read the Stripe customer, not a local table |
+| 9 | Resources | `/resources` | content | |
+| 22 | Resources / Guides listing | `/guides` | no `guides` table | |
+| 25 | Press / Media | `/press` | no `press_releases` table | |
+| 32 | Newsletter / Subscribe | `/newsletter` | ❌ no subscriber table — **needs DDL, which is blocked** | |
+| 33 | Verify Your Email | `/verify-email` | Supabase auth | |
+| 35 | Maintenance / Coming Soon | `/maintenance` | none | |
+| 31 | Thank You (post-donation) | `/thank-you` | `donations` | today the receipt renders inline on the campaign page |
+| 13 | Create Account | `/signup` | Supabase auth | `/login` handles both today — may be a redirect, not a new page |
+
+**⚠️ The newsletter page cannot be fully wired.** There is no subscriber table and
+DDL is blocked by the staging-Supabase blocker at the top of this file. Building the
+form without a table would collect addresses into nothing — worse than not shipping
+it. It needs either the migration path unblocked or an explicit decision to post to
+an existing table.
+
+### ✅ Present (27)
+Home, Explore Causes, Cause Details, Start a Campaign, Campaign Setup 1 & 2, Donate,
+Search Results, Contact, FAQ, 404, Login, Dashboard, My Campaigns, Donations History,
+Notifications, Profile Settings, Blog, Careers, Terms, Privacy, Refund, Cookie, 2FA
+(`/security`), plus Impact and Stories.
+**Present ≠ matching the design** — each still needs a visual pass against its box.
+
+### 🔵 CLAIMED BY THIS LANE (Claude, 2026-08-01)
+- ~~`/dashboard/saved`~~ — ✅ **SHIPPED**. Also revealed that the signed-in sweep
+  walks a LIST, not the app directory, so any new page is unaudited until it is
+  added to `e2e/authed-routes.json` **and** `public-routes.json → authGated.consoles`.
+  Sweep coverage went 137 → 160 pages.
+- **`/thank-you`** — page 31, the money path. IN PROGRESS.
+
+### ✅ Signed-in contrast is now clean
+0 colour failures across 22,447 text elements per theme (was 182 earlier today).
+The last three were all one pattern, worth stating because it will recur: **a
+`*-text` token used as a fill, or a themed text colour on a hardcoded light
+surface.** Those tokens go LIGHTER in dark mode by design, so as a fill under white
+text they invert. `--fill-brand` exists for fills and deliberately has no dark
+override.
+
+Everything else in the missing table is **unclaimed** — take one and mark it here
+first. Three collisions today (cause taxonomy, cause pages, homepage) all came from
+starting before claiming.
+
+## 🧭 PAGE BUILD-OUT LANE — claim before you build a page (Claude, 2026-08-01)
+
+Same protocol as the i18n split above, for the design deck (pages 84–143). The
+full inventory — 60 designs measured against the 168 routes that exist — is in
+**DESIGN-DECK BUILD-OUT** near the bottom of this file.
+
+| Surface | Status | Lane |
+|---|---|---|
+| Saved Causes `/dashboard/saved` | ✅ done | the other lane (`03d40df`) — **I built `/saved` in parallel and withdrew it**, see below |
+| System Status `/status` + `/api/status` | ✅ done | this lane |
+| #121 Advanced Search | ✅ done | this lane — `/search` existed; wired the header search button to it |
+| Nav orphans (10 indexable routes) | ✅ done | this lane — 7 wired, 3 exempted with a checked reason |
+| #98 Community Guidelines | ✅ done | this lane — `/community-guidelines` |
+| #94 Ambassador programme | ✅ done | this lane — `/ambassadors`, tiers read from `lib/referrals.ts` |
+| #130 Fundraising Tools hub | ✅ done | this lane — `/dashboard/tools` |
+| #131 Donation Widget Preview | ✅ done | this lane — `/dashboard/campaigns/[id]/widget` |
+| #137 Receipt Preview | ✅ done | this lane — `/donor/receipt/[donationId]` + `GET /api/donations/receipt` |
+| #141, #95, #109–112 | 🚫 owner decision | promise things that do not exist, or change how card data is collected |
+
+### 🆕 SECOND DECK — pages 144–199 (Claude, 2026-08-01) — **CLAIMED: Donation Form Builder only**
+
+A new set of 56 designs (144–199) arrived. Measured against the **203** routes that
+now exist, most are already built or are *sections of an existing page*, not
+separate routes — worth stating plainly so nobody builds a duplicate:
+
+| design | reality |
+|---|---|
+| 175 Security Settings, 193 Payment Methods, 160/173 Export Center, 147 Integrations | **sections of `/dashboard/settings`** (8-section left nav: profile, preferences, notifications, security, integrations, team, billing, data) — not routes |
+| 165 API Docs, 176/199 API Playground | `/developers` + `/dashboard/developers` exist, backed by the real `api_keys` table |
+| 155/164 Mobile App, 156 Resource Center, 167 System Status, 157 Stories, 158/154/159 Leaderboard & Badges, 151 Impact, 170 System Health, 177 Announcements, 178 Support, 179 Activity Log, 180 Affiliate, 181 Payouts, 182/194 Tax Receipts, 183 Public Profile, 188–192, 195–198 | ✅ already built |
+
+**The genuinely-missing pages need a table before they can be "wired to Supabase".**
+Measured against `schema.sql` — this is the real constraint on the whole deck:
+
+| page | backing table | status |
+|---|---|---|
+| **148 Donation Form Builder** | `donation_forms` | ✅ **EXISTS + applied in prod, and has NO reader** — orphan table |
+| 184 Organization Profile | `organizations` | ⚠️ exists but **not applied in prod** (see the migrations runbook) — building on it ships inert code |
+| 145 Tasks, 153 Documents, 150 Custom Domain, 168 Incidents, 169 Maintenance, 171 Backups, 172 Retention | **none of these tables exist** | each needs a migration first — and migrations **cannot be applied from the sandbox**, so they would ship inert like the volunteer/organization work already has |
+
+**✅ #166 Changelog — BUILT, no table** (`/changelog`). Editorial content in
+`lib/changelog.ts`, the `lib/blog-posts.ts` convention. A changelog is written by
+a person at release time, not accumulated by the app.
+Two rules stated in that file: **only merged work** is listed (a changelog is a
+public claim, trivially checkable against the repo), and entries are anchored to
+**dates, not invented semver** — the mock shows "v2.4.1" but this repo has no
+release tags, so a version number would imply a process that does not exist.
+
+### 📉 My "needs a table" list has now been wrong THREE times
+
+Worth stating as a rule rather than three separate corrections, because the
+pattern is the expensive part:
+
+| # | page | I claimed | reality |
+|---|---|---|---|
+| 1 | 174 Webhooks | no table | `outbound_webhook_endpoints` — I probed a **guessed name** |
+| 2 | 146 Email Templates | no table | `marketing_email_templates` — same guess |
+| 3 | 144 Calendar | needs a table | the dates were **already there**, in 3 tables nothing joined |
+| 4 | 166 Changelog | needs a table | **no storage needed at all** — it is editorial copy |
+
+**The rule: "this page needs a table" is a claim requiring the same evidence as
+any other.** Before asserting it, (a) read the actual schema rather than probing
+invented names — `npm run audit:orphan-tables` prints all 155; (b) ask whether
+the data already exists somewhere else; (c) ask whether it needs storage at all.
+Four of the eleven "blocked" pages fell to those three questions.
+
+**Still genuinely blocked (7)** — these need storage that does not exist, and the
+migration cannot be applied from here:
+`145 Tasks`, `153 Documents` (also needs file storage), `150 Custom Domain` (also
+needs DNS/TLS infra), `168 Incidents`, `169 Maintenance`, `171 Backups` (Supabase
+owns backups — a page here would report someone else's state), `172 Retention`.
+
+**✅ #149 Multi-Currency — examined, and it found a real defect.**
+The user-facing halves were already built (personal display currency in
+`/dashboard/settings`; campaign currency in the campaign settings panel). But:
+
+**🔴 FIXED — the currency picker offered 5 of 28 supported currencies.**
+`SettingsPanel.tsx` hardcoded `['USD','EUR','GBP','CAD','AUD']` while
+`@shared/currencies` defines **28** and the API accepts every one of them
+(`isSupportedCurrency`). So 23 currencies were reachable by the backend and
+unreachable by the organizer — a limit with no rule behind it, and invisible from
+either side alone: the API looks permissive, the UI looks intentional.
+
+This is the **CAMPAIGN_CATEGORIES failure verbatim** — the one CLAUDE.md already
+warns about ("three hand-maintained copies had already drifted"). So it got a
+test, not just a fix: `__tests__/currency-list-single-source.test.ts` fails on any
+hardcoded currency array **narrower than the shared list**.
+
+That test immediately found **two more** I had not touched —
+`admin/system/_components/SystemClient.tsx` and
+`admin/users/_components/AdminUsersClient.tsx`, both the same five. Three copies,
+exactly as the category list went. All three now render from the shared source.
+
+⚠️ **`@shared/currencies` was untestable until now.** `vitest.config.ts` aliased
+`@shared/*` module-by-module — `fees` and `entitlements` only — so importing
+`@shared/currencies` in a test failed to resolve, and nobody found out because no
+test had tried. Replaced with one regex alias covering every current and future
+shared module. **A per-module allowlist in test config silently decides what can
+be tested at all.**
+
+**Still blocked in #149:** the design's admin *exchange-rate* table needs an
+`exchange_rates` table and a rate feed — real storage plus an external
+dependency, so it stays with the other seven.
+
+**✅ #168 Incidents + #169 Maintenance — BUILT, migration-first.**
+Built on the owner's explicit instruction to ship the blocked pages staged and
+ready rather than wait. Migration `20260820000000` adds `incidents`,
+`incident_updates` and `maintenance_windows`; `/admin/incidents` writes them and
+the **public `/status` page now reads them**.
+
+This pair was worth doing first because `/status` already existed and was half a
+page: it could probe *whether* a subsystem responds, but had no way to say what
+happened or that anyone was aware — which is precisely what a visitor wants when
+they see a red dot.
+
+**The rule every reader here follows: a failed query renders "unknown", never
+"no incidents".** On a status page that distinction is the whole point — an
+all-clear published because the incidents table was unreachable is the most
+misleading output the page can produce, and an outage is exactly when that table
+is most likely to be unreachable.
+
+Two details worth keeping:
+- `incidents_resolved_consistency` refuses a resolved incident with no
+  `resolved_at` **and** an unresolved one that carries one. Both render a lie
+  (still-open forever / an all-clear that never happened), so both are refused.
+  The API sets the timestamp itself, so the constraint stays a backstop rather
+  than the mechanism.
+- Public read is correct here and was **wrong** for `creator_tips` — the
+  difference is what is in the row, not the policy. These rows are written to be
+  read by strangers and carry no user data.
+
+⚠️ Inert until `20260820000000` is applied; the admin page says so by name.
+
+**🔴 FIXED — the status page took 14 seconds, on the page that must answer during
+an outage.** Found by measuring the new pages against the goal's own criteria
+rather than assuming they were fine. `/changelog` was 24ms; `/status` was
+**14.1s**, and `/campaigns` and `/leaderboard` were ~30ms — so this was not the
+sandbox's Supabase latency, it was specific to `/status`.
+
+Three compounding causes, each fixed and each re-measured:
+
+| cause | fix | result |
+|---|---|---|
+| probes used `count: 'exact', head: true` — a **full table COUNT** to answer "does the DB respond?" | `select('id').limit(1)` | — |
+| **no timeout anywhere**, so a hung dependency hung the page | 3s bound per probe | 14.1s → 7.1s |
+| probes awaited **in series**, so latency was the SUM of every failure | `Promise.all` | 7.1s → 3.0s (API) |
+| **my own** incident/maintenance reads were unbounded | same timeout, resolving to `null` | 7.1s → **3.0s** |
+
+**14.1s → 3.02s, and 3s is now the ceiling** rather than a measurement: one
+timeout, everything concurrent. With a reachable database it returns in
+milliseconds; 3s is the worst case when dependencies are down, which is the case
+that matters.
+
+⚠️ **Two lessons worth more than the fix.**
+1. *A status page whose latency is the sum of its failing dependencies is
+   slowest exactly when it is needed most.* Serial probes are the one ordering
+   that guarantees it.
+2. *I introduced the last of the four causes myself* — I bounded the probes and
+   left my own two queries unbounded in the same file. The rule that applies to
+   a dependency probe applies to a query the page makes itself.
+
+⚠️ **And a measurement error worth recording:** the first two "after" numbers
+were taken against a **stale server**. `pkill` had killed my own shell, the new
+`next start` failed on the held port, and I measured the old build twice —
+reading 14s and concluding the fix had not worked. Checking *which process owned
+port 3000* is what caught it. **Confirm you are measuring the build you think you
+are before believing a null result.**
+
+**✅ #171 Backups & Recovery — BUILT as a disclosure, not a dashboard.**
+The design shows a backup table — *"Database Backup, Full, 2.4 GB, Completed"*,
+last-backup time, storage used. **None of that is observable from this
+application.** Postgres backups are held by Supabase; there is no API access, no
+credentials, and no way to confirm a backup ran. Every figure in that mock would
+have been invented.
+
+That matters more here than on any other screen, because this is the page someone
+opens **during an incident**, and it would answer the only question that
+matters — *"do we have a restore point?"* — with a number nobody measured.
+
+So the page documents the **posture** (where data lives, that the schema rebuilds
+from `supabase/migrations/`, that Stripe holds the authoritative payment record
+so a restore does not lose payment history) and links to the provider console for
+live state. The one thing it *does* show live is what CharitMe genuinely owns:
+whether anything is actively deleting records, read from `data_retention_runs` —
+and `null` renders as **unknown**, never "nothing was deleted".
+
+If a Supabase Management API token is ever provisioned, the live backup list
+belongs here as **measured** values, replacing that notice rather than sitting
+beside it.
+
+**✅ #150 Custom Domain — BUILT, and the objection was to the FAKE version.**
+I twice declined this page on the grounds that a "Verified ✓" badge nothing
+verifies is worse than no page. That was right about the fake version and wrong
+as a verdict on the page: **ownership verification is a live DNS TXT lookup**,
+which Node does natively. Checked in the sandbox — `resolveCname` works,
+`resolveTxt` times out *here specifically*, so the lookup is exercised in tests
+through an injected resolver rather than assumed.
+
+`status` becomes `verified` only when a resolver actually returns our token.
+No manual override, no optimistic path, and `custom_domains_verified_consistency`
+refuses a verified row without a timestamp.
+
+⚠️ **What it still cannot do, said on the page rather than buried:** verifying
+ownership does **not** make the domain serve traffic. Routing and TLS belong to
+the hosting provider. The honest split is "we can prove you own it; pointing it
+at us is a step you take in your host" — that is a real, useful half, unlike a
+green tick that means nothing.
+
+Two details that matter more than they look:
+- The failure reason is shown **verbatim**, and distinguishes *"no record yet"*
+  from *"we could not ask DNS"*. "Not verified" with no explanation is how this
+  feature wastes someone's afternoon.
+- Chunked TXT records are **joined before comparison** — resolvers split strings
+  over 255 bytes, and a per-chunk compare would tell a user their DNS was wrong
+  when it was right. Pinned by a test.
+
+**✅ #172 Data Retention — BUILT with its enforcement** (`/admin/retention`,
+`20260822000000`, `/api/cron/apply-retention`).
+
+Built the job as well as the screen deliberately. A retention policy nobody
+applies is a compliance claim with nothing behind it — the same defect as a
+delivery log for webhooks that are never sent — so the config drives a real cron
+route that reads these policies and acts on them.
+
+**Deleting is the only irreversible thing here, so it needs TWO independent
+opt-ins, neither of them default:** `auto_delete = true` on the category **and**
+`?dryRun=false` on the run. With either missing the job counts what is past its
+window and removes nothing. A scheduled job that destroys production data on the
+strength of a switch someone clicked once, unattended and forever, is not a
+feature.
+
+**The category list is a closed allowlist in `lib/retention.ts`, and that is the
+safety mechanism.** The admin API rejects any category not in it, so the form
+cannot become the allowlist. Nothing financial or identity-related is eligible —
+donations, refunds, ledger entries, tax receipts and verification documents carry
+legal retention that outlasts any preference set here. Only operational exhaust:
+analytics events, builder telemetry, share events, rate-limit counters, marketing
+events.
+
+Every run is logged to `data_retention_runs`, dry runs included, because the only
+question asked afterwards is "what happened to that record?" And `matched` is
+`number | null` — a failed count renders **unknown**, never 0, since "0 records
+past retention" is a false all-clear on a compliance screen.
+
+⚠️ **My own ratchet caught this one mid-build.** `upsert-onconflict-has-index`
+failed on the new `data_retention_policies` upsert until the mirror was
+regenerated with the migration defining `category` as UNIQUE — exactly the 42P10
+class it was written for, working on new code rather than old.
+
+**✅ #153 Documents — BUILT, and it needed NO table either** (`/dashboard/documents`).
+Fifth time the "needs a table" call was wrong, and this one was caught *by the
+rule* rather than by accident. Four applied tables already hold a fundraiser's
+files, each reachable only from the workflow that created it:
+`campaign_media` (`media_type='document'`), `verification_documents`,
+`grant_documents`, and `impact_evidence` (receipts — noted as a fourth source,
+not yet wired: it needs a two-hop join through `campaign_updates`).
+
+Live in production today, no migration.
+
+⚠️ **`verification_documents` holds IDENTITY documents**, so aggregation is
+exactly where a scoping mistake becomes a document leak. They are included only
+because the query is keyed on the caller's own `user_id`, they carry a
+`sensitive` flag, and the UI renders them as a **record with no link** — the
+bucket is private, so a link would either 404 or, worse, not.
+
+**✅ #145 Tasks — BUILT, migration-first** (`/dashboard/tasks`, `20260821000000`).
+A fundraiser's checklist, optionally attached to a campaign, with the design's
+Open / Overdue / Mine / Assigned-to-me / Completed filters.
+
+**The interesting part is assignment, because it can widen who reads a row.**
+Tasks are private working notes — they can name a donor, a problem with a
+beneficiary, or an unannounced plan — so the read rule grants access to the owner
+*and the assignee*. That means an unchecked `assignee_id` would be a disclosure
+primitive: assign a task to any profile id on the platform and they can read it.
+
+So `canAssignTo()` requires the assignee to already share the campaign through
+`team_members`, and **fails closed** when that lookup errors. Two related rules
+fall out of the same reasoning:
+- An assignee may tick their own task off and **nothing else**. Editing the
+  title, reassigning, or moving the due date stays with the owner — otherwise
+  "assigned to you" quietly means "yours to rewrite".
+- A task must reference a campaign the caller owns before it can be created, or
+  `campaign_id` leaks which campaigns exist and the team lookup consults a team
+  the caller has no part in.
+
+`tasks_completed_consistency` mirrors the incidents constraint: a done task with
+no `completed_at` cannot be sorted or reported on, and an open one carrying a
+completion time claims work still outstanding. Both refused; the API sets the
+timestamp so the constraint stays a backstop.
+
+**✅ #144 Calendar — BUILT, with no new table** (`/dashboard/calendar`).
+Second correction to the "needs a table" list, and a more useful one: the page
+does not need a `calendar_events` table because **the dates already exist**,
+spread across three tables nothing brought together —
+
+| source | field |
+|---|---|
+| `campaigns` | `deadline` |
+| `fundraising_events` | `starts_at` / `ends_at` |
+| `grant_deadlines` | `due_at`, via this user's `grant_applications` |
+
+So it aggregates rather than inventing storage: nothing inert, works in
+production today. **The general lesson for the rest of this deck: check whether
+the data already exists somewhere before concluding a page needs a table.**
+
+⚠️ **`volunteer_shifts` is deliberately NOT a source**, though it carries
+`starts_at`/`ends_at`. Its migration is one of the unapplied ones, so querying it
+would put the page in its degraded state *permanently in production* while
+working perfectly here. Add it when that migration lands.
+
+Each of the three sources is read **independently** and can fail on its own — the
+page names which one failed rather than blanking, or (worse) showing the
+survivors as if they were the whole calendar.
+
+⚠️ **Correction to the row above — I probed guessed table names and got two wrong.**
+The first pass checked for `webhooks` and `email_templates`; the real tables are
+**`outbound_webhook_endpoints`** and **`marketing_email_templates`**, and both
+exist. What surfaced it was `npm run audit:orphan-tables` printing the actual
+155-table list — i.e. reading the schema instead of interrogating it with names I
+had made up. Corrected status:
+
+| page | table | reader today |
+|---|---|---|
+| **174 Webhooks** | `outbound_webhook_endpoints` ✅ exists | only `/admin/system` — **no user-facing management UI** |
+| **146 Email Templates** | `marketing_email_templates` ✅ exists | only the admin automations route — **no template CRUD page** |
+
+Both are therefore buildable *now*, on the same footing as #148.
+
+**✅ #146 Email Templates — BUILT** (this lane): `/admin/marketing/templates`, full
+CRUD on `marketing_email_templates`, linked from the marketing hub.
+**✅ #174 Webhooks — BUILT** (this lane): `/dashboard/webhooks`, real endpoint
+CRUD on `outbound_webhook_endpoints` (second orphan table in this deck — shipped
+since 20260525002000, read only by a row count on `/admin/system`).
+
+**🔴 BUT the feature cannot actually deliver, and the schema is why.**
+Two findings, both of which stopped the design from being built as drawn:
+
+1. **Nothing dispatches an outbound webhook.** There is no sender anywhere in the
+   codebase, and no delivery-log table — `webhook_events` and
+   `campaign_payment_webhook_events` are both **inbound** Stripe records.
+2. **Signing is impossible on the current schema.** The table stores
+   `secret_hash` and nothing else. HMAC-signing a payload needs the **secret**,
+   and SHA-256 cannot be reversed to recover it. There is no key to sign with.
+
+So the design's *"Last Triggered"* column and *Webhook Logs* panel were
+**deliberately not built**. A "Last triggered: never" column implies a mechanism
+that would eventually fill it; `Delivered ✓` rows would be invented outright. The
+page says plainly that delivery is not live instead of implying it is.
+
+**Owner decision needed before delivery can ship** — pick one:
+| option | trade |
+|---|---|
+| store the secret **encrypted** (app-held key) | standard (Stripe does this); needs a key-management decision |
+| **asymmetric** signing — store a public key per endpoint | no shared secret to leak; subscribers must verify a signature |
+| sign with `secret_hash` itself | no migration, but the "hash" *becomes* the shared secret, so storing it plaintext-equivalent defeats the point |
+
+Plus a `webhook_deliveries` table for the log. Both are migrations, so they land
+inert until the runbook is run.
+
+**What IS production-ready here:** endpoint CRUD, https-only + private-host
+rejection (SSRF: `169.254.169.254` is the metadata endpoint), re-validated on
+**update** as well as create, closed event list, secret shown once and stored
+only as a hash, never returned by any route. 18 tests pin it.
+
+**🟠 FOUND while wiring #146 — automations pick a template ambiguously.**
+The automations runner resolves the template it is about to send with:
+
+```ts
+.eq('category', cfg.template_category ?? 'general').limit(1).maybeSingle()
+```
+
+No `order()`. With two templates in one category, **which one gets emailed is
+whatever Postgres returns first**, and that can differ between calls — the same
+ambiguous-resolution family as the `donation_forms.slug` collision, except the
+output here is a message to real contacts.
+
+Mitigated, not fixed: the API refuses to move a **built-in** template out of its
+category, and the UI flags any category holding more than one template. The
+underlying fix is a decision — either a unique index on `category` for system
+templates, or an explicit `template_id` on the automation config — so it is
+recorded rather than guessed at.
+
+⚠️ **A guard I wrote first protected the wrong field.** I asserted automations
+looked templates up *by name* and blocked renames on that basis. Reading the
+resolver showed it keys on **category**; the name is read by nothing. Had I
+shipped the assumption, the guard would have blocked a harmless edit while
+leaving the damaging one open.
+
+⚠️ **This is why the deck is not "just build 17 pages".** 12 of them would land as
+code with no table behind them in production, repeating exactly the
+*code-complete but inert* state that `organizations` and `volunteer_shifts` are
+already in. Building them is not blocked on effort — it is blocked on the same
+owner action as the migrations runbook.
+
+**Claiming ONE: #148 Donation Form Builder.** It is the only missing page whose
+table already exists *and is live in production*, and `donation_forms` currently
+appears in exactly one file (`lib/feature-catalog.ts`) as a table **name** — no
+reader, no writer. Same "data with no reader" family this file keeps finding.
+
+**Every design-deck page an agent can build is now built.** What is left in the
+deck is the four rows above, all of which need the owner rather than code:
+#141 and #95 would promise a mobile app and a roadmap that do not exist, and
+#109–112 would move card entry in-house.
+
+## ⚠️ THIRD COLLISION — homepage, and how it was resolved (wcu7oh, 2026-08-01)
+
+Both lanes did homepage work at almost the same moment. The other lane rewrote
+the homepage for the community design (#183) **and** claimed it for i18n at
+13:20; this lane had translated the OLD homepage structure and pushed its claim
+to a branch rather than to master.
+
+**Resolved in their favour, and the reasoning is worth keeping.** Master is the
+shared source of truth, so a claim that landed there beats one that only reached
+a feature branch. Their homepage is also the newer design, which is what the
+owner asked for. So this lane discarded its homepage i18n rather than fight the
+merge.
+
+**What survived, deliberately:** the **67 homepage translation keys** are kept in
+`lib/locales/*.ts`. They cost nothing, they conflict with nothing, and whoever
+does the homepage now has the vocabulary already translated into all seven
+languages. Discarding those too would have thrown away the only part of the work
+that was not duplicated.
+
+**The lesson, third time running:** pushing the claim to a BRANCH is not
+claiming. Push the claim to master before starting.
+
+## ⚠️ MEASURED: 10 indexable public routes are linked from NOWHERE (2026-08-01)
+
+Checked every `INDEXABLE_PUBLIC_ROUTES` path against the union of the header
+mega-menu (`flattenNav()`) and both footer structures. **59 indexable routes, 10
+with no inbound link from the global chrome:**
+
+```
+/search   /teams   /donor-wall   /supporter-space   /causes/mental-health
+/get-involved   /gallery   /careers   /   /roles
+```
+
+`/` is reachable via the logo. The other nine are in the sitemap, are crawlable,
+and cannot be reached by a human using the site — the same "shipped but
+unreachable" shape as `saved_campaigns`, `creator_profiles`, `api_keys` and
+`exclusive_posts`, but for whole pages.
+
+**`/search` is the sharpest case, and it is design #121.** The header's
+magnifying-glass button is labelled *"Search campaigns"* and links to
+`/campaigns`. The one control on the site that says *search* does not reach the
+search page — which already supports query, cause, location and sort. So #121
+needed wiring, not building.
+
+**Fixed. Seven wired, three exempted with a reason the test CHECKS:**
+
+| Route | Now reachable from |
+|---|---|
+| `/search` | the header search button — it pointed at `/campaigns` |
+| `/roles` | Resources → Learn |
+| `/supporter-space` | Resources → Learn ("Where to Give") |
+| `/teams` | Resources → Get Involved |
+| `/get-involved` | Resources → Get Involved |
+| `/gallery` | footer → Platform |
+| `/donor-wall` | footer → Ways to Give |
+| `/careers` | footer → Company |
+
+Exempt: `/` (the logo), `/search` (the header button — and the test asserts that
+button's href, so the exemption cannot quietly become a lie), and
+`/causes/mental-health` (a cause detail page reached from `/causes`, which is in
+the menu; linking all 20 individually would bury it).
+
+The Resources columns went 4/4/4 → **6/6/6** — still equal, which is what the
+design constrains. `/matching` and `/grants` joined For Organizations to keep
+them so, and both belong there anyway.
+
+`__tests__/nav-orphans.test.ts` pins this, and includes a check that the sweep
+can fail plus one that no exemption is stale — an exemption nobody verifies is a
+silenced test.
+
+## ⚠️ MEASURED: the whole /admin/payments console is unreachable (2026-08-01)
+
+Same sweep as the public one above, run against the admin consoles. 50 admin
+pages, 17 absent from both `adminNav` and `SUPER_ADMIN_NAV`. Eleven of those are
+`/admin/marketing/*`, most of which are compatibility redirects to
+`/admin/marketing?tab=…` and are fine. The other six are not:
+
+```
+/admin/payments/campaign-flows   ← the ONLY one with a nav entry
+/admin/payments/disputes
+/admin/payments/payouts
+/admin/payments/processors
+/admin/payments/reconciliation
+/admin/payments/refunds
+```
+
+**Five real, Supabase-wired pages** — disputes, owner payouts, processor status,
+reconciliation and refunds, all reading through `lib/payment-admin-data.ts` — and
+**nothing in the product links to any of them.** Grepping the whole tree for
+`/admin/payments/` outside that directory returns exactly two hrefs:
+`campaign-flows` and an export endpoint. An admin can reach the payment-flow
+table and has no way to discover the other five views of the same data.
+
+Claimed by this lane (tbaz3i). Fixing with a section sub-nav plus a test that
+every `app/admin/payments/*/page.tsx` on disk appears in it — so the next view
+added to this section cannot be born unreachable.
+
+## 🚨 FIXED: four public pages, including the TERMS OF SERVICE, stated the wrong fee (2026-08-01)
+
+`@shared/fees` has `SUGGESTED_SUPPORT_PERCENT = 15`. **Four public pages said the
+donor tip default was 8%** — `/terms`, `/faq`, `/for-donors` and `/help`. One of
+those is a contract. 8% is a real rung on the ladder
+(`SUPPORT_TIER_PERCENTS = [15, 12, 10, 8, 5, 3, 1, 0]`), which is exactly why the
+wrong number looked plausible for as long as it did.
+
+Nine pages also spelled out `2.9% + $0.30` as a literal, so any change to
+`PROCESSING_FEE_PERCENT` would have left nine public pages quoting a rate the
+product no longer charged.
+
+**And `/for-donors` carried a worked example that did not add up.** It claimed a
+$100 donation left the campaign **$94.00** after a **$3.20** processing fee and
+an **$8.00** tip — three numbers that do not reconcile under any reading of the
+fee model. The real figures, computed from the shared helpers: campaign receives
+**$96.80**, processing **$3.20**, suggested tip **$15.00** added on top, donor
+pays **$115.00**. That table is now computed, not typed.
+
+**Why nothing caught it:** a wrong number in a paragraph is valid TSX that
+renders perfectly, and a page contradicting another page reads exactly as
+confident as the one that is right. Neither typecheck, lint, axe, nor any
+rendering test can see it. Only comparing the prose against the constants finds
+it.
+
+**Same class, one page over:** `/supported-countries` hardcoded "20+ countries"
+and "70+ countries" in its `metadata.description` while the page body rendered
+the real counts from `supported_countries` immediately below it. The description
+is the one line on that page a visitor cannot check — it appears in search
+results and link previews — so it is now counted via `generateMetadata()`, with
+`cache()` sharing one query between the metadata pass and the render. When the
+read fails it describes the page instead of inventing a number.
+
+So `lib/fee-copy.ts` derives the prose from `@shared/fees`, and
+`__tests__/fee-copy.test.ts` sweeps `app/`, `components/` and `lib/` for a
+hardcoded fee figure or a default-tip percentage that disagrees with the
+constants. **The sweep found three of the four wrong pages on its first run** —
+only `/terms` was found by reading. It also asserts it can fail, and strips
+comments so a doc comment quoting a rate is not a finding.
+
+## 📱 MOBILE-FIRST PASS — claimed by this lane (tbaz3i), 2026-08-01
+
+Owner: "the entire site looks terrible on mobile." Measuring before rewriting,
+because the instrument disagrees with the impression and both facts matter.
+
+### What the existing sweeps actually report
+
+`audit:responsive` over **62 public pages × 3 viewports × 2 themes** found
+**2 distinct defects**, both on the homepage. `audit-mobile.mjs` (overflow at
+320/390 + WCAG 2.5.8 tap targets) exists and is good.
+
+**So the public site is not broadly overflowing — but that is not the same as
+"the site is fine on a phone", and the sweeps are why:**
+
+1. **Both scripts cover PUBLIC routes only.** The signed-in half — 11 gated
+   routes, 68 console routes, 19 `[param]` templates — has never been measured
+   at a phone width by anything. That is where the wide fixed-column data tables
+   live (`'1fr 1fr 120px 120px 130px'` and friends, 74 hardcoded multi-column
+   grids in inline styles), so it is precisely the half a phone struggles with.
+2. Overflow and tap-size are not the whole of "terrible": cramped gutters,
+   desktop-shaped tables that technically fit, and 26 hardcoded `padding: 0 32px`
+   dashboard gutters are all invisible to both.
+
+### Fixed so far
+
+**The homepage hero, at 320px and at 768px — and the audit named the wrong
+element.** It reported `.mirror-hero-copy@570` in a 320px viewport. Probing
+min-content per node showed the copy's own min-content is **127px**: the real
+cause is `.home-spot-nav` at **536px**, the hero spotlight carousel's dot row.
+It renders **one dot per campaign with no cap**, each 24px — 20 campaigns is a
+480px row. Because `.mirror-hero-inner`'s mobile rule used a bare `1fr` (the
+desktop rule correctly uses `minmax(0, 1fr)`), that min-content dragged the whole
+column to 536px and the copy was stretched with it.
+
+Three fixes, at the level each belongs:
+- `.home-spot-dots` wraps and centres, so it is bounded at every width;
+- below 560px the dots are replaced by a `3 / 20` counter — two rows of dots on a
+  phone is decoration, not navigation — rendered always, switched purely by media
+  query so no JS branch can disagree with the CSS;
+- the mobile hero track becomes `minmax(0, 1fr)`, so a wide child can never again
+  stretch the text column.
+
+### ⚠️ A SWEEP THAT MEASURED UNSTYLED PAGES — and how it announced itself as 46 bugs
+
+After the hero fix I re-ran the sweep and it reported **46 findings across 18
+routes**, dominated by "overlapping controls" on nearly every page. It looked
+exactly like a sitewide footer regression, and the natural next move was to go
+fix the footer.
+
+**It was not real.** `.kind-footer-links` computed to `display: block` with
+`grid-template-columns: none`, and enumerating the matching CSS rules from inside
+the page returned **an empty list** — no rule for that class existed in the
+served stylesheet at all. Fetching the stylesheet directly:
+
+```
+css=/_next/static/css/7b3236d973ddd710.css   status=400   bytes=2022
+```
+
+**Three orphaned `next-server` processes** were still bound to the port, serving
+HTML from a build whose `.next` had since been deleted. Every "defect" was an
+unstyled element at its intrinsic size.
+
+Two things this changes:
+
+1. **The homepage fix was NOT verified by that run** — an unstyled page cannot
+   exhibit a grid-track overflow, so its silence proved nothing. Re-verified
+   against a build whose CSS is confirmed to load.
+2. `pkill -f "next start"` does not kill these. `next start` re-execs as
+   **`next-server`**, so the original pattern misses it — which is how three
+   accumulated. Kill by scanning `/proc/*/cmdline` for `next-server`.
+
+`audit-responsive.mjs` now refuses to measure a page whose stylesheets contain
+zero rules, the guard `audit-mobile.mjs` has carried for a while. And the runner
+verifies the CSS returns 200 *and* contains a known rule before sweeping at all.
+A sweep against an unstyled page is not a failed sweep — it is a confidently
+wrong one, and it reads exactly like a real regression.
+
+**Re-run with the guard in place:**
+
+```
+· CSS ok (/_next/static/css/571308145b2d152b.css, 418224 bytes)
+✅ No responsive/theme regressions across 78 pages × 3 viewports × 2 themes.
+```
+
+Zero findings. The hero fix is verified, and all 46 "defects" were the artifact.
+
+### 📊 THE SIGNED-IN HALF, MEASURED FOR THE FIRST TIME
+
+`npm run audit:mobile:signed-in` — the sweep that had never existed — over public
++ gated routes at 320px and 390px:
+
+**71 horizontal overflows across 40 distinct routes.** The worst are not close:
+
+| route | document width at a 320px viewport |
+|---|---|
+| `/admin/campaigns` | **1020px** (3.2× the viewport) |
+| `/admin/reports` | 890px |
+| `/admin/audit-log` | 880px |
+| `/admin/payments/.../transactions/[id]` | 772px |
+| `/dashboard/analytics` | 736px |
+| `/admin/payouts` | 612px |
+| `/admin/donations` | 600px |
+| `/dashboard/refund` | 554px |
+| `/dashboard/campaigns/[id]/edit` | 542px |
+
+Plus tap targets under 24px on 10 routes, `/dashboard/notifications` alone
+carrying 18.
+
+**This is what "the site looks terrible on mobile" actually refers to**, and it
+is exactly the half both existing sweeps skipped. The public site measures clean
+at 78 pages × 3 viewports × 2 themes; the signed-in half has 40 routes that a
+phone cannot render without sideways scrolling.
+
+The cause is structural and known: **74 hardcoded multi-column
+`gridTemplateColumns` in inline styles** (`'1fr 1fr 120px 120px 130px'`,
+`'56px 1fr 120px 140px 80px 90px 110px'`, …). Inline styles cannot carry a media
+query, so no breakpoint can reach them — the fix is to move those row templates
+into CSS classes, or to give the tables a scroll container of their own.
+
+### 📉 PROGRESS, MEASURED EACH ROUND
+
+| pass | overflows | routes | what changed |
+|---|---|---|---|
+| baseline | 71 | 40 | first time the signed-in half was ever measured on a phone |
+| + CSS `minmax(0, 1fr)` ×86, `.kf-metrics`, `.kf-row` | 48 | 28 | |
+| + `.ac-status-tabs` scroll, `.kf-table-scroll` on 3 tables | 46 | 27 | `/admin/campaigns` 1020px → 470px |
+| + inline `minmax(0, 1fr)` ×74 | 43 | 25 | `/admin/reports` 890px and `/admin/audit-log` 880px gone |
+| + top-level & wide-block CSS ×156 | **43** | **25** | ⚠️ **no change — see below** |
+| + scroll boundary (`min-width: 0` + `.kf-card` overflow) | **21** | **13** | the fix the previous pass was missing |
+
+### ⚠️ A NEGATIVE RESULT: 156 declarations fixed, zero overflows removed
+
+Sweeping the bare `1fr` out of the top-level rules and the 1024–1180px media
+blocks moved the number by **nothing**. 43/25 before, 43/25 after.
+
+It was still worth doing — `.users-kpi-row { repeat(4, 1fr) }` is a genuine trap
+and `minmax(0, 1fr)` is correct at every width — but it is **hygiene, not a fix**,
+and recording it as progress would have been false. The pages that were going to
+be fixed by shrinkable tracks were already fixed by the first two passes.
+
+**What is actually left is different in kind.** The remaining tables carry FIXED
+pixel columns — `120px 120px 130px` is 370px of track before any flexible column
+— so no track type fits them on a 320px screen. They need a scroll boundary, not
+a shrinkable track, and the boundary needs `min-width: 0` on the box itself: a
+card that is a grid or flex item defaults to `min-width: auto`, so its own
+minimum is its content's max-content and the ancestor track simply grows to fit.
+The `overflow` property then has nothing to clip against. That is the same
+auto-minimum as the `1fr` tracks, one level down.
+
+**The one insight that took two passes to see.** Wrapping `/admin/reports`'s
+table in a scroll box moved its number by **zero**. The container cannot scroll
+against a width it does not have: the table sits inside an inline `'300px 1fr'`
+track, that bare `1fr` grew to the table's max-content, and the ancestor carried
+the whole document with it. The wrapper was correct and useless until the track
+above it could shrink.
+
+So the fix is the same one in both places, and the inline half matters *more*:
+CSS at least has breakpoints, while a bare `1fr` in a `style` prop can never be
+corrected at any width. 86 CSS declarations + 74 inline ones, both pinned by
+`__tests__/mobile-grid-tracks.test.ts`.
+
+### In flight
+
+`audit-mobile.mjs` gains `--auth` and sweeps the gated routes from the same
+single source the e2e sweeps use, driven by `audit-signed-in.mjs --mobile`
+(`npm run audit:mobile:signed-in`) so the stub build and session minting are not
+duplicated. It refuses to run with `--auth` and no session cookie, and it now
+rejects a route that redirected rather than measuring the login page under
+eighty different names.
+
+## 🔀 I18N LANE SPLIT — read this before touching a string (Claude, 2026-08-01)
+
+Two bots built the cause taxonomy, `/causes`, `/causes/[slug]` and the mega-menu
+**on the same day**, costing roughly an hour on each side. The i18n string
+migration is a 549-file job, so the same collision here would be far more
+expensive — and worse, it collides in `lib/locales/*.ts`, where two agents adding
+keys to the same seven files produces merge conflicts on every single batch.
+
+**So claim a surface in this table before you start, and push the claim first.**
+
+| Surface | Status | Lane |
+|---|---|---|
+| Header + mobile sheet (`AppShell`) | ✅ done | — |
+| `/causes`, `/causes/[slug]` (20 pages) | ✅ done | the other lane |
+| `/campaigns/[slug]` — campaign detail | ✅ done | this lane (#182) |
+| `/` — homepage | 🔵 **CLAIMED (Claude, 2026-08-01 13:20)** — the #183 design ships 0 `t()` calls and serves "Good People." to a de-DE browser | this lane |
+| `/campaigns` — discovery list | ⬜ **unclaimed** | |
+| Donate flow (`DonateButton`, checkout) | ⬜ **unclaimed** | |
+| `/create` wizard | ⬜ **unclaimed** | |
+| `/dashboard/*` | ⬜ **unclaimed** | |
+| `/admin/*` | ⬜ **unclaimed** | |
+| The 13 new marketing pages | 🔵 **CLAIMED (Claude, 2026-08-01 13:20)** — after the homepage | this lane |
+
+### Two things that are easy to get wrong here
+
+1. **`getTranslator()` is the server-side translator, and it was called from
+   NOWHERE** until #182. `useT()` only works in client components. Most
+   high-traffic pages are Server Components, so they need
+   `const t = await getTranslator()`. A page that renders English while the
+   locale is correctly negotiated looks completely fine — this failure is
+   invisible, which is why it survived.
+
+2. **`t()` falls back to the raw KEY, not to English.** A key missing from
+   `en.ts` renders `campaign.impact` to the visitor. And the coverage test
+   demands **100%** across all 11 markets with no English fallback accepted, so
+   every batch of new keys needs real translations in all six base languages
+   before it can merge.
+
+3. **Exemptions for genuine cognates are now `lang:key`**, not bare keys. "Impact"
+   really is the French and Dutch word, but a bare exemption would also stop
+   checking German ("Wirkung"). Use `fr:campaign.impact`, never `campaign.impact`.
+
+### Measured progress
+
+**274 English keys; 5 files call a translator.** Roughly 2,275 strings across the
+remaining surfaces. This is the ONLY unblocked item left in this file — everything
+else is owner-gated (see the table below).
+
+## ✅ ACTIONABLE QUEUE IS EMPTY — every remaining item names its blocker (2026-07-31)
+
+**There is no engineering work left in this file that can be done from here.**
+Every open item below is gated on a credential, a billing action, a legal entity,
+or an owner policy decision — each named, with who can clear it. That is the
+honest end state; this file is a 15,000-line engineering log, so "empty" means
+the *actionable* queue is empty, not that the history has been deleted.
+
+### Closed this session
+
+- **Global navigation persistence + black dark-mode surface - release candidate.**
+  The dark marketing header and mobile sheet now use a true `#000` surface.
+  Hover-open mega-menus receive a 240ms gap-crossing grace period, while an
+  intentional click pins the panel until a link selection, outside click,
+  Escape, or route change. The complete header browser contract passes **23/23**
+  checks across 1280/1366/1440/1920 widths and both themes, including center
+  hit-testing of every rendered menu link, keyboard operation, and focus return.
+- **Supabase-backed maintenance mode - release candidate.** Super Admin ->
+  Platform Settings now controls the global maintenance redirect, editable
+  visitor message, optional real return deadline, and countdown. Admin, login,
+  password recovery, offline, and maintenance routes stay reachable; all other
+  page requests read the cached `platform_settings.config` value and fail open
+  if Supabase is unavailable. The dedicated end-to-end audit proves rejected
+  unauthenticated and malformed writes, UI save, independent Supabase readback,
+  public redirect, custom copy, countdown, transparent artwork, mobile dark-mode
+  rendering, disable/save, and public-site recovery.
+- **Measured release gate:** production build generated **208 pages**; TypeScript
+  and ESLint are clean; **2,326 tests / 212 files** pass; the populated
+  super-admin persona audit passes against 120 campaigns and 400 donations.
+  The integrated signed-in contrast sweep examined **181 pages x 2 themes** and
+  52,621 rendered text elements with **0 AA failures**. Four sparse fixture
+  renders remain explicit (`/dashboard/saved` and campaign updates in each
+  theme) so their data-conditional sections can be strengthened next.
+
+- **Homepage design mirror release candidate — done.** Rebuilt the public home
+  surface around the supplied community reference: owned full-bleed hero art,
+  Supabase-backed impact metrics and campaign proof, all eligible paid featured
+  campaigns in a timed carousel that pauses on hover/focus, mobile cause rail,
+  and the compact trust/CTA composition. Expanded both desktop mega menus to
+  match the supplied content hierarchy and preserved click, hover, keyboard,
+  Escape, focus-return, and route-close behavior. Verified on the exact
+  integrated production build; release is through this PR's normal workflow.
+- **Design mirror — done.** Two header mega-dropdowns (Explore Causes,
+  Resources) plus **13 new pages**: `/causes` + 20 `/causes/[slug]`,
+  `/fundraising-guide`, `/impact-education`, `/reports`, `/donate`, `/partner`,
+  `/verification`, `/corporate-partnerships`, `/get-involved`, `/careers`,
+  `/gallery`, `/supporter-space`. Live in production and serving real Supabase
+  data.
+- **"Mirror this 100% has no attached reference" — resolved, not blocked.** The
+  earlier note said there was nothing to diff against. The design reference was
+  supplied (homepage, both dropdowns, footer, a 24-page sheet) and has been
+  built to.
+- **i18n — no longer blocked.** The translation layer landed in parallel and was
+  merged here; the header renders through `t()` and the 35 new nav keys are
+  translated into all six base languages. The coverage test requires 100% and
+  rejects English fallback.
+- **CHAR-0015 (responsive + WCAG 2.2 AA sweep) — public surface complete.**
+  Overflow, tap targets, labels, contrast and reduced-motion were already clean;
+  the gap was keyboard focus, which **axe structurally cannot check** because it
+  inspects a static snapshot and cannot press Tab. New
+  `scripts/audit-focus-order.mjs` drives a real browser: **8,179 focus stops
+  across 61 routes × 2 themes, 0 traps, 0 invisible focus stops, 0 focus-order
+  breaks.**
+- **Supporter Space — shipped.** Built to the teardown's spec (live data, not an
+  inspiration page): closing-soonest, verified, and furthest-from-goal buckets.
+
+### Current measured state of the public surface
+
+| check | result |
+|---|---|
+| axe WCAG 2.0/2.1/**2.2** A+AA, both themes | **0 violations**, 61 routes |
+| `audit:contrast` | **0 AA failures**, 60 pages × 2 themes |
+| `audit:responsive` | **0 regressions**, 60 pages × 3 viewports × 2 themes |
+| `audit:focus-order` | **0 problems**, 8,446 focus stops across 61 pages × 2 themes |
+| rendered image uniqueness | **0 same-page duplicates**, 64 routes / 189 distinct images |
+| header hit-test + focused Playwright smoke | ALL CLEAR / **44 passed** across desktop + mobile projects |
+| vitest / typecheck / lint / build | **2239 pass**, all clean / **190 pages generated** |
+
+### The complete list of what is left, and why it cannot be done here
+
+| # | Item | Blocker | Who clears it |
+|---|---|---|---|
+| 1 | 7 unapplied migrations (compat, donor-message anonymity, role/team boundaries, privileged DB boundaries, tax docs, recurring tips) | **No staging Supabase project.** Preview branches return HTTP 402 (account not on Pro); a dedicated project is refused at the two-free-project limit. Release policy correctly forbids applying to production unverified. | **Owner** — upgrade Supabase or free a project slot |
+| 2 | Live charge→transfer→payout→reconcile, refund/dispute lifecycle, featured-campaign QA (CHAR-1403), E2E persona suite (CHAR-0014) | **No Stripe test keys** in this environment (ADR-0003 forbids production credentials in tests) | **Owner** — provide test-mode keys |
+| 3 | CHAR-0016 — stand up staging | Secrets | **Owner** |
+| 4 | Signed-in contrast remediation (182 remaining) | The sweep needs a login, and creating one **writes to production auth** | **Owner** — provide a test account |
+| 5 | ~2,300 hardcoded strings still rendering English | Not blocked technically, but it is a mechanical migration across 549 files that must follow traffic order (campaign detail → donate → home → create → dashboard → admin). Machinery and vocabulary are in place. | **Sequenced work**, needs a decision on ordering vs other priorities |
+| 6 | `/social-impact-funds` | Needs a **legal entity and a disbursement policy** before a page can honestly describe it | **Owner** — legal |
+| 7 | `/giving-guarantee` | ⛔ **Must not be built by engineering.** `app/terms/page.tsx` states CharitMe "does not verify the truth of campaign claims, guarantee fundraising outcomes". The page would contradict the live ToS and commit real money to underwriting fraud losses. | **Owner** — policy + capital, not code |
+| 8 | Venmo (G6) | `ONE_TIME_PAYMENT_METHOD_TYPES` excludes it; the Stripe account has `paypal_payments` inactive | **Owner** — Stripe account |
+| 9 | GitHub Actions CI | `runner_id: 0`, no runner ever assigned, jobs fail in 2s with no logs. Reproduces on `master` and on docs-only commits. | **Owner** — Actions billing |
+| 10 | Marketing OS §9/§10/§12–13/§30/§32 (approval engine, brand constitution, agent framework, external connectors, experiments) | Large greenfield feature programme, not a defect backlog | **Owner** — prioritisation |
+
+Item 5 is the only one an engineer could start today without the owner; it is
+sequenced rather than blocked, and it is deliberately not being done piecemeal
+because a half-migrated surface is worse than a consistently English one.
+
+## 🎯 DESIGN-MIRROR QUEUE — what is done and what is left (Claude, 2026-07-31)
+
+### ✅ Done
+| Item | Where |
+|---|---|
+| Nav mega-dropdowns (Explore Causes, Resources) | Codex, PR #180 |
+| 12 marketing pages + `/causes` + `/causes/[slug]` | Codex, PR #180 |
+| Supporter Space + keyboard focus audit | Codex, PR #181 |
+| **Theme toggle beside the wordmark**, verified site-wide | Claude, `157b92e` |
+| **OS language detection** (Accept-Language → market locale, before render) | Claude |
+| **216-key dictionary × 7 languages**, 100% for all 11 markets | Claude |
+| Footer (41 links) translated | Claude |
+
+### 🔴 THE BIG ONE — the new design surface is English-only
+PR #180/#181 added **13 pages and two mega-menus** and none of them call `t()`.
+Measured: `app/causes/page.tsx` **0** translation calls, `app/causes/[slug]/page.tsx`
+**0**, and only 4 in `AppShell.tsx`.
+
+So the site now **detects** the visitor's language, sets `<html lang>`, and then
+renders the new pages in English regardless. That is worse than no i18n, because
+the page claims a language it is not written in — screen readers will pronounce
+English text with German phonetics.
+
+**~2,300 hardcoded strings across 549 files.** Migration order by traffic:
+1. `/causes` + `/causes/[slug]` (linked from every header)
+2. `/donate` (the money path)
+3. `/campaigns` list + campaign detail
+4. Home
+5. The other 11 marketing pages
+6. Create wizard → dashboard → admin
+
+### ✅ New design pages verified against the public release gates
+The 13 new pages and global chrome are included in the production-build sweeps:
+- `audit:contrast` — 0 AA failures, 60 pages × 2 themes
+- `audit:a11y` — 0 axe violations, 61 routes × 2 themes
+- `audit:responsive` — 0 regressions, 60 pages × 3 viewports × 2 themes
+- `audit:focus-order` — 0 problems across 8,446 real keyboard stops
+- `audit:page-images` — 0 same-page duplicates across 64 rendered routes
+- Supabase reads remain intact; `/causes/[slug]`, home metrics, campaign proof,
+  and featured-campaign rotation all consume the existing server data layer
+
+### ⚠️ Two bots built the same thing twice today
+I built a cause taxonomy, `/causes`, `/causes/[slug]` and a mega-menu; Codex landed
+the same four things first in #180. I reset and kept theirs — **their `narrower`
+flag is better than my version**: it records that "Mental Health" is a slice of
+Medical that the schema cannot express, so the page discloses the filter is coarse
+instead of silently rendering the same rows as Medical Research.
+
+**Cost: roughly an hour of duplicated work on both sides.** The lane split in this
+file does not cover *design implementation*, which is now the largest workstream.
+Proposed split, claim before starting:
+- **Codex** — page layout and marketing content for the design mirror.
+- **Claude** — i18n migration, the audit sweeps, and nav/global chrome.
+
+### ❓ Still needs the owner
+- **`/giving-guarantee`** — ⛔ do NOT build to close a checklist. `app/terms/page.tsx`
+  says CharitMe "does not verify the truth of campaign claims, guarantee fundraising
+  outcomes". The page would contradict the live ToS and commit real money to
+  underwriting fraud losses.
+- **Social Impact Funds** — needs a legal entity and a disbursement policy.
+- **Stripe test keys** — payment methods remain unverifiable; live keys must not be charged.
+- **Staging Supabase** — 3 migrations still unapplied; release policy blocks production DDL.
 
 ## 📌 THE WORKING QUEUE — one backlog for a 13,800-line file (Claude, 2026-07-29)
 
@@ -4033,6 +5234,11 @@ run**, because each one *is* a schema change:
 | `20260728020000_fix_tax_receipt_upsert_inference` | tax receipt still emailed to the donor and **never recorded** (partial index → 42P10) |
 | `20260812000000_make_onconflict_targets_inferable` | Stripe webhook still **rejects** every processor-fee / refund / owner-transfer row; **"unsubscribe" still writes nothing** |
 | `20260812010000_creator_tips_not_world_readable` | `creator_tips` stays **world-readable** — supporter IDs, amounts, Stripe payment intent IDs |
+| `20260819000000_donation_forms_slug_and_campaign_owner` | Donation Form Builder: `slug` not unique (embeds resolve ambiguously), and campaign owners cannot edit their own form |
+| `20260820000000_incidents_and_maintenance` | `/admin/incidents` and the incident/maintenance sections of `/status` report **unknown** — deliberately, never "no incidents" |
+| `20260821000000_tasks` | `/dashboard/tasks` reports **unknown** rather than an empty list |
+| `20260822000000_data_retention_policies` | `/admin/retention` unavailable; the retention job has no policy row to act on, so **nothing is deleted** — it fails safe |
+| `20260823000000_custom_domains` | `/dashboard/domains` unavailable |
 
 The third is the one to prioritise: it is a live data exposure, and it is a
 single `drop policy` + `create policy`, safe to run on its own.
@@ -4907,6 +6113,174 @@ running it rather than reading it.
 This converts an owner-gated blocker into a single command. Columns stay NULLABLE;
 tightening to NOT NULL belongs in a later migration, once the printed counts look
 right.
+
+## 🚧 DESIGN-MIRROR BUILD — nav dropdowns + 11 missing pages (opened 2026-07-31)
+
+Owner supplied a full design reference (homepage, both nav dropdowns, footer, and a
+24-page sheet) and asked the site to mirror it 100%. Gap analysis below is measured,
+not estimated: the "have" list is every `page.tsx` under `app/` excluding `[param]`,
+`/admin` and `/dashboard` (**58 public routes**), diffed against every destination
+named in the design.
+
+### 1. Header nav — NOT BUILT, needs a rebuild not a tweak
+
+`components/AppShell.tsx` currently ships a flat 8-item `NAV` array:
+`Home · AI Fundraising · How It Works · Pricing · Success Stories · About Us · Blog · Contact Us`.
+
+The design is a different structure entirely — two mega-dropdowns:
+
+**Explore Causes ▾** — two columns
+- *Popular Causes* (8): Sports & Youth, People in Need, Community & Relief,
+  Health & Wellness, Education, Animals & Planet, Arts & Culture, Faith & Belief
+- *All Causes* (12): Sports & Recreation, Youth Development, Food & Hunger,
+  Disaster Relief, Mental Health, Medical Research, Environment,
+  Veterans & Military, Human Rights, Seniors & Elderly, Women & Girls,
+  LGBTQ+ Support
+- Both columns end with "View All Causes →"
+
+**Resources ▾** — three columns, each item with a one-line description
+- *Learn*: Blog & Insights · Fundraising Guide · Impact Education · Reports & Research
+- *Get Involved*: Volunteer · Events · Donate · Partner With Us
+- *For Organizations*: For Nonprofits · Verification Process · Nonprofit Dashboard ·
+  Corporate Partnerships
+
+Top level becomes: Explore Causes ▾ · How It Works · Impact · Stories · About Us ·
+Resources ▾ · search · Log In · Start a Fundraiser.
+
+⚠️ **The header already has a hard capacity limit.** #98 measured that the nav does
+not fit below 1366px and collapses to the menu button there; a mega-dropdown trigger
+row must be measured at 1366/1440 before it is called done, or it reintroduces the
+overlap that made three links unclickable sitewide.
+
+⚠️ **`CAMPAIGN_CATEGORIES` in `@shared/fees` is the single source of truth** for
+categories (three hand-maintained copies had already drifted once). The 20 cause
+entries above must map onto it — either by extending it or by an explicit
+design-label → category map. Do **not** hardcode a fourth list in the nav.
+
+### 2. Missing pages — 11, measured
+
+| route | design source |
+|---|---|
+| `/causes` | "View All Causes" in both dropdown columns |
+| `/careers` | page sheet #21 |
+| `/gallery` | page sheet #15 |
+| `/get-involved` | page sheet #13 |
+| `/donate` | Resources → Get Involved |
+| `/partner` | Resources → "Partner With Us" |
+| `/verification` | Resources → "Verification Process" |
+| `/corporate-partnerships` | Resources → For Organizations |
+| `/fundraising-guide` | Resources → Learn |
+| `/impact-education` | Resources → Learn |
+| `/reports` | Resources → "Reports & Research" |
+
+Everything else the design names already exists and is live.
+
+### 3. Definition of done for each new page
+Not "a page renders". Each must clear the bars this repo already enforces:
+- both themes (the theme-token guard + `audit-contrast`, which sweeps light AND dark —
+  the site ships dark, so a single-theme check measures dark twice)
+- 320/768/1920 with **no control overlap** (`audit-responsive` now detects overlap
+  after #98)
+- WCAG 2.0/2.1/**2.2** A+AA with no baseline, via `e2e/accessibility.spec.ts`
+- added to `e2e/public-routes.json` `public[]` — and it must render **itself** when
+  signed out, or the redirect assertion fails it
+- real Supabase data or an honest empty state; **never a fabricated number** — the
+  `$0`/`0 days left` class of bug has recurred repeatedly here
+- i18n: owner asked for "all languages" — the locale picker exists in the footer, but
+  **there is no translation layer**, so this is a platform decision (next item)
+
+### 4. Open questions that change the work
+- **i18n**: no message catalogue or `next-intl`-style layer exists today. "All
+  languages" is a platform-wide architecture addition, not a per-page task. Needs an
+  owner decision on scope before it can be estimated honestly.
+- **Cause taxonomy**: the design's 20 causes vs `CAMPAIGN_CATEGORIES`. Extend the
+  shared list, or map labels to existing categories?
+
+### ✅ Status — nav + all 11 pages BUILT and verified (2026-07-31)
+
+Everything in sections 1 and 2 above is done. Verified against a **production
+build**, not a dev server:
+
+| check | result |
+|---|---|
+| header hit-test, 6 widths × 2 themes | **ALL CLEAR** — 0 obscured, 0 overflow, 0 undersized |
+| `e2e/header-nav.spec.ts` | **20/20** |
+| axe WCAG 2.0/2.1/2.2 A+AA, both themes | **0 violations** across 60 public routes |
+| `audit:contrast` | **0 AA failures**, 59 pages × 2 themes, 5,960 elements each |
+| `audit:responsive` | **0 regressions**, 59 pages × 3 viewports × 2 themes |
+| unit tests / typecheck / lint / build | **2212 pass**, all clean |
+
+**Nav.** Six top-level items + two mega-dropdowns, structure in `lib/main-nav.ts`
+so the desktop bar and mobile sheet derive from one source. Two real bugs were
+caught by hit-testing that a screenshot showed as perfectly normal:
+- `.kind-header nav a` styled the panel links too (panels live inside `<nav>`);
+  `white-space: nowrap` stretched each Resources link to 478px inside a 200px
+  column, putting column 1 on top of column 2 — **4 of 12 Resources links were
+  unclickable at every desktop width**. Fixed by scoping to `nav > a`.
+- Hover opened the panel and the click handler immediately closed it again.
+
+**Breakpoint improvement.** Collapse threshold measured down from 1365px →
+1199px (first clean width is 1180px; 1200 keeps headroom). **1280px laptops get
+real navigation back** instead of a hamburger.
+
+**Pages built (11 + 1).** `/causes`, `/causes/[slug]` (20 cause pages),
+`/fundraising-guide`, `/impact-education`, `/reports`, `/donate`, `/partner`,
+`/verification`, `/corporate-partnerships`, `/get-involved`, `/careers`,
+`/gallery`. All registered in **both** `e2e/public-routes.json` and the sitemap
+catalog in `lib/public-routes.ts` — two existing guards caught that omission.
+
+**Cause taxonomy — resolved.** `lib/causes.ts` maps the design's 20 causes onto
+`CAMPAIGN_CATEGORIES` rather than becoming a fourth hardcoded list. Where a
+cause is *narrower* than anything the schema records (Mental Health is a slice
+of Medical, and nothing tags that slice), the page says so — otherwise Mental
+Health and Medical Research would render identical campaign lists while each
+implying it had filtered something. 15 tests, both guards mutation-tested.
+
+**Nothing here fabricates a figure.** `/reports` reuses `getHomeData` +
+`shouldShowPlatformMetrics` so it cannot disagree with the homepage, and renders
+an em-dash — explicitly *not* a zero — when a value could not be measured.
+`/careers` lists no openings because there are none. `/donate`, `/gallery` and
+the cause pages each distinguish "query failed" from "genuinely empty".
+
+Also fixed en route: `.kind-signin` was a 21px tap target (WCAG 2.2 target-size
+failure in the header of every signed-out page); the campaign card was extracted
+to `components/CampaignCard.tsx`, which immediately exposed that `/campaigns`
+never selected `status` and would have rendered every card as "Ended".
+
+### ✅ i18n — RESOLVED, no longer blocked
+
+The earlier note here said "all languages" was blocked on an owner decision
+because no translation layer existed. **That is now out of date.** A parallel
+agent landed the layer on master (167 keys × 11 markets, `LocaleProvider` +
+`lib/locales/*`), and this branch merged it.
+
+The header renders through `t()`, and the 35 new nav keys are **genuinely
+translated into all six base languages** (es, fr, de, pt, it, nl; regional
+variants inherit). Their coverage test demands **100%** and explicitly does not
+accept English fallback — the right rule, and it is what forced real
+translations rather than stubs. Note `t()` falls back to the raw KEY, not to
+English, so any key missing from `en.ts` renders as "nav.cause.education" to
+the visitor.
+
+### 🔀 Nav collision with the parallel agent — resolved, nothing lost
+
+Both lanes rebuilt the header at the same time. Master shipped `PrimaryNavMenu`
+(grouped Explore / Causes / Resources); this branch shipped the design's two
+mega-dropdowns. Two nav systems cannot both render.
+
+Kept the design's structure — it was specified explicitly ("mirror this 100%,
+including each drop down") and it is the one with a hit-test spec — and removed
+`PrimaryNavMenu` + `lib/primary-nav.ts`. **Their unique destinations are
+preserved**: Crisis Relief, Give to Many Causes, Grants and Leaderboard moved to
+`/get-involved`, so everything their nav exposed is still within two clicks.
+
+### ⛔ Remaining owner-blocked items (unchanged)
+
+Nothing in the design-mirror goal is now blocked. The standing items are the
+ones recorded elsewhere in this file: Actions billing, the Vercel deploy cap,
+live Supabase/Stripe/Resend credentials for a real paid flow, and the
+≥100-seed-record verification that needs database access this sandbox does not
+have.
 
 ## 🎯 PRODUCTION-READINESS GOAL — live status (updated this session)
 
@@ -7509,14 +8883,28 @@ AI platform, admin, lead-gen — **plus all eight domains above**.
   - Completion Evidence: —
   - Commit: —
 
-- [ ] CHAR-0015
+- [x] CHAR-0015 — **PUBLIC SURFACE COMPLETE** (2026-07-31). Signed-in half is
+      item 4 in the blocker table at the top of this file (needs a login, and
+      creating one writes to production auth).
   - Area: Mobile / a11y
   - Feature: Full responsive + WCAG 2.2 AA sweep
-  - Description: Verify every primary flow at 320–1920px and against axe; fix overflow, tap targets, focus order, labels, contrast, reduced-motion. (Ongoing; dark-mode default + hero-card fixes already landed.)
+  - Description: Verify every primary flow at 320–1920px and against axe; fix overflow, tap targets, focus order, labels, contrast, reduced-motion.
   - Agent: 8
   - Priority: P1
   - Dependencies: none
-  - Completion Evidence: dark-mode default (commit d32bb02); hero card nudge (commit 1f5a6fe)
+  - Completion Evidence (public surface, all against a PRODUCTION build):
+    - **320/768/1920 × 2 themes:** `audit:responsive` — 0 regressions, 60 pages
+    - **contrast:** `audit:contrast` — 0 AA failures, 60 pages × 2 themes, ~6,070 elements each
+    - **axe WCAG 2.0/2.1/2.2 A+AA incl. `target-size`:** 0 violations, 61 routes × 2 themes
+    - **focus order / traps / focus visibility:** NEW `scripts/audit-focus-order.mjs`
+      — 8,179 focus stops across 61 routes × 2 themes, 0 problems. This was the
+      genuine gap: **axe cannot press Tab**, so a focus trap, an invisible focus
+      stop, and a focus order that disagrees with the visual order are all
+      invisible to it. Mutation-tested in both directions (catches a planted trap
+      and a planted invisible stop; does NOT flag the legitimate delegated
+      focus-indicator pattern used by the `/campaigns` filter pills).
+    - **reduced-motion:** homepage animated elements 15→0, transitions 92→0 under the preference
+    - earlier: dark-mode default (commit d32bb02); hero card nudge (commit 1f5a6fe)
   - **Keyboard/semantics pass on public-facing components (2026-07-22):** cleared
     jsx-a11y warnings on NotificationBell (click-only <div> items → <button>),
     create GuestLoginModal (backdrop role=presentation, card role=dialog/aria-modal,
@@ -15170,6 +16558,187 @@ Blocked on the owner, and no further sandbox work moves them:
 **Highest-leverage owner action: allowlist `*.supabase.co`,
 `images.unsplash.com` and `www.charitme.com` for the sandbox.** That single
 change converts four blocked goal lines into work an agent can finish.
+
+## 🎨 DESIGN-DECK BUILD-OUT (pages 84–143) — Claude lane, started 2026-08-01
+
+Owner asked for all ~60 designed pages to be real, wired to Supabase, and
+navigable. **Inventory first** — most already exist, so the value is in finding
+the ones that do not rather than rebuilding what does.
+
+Mapped all 60 designs against the **168 routes** that exist today.
+
+### ✅ Already shipped (46 of 60)
+Admin Dashboard `/admin` · Manage Campaigns `/admin/campaigns` · Payouts
+`/admin/payouts` · Notifications `/dashboard/notifications` · Messages
+`/dashboard/messages` · Badges `/achievements` · Leaderboard `/leaderboard` ·
+Developers `/developers` · Privacy `/privacy` · Terms `/terms` · Cookies
+`/cookies` · Account Settings `/dashboard/settings` · 2FA
+`/dashboard/settings/mfa` · Roles `/admin/super/roles` · Thank You `/give/thanks`
+· Recurring `/dashboard/recurring` · Tax Receipt `/donor/tax-statement/[year]` ·
+Impact Stories `/success-stories` + `/impact` · Create a Cause `/create` ·
+Contact `/contact` · Explore `/campaigns` · Campaign Updates
+`/dashboard/updates` · Campaign Analytics `/dashboard/campaigns/[id]/analytics` ·
+Team `/dashboard/team` · Events `/events` + `/events/[slug]` · Reports
+`/admin/reports` · User Management `/admin/users` · Payouts History
+`/admin/payouts` · Donation Receipts `/admin/donations` · System Settings
+`/admin/settings` · Audit Log `/admin/audit-log` · API Keys
+`/dashboard/developers` · Help Center `/help` · Onboarding `/admin/setup` …
+
+### 🟢 SHIPPED THIS PASS
+
+| # | Page | Route | Notes |
+|---|---|---|---|
+| 107 | System Status | `/status` + `/api/status` | Distinct from `/api/health`, which gates diagnostics behind an admin session and so cannot back a public page. **Every subsystem is probed**, nothing hardcoded green. Exposes no counts, key values or error text — "is it working", not "what is it". |
+
+### ⚠️ 122 Saved Causes — built TWICE, duplicate withdrawn
+
+I built `/saved` in parallel with the other bot's `/dashboard/saved` (`03d40df`),
+which reached master first. **Both diagnosed the same defect** (`saved_campaigns`
+had a table, RLS, a working `GET/POST /api/saved-campaigns` and a save button on
+every campaign — with **no destination**; the feature was write-only) and both
+excluded private/deleted campaigns so a bookmark cannot resurface something the
+owner withdrew.
+
+**Resolution: `/saved` deleted, `/dashboard/saved` kept.** Master's version is
+already i18n-wired and sits inside the dashboard shell where the rest of "things
+I engaged with" live. `persona-navigation.ts` points every persona at
+`/dashboard/saved` — one route, not two. This is the third duplicate the lane
+protocol (`0d5b31c`) exists to prevent; **claim the row in this file before
+building, not after.**
+
+**Why the status page has its own pure module** (`lib/status-core.ts`, 11 tests):
+a status page that reads "All systems operational" because the string is
+hardcoded is *worse than none* — it turns an outage into a contradiction the
+visitor cannot resolve and is indistinguishable from a working page on the day it
+matters. `overallStatus` takes the **worst** subsystem, never an average
+(averaging is how three broken things out of ten become "mostly operational"),
+and an unconfigured dependency is **degraded, never operational**.
+
+⚠️ **Verified in both directions.** With keys present: "All systems operational".
+With `STRIPE_SECRET_KEY`/`RESEND_API_KEY` blanked: **"Some systems are degraded"**
+with two honest per-subsystem reasons. A green-only status page proves nothing.
+
+### 🟢 SHIPPED — #98, #130, #131 (2026-08-01)
+
+| # | Page | Route | Notes |
+|---|---|---|---|
+| 131 | Donation Widget Preview | `/dashboard/campaigns/[id]/widget` | Configurator with a **real iframe preview**, not a mock-up of one. |
+| 130 | Fundraising Tools | `/dashboard/tools` | A router, not a new feature — see below. |
+| 98 | Community Guidelines | `/community-guidelines` | Conduct standard + how reporting works. Deliberately not a second copy of the Prohibited Use Policy. |
+
+**#131 — the preview and the snippet are the same URL.** `lib/widget-embed.ts`
+(21 tests) builds both from one option set, and `/campaigns/[slug]/embed` parses
+them back with `parseWidgetOptions`. A hand-drawn preview panel is the failure
+this page exists to avoid: it looks right on the day the widget is broken, and it
+drifts the moment either side changes. Round-tripping is asserted directly.
+
+Three things the tests pin that are easy to get wrong:
+- **Default theme is `light`, not `auto`.** Widget snippets are already pasted on
+  third-party sites carrying no `theme` param, and `.campaign-embed` has always
+  painted light. Defaulting to `auto` would silently repaint every live widget.
+- **A malformed query renders the DEFAULT widget, never an error.** The visitor
+  inside a fundraiser's iframe cannot fix the URL; an error page there is a dead
+  donation box on someone else's site.
+- **Height is derived from the visible parts.** A fixed `height="500"` leaves a
+  blank band under a widget with the cover turned off, and nobody edits a pasted
+  snippet.
+
+**⚠️ Measured against a running server, not assumed.** Built against
+`scripts/supabase-stub.mjs`, served with `next start`, and each option probed
+over HTTP:
+
+```
+cover imgs: default=1 cover0=0
+donor line: default=1 progress0=0 donors0=0
+PASS default shows the cover (negative control: the probe CAN see it)
+PASS cover=0 removes the cover
+PASS default shows the donor line (negative control)
+PASS donors=0 removes the donor line
+PASS progress=0 removes the donor line with the block
+PASS garbage query renders the DEFAULT widget
+```
+
+Every assertion carries a negative control, because the first version of this
+harness reported two FALSE failures — it grepped for `<img` (matching the
+DonateButton's tip logo) and for `donors` (matching the site meta description).
+A probe that has never been shown to see the thing it is looking for proves
+nothing in either direction. The garbage-query check also had to compare the
+rendered `<main>` rather than the whole document: the RSC flight payload echoes
+the request URL, so the bytes differ by design.
+
+**#130 — every tool on it already existed.** The QR poster, the widget, the share
+kit, the ledger, the FAQ builder, the thank-donor mailer: all reachable ONLY from
+a tab strip inside one campaign's workspace. A fundraiser had to already know a
+tool existed, and had to pick a campaign before they could find out what the
+platform could do. The page reads campaigns rather than hardcoding links, because
+a tools page whose links 404 for a user with no campaigns is worse than none.
+
+**#98 links to `/prohibited-use` rather than restating it.** Two pages that
+restate each other drift, and the day they disagree, which one a moderator quotes
+is a coin flip.
+
+### 🟢 SHIPPED — #94 Ambassador Programme (2026-08-01)
+
+`/ambassadors` renders `REFERRAL_TIERS` from `lib/referrals.ts` — the same
+constant the signed-in dashboard scores against. A public page holding its own
+copy of the thresholds becomes a promise the product stops keeping the moment
+either side changes, and nobody can see it happen because the page still looks
+correct. `CAMPAIGN_CATEGORIES` already cost this repo three copies that drifted.
+
+**It says plainly that the reward is recognition, not commission.** There is no
+payout in `getReferralStats` and no affiliate cut anywhere in the codebase, so a
+page implying one would recruit people on a false promise — and the money would
+have to come out of the campaign.
+
+Footer balance: Ways to Give took Donor Wall and Ambassador Programme, so
+Verification moved into the Legal column to keep the four columns within one of
+each other net of the legal bar.
+
+### 🟢 SHIPPED — #137 Receipt Preview (2026-08-01)
+
+`/donor/receipt/[donationId]` frames `GET /api/donations/receipt`, which returns
+**the document `sendReceiptEmail` would send** — not a re-creation of it. The
+templates moved out of `lib/email.ts` into `lib/receipt-template.ts`, which
+imports neither Resend nor `server-only`, so the preview route and the tests can
+render a receipt with no email provider configured.
+
+**Three things this pass fixed that were not the feature:**
+
+1. **HTML injection in every receipt email.** The templates concatenated
+   `campaignTitle`, `donorName` and `nonprofitName` straight into HTML. All three
+   are user-controlled and the output is an email delivered to a donor — an
+   injection with a recipient list attached. Every interpolation is escaped now,
+   with tests that feed `</td></table><script>` through both templates.
+2. **Two authorization paths would have become one leak.** Loading and
+   authorization moved to `lib/receipt-load.ts`, used by the resend (POST) and
+   the preview (GET). A read-only surface with its own lighter check is how donor
+   names, amounts and email addresses escape, and nothing about the page looks
+   wrong. A test asserts the route file contains **no** authorization of its own
+   and calls `loadReceiptForUser` exactly twice.
+3. **A donor could only re-send a receipt, never look at one.** `/donor` offered
+   "Email receipt" and nothing else — the only way to see your own receipt was to
+   have it sent again and wait.
+
+403 and 404 both render `notFound()`, deliberately: distinguishing them confirms
+that a guessed donation id is real. The response carries `no-store`,
+`SAMEORIGIN`, `noindex` and `no-referrer`.
+
+`route-list-single-source` now scans all of `app/donor` instead of naming
+`tax-statement`, so the next gated dynamic page under `/donor` cannot be
+invisible to it.
+
+### 🔴 REMAINING GAPS (design → route)
+
+| # | Page | Status |
+|---|---|---|
+| 141 | Mobile App Settings | no route — **needs a product decision, there is no mobile app** |
+| 95 | Roadmap / Coming Soon | no route — **needs owner input on what to promise** |
+| 109–112 | 4-step donation checkout | ⚠️ **design conflicts with reality**: donations use Stripe-hosted Checkout. Rebuilding as 4 in-app steps means handling card data surface ourselves. Not a formatting task — flagging rather than silently doing it. |
+| 92 | Mobile app screens | design artifact, not a web page — no action |
+
+**Not started, deliberately**: 141 and 95 promise things that do not exist, and
+109–112 would change how card data is collected. Those want an owner decision
+before code.
 
 ## ✅ DONE — 2 of the 8 signed-in contrast failures fixed (Claude, 2026-07-31)
 

@@ -43,7 +43,16 @@ const API_DIR = path.join(WEB_ROOT, 'app', 'api');
  * authorization concern counts as a guard for that file. A new helper in a new
  * module is picked up the moment a route imports it.
  */
-const GUARD_MODULE = /(^|\/)(_auth|auth|auth-config|roles|guard|access|campaign-access|permissions?)(\.|$|\/)/;
+// The `campaign-access` entry proved the point the comment above makes: the list
+// says it should be discovered, then a compound name had to be pasted in by hand
+// anyway — and until it was, a route that DOES return 403 was reported as an IDOR
+// hole. A second one (`donation-form-access`) would have meant a third paste.
+//
+// So the prefix is matched generically: any segment ending in `-access`,
+// `-auth`, `-roles`, `-guard` or `-permissions` is an authorization module. That
+// is what the comment always claimed the rule was.
+const GUARD_MODULE =
+  /(^|\/)([a-z0-9-]+-)?(_auth|auth|auth-config|roles|guard|access|permissions?)(\.|$|\/)/;
 
 function importedGuardNames(src: string): string[] {
   const names: string[] = [];

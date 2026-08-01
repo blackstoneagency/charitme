@@ -35,7 +35,7 @@ export default async function NonprofitPage() {
     return (
       <CharitMeShell active="Your organization">
         <TopBar title="Your organization" subtitle="Nonprofit profile, verification, and tax receipts." />
-        <div className="kf-content-grid" style={{ gridTemplateColumns: '1fr' }}>
+        <div className="kf-content-grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
           <section className="kf-card">
             <EmptyState
               icon="🏛️"
@@ -62,7 +62,7 @@ export default async function NonprofitPage() {
     <CharitMeShell active="Your organization">
       <TopBar title={profile.name} subtitle="Nonprofit profile, verification, and tax receipts." />
 
-      <div className="kf-content-grid" style={{ gridTemplateColumns: '1fr' }}>
+      <div className="kf-content-grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
         <MetricGrid metrics={metrics} />
 
         {/* The single question a nonprofit most needs answered, stated plainly.

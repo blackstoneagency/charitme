@@ -1,5 +1,11 @@
 import 'server-only';
 import { Resend } from 'resend';
+import {
+  emailWrapper as receiptWrapper,
+  btn as receiptBtn,
+  donationReceiptEmail,
+  taxReceiptEmail,
+} from './receipt-template';
 
 const apiKey = process.env.RESEND_API_KEY;
 if (!apiKey && process.env.NODE_ENV === 'production') {
@@ -10,34 +16,15 @@ export const resend = apiKey ? new Resend(apiKey) : null;
 const FROM = process.env.EMAIL_FROM ?? 'CharitMe <hello@charitme.com>';
 const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com';
 
+// The wrapper and button now live in ./receipt-template so the receipt preview
+// route can render them without importing Resend or `server-only`. These thin
+// delegations keep every other template in this file unchanged.
 function emailWrapper(title: string, body: string, year: number): string {
-  return `<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title></head>
-<body style="margin:0;padding:0;background:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f7;padding:40px 20px;">
-    <tr><td align="center">
-      <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,.08);">
-        <tr><td style="background:linear-gradient(135deg,#6c35ff,#4d1ee0);padding:32px 40px;text-align:center;">
-          <div style="font-size:28px;font-weight:900;color:#fff;letter-spacing:-0.5px;">CharitMe</div>
-          <div style="font-size:13px;color:rgba(255,255,255,.75);margin-top:4px;">${title}</div>
-        </td></tr>
-        <tr><td style="padding:40px;">${body}</td></tr>
-        <tr><td style="background:#f8f9fc;padding:20px 40px;text-align:center;border-top:1px solid #f0f0f0;">
-          <p style="font-size:11px;color:#94a3b8;margin:0;">© ${year} CharitMe · <a href="${ORIGIN}" style="color:#94a3b8;">charitme.com</a></p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
+  return receiptWrapper(title, body, year, ORIGIN);
 }
 
 function btn(href: string, label: string, style: 'primary' | 'secondary' = 'primary'): string {
-  const bg = style === 'primary' ? '#6c35ff' : '#f5f5f7';
-  const color = style === 'primary' ? '#fff' : '#1a1a2e';
-  const border = style === 'primary' ? '' : 'border:1px solid #e2e8f0;';
-  return `<a href="${href}" style="display:inline-block;background:${bg};color:${color};font-size:13px;font-weight:700;padding:12px 24px;border-radius:9px;text-decoration:none;${border}">${label}</a>`;
+  return receiptBtn(href, label, style);
 }
 
 // ─────────────────────────────────────────────
@@ -92,44 +79,10 @@ export async function sendReceiptEmail(input: {
 }): Promise<{ sent: boolean }> {
   if (!resend) return { sent: false };
 
-  const year = new Date().getFullYear();
-  const campaignUrl = `${ORIGIN}/campaigns/${input.campaignSlug}`;
-  const dashboardUrl = `${ORIGIN}/donor`;
-
-  const body = `
-    <p style="font-size:16px;color:#1a1a2e;font-weight:700;margin:0 0 8px;">
-      Thank you${input.donorName ? `, ${input.donorName.split(' ')[0]}` : ''}!
-    </p>
-    <p style="font-size:14px;color:#64748b;margin:0 0 28px;line-height:1.6;">
-      Your donation to <strong style="color:#1a1a2e;">${input.campaignTitle}</strong> has been received.
-      This email is your official receipt.
-    </p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f7f2ff;border:2px solid #e0d5ff;border-radius:12px;margin-bottom:28px;">
-      <tr><td style="padding:20px 24px;">
-        <div style="font-size:11px;font-weight:900;color:#8c73cc;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Amount donated</div>
-        <div style="font-size:36px;font-weight:900;color:#4d1ee0;">${input.amountFormatted}</div>
-        <div style="font-size:13px;color:#8c73cc;margin-top:6px;">to ${input.campaignTitle}</div>
-        ${input.donationId ? `<div style="font-size:11px;color:#94a3b8;margin-top:6px;font-family:monospace;">Ref: ${input.donationId}</div>` : ''}
-      </td></tr>
-    </table>
-    <table cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
-      <tr>
-        <td style="padding-right:12px;">${btn(campaignUrl, 'View Campaign')}</td>
-        <td>${btn(dashboardUrl, 'My Donations', 'secondary')}</td>
-      </tr>
-    </table>
-    <p style="font-size:13px;color:#94a3b8;line-height:1.6;margin:0;">
-      Payments are processed securely by Stripe. CharitMe never stores your card details.
-      Personal fundraiser donations are not tax-deductible unless the campaign is for a verified nonprofit.
-    </p>`;
-
-  await resend.emails.send({
-    from: FROM,
-    to: input.to,
-    subject: `Your CharitMe receipt — ${input.campaignTitle}`,
-    html: emailWrapper('Donation Receipt', body, year),
-    text: `Thank you for donating ${input.amountFormatted} to "${input.campaignTitle}".\n\nView the campaign: ${campaignUrl}\nYour donations: ${dashboardUrl}\n\n© ${year} CharitMe`,
-  });
+  // Rendered by the SAME function the preview route calls, so the receipt a
+  // donor sees on screen cannot drift from the one that reached their inbox.
+  const mail = donationReceiptEmail(input, ORIGIN);
+  await resend.emails.send({ from: FROM, to: input.to, subject: mail.subject, html: mail.html, text: mail.text });
   return { sent: true };
 }
 
@@ -430,59 +383,8 @@ export async function sendTaxReceiptEmail(input: {
 }): Promise<{ sent: boolean }> {
   if (!resend) return { sent: false };
 
-  const year = new Date().getFullYear();
-  const dashboardUrl = `${ORIGIN}/donor`;
-
-  const body = `
-    <p style="font-size:16px;color:#1a1a2e;font-weight:700;margin:0 0 8px;">
-      Official Tax Receipt — Keep for your records
-    </p>
-    <p style="font-size:14px;color:#64748b;margin:0 0 20px;line-height:1.6;">
-      Thank you${input.donorName ? `, ${input.donorName.split(' ')[0]}` : ''}, for your tax-deductible donation to
-      <strong style="color:#1a1a2e;">${input.nonprofitName}</strong>.
-    </p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f7f2ff;border:2px solid #e0d5ff;border-radius:12px;margin-bottom:24px;">
-      <tr><td style="padding:20px 24px;">
-        <table width="100%" cellpadding="0" cellspacing="0">
-          <tr>
-            <td style="font-size:12px;color:#64748b;padding-bottom:8px;">Nonprofit</td>
-            <td style="font-size:12px;color:#1a1a2e;font-weight:700;text-align:right;padding-bottom:8px;">${input.nonprofitName}</td>
-          </tr>
-          <tr>
-            <td style="font-size:12px;color:#64748b;padding-bottom:8px;">EIN</td>
-            <td style="font-size:12px;color:#1a1a2e;font-weight:700;text-align:right;font-family:monospace;padding-bottom:8px;">${input.nonprofitEin}</td>
-          </tr>
-          <tr>
-            <td style="font-size:12px;color:#64748b;padding-bottom:8px;">Campaign</td>
-            <td style="font-size:12px;color:#1a1a2e;font-weight:700;text-align:right;padding-bottom:8px;">${input.campaignTitle}</td>
-          </tr>
-          <tr>
-            <td style="font-size:12px;color:#64748b;padding-bottom:8px;">Date</td>
-            <td style="font-size:12px;color:#1a1a2e;font-weight:700;text-align:right;padding-bottom:8px;">${input.donationDate}</td>
-          </tr>
-          <tr>
-            <td style="font-size:12px;color:#64748b;padding-bottom:8px;">Receipt #</td>
-            <td style="font-size:12px;color:#1a1a2e;font-weight:700;text-align:right;font-family:monospace;padding-bottom:8px;">${input.receiptNumber}</td>
-          </tr>
-          <tr style="border-top:1px solid #e0d5ff;">
-            <td style="font-size:16px;font-weight:900;color:#4d1ee0;padding-top:12px;">Amount</td>
-            <td style="font-size:16px;font-weight:900;color:#4d1ee0;text-align:right;padding-top:12px;">${input.amountFormatted}</td>
-          </tr>
-        </table>
-      </td></tr>
-    </table>
-    <p style="font-size:12px;color:#64748b;line-height:1.7;margin:0 0 20px;">
-      No goods or services were provided in exchange for this contribution. This donation is tax-deductible
-      to the extent permitted by law. Please consult your tax advisor.
-    </p>
-    ${btn(dashboardUrl, 'View Donation History')}`;
-
-  await resend.emails.send({
-    from: FROM,
-    to: input.to,
-    subject: `Tax Receipt #${input.receiptNumber} — ${input.nonprofitName}`,
-    html: emailWrapper('Tax Receipt', body, year),
-    text: `Official Tax Receipt\n\nNonprofit: ${input.nonprofitName}\nEIN: ${input.nonprofitEin}\nCampaign: ${input.campaignTitle}\nDate: ${input.donationDate}\nReceipt: ${input.receiptNumber}\nAmount: ${input.amountFormatted}\n\nThis donation is tax-deductible.\n\nView donations: ${dashboardUrl}\n\n© ${year} CharitMe`,
-  });
+  // Same shared template as the preview route — see sendReceiptEmail above.
+  const mail = taxReceiptEmail(input, ORIGIN);
+  await resend.emails.send({ from: FROM, to: input.to, subject: mail.subject, html: mail.html, text: mail.text });
   return { sent: true };
 }

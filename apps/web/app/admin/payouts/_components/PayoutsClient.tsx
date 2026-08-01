@@ -482,7 +482,9 @@ export default function PayoutsClient({
               <button type="button" style={{ height: 42, padding: '0 18px', border: '1px solid #e0e4ef', borderRadius: 9, background: 'var(--s1)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }} onClick={() => exportCsv(filtered)}>Export CSV</button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 120px 130px', gap: 12, padding: '10px 20px', background: 'var(--s2)', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+            {/* Header and rows in ONE scroll box, so their columns stay aligned. */}
+            <div className="kf-table-scroll">
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) 120px 120px 130px', gap: 12, padding: '10px 20px', background: 'var(--s2)', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
               <span>Recipient</span>
               <span>Campaign</span>
               <span>Amount</span>
@@ -492,7 +494,7 @@ export default function PayoutsClient({
 
             {currentPage.map(p => (
               <div key={p.id}
-                role="button" tabIndex={0} aria-label={`View payout for ${p.recipient_name}`} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 120px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
+                role="button" tabIndex={0} aria-label={`View payout for ${p.recipient_name}`} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) 120px 120px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
                 onClick={() => setSelected(p)}
                 onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelected(p); } }}
                 onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
@@ -512,6 +514,7 @@ export default function PayoutsClient({
                 <div style={{ fontSize: 12, color: 'var(--t3)' }}>{fmtDate(p.created_at)}</div>
               </div>
             ))}
+            </div>
 
             {currentPage.length === 0 && <div style={{ padding: '32px', textAlign: 'center', color: 'var(--t3)', fontSize: 14 }}>No payouts found</div>}
 
@@ -527,7 +530,7 @@ export default function PayoutsClient({
 
         {activeTab === 'recurring' && (
           <div style={{ padding: '20px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 20 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 16, marginBottom: 20 }}>
               {[{ label: 'Total Recurring', value: totalCount, color: 'var(--brand-text)' }, { label: 'Active', value: completedCount, color: 'var(--green-text)' }, { label: 'Paused', value: pendingCount, color: 'var(--orange-text)' }, { label: 'Cancelled', value: 0, color: 'var(--red-text)' }].map(s => (
                 <div key={s.label} style={{ padding: '18px', border: '1px solid #e6e9f2', borderRadius: 12 }}>
                   <div style={{ fontSize: 12, color: 'var(--t3)', fontWeight: 700, marginBottom: 6 }}>{s.label}</div>

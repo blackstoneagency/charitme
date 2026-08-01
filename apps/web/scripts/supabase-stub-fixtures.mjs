@@ -439,11 +439,14 @@ export function buildFixtures() {
     '22222222-2222-4222-8222-222222222222',
   ];
   HEX_CAMPAIGN_IDS.forEach((id, i) => {
+    const coverImageUrl = `https://picsum.photos/seed/stub-hex-${i + 1}/1200/675`;
     campaigns.push({
       ...campaigns[i],
       id,
       slug: `stub-hex-campaign-${i + 1}`,
       title: `Hex-id stub campaign ${i + 1}`,
+      cover_image_url: coverImageUrl,
+      image_urls: [coverImageUrl],
       status: 'active',
       visibility: 'public',
       accept_donations: true,
@@ -785,6 +788,10 @@ export function buildFixtures() {
           // config and used the default".
           payment: { featuredCampaignPriceCents: 1750 },
           branding: { productName: 'CharitMe' },
+          maintenanceMode: false,
+          maintenanceMessage: 'We are making CharitMe better. Please check back soon.',
+          maintenanceExpectedBackAt: '',
+          supportEmail: 'support@charitme.com',
         },
         created_at: daysAgo(200),
         updated_at: daysAgo(1),

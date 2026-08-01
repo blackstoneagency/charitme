@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { formatMoneyCompact } from '@shared/currencies';
+import { campaignTimeLabel } from '../lib/campaign-lifecycle';
 
 export type RotatorCampaign = {
   slug: string;
@@ -171,9 +172,16 @@ export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero
   const heroPercent = campaign
     ? Math.min(100, Math.round(((campaign.raised_amount ?? 0) / (campaign.goal_amount || 1)) * 100))
     : 0;
-  const daysLeft = campaign?.deadline
-    ? Math.max(0, Math.ceil((new Date(campaign.deadline).getTime() - now) / 86_400_000))
-    : 0;
+  // Shared with the campaign page so the two can never disagree. The previous
+  // inline version collapsed "no deadline" and "deadline already passed" into 0
+  // and rendered BOTH as "No deadline" — an expired campaign in the hero claimed
+  // to have no end date at all. The rotator only surfaces live campaigns, so
+  // status is 'active' here; the label still reports 'Ended' once the date has
+  // passed rather than inventing an open-ended run.
+  const timeLabel = campaignTimeLabel(
+    { status: 'active', deadline: campaign?.deadline },
+    now,
+  );
   const photoUrl  = campaign?.cover_image_url || fallbackImageUrl;
   const heroHref  = campaign ? `/campaigns/${campaign.slug}` : '/campaigns';
   const heroTitle = campaign?.title ?? 'Start a trusted campaign on CharitMe';
@@ -310,7 +318,7 @@ export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero
         </div>
         <div className="kind-raise-row kind-small" style={{ transition: 'opacity 0.3s', opacity: fading ? 0 : 1 }}>
           <span>{(campaign?.backer_count ?? 0).toLocaleString()} donations</span>
-          <span>{daysLeft > 0 ? `${daysLeft} days left` : 'No deadline'}</span>
+          <span>{timeLabel}</span>
         </div>
 
         <Link href={heroHref} className="kind-donate">

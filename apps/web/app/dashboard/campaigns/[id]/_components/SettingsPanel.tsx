@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { SUPPORTED_CURRENCIES } from '@shared/currencies';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -232,8 +233,15 @@ export default function SettingsPanel({ campaignId }: { campaignId: string }) {
             onChange={e => setCurrency(e.target.value)}
             style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid var(--b1)', fontSize: 14, color: 'var(--t2)' }}
           >
-            {['USD', 'EUR', 'GBP', 'CAD', 'AUD'].map(c => (
-              <option key={c} value={c}>{c}</option>
+            {/* Driven by the shared list, not a local copy. This offered 5
+                currencies while the platform supports 28 and the API accepts
+                every one of them (`isSupportedCurrency`), so 23 were reachable
+                by the backend and unreachable by the organizer. Exactly the
+                CAMPAIGN_CATEGORIES failure CLAUDE.md warns about: a
+                hand-maintained second copy of a shared list, silently narrower
+                than the source. */}
+            {SUPPORTED_CURRENCIES.map(c => (
+              <option key={c.code} value={c.code}>{c.code} — {c.name}</option>
             ))}
           </select>,
         )}

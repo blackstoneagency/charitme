@@ -135,6 +135,14 @@ function OverviewTab({ overview, go }: { overview: React.ComponentProps<typeof A
           <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--brand-text)', marginTop: 4 }}>Set an outcome →</div>
           <div style={{ fontSize: 13, color: 'var(--t2)', marginTop: 4 }}>Describe a business objective in plain English; the OS turns it into a measurable goal.</div>
         </a>
+        {/* marketing_email_templates had no UI at all — the automations runner
+            picked a template by category and sent it, with nothing able to show
+            an admin what that copy actually said. */}
+        <a href="/admin/marketing/templates" style={{ ...card, display: 'block', textDecoration: 'none', background: 'var(--s2)', marginBottom: 0 }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--t2)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Email</div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--t1)', marginTop: 4 }}>Templates →</div>
+          <div style={{ fontSize: 13, color: 'var(--t2)', marginTop: 4 }}>The copy your automations send. Edit subject, preview text and body.</div>
+        </a>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 20 }}>
         {kpis.map(k => (
@@ -145,7 +153,7 @@ function OverviewTab({ overview, go }: { overview: React.ComponentProps<typeof A
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 16 }}>
         <div style={card}>
           <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: 'var(--t1)' }}>Contacts by type</div>
           {Object.keys(overview.byType).length === 0 && <p style={{ fontSize: 13, color: 'var(--t3)' }}>No contacts yet. Use Audience → “Sync platform users” to import donors and organizers, or capture leads from site forms.</p>}
@@ -287,7 +295,7 @@ function ProfileDrawer({ profile, onClose }: { profile: ContactProfile; onClose:
         </div>
         <p style={{ margin: '0 0 18px', fontSize: 13, color: 'var(--t3)' }}>{c.email}{c.country ? ` · ${c.country}` : ''}</p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 10, marginBottom: 20 }}>
           {[
             ['Type', c.client_type.replaceAll('_', ' ')], ['Stage', c.lifecycle_stage],
             ['Lead score', String(c.lead_score)], ['Engagement', String(c.engagement_score)],
@@ -481,7 +489,7 @@ function CampaignsTab({ flash }: { flash: (m: string) => void }) {
     <div>
       <div style={card}>
         <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: 'var(--t1)' }}>New email campaign</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 10, marginBottom: 10 }}>
           <input aria-label="Campaign internal name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Internal name" style={input} />
           <select aria-label="Audience segment" value={form.segment_id} onChange={e => setForm(f => ({ ...f, segment_id: e.target.value }))} style={input}>
             <option value="">Choose audience segment…</option>

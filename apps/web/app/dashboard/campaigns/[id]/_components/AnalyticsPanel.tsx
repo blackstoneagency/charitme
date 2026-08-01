@@ -128,7 +128,7 @@ export default function AnalyticsPanel({ campaignId }: { campaignId: string }) {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 16, marginBottom: 20 }}>
         {/* Top referral sources */}
         <div style={{ background: 'var(--s1)', border: '1px solid var(--b1)', borderRadius: 14, padding: '20px 22px' }}>
           <h2 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 650, color: 'var(--t1)' }}>Top referral sources</h2>

@@ -300,7 +300,7 @@ function ContentDetailPanel({
         </div>
 
         <div style={{ padding: '16px 24px', borderTop: '1px solid #eef0f7', display: 'grid', gap: 8 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 8 }}>
             <button type="button" onClick={onEdit} style={{ height: 40, border: '1px solid #6c35ff', borderRadius: 9, background: '#f3ecff', color: 'var(--brand-text)', fontSize: 13, fontWeight: 650, cursor: 'pointer' }}>Edit Content</button>
             <button type="button" onClick={onDelete} style={{ height: 40, border: '1px solid #ff3b5f30', borderRadius: 9, background: 'var(--tint-rose)', color: 'var(--red-text)', fontSize: 13, fontWeight: 650, cursor: 'pointer' }}>Delete Content</button>
           </div>
@@ -585,13 +585,13 @@ export default function ContentClient({
               </select>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 130px 120px 130px', gap: 12, padding: '10px 20px', background: 'var(--s2)', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 130px 120px 130px', gap: 12, padding: '10px 20px', background: 'var(--s2)', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
               <span>Title</span><span>Type</span><span>Campaign</span><span>Updated</span>
             </div>
 
             {currentPage.map(c => (
               <div key={c.id}
-                style={{ display: 'grid', gridTemplateColumns: '1fr 130px 120px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
+                style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 130px 120px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
                 onClick={() => setSelected(c)}
                 onKeyDown={event => {
                   if (event.key === 'Enter' || event.key === ' ') {

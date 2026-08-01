@@ -1,6 +1,7 @@
 'use client';
 
 import type React from 'react';
+import { SUPPORTED_CURRENCIES } from '@shared/currencies';
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { KFIcon, StatusPill, Avatar } from '../../../../components/CharitMeApp';
@@ -1186,7 +1187,7 @@ function SettingsTab({
           )}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 16 }}>
           <div className="users-add-field">
             <label htmlFor="au-role">Role</label>
             <select id="au-role" className="users-add-select" value={role} onChange={(e) => setRole(e.target.value)}>
@@ -1203,7 +1204,7 @@ function SettingsTab({
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 16 }}>
           <div className="users-add-field">
             <label htmlFor="au-plan">Plan</label>
             <select id="au-plan" className="users-add-select" value={plan} onChange={(e) => setPlan(e.target.value)}>
@@ -1216,7 +1217,8 @@ function SettingsTab({
           <div className="users-add-field">
             <label htmlFor="au-currency">Currency</label>
             <select id="au-currency" className="users-add-select" value={currency} onChange={(e) => setCurrency(e.target.value)}>
-              {['USD', 'EUR', 'GBP', 'CAD', 'AUD'].map((c) => <option key={c}>{c}</option>)}
+              {/* Shared list — this was a local copy of five, while the API accepts 28. */}
+              {SUPPORTED_CURRENCIES.map((c) => <option key={c.code}>{c.code}</option>)}
             </select>
           </div>
         </div>

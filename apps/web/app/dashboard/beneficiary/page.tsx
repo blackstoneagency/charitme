@@ -42,7 +42,7 @@ export default async function BeneficiaryPage() {
         subtitle="Fundraisers where you are the named beneficiary."
       />
 
-      <div className="kf-content-grid" style={{ gridTemplateColumns: '1fr' }}>
+      <div className="kf-content-grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
         <MetricGrid metrics={metrics} />
 
         <section className="kf-card">

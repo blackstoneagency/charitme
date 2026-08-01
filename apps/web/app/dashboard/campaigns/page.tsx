@@ -5,6 +5,7 @@ import { supabaseAdmin } from '../../../lib/supabase';
 import { boundedQuery } from '../../../lib/query-timeout';
 import { attachCampaignCurrencies } from '../../../lib/home-data';
 import { formatMoneyCompact } from '@shared/currencies';
+import { campaignTimeLabel } from '../../../lib/campaign-lifecycle';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,13 +38,18 @@ function fmtCents(cents: number): string {
   return `$${dollars.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 }
 
-function daysLeft(deadline: string | null): string {
-  if (!deadline) return '—';
-  const diff = Math.ceil(
-    (new Date(deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
-  );
-  if (diff <= 0) return 'Ended';
-  return `${diff}d left`;
+/**
+ * Countdown in the fundraiser's campaign list. Takes `status` (already selected
+ * for this query) because reading the deadline alone let a completed campaign
+ * count down beside its own status badge. Shared with the public page via
+ * lib/campaign-lifecycle. Keeps the compact "3d left" form this table uses.
+ */
+function daysLeft(deadline: string | null, status: string | null): string {
+  if (!deadline && status === 'active') return '—';
+  const label = campaignTimeLabel({ status, deadline });
+  if (label === 'No deadline') return '—';
+  if (label === 'Ended') return 'Ended';
+  return label.replace(/^(\d+) days? left$/, '$1d left');
 }
 
 function categoryGradient(category: string | null): string {
@@ -181,7 +187,7 @@ export default async function MyCampaignsPage({
         }
       />
 
-      <div className="kf-content-grid" style={{ gridTemplateColumns: '1fr' }}>
+      <div className="kf-content-grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
         <div className="kf-content-main">
           {loadFailed && (
             <div
@@ -246,7 +252,7 @@ export default async function MyCampaignsPage({
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: '56px 1fr 120px 140px 80px 90px 110px',
+                gridTemplateColumns: '56px minmax(0, 1fr) 120px 140px 80px 90px 110px',
                 gap: 12,
                 padding: '8px 20px',
                 fontSize: 11,
@@ -284,7 +290,7 @@ export default async function MyCampaignsPage({
                       className="kf-row"
                       style={{
                         display: 'grid',
-                        gridTemplateColumns: '56px 1fr 120px 140px 80px 90px 110px',
+                        gridTemplateColumns: '56px minmax(0, 1fr) 120px 140px 80px 90px 110px',
                         gap: 12,
                         alignItems: 'center',
                       }}
@@ -368,11 +374,11 @@ export default async function MyCampaignsPage({
                         <span
                           style={{
                             fontSize: 12,
-                            color: daysLeft(c.deadline) === 'Ended' ? 'var(--t3)' : 'var(--t2)',
+                            color: daysLeft(c.deadline, c.status) === 'Ended' ? 'var(--t3)' : 'var(--t2)',
                             fontWeight: 600,
                           }}
                         >
-                          {daysLeft(c.deadline)}
+                          {daysLeft(c.deadline, c.status)}
                         </span>
                       </div>
 

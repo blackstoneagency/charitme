@@ -1,5 +1,17 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { PROCESSING_FEE_COPY, SUGGESTED_SUPPORT_COPY } from '../../lib/fee-copy';
+import { processingFee, donorTip, donationTotal } from '@shared/fees';
+import { formatCents } from '@shared/currencies';
+
+// The worked example is COMPUTED. Hardcoded, it said a $100 donation left the
+// campaign $94.00 with a $3.20 processing fee and an $8.00 tip — which does not
+// sum to $100 under any reading, and used a tip rate the product had already
+// moved off. A fee example that is wrong is worse than none: this page's whole
+// claim is that the breakdown is honest.
+const EXAMPLE_CENTS = 100_00;
+const EXAMPLE_FEE = processingFee(EXAMPLE_CENTS);
+const EXAMPLE_TIP = donorTip(EXAMPLE_CENTS);
 
 export const metadata: Metadata = {
   title: 'For Donors — Give with Confidence',
@@ -161,9 +173,10 @@ export default function ForDonorsPage() {
             </div>
             <div className="space-y-3">
               {[
-                { label: 'Campaign receives', value: '$94.00', color: 'text-emerald-700', note: '' },
-                { label: 'Stripe processing fee', value: '$3.20', color: 'text-slate-600', note: '2.9% + $0.30' },
-                { label: 'Optional CharitMe tip', value: '$8.00', color: 'text-slate-600', note: 'Default 8% — change to $0' },
+                { label: 'Campaign receives', value: formatCents(EXAMPLE_CENTS - EXAMPLE_FEE), color: 'text-emerald-700', note: 'or the full $100.00 if you cover the processing fee' },
+                { label: 'Stripe processing fee', value: formatCents(EXAMPLE_FEE), color: 'text-slate-600', note: PROCESSING_FEE_COPY },
+                { label: 'Optional CharitMe tip', value: formatCents(EXAMPLE_TIP), color: 'text-slate-600', note: `Suggested ${SUGGESTED_SUPPORT_COPY}, added on top — change to $0` },
+                { label: 'You pay', value: formatCents(donationTotal(EXAMPLE_CENTS, false)), color: 'text-slate-900', note: 'donation + optional tip' },
               ].map((row) => (
                 <div key={row.label} className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
                   <div>

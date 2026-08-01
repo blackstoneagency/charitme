@@ -172,7 +172,7 @@ export default async function TaxDocumentsPage({
                   <p style={{ margin: '4px 0 0', color: 'var(--t3)', fontSize: 13 }}>Your giving across every CharitMe campaign.</p>
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 18 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12, marginBottom: 18 }}>
                 <div>
                   <div style={{ fontSize: 12, color: 'var(--t3)' }}>Total given</div>
                   <strong style={{ display: 'block', marginTop: 5, fontSize: 22 }}>{formatCents(statement.totals.totalGiftCents, currency)}</strong>
@@ -200,7 +200,7 @@ export default async function TaxDocumentsPage({
                   <p style={{ margin: '4px 0 0', color: 'var(--t3)', fontSize: 13 }}>Gross funds raised across campaigns you own.</p>
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 18 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12, marginBottom: 18 }}>
                 <div>
                   <div style={{ fontSize: 12, color: 'var(--t3)' }}>Gross raised</div>
                   <strong style={{ display: 'block', marginTop: 5, fontSize: 22 }}>{formatCents(fundraiser.totals.grossCents, currency)}</strong>
