@@ -26,6 +26,7 @@ import { dirname, join } from 'node:path';
 // reports a clean sweep of nothing. `__tests__/audit-base-resolution.test.ts`
 // caught this exact hand-rolled parse.
 import { resolveBase } from './lib/audit-base.mjs';
+import { chromiumLaunchOptions } from './lib/audit-browser.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROUTES = JSON.parse(
@@ -35,9 +36,7 @@ const ROUTES = JSON.parse(
 const BASE = resolveBase(process.argv);
 const MAX_TABS = 90;
 
-const browser = await chromium.launch({
-  executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH || '/opt/pw-browsers/chromium',
-});
+const browser = await chromium.launch(chromiumLaunchOptions());
 
 const problems = [];
 let pagesSwept = 0;

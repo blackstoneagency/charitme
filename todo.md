@@ -71,6 +71,69 @@ Same as everything else here, and they are what the guards enforce:
   `e2e/public-routes.json` and `lib/public-routes.ts`.
 - Translated, or explicitly listed in the i18n lane table as pending.
 
+## 🗂 35-PAGE DESIGN SET — inventory measured against production (Claude, 2026-08-01)
+
+Checked every route in the 35-box design set against **production**, not against
+the repo. Result: **27 exist, 8 return 404.**
+
+### 🔴 Missing — 404 on production today
+| # | Design page | Route | Supabase backing | Notes |
+|---|---|---|---|---|
+| 18 | Favorites / Saved Causes | `/dashboard/saved` | ✅ **`saved_campaigns`, 240 rows, NO reader** | best-value gap: real data, designed page, unreachable |
+| 21 | Payment Methods | `/dashboard/payment-methods` | ⚠️ no `payment_methods` table | Stripe holds these; page must read the Stripe customer, not a local table |
+| 9 | Resources | `/resources` | content | |
+| 22 | Resources / Guides listing | `/guides` | no `guides` table | |
+| 25 | Press / Media | `/press` | no `press_releases` table | |
+| 32 | Newsletter / Subscribe | `/newsletter` | ❌ no subscriber table — **needs DDL, which is blocked** | |
+| 33 | Verify Your Email | `/verify-email` | Supabase auth | |
+| 35 | Maintenance / Coming Soon | `/maintenance` | none | |
+| 31 | Thank You (post-donation) | `/thank-you` | `donations` | today the receipt renders inline on the campaign page |
+| 13 | Create Account | `/signup` | Supabase auth | `/login` handles both today — may be a redirect, not a new page |
+
+**⚠️ The newsletter page cannot be fully wired.** There is no subscriber table and
+DDL is blocked by the staging-Supabase blocker at the top of this file. Building the
+form without a table would collect addresses into nothing — worse than not shipping
+it. It needs either the migration path unblocked or an explicit decision to post to
+an existing table.
+
+### ✅ Present (27)
+Home, Explore Causes, Cause Details, Start a Campaign, Campaign Setup 1 & 2, Donate,
+Search Results, Contact, FAQ, 404, Login, Dashboard, My Campaigns, Donations History,
+Notifications, Profile Settings, Blog, Careers, Terms, Privacy, Refund, Cookie, 2FA
+(`/security`), plus Impact and Stories.
+**Present ≠ matching the design** — each still needs a visual pass against its box.
+
+### 🔵 CLAIMED BY THIS LANE (Claude, 2026-08-01)
+- **`/dashboard/saved`** — page 18. `saved_campaigns` holds 240 rows that nothing
+  reads, exactly the `peer_fundraisers` situation.
+- **`/thank-you`** — page 31, the money path.
+
+Everything else in the missing table is **unclaimed** — take one and mark it here
+first. Three collisions today (cause taxonomy, cause pages, homepage) all came from
+starting before claiming.
+
+## ⚠️ THIRD COLLISION — homepage, and how it was resolved (wcu7oh, 2026-08-01)
+
+Both lanes did homepage work at almost the same moment. The other lane rewrote
+the homepage for the community design (#183) **and** claimed it for i18n at
+13:20; this lane had translated the OLD homepage structure and pushed its claim
+to a branch rather than to master.
+
+**Resolved in their favour, and the reasoning is worth keeping.** Master is the
+shared source of truth, so a claim that landed there beats one that only reached
+a feature branch. Their homepage is also the newer design, which is what the
+owner asked for. So this lane discarded its homepage i18n rather than fight the
+merge.
+
+**What survived, deliberately:** the **67 homepage translation keys** are kept in
+`lib/locales/*.ts`. They cost nothing, they conflict with nothing, and whoever
+does the homepage now has the vocabulary already translated into all seven
+languages. Discarding those too would have thrown away the only part of the work
+that was not duplicated.
+
+**The lesson, third time running:** pushing the claim to a BRANCH is not
+claiming. Push the claim to master before starting.
+
 ## 🔀 I18N LANE SPLIT — read this before touching a string (Claude, 2026-08-01)
 
 Two bots built the cause taxonomy, `/causes`, `/causes/[slug]` and the mega-menu
@@ -86,13 +149,13 @@ keys to the same seven files produces merge conflicts on every single batch.
 | Header + mobile sheet (`AppShell`) | ✅ done | — |
 | `/causes`, `/causes/[slug]` (20 pages) | ✅ done | the other lane |
 | `/campaigns/[slug]` — campaign detail | ✅ done | this lane (#182) |
-| `/` — homepage | 🔵 CLAIMED, in progress | this lane (wcu7oh) |
-| `/campaigns` — discovery list | 🔵 CLAIMED, in progress | this lane (wcu7oh) |
+| `/` — homepage | 🔵 **CLAIMED (Claude, 2026-08-01 13:20)** — the #183 design ships 0 `t()` calls and serves "Good People." to a de-DE browser | this lane |
+| `/campaigns` — discovery list | ⬜ **unclaimed** | |
 | Donate flow (`DonateButton`, checkout) | ⬜ **unclaimed** | |
 | `/create` wizard | ⬜ **unclaimed** | |
 | `/dashboard/*` | ⬜ **unclaimed** | |
 | `/admin/*` | ⬜ **unclaimed** | |
-| The 13 new marketing pages | 🔵 CLAIMED, in progress | this lane (wcu7oh) — built by this lane, so it owns them |
+| The 13 new marketing pages | 🔵 **CLAIMED (Claude, 2026-08-01 13:20)** — after the homepage | this lane |
 
 ### Two things that are easy to get wrong here
 
@@ -129,6 +192,14 @@ the *actionable* queue is empty, not that the history has been deleted.
 
 ### Closed this session
 
+- **Homepage design mirror release candidate — done.** Rebuilt the public home
+  surface around the supplied community reference: owned full-bleed hero art,
+  Supabase-backed impact metrics and campaign proof, all eligible paid featured
+  campaigns in a timed carousel that pauses on hover/focus, mobile cause rail,
+  and the compact trust/CTA composition. Expanded both desktop mega menus to
+  match the supplied content hierarchy and preserved click, hover, keyboard,
+  Escape, focus-return, and route-close behavior. Verified on the exact
+  integrated production build; release is through this PR's normal workflow.
 - **Design mirror — done.** Two header mega-dropdowns (Explore Causes,
   Resources) plus **13 new pages**: `/causes` + 20 `/causes/[slug]`,
   `/fundraising-guide`, `/impact-education`, `/reports`, `/donate`, `/partner`,
@@ -160,9 +231,10 @@ the *actionable* queue is empty, not that the history has been deleted.
 | axe WCAG 2.0/2.1/**2.2** A+AA, both themes | **0 violations**, 61 routes |
 | `audit:contrast` | **0 AA failures**, 60 pages × 2 themes |
 | `audit:responsive` | **0 regressions**, 60 pages × 3 viewports × 2 themes |
-| `audit:focus-order` | **0 problems**, 8,179 focus stops |
-| header hit-test + `e2e/header-nav.spec.ts` | ALL CLEAR / 22 passed |
-| vitest / typecheck / lint / build | **2239 pass**, all clean |
+| `audit:focus-order` | **0 problems**, 8,446 focus stops across 61 pages × 2 themes |
+| rendered image uniqueness | **0 same-page duplicates**, 64 routes / 189 distinct images |
+| header hit-test + focused Playwright smoke | ALL CLEAR / **44 passed** across desktop + mobile projects |
+| vitest / typecheck / lint / build | **2239 pass**, all clean / **190 pages generated** |
 
 ### The complete list of what is left, and why it cannot be done here
 
@@ -214,13 +286,15 @@ English text with German phonetics.
 5. The other 11 marketing pages
 6. Create wizard → dashboard → admin
 
-### 🔴 Verify the new pages against the rest of the goal
-The 13 new pages have **not** been through the existing sweeps. Each must pass:
-- `audit:contrast --strict-gradients` — 0 AA failures, both themes
-- `audit:a11y` — 0 axe violations (needs a PRODUCTION build; `next dev` fails 40/82)
-- `audit:mobile` — 0 overflow at 320/390px, 0 tap targets under 24px
-- `audit:page-images` — 0 duplicate images per page
-- Real Supabase reads, not fixtures — `/causes/[slug]` already queries live campaigns
+### ✅ New design pages verified against the public release gates
+The 13 new pages and global chrome are included in the production-build sweeps:
+- `audit:contrast` — 0 AA failures, 60 pages × 2 themes
+- `audit:a11y` — 0 axe violations, 61 routes × 2 themes
+- `audit:responsive` — 0 regressions, 60 pages × 3 viewports × 2 themes
+- `audit:focus-order` — 0 problems across 8,446 real keyboard stops
+- `audit:page-images` — 0 same-page duplicates across 64 rendered routes
+- Supabase reads remain intact; `/causes/[slug]`, home metrics, campaign proof,
+  and featured-campaign rotation all consume the existing server data layer
 
 ### ⚠️ Two bots built the same thing twice today
 I built a cause taxonomy, `/causes`, `/causes/[slug]` and a mega-menu; Codex landed

@@ -19,6 +19,7 @@ import { chromium } from 'playwright';
 import routes from '../e2e/public-routes.json' with { type: 'json' };
 import dataDependent from '../e2e/data-dependent-routes.json' with { type: 'json' };
 import { resolveBase } from './lib/audit-base.mjs';
+import { chromiumLaunchOptions } from './lib/audit-browser.mjs';
 
 const staticList = Array.isArray(routes) ? routes : (routes.routes ?? routes.public ?? []);
 const BASE = resolveBase(process.argv);
@@ -45,8 +46,6 @@ async function sampleCampaignRoutes(fetchPage) {
     return [];
   }
 }
-
-const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM_PATH || '/opt/pw-browsers/chromium';
 
 // Two URLs pointing at the same Unsplash photo at different widths ARE the same
 // image to a viewer. Comparing raw src would call them distinct and hide exactly
@@ -81,7 +80,7 @@ function imageIdentity(raw) {
   }
 }
 
-const b = await chromium.launch({ executablePath: EXECUTABLE, args: ['--no-sandbox'] });
+const b = await chromium.launch(chromiumLaunchOptions());
 const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } });
 const page = await ctx.newPage();
 
