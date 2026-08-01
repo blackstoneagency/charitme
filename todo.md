@@ -327,6 +327,57 @@ constants. **The sweep found three of the four wrong pages on its first run** �
 only `/terms` was found by reading. It also asserts it can fail, and strips
 comments so a doc comment quoting a rate is not a finding.
 
+## 📱 MOBILE-FIRST PASS — claimed by this lane (tbaz3i), 2026-08-01
+
+Owner: "the entire site looks terrible on mobile." Measuring before rewriting,
+because the instrument disagrees with the impression and both facts matter.
+
+### What the existing sweeps actually report
+
+`audit:responsive` over **62 public pages × 3 viewports × 2 themes** found
+**2 distinct defects**, both on the homepage. `audit-mobile.mjs` (overflow at
+320/390 + WCAG 2.5.8 tap targets) exists and is good.
+
+**So the public site is not broadly overflowing — but that is not the same as
+"the site is fine on a phone", and the sweeps are why:**
+
+1. **Both scripts cover PUBLIC routes only.** The signed-in half — 11 gated
+   routes, 68 console routes, 19 `[param]` templates — has never been measured
+   at a phone width by anything. That is where the wide fixed-column data tables
+   live (`'1fr 1fr 120px 120px 130px'` and friends, 74 hardcoded multi-column
+   grids in inline styles), so it is precisely the half a phone struggles with.
+2. Overflow and tap-size are not the whole of "terrible": cramped gutters,
+   desktop-shaped tables that technically fit, and 26 hardcoded `padding: 0 32px`
+   dashboard gutters are all invisible to both.
+
+### Fixed so far
+
+**The homepage hero, at 320px and at 768px — and the audit named the wrong
+element.** It reported `.mirror-hero-copy@570` in a 320px viewport. Probing
+min-content per node showed the copy's own min-content is **127px**: the real
+cause is `.home-spot-nav` at **536px**, the hero spotlight carousel's dot row.
+It renders **one dot per campaign with no cap**, each 24px — 20 campaigns is a
+480px row. Because `.mirror-hero-inner`'s mobile rule used a bare `1fr` (the
+desktop rule correctly uses `minmax(0, 1fr)`), that min-content dragged the whole
+column to 536px and the copy was stretched with it.
+
+Three fixes, at the level each belongs:
+- `.home-spot-dots` wraps and centres, so it is bounded at every width;
+- below 560px the dots are replaced by a `3 / 20` counter — two rows of dots on a
+  phone is decoration, not navigation — rendered always, switched purely by media
+  query so no JS branch can disagree with the CSS;
+- the mobile hero track becomes `minmax(0, 1fr)`, so a wide child can never again
+  stretch the text column.
+
+### In flight
+
+`audit-mobile.mjs` gains `--auth` and sweeps the gated routes from the same
+single source the e2e sweeps use, driven by `audit-signed-in.mjs --mobile`
+(`npm run audit:mobile:signed-in`) so the stub build and session minting are not
+duplicated. It refuses to run with `--auth` and no session cookie, and it now
+rejects a route that redirected rather than measuring the login page under
+eighty different names.
+
 ## 🔀 I18N LANE SPLIT — read this before touching a string (Claude, 2026-08-01)
 
 Two bots built the cause taxonomy, `/causes`, `/causes/[slug]` and the mega-menu

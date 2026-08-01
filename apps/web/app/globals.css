@@ -2737,7 +2737,11 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
   .mirror-wrap { width: min(100% - 28px, 680px); }
   .mirror-band { padding-block: 38px; }
   .mirror-hero, .mirror-hero-inner { min-height: 0; }
-  .mirror-hero-inner { grid-template-columns: 1fr; gap: 28px; padding-block: 54px 38px; }
+  /* minmax(0, …), not a bare 1fr. A grid item defaults to min-width:auto, so a
+     bare `1fr` track grows to its widest item's min-content and drags every
+     sibling with it — which is exactly how the hero copy came to be 536px wide
+     inside a 320px viewport. The desktop rule above already guards this. */
+  .mirror-hero-inner { grid-template-columns: minmax(0, 1fr); gap: 28px; padding-block: 54px 38px; }
   .mirror-hero-copy { max-width: 560px; }
   .mirror-hero h1 { font-size: clamp(42px, 14vw, 66px); }
   .mirror-hero-body { font-size: 15px; }
@@ -7311,12 +7315,27 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 [data-theme="dark"] .home-spot-verified { background: #3b82f6; }
 
 /* Featured-campaign carousel controls (rotating hero spotlight) */
-.home-spot-nav { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 16px 56px 0 10px; }
+.home-spot-nav { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 16px 56px 0 10px; flex-wrap: wrap; min-width: 0; }
 .home-spot-nav-btn { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; flex: none; border-radius: 50%; border: 1px solid var(--h-card-brd, rgba(15, 23, 42, .12)); background: var(--h-card, #fff); color: #7c3aed; cursor: pointer; box-shadow: 0 4px 12px rgba(2, 6, 23, .12); transition: filter .15s ease, transform .15s ease; }
 .home-spot-nav-btn:hover { filter: brightness(1.05); transform: translateY(-1px); }
 .home-spot-nav-btn .hi { width: 16px; height: 16px; }
 .home-spot-nav-prev { transform: rotate(180deg); }
-.home-spot-dots { display: flex; align-items: center; gap: 0; }
+/* One dot per campaign, and the rotator is not capped: 20 campaigns is a 480px
+   row, which is wider than any phone. Measured at 320px the nav's min-content
+   was 536px and it stretched the ENTIRE hero grid track to 536px — the audit
+   reported the hero copy as the overflowing element, but the copy was a
+   symptom. Wrapping keeps it bounded at every width; below 560px the dots are
+   replaced by a counter (see .home-spot-count) because two rows of dots on a
+   phone is not navigation, it is decoration. */
+.home-spot-dots { display: flex; align-items: center; justify-content: center; gap: 0; flex-wrap: wrap; min-width: 0; }
+/* The compact position indicator that stands in for the dots on phones. Always
+   rendered; which of the two is visible is purely a media query, so there is no
+   JS branch that can disagree with the CSS. */
+.home-spot-count { display: none; font-size: 13px; font-weight: 700; color: var(--t2); font-variant-numeric: tabular-nums; min-width: 54px; text-align: center; }
+@media (max-width: 560px) {
+  .home-spot-dots { display: none; }
+  .home-spot-count { display: inline-block; }
+}
 /* The visual dot stays 8px, but the button itself is padded out to a >=24px tap
    target (the bare dot was an 8x8 target on mobile). background-clip keeps the
    colour in the 8px content box; the gap is folded into the padding so adjacent

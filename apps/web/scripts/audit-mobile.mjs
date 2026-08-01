@@ -1,6 +1,13 @@
 // Mobile layout audit: no page may scroll horizontally on a phone.
 //
-//   node scripts/audit-mobile.mjs [baseUrl]
+//   node scripts/audit-mobile.mjs [baseUrl] [--auth] [--only /a,/b]
+//
+// `--auth` additionally sweeps the SIGNED-IN routes — /dashboard/*, /admin/* and
+// the gated pages outside them — using the stub session in STUB_SESSION_COOKIE,
+// exactly as audit-contrast.mjs does. Without it this audit covers the public
+// site only, which is roughly a third of the app's screens and not the third
+// where wide data tables live. Run it through `npm run audit:mobile:signed-in`,
+// which builds against the stub and mints the cookie.
 //
 // A page wider than the viewport is the single most visible mobile defect —
 // text runs off the edge and the whole layout slides sideways. PR #49 and PR
@@ -20,7 +27,43 @@ import routes from '../e2e/public-routes.json' with { type: 'json' };
 import dataDependent from '../e2e/data-dependent-routes.json' with { type: 'json' };
 import { resolveBase } from './lib/audit-base.mjs';
 
-const list = Array.isArray(routes) ? routes : (routes.routes ?? routes.public ?? []);
+const argv = process.argv;
+const WITH_AUTH = argv.includes('--auth');
+const onlyArg = argv.includes('--only') ? argv[argv.indexOf('--only') + 1] : null;
+const ONLY = onlyArg ? onlyArg.split(',').map((x) => x.trim()).filter(Boolean) : null;
+
+const publicList = Array.isArray(routes) ? routes : (routes.routes ?? routes.public ?? []);
+
+// The gated surface, from the same single source the e2e sweeps use. These are
+// only swept with a session: without one every route 307s to /login, and the
+// sweep would measure the login page under eighty different names and pass.
+const gatedList = (!Array.isArray(routes) && routes.authGated)
+  ? [
+    ...(routes.authGated.routes ?? []),
+    ...(routes.authGated.consoles ?? []),
+    ...(routes.authGated.dynamicSamples ?? []).map((sample) => sample.path),
+  ]
+  : [];
+
+const sessionCookie = process.env.STUB_SESSION_COOKIE
+  ? JSON.parse(process.env.STUB_SESSION_COOKIE)
+  : null;
+
+if (WITH_AUTH && !sessionCookie) {
+  console.error(
+    '✗ --auth was passed but STUB_SESSION_COOKIE is not set.\n' +
+    '  Every gated route would redirect to /login and be measured under the wrong\n' +
+    '  name. Run `npm run audit:mobile:signed-in` instead of this script directly.',
+  );
+  process.exit(2);
+}
+
+let list = WITH_AUTH ? [...publicList, ...gatedList] : publicList;
+if (ONLY) list = list.filter((r) => ONLY.includes(typeof r === 'string' ? r : r.path));
+if (list.length === 0) {
+  console.error('✗ no routes selected — refusing to report a clean run over nothing.');
+  process.exit(2);
+}
 
 const BASE = resolveBase(process.argv);
 const WIDTHS = [320, 390];
@@ -44,6 +87,9 @@ for (const width of WIDTHS) {
     isMobile: true,
     hasTouch: true,
   });
+  if (sessionCookie) {
+    await ctx.addCookies([{ name: sessionCookie.name, value: sessionCookie.value, url: BASE }]);
+  }
   const page = await ctx.newPage();
 
   for (const r of list) {
@@ -72,6 +118,18 @@ for (const width of WIDTHS) {
       if (status >= 400) {
         errors.push(`${width}px ${path} (HTTP ${status})`);
         console.log(`! ${width}px ${path} — HTTP ${status}; route did not render, nothing to measure`);
+        continue;
+      }
+
+      // Measure the page we asked for, never the one we were sent to. A gated
+      // route that 307s to /login otherwise gets measured AS that route and
+      // passes — which is how a sweep of eighty consoles becomes eighty clean
+      // readings of the login page.
+      const landed = new URL(page.url()).pathname.replace(/\/$/, '') || '/';
+      const asked = path.replace(/\/$/, '') || '/';
+      if (landed !== asked) {
+        errors.push(`${width}px ${path} (redirected to ${landed})`);
+        console.log(`! ${width}px ${path} — REDIRECTED to ${landed}; not measured`);
         continue;
       }
 
@@ -201,7 +259,7 @@ for (const width of WIDTHS) {
     }
   }
   await ctx.close();
-  console.log(`· ${width}px: swept ${list.length} routes`);
+  console.log(`· ${width}px: swept ${list.length} routes${WITH_AUTH ? ' (public + signed-in)' : ' (public only)'}`);
 }
 await b.close();
 
@@ -221,5 +279,5 @@ if (tapTotal) {
 }
 if (failures.length || tapTotal) process.exit(1);
 
-console.log(`\n✅ No horizontal overflow across ${analyzed} page loads (${list.length} routes × ${WIDTHS.length} widths)`);
+console.log(`\n✅ No horizontal overflow across ${analyzed} page loads (${list.length} routes × ${WIDTHS.length} widths${WITH_AUTH ? ', public + signed-in' : ', public only'})`);
 console.log(`✅ No tap targets under ${MIN_TARGET}px at ${WIDTHS[0]}px (WCAG 2.2 SC 2.5.8)`);

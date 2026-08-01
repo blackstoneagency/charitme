@@ -237,6 +237,10 @@ export default function HeroSpotlightCarousel({
               />
             ))}
           </div>
+          {/* Stands in for the dot row on phones — see .home-spot-count. The
+              tablist above already announces position to assistive tech, so
+              this is decorative and must not be read twice. */}
+          <span className="home-spot-count" aria-hidden="true">{active + 1} / {count}</span>
           <button type="button" className="home-spot-nav-btn" onClick={advance} aria-label="Next campaign">
             <Ic name="arrow" />
           </button>
