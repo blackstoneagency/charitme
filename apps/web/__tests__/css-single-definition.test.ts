@@ -31,13 +31,38 @@ describe('the primary CTA has one definition', () => {
   it('routes every site-wide CTA class through the token', () => {
     // These are the classes that render the primary action on public pages,
     // the dashboard, and the header. They must not carry their own gradient.
+    //
+    // ⚠️ The first version of this check was INERT and passed against a
+    // stylesheet that violated it. It built the pattern as
+    // `` `\\${cls.replace('.', '\\.')}...` `` — where `\\` is an escaped
+    // backslash, so the regex source began `\\.kf-primary`: a literal backslash
+    // followed by any character, which no CSS contains. It reported success on
+    // a `.kf-primary` rule that was carrying its own violet gradient at the
+    // time. `replace('.', ...)` also escaped only the FIRST dot, so
+    // `.pub-btn.primary` would have matched `pub-btnXprimary` had it run at all.
+    // Escape with a function, and mutation-test any guard whose whole job is to
+    // fail — a green assertion that cannot go red is worse than no assertion,
+    // because it is counted as coverage.
+    const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     for (const cls of ['.kind-start', '.kf-primary', '.pub-btn.primary', '.mirror-btn-primary']) {
-      const rule = new RegExp(
-        `\\${cls.replace('.', '\\.')}\\s*\\{[^}]*background:\\s*linear-gradient`,
-      );
+      const rule = new RegExp(`${esc(cls)}\\s*\\{[^}]*background:\\s*linear-gradient`);
       expect(CODE, `${cls} declares its own gradient instead of using var(--grad-brand)`)
         .not.toMatch(rule);
     }
+  });
+
+  it('the CTA-class guard actually fails when a class carries its own gradient', () => {
+    // Mutation test for the check above — the one thing that would have caught
+    // the inert version. A planted violation must be detected.
+    const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const planted = `${CODE}\n.kf-primary { border: 0; background: linear-gradient(135deg, #6c35ff, #551cf2); }`;
+    expect(planted).toMatch(
+      new RegExp(`${esc('.kf-primary')}\\s*\\{[^}]*background:\\s*linear-gradient`),
+    );
+    // …and the multi-class selector must be matched as a literal, not a wildcard.
+    expect('.pub-btnXprimary { background: linear-gradient(135deg, #6c35ff, #551cf2); }').not.toMatch(
+      new RegExp(`${esc('.pub-btn.primary')}\\s*\\{[^}]*background:\\s*linear-gradient`),
+    );
   });
 
   it('has no NEW violet→magenta CTA gradient outside the token', () => {
@@ -56,17 +81,25 @@ describe('the primary CTA has one definition', () => {
       return violet(a) && violet(b);
     });
 
-    // MEASURED at 28, not guessed — a first pass assumed ~14 and the real count
-    // was double that. This is a RATCHET, not an endorsement: 28 near-identical
-    // violet ramps in one stylesheet is still too many, and most are decorative
-    // surfaces (avatars, assistant icon tiles, hero washes) rather than buttons.
-    // The point is that the number can only go DOWN. Consolidating the
-    // decorative ones onto a token is real remaining work, tracked in todo.md.
+    // 28 → 5. Twenty-two rules were routed onto one of two tokens: primary
+    // actions onto `--grad-brand`, non-primary violet surfaces (avatars, step
+    // numerals, label chips, secondary buttons) onto `--grad-violet`.
+    //
+    // The five that remain are each deliberate, not drift:
+    //   1. the `--grad-violet` token definition itself;
+    //   2. `.assistant-icon.grad-2` and 3. `.kf-create-cta-ai` — both pink-ended
+    //      and paired with a violet sibling they must stay distinguishable from;
+    //   4/5. the two halves of `.contact-mug`, a decorative illustration whose
+    //      two sides are supposed to differ.
+    //
+    // A ratchet, not a target: the number may go DOWN. Raising it means someone
+    // hand-wrote a twenty-third violet ramp instead of using a token.
     expect(
       ctaLike.length,
       `violet→violet gradients found: ${ctaLike.length}\n${ctaLike.map((m) => m[0]).join('\n')}\n` +
-        'If this is a primary CTA, use var(--grad-brand). Never raise this ceiling — lower it.',
-    ).toBeLessThanOrEqual(28);
+        'Primary action? use var(--grad-brand). Any other violet surface? ' +
+        'var(--grad-violet). Never raise this ceiling — lower it.',
+    ).toBeLessThanOrEqual(5);
   });
 });
 

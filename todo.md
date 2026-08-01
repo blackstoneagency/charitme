@@ -36,14 +36,36 @@ Both looked like defects and were verified before "fixing" them:
 
 ### Remaining design work (real, measured)
 
-- **28 near-identical violet ramps** still exist in `globals.css` — mostly
-  decorative (avatars, icon tiles, hero washes), not buttons.
-  `__tests__/css-single-definition.test.ts` ratchets this: the number may only go
-  down. Consolidating the decorative ones onto tokens is the next pass.
-- **12 genuine CSS conflicts** where a class is redefined at top level with
-  different values, so the earlier rule is dead code that still reads as
-  authoritative (`.kf-primary` and `.kf-outline` each declared twice, hundreds of
-  lines apart). Pinned by the same test at ≤25 duplicated classes.
+- ~~**28 near-identical violet ramps**~~ → **DONE, 28 → 5.** Twenty-two rules now
+  route through one of two tokens: `--grad-brand` for primary actions,
+  `--grad-violet` for every other violet surface (avatars, step numerals, label
+  chips, secondary buttons). The five left are deliberate and documented in
+  `__tests__/css-single-definition.test.ts`: the token definition itself, two
+  pink-ended ramps that must stay distinguishable from a violet sibling, and the
+  two halves of the decorative `.contact-mug`.
+  - **A real contrast failure fell out of it.** `#b43bef` measures **4.36:1**
+    against the white initials sitting on it (`.dash-account-avatar`,
+    `.growth-brand > span`) — under the 4.5:1 floor, on live signed-in surfaces.
+    **axe cannot see this**: it samples a computed background *colour*, and a
+    gradient has none, so `audit:contrast` reports a clean page regardless of
+    what the ramp does. Gradient stops have to be measured by hand. Both new
+    tokens clear AA at every stop (5.85 / 5.20 / 7.1 / 6.32 / 5.02).
+  - Still uncovered by tooling: **no audit checks text on a gradient.** A
+    stop-sampling contrast check is worth building and is not yet written.
+- ~~**12 genuine CSS conflicts**~~ → **partly done.** The dead `.kf-outline`
+  duplicate is deleted and `.kf-primary`'s dead `border`/`color`/`background` are
+  gone (only its live `box-shadow` remains). The duplicated-class ceiling stays
+  at **25** because most entries are a shared selector list followed by a
+  per-class rule — normal CSS, not a conflict. The test's premise is cruder than
+  the problem; tightening it to flag only genuinely-conflicting redeclarations is
+  open work.
+- **The CTA guard in that test was INERT and has been fixed.** It built its regex
+  as `` `\\${cls.replace('.', '\\.')}` ``, so the pattern began with a literal
+  backslash and matched nothing — it passed while `.kf-primary` was carrying its
+  own violet gradient. It now escapes properly and has a mutation test that
+  plants a violation and requires detection. Worth generalising: **any guard
+  whose only job is to fail needs a test that makes it fail**, or it is counted
+  as coverage while measuring nothing.
 - **Four design families still coexist**: the homepage's `mirror-*`, `PageShell`
   (26 pages), legacy `kind-`/`pub-` (21 pages), and bespoke (31). They share the
   dark palette and chrome so the site reads as coherent, but the type scale and
