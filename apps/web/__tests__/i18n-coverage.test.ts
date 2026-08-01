@@ -68,6 +68,10 @@ describe('translation coverage', () => {
       // English 'Home' for a site's landing page. German/Spanish/Portuguese do not,
       // and are still held to the rule.
       'nav.group.causes', 'nav.home',
+      // Product NAMES are identical in every language on purpose — translating
+      // "CharitMe AI Builder" would rename the product per market. This is the
+      // correct use of a bare key: it really is the same string everywhere.
+      'home.ai.builder.t',
       // Per-LANGUAGE exemptions, written `lang:key`. A bare key exempts a string
       // in every language at once, which is too blunt: 'Impact' really is the
       // French and Dutch word, but German says 'Wirkung' and Spanish 'Impacto',
