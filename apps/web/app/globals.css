@@ -2673,6 +2673,52 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 .mirror-btn:hover { transform: translateY(-2px); }
 .mirror-btn-primary { color: #fff; background: var(--grad-brand); }
 .mirror-btn-secondary { color: #fff; background: rgba(3, 8, 18, .72); border-color: rgba(255, 255, 255, .38); }
+/* Hero aside — the small card at the hero's right, where the campaign rotator
+   used to be. Deliberately light: it sits over a photograph, so it states one
+   idea and links onward rather than competing with the headline.
+   Colours are hardcoded light-on-dark rather than tokenised because this card
+   ALWAYS sits on the hero photograph, which is dark in both themes — a
+   theme-reactive `--t1` here would go dark-on-dark in light mode. Same reason
+   `.mirror-impact-copy` hardcodes its text, and the same trap that produced a
+   1:1 heading on this page once before. */
+.mirror-hero-aside {
+  align-self: center;
+  justify-self: end;
+  max-width: 340px;
+  padding: 22px 24px;
+  border: 1px solid rgba(255, 255, 255, .16);
+  border-radius: 16px;
+  background: rgba(9, 14, 30, .72);
+  backdrop-filter: blur(10px);
+}
+.mirror-hero-aside-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+  color: #fff;
+  font-size: 19px;
+  font-weight: 850;
+  line-height: 1.22;
+  letter-spacing: -.01em;
+}
+.mirror-hero-aside-title svg { flex: none; margin-top: 2px; color: var(--pink-btn, #ec39c3); }
+.mirror-hero-aside-body { margin: 12px 0 0; color: #d8dcf0; font-size: 14px; line-height: 1.6; }
+.mirror-hero-aside-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 14px;
+  /* 24px min-height keeps this above the WCAG 2.5.8 target-size floor that
+     `audit:contrast`'s axe pass checks — a bare inline link here would fail. */
+  min-height: 24px;
+  color: #ffb4e6;
+  font-size: 14px;
+  font-weight: 750;
+  text-decoration: none;
+}
+.mirror-hero-aside-link:hover { text-decoration: underline; }
+
 .mirror-quick-links { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 14px; }
 .mirror-quick-links a {
   min-height: 44px;
@@ -2785,7 +2831,23 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
    Left as a two-track grid it kept a 320px minimum column reserved for a child
    that no longer exists, so the remaining copy rendered in ~58% of the band with
    a wide empty gutter beside it. */
-.mirror-proof-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 48px; align-items: stretch; }
+/* Two columns: the featured-campaign rotator on the LEFT, testimonials and the
+   "Make an Impact Today" CTA on the right. `minmax(0, …)` on both tracks is not
+   decoration — a grid track defaults to `min-width: auto`, so a wide child (the
+   rotator's campaign title, a long testimonial) pushes the track past its share
+   and the whole row overflows the viewport. That is the single most common cause
+   of horizontal scroll on this site and `audit:responsive` checks for it. */
+.mirror-proof-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 32px; align-items: start; }
+/* Mobile-first: one column by default, two only where two genuinely fit.
+   The side-by-side form needs 420px for the rotator + 48px gap + a readable
+   testimonial column, so it starts at 1000px. Putting the two-column rule in the
+   BASE and collapsing it at 760px (the pattern already in this file) would have
+   left 761–999px rendering a 420px card beside a ~250px column — technically
+   two columns, practically unreadable, and invisible to a 320/768/1920 audit
+   because 768 collapses and 1920 is fine. */
+@media (min-width: 1000px) {
+  .mirror-proof-grid { grid-template-columns: minmax(0, 420px) minmax(0, 1fr); gap: 48px; }
+}
 .mirror-impact-card { min-width: 0; overflow: hidden; border: 1px solid #263646; border-radius: 7px; background: #090f20; }
 .mirror-impact-card > a { display: block; height: 100%; color: inherit; }
 .mirror-impact-media { position: relative; aspect-ratio: 16 / 9; overflow: hidden; background: var(--mh-panel-2); }

@@ -173,16 +173,25 @@ export default async function HomePage() {
               <Link href="#causes">Explore Causes <Icon name="arrow" /></Link>
             </div>
           </div>
-          {/* The `card` variant, not `mirror`.
-              Both are the same live rotator over the same eligible campaigns —
-              `mirror` renders a minimal text card (label, title, one line, a
-              link), while `card` renders the approved design: the campaign
-              photo with Trust Score / Donors / Funded chips, the ACTIVE or
-              VERIFIED badge, organiser, raised-of-goal with a progress bar,
-              donation count, days left, a Donate Now button, and dot pagination.
-              Nothing new was built here — the richer variant already existed and
-              the homepage was simply asking for the plain one. */}
-          <HeroSpotlightCarousel items={heroItems} variant="card" />
+          {/* The featured-campaign rotator used to sit HERE, in the hero's right
+              column. It now renders lower down, in the left column of the impact
+              section — see `.mirror-proof-grid` below.
+
+              Moving it out is what lets the hero photograph read as the hero:
+              `.mirror-hero-bg` is a full-bleed `object-fit: cover` image, and a
+              340px card parked over its right third was covering the part of the
+              picture with people in it. */}
+          <div className="mirror-hero-aside">
+            <p className="mirror-hero-aside-title">
+              <Icon name="heart" /> Real People.<br />Real Impact.
+            </p>
+            <p className="mirror-hero-aside-body">
+              Every act of kindness creates a story worth sharing.
+            </p>
+            <Link href="/success-stories" className="mirror-hero-aside-link">
+              View Stories <Icon name="arrow" />
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -228,6 +237,14 @@ export default async function HomePage() {
 
       <section id="impact" className="mirror-band mirror-proof" aria-labelledby="mirror-proof-title">
         <div className="mirror-wrap mirror-proof-grid">
+          {/* The featured-campaign rotator, moved down from the hero. It reads
+              better here: the impact section is where someone who has just seen
+              the platform totals is deciding what to actually fund, so a live
+              campaign with its progress bar and Donate button is the next step
+              rather than an interruption over the hero photograph.
+              First in the DOM so it is also first for a keyboard and a screen
+              reader, matching its visual position in the left column. */}
+          <HeroSpotlightCarousel items={heroItems} variant="card" />
           <div className="mirror-proof-copy">
             <div className="mirror-testimonials">
               {recentDonations.length > 0
