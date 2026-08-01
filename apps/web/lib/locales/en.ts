@@ -11,6 +11,34 @@
 import type { Dictionary } from '../i18n';
 
 export const en: Dictionary = {
+  // ── Campaign detail page (i18n string migration, traffic order #1) ────────
+  // The hottest public page. These keys existed as vocabulary for some strings
+  // already; these are the ones that did not.
+  'campaign.score': 'CharitMe Score',
+  'campaign.story': 'Story',
+  'campaign.impact': 'Impact',
+  'campaign.verified': 'Verified',
+  'campaign.tax_deductible': 'Tax Deductible',
+  'campaign.message': 'Message',
+  'campaign.monthly_boost': 'Boost your impact by giving monthly 🌱',
+  'campaign.created_with_ai': 'Campaign created with AI',
+  'campaign.impact_tracker': 'Impact Tracker',
+  'campaign.generosity': 'Your generosity is making a difference',
+  'campaign.momentum': 'Momentum',
+  'campaign.raising_per_day': 'Raising per day',
+  'campaign.on_pace': 'On pace to hit goal in',
+  'campaign.secure': 'Secure donations',
+  'campaign.no_platform_fee': 'No mandatory platform fee',
+  'campaign.optional_tips': 'Optional tips keep CharitMe running.',
+  'campaign.trust_tools': 'Trust and safety tools protect every campaign.',
+  'campaign.ssl': 'SSL encrypted checkout through Stripe.',
+  'campaign.faq': 'Frequently Asked Questions',
+  'campaign.co_organizers': 'Co-organizers',
+  'campaign.video': 'Campaign video',
+  'campaign.breadcrumb': 'Breadcrumb',
+  'campaign.ai_story': 'AI story assistant',
+  'campaign.ai_growth': 'AI growth strategy',
+  'campaign.ai_outreach': 'AI outreach plan',
   // ── Global navigation ──────────────────────────────────────────────────────
   'nav.discover': 'Discover',
   'nav.start_campaign': 'Start a campaign',
@@ -104,7 +132,6 @@ export const en: Dictionary = {
   'campaign.team_together': '{amount} together',
   'campaign.goal_reached': 'Goal reached',
   'campaign.milestones': 'Milestones & stretch goals',
-  'campaign.faq': 'Frequently asked questions',
   'campaign.rewards': 'Rewards',
 
   // ── Donation flow ──────────────────────────────────────────────────────────

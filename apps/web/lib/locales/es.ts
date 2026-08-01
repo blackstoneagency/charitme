@@ -4,6 +4,34 @@
 import type { Dictionary } from '../i18n';
 
 export const es: Dictionary = {
+  // ── Campaign detail page (i18n string migration, traffic order #1) ────────
+  // The hottest public page. These keys existed as vocabulary for some strings
+  // already; these are the ones that did not.
+  'campaign.score': 'Puntuación CharitMe',
+  'campaign.story': 'Historia',
+  'campaign.impact': 'Impacto',
+  'campaign.verified': 'Verificado',
+  'campaign.tax_deductible': 'Desgravable',
+  'campaign.message': 'Mensaje',
+  'campaign.monthly_boost': 'Multiplica tu impacto donando cada mes 🌱',
+  'campaign.created_with_ai': 'Campaña creada con IA',
+  'campaign.impact_tracker': 'Seguimiento de impacto',
+  'campaign.generosity': 'Tu generosidad marca la diferencia',
+  'campaign.momentum': 'Impulso',
+  'campaign.raising_per_day': 'Recaudación por día',
+  'campaign.on_pace': 'Alcanzará la meta en',
+  'campaign.secure': 'Donaciones seguras',
+  'campaign.no_platform_fee': 'Sin comisión obligatoria de plataforma',
+  'campaign.optional_tips': 'Las propinas opcionales mantienen CharitMe en marcha.',
+  'campaign.trust_tools': 'Las herramientas de confianza y seguridad protegen cada campaña.',
+  'campaign.ssl': 'Pago cifrado con SSL a través de Stripe.',
+  'campaign.faq': 'Preguntas frecuentes',
+  'campaign.co_organizers': 'Coorganizadores',
+  'campaign.video': 'Vídeo de la campaña',
+  'campaign.breadcrumb': 'Ruta de navegación',
+  'campaign.ai_story': 'Asistente de historia con IA',
+  'campaign.ai_growth': 'Estrategia de crecimiento con IA',
+  'campaign.ai_outreach': 'Plan de difusión con IA',
   // ── Header mega-menu (design-mirror build) ────────────────────────────────
   // Added with the Explore Causes / Resources dropdowns. The coverage test
   // requires 100% — English fallback is not accepted here, deliberately, so a
@@ -132,7 +160,6 @@ export const es: Dictionary = {
   'campaign.team_together': '{amount} entre todas',
   'campaign.goal_reached': 'Meta alcanzada',
   'campaign.milestones': 'Hitos y metas adicionales',
-  'campaign.faq': 'Preguntas frecuentes',
   'campaign.rewards': 'Recompensas',
 
   'donate.amount': 'Importe',

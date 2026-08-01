@@ -2,6 +2,34 @@
 import type { Dictionary } from '../i18n';
 
 export const nl: Dictionary = {
+  // ── Campaign detail page (i18n string migration, traffic order #1) ────────
+  // The hottest public page. These keys existed as vocabulary for some strings
+  // already; these are the ones that did not.
+  'campaign.score': 'CharitMe-score',
+  'campaign.story': 'Verhaal',
+  'campaign.impact': 'Impact',
+  'campaign.verified': 'Geverifieerd',
+  'campaign.tax_deductible': 'Fiscaal aftrekbaar',
+  'campaign.message': 'Bericht',
+  'campaign.monthly_boost': 'Vergroot je impact met een maandelijkse gift 🌱',
+  'campaign.created_with_ai': 'Campagne gemaakt met AI',
+  'campaign.impact_tracker': 'Impactoverzicht',
+  'campaign.generosity': 'Jouw vrijgevigheid maakt het verschil',
+  'campaign.momentum': 'Momentum',
+  'campaign.raising_per_day': 'Opbrengst per dag',
+  'campaign.on_pace': 'Doel bereikt over',
+  'campaign.secure': 'Veilige donaties',
+  'campaign.no_platform_fee': 'Geen verplichte platformkosten',
+  'campaign.optional_tips': 'Optionele fooien houden CharitMe draaiend.',
+  'campaign.trust_tools': 'Vertrouwens- en veiligheidstools beschermen elke campagne.',
+  'campaign.ssl': 'SSL-versleutelde betaling via Stripe.',
+  'campaign.faq': 'Veelgestelde vragen',
+  'campaign.co_organizers': 'Mede-organisatoren',
+  'campaign.video': 'Campagnevideo',
+  'campaign.breadcrumb': 'Kruimelpad',
+  'campaign.ai_story': 'AI-verhaalassistent',
+  'campaign.ai_growth': 'AI-groeistrategie',
+  'campaign.ai_outreach': 'AI-outreachplan',
   // ── Header mega-menu (design-mirror build) ────────────────────────────────
   // Added with the Explore Causes / Resources dropdowns. The coverage test
   // requires 100% — English fallback is not accepted here, deliberately, so a
@@ -130,7 +158,6 @@ export const nl: Dictionary = {
   'campaign.team_together': 'samen {amount}',
   'campaign.goal_reached': 'Doel bereikt',
   'campaign.milestones': 'Mijlpalen en extra doelen',
-  'campaign.faq': 'Veelgestelde vragen',
   'campaign.rewards': 'Beloningen',
 
   'donate.amount': 'Bedrag',

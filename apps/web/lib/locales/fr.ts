@@ -3,6 +3,34 @@
 import type { Dictionary } from '../i18n';
 
 export const fr: Dictionary = {
+  // ── Campaign detail page (i18n string migration, traffic order #1) ────────
+  // The hottest public page. These keys existed as vocabulary for some strings
+  // already; these are the ones that did not.
+  'campaign.score': 'Score CharitMe',
+  'campaign.story': 'Histoire',
+  'campaign.impact': 'Impact',
+  'campaign.verified': 'Vérifié',
+  'campaign.tax_deductible': 'Déductible des impôts',
+  'campaign.message': 'Message',
+  'campaign.monthly_boost': 'Amplifiez votre impact en donnant chaque mois 🌱',
+  'campaign.created_with_ai': 'Campagne créée avec l\'IA',
+  'campaign.impact_tracker': 'Suivi de l\'impact',
+  'campaign.generosity': 'Votre générosité fait la différence',
+  'campaign.momentum': 'Dynamique',
+  'campaign.raising_per_day': 'Collecte par jour',
+  'campaign.on_pace': 'Objectif atteint dans',
+  'campaign.secure': 'Dons sécurisés',
+  'campaign.no_platform_fee': 'Aucuns frais de plateforme obligatoires',
+  'campaign.optional_tips': 'Les pourboires facultatifs font vivre CharitMe.',
+  'campaign.trust_tools': 'Des outils de confiance et de sécurité protègent chaque campagne.',
+  'campaign.ssl': 'Paiement chiffré SSL via Stripe.',
+  'campaign.faq': 'Questions fréquentes',
+  'campaign.co_organizers': 'Co-organisateurs',
+  'campaign.video': 'Vidéo de la campagne',
+  'campaign.breadcrumb': 'Fil d\'Ariane',
+  'campaign.ai_story': 'Assistant de rédaction IA',
+  'campaign.ai_growth': 'Stratégie de croissance IA',
+  'campaign.ai_outreach': 'Plan de communication IA',
   // ── Header mega-menu (design-mirror build) ────────────────────────────────
   // Added with the Explore Causes / Resources dropdowns. The coverage test
   // requires 100% — English fallback is not accepted here, deliberately, so a
@@ -131,7 +159,6 @@ export const fr: Dictionary = {
   'campaign.team_together': '{amount} au total',
   'campaign.goal_reached': 'Objectif atteint',
   'campaign.milestones': 'Étapes et objectifs supplémentaires',
-  'campaign.faq': 'Questions fréquentes',
   'campaign.rewards': 'Contreparties',
 
   'donate.amount': 'Montant',
