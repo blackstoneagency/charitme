@@ -2,6 +2,13 @@
 import type { Dictionary } from '../i18n';
 
 export const de: Dictionary = {
+  'footer.link.resources': 'Ressourcen',
+  'footer.link.create_team': 'Team gründen',
+  'footer.link.mobile_app': 'CharitMe mobil',
+  'footer.link.impact_map': 'Wirkungskarte',
+  'footer.link.glossary': 'Glossar',
+  'footer.link.internships': 'Praktika',
+  'footer.link.feedback': 'Feedback senden',
   // ── Homepage data cards (i18n string migration) ──────────────────────────
   'home.feature.start.t': 'Spendenaktion starten',
   'home.feature.start.b': 'Starte in Minuten eine vertrauenswürdige Kampagne — die KI schreibt Geschichte, Ziel und Plan.',

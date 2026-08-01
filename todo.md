@@ -1,5 +1,22 @@
 # CharitMe — Execution Tracker
 
+## ✅ CI IS ALIVE AGAIN — red checks are real now (2026-08-01)
+
+The GitHub Actions outage is OVER. Verified on run `30704209059`:
+`runner_id: 1000001483`, a real runner name, all steps present, 3m09s. The
+outage signature was `runner_id: 0`, empty `runner_name`, created and failed in
+the same second, no steps.
+
+**Every note in this file saying "a red check is not a signal" is superseded.**
+Blocker #1 in the READ FIRST box is cleared.
+
+It immediately earned its keep: it caught five pages that were in the sitemap and
+linked from neither the header nor the footer — a real "wire all navigation"
+failure that the local suite missed because master had gained the guard and this
+branch had not merged it yet. **A local pass with fewer tests than CI is not
+flakiness; merge master before assuming CI is wrong.**
+
+
 ## 🛑 READ FIRST — what is blocked, and by whom (updated 2026-07-29)
 
 Everything below this box is engineering detail. These are the remaining
@@ -36,20 +53,20 @@ volunteer (44/45), events (48), matching (55), accessibility (68), safety (69 �
 |---|---|---|---|
 | 1 | `/search` — global + advanced search/filters | 36, 37 | 🔵 **CLAIMED wcu7oh** |
 | 2 | `/teams` — team hub | 49 | 🔵 **CLAIMED wcu7oh** |
-| 3 | `/teams/create` — 5-step wizard | 50–53 | 🔵 **CLAIMED wcu7oh** |
-| 4 | `/impact-map` — global impact map | 59 | 🔵 **CLAIMED wcu7oh** |
+| 3 | `/teams/create` — 5-step wizard | 50–53 | ✅ **BUILT wcu7oh** |
+| 4 | `/impact-map` — global impact map | 59 | ✅ **BUILT wcu7oh** |
 | 5 | `/donor-wall` — hall of thanks / recognition | 62, 81 | 🔵 **CLAIMED wcu7oh** |
-| 6 | `/glossary` | 73 | ⬜ unclaimed |
+| 6 | `/glossary` | 73 | ✅ **BUILT wcu7oh** |
 | 7 | `/press` — press releases + detail | 77 | ⬜ unclaimed |
 | 8 | `/brand-assets` — media kit | 78 | ⬜ unclaimed |
-| 9 | `/mobile-app` | 67 | ⬜ unclaimed |
+| 9 | `/mobile-app` | 67 | ✅ **BUILT wcu7oh** |
 | 10 | `/webinars` + detail | 76 | ⬜ unclaimed |
-| 11 | `/resources` — guide index + detail | 75 | ⬜ unclaimed |
+| 11 | `/resources` — guide index + detail | 75 | ✅ **BUILT wcu7oh** |
 | 12 | `/community` — social feed | 82 | ⬜ unclaimed |
 | 13 | `/support/chat` — live support | 71 | ⬜ unclaimed |
-| 14 | `/internships` | 46 | ⬜ unclaimed |
-| 15 | `/feedback` | 47 | ⬜ unclaimed |
-| 16 | `/certificate` — donor certificate | 64 | ⬜ unclaimed |
+| 14 | `/internships` | 46 | ✅ **BUILT wcu7oh** |
+| 15 | `/feedback` | 47 | ✅ **BUILT wcu7oh** |
+| 16 | `/certificate` — donor certificate | 64 | 🔵 **CLAIMED wcu7oh 14:10** |
 
 ### Enhancements to EXISTING pages the sheets ask for
 

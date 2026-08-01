@@ -90,7 +90,11 @@ async function collect(): Promise<Subsystem[]> {
 
 const TONE: Record<SubsystemState, { dot: string; text: string; label: string }> = {
   operational: { dot: 'var(--green)', text: 'var(--green-dark)', label: 'Operational' },
-  degraded: { dot: '#f59e0b', text: '#b45309', label: 'Degraded' },
+  // `var(--orange-text)`, not a fixed #b45309: the other two tones already use
+  // adaptive tokens, and the hardcoded amber measured 3.56:1 on the dark
+  // surface — an AA failure on the one word that tells an operator something
+  // is wrong. The token is #a05712 light / #fbbf24 dark.
+  degraded: { dot: '#f59e0b', text: 'var(--orange-text)', label: 'Degraded' },
   down: { dot: 'var(--red)', text: 'var(--red-text)', label: 'Down' },
 };
 

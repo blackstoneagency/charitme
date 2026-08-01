@@ -200,32 +200,26 @@ Phase 1 of the AI Context Manager: an agent roster plus one-click context packs.
 - Health check: `GET /api/health` → `{"status":"ok","ts":...}`
 
 
-## ⚠️ CI is currently DEAD — a red check does NOT mean your PR is broken
+## ✅ CI IS ALIVE AGAIN (2026-08-01) — a red check is now REAL
 
-**Re-verified 2026-07-28 with the decisive evidence: `runner_id: 0`,
-`runner_name: ""`.** No runner is ever assigned — the job is created and failed
-in the SAME SECOND (`started_at 04:29:11` → `completed_at 04:29:12`), with no
-steps, empty check output, and logs 404. That is not a fast failure, it is the
-absence of a machine to run on, which no code change can affect. Query it
-yourself with `actions_get(get_workflow_job, <jobId>)`; do not rely on the
-timing alone.
+**The Actions outage is over.** Verified on run `30704209059`:
+`runner_id: 1000001483`, `runner_name: "GitHub Actions 1000001483"`, all steps
+present (checkout → setup-node → install → typecheck → lint → unit tests →
+audit → build), 3m09s duration. Compare the outage signature, which was
+`runner_id: 0`, empty `runner_name`, created and failed in the SAME second, and
+no steps at all.
 
-⚠️ Vercel's deploy rate-limit cleared on 2026-07-28 while Actions stayed dead.
-**They are separate billing buckets** — do not infer that Actions is fixed
-because deploys started working again.
+**So treat a red check as a real failure and fix it.** Everything previously
+written here and in `todo.md` telling you to ignore red checks is superseded.
+It was correct for the ~2 weeks the runners were unassigned; it is wrong now.
 
-**Verified 2026-07-26.** Every GitHub Actions run — on `master` and on PRs — fails in
-**2–5 seconds**. A real run (`npm ci` + build + 1281 tests + Playwright) takes minutes,
-so the workflow is dying **before it executes any step**. Symptoms that confirm it:
-job logs 404, `get_check_run` output is empty, and docs-only commits fail identically.
+⚠️ **CI can fail where your local run passes, and usually for one reason:**
+master has gained tests your branch has not merged. A local run of 2251 against
+CI's 2283 is not flakiness — it is 32 tests you do not have yet. **Merge master
+before concluding CI is wrong.** That exact gap hid a real nav-orphans failure
+on 2026-08-01.
 
-**It is an account/runner problem, not a code problem** — most likely GitHub Actions
-minutes or billing exhausted (the same account is returning
-`api-deployments-free-per-day` from Vercel on every push). Owner fix: check
-**Settings → Billing → Actions**. Full write-up in `todo.md`.
-
-**So do not debug your code against a red check, and do not "fix" CI failures you did
-not cause.** Verify locally instead — this is the real signal:
+Verify locally anyway — it is faster than a CI round trip:
 
 ```bash
 npm run typecheck --workspace=apps/web     # tsc --noEmit

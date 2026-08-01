@@ -3,6 +3,13 @@
 import type { Dictionary } from '../i18n';
 
 export const fr: Dictionary = {
+  'footer.link.resources': 'Ressources',
+  'footer.link.create_team': 'Créer une équipe',
+  'footer.link.mobile_app': 'CharitMe sur mobile',
+  'footer.link.impact_map': 'Carte d\'impact',
+  'footer.link.glossary': 'Glossaire',
+  'footer.link.internships': 'Stages',
+  'footer.link.feedback': 'Envoyer un avis',
   // ── Homepage data cards (i18n string migration) ──────────────────────────
   'home.feature.start.t': 'Lancer une collecte',
   'home.feature.start.b': 'Lancez une campagne fiable en quelques minutes : l\'IA rédige votre histoire, votre objectif et votre plan.',
