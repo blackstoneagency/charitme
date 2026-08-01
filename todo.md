@@ -431,6 +431,41 @@ Two details worth keeping:
 
 ⚠️ Inert until `20260820000000` is applied; the admin page says so by name.
 
+**🔴 FIXED — the status page took 14 seconds, on the page that must answer during
+an outage.** Found by measuring the new pages against the goal's own criteria
+rather than assuming they were fine. `/changelog` was 24ms; `/status` was
+**14.1s**, and `/campaigns` and `/leaderboard` were ~30ms — so this was not the
+sandbox's Supabase latency, it was specific to `/status`.
+
+Three compounding causes, each fixed and each re-measured:
+
+| cause | fix | result |
+|---|---|---|
+| probes used `count: 'exact', head: true` — a **full table COUNT** to answer "does the DB respond?" | `select('id').limit(1)` | — |
+| **no timeout anywhere**, so a hung dependency hung the page | 3s bound per probe | 14.1s → 7.1s |
+| probes awaited **in series**, so latency was the SUM of every failure | `Promise.all` | 7.1s → 3.0s (API) |
+| **my own** incident/maintenance reads were unbounded | same timeout, resolving to `null` | 7.1s → **3.0s** |
+
+**14.1s → 3.02s, and 3s is now the ceiling** rather than a measurement: one
+timeout, everything concurrent. With a reachable database it returns in
+milliseconds; 3s is the worst case when dependencies are down, which is the case
+that matters.
+
+⚠️ **Two lessons worth more than the fix.**
+1. *A status page whose latency is the sum of its failing dependencies is
+   slowest exactly when it is needed most.* Serial probes are the one ordering
+   that guarantees it.
+2. *I introduced the last of the four causes myself* — I bounded the probes and
+   left my own two queries unbounded in the same file. The rule that applies to
+   a dependency probe applies to a query the page makes itself.
+
+⚠️ **And a measurement error worth recording:** the first two "after" numbers
+were taken against a **stale server**. `pkill` had killed my own shell, the new
+`next start` failed on the held port, and I measured the old build twice —
+reading 14s and concluding the fix had not worked. Checking *which process owned
+port 3000* is what caught it. **Confirm you are measuring the build you think you
+are before believing a null result.**
+
 **✅ #171 Backups & Recovery — BUILT as a disclosure, not a dashboard.**
 The design shows a backup table — *"Database Backup, Full, 2.4 GB, Completed"*,
 last-backup time, storage used. **None of that is observable from this

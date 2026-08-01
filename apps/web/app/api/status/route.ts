@@ -23,10 +23,25 @@ export const dynamic = 'force-dynamic';
 // Every subsystem is PROBED. Nothing is hardcoded green — see lib/status-core.
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * How long a single probe may take before it is reported as unreachable.
+ *
+ * A status page that hangs when a dependency hangs is exactly backwards: the
+ * page exists to say the database is down, and without a bound it becomes
+ * unreachable in the same breath. Measured at 14s before this was added — two
+ * unbounded probes, on the one page that has to answer during an incident.
+ */
+const PROBE_TIMEOUT_MS = 3000;
+
 async function probe(fn: () => Promise<unknown>): Promise<ProbeResult> {
   const started = Date.now();
   try {
-    await fn();
+    await Promise.race([
+      fn(),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(`timed out after ${PROBE_TIMEOUT_MS}ms`)), PROBE_TIMEOUT_MS),
+      ),
+    ]);
     return { ok: true, ms: Date.now() - started };
   } catch (e) {
     return { ok: false, ms: Date.now() - started, error: e instanceof Error ? e.message : String(e) };
@@ -47,12 +62,25 @@ export async function GET() {
   });
 
   // ── Database ──────────────────────────────────────────────────────────────
-  // A HEAD count against a public table: cheap, indexed, and it exercises the
-  // same PostgREST path every page uses.
-  const dbProbe = await probe(async () => {
-    const { error } = await supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true });
-    if (error) throw new Error(error.code ?? 'query failed');
-  });
+  // Both probes run CONCURRENTLY. Awaited in series, this endpoint's latency was
+  // the SUM of every slow dependency — measured at 14s, then 7s once each was
+  // bounded by a timeout. An endpoint that reports on things that are down must
+  // not wait for them one at a time. Worst case is now one timeout, not one per
+  // subsystem.
+  //
+  // `limit(1)`, not `count: 'exact'`: the question is "does the database
+  // respond?", and an exact count made Postgres scan the whole table to answer
+  // it.
+  const [dbProbe, authProbe] = await Promise.all([
+    probe(async () => {
+      const { error } = await supabaseAdmin.from('campaigns').select('id').limit(1);
+      if (error) throw new Error(error.code ?? 'query failed');
+    }),
+    probe(async () => {
+      const { error } = await supabaseAdmin.from('profiles').select('id').limit(1);
+      if (error) throw new Error(error.code ?? 'query failed');
+    }),
+  ]);
   const db = classify(dbProbe, 'Campaign and donation data is temporarily unreachable.');
   subsystems.push({
     key: 'database',
@@ -79,10 +107,6 @@ export async function GET() {
   }
 
   // ── Accounts ──────────────────────────────────────────────────────────────
-  const authProbe = await probe(async () => {
-    const { error } = await supabaseAdmin.from('profiles').select('id', { count: 'exact', head: true });
-    if (error) throw new Error(error.code ?? 'query failed');
-  });
   const auth = classify(authProbe, 'Sign-in and account services are temporarily unreachable.');
   subsystems.push({
     key: 'accounts',

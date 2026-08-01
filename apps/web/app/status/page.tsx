@@ -26,10 +26,42 @@ export const metadata: Metadata = {
 // client JS fails, and a fetch would make it depend on the very stack it is
 // reporting on. The API route stays for uptime monitors and integrations.
 
+/**
+ * How long a single probe may take before it is reported as unreachable.
+ *
+ * A status page that hangs when a dependency hangs is exactly backwards: the
+ * page exists to say the database is down, and without a bound it becomes
+ * unreachable in the same breath. Measured at 14s before this was added — two
+ * unbounded probes, on the one page that has to answer during an incident.
+ */
+const PROBE_TIMEOUT_MS = 3000;
+
+/**
+ * Bounds any read on this page, not just the probes.
+ *
+ * The incident and maintenance reads below were added WITHOUT a timeout, and
+ * measurement caught it: with the probes bounded and concurrent the API route
+ * dropped to ~3s while this page stayed at ~7s, because these two queries were
+ * still unbounded. The rule that applies to a dependency probe applies just as
+ * much to a query this page makes itself — resolving to `null` (rendered as
+ * "unknown") is always better than holding the page open.
+ */
+async function withTimeout<T>(work: Promise<T>, fallback: T): Promise<T> {
+  return Promise.race([
+    work,
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), PROBE_TIMEOUT_MS)),
+  ]);
+}
+
 async function probe(fn: () => Promise<unknown>): Promise<ProbeResult> {
   const started = Date.now();
   try {
-    await fn();
+    await Promise.race([
+      fn(),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(`timed out after ${PROBE_TIMEOUT_MS}ms`)), PROBE_TIMEOUT_MS),
+      ),
+    ]);
     return { ok: true, ms: Date.now() - started };
   } catch (e) {
     return { ok: false, ms: Date.now() - started, error: e instanceof Error ? e.message : String(e) };
@@ -41,10 +73,25 @@ async function collect(): Promise<Subsystem[]> {
     { key: 'website', label: 'Website', description: 'Pages and navigation', state: 'operational' },
   ];
 
-  const dbProbe = await probe(async () => {
-    const { error } = await supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true });
-    if (error) throw new Error(error.code ?? 'query failed');
-  });
+  // Probes run CONCURRENTLY. They used to be awaited one after another, so the
+  // page's total latency was the SUM of every slow dependency — measured at 14s,
+  // then 7s once each was bounded. A status page reports on things that are
+  // down; making it wait for them in series is the one ordering that guarantees
+  // it is slowest exactly when it matters most. Worst case is now one timeout,
+  // not one per subsystem.
+  const [dbProbe, authProbe] = await Promise.all([
+    probe(async () => {
+      // Liveness, not analytics: `count: 'exact', head: true` made Postgres
+      // COUNT the whole table to answer "does the database respond?".
+      const { error } = await supabaseAdmin.from('campaigns').select('id').limit(1);
+      if (error) throw new Error(error.code ?? 'query failed');
+    }),
+    probe(async () => {
+      const { error } = await supabaseAdmin.from('profiles').select('id').limit(1);
+      if (error) throw new Error(error.code ?? 'query failed');
+    }),
+  ]);
+
   out.push({
     key: 'database',
     label: 'Campaigns & Data',
@@ -63,10 +110,6 @@ async function collect(): Promise<Subsystem[]> {
       : notConfigured('payments', 'Donations & Payments', 'Accepting donations and payouts', 'Stripe'),
   );
 
-  const authProbe = await probe(async () => {
-    const { error } = await supabaseAdmin.from('profiles').select('id', { count: 'exact', head: true });
-    if (error) throw new Error(error.code ?? 'query failed');
-  });
   out.push({
     key: 'accounts',
     label: 'User Accounts',
@@ -161,8 +204,11 @@ const INCIDENT_TONE: Record<string, string> = {
 export default async function StatusPage() {
   const [subsystems, incidents, maintenance] = await Promise.all([
     collect(),
-    recentIncidents(),
-    upcomingMaintenance(),
+    // `null` is the "could not read" state the sections below already render as
+    // unknown, so a timeout degrades to the same honest message as a query
+    // error — never to "no incidents".
+    withTimeout(recentIncidents(), null),
+    withTimeout(upcomingMaintenance(), null),
   ]);
   const overall = overallStatus(subsystems);
   const tone = TONE[overall];
