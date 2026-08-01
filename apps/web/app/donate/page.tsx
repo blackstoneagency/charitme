@@ -67,7 +67,7 @@ export default async function DonatePage() {
         lede="Every campaign on CharitMe shows you who is raising, what for, and how much has come in. No mandatory platform fee means more of your gift reaches the people it was meant for."
         actions={
           <>
-            <Link href="/campaigns" className="kind-start-pill" style={{ display: 'inline-flex' }}>
+            <Link href="/campaigns" className="cta-primary" style={{ display: 'inline-flex' }}>
               Browse all campaigns
             </Link>
             <Link

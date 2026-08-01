@@ -1,5 +1,55 @@
 # CharitMe — Execution Tracker
 
+## 🎨 DESIGN UNIFICATION — the primary CTA now has ONE definition (wcu7oh, 2026-08-01)
+
+**Measured before touching anything:** a browser sweep of every public page found
+**15 distinct primary-CTA treatments across 53 pages**, including four
+violet→magenta gradients differing by a handful of RGB points
+(`#7035ff→#ec39c3`, `#6c35ff→#5016e8`, `#7c3aed→#6c35ff`, `#4a18f0→#6023ff`).
+Nobody designed four almost-identical gradients — each is a copy of the last with
+a nudge.
+
+**Fixed:** one `--grad-brand` token (the homepage's gradient, which is the design
+target), used by `.kind-start`, `.kf-primary`, `.pub-btn.primary`,
+`.mirror-btn-primary` and a new `.cta-primary` for content pages. Content pages
+previously used `.kind-start-pill` — a neutral grey pill — so a marketing page's
+main action looked nothing like the homepage's.
+
+**Result, re-measured:** the brand gradient went from **2 pages to 25** as the
+dominant primary CTA.
+
+Safety checked before adopting, not after: all three gradient stops clear AA
+against white text (#6d28d9 = 7.1:1, #a21caf = 6.32:1, #b45309 = 5.02:1), so a
+white label is safe anywhere along the ramp. Contrast re-audited after the
+change: 0 failures over 78 pages × 2 themes.
+
+### Two things this sweep found that are NOT bugs
+
+Both looked like defects and were verified before "fixing" them:
+
+- **Broken cause images on the homepage** — a sandbox artifact only. The images
+  are Unsplash URLs that return 200 and are allowed by the live CSP; the sandbox
+  browser simply cannot reach them.
+- **`.kf-outline` hardcoding `background: #fff`** in a duplicate rule — a
+  `[data-theme="dark"]` override rescues it, and the resolved dark pair measures
+  14.57:1. The duplicate is dead code, not a dark-mode failure.
+
+### Remaining design work (real, measured)
+
+- **28 near-identical violet ramps** still exist in `globals.css` — mostly
+  decorative (avatars, icon tiles, hero washes), not buttons.
+  `__tests__/css-single-definition.test.ts` ratchets this: the number may only go
+  down. Consolidating the decorative ones onto tokens is the next pass.
+- **12 genuine CSS conflicts** where a class is redefined at top level with
+  different values, so the earlier rule is dead code that still reads as
+  authoritative (`.kf-primary` and `.kf-outline` each declared twice, hundreds of
+  lines apart). Pinned by the same test at ≤25 duplicated classes.
+- **Four design families still coexist**: the homepage's `mirror-*`, `PageShell`
+  (26 pages), legacy `kind-`/`pub-` (21 pages), and bespoke (31). They share the
+  dark palette and chrome so the site reads as coherent, but the type scale and
+  section rhythm differ.
+
+
 ## ✅ CI IS ALIVE AGAIN — red checks are real now (2026-08-01)
 
 The GitHub Actions outage is OVER. Verified on run `30704209059`:
@@ -24,7 +74,7 @@ external release constraints after the latest production deployment.
 
 | # | Blocker | Evidence | Who can clear it |
 |---|---------|----------|------------------|
-| 1 | **GitHub Actions assigns no runner.** Every CI job fails in ~2s with `runner_id: 0`, `runner_name: ""`, and **no logs at all** (`get_job_logs` → 404). Repo-wide, including pushes straight to `master`. | 30 of 30 most recent runs | **Owner** — Actions minutes / billing |
+| 1 | ~~GitHub Actions assigns no runner~~ — **CLEARED 2026-08-01.** Run `30704209059` shows `runner_id: 1000001483`, a real runner name, all steps, 3m09s. Red checks are real signals again. | run 30704209059 | ✅ resolved |
 | 2 | **No CharitMe staging Supabase project is available.** The account exposes CharitMe production and an unrelated Auto Trading project. Preview Branch creation returns HTTP 402 because the account is not on Pro; dedicated `charitme-staging` creation is also rejected because the owner has reached the two-active-free-project limit. Database release policy correctly blocks production migration application until the same commit is verified on real staging. | Supabase project/branch inventory and both provisioning probes, 2026-07-29 | **Owner** — upgrade Supabase, pause/delete an unrelated project, or provision staging in another organization |
 | 3 | **Vercel's free daily deployment quota is exhausted again.** PR #163 reports `api-deployments-free-per-day` after more than 100 deployments. PR #162 is live, but the subsequent accessibility commit cannot become production in this quota window. | Vercel PR #163 check, 2026-07-29 | **External reset** — retry an exact-master deployment after the 24-hour window or upgrade Vercel |
 

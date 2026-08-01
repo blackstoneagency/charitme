@@ -64,7 +64,7 @@ export default function ResourcesPage() {
         lede="Guides for running a campaign, reference for understanding where money goes, and the documents that explain how CharitMe operates."
         actions={
           <>
-            <Link href="/fundraising-guide" className="kind-start-pill" style={{ display: 'inline-flex' }}>
+            <Link href="/fundraising-guide" className="cta-primary" style={{ display: 'inline-flex' }}>
               Start with the guide
             </Link>
             <Link

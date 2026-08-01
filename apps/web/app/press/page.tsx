@@ -58,7 +58,7 @@ export default async function PressPage() {
         lede="Who to contact, what we can confirm on the record, and where to get logo files."
         actions={
           <>
-            <a href={`mailto:${CONTACT_EMAIL}`} className="kind-start-pill" style={{ display: 'inline-flex' }}>
+            <a href={`mailto:${CONTACT_EMAIL}`} className="cta-primary" style={{ display: 'inline-flex' }}>
               Email the press desk
             </a>
             <Link

@@ -130,7 +130,7 @@ export default async function CausesPage() {
         <p style={{ fontSize: '14px', color: 'var(--t3)', margin: '8px auto 18px', maxWidth: '520px', lineHeight: 1.55 }}>
           {t('causes.missing_body')}
         </p>
-        <Link href="/create" className="kind-start-pill" style={{ display: 'inline-flex' }}>
+        <Link href="/create" className="cta-primary" style={{ display: 'inline-flex' }}>
           {t('nav.start_fundraiser')}
         </Link>
       </div>

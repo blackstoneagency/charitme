@@ -199,7 +199,7 @@ export function CtaBand({
         {body}
       </p>
       <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-        <Link href={primary.href} className="kind-start-pill" style={{ display: 'inline-flex' }}>
+        <Link href={primary.href} className="cta-primary" style={{ display: 'inline-flex' }}>
           {primary.label}
         </Link>
         {secondary && (

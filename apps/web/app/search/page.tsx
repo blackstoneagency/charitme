@@ -154,7 +154,7 @@ export default async function SearchPage({ searchParams }: Props) {
             <option value="ending">Ending soon</option>
           </select>
         </label>
-        <button type="submit" className="kind-start-pill" style={{ display: 'inline-flex', justifyContent: 'center', minHeight: '42px' }}>
+        <button type="submit" className="cta-primary" style={{ display: 'inline-flex', justifyContent: 'center', minHeight: '42px' }}>
           Search
         </button>
       </form>

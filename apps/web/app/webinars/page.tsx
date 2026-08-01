@@ -85,7 +85,7 @@ export default async function WebinarsPage() {
         lede="Join a session from anywhere. Everything listed here is a real scheduled event — when nothing is scheduled, this page says so rather than showing placeholders."
         actions={
           <>
-            <Link href="/events" className="kind-start-pill" style={{ display: 'inline-flex' }}>
+            <Link href="/events" className="cta-primary" style={{ display: 'inline-flex' }}>
               See all events
             </Link>
             <Link
