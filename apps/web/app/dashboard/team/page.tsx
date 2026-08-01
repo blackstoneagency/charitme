@@ -65,7 +65,7 @@ export default async function TeamPage() {
         title="Team"
         subtitle="Manage your team members and permissions."
       />
-      <div className="kf-content-grid" style={{ gridTemplateColumns: '1fr' }}>
+      <div className="kf-content-grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
         <div className="kf-content-main">
           <TeamClient
             campaigns={campaigns}

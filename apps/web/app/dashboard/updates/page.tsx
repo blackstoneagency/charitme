@@ -125,7 +125,7 @@ export default async function UpdatesPage({
         }
       />
 
-      <div className="kf-content-grid" style={{ gridTemplateColumns: '1fr' }}>
+      <div className="kf-content-grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
         <MetricGrid metrics={metrics} />
 
         <section className="kf-card kf-table-card">

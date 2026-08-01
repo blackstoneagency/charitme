@@ -238,7 +238,7 @@ const cardTitle: React.CSSProperties = {
 function row(active: boolean): React.CSSProperties {
   return {
     display: 'grid',
-    gridTemplateColumns: '18px 1fr',
+    gridTemplateColumns: '18px minmax(0, 1fr)',
     gap: 10,
     alignItems: 'start',
     padding: '10px 12px',

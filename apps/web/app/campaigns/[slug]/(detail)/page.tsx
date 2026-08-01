@@ -869,7 +869,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
           {updates.length > 0 ? (
             <div style={{ display: 'grid', gap: 14, marginTop: 8 }}>
               {updates.slice(0, 3).map((update) => (
-                <article key={update.id} style={{ display: 'grid', gridTemplateColumns: '18px 1fr', gap: 12, alignItems: 'start' }}>
+                <article key={update.id} style={{ display: 'grid', gridTemplateColumns: '18px minmax(0, 1fr)', gap: 12, alignItems: 'start' }}>
                   <span style={{ width: 14, height: 14, borderRadius: '50%', background: 'var(--violet)', boxShadow: '0 0 0 5px var(--s2, #eee8ff)', display: 'block', marginTop: 3 }} />
                   <div>
                     <b style={{ fontSize: 14, display: 'block' }}>{update.title}</b>

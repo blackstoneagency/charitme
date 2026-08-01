@@ -186,7 +186,7 @@ export default function EditCampaignPanel({ campaignId }: { campaignId: string }
           <Field label="Short Tagline">
             <input value={form.tagline} onChange={e => upd('tagline', e.target.value)} maxLength={160} placeholder="One sentence that hooks donors" />
           </Field>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 16 }}>
             <Field label="Fundraising Goal ($) *">
               <input type="number" value={form.goal} onChange={e => upd('goal', e.target.value)} min="1" placeholder="25000" />
             </Field>
@@ -194,7 +194,7 @@ export default function EditCampaignPanel({ campaignId }: { campaignId: string }
               <input type="date" value={form.deadline} onChange={e => upd('deadline', e.target.value)} />
             </Field>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 16 }}>
             <Field label="Category">
               <select value={form.category} onChange={e => upd('category', e.target.value)}>
                 {CAMPAIGN_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -213,7 +213,7 @@ export default function EditCampaignPanel({ campaignId }: { campaignId: string }
           <h2 style={{ fontSize: 15, fontWeight: 650, margin: 0 }}>Beneficiary</h2>
           <BeneficiaryInviteButton campaignId={campaignId} />
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 16 }}>
           <Field label="Beneficiary Name">
             <input value={form.beneficiaryName} onChange={e => upd('beneficiaryName', e.target.value)} placeholder="Jane Smith" />
           </Field>

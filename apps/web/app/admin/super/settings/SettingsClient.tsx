@@ -86,7 +86,7 @@ export default function SettingsClient({ config: initial }: { config: PlatformCo
 
   return (
     <div style={{ padding: '0 4px 48px', maxWidth: 820 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 18 }}>
         <section className="kf-card" style={{ padding: 18 }}>
           <h3 style={{ margin: '0 0 12px', fontSize: 15 }}>Branding</h3>
           <div style={{ display: 'grid', gap: 10 }}>

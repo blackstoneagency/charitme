@@ -188,7 +188,7 @@ export default async function PayoutsPage({
         actions={<RequestPayoutButton campaigns={activeCampaigns} />}
       />
 
-      <div className="kf-content-grid" style={{ gridTemplateColumns: '1fr' }}>
+      <div className="kf-content-grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
         {loadFailed ? (
           <DegradedReadNotice title="We couldn't load your payout history">
             This is a temporary problem on our side. Your balances and payout records are unaffected. Reload the page to try again.

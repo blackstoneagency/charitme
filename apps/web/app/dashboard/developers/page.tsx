@@ -36,7 +36,7 @@ export default async function DevelopersPage() {
   return (
     <CharitMeShell active="Developers">
       <TopBar title="Developers" subtitle="API keys for the CharitMe public API." />
-      <div className="kf-content-grid" style={{ gridTemplateColumns: '1fr' }}>
+      <div className="kf-content-grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
         <div className="kf-content-main">
           <p style={{ margin: '0 0 18px', fontSize: 13.5, color: 'var(--t3)' }}>
             Read the{' '}

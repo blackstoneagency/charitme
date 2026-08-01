@@ -1187,7 +1187,7 @@ function SettingsTab({
           )}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 16 }}>
           <div className="users-add-field">
             <label htmlFor="au-role">Role</label>
             <select id="au-role" className="users-add-select" value={role} onChange={(e) => setRole(e.target.value)}>
@@ -1204,7 +1204,7 @@ function SettingsTab({
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 16 }}>
           <div className="users-add-field">
             <label htmlFor="au-plan">Plan</label>
             <select id="au-plan" className="users-add-select" value={plan} onChange={(e) => setPlan(e.target.value)}>

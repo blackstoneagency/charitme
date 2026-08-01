@@ -153,7 +153,7 @@ function OverviewTab({ overview, go }: { overview: React.ComponentProps<typeof A
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 16 }}>
         <div style={card}>
           <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: 'var(--t1)' }}>Contacts by type</div>
           {Object.keys(overview.byType).length === 0 && <p style={{ fontSize: 13, color: 'var(--t3)' }}>No contacts yet. Use Audience → “Sync platform users” to import donors and organizers, or capture leads from site forms.</p>}
@@ -295,7 +295,7 @@ function ProfileDrawer({ profile, onClose }: { profile: ContactProfile; onClose:
         </div>
         <p style={{ margin: '0 0 18px', fontSize: 13, color: 'var(--t3)' }}>{c.email}{c.country ? ` · ${c.country}` : ''}</p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 10, marginBottom: 20 }}>
           {[
             ['Type', c.client_type.replaceAll('_', ' ')], ['Stage', c.lifecycle_stage],
             ['Lead score', String(c.lead_score)], ['Engagement', String(c.engagement_score)],
@@ -489,7 +489,7 @@ function CampaignsTab({ flash }: { flash: (m: string) => void }) {
     <div>
       <div style={card}>
         <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: 'var(--t1)' }}>New email campaign</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 10, marginBottom: 10 }}>
           <input aria-label="Campaign internal name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Internal name" style={input} />
           <select aria-label="Audience segment" value={form.segment_id} onChange={e => setForm(f => ({ ...f, segment_id: e.target.value }))} style={input}>
             <option value="">Choose audience segment…</option>

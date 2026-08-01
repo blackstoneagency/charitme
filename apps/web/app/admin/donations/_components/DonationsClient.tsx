@@ -1220,7 +1220,7 @@ export default function DonationsClient({
             </div>
 
             {/* Table header */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 120px 130px', gap: 12, padding: '10px 20px', background: 'var(--s2)', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) 120px 120px 130px', gap: 12, padding: '10px 20px', background: 'var(--s2)', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
               <span>Donor</span><span>Campaign</span><span>Amount</span><span>Status</span><span>Date</span>
             </div>
 
@@ -1228,7 +1228,7 @@ export default function DonationsClient({
             {currentPage.map(d => (
               <div
                 key={d.id}
-                style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 120px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
+                style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) 120px 120px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
                 onClick={() => { fetchDetail(d.id); }}
                 onKeyDown={event => {
                   if (event.key === 'Enter' || event.key === ' ') {
@@ -1288,11 +1288,11 @@ export default function DonationsClient({
               <p style={{ color: 'var(--t3)', fontSize: 14 }}>No donor data available.</p>
             )}
             <div style={{ border: '1px solid #e6e9f2', borderRadius: 12, overflow: 'hidden' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.2fr 1fr 1fr', gap: 12, padding: '10px 18px', background: 'var(--s2)', borderBottom: '1px solid #e6e9f2', color: 'var(--t3)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.2fr minmax(0, 1fr) minmax(0, 1fr)', gap: 12, padding: '10px 18px', background: 'var(--s2)', borderBottom: '1px solid #e6e9f2', color: 'var(--t3)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em' }}>
                 <span>Donor</span><span>Total Donated</span><span>Donations</span><span>Avg / Gift</span>
               </div>
               {topDonors.slice(0, 20).map((d, i) => (
-                <div key={d.donor_id} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.2fr 1fr 1fr', gap: 12, padding: '14px 18px', alignItems: 'center', borderBottom: i < topDonors.length - 1 ? '1px solid #f0f2f8' : 'none', background: 'var(--s1)' }}>
+                <div key={d.donor_id} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.2fr minmax(0, 1fr) minmax(0, 1fr)', gap: 12, padding: '14px 18px', alignItems: 'center', borderBottom: i < topDonors.length - 1 ? '1px solid #f0f2f8' : 'none', background: 'var(--s1)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <span style={{ width: 22, fontSize: 12, fontWeight: 700, color: i < 3 ? 'var(--brand-text)' : 'var(--t3)', textAlign: 'center' }}>#{i + 1}</span>
                     <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,#efe8ff,#6c35ff)', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
@@ -1312,7 +1312,7 @@ export default function DonationsClient({
         {/* ── Recurring tab ──────────────────────────────────────────────────── */}
         {panelTab === 'Recurring' && (
           <div style={{ padding: '20px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 24 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 16, marginBottom: 24 }}>
               {[
                 { label: 'Total Recurring', value: topDonors.filter(d => d.donation_count >= 2).length, color: 'var(--brand-text)' },
                 { label: 'Active', value: completedCount, color: 'var(--green-text)' },
@@ -1343,11 +1343,11 @@ export default function DonationsClient({
               }
               return (
                 <div style={{ border: '1px solid #e6e9f2', borderRadius: 12, overflow: 'hidden' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1.2fr 1fr .9fr .9fr', gap: 12, padding: '10px 18px', background: 'var(--s2)', borderBottom: '1px solid #e6e9f2', color: 'var(--t3)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1.2fr minmax(0, 1fr) .9fr .9fr', gap: 12, padding: '10px 18px', background: 'var(--s2)', borderBottom: '1px solid #e6e9f2', color: 'var(--t3)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em' }}>
                     <span>Donor</span><span>Total Donated</span><span>Donations</span><span>Avg / Gift</span><span>Status</span>
                   </div>
                   {recurring.map((d, i) => (
-                    <div key={d.donor_id} style={{ display: 'grid', gridTemplateColumns: '1.6fr 1.2fr 1fr .9fr .9fr', gap: 12, padding: '14px 18px', alignItems: 'center', borderBottom: i < recurring.length - 1 ? '1px solid #f0f2f8' : 'none', background: 'var(--s1)' }}>
+                    <div key={d.donor_id} style={{ display: 'grid', gridTemplateColumns: '1.6fr 1.2fr minmax(0, 1fr) .9fr .9fr', gap: 12, padding: '14px 18px', alignItems: 'center', borderBottom: i < recurring.length - 1 ? '1px solid #f0f2f8' : 'none', background: 'var(--s1)' }}>
                       <div style={{ fontSize: 13, fontWeight: 650, color: 'var(--t1)' }}>{d.donor_name}</div>
                       <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--brand-text)' }}>{fmtCents(d.total_cents)}</div>
                       <div style={{ fontSize: 13, color: '#3b4a74', fontWeight: 600 }}>{d.donation_count}×</div>
@@ -1372,12 +1372,12 @@ export default function DonationsClient({
               <div style={{ textAlign: 'center', padding: '32px', color: 'var(--t3)', fontSize: 14 }}>No refunded donations.</div>
             ) : (
               <div style={{ border: '1px solid #e6e9f2', borderRadius: 12, overflow: 'hidden' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 130px', gap: 12, padding: '10px 18px', background: 'var(--s2)', borderBottom: '1px solid #e6e9f2', color: 'var(--t3)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) 120px 130px', gap: 12, padding: '10px 18px', background: 'var(--s2)', borderBottom: '1px solid #e6e9f2', color: 'var(--t3)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em' }}>
                   <span>Donor</span><span>Campaign</span><span>Amount</span><span>Date</span>
                 </div>
                 {donations.filter(d => d.status === 'refunded').map((d, i, arr) => (
                   <div key={d.id}
-                    style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 130px', gap: 12, padding: '14px 18px', alignItems: 'center', borderBottom: i < arr.length - 1 ? '1px solid #f0f2f8' : 'none', background: 'var(--s1)', cursor: 'pointer' }}
+                    style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) 120px 130px', gap: 12, padding: '14px 18px', alignItems: 'center', borderBottom: i < arr.length - 1 ? '1px solid #f0f2f8' : 'none', background: 'var(--s1)', cursor: 'pointer' }}
                     onClick={() => { fetchDetail(d.id); }}
                     onKeyDown={event => {
                       if (event.key === 'Enter' || event.key === ' ') {
@@ -1404,7 +1404,7 @@ export default function DonationsClient({
         {panelTab === 'Reports' && (
           <div style={{ padding: '20px' }}>
             <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>Reports & Analytics</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14 }}>
               {[
                 { label: 'Donation Summary', desc: 'All donations with status breakdown', icon: '📊' },
                 { label: 'Donor Insights', desc: 'Top donors & retention metrics', icon: '👥' },

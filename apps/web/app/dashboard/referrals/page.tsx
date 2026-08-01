@@ -50,7 +50,7 @@ export default async function ReferralsPage() {
         subtitle="Share your personal links and earn recognition for every donation you inspire."
       />
 
-      <div className="kf-content-grid" style={{ gridTemplateColumns: '1fr' }}>
+      <div className="kf-content-grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
         <div className="kf-content-main">
           <MetricGrid metrics={metrics} />
 
@@ -127,7 +127,7 @@ export default async function ReferralsPage() {
                 <div
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: '1fr 110px 110px 120px',
+                    gridTemplateColumns: 'minmax(0, 1fr) 110px 110px 120px',
                     gap: 12,
                     padding: '8px 20px',
                     fontSize: 11,
@@ -148,7 +148,7 @@ export default async function ReferralsPage() {
                     <div
                       key={c.campaignId}
                       className="kf-row"
-                      style={{ display: 'grid', gridTemplateColumns: '1fr 110px 110px 120px', gap: 12, alignItems: 'center' }}
+                      style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 110px 110px 120px', gap: 12, alignItems: 'center' }}
                     >
                       <Link
                         href={`/campaigns/${c.slug}`}

@@ -58,7 +58,7 @@ export default async function TransactionDetailPage({ params }: PageProps): Prom
           <h2 style={h2}>Money Movement</h2>
           <div style={{ display: 'grid', gap: 10 }}>
             {timeline.map(([label, complete], index) => (
-              <div key={label} style={{ display: 'grid', gridTemplateColumns: '30px 1fr', gap: 10, alignItems: 'center' }}>
+              <div key={label} style={{ display: 'grid', gridTemplateColumns: '30px minmax(0, 1fr)', gap: 10, alignItems: 'center' }}>
                 <span style={{ width: 24, height: 24, borderRadius: 999, display: 'grid', placeItems: 'center', background: complete ? 'var(--tint-green)' : 'var(--tint-red)', color: complete ? 'var(--green-text)' : '#b91c1c', fontWeight: 700 }}>{index + 1}</span>
                 <span style={{ color: 'var(--t1)', fontWeight: 650 }}>{label}{complete ? '' : ' missing or pending'}</span>
               </div>

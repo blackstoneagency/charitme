@@ -187,7 +187,7 @@ export default async function MyCampaignsPage({
         }
       />
 
-      <div className="kf-content-grid" style={{ gridTemplateColumns: '1fr' }}>
+      <div className="kf-content-grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
         <div className="kf-content-main">
           {loadFailed && (
             <div
@@ -252,7 +252,7 @@ export default async function MyCampaignsPage({
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: '56px 1fr 120px 140px 80px 90px 110px',
+                gridTemplateColumns: '56px minmax(0, 1fr) 120px 140px 80px 90px 110px',
                 gap: 12,
                 padding: '8px 20px',
                 fontSize: 11,
@@ -290,7 +290,7 @@ export default async function MyCampaignsPage({
                       className="kf-row"
                       style={{
                         display: 'grid',
-                        gridTemplateColumns: '56px 1fr 120px 140px 80px 90px 110px',
+                        gridTemplateColumns: '56px minmax(0, 1fr) 120px 140px 80px 90px 110px',
                         gap: 12,
                         alignItems: 'center',
                       }}

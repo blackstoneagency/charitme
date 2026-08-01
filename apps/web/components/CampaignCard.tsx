@@ -90,7 +90,7 @@ export function CampaignCard({
           {c.location && (
             <p style={{ fontSize: '12px', color: 'var(--t3)', marginBottom: '8px' }}>📍 {c.location}</p>
           )}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '12px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px', marginBottom: '12px' }}>
             {[
               { label: 'Trust', value: `${trust}` },
               { label: 'Donors', value: `${c.backer_count ?? 0}` },

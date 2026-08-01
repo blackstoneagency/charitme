@@ -283,7 +283,7 @@ export default function DonateButton({
       </div>
 
       {/* ── Frequency toggle ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0, background: 'var(--s3, #f0eaff)', borderRadius: 14, padding: 4 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 0, background: 'var(--s3, #f0eaff)', borderRadius: 14, padding: 4 }}>
         {(['once', 'monthly'] as const).map((f) => (
           <button
             key={f}
@@ -404,7 +404,7 @@ export default function DonateButton({
       )}
 
       {/* ── Preset amounts — 3×2 grid, personalized via AI Donor Conversion Engine + donation optimizer ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginTop: 4 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12, marginTop: 4 }}>
         {presets.map((preset) => {
           const active = amount === String(preset);
           const popular = preset === recommended;

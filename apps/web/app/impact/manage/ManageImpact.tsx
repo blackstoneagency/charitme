@@ -152,7 +152,7 @@ export default function ManageImpact({
           <Textarea label="Summary" value={planSummary} onChange={(e) => setPlanSummary(e.target.value)} rows={2} />
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>Budget line items (USD)</div>
           {items.map((it, idx) => (
-            <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px auto', gap: 8, alignItems: 'center' }}>
+            <div key={idx} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 120px 120px auto', gap: 8, alignItems: 'center' }}>
               <Input placeholder="Label (e.g. Medical supplies)" value={it.label} onChange={(e) => setItems((p) => p.map((x, i) => i === idx ? { ...x, label: e.target.value } : x))} />
               <Input type="number" min={0} step="0.01" placeholder="Planned" value={it.planned} onChange={(e) => setItems((p) => p.map((x, i) => i === idx ? { ...x, planned: e.target.value } : x))} />
               <Input type="number" min={0} step="0.01" placeholder="Spent" value={it.spent} onChange={(e) => setItems((p) => p.map((x, i) => i === idx ? { ...x, spent: e.target.value } : x))} />

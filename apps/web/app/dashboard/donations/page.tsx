@@ -304,7 +304,7 @@ export default async function DonationsPage({
         }
       />
 
-      <div className="kf-content-grid" style={{ gridTemplateColumns: '1fr' }}>
+      <div className="kf-content-grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
         <div className="kf-content-main">
           {/* title is an expression, not "&apos;" — entities are not decoded
               inside a JSX string attribute, they would render literally. */}
@@ -368,7 +368,7 @@ export default async function DonationsPage({
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 1fr 120px 100px 90px',
+                gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) 120px 100px 90px',
                 gap: 12,
                 padding: '8px 20px',
                 fontSize: 11,
@@ -395,7 +395,7 @@ export default async function DonationsPage({
                     className="kf-row"
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: '1fr 1fr 120px 100px 90px',
+                      gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) 120px 100px 90px',
                       gap: 12,
                       alignItems: 'center',
                     }}

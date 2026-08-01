@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -74,6 +74,49 @@ function bareFrTracks(value: string): boolean {
   }
   return false;
 }
+
+// Inline styles are the half no media query can reach. A `gridTemplateColumns`
+// written in TSX is the same `minmax(auto, 1fr)` trap as one written in CSS,
+// except no breakpoint can correct it — /admin/reports laid its table inside an
+// inline `'300px 1fr'` track, so the track grew to the table's max-content and
+// took the document to 890px on a 320px phone. Wrapping the table in a scroll
+// box did nothing, because the ancestor track was the thing expanding.
+function tsxSources(): string[] {
+  const out: string[] = [];
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir)) {
+      if (entry === 'node_modules' || entry.startsWith('.')) continue;
+      const full = join(dir, entry);
+      if (statSync(full).isDirectory()) walk(full);
+      else if (full.endsWith('.tsx')) out.push(full);
+    }
+  };
+  for (const root of ['app', 'components']) walk(join(__dirname, '..', root));
+  return out;
+}
+
+describe('inline grid tracks can shrink too', () => {
+  it('scans a real tree', () => {
+    expect(tsxSources().length).toBeGreaterThan(100);
+  });
+
+  it('uses minmax(0, 1fr) in every inline gridTemplateColumns', () => {
+    const offenders: string[] = [];
+    for (const file of tsxSources()) {
+      const src = readFileSync(file, 'utf8');
+      for (const m of src.matchAll(/gridTemplateColumns:\s*(['"])([^'"]*)\1/g)) {
+        if (bareFrTracks(m[2].trim())) {
+          offenders.push(`${file.split('/apps/web/')[1] ?? file} — ${m[2].trim()}`);
+        }
+      }
+    }
+    expect(
+      offenders,
+      'inline styles carry no media query, so a bare `1fr` here can never be ' +
+      `corrected at a breakpoint:\n${offenders.join('\n')}`,
+    ).toEqual([]);
+  });
+});
 
 describe('mobile grid tracks can shrink', () => {
   it('scans a real stylesheet', () => {
