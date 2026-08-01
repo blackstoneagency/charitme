@@ -4,6 +4,7 @@
 import type { Dictionary } from '../i18n';
 
 export const es: Dictionary = {
+  'footer.link.create_team': 'Crear un equipo',
   'footer.link.mobile_app': 'CharitMe en el móvil',
   'footer.link.impact_map': 'Mapa de impacto',
   'footer.link.glossary': 'Glosario',

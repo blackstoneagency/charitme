@@ -53,7 +53,7 @@ volunteer (44/45), events (48), matching (55), accessibility (68), safety (69 �
 |---|---|---|---|
 | 1 | `/search` — global + advanced search/filters | 36, 37 | 🔵 **CLAIMED wcu7oh** |
 | 2 | `/teams` — team hub | 49 | 🔵 **CLAIMED wcu7oh** |
-| 3 | `/teams/create` — 5-step wizard | 50–53 | 🔵 **CLAIMED wcu7oh** |
+| 3 | `/teams/create` — 5-step wizard | 50–53 | ✅ **BUILT wcu7oh** |
 | 4 | `/impact-map` — global impact map | 59 | ✅ **BUILT wcu7oh** |
 | 5 | `/donor-wall` — hall of thanks / recognition | 62, 81 | 🔵 **CLAIMED wcu7oh** |
 | 6 | `/glossary` | 73 | ✅ **BUILT wcu7oh** |

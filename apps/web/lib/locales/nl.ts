@@ -2,6 +2,7 @@
 import type { Dictionary } from '../i18n';
 
 export const nl: Dictionary = {
+  'footer.link.create_team': 'Start een team',
   'footer.link.mobile_app': 'CharitMe op mobiel',
   'footer.link.impact_map': 'Impactkaart',
   'footer.link.glossary': 'Woordenlijst',

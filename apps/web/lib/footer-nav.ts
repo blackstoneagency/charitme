@@ -52,6 +52,7 @@ export const FOOTER_SECTIONS: Record<FooterSectionName, readonly FooterLink[]> =
     { label: 'Leaderboard', href: '/leaderboard', labelKey: 'footer.link.leaderboard' },
     { label: 'Developers & API', href: '/developers', labelKey: 'footer.link.developers' },
     { label: 'CharitMe on Mobile', href: '/mobile-app', labelKey: 'footer.link.mobile_app' },
+    { label: 'Start a Team', href: '/teams/create', labelKey: 'footer.link.create_team' },
   ],
   // Splitting the ways to GIVE out of "Platform" is what balances the grid, and
   // it is better navigation besides: a donor looking for somewhere to give was
