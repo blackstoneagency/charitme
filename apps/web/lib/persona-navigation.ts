@@ -44,6 +44,7 @@ const ORGANIZER_NAV: readonly DashboardNavItem[] = [
   // Aggregates dates that already exist across campaigns, fundraising_events and
   // grant_deadlines — no new table, so nothing here is inert in production.
   { label: 'Calendar', href: '/dashboard/calendar', icon: 'stack' },
+  { label: 'Tasks', href: '/dashboard/tasks', icon: 'check' },
   { label: 'AI Growth Plan', href: '/dashboard/ai-growth-plan', icon: 'send', badge: 'New' },
   { label: 'AI Coach', href: '/dashboard/ai-coach', icon: 'send', badge: 'AI' },
   { label: 'Donations Received', href: '/dashboard/donations', icon: 'gift' },

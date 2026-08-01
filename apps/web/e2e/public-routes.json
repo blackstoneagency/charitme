@@ -180,6 +180,7 @@
       "/dashboard/saved",
       "/dashboard/settings",
       "/dashboard/settings/mfa",
+      "/dashboard/tasks",
       "/dashboard/tax",
       "/dashboard/team",
       "/dashboard/tools",

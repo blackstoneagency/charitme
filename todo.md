@@ -272,6 +272,31 @@ Two details worth keeping:
 
 ⚠️ Inert until `20260820000000` is applied; the admin page says so by name.
 
+**✅ #145 Tasks — BUILT, migration-first** (`/dashboard/tasks`, `20260821000000`).
+A fundraiser's checklist, optionally attached to a campaign, with the design's
+Open / Overdue / Mine / Assigned-to-me / Completed filters.
+
+**The interesting part is assignment, because it can widen who reads a row.**
+Tasks are private working notes — they can name a donor, a problem with a
+beneficiary, or an unannounced plan — so the read rule grants access to the owner
+*and the assignee*. That means an unchecked `assignee_id` would be a disclosure
+primitive: assign a task to any profile id on the platform and they can read it.
+
+So `canAssignTo()` requires the assignee to already share the campaign through
+`team_members`, and **fails closed** when that lookup errors. Two related rules
+fall out of the same reasoning:
+- An assignee may tick their own task off and **nothing else**. Editing the
+  title, reassigning, or moving the due date stays with the owner — otherwise
+  "assigned to you" quietly means "yours to rewrite".
+- A task must reference a campaign the caller owns before it can be created, or
+  `campaign_id` leaks which campaigns exist and the team lookup consults a team
+  the caller has no part in.
+
+`tasks_completed_consistency` mirrors the incidents constraint: a done task with
+no `completed_at` cannot be sorted or reported on, and an open one carrying a
+completion time claims work still outstanding. Both refused; the API sets the
+timestamp so the constraint stays a backstop.
+
 **✅ #144 Calendar — BUILT, with no new table** (`/dashboard/calendar`).
 Second correction to the "needs a table" list, and a more useful one: the page
 does not need a `calendar_events` table because **the dates already exist**,
@@ -4659,6 +4684,7 @@ run**, because each one *is* a schema change:
 | `20260812010000_creator_tips_not_world_readable` | `creator_tips` stays **world-readable** — supporter IDs, amounts, Stripe payment intent IDs |
 | `20260819000000_donation_forms_slug_and_campaign_owner` | Donation Form Builder: `slug` not unique (embeds resolve ambiguously), and campaign owners cannot edit their own form |
 | `20260820000000_incidents_and_maintenance` | `/admin/incidents` and the incident/maintenance sections of `/status` report **unknown** — deliberately, never "no incidents" |
+| `20260821000000_tasks` | `/dashboard/tasks` reports **unknown** rather than an empty list |
 
 The third is the one to prioritise: it is a live data exposure, and it is a
 single `drop policy` + `create policy`, safe to run on its own.

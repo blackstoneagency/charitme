@@ -3809,6 +3809,29 @@ CREATE TABLE public.supported_countries (
 
 
 --
+-- Name: tasks; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.tasks (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    owner_id uuid NOT NULL,
+    campaign_id uuid,
+    assignee_id uuid,
+    title text NOT NULL,
+    notes text,
+    priority text DEFAULT 'medium'::text NOT NULL,
+    status text DEFAULT 'todo'::text NOT NULL,
+    due_at timestamp with time zone,
+    completed_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT tasks_completed_consistency CHECK ((((status = 'done'::text) AND (completed_at IS NOT NULL)) OR ((status <> 'done'::text) AND (completed_at IS NULL)))),
+    CONSTRAINT tasks_priority_check CHECK ((priority = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text]))),
+    CONSTRAINT tasks_status_check CHECK ((status = ANY (ARRAY['todo'::text, 'in_progress'::text, 'done'::text])))
+);
+
+
+--
 -- Name: tax_receipts; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -5599,6 +5622,14 @@ ALTER TABLE ONLY public.supported_countries
 
 
 --
+-- Name: tasks tasks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tasks
+    ADD CONSTRAINT tasks_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: tax_receipts tax_receipts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7166,6 +7197,34 @@ CREATE UNIQUE INDEX supported_countries_iso_code_key ON public.supported_countri
 
 
 --
+-- Name: tasks_assignee_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX tasks_assignee_idx ON public.tasks USING btree (assignee_id) WHERE (assignee_id IS NOT NULL);
+
+
+--
+-- Name: tasks_campaign_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX tasks_campaign_idx ON public.tasks USING btree (campaign_id) WHERE (campaign_id IS NOT NULL);
+
+
+--
+-- Name: tasks_open_due_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX tasks_open_due_idx ON public.tasks USING btree (due_at) WHERE (status <> 'done'::text);
+
+
+--
+-- Name: tasks_owner_due_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX tasks_owner_due_idx ON public.tasks USING btree (owner_id, due_at);
+
+
+--
 -- Name: tax_receipts_donation_id_unique; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -7842,6 +7901,13 @@ CREATE TRIGGER sponsorship_requests_updated_at BEFORE UPDATE ON public.sponsorsh
 --
 
 CREATE TRIGGER subscriptions_set_updated_at BEFORE UPDATE ON public.subscriptions FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
+-- Name: tasks tasks_touch; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER tasks_touch BEFORE UPDATE ON public.tasks FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 
 --
@@ -10622,6 +10688,30 @@ ALTER TABLE ONLY public.support_notes
 
 ALTER TABLE ONLY public.support_notes
     ADD CONSTRAINT support_notes_case_id_fkey FOREIGN KEY (case_id) REFERENCES public.support_cases(id) ON DELETE CASCADE;
+
+
+--
+-- Name: tasks tasks_assignee_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tasks
+    ADD CONSTRAINT tasks_assignee_id_fkey FOREIGN KEY (assignee_id) REFERENCES public.profiles(id) ON DELETE SET NULL;
+
+
+--
+-- Name: tasks tasks_campaign_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tasks
+    ADD CONSTRAINT tasks_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES public.campaigns(id) ON DELETE CASCADE;
+
+
+--
+-- Name: tasks tasks_owner_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tasks
+    ADD CONSTRAINT tasks_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
 
 
 --
@@ -13444,6 +13534,19 @@ CREATE POLICY support_own_read ON public.support_cases FOR SELECT USING (((auth.
 --
 
 ALTER TABLE public.supported_countries ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: tasks; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: tasks tasks_owner_or_assignee; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tasks_owner_or_assignee ON public.tasks USING (((auth.uid() = owner_id) OR (auth.uid() = assignee_id) OR public.is_admin())) WITH CHECK (((auth.uid() = owner_id) OR public.is_admin()));
+
 
 --
 -- Name: tax_receipts; Type: ROW SECURITY; Schema: public; Owner: -
