@@ -98,8 +98,72 @@ const TONE: Record<SubsystemState, { dot: string; text: string; label: string }>
   down: { dot: 'var(--red)', text: 'var(--red-text)', label: 'Down' },
 };
 
+// ── Incidents and maintenance (designs #168 / #169) ─────────────────────────
+//
+// The probes above say WHETHER something is broken. These say WHAT HAPPENED —
+// the half of a status page that needs a human to write it.
+//
+// `null` means the read FAILED and is rendered as "unknown", never as "no
+// incidents". Reporting an all-clear because the incidents table was
+// unreachable is the most misleading thing a status page can do, and it is
+// exactly the case where the table is most likely to be unreachable.
+//
+// These tables ship in 20260820000000. Until that migration is applied the
+// query errors and the page shows the unknown state rather than breaking.
+type IncidentRow = {
+  id: string;
+  title: string;
+  component: string;
+  status: string;
+  impact: string;
+  started_at: string;
+  resolved_at: string | null;
+};
+
+type MaintenanceRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  starts_at: string;
+  ends_at: string;
+  status: string;
+};
+
+async function recentIncidents(): Promise<IncidentRow[] | null> {
+  const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await supabaseAdmin
+    .from('incidents')
+    .select('id, title, component, status, impact, started_at, resolved_at')
+    .gte('started_at', since)
+    .order('started_at', { ascending: false })
+    .limit(20);
+  return error ? null : ((data ?? []) as IncidentRow[]);
+}
+
+async function upcomingMaintenance(): Promise<MaintenanceRow[] | null> {
+  const { data, error } = await supabaseAdmin
+    .from('maintenance_windows')
+    .select('id, title, description, starts_at, ends_at, status')
+    .in('status', ['scheduled', 'in_progress'])
+    .gte('ends_at', new Date().toISOString())
+    .order('starts_at', { ascending: true })
+    .limit(10);
+  return error ? null : ((data ?? []) as MaintenanceRow[]);
+}
+
+const INCIDENT_TONE: Record<string, string> = {
+  critical: 'var(--red)',
+  major: 'var(--red)',
+  minor: 'var(--t3)',
+};
+
+
 export default async function StatusPage() {
-  const subsystems = await collect();
+  const [subsystems, incidents, maintenance] = await Promise.all([
+    collect(),
+    recentIncidents(),
+    upcomingMaintenance(),
+  ]);
   const overall = overallStatus(subsystems);
   const tone = TONE[overall];
 
@@ -200,8 +264,82 @@ export default async function StatusPage() {
         })}
       </ul>
 
+      {/* Scheduled maintenance first: it is the only thing here a visitor can
+          act on ahead of time. */}
+      {maintenance === null ? (
+        <p style={{ fontSize: 14, color: 'var(--t3)', marginTop: 32 }}>
+          Scheduled maintenance could not be loaded, so this page cannot confirm whether any is
+          planned.
+        </p>
+      ) : maintenance.length > 0 ? (
+        <section style={{ marginTop: 32 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 800, margin: '0 0 12px', color: 'var(--t1)' }}>
+            Scheduled maintenance
+          </h2>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 12 }}>
+            {maintenance.map((m) => (
+              <li key={m.id} style={{ border: '1px solid var(--b2)', borderRadius: 10, padding: '12px 14px' }}>
+                <strong style={{ color: 'var(--t1)', fontSize: 15 }}>{m.title}</strong>
+                <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--t2)' }}>
+                  <time dateTime={m.starts_at}>{new Date(m.starts_at).toUTCString()}</time>
+                  {' → '}
+                  <time dateTime={m.ends_at}>{new Date(m.ends_at).toUTCString()}</time>
+                </p>
+                {m.description && (
+                  <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--t2)' }}>{m.description}</p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      <section style={{ marginTop: 32 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 800, margin: '0 0 12px', color: 'var(--t1)' }}>
+          Recent incidents
+        </h2>
+        {incidents === null ? (
+          <p style={{ fontSize: 14, color: 'var(--t3)', margin: 0 }}>
+            Incident history could not be loaded. This does <strong>not</strong> mean there have been
+            none — the page simply cannot tell you right now.
+          </p>
+        ) : incidents.length === 0 ? (
+          <p style={{ fontSize: 14, color: 'var(--t3)', margin: 0 }}>
+            No incidents reported in the last 30 days.
+          </p>
+        ) : (
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 12 }}>
+            {incidents.map((inc) => (
+              <li key={inc.id} style={{ border: '1px solid var(--b2)', borderRadius: 10, padding: '12px 14px' }}>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                  <strong style={{ color: 'var(--t1)', fontSize: 15 }}>{inc.title}</strong>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 800,
+                      textTransform: 'uppercase',
+                      letterSpacing: '.04em',
+                      color: INCIDENT_TONE[inc.impact] ?? 'var(--t3)',
+                    }}
+                  >
+                    {inc.impact}
+                  </span>
+                  <span style={{ fontSize: 12, color: 'var(--t3)' }}>{inc.component}</span>
+                </div>
+                <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--t2)' }}>
+                  {inc.resolved_at ? 'Resolved' : inc.status}
+                  {' · '}
+                  <time dateTime={inc.started_at}>{new Date(inc.started_at).toUTCString()}</time>
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
       <p style={{ margin: '24px 0 0', fontSize: 13.5, color: 'var(--t3)', lineHeight: 1.6 }}>
         Machine-readable at{' '}
+
         <Link href="/api/status" style={{ color: 'var(--violet-ink)', fontWeight: 700 }}>
           /api/status
         </Link>

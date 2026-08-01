@@ -119,6 +119,7 @@
       "/admin/donations",
       "/admin/finance",
       "/admin/grants",
+      "/admin/incidents",
       "/admin/marketing",
       "/admin/marketing/campaign-plans",
       "/admin/marketing/command-center",

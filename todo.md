@@ -243,6 +243,35 @@ be tested at all.**
 `exchange_rates` table and a rate feed — real storage plus an external
 dependency, so it stays with the other seven.
 
+**✅ #168 Incidents + #169 Maintenance — BUILT, migration-first.**
+Built on the owner's explicit instruction to ship the blocked pages staged and
+ready rather than wait. Migration `20260820000000` adds `incidents`,
+`incident_updates` and `maintenance_windows`; `/admin/incidents` writes them and
+the **public `/status` page now reads them**.
+
+This pair was worth doing first because `/status` already existed and was half a
+page: it could probe *whether* a subsystem responds, but had no way to say what
+happened or that anyone was aware — which is precisely what a visitor wants when
+they see a red dot.
+
+**The rule every reader here follows: a failed query renders "unknown", never
+"no incidents".** On a status page that distinction is the whole point — an
+all-clear published because the incidents table was unreachable is the most
+misleading output the page can produce, and an outage is exactly when that table
+is most likely to be unreachable.
+
+Two details worth keeping:
+- `incidents_resolved_consistency` refuses a resolved incident with no
+  `resolved_at` **and** an unresolved one that carries one. Both render a lie
+  (still-open forever / an all-clear that never happened), so both are refused.
+  The API sets the timestamp itself, so the constraint stays a backstop rather
+  than the mechanism.
+- Public read is correct here and was **wrong** for `creator_tips` — the
+  difference is what is in the row, not the policy. These rows are written to be
+  read by strangers and carry no user data.
+
+⚠️ Inert until `20260820000000` is applied; the admin page says so by name.
+
 **✅ #144 Calendar — BUILT, with no new table** (`/dashboard/calendar`).
 Second correction to the "needs a table" list, and a more useful one: the page
 does not need a `calendar_events` table because **the dates already exist**,
@@ -4628,6 +4657,8 @@ run**, because each one *is* a schema change:
 | `20260728020000_fix_tax_receipt_upsert_inference` | tax receipt still emailed to the donor and **never recorded** (partial index → 42P10) |
 | `20260812000000_make_onconflict_targets_inferable` | Stripe webhook still **rejects** every processor-fee / refund / owner-transfer row; **"unsubscribe" still writes nothing** |
 | `20260812010000_creator_tips_not_world_readable` | `creator_tips` stays **world-readable** — supporter IDs, amounts, Stripe payment intent IDs |
+| `20260819000000_donation_forms_slug_and_campaign_owner` | Donation Form Builder: `slug` not unique (embeds resolve ambiguously), and campaign owners cannot edit their own form |
+| `20260820000000_incidents_and_maintenance` | `/admin/incidents` and the incident/maintenance sections of `/status` report **unknown** — deliberately, never "no incidents" |
 
 The third is the one to prioritise: it is a live data exposure, and it is a
 single `drop policy` + `create policy`, safe to run on its own.

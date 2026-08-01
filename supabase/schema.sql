@@ -2456,6 +2456,42 @@ CREATE TABLE public.impact_updates (
 
 
 --
+-- Name: incident_updates; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.incident_updates (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    incident_id uuid NOT NULL,
+    body text NOT NULL,
+    status text NOT NULL,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT incident_updates_status_check CHECK ((status = ANY (ARRAY['investigating'::text, 'identified'::text, 'monitoring'::text, 'resolved'::text])))
+);
+
+
+--
+-- Name: incidents; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.incidents (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    title text NOT NULL,
+    component text DEFAULT 'platform'::text NOT NULL,
+    status text DEFAULT 'investigating'::text NOT NULL,
+    impact text DEFAULT 'minor'::text NOT NULL,
+    started_at timestamp with time zone DEFAULT now() NOT NULL,
+    resolved_at timestamp with time zone,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT incidents_impact_check CHECK ((impact = ANY (ARRAY['minor'::text, 'major'::text, 'critical'::text]))),
+    CONSTRAINT incidents_resolved_consistency CHECK ((((status = 'resolved'::text) AND (resolved_at IS NOT NULL)) OR ((status <> 'resolved'::text) AND (resolved_at IS NULL)))),
+    CONSTRAINT incidents_status_check CHECK ((status = ANY (ARRAY['investigating'::text, 'identified'::text, 'monitoring'::text, 'resolved'::text])))
+);
+
+
+--
 -- Name: integration_connections; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2552,6 +2588,26 @@ CREATE TABLE public.livestreams (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT livestreams_status_check CHECK ((status = ANY (ARRAY['scheduled'::text, 'live'::text, 'ended'::text])))
+);
+
+
+--
+-- Name: maintenance_windows; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.maintenance_windows (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    title text NOT NULL,
+    description text,
+    component text DEFAULT 'platform'::text NOT NULL,
+    starts_at timestamp with time zone NOT NULL,
+    ends_at timestamp with time zone NOT NULL,
+    status text DEFAULT 'scheduled'::text NOT NULL,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT maintenance_time_order CHECK ((ends_at > starts_at)),
+    CONSTRAINT maintenance_windows_status_check CHECK ((status = ANY (ARRAY['scheduled'::text, 'in_progress'::text, 'completed'::text, 'cancelled'::text])))
 );
 
 
@@ -4887,6 +4943,22 @@ ALTER TABLE ONLY public.impact_updates
 
 
 --
+-- Name: incident_updates incident_updates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.incident_updates
+    ADD CONSTRAINT incident_updates_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: incidents incidents_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.incidents
+    ADD CONSTRAINT incidents_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: integration_connections integration_connections_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4916,6 +4988,14 @@ ALTER TABLE ONLY public.ledger_entries
 
 ALTER TABLE ONLY public.livestreams
     ADD CONSTRAINT livestreams_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: maintenance_windows maintenance_windows_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.maintenance_windows
+    ADD CONSTRAINT maintenance_windows_pkey PRIMARY KEY (id);
 
 
 --
@@ -6463,6 +6543,27 @@ CREATE INDEX impact_updates_campaign_idx ON public.impact_updates USING btree (c
 
 
 --
+-- Name: incident_updates_incident_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX incident_updates_incident_idx ON public.incident_updates USING btree (incident_id, created_at DESC);
+
+
+--
+-- Name: incidents_started_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX incidents_started_at_idx ON public.incidents USING btree (started_at DESC);
+
+
+--
+-- Name: incidents_unresolved_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX incidents_unresolved_idx ON public.incidents USING btree (started_at DESC) WHERE (resolved_at IS NULL);
+
+
+--
 -- Name: lead_outreach_contact_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6544,6 +6645,13 @@ CREATE INDEX ledger_entries_pi_idx ON public.ledger_entries USING btree (stripe_
 --
 
 CREATE INDEX ledger_review_status_idx ON public.transparency_ledger_items USING btree (review_status);
+
+
+--
+-- Name: maintenance_windows_starts_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX maintenance_windows_starts_at_idx ON public.maintenance_windows USING btree (starts_at DESC);
 
 
 --
@@ -7380,6 +7488,13 @@ CREATE TRIGGER impact_updates_updated_at BEFORE UPDATE ON public.impact_updates 
 
 
 --
+-- Name: incidents incidents_touch; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER incidents_touch BEFORE UPDATE ON public.incidents FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
 -- Name: lead_outreach lead_outreach_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -7398,6 +7513,13 @@ CREATE TRIGGER ledger_entries_no_delete BEFORE DELETE ON public.ledger_entries F
 --
 
 CREATE TRIGGER ledger_entries_no_update BEFORE UPDATE ON public.ledger_entries FOR EACH ROW EXECUTE FUNCTION public.prevent_ledger_mutation();
+
+
+--
+-- Name: maintenance_windows maintenance_windows_touch; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER maintenance_windows_touch BEFORE UPDATE ON public.maintenance_windows FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 
 --
@@ -9447,6 +9569,30 @@ ALTER TABLE ONLY public.impact_updates
 
 
 --
+-- Name: incident_updates incident_updates_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.incident_updates
+    ADD CONSTRAINT incident_updates_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.profiles(id) ON DELETE SET NULL;
+
+
+--
+-- Name: incident_updates incident_updates_incident_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.incident_updates
+    ADD CONSTRAINT incident_updates_incident_id_fkey FOREIGN KEY (incident_id) REFERENCES public.incidents(id) ON DELETE CASCADE;
+
+
+--
+-- Name: incidents incidents_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.incidents
+    ADD CONSTRAINT incidents_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.profiles(id) ON DELETE SET NULL;
+
+
+--
 -- Name: integration_connections integration_connections_owner_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -9524,6 +9670,14 @@ ALTER TABLE ONLY public.livestreams
 
 ALTER TABLE ONLY public.livestreams
     ADD CONSTRAINT livestreams_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.fundraising_events(id) ON DELETE CASCADE;
+
+
+--
+-- Name: maintenance_windows maintenance_windows_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.maintenance_windows
+    ADD CONSTRAINT maintenance_windows_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.profiles(id) ON DELETE SET NULL;
 
 
 --
@@ -11999,6 +12153,46 @@ CREATE POLICY impact_updates_write ON public.impact_updates USING ((public.owns_
 
 
 --
+-- Name: incident_updates; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.incident_updates ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: incident_updates incident_updates_admin_write; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY incident_updates_admin_write ON public.incident_updates USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+
+--
+-- Name: incident_updates incident_updates_public_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY incident_updates_public_read ON public.incident_updates FOR SELECT USING (true);
+
+
+--
+-- Name: incidents; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.incidents ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: incidents incidents_admin_write; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY incidents_admin_write ON public.incidents USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+
+--
+-- Name: incidents incidents_public_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY incidents_public_read ON public.incidents FOR SELECT USING (true);
+
+
+--
 -- Name: integration_connections; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -12097,6 +12291,26 @@ CREATE POLICY livestreams_owner_write ON public.livestreams USING ((public.is_ad
      JOIN public.nonprofit_profiles ON ((nonprofit_profiles.id = fundraising_events.nonprofit_id)))
   WHERE ((fundraising_events.id = livestreams.event_id) AND (nonprofit_profiles.owner_id = auth.uid()))))));
 
+
+--
+-- Name: maintenance_windows maintenance_admin_write; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY maintenance_admin_write ON public.maintenance_windows USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+
+--
+-- Name: maintenance_windows maintenance_public_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY maintenance_public_read ON public.maintenance_windows FOR SELECT USING (true);
+
+
+--
+-- Name: maintenance_windows; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.maintenance_windows ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: marketing_audit_logs; Type: ROW SECURITY; Schema: public; Owner: -
