@@ -216,6 +216,33 @@ them so, and both belong there anyway.
 can fail plus one that no exemption is stale — an exemption nobody verifies is a
 silenced test.
 
+## ⚠️ MEASURED: the whole /admin/payments console is unreachable (2026-08-01)
+
+Same sweep as the public one above, run against the admin consoles. 50 admin
+pages, 17 absent from both `adminNav` and `SUPER_ADMIN_NAV`. Eleven of those are
+`/admin/marketing/*`, most of which are compatibility redirects to
+`/admin/marketing?tab=…` and are fine. The other six are not:
+
+```
+/admin/payments/campaign-flows   ← the ONLY one with a nav entry
+/admin/payments/disputes
+/admin/payments/payouts
+/admin/payments/processors
+/admin/payments/reconciliation
+/admin/payments/refunds
+```
+
+**Five real, Supabase-wired pages** — disputes, owner payouts, processor status,
+reconciliation and refunds, all reading through `lib/payment-admin-data.ts` — and
+**nothing in the product links to any of them.** Grepping the whole tree for
+`/admin/payments/` outside that directory returns exactly two hrefs:
+`campaign-flows` and an export endpoint. An admin can reach the payment-flow
+table and has no way to discover the other five views of the same data.
+
+Claimed by this lane (tbaz3i). Fixing with a section sub-nav plus a test that
+every `app/admin/payments/*/page.tsx` on disk appears in it — so the next view
+added to this section cannot be born unreachable.
+
 ## 🔀 I18N LANE SPLIT — read this before touching a string (Claude, 2026-08-01)
 
 Two bots built the cause taxonomy, `/causes`, `/causes/[slug]` and the mega-menu
