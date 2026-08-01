@@ -4,6 +4,18 @@
 import type { Dictionary } from '../i18n';
 
 export const es: Dictionary = {
+  'footer.link.webinars': 'Seminarios web',
+  'footer.link.community': 'Comunidad',
+  'footer.link.support': 'Soporte',
+  'footer.link.press': 'Prensa',
+  'footer.link.brand_assets': 'Recursos de marca',
+  'footer.link.resources': 'Recursos',
+  'footer.link.create_team': 'Crear un equipo',
+  'footer.link.mobile_app': 'CharitMe en el móvil',
+  'footer.link.impact_map': 'Mapa de impacto',
+  'footer.link.glossary': 'Glosario',
+  'footer.link.internships': 'Prácticas',
+  'footer.link.feedback': 'Enviar comentarios',
   // ── Homepage data cards (i18n string migration) ──────────────────────────
   'home.feature.start.t': 'Crear una recaudación',
   'home.feature.start.b': 'Lanza una campaña fiable en minutos: la IA redacta tu historia, tu meta y tu plan.',

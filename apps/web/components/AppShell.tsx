@@ -66,7 +66,7 @@ function MenuLinkIcon({ index }: { index: number }) {
 // Bypass the public marketing shell for routes that have their own shell (dashboard/admin)
 // NOTE: /campaigns is intentionally NOT bypassed — public campaign pages need the header
 // NOTE: /create is intentionally NOT bypassed — it now shows the global nav above its wizard
-const SHELL_BYPASS = ['/dashboard', '/admin', '/profile'];
+const SHELL_BYPASS = ['/dashboard', '/admin', '/profile', '/maintenance'];
 
 // Campaign embed widgets (/campaigns/[slug]/embed) are designed to run inside an
 // <iframe> on third-party sites — they render their own minimal layout and must
@@ -106,6 +106,7 @@ function NavMenu({
 }) {
   const t = useT();
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Whether the panel currently open was opened by hover rather than by a click.
   //
   // Without this, a mouse user hovers the trigger (panel opens), clicks it, and
@@ -115,6 +116,17 @@ function NavMenu({
   // so whether the hover landed first decided the result, and the suite failed
   // at 1440px while passing at 1280/1366/1920.
   const hoverOpened = useRef(false);
+
+  const cancelHoverClose = () => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  };
+
+  useEffect(() => () => {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+  }, []);
 
   // Escape is bound at the document rather than via onKeyDown on the wrapper:
   // the wrapper is a plain <div>, and hanging a key handler on it makes it a
@@ -143,8 +155,25 @@ function NavMenu({
     // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div
       className="kind-menu-wrap"
-      onMouseEnter={() => { hoverOpened.current = !open; onOpen(); }}
-      onMouseLeave={() => { hoverOpened.current = false; onClose(false); }}
+      onMouseEnter={() => {
+        cancelHoverClose();
+        if (!open) {
+          hoverOpened.current = true;
+          onOpen();
+        }
+      }}
+      onMouseLeave={() => {
+        // A click pins the menu open; only a menu opened exclusively by hover
+        // should follow the pointer out. The short grace period bridges the
+        // deliberate visual gap between the trigger bar and the panel.
+        if (!hoverOpened.current) return;
+        cancelHoverClose();
+        closeTimerRef.current = setTimeout(() => {
+          hoverOpened.current = false;
+          closeTimerRef.current = null;
+          onClose(false);
+        }, 240);
+      }}
     >
       <button
         ref={triggerRef}
@@ -158,6 +187,7 @@ function NavMenu({
           // click close it, so the toggle still works.
           if (open && !hoverOpened.current) { onClose(false); return; }
           hoverOpened.current = false;
+          cancelHoverClose();
           onOpen();
         }}
       >
@@ -170,7 +200,14 @@ function NavMenu({
       {/* Rendered only when open. Keeping it mounted and hidden with CSS would
           leave up to 20 links in the tab order on every page of the site. */}
       {open && (
-        <div id={`nav-panel-${item.id}`} className={`kind-menu-panel kind-menu-panel-${item.id} align-${align}`}>
+        // Pointer entry only cancels a pending hover timeout; all actual menu
+        // actions remain native buttons and links with keyboard equivalents.
+        // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+        <div
+          id={`nav-panel-${item.id}`}
+          className={`kind-menu-panel kind-menu-panel-${item.id} align-${align}`}
+          onMouseEnter={cancelHoverClose}
+        >
           <div className={`kind-menu-layout kind-menu-layout-${item.id}`}>
           <div className="kind-menu-cols" data-cols={item.columns.length}>
             {item.columns.map((col, columnIndex) => (

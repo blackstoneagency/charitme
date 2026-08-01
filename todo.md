@@ -1,5 +1,22 @@
 # CharitMe — Execution Tracker
 
+## ✅ CI IS ALIVE AGAIN — red checks are real now (2026-08-01)
+
+The GitHub Actions outage is OVER. Verified on run `30704209059`:
+`runner_id: 1000001483`, a real runner name, all steps present, 3m09s. The
+outage signature was `runner_id: 0`, empty `runner_name`, created and failed in
+the same second, no steps.
+
+**Every note in this file saying "a red check is not a signal" is superseded.**
+Blocker #1 in the READ FIRST box is cleared.
+
+It immediately earned its keep: it caught five pages that were in the sitemap and
+linked from neither the header nor the footer — a real "wire all navigation"
+failure that the local suite missed because master had gained the guard and this
+branch had not merged it yet. **A local pass with fewer tests than CI is not
+flakiness; merge master before assuming CI is wrong.**
+
+
 ## 🛑 READ FIRST — what is blocked, and by whom (updated 2026-07-29)
 
 Everything below this box is engineering detail. These are the remaining
@@ -36,20 +53,20 @@ volunteer (44/45), events (48), matching (55), accessibility (68), safety (69 �
 |---|---|---|---|
 | 1 | `/search` — global + advanced search/filters | 36, 37 | 🔵 **CLAIMED wcu7oh** |
 | 2 | `/teams` — team hub | 49 | 🔵 **CLAIMED wcu7oh** |
-| 3 | `/teams/create` — 5-step wizard | 50–53 | 🔵 **CLAIMED wcu7oh** |
-| 4 | `/impact-map` — global impact map | 59 | 🔵 **CLAIMED wcu7oh** |
+| 3 | `/teams/create` — 5-step wizard | 50–53 | ✅ **BUILT wcu7oh** |
+| 4 | `/impact-map` — global impact map | 59 | ✅ **BUILT wcu7oh** |
 | 5 | `/donor-wall` — hall of thanks / recognition | 62, 81 | 🔵 **CLAIMED wcu7oh** |
-| 6 | `/glossary` | 73 | ⬜ unclaimed |
+| 6 | `/glossary` | 73 | ✅ **BUILT wcu7oh** |
 | 7 | `/press` — press releases + detail | 77 | ⬜ unclaimed |
-| 8 | `/brand-assets` — media kit | 78 | ⬜ unclaimed |
-| 9 | `/mobile-app` | 67 | ⬜ unclaimed |
-| 10 | `/webinars` + detail | 76 | ⬜ unclaimed |
-| 11 | `/resources` — guide index + detail | 75 | ⬜ unclaimed |
-| 12 | `/community` — social feed | 82 | ⬜ unclaimed |
-| 13 | `/support/chat` — live support | 71 | ⬜ unclaimed |
-| 14 | `/internships` | 46 | ⬜ unclaimed |
-| 15 | `/feedback` | 47 | ⬜ unclaimed |
-| 16 | `/certificate` — donor certificate | 64 | ⬜ unclaimed |
+| 8 | `/brand-assets` — media kit | 78 | ✅ **BUILT wcu7oh** |
+| 9 | `/mobile-app` | 67 | ✅ **BUILT wcu7oh** |
+| 10 | `/webinars` + detail | 76 | ✅ **BUILT wcu7oh** |
+| 11 | `/resources` — guide index + detail | 75 | ✅ **BUILT wcu7oh** |
+| 12 | `/community` — social feed | 82 | ✅ **BUILT wcu7oh** |
+| 13 | `/support/chat` — live support | 71 | ✅ **BUILT wcu7oh** |
+| 14 | `/internships` | 46 | ✅ **BUILT wcu7oh** |
+| 15 | `/feedback` | 47 | ✅ **BUILT wcu7oh** |
+| 16 | `/certificate` — donor certificate | 64 | 🔵 **CLAIMED wcu7oh 14:10** |
 
 ### Enhancements to EXISTING pages the sheets ask for
 
@@ -71,7 +88,34 @@ Same as everything else here, and they are what the guards enforce:
   `e2e/public-routes.json` and `lib/public-routes.ts`.
 - Translated, or explicitly listed in the i18n lane table as pending.
 
-## 🗂 35-PAGE DESIGN SET — inventory measured against production (Claude, 2026-08-01)
+## ✅ HOMEPAGE HERO — featured-campaign rotator (Claude, 2026-08-01)
+
+Shipped in `8d0915d`. `HeroSpotlightCarousel` already had both variants; the
+homepage was passing `variant="mirror"` (a minimal text card) where the design
+asks for `variant="card"` (photo + Trust Score/Donors/Funded chips + campaign card
++ dot pagination). One-line change.
+
+### ⚠️ A token that never applies fails exactly like a token that is wrong
+The card variant had **never rendered on this page**, so its dark styling was
+unexercised — and switching to it surfaced **10 AA failures, up to 1.23:1**.
+`.home-spot-card` and `.home-spot-stat` read `var(--h-card, #fff)`. Those tokens
+were scoped to **`.home`**, the PREVIOUS homepage wrapper; the redesigned page
+roots at **`.mirror-home`**, so the token never resolved and the `#fff` fallback
+won — a white card carrying dark-theme text.
+
+**`var(--x, #fff)` fails silently and looks deliberate.** Worth grepping for
+whenever a wrapper class changes: any token scoped to a wrapper stops applying the
+moment that wrapper is renamed, and the fallback is what ships.
+
+### 🔎 And a diagnosis I got wrong first
+Production showed no `home-spot` markup, so I concluded the rotator was falling
+back to its empty state and spent time proving `heroItems` was empty — checking
+eligibility (180 campaigns qualify) and the PostgREST select (200, rows returned).
+Both were fine. **The rotator had been rendering the whole time**; the `mirror`
+variant uses different class names and I had grepped for the card variant's.
+Checking which variant is mounted would have been one step instead of three.
+
+## 🗂 35-PAGE DESIGN SET## 🗂 35-PAGE DESIGN SET — inventory measured against production (Claude, 2026-08-01)
 
 Checked every route in the 35-box design set against **production**, not against
 the repo. Result: **27 exist, 8 return 404.**
@@ -300,6 +344,30 @@ honest end state; this file is a 15,000-line engineering log, so "empty" means
 the *actionable* queue is empty, not that the history has been deleted.
 
 ### Closed this session
+
+- **Global navigation persistence + black dark-mode surface - release candidate.**
+  The dark marketing header and mobile sheet now use a true `#000` surface.
+  Hover-open mega-menus receive a 240ms gap-crossing grace period, while an
+  intentional click pins the panel until a link selection, outside click,
+  Escape, or route change. The complete header browser contract passes **23/23**
+  checks across 1280/1366/1440/1920 widths and both themes, including center
+  hit-testing of every rendered menu link, keyboard operation, and focus return.
+- **Supabase-backed maintenance mode - release candidate.** Super Admin ->
+  Platform Settings now controls the global maintenance redirect, editable
+  visitor message, optional real return deadline, and countdown. Admin, login,
+  password recovery, offline, and maintenance routes stay reachable; all other
+  page requests read the cached `platform_settings.config` value and fail open
+  if Supabase is unavailable. The dedicated end-to-end audit proves rejected
+  unauthenticated and malformed writes, UI save, independent Supabase readback,
+  public redirect, custom copy, countdown, transparent artwork, mobile dark-mode
+  rendering, disable/save, and public-site recovery.
+- **Measured release gate:** production build generated **208 pages**; TypeScript
+  and ESLint are clean; **2,326 tests / 212 files** pass; the populated
+  super-admin persona audit passes against 120 campaigns and 400 donations.
+  The integrated signed-in contrast sweep examined **181 pages x 2 themes** and
+  52,621 rendered text elements with **0 AA failures**. Four sparse fixture
+  renders remain explicit (`/dashboard/saved` and campaign updates in each
+  theme) so their data-conditional sections can be strengthened next.
 
 - **Homepage design mirror release candidate — done.** Rebuilt the public home
   surface around the supplied community reference: owned full-bleed hero art,

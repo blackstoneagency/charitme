@@ -29,7 +29,8 @@
     "audit:campaign-images:live": "node scripts/audit-campaign-images.mjs --live",
     "check:env": "node scripts/check-env.mjs",
     "audit:orphan-tables": "node scripts/audit-orphan-tables.mjs",
-    "audit:shell-seam": "node scripts/audit-shell-seam.mjs"
+    "audit:shell-seam": "node scripts/audit-shell-seam.mjs",
+    "audit:maintenance": "node scripts/audit-maintenance-mode.mjs --build"
   },
   "dependencies": {
     "@shared/fees": "*",

@@ -2670,7 +2670,14 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 .mirror-impact-empty { min-height: 100%; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 12px; padding: 34px; }
 .mirror-impact-empty > .hi { width: 38px; height: 38px; color: var(--mh-pink); }
 .mirror-impact-empty h2, .mirror-impact-empty p { margin: 0; }
-.mirror-impact-empty p { color: var(--mh-muted); }
+/* `.mirror-impact-card` hardcodes a DARK background (#090f20) in both themes,
+   so its text must be hardcoded light too — which the sibling
+   `.mirror-impact-copy` already does. This empty state instead inherited
+   `--mh-text`/`--mh-muted`, which flip to DARK values in light mode: the
+   heading measured 1:1 (invisible) and the paragraph 2.82:1. It only renders
+   when there is no impact campaign to show, which is why nobody saw it. */
+.mirror-impact-empty h2 { color: #fff; }
+.mirror-impact-empty p { color: #aeb8c6; }
 .mirror-proof-copy { min-width: 0; display: flex; flex-direction: column; gap: 14px; }
 .mirror-testimonials { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .mirror-testimonials article { min-height: 190px; padding: 22px; border: 1px solid var(--mh-line); border-radius: 7px; background: var(--mh-panel); }
@@ -5686,19 +5693,9 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 
 /* ── Marketing shell header ── */
 [data-theme="dark"] .kind-header {
-  /* TRANSPARENT, so the banner is literally the same pixels as the page.
-     This was rgba(10,12,35,.92) — a near-black tint that composited over the
-     body's radial gradient and read as a distinct dark bar against a purple
-     page.
-     ⚠️ It cannot be fixed with a solid colour. The page behind is a GRADIENT
-     (`radial-gradient(circle at 50% 0%, #1a1040, #0f1128 42%, #090b1e)` on
-     body), so any single hex matches at exactly one scanline and drifts
-     everywhere else. Transparency is the only thing that matches a gradient
-     at every point.
-     `backdrop-filter` goes with it: the header is `position: relative`, so
-     nothing ever scrolls beneath it, and a blur over the page would resample
-     the gradient and reintroduce a visible edge. */
-  background: transparent;
+  /* A fixed black bar keeps global navigation visually stable across every
+     dark-mode page, regardless of the page-specific background beneath it. */
+  background: #000;
   backdrop-filter: none;
 }
 [data-theme="dark"] .kind-logo strong { color: var(--t1); }
@@ -5720,7 +5717,7 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 }
 [data-theme="dark"] .kind-menu span { background: var(--t1); }
 [data-theme="dark"] .kind-mobile {
-  background: rgba(10,12,35,.98);
+  background: #000;
   border-top: 1px solid var(--line);
 }
 [data-theme="dark"] .kind-mobile a,
@@ -7098,7 +7095,14 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 /* ═══════════════════════════════════════════════════════════════════════════
    HOMEPAGE (rebuilt) — token-driven, mobile-first, light/dark via data-theme
    ═══════════════════════════════════════════════════════════════════════════ */
-.home {
+/* `.mirror-home` is the NEW homepage wrapper; `.home` is the previous one.
+   These card tokens were scoped to `.home` only, so on the redesigned page
+   `var(--h-card, #fff)` fell through to its WHITE fallback — in both themes. In
+   dark mode that rendered the hero rotator card as a white panel with light text,
+   10 AA failures at up to 1.23:1. Scoping both wrappers is what makes the token
+   actually reach the component. */
+.home,
+.mirror-home {
   --h-accent: #6d35ff;
   --h-accent2: var(--pink-btn, #ec39c3);
   --h-accent-text: #6d35ff; /* accent used as TEXT — AA on light surfaces */
@@ -7123,7 +7127,8 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
   color: var(--t1);
   box-shadow: 0 20px 90px rgba(43, 39, 89, .10);
 }
-[data-theme="dark"] .home {
+[data-theme="dark"] .home,
+[data-theme="dark"] .mirror-home {
   --h-card: #141736;
   --h-card-brd: rgba(255,255,255,.09);
   --h-glass: rgba(20,23,54,.6);
@@ -7985,4 +7990,153 @@ summary:focus-visible,
   .kind-menu { display: block; margin-left: 12px; }
   .kind-mobile { display: grid; gap: 16px; padding: 16px 28px 24px; background: rgba(255, 255, 255, .96); }
   .kind-mobile a { font-weight: 850; }
+}
+
+/* Standalone maintenance route, based on the supplied CharitMe availability screen. */
+.maintenance-page {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  padding: 88px 24px 48px;
+  background: var(--bg);
+  color: var(--t1);
+}
+.maintenance-brand {
+  position: absolute;
+  top: 24px;
+  left: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  color: var(--t1);
+  font-size: 19px;
+  font-weight: 900;
+  text-decoration: none;
+}
+.maintenance-brand img { border-radius: 8px; }
+.maintenance-content {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 720px);
+  text-align: center;
+}
+.maintenance-art {
+  display: block;
+  width: min(100%, 620px);
+  height: auto;
+  margin: 0 auto 8px;
+  object-fit: contain;
+}
+.maintenance-content h1 {
+  margin: 0;
+  color: var(--t1);
+  font-size: clamp(32px, 5vw, 54px);
+  line-height: 1.05;
+  letter-spacing: 0;
+}
+.maintenance-content > p:not(.maintenance-follow):not(.maintenance-status) {
+  max-width: 620px;
+  margin: 18px auto 0;
+  color: var(--t2);
+  font-size: 17px;
+  line-height: 1.65;
+}
+.maintenance-countdown {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(76px, 1fr));
+  gap: 12px;
+  width: min(100%, 480px);
+  margin: 28px auto 0;
+}
+.maintenance-time {
+  min-width: 0;
+  padding: 16px 10px;
+  border: 1px solid var(--b1);
+  border-radius: 8px;
+  background: var(--s1);
+  box-shadow: var(--shadow);
+}
+.maintenance-time strong,
+.maintenance-time span { display: block; }
+.maintenance-time strong {
+  font-size: 28px;
+  line-height: 1;
+  color: var(--t1);
+}
+.maintenance-time span {
+  margin-top: 7px;
+  color: var(--t3);
+  font-size: 12px;
+  font-weight: 700;
+}
+.maintenance-status {
+  margin: 26px auto 0;
+  color: var(--t2);
+  font-weight: 750;
+}
+.maintenance-home-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin-top: 28px;
+  padding: 0 22px;
+  border-radius: 8px;
+  background: var(--green-btn);
+  color: #fff;
+  font-weight: 800;
+  text-decoration: none;
+}
+.maintenance-follow {
+  margin: 28px 0 0;
+  color: var(--t3);
+  font-size: 13px;
+}
+.maintenance-follow a { color: var(--violet-ink); font-weight: 750; }
+.maintenance-cloud {
+  position: absolute;
+  width: 82px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--s3);
+  opacity: .75;
+}
+.maintenance-cloud::before,
+.maintenance-cloud::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  border-radius: 999px 999px 0 0;
+  background: inherit;
+}
+.maintenance-cloud::before { left: 15px; width: 29px; height: 34px; }
+.maintenance-cloud::after { right: 14px; width: 23px; height: 27px; }
+.maintenance-cloud-one { top: 18%; left: 10%; }
+.maintenance-cloud-two { top: 14%; right: 11%; transform: scale(.72); }
+.super-maintenance-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(220px, .8fr);
+  gap: 14px;
+  margin-top: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--b1);
+}
+.super-maintenance-fields label { color: var(--t3); font-size: 12px; }
+.super-maintenance-fields label:first-child { grid-row: span 2; }
+.super-maintenance-fields label span { display: block; margin-top: 4px; text-align: right; }
+.super-maintenance-fields a { align-self: end; color: var(--violet-ink); font-size: 13px; font-weight: 750; }
+@media (max-width: 640px) {
+  .maintenance-page { padding: 84px 18px 36px; }
+  .maintenance-brand { top: 18px; left: 18px; }
+  .maintenance-art { width: 100%; margin-bottom: 16px; }
+  .maintenance-content h1 { font-size: 34px; }
+  .maintenance-content > p:not(.maintenance-follow):not(.maintenance-status) { font-size: 15px; }
+  .maintenance-countdown { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 300px; }
+  .maintenance-cloud-one { left: -30px; }
+  .maintenance-cloud-two { right: -26px; }
+  .super-maintenance-fields { grid-template-columns: 1fr; }
+  .super-maintenance-fields label:first-child { grid-row: auto; }
 }
