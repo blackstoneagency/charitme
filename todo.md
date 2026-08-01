@@ -842,6 +842,39 @@ wrong one, and it reads exactly like a real regression.
 
 Zero findings. The hero fix is verified, and all 46 "defects" were the artifact.
 
+### 📊 THE SIGNED-IN HALF, MEASURED FOR THE FIRST TIME
+
+`npm run audit:mobile:signed-in` — the sweep that had never existed — over public
++ gated routes at 320px and 390px:
+
+**71 horizontal overflows across 40 distinct routes.** The worst are not close:
+
+| route | document width at a 320px viewport |
+|---|---|
+| `/admin/campaigns` | **1020px** (3.2× the viewport) |
+| `/admin/reports` | 890px |
+| `/admin/audit-log` | 880px |
+| `/admin/payments/.../transactions/[id]` | 772px |
+| `/dashboard/analytics` | 736px |
+| `/admin/payouts` | 612px |
+| `/admin/donations` | 600px |
+| `/dashboard/refund` | 554px |
+| `/dashboard/campaigns/[id]/edit` | 542px |
+
+Plus tap targets under 24px on 10 routes, `/dashboard/notifications` alone
+carrying 18.
+
+**This is what "the site looks terrible on mobile" actually refers to**, and it
+is exactly the half both existing sweeps skipped. The public site measures clean
+at 78 pages × 3 viewports × 2 themes; the signed-in half has 40 routes that a
+phone cannot render without sideways scrolling.
+
+The cause is structural and known: **74 hardcoded multi-column
+`gridTemplateColumns` in inline styles** (`'1fr 1fr 120px 120px 130px'`,
+`'56px 1fr 120px 140px 80px 90px 110px'`, …). Inline styles cannot carry a media
+query, so no breakpoint can reach them — the fix is to move those row templates
+into CSS classes, or to give the tables a scroll container of their own.
+
 ### In flight
 
 `audit-mobile.mjs` gains `--auth` and sweeps the gated routes from the same

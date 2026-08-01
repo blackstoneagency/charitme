@@ -3,7 +3,6 @@ import Image from 'next/image';
 import type React from 'react';
 import type { Metadata } from 'next';
 import { formatMoneyCompact } from '@shared/currencies';
-import CampaignImage from '../components/CampaignImage';
 import JsonLd from '../components/JsonLd';
 import { isRotatorEligible } from '../lib/featured';
 import { getCoverForCategory, getCoverForCampaign } from '../lib/photo-catalog';
@@ -120,7 +119,6 @@ export default async function HomePage() {
     href: `/campaigns/${c.slug}`,
   })));
 
-  const impactCampaign = heroItems[0] ?? null;
   const jsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
@@ -173,7 +171,6 @@ export default async function HomePage() {
             </div>
             <div className="mirror-quick-links">
               <Link href="#causes">Explore Causes <Icon name="arrow" /></Link>
-              <Link href="#impact"><Icon name="play" /> Watch Our Impact</Link>
             </div>
           </div>
           {/* The `card` variant, not `mirror`.
@@ -231,32 +228,6 @@ export default async function HomePage() {
 
       <section id="impact" className="mirror-band mirror-proof" aria-labelledby="mirror-proof-title">
         <div className="mirror-wrap mirror-proof-grid">
-          <Reveal className="mirror-impact-card">
-            {impactCampaign ? (
-              <Link href={impactCampaign.href}>
-                <div className="mirror-impact-media">
-                  <CampaignImage src={impactCampaign.cover} category={null} campaignKey={impactCampaign.slug} alt={impactCampaign.title} width={620} height={390} />
-                  <span>Active campaign</span>
-                </div>
-                <div className="mirror-impact-copy">
-                  <h2>{impactCampaign.title}</h2>
-                  <p>{formatMoneyCompact(impactCampaign.raised, impactCampaign.currency)} raised · {impactCampaign.backers.toLocaleString()} donors</p>
-                  <div className="mirror-impact-progress" role="progressbar" aria-label={`${impactCampaign.funded}% funded`} aria-valuenow={impactCampaign.funded} aria-valuemin={0} aria-valuemax={100}>
-                    <span style={{ width: `${impactCampaign.funded}%` }} />
-                  </div>
-                  <strong>Donate Now <Icon name="heart" /></strong>
-                </div>
-              </Link>
-            ) : (
-              <div className="mirror-impact-empty">
-                <Icon name="heart" />
-                <h2>Make your impact visible.</h2>
-                <p>Launch a trusted campaign and bring your community together.</p>
-                <Link href="/create/choose-path" className="mirror-btn mirror-btn-primary">Start a fundraiser</Link>
-              </div>
-            )}
-          </Reveal>
-
           <div className="mirror-proof-copy">
             <div className="mirror-testimonials">
               {recentDonations.length > 0

@@ -2770,7 +2770,11 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 .mirror-metric-grid dl:nth-of-type(4) dd { color: #b46aff; }
 
 .mirror-proof { padding-block: var(--band-pad); }
-.mirror-proof-grid { display: grid; grid-template-columns: minmax(320px, .95fr) minmax(0, 1.35fr); gap: 48px; align-items: stretch; }
+/* One column since the spotlight campaign card was removed from this section.
+   Left as a two-track grid it kept a 320px minimum column reserved for a child
+   that no longer exists, so the remaining copy rendered in ~58% of the band with
+   a wide empty gutter beside it. */
+.mirror-proof-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 48px; align-items: stretch; }
 .mirror-impact-card { min-width: 0; overflow: hidden; border: 1px solid #263646; border-radius: 7px; background: #090f20; }
 .mirror-impact-card > a { display: block; height: 100%; color: inherit; }
 .mirror-impact-media { position: relative; aspect-ratio: 16 / 9; overflow: hidden; background: var(--mh-panel-2); }
