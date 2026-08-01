@@ -176,7 +176,16 @@ export default async function HomePage() {
               <Link href="#impact"><Icon name="play" /> Watch Our Impact</Link>
             </div>
           </div>
-          <HeroSpotlightCarousel items={heroItems} variant="mirror" />
+          {/* The `card` variant, not `mirror`.
+              Both are the same live rotator over the same eligible campaigns —
+              `mirror` renders a minimal text card (label, title, one line, a
+              link), while `card` renders the approved design: the campaign
+              photo with Trust Score / Donors / Funded chips, the ACTIVE or
+              VERIFIED badge, organiser, raised-of-goal with a progress bar,
+              donation count, days left, a Donate Now button, and dot pagination.
+              Nothing new was built here — the richer variant already existed and
+              the homepage was simply asking for the plain one. */}
+          <HeroSpotlightCarousel items={heroItems} variant="card" />
         </div>
       </section>
 

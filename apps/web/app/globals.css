@@ -7105,7 +7105,14 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 /* ═══════════════════════════════════════════════════════════════════════════
    HOMEPAGE (rebuilt) — token-driven, mobile-first, light/dark via data-theme
    ═══════════════════════════════════════════════════════════════════════════ */
-.home {
+/* `.mirror-home` is the NEW homepage wrapper; `.home` is the previous one.
+   These card tokens were scoped to `.home` only, so on the redesigned page
+   `var(--h-card, #fff)` fell through to its WHITE fallback — in both themes. In
+   dark mode that rendered the hero rotator card as a white panel with light text,
+   10 AA failures at up to 1.23:1. Scoping both wrappers is what makes the token
+   actually reach the component. */
+.home,
+.mirror-home {
   --h-accent: #6d35ff;
   --h-accent2: var(--pink-btn, #ec39c3);
   --h-accent-text: #6d35ff; /* accent used as TEXT — AA on light surfaces */
@@ -7130,7 +7137,8 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
   color: var(--t1);
   box-shadow: 0 20px 90px rgba(43, 39, 89, .10);
 }
-[data-theme="dark"] .home {
+[data-theme="dark"] .home,
+[data-theme="dark"] .mirror-home {
   --h-card: #141736;
   --h-card-brd: rgba(255,255,255,.09);
   --h-glass: rgba(20,23,54,.6);
