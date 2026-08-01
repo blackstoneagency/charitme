@@ -177,7 +177,22 @@ Measured against `schema.sql` — this is the real constraint on the whole deck:
 |---|---|---|
 | **148 Donation Form Builder** | `donation_forms` | ✅ **EXISTS + applied in prod, and has NO reader** — orphan table |
 | 184 Organization Profile | `organizations` | ⚠️ exists but **not applied in prod** (see the migrations runbook) — building on it ships inert code |
-| 144 Calendar, 145 Tasks, 146 Email Templates, 153 Documents, 149 Currencies, 150 Custom Domain, 166 Changelog, 168 Incidents, 169 Maintenance, 171 Backups, 172 Retention, 174 Webhooks | **none of these tables exist** | each needs a migration first — and migrations **cannot be applied from the sandbox**, so they would ship inert like the volunteer/organization work already has |
+| 144 Calendar, 145 Tasks, 153 Documents, 149 Currencies, 150 Custom Domain, 166 Changelog, 168 Incidents, 169 Maintenance, 171 Backups, 172 Retention | **none of these tables exist** | each needs a migration first — and migrations **cannot be applied from the sandbox**, so they would ship inert like the volunteer/organization work already has |
+
+⚠️ **Correction to the row above — I probed guessed table names and got two wrong.**
+The first pass checked for `webhooks` and `email_templates`; the real tables are
+**`outbound_webhook_endpoints`** and **`marketing_email_templates`**, and both
+exist. What surfaced it was `npm run audit:orphan-tables` printing the actual
+155-table list — i.e. reading the schema instead of interrogating it with names I
+had made up. Corrected status:
+
+| page | table | reader today |
+|---|---|---|
+| **174 Webhooks** | `outbound_webhook_endpoints` ✅ exists | only `/admin/system` — **no user-facing management UI** |
+| **146 Email Templates** | `marketing_email_templates` ✅ exists | only the admin automations route — **no template CRUD page** |
+
+Both are therefore buildable *now*, on the same footing as #148, and are the two
+to take next. Not claimed yet — whoever takes one, claim it here first.
 
 ⚠️ **This is why the deck is not "just build 17 pages".** 12 of them would land as
 code with no table behind them in production, repeating exactly the

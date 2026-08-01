@@ -356,17 +356,40 @@ $$;
 
 
 --
+-- Name: increment_peer_fundraiser_after_donation(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.increment_peer_fundraiser_after_donation() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+begin
+  -- Mirrors increment_campaign_stats_after_donation's guard: only completed
+  -- money counts. A pending or failed row must not move a public total.
+  if new.status = 'completed' and new.peer_fundraiser_id is not null then
+    update public.peer_fundraisers
+    set raised_amount = raised_amount + new.amount_cents,
+        updated_at    = now()
+    where id = new.peer_fundraiser_id;
+  end if;
+  return new;
+end;
+$$;
+
+
+--
 -- Name: is_admin(); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.is_admin() RETURNS boolean
     LANGUAGE sql STABLE SECURITY DEFINER
-    SET search_path TO 'public', 'pg_temp'
+    SET search_path TO 'pg_catalog', 'public'
     AS $$
   select exists (
-    select 1 from public.profiles
+    select 1
+    from public.profiles
     where id = auth.uid()
-      and roles ? 'admin'
+      and (roles ? 'admin' or roles ? 'super_admin')
   );
 $$;
 
@@ -495,16 +518,17 @@ $$;
 
 
 --
--- Name: record_donation(text, uuid, uuid, bigint, bigint, bigint, text, boolean, text, text); Type: FUNCTION; Schema: public; Owner: -
+-- Name: record_donation(text, uuid, uuid, bigint, bigint, bigint, text, boolean, text, text, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.record_donation(p_stripe_event_id text, p_campaign_id uuid, p_donor_id uuid, p_amount_cents bigint, p_tip_cents bigint, p_processing_fee_cents bigint, p_message text, p_anonymous boolean, p_stripe_payment_intent_id text, p_stripe_checkout_session_id text) RETURNS jsonb
+CREATE FUNCTION public.record_donation(p_stripe_event_id text, p_campaign_id uuid, p_donor_id uuid, p_amount_cents bigint, p_tip_cents bigint, p_processing_fee_cents bigint, p_message text, p_anonymous boolean, p_stripe_payment_intent_id text, p_stripe_checkout_session_id text, p_peer_fundraiser_id uuid DEFAULT NULL::uuid) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog', 'public', 'pg_temp'
     AS $$
 declare
   v_existing uuid;
   v_lock_key text;
+  v_peer_id uuid;                          -- +peer
 begin
   -- Serialize concurrent processing of the SAME donation. Prefer the payment
   -- intent id, then the checkout session id, then the event id as the lock key
@@ -528,15 +552,41 @@ begin
     return jsonb_build_object('status','already_processed','id', v_existing);
   end if;
 
+  -- +peer: the id arrives from Stripe metadata, which is client-influenced —
+  -- the donor picked the supporter page they gave through. Verify here rather
+  -- than trusting it, because this runs SECURITY DEFINER: a peer id belonging
+  -- to a DIFFERENT campaign would otherwise credit an unrelated supporter for
+  -- money that campaign never received. An id that does not check out is
+  -- dropped to NULL rather than raising: the donation is real and already paid
+  -- for, so it must be recorded as a direct gift, never lost.
+  if p_peer_fundraiser_id is not null then
+    -- NOTE the column is `parent_campaign_id`, not `campaign_id`. Every other
+    -- table in this schema names it `campaign_id`, so the wrong guess compiles
+    -- as a plain "column does not exist" only at RUN time, inside the money
+    -- path, where the handler rethrows and Stripe retries forever.
+    select id into v_peer_id
+    from peer_fundraisers
+    where id = p_peer_fundraiser_id
+      and parent_campaign_id = p_campaign_id
+    limit 1;
+  end if;
+
   -- The AFTER INSERT trigger donations_increment_campaign_stats increments
   -- campaigns.raised_amount / backer_count for this 'completed' row. Do NOT
   -- increment again here — that double-counts (see migration header).
+  --
+  -- +peer: donations_increment_peer_fundraiser (previous migration) rolls the
+  -- same row into peer_fundraisers.raised_amount. It is a SEPARATE trigger on
+  -- the same INSERT, so the parent campaign is credited exactly once and the
+  -- supporter exactly once. Do not add a peer increment here either.
   insert into donations (
     campaign_id, donor_id, amount_cents, tip_cents, processing_fee_cents,
-    status, anonymous, message, stripe_payment_intent_id, stripe_checkout_session_id
+    status, anonymous, message, stripe_payment_intent_id, stripe_checkout_session_id,
+    peer_fundraiser_id                                                    -- +peer
   ) values (
     p_campaign_id, p_donor_id, p_amount_cents, p_tip_cents, p_processing_fee_cents,
-    'completed', p_anonymous, p_message, p_stripe_payment_intent_id, p_stripe_checkout_session_id
+    'completed', p_anonymous, p_message, p_stripe_payment_intent_id, p_stripe_checkout_session_id,
+    v_peer_id                                                             -- +peer
   );
 
   insert into webhook_events (stripe_event_id, event_type, payload, processed_at)
@@ -1693,6 +1743,8 @@ CREATE TABLE public.campaigns (
     deleted_at timestamp with time zone,
     visibility text DEFAULT 'public'::text NOT NULL,
     is_demo boolean DEFAULT false NOT NULL,
+    latitude double precision,
+    longitude double precision,
     CONSTRAINT campaigns_category_check CHECK ((category = ANY (ARRAY['Medical'::text, 'Memorial'::text, 'Emergency'::text, 'Nonprofit'::text, 'Education'::text, 'Animal'::text, 'Environment'::text, 'Business'::text, 'Community'::text, 'Competition'::text, 'Creative'::text, 'Event'::text, 'Faith'::text, 'Family'::text, 'Sports'::text, 'Travel'::text, 'Volunteer'::text, 'Wishes'::text]))),
     CONSTRAINT campaigns_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'active'::text, 'paused'::text, 'completed'::text, 'rejected'::text, 'frozen'::text]))),
     CONSTRAINT campaigns_visibility_check CHECK ((visibility = ANY (ARRAY['public'::text, 'unlisted'::text, 'private'::text])))
@@ -1949,6 +2001,7 @@ CREATE TABLE public.donations (
     is_demo boolean DEFAULT false NOT NULL,
     tip_cents bigint DEFAULT 0 NOT NULL,
     processing_fee_cents bigint DEFAULT 0 NOT NULL,
+    peer_fundraiser_id uuid,
     CONSTRAINT donations_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'completed'::text, 'refunded'::text, 'failed'::text])))
 );
 
@@ -4362,6 +4415,22 @@ ALTER TABLE ONLY public.campaign_wizard_drafts
 
 
 --
+-- Name: campaigns campaigns_latitude_range; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE public.campaigns
+    ADD CONSTRAINT campaigns_latitude_range CHECK (((latitude IS NULL) OR ((latitude >= ('-90'::integer)::double precision) AND (latitude <= (90)::double precision)))) NOT VALID;
+
+
+--
+-- Name: campaigns campaigns_longitude_range; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE public.campaigns
+    ADD CONSTRAINT campaigns_longitude_range CHECK (((longitude IS NULL) OR ((longitude >= ('-180'::integer)::double precision) AND (longitude <= (180)::double precision)))) NOT VALID;
+
+
+--
 -- Name: campaigns campaigns_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5869,6 +5938,13 @@ CREATE INDEX campaigns_is_demo_idx ON public.campaigns USING btree (is_demo) WHE
 
 
 --
+-- Name: campaigns_lat_lng_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX campaigns_lat_lng_idx ON public.campaigns USING btree (latitude, longitude) WHERE ((latitude IS NOT NULL) AND (longitude IS NOT NULL));
+
+
+--
 -- Name: campaigns_slug_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -5939,6 +6015,13 @@ CREATE INDEX donation_forms_nonprofit_id_idx ON public.donation_forms USING btre
 
 
 --
+-- Name: donation_forms_slug_uidx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX donation_forms_slug_uidx ON public.donation_forms USING btree (slug);
+
+
+--
 -- Name: donation_receipts_donation_id_unique; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -5971,6 +6054,13 @@ CREATE INDEX donations_donor_id_idx ON public.donations USING btree (donor_id);
 --
 
 CREATE INDEX donations_is_demo_idx ON public.donations USING btree (is_demo) WHERE is_demo;
+
+
+--
+-- Name: donations_peer_fundraiser_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX donations_peer_fundraiser_id_idx ON public.donations USING btree (peer_fundraiser_id) WHERE (peer_fundraiser_id IS NOT NULL);
 
 
 --
@@ -7224,6 +7314,13 @@ CREATE TRIGGER donation_forms_set_updated_at BEFORE UPDATE ON public.donation_fo
 --
 
 CREATE TRIGGER donations_increment_campaign_stats AFTER INSERT ON public.donations FOR EACH ROW EXECUTE FUNCTION public.increment_campaign_stats_after_donation();
+
+
+--
+-- Name: donations donations_increment_peer_fundraiser; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER donations_increment_peer_fundraiser AFTER INSERT ON public.donations FOR EACH ROW EXECUTE FUNCTION public.increment_peer_fundraiser_after_donation();
 
 
 --
@@ -8915,6 +9012,14 @@ ALTER TABLE ONLY public.donations
 
 ALTER TABLE ONLY public.donations
     ADD CONSTRAINT donations_donor_id_fkey FOREIGN KEY (donor_id) REFERENCES public.profiles(id) ON DELETE SET NULL;
+
+
+--
+-- Name: donations donations_peer_fundraiser_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.donations
+    ADD CONSTRAINT donations_peer_fundraiser_id_fkey FOREIGN KEY (peer_fundraiser_id) REFERENCES public.peer_fundraisers(id) ON DELETE SET NULL;
 
 
 --
@@ -11361,10 +11466,14 @@ ALTER TABLE public.donation_forms ENABLE ROW LEVEL SECURITY;
 --
 
 CREATE POLICY donation_forms_owner_write ON public.donation_forms USING ((public.is_admin() OR (EXISTS ( SELECT 1
-   FROM public.nonprofit_profiles
-  WHERE ((nonprofit_profiles.id = donation_forms.nonprofit_id) AND (nonprofit_profiles.owner_id = auth.uid())))))) WITH CHECK ((public.is_admin() OR (EXISTS ( SELECT 1
-   FROM public.nonprofit_profiles
-  WHERE ((nonprofit_profiles.id = donation_forms.nonprofit_id) AND (nonprofit_profiles.owner_id = auth.uid()))))));
+   FROM public.nonprofit_profiles np
+  WHERE ((np.id = donation_forms.nonprofit_id) AND (np.owner_id = auth.uid())))) OR (EXISTS ( SELECT 1
+   FROM public.campaigns c
+  WHERE ((c.id = donation_forms.campaign_id) AND (c.user_id = auth.uid())))))) WITH CHECK ((public.is_admin() OR (EXISTS ( SELECT 1
+   FROM public.nonprofit_profiles np
+  WHERE ((np.id = donation_forms.nonprofit_id) AND (np.owner_id = auth.uid())))) OR (EXISTS ( SELECT 1
+   FROM public.campaigns c
+  WHERE ((c.id = donation_forms.campaign_id) AND (c.user_id = auth.uid()))))));
 
 
 --
@@ -13142,17 +13251,10 @@ CREATE POLICY tax_receipts_private ON public.tax_receipts FOR SELECT USING (((au
 ALTER TABLE public.team_members ENABLE ROW LEVEL SECURITY;
 
 --
--- Name: team_members team_members_admin_owner_write; Type: POLICY; Schema: public; Owner: -
+-- Name: team_members team_members_read_own; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY team_members_admin_owner_write ON public.team_members USING (((auth.uid() = user_id) OR public.is_admin())) WITH CHECK (((auth.uid() = user_id) OR public.is_admin()));
-
-
---
--- Name: team_members team_members_visible_to_team; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY team_members_visible_to_team ON public.team_members FOR SELECT USING (((auth.uid() = user_id) OR public.is_admin()));
+CREATE POLICY team_members_read_own ON public.team_members FOR SELECT TO authenticated USING (((auth.uid() = user_id) OR public.is_admin()));
 
 
 --

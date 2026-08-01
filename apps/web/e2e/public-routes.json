@@ -161,6 +161,7 @@
       "/dashboard/creator",
       "/dashboard/developers",
       "/dashboard/donations",
+      "/dashboard/forms",
       "/dashboard/donor",
       "/dashboard/grants",
       "/dashboard/integrations",

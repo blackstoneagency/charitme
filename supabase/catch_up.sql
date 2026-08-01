@@ -10109,7 +10109,7 @@ from (
 where rd.stripe_subscription_id = source.subscription_id
   and rd.anonymous is distinct from source.anonymous;
 
-create temporary table recurring_renewal_repairs on commit drop as
+create temporary table recurring_renewal_repairs as
 select
   cp.id as campaign_payment_id,
   cp.donation_id,
@@ -10468,3 +10468,446 @@ on table public.team_members
 from authenticated;
 grant select on table public.team_members to authenticated;
 grant all on table public.team_members to service_role;
+
+
+-- ============ 20260815000000_peer_fundraiser_attribution.sql ============
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Peer-to-peer attribution — the one column that makes P2P real.
+--
+-- WHY THIS IS THE BLOCKER, not the supporter page
+--
+-- `peer_fundraisers` has existed for a long time: full schema, FKs, RLS, a
+-- parent-campaign index, a `slug` column ready for per-supporter URLs, and 240
+-- rows in production. `POST /api/campaigns/[id]/peer-fundraisers` lets a
+-- supporter join a team, and the campaign page renders the roster
+-- (TeamFundraisers.tsx). What has never existed is a way to say WHICH
+-- supporter's page a donation came through:
+--
+--   * `donations` carries `campaign_id` and nothing else identifying a peer
+--   * the donate flow has no peer parameter
+--   * nothing maintains `peer_fundraisers.raised_amount`
+--
+-- So every one of those 240 rows shows a total that no donation produced. Build
+-- the supporter page before this migration and it renders a progress bar that
+-- can never move — a surface that looks alive and silently does nothing.
+--
+-- WHAT THIS DOES
+--
+-- 1. Adds the attribution column, nullable: a donation that did not come through
+--    a supporter page has no peer, which is the overwhelmingly common case.
+-- 2. Rolls a completed donation into the peer's total, via a SEPARATE trigger
+--    from `donations_increment_campaign_stats`.
+--
+-- The parent campaign trigger is deliberately left untouched. It already
+-- increments `campaigns.raised_amount` for every completed donation regardless
+-- of peer, so a peer-attributed gift counts toward the parent exactly once and
+-- toward the peer exactly once. Adding the parent increment here as well is the
+-- obvious-looking change that would double-count the campaign total — the same
+-- mistake `record_donation`'s header already warns about.
+--
+-- 3. Backfills the 240 seeded rows to 0. Their current totals are fiction: no
+--    donation row supports them, so leaving them would mean the first real
+--    attributed gift lands on top of an invented number.
+--
+-- WHAT THIS DELIBERATELY DOES **NOT** DO — read before writing the follow-up
+--
+-- The main donation path is the `record_donation` RPC, called from the Stripe
+-- webhook. Its INSERT has a fixed column list that does not include
+-- `peer_fundraiser_id`, so until that function is extended, attribution works
+-- only for any path that inserts into `donations` directly. This migration
+-- stops short of touching it on purpose: it is the money path, and there is a
+-- specific trap in the obvious change.
+--
+--   ⚠️ `create or replace function record_donation(... , p_peer_fundraiser_id
+--      uuid default null)` does NOT replace the existing function. A different
+--      argument list makes it an OVERLOAD, and the caller uses NAMED arguments
+--      (`supabase.rpc('record_donation', { p_stripe_event_id: … })`), which then
+--      match BOTH the 10-arg and 11-arg signatures — Postgres fails the call
+--      with "function record_donation(...) is not unique". Every donation
+--      webhook would start erroring, and because the handler rethrows so Stripe
+--      retries, it would keep erroring.
+--
+--   The safe form is `drop function public.record_donation(text, uuid, uuid,
+--   bigint, bigint, bigint, text, boolean, text, text);` followed by a single
+--   `create function` carrying the new parameter — in one transaction, so no
+--   window exists where the function is missing.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+alter table public.donations
+  add column if not exists peer_fundraiser_id uuid
+    references public.peer_fundraisers(id) on delete set null;
+
+comment on column public.donations.peer_fundraiser_id is
+  'The supporter''s peer fundraiser page this gift came through, when any. NULL '
+  'for a direct campaign donation. ON DELETE SET NULL: removing a supporter page '
+  'must never delete the money that came through it.';
+
+-- Attribution is queried per peer page ("show this supporter''s donors"), so the
+-- partial index skips the majority of rows that have no peer.
+create index if not exists donations_peer_fundraiser_id_idx
+  on public.donations (peer_fundraiser_id)
+  where peer_fundraiser_id is not null;
+
+-- ── Roll a completed, peer-attributed donation into that peer's total ────────
+create or replace function public.increment_peer_fundraiser_after_donation()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  -- Mirrors increment_campaign_stats_after_donation's guard: only completed
+  -- money counts. A pending or failed row must not move a public total.
+  if new.status = 'completed' and new.peer_fundraiser_id is not null then
+    update public.peer_fundraisers
+    set raised_amount = raised_amount + new.amount_cents,
+        updated_at    = now()
+    where id = new.peer_fundraiser_id;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists donations_increment_peer_fundraiser on public.donations;
+drop trigger if exists donations_increment_peer_fundraiser on public.donations;
+create trigger donations_increment_peer_fundraiser
+  after insert on public.donations
+  for each row
+  execute function public.increment_peer_fundraiser_after_donation();
+
+-- ── Reset the seeded fiction ─────────────────────────────────────────────────
+-- Recompute from the donations that actually exist. Written as a recompute
+-- rather than `set raised_amount = 0` so it is idempotent and stays correct if
+-- this file is ever re-run after real attributed donations exist.
+update public.peer_fundraisers p
+set raised_amount = coalesce((
+      select sum(d.amount_cents)
+      from public.donations d
+      where d.peer_fundraiser_id = p.id
+        and d.status = 'completed'
+    ), 0),
+    updated_at = now()
+where p.raised_amount is distinct from coalesce((
+      select sum(d.amount_cents)
+      from public.donations d
+      where d.peer_fundraiser_id = p.id
+        and d.status = 'completed'
+    ), 0);
+
+
+-- ============ 20260816000000_record_donation_peer_attribution.sql ============
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Carry peer attribution through the money path.
+--
+-- `20260815000000_peer_fundraiser_attribution.sql` added
+-- `donations.peer_fundraiser_id` and the trigger that rolls an attributed gift
+-- into the supporter's total, then deliberately stopped: `record_donation` —
+-- the RPC the Stripe webhook calls — has a fixed INSERT column list that does
+-- not include the new column. Until this file runs, a donation made through a
+-- supporter page is recorded with `peer_fundraiser_id` NULL and the supporter's
+-- progress bar never moves.
+--
+-- ⚠️ THE TRAP, restated from that migration's header because it is the whole
+-- reason this is a drop-and-create rather than a `create or replace`:
+--
+--   `create or replace function record_donation(…, p_peer_fundraiser_id uuid
+--   default null)` does NOT replace the existing function. A different argument
+--   list makes it an OVERLOAD. The caller uses NAMED arguments
+--   (`supabase.rpc('record_donation', { p_stripe_event_id: … })`), which then
+--   match BOTH the 10-arg and the 11-arg signature, and Postgres fails the call
+--   with "function record_donation(…) is not unique". Every donation webhook
+--   would start erroring — and since the handler rethrows so Stripe retries, it
+--   would keep erroring, on the money path, until someone noticed.
+--
+-- So: DROP the exact 10-argument signature, then CREATE the 11-argument one, in
+-- a single transaction (migrations run in one by default) so no window exists
+-- where the function is missing and a webhook could 404 the RPC.
+--
+-- The body below is the existing function VERBATIM apart from three additions,
+-- marked `-- +peer`. Copying it wholesale is deliberate: the advisory lock, the
+-- idempotency check, the "do not increment here" note and the exception handler
+-- that records the failure before re-raising are all load-bearing, and
+-- paraphrasing them while transcribing is exactly how one of them would be lost.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+drop function if exists public.record_donation(
+  text, uuid, uuid, bigint, bigint, bigint, text, boolean, text, text
+);
+
+create function public.record_donation(
+  p_stripe_event_id text,
+  p_campaign_id uuid,
+  p_donor_id uuid,
+  p_amount_cents bigint,
+  p_tip_cents bigint,
+  p_processing_fee_cents bigint,
+  p_message text,
+  p_anonymous boolean,
+  p_stripe_payment_intent_id text,
+  p_stripe_checkout_session_id text,
+  p_peer_fundraiser_id uuid default null   -- +peer
+) returns jsonb
+  language plpgsql security definer
+  set search_path to 'pg_catalog', 'public', 'pg_temp'
+  as $$
+declare
+  v_existing uuid;
+  v_lock_key text;
+  v_peer_id uuid;                          -- +peer
+begin
+  -- Serialize concurrent processing of the SAME donation. Prefer the payment
+  -- intent id, then the checkout session id, then the event id as the lock key
+  -- so retried/duplicate deliveries collide while distinct donations do not.
+  v_lock_key := coalesce(
+    nullif(p_stripe_payment_intent_id, ''),
+    nullif(p_stripe_checkout_session_id, ''),
+    p_stripe_event_id
+  );
+  if v_lock_key is not null then
+    perform pg_advisory_xact_lock(hashtextextended(v_lock_key, 0));
+  end if;
+
+  -- Idempotency check (race-safe under the advisory lock above)
+  select id into v_existing from donations
+  where stripe_checkout_session_id = p_stripe_checkout_session_id
+     or (stripe_payment_intent_id = p_stripe_payment_intent_id and p_stripe_payment_intent_id is not null)
+  limit 1;
+
+  if v_existing is not null then
+    return jsonb_build_object('status','already_processed','id', v_existing);
+  end if;
+
+  -- +peer: the id arrives from Stripe metadata, which is client-influenced —
+  -- the donor picked the supporter page they gave through. Verify here rather
+  -- than trusting it, because this runs SECURITY DEFINER: a peer id belonging
+  -- to a DIFFERENT campaign would otherwise credit an unrelated supporter for
+  -- money that campaign never received. An id that does not check out is
+  -- dropped to NULL rather than raising: the donation is real and already paid
+  -- for, so it must be recorded as a direct gift, never lost.
+  if p_peer_fundraiser_id is not null then
+    -- NOTE the column is `parent_campaign_id`, not `campaign_id`. Every other
+    -- table in this schema names it `campaign_id`, so the wrong guess compiles
+    -- as a plain "column does not exist" only at RUN time, inside the money
+    -- path, where the handler rethrows and Stripe retries forever.
+    select id into v_peer_id
+    from peer_fundraisers
+    where id = p_peer_fundraiser_id
+      and parent_campaign_id = p_campaign_id
+    limit 1;
+  end if;
+
+  -- The AFTER INSERT trigger donations_increment_campaign_stats increments
+  -- campaigns.raised_amount / backer_count for this 'completed' row. Do NOT
+  -- increment again here — that double-counts (see migration header).
+  --
+  -- +peer: donations_increment_peer_fundraiser (previous migration) rolls the
+  -- same row into peer_fundraisers.raised_amount. It is a SEPARATE trigger on
+  -- the same INSERT, so the parent campaign is credited exactly once and the
+  -- supporter exactly once. Do not add a peer increment here either.
+  insert into donations (
+    campaign_id, donor_id, amount_cents, tip_cents, processing_fee_cents,
+    status, anonymous, message, stripe_payment_intent_id, stripe_checkout_session_id,
+    peer_fundraiser_id                                                    -- +peer
+  ) values (
+    p_campaign_id, p_donor_id, p_amount_cents, p_tip_cents, p_processing_fee_cents,
+    'completed', p_anonymous, p_message, p_stripe_payment_intent_id, p_stripe_checkout_session_id,
+    v_peer_id                                                             -- +peer
+  );
+
+  insert into webhook_events (stripe_event_id, event_type, payload, processed_at)
+  values (p_stripe_event_id, 'checkout.session.completed', '{}'::jsonb, now())
+  on conflict (stripe_event_id) do nothing;
+
+  return jsonb_build_object('status','recorded');
+exception when others then
+  insert into webhook_events (stripe_event_id, event_type, payload, processing_error)
+  values (p_stripe_event_id, 'checkout.session.completed', '{}'::jsonb, sqlerrm)
+  on conflict (stripe_event_id) do nothing;
+  raise;
+end; $$;
+
+comment on function public.record_donation(
+  text, uuid, uuid, bigint, bigint, bigint, text, boolean, text, text, uuid
+) is
+  'Idempotent on the Stripe event/intent/session. p_peer_fundraiser_id is '
+  'VERIFIED against p_campaign_id before use and dropped to NULL when it does '
+  'not belong to that campaign — never trusted from metadata as given.';
+
+-- PostgREST caches the function signature; without this the next RPC call still
+-- resolves against the dropped 10-arg form and fails until the pool recycles.
+select public.reload_postgrest_schema_cache();
+
+
+-- ============ 20260817000000_campaign_geolocation.sql ============
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Proximity discovery — coordinates on campaigns.
+--
+-- `campaigns.location` is free text ("Austin, TX", "Leeds", "remote"). It is
+-- fine to display and useless to search by distance: "within 25 miles of me"
+-- cannot be answered by string matching, and the near-miss answers it gives are
+-- the worst kind — plausible and wrong.
+--
+-- WHY PLAIN COLUMNS AND NOT POSTGIS
+--
+-- PostGIS would give a real `geography` type and a GiST index over it. It is
+-- deliberately not used here:
+--
+--   1. `create extension postgis` needs privileges this project's release
+--      workflow does not grant, and it is a heavy dependency to add for one
+--      feature.
+--   2. At CharitMe's scale the query is "campaigns within N miles of a point",
+--      bounded by a bounding box on two indexed floats and then refined in the
+--      application with the haversine formula. That is exact enough — the error
+--      of the flat-earth box is a filter, not the answer — and it needs no
+--      extension.
+--
+-- If proximity ever becomes a primary ranking signal over millions of rows, the
+-- upgrade path is a PostGIS column alongside these, backfilled from them. These
+-- columns do not block that.
+--
+-- NULLABLE, and most rows will stay NULL. A campaign has no obligation to have a
+-- location, and an online-only fundraiser genuinely has none. Nothing may treat
+-- NULL as (0, 0) — that is a real point in the Gulf of Guinea, and a bug there
+-- reads as "there is a campaign 3,000 miles away" rather than as missing data.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+-- One column per statement. A combined `add column a, add column b` is valid SQL
+-- and is read as a single addition by the migration/schema drift checker, which
+-- then reports the second column as missing from a fresh provision.
+alter table public.campaigns
+  add column if not exists latitude double precision;
+
+alter table public.campaigns
+  add column if not exists longitude double precision;
+
+-- Reject impossible coordinates at the boundary. A swapped lat/long pair is the
+-- single most common geocoding bug, and a longitude of 120 in the latitude
+-- column would otherwise be stored happily and silently mislocate the campaign.
+-- NOT VALID so the constraint applies to new writes without a full table scan on
+-- deploy; existing rows are all NULL, which satisfies it anyway.
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'campaigns_latitude_range'
+  ) then
+    alter table public.campaigns drop constraint if exists campaigns_latitude_range;
+alter table public.campaigns add constraint campaigns_latitude_range
+      check (latitude is null or (latitude >= -90 and latitude <= 90)) not valid;
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint where conname = 'campaigns_longitude_range'
+  ) then
+    alter table public.campaigns drop constraint if exists campaigns_longitude_range;
+alter table public.campaigns add constraint campaigns_longitude_range
+      check (longitude is null or (longitude >= -180 and longitude <= 180)) not valid;
+  end if;
+end $$;
+
+-- Partial: the bounding-box query always filters `latitude is not null`, and the
+-- majority of rows have no coordinates, so indexing them wastes space and slows
+-- writes. Composite because the box constrains both axes together.
+create index if not exists campaigns_lat_lng_idx
+  on public.campaigns (latitude, longitude)
+  where latitude is not null and longitude is not null;
+
+comment on column public.campaigns.latitude is
+  'WGS84 latitude, NULL when the campaign has no physical location. Never treat '
+  'NULL as 0 — that is a real point at sea.';
+comment on column public.campaigns.longitude is
+  'WGS84 longitude, NULL when the campaign has no physical location.';
+
+select public.reload_postgrest_schema_cache();
+
+
+-- ============ 20260818000000_profile_market_locale.sql ============
+-- ─────────────────────────────────────────────────────────────────────────────
+-- profiles.locale — the visitor's chosen MARKET locale (full BCP 47 tag).
+--
+-- `profiles.language` already exists and stores the primary subtag only ('es'),
+-- which is the right grain for picking a translation file and is validated as
+-- such by /api/settings. It cannot express the distinction the footer picker
+-- offers, where "Español (México)" and "Español (España)" are separate choices
+-- that differ in currency, date and address conventions.
+--
+-- So this adds a sibling column rather than widening `language`: existing
+-- readers (the dashboard settings dropdown, the settings API validator) keep
+-- working unchanged against `language`, and the locale picker writes both —
+-- the full tag here, the primary subtag there.
+--
+-- Application code treats this column as OPTIONAL and falls back to `language`
+-- when PostgREST reports it missing (PGRST204 / 42703), so the footer works
+-- before this migration is applied.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS locale text;
+
+COMMENT ON COLUMN public.profiles.locale IS
+  'Full BCP 47 market locale tag chosen in the footer picker (e.g. es-MX). The primary subtag is mirrored into profiles.language.';
+
+
+-- ============ 20260819000000_donation_forms_slug_and_campaign_owner.sql ============
+-- Make `donation_forms` usable by the Donation Form Builder.
+--
+-- The table has shipped since 20260525002000 and has never had a reader or a
+-- writer — it appears in the codebase exactly once, as a table NAME in
+-- lib/feature-catalog.ts. Wiring the builder to it surfaced two gaps.
+--
+-- ── 1. `slug` was not unique ────────────────────────────────────────────────
+-- The slug is how an embedded form is addressed. Two forms sharing one meant the
+-- embed resolved to whichever row came back first — silently, and differently
+-- between requests. Nothing enforced it: the only index on the table was on
+-- `nonprofit_id`.
+--
+-- Plain (not partial) so `ON CONFLICT (slug)` can be inferred, per
+-- 20260812000000 — a partial index cannot be, and that is what made four other
+-- upserts fail 42P10 in production.
+--
+-- No dedupe pass is needed: the table has no writer, so it is empty of anything
+-- but rows created by hand.
+
+create unique index if not exists donation_forms_slug_uidx
+  on public.donation_forms (slug);
+
+-- ── 2. The write policy could not see campaign owners ───────────────────────
+-- `donation_forms_owner_write` granted writes only to the owner of the linked
+-- `nonprofit_profiles` row (or an admin). But the table also carries
+-- `campaign_id`, and a campaign-scoped donation form is the ordinary case — the
+-- builder is reached from a campaign. Under the old policy an organizer who runs
+-- a campaign but has no nonprofit profile could not touch their own form.
+--
+-- This matters beyond RLS: the API routes use the service-role client, which
+-- BYPASSES RLS, so the check that actually runs is the one in TypeScript. If the
+-- policy and the route disagree about who owns a form, the database stops being
+-- a backstop and the only real rule is the one in application code. Both are
+-- widened together here, deliberately, so they keep agreeing.
+--
+-- Mirrors `campaigns.user_id`, the same ownership column the campaign routes use.
+
+drop policy if exists donation_forms_owner_write on public.donation_forms;
+
+drop policy if exists donation_forms_owner_write on public.donation_forms;
+create policy donation_forms_owner_write on public.donation_forms
+  using (
+    public.is_admin()
+    or exists (
+      select 1 from public.nonprofit_profiles np
+      where np.id = donation_forms.nonprofit_id and np.owner_id = auth.uid()
+    )
+    or exists (
+      select 1 from public.campaigns c
+      where c.id = donation_forms.campaign_id and c.user_id = auth.uid()
+    )
+  )
+  with check (
+    public.is_admin()
+    or exists (
+      select 1 from public.nonprofit_profiles np
+      where np.id = donation_forms.nonprofit_id and np.owner_id = auth.uid()
+    )
+    or exists (
+      select 1 from public.campaigns c
+      where c.id = donation_forms.campaign_id and c.user_id = auth.uid()
+    )
+  );

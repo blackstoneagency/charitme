@@ -36,6 +36,11 @@ const ORGANIZER_NAV: readonly DashboardNavItem[] = [
   // inside one campaign's workspace — so a fundraiser had to know the tool
   // existed before they could find it.
   { label: 'Fundraising Tools', href: '/dashboard/tools', icon: 'stack' },
+  // `donation_forms` shipped with no reader and no writer, so the builder is the
+  // first thing that can put a row in it. Linked here rather than only from the
+  // tools hub: a page nothing navigates to is the same defect as a table nothing
+  // reads.
+  { label: 'Donation Forms', href: '/dashboard/forms', icon: 'gift' },
   { label: 'AI Growth Plan', href: '/dashboard/ai-growth-plan', icon: 'send', badge: 'New' },
   { label: 'AI Coach', href: '/dashboard/ai-coach', icon: 'send', badge: 'AI' },
   { label: 'Donations Received', href: '/dashboard/donations', icon: 'gift' },
