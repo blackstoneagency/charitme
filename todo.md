@@ -272,6 +272,22 @@ Two details worth keeping:
 
 ⚠️ Inert until `20260820000000` is applied; the admin page says so by name.
 
+**✅ #153 Documents — BUILT, and it needed NO table either** (`/dashboard/documents`).
+Fifth time the "needs a table" call was wrong, and this one was caught *by the
+rule* rather than by accident. Four applied tables already hold a fundraiser's
+files, each reachable only from the workflow that created it:
+`campaign_media` (`media_type='document'`), `verification_documents`,
+`grant_documents`, and `impact_evidence` (receipts — noted as a fourth source,
+not yet wired: it needs a two-hop join through `campaign_updates`).
+
+Live in production today, no migration.
+
+⚠️ **`verification_documents` holds IDENTITY documents**, so aggregation is
+exactly where a scoping mistake becomes a document leak. They are included only
+because the query is keyed on the caller's own `user_id`, they carry a
+`sensitive` flag, and the UI renders them as a **record with no link** — the
+bucket is private, so a link would either 404 or, worse, not.
+
 **✅ #145 Tasks — BUILT, migration-first** (`/dashboard/tasks`, `20260821000000`).
 A fundraiser's checklist, optionally attached to a campaign, with the design's
 Open / Overdue / Mine / Assigned-to-me / Completed filters.

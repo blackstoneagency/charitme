@@ -45,6 +45,9 @@ const ORGANIZER_NAV: readonly DashboardNavItem[] = [
   // grant_deadlines — no new table, so nothing here is inert in production.
   { label: 'Calendar', href: '/dashboard/calendar', icon: 'stack' },
   { label: 'Tasks', href: '/dashboard/tasks', icon: 'check' },
+  // Aggregates campaign_media, verification_documents and grant_documents —
+  // all applied tables, so nothing here is inert.
+  { label: 'Documents', href: '/dashboard/documents', icon: 'doc' },
   { label: 'AI Growth Plan', href: '/dashboard/ai-growth-plan', icon: 'send', badge: 'New' },
   { label: 'AI Coach', href: '/dashboard/ai-coach', icon: 'send', badge: 'AI' },
   { label: 'Donations Received', href: '/dashboard/donations', icon: 'gift' },
