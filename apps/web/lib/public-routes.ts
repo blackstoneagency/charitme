@@ -19,6 +19,41 @@ export const CHARITME_ORIGIN = 'https://www.charitme.com';
 
 export const INDEXABLE_PUBLIC_ROUTES: PublicRoute[] = [
   {
+    path: '/glossary',
+    title: 'Glossary',
+    description: 'Key fundraising terms explained — fees, payouts, verification, trust scores, and tax receipts.',
+    priority: 0.6,
+    changeFrequency: 'monthly',
+  },
+  {
+    path: '/mobile-app',
+    title: 'CharitMe on Mobile',
+    description: 'Install CharitMe from your browser in two taps and use it like any other app.',
+    priority: 0.6,
+    changeFrequency: 'monthly',
+  },
+  {
+    path: '/internships',
+    title: 'Internships',
+    description: 'Internships at CharitMe — what we look for and how to get in touch.',
+    priority: 0.55,
+    changeFrequency: 'monthly',
+  },
+  {
+    path: '/feedback',
+    title: 'Feedback',
+    description: 'Tell us what is working and what is not — bug reports, ideas, and confusing wording.',
+    priority: 0.6,
+    changeFrequency: 'monthly',
+  },
+  {
+    path: '/impact-map',
+    title: 'Impact Map',
+    description: 'Where CharitMe campaigns are running and what they fund, counted from live data.',
+    priority: 0.7,
+    changeFrequency: 'daily',
+  },
+  {
     path: '/search',
     title: 'Search CharitMe',
     description: 'Search campaigns, causes, and resources across CharitMe with filters for cause, location, and progress.',

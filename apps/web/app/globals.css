@@ -2670,7 +2670,14 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 .mirror-impact-empty { min-height: 100%; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 12px; padding: 34px; }
 .mirror-impact-empty > .hi { width: 38px; height: 38px; color: var(--mh-pink); }
 .mirror-impact-empty h2, .mirror-impact-empty p { margin: 0; }
-.mirror-impact-empty p { color: var(--mh-muted); }
+/* `.mirror-impact-card` hardcodes a DARK background (#090f20) in both themes,
+   so its text must be hardcoded light too — which the sibling
+   `.mirror-impact-copy` already does. This empty state instead inherited
+   `--mh-text`/`--mh-muted`, which flip to DARK values in light mode: the
+   heading measured 1:1 (invisible) and the paragraph 2.82:1. It only renders
+   when there is no impact campaign to show, which is why nobody saw it. */
+.mirror-impact-empty h2 { color: #fff; }
+.mirror-impact-empty p { color: #aeb8c6; }
 .mirror-proof-copy { min-width: 0; display: flex; flex-direction: column; gap: 14px; }
 .mirror-testimonials { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .mirror-testimonials article { min-height: 190px; padding: 22px; border: 1px solid var(--mh-line); border-radius: 7px; background: var(--mh-panel); }

@@ -37,18 +37,18 @@ volunteer (44/45), events (48), matching (55), accessibility (68), safety (69 �
 | 1 | `/search` — global + advanced search/filters | 36, 37 | 🔵 **CLAIMED wcu7oh** |
 | 2 | `/teams` — team hub | 49 | 🔵 **CLAIMED wcu7oh** |
 | 3 | `/teams/create` — 5-step wizard | 50–53 | 🔵 **CLAIMED wcu7oh** |
-| 4 | `/impact-map` — global impact map | 59 | 🔵 **CLAIMED wcu7oh** |
+| 4 | `/impact-map` — global impact map | 59 | ✅ **BUILT wcu7oh** |
 | 5 | `/donor-wall` — hall of thanks / recognition | 62, 81 | 🔵 **CLAIMED wcu7oh** |
-| 6 | `/glossary` | 73 | 🔵 **CLAIMED wcu7oh 14:10** |
+| 6 | `/glossary` | 73 | ✅ **BUILT wcu7oh** |
 | 7 | `/press` — press releases + detail | 77 | ⬜ unclaimed |
 | 8 | `/brand-assets` — media kit | 78 | ⬜ unclaimed |
-| 9 | `/mobile-app` | 67 | 🔵 **CLAIMED wcu7oh 14:10** |
+| 9 | `/mobile-app` | 67 | ✅ **BUILT wcu7oh** |
 | 10 | `/webinars` + detail | 76 | ⬜ unclaimed |
 | 11 | `/resources` — guide index + detail | 75 | ⬜ unclaimed |
 | 12 | `/community` — social feed | 82 | ⬜ unclaimed |
 | 13 | `/support/chat` — live support | 71 | ⬜ unclaimed |
-| 14 | `/internships` | 46 | 🔵 **CLAIMED wcu7oh 14:10** |
-| 15 | `/feedback` | 47 | 🔵 **CLAIMED wcu7oh 14:10** |
+| 14 | `/internships` | 46 | ✅ **BUILT wcu7oh** |
+| 15 | `/feedback` | 47 | ✅ **BUILT wcu7oh** |
 | 16 | `/certificate` — donor certificate | 64 | 🔵 **CLAIMED wcu7oh 14:10** |
 
 ### Enhancements to EXISTING pages the sheets ask for
