@@ -59,7 +59,7 @@ export default function FundraisingGuidePage() {
         lede="Everything we have learned about what makes a campaign work — written as the six steps you actually take, in the order you take them."
         actions={
           <>
-            <Link href="/create" className="kind-start-pill" style={{ display: 'inline-flex' }}>
+            <Link href="/create" className="cta-primary" style={{ display: 'inline-flex' }}>
               Start a fundraiser
             </Link>
             <Link

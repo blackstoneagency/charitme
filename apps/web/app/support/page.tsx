@@ -57,7 +57,7 @@ export default function SupportPage() {
         lede="Three ways to reach us, all of which end up in front of a person. Start with the help centre — it is instant, and it usually has the answer."
         actions={
           <>
-            <Link href="/help" className="kind-start-pill" style={{ display: 'inline-flex' }}>
+            <Link href="/help" className="cta-primary" style={{ display: 'inline-flex' }}>
               Search the help centre
             </Link>
             <Link

@@ -55,7 +55,7 @@ export default function PartnerPage() {
         lede="Whether you are a registered charity, a company running a giving programme, a community group, or a platform wanting to build giving into your product — there is a way to work together."
         actions={
           <>
-            <Link href="/contact" className="kind-start-pill" style={{ display: 'inline-flex' }}>
+            <Link href="/contact" className="cta-primary" style={{ display: 'inline-flex' }}>
               Get in touch
             </Link>
             <Link

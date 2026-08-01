@@ -50,7 +50,7 @@ export default function GetInvolvedPage() {
         lede="Money is the obvious contribution and often not the most useful one. Here is everything you can do on CharitMe, whether you have five dollars, five hours, or an organisation behind you."
         actions={
           <>
-            <Link href="/donate" className="kind-start-pill" style={{ display: 'inline-flex' }}>
+            <Link href="/donate" className="cta-primary" style={{ display: 'inline-flex' }}>
               Donate now
             </Link>
             <Link

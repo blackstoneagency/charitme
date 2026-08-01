@@ -61,7 +61,7 @@ export default async function AmbassadorsPage() {
         actions={
           <Link
             href={user ? '/dashboard/referrals' : '/login?next=/dashboard/referrals'}
-            className="kind-start-pill"
+            className="cta-primary"
             style={{ display: 'inline-flex' }}
           >
             {user ? 'Open your referral dashboard' : 'Sign in to get your link'}

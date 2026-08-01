@@ -51,7 +51,7 @@ export default function CorporatePartnershipsPage() {
         lede="Matching, workplace giving, and sponsorship — built so employees can see the impact of what the company contributes, and so your finance team gets records that reconcile."
         actions={
           <>
-            <Link href="/contact" className="kind-start-pill" style={{ display: 'inline-flex' }}>
+            <Link href="/contact" className="cta-primary" style={{ display: 'inline-flex' }}>
               Talk to us
             </Link>
             <Link

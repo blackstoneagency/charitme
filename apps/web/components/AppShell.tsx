@@ -467,11 +467,6 @@ export function AppShell({
       <header className="kind-header">
         <div className="container">
           <Logo />
-          {/* Theme toggle sits immediately after the wordmark, per the design.
-              Grouped with the account controls on the far right it read as an
-              account setting rather than the site-wide control it is — and a
-              signed-out visitor had no reason to look there for it. */}
-          <ThemeToggle />
           {/*
             The design specifies two mega-dropdowns (Explore Causes, Resources).
             This replaces the grouped `PrimaryNavMenu` that landed on master in
@@ -564,6 +559,12 @@ export function AppShell({
                 <Link href="/login?mode=signup" className="kind-start-pill">Start a CharitMe</Link>
               </>
             )}
+            {/* Last control in the bar, per the design: hard right, after the
+                primary CTA. It is deliberately OUTSIDE the signed-in/signed-out
+                branch above so it renders in the same place either way — a
+                site-wide control that moved depending on whether you were
+                logged in would be worse than one in an odd position. */}
+            <ThemeToggle />
           </div>
           <button className="kind-menu" onClick={() => setMenuOpen((open) => !open)} aria-label="Toggle navigation">
             <span />
@@ -607,6 +608,15 @@ export function AppShell({
                 <Link href="/login?mode=signup" onClick={() => setMenuOpen(false)}>Start a CharitMe</Link>
               </>
             )}
+            {/* The desktop toggle now lives in `.kind-auth`, which is
+                `display: none` below 1100px. Without this, moving it to the far
+                right would have deleted the theme control entirely on phones —
+                it used to survive there by being a direct child of .container.
+                Mobile keeps a copy rather than the toggle keeping a position
+                that works at one width. */}
+            <div className="kind-mobile-theme">
+              <ThemeToggle />
+            </div>
           </div>
         )}
       </header>
