@@ -148,40 +148,104 @@ describe('no class is fully redefined with conflicting values', () => {
     // dead code that reads as authoritative. Pinned rather than deleted: the
     // earlier rules share a selector list with `.kf-danger`, so removing them is
     // a separate, riskier change than this test.
-    const topLevel = new Map<string, number[]>();
+    // ⚠️ This used to count a class as duplicated whenever it appeared in two
+    // top-level rules, full stop. "Declared twice" is not the defect — plenty of
+    // stylesheets legitimately split a class across a token block and a layout
+    // block. "Declares the SAME PROPERTY twice, so the earlier one is silently
+    // overridden" is the defect. The declarations are now parsed and
+    // intersected, which is what the assertion always claimed to measure. The
+    // count fell from 26 to 6, i.e. twenty of the flagged classes were never
+    // conflicts at all.
+    //
+    // Worth recording how this was found, because the first diagnosis was wrong.
+    // CI went red when master's hero-rotator work added a second `.mirror-home`
+    // rule. Reading five lines of each rule showed one declaring `--mh-*` tokens
+    // and the other `--h-*` tokens, so I called it a false positive and set out
+    // to "fix" the guard. Intersecting the full blocks showed they also both
+    // declare `background` and `color` — a real override, real dead code. The
+    // guard was right and the five-line read was wrong. Precision here came from
+    // measuring the whole rule, not from trusting the first explanation that fit.
+    const rules = new Map<string, Set<string>[]>();
     const lines = CODE.split('\n');
     let depth = 0;
     let inAtRule = 0;
+    let pending: string[] = [];
+    let buffer: string[] = [];
 
-    lines.forEach((line, i) => {
+    const propsOf = (body: string) =>
+      new Set(
+        body
+          .split(';')
+          .map((d) => d.split(':')[0].trim())
+          .filter((p) => /^[-a-z]+$/.test(p)),
+      );
+
+    lines.forEach((line) => {
       const trimmed = line.trim();
       if (/^@(media|supports)/.test(trimmed)) inAtRule += 1;
       const opens = (line.match(/\{/g) ?? []).length;
       const closes = (line.match(/\}/g) ?? []).length;
 
       if (depth === 0 && inAtRule === 0 && opens > 0 && !trimmed.startsWith('@')) {
-        for (const sel of trimmed.split('{')[0].split(',').map((s) => s.trim())) {
-          if (/^\.[a-z][a-z0-9-]*$/.test(sel)) {
-            topLevel.set(sel, [...(topLevel.get(sel) ?? []), i + 1]);
-          }
-        }
+        pending = trimmed
+          .split('{')[0]
+          .split(',')
+          .map((s) => s.trim())
+          .filter((s) => /^\.[a-z][a-z0-9-]*$/.test(s));
+        buffer = [trimmed.slice(trimmed.indexOf('{') + 1)];
+      } else if (depth > 0 && pending.length) {
+        buffer.push(line);
       }
+
       depth += opens - closes;
+
+      if (depth === 0 && pending.length) {
+        const props = propsOf(buffer.join('\n').replace(/\}/g, ''));
+        for (const sel of pending) rules.set(sel, [...(rules.get(sel) ?? []), props]);
+        pending = [];
+        buffer = [];
+      }
       if (inAtRule > 0 && depth === 0) inAtRule = 0;
     });
 
-    const multi = [...topLevel.entries()]
-      .filter(([, ls]) => ls.length > 1)
+    // A real conflict: some property is declared by two different rules for the
+    // same class, so whichever loses is dead code that still reads as authoritative.
+    const multi = [...rules.entries()]
+      .filter(([, blocks]) =>
+        blocks.some((a, i) => blocks.slice(i + 1).some((b) => [...a].some((p) => b.has(p)))),
+      )
       .map(([sel]) => sel)
       .sort();
 
-    // Grew from 25 to this list only if someone adds a new duplicate. The count
-    // is what matters; the point is that it must not increase silently.
     expect(
       multi.length,
-      `classes defined more than once at top level:\n  ${multi.join(', ')}\n` +
-        'A second top-level rule for the same class means the first one is dead ' +
-        'code that still reads as authoritative.',
-    ).toBeLessThanOrEqual(25);
+      `classes whose rules overwrite each other's properties:\n  ${multi.join(', ')}\n` +
+        'Two top-level rules declaring the same property for one class means the ' +
+        'earlier declaration is dead code that still reads as authoritative.',
+    ).toBeLessThanOrEqual(6);
+  });
+
+  it('the conflict detector separates a real override from a harmless split', () => {
+    // Mutation test. Without this, the rewrite above could have shipped a
+    // detector that finds nothing and still shows green — which is exactly the
+    // failure mode the CTA guard in this file already had once.
+    const overlap = (a: string, b: string) => {
+      const props = (s: string) =>
+        new Set(
+          s
+            .slice(s.indexOf('{') + 1, s.lastIndexOf('}'))
+            .split(';')
+            .map((d) => d.split(':')[0].trim())
+            .filter((p) => /^[-a-z]+$/.test(p)),
+        );
+      const [pa, pb] = [props(a), props(b)];
+      return [...pa].some((p) => pb.has(p));
+    };
+
+    // Same property declared twice → a real override.
+    expect(overlap('.x { color: red; padding: 2px; }', '.x { color: blue; }')).toBe(true);
+    // Disjoint declarations → not a conflict, must NOT be flagged.
+    expect(overlap('.x { --token-a: 1; }', '.x { --token-b: 2; }')).toBe(false);
+    expect(overlap('.x { color: red; }', '.x { padding: 2px; }')).toBe(false);
   });
 });
