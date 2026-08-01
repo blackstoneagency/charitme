@@ -436,6 +436,30 @@ the *actionable* queue is empty, not that the history has been deleted.
 
 ### Closed this session
 
+- **Global navigation persistence + black dark-mode surface - release candidate.**
+  The dark marketing header and mobile sheet now use a true `#000` surface.
+  Hover-open mega-menus receive a 240ms gap-crossing grace period, while an
+  intentional click pins the panel until a link selection, outside click,
+  Escape, or route change. The complete header browser contract passes **23/23**
+  checks across 1280/1366/1440/1920 widths and both themes, including center
+  hit-testing of every rendered menu link, keyboard operation, and focus return.
+- **Supabase-backed maintenance mode - release candidate.** Super Admin ->
+  Platform Settings now controls the global maintenance redirect, editable
+  visitor message, optional real return deadline, and countdown. Admin, login,
+  password recovery, offline, and maintenance routes stay reachable; all other
+  page requests read the cached `platform_settings.config` value and fail open
+  if Supabase is unavailable. The dedicated end-to-end audit proves rejected
+  unauthenticated and malformed writes, UI save, independent Supabase readback,
+  public redirect, custom copy, countdown, transparent artwork, mobile dark-mode
+  rendering, disable/save, and public-site recovery.
+- **Measured release gate:** production build generated **208 pages**; TypeScript
+  and ESLint are clean; **2,326 tests / 212 files** pass; the populated
+  super-admin persona audit passes against 120 campaigns and 400 donations.
+  The integrated signed-in contrast sweep examined **181 pages x 2 themes** and
+  52,621 rendered text elements with **0 AA failures**. Four sparse fixture
+  renders remain explicit (`/dashboard/saved` and campaign updates in each
+  theme) so their data-conditional sections can be strengthened next.
+
 - **Homepage design mirror release candidate — done.** Rebuilt the public home
   surface around the supplied community reference: owned full-bleed hero art,
   Supabase-backed impact metrics and campaign proof, all eligible paid featured
