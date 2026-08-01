@@ -97,7 +97,21 @@ Both looked like defects and were verified before "fixing" them:
     and `/contact` now measure a uniform 56/56 where they were 100/100 and
     120/120. `.mirror-metrics` and `.mirror-trust` stay at 22px: those are
     deliberately tight strips, not content bands.
-    - Remaining: the `hiw-` family's bands (34–54px) are not routed.
+    - **The `pub-` family is now routed too, and it was not a `hiw-` problem.**
+      `/how-it-works` measured 34–54px, but no `.hiw-section` padding rule
+      exists — the values came from `.pub-hero`/`.pub-section`/`.hiw-cta-band`,
+      shared across all 21 legacy pages. Found by asking the browser which rules
+      actually matched (`CSSOM` + `element.matches`) rather than grepping for the
+      class in the name. Routing those three unified every legacy page at once.
+    - **Measured after:** `/about-us`, `/contact`, `/how-it-works` all report
+      `[56,56,56,56,56]`. `/support` and `/press` report `[0,0,0]` — correct,
+      they are in-container sections spacing via `margin-bottom: 52px`.
+      The homepage keeps one `22px` strip (`.mirror-trust`), deliberately tight.
+    - Checked and correctly NOT routed: `.pricing-grid` (30px), `.pricing-promises`
+      (24px), `.pricing-faq`. Those are component inner-padding — a card grid's
+      gutter and a panel's own padding — which is a third construct again, not a
+      band. Forcing them to 56px would have been the same category error as
+      collapsing sections and bands together.
   - **Still open — the h2-as-card-title tier.** ~20 rules use `h2` for a card or
     panel title at 19–28px. Those are correctly *not* on `--fs-h2` (a card title
     is an h3-scale element that is an `h2` for document-outline reasons), but
