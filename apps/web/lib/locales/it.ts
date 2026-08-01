@@ -2,6 +2,11 @@
 import type { Dictionary } from '../i18n';
 
 export const it: Dictionary = {
+  'footer.link.mobile_app': 'CharitMe su mobile',
+  'footer.link.impact_map': 'Mappa dell\'impatto',
+  'footer.link.glossary': 'Glossario',
+  'footer.link.internships': 'Tirocini',
+  'footer.link.feedback': 'Invia un feedback',
   // ── Homepage data cards (i18n string migration) ──────────────────────────
   'home.feature.start.t': 'Avvia una raccolta',
   'home.feature.start.b': 'Lancia una campagna affidabile in pochi minuti: l\'IA scrive storia, obiettivo e piano.',
