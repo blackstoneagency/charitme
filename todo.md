@@ -24,7 +24,7 @@ the repo. Result: **27 exist, 8 return 404.**
 ### 🔴 Missing — 404 on production today
 | # | Design page | Route | Supabase backing | Notes |
 |---|---|---|---|---|
-| 18 | Favorites / Saved Causes | `/dashboard/saved` | ✅ **`saved_campaigns`, 240 rows, NO reader** | best-value gap: real data, designed page, unreachable |
+| ~~18~~ | ~~Favorites / Saved Causes~~ | `/dashboard/saved` | ✅ **SHIPPED** (`03d40df`) — reads the 240 rows, in nav, in both sweep lists | |
 | 21 | Payment Methods | `/dashboard/payment-methods` | ⚠️ no `payment_methods` table | Stripe holds these; page must read the Stripe customer, not a local table |
 | 9 | Resources | `/resources` | content | |
 | 22 | Resources / Guides listing | `/guides` | no `guides` table | |
@@ -49,9 +49,19 @@ Notifications, Profile Settings, Blog, Careers, Terms, Privacy, Refund, Cookie, 
 **Present ≠ matching the design** — each still needs a visual pass against its box.
 
 ### 🔵 CLAIMED BY THIS LANE (Claude, 2026-08-01)
-- **`/dashboard/saved`** — page 18. `saved_campaigns` holds 240 rows that nothing
-  reads, exactly the `peer_fundraisers` situation.
-- **`/thank-you`** — page 31, the money path.
+- ~~`/dashboard/saved`~~ — ✅ **SHIPPED**. Also revealed that the signed-in sweep
+  walks a LIST, not the app directory, so any new page is unaudited until it is
+  added to `e2e/authed-routes.json` **and** `public-routes.json → authGated.consoles`.
+  Sweep coverage went 137 → 160 pages.
+- **`/thank-you`** — page 31, the money path. IN PROGRESS.
+
+### ✅ Signed-in contrast is now clean
+0 colour failures across 22,447 text elements per theme (was 182 earlier today).
+The last three were all one pattern, worth stating because it will recur: **a
+`*-text` token used as a fill, or a themed text colour on a hardcoded light
+surface.** Those tokens go LIGHTER in dark mode by design, so as a fill under white
+text they invert. `--fill-brand` exists for fills and deliberately has no dark
+override.
 
 Everything else in the missing table is **unclaimed** — take one and mark it here
 first. Three collisions today (cause taxonomy, cause pages, homepage) all came from
