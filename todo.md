@@ -272,6 +272,28 @@ Two details worth keeping:
 
 ⚠️ Inert until `20260820000000` is applied; the admin page says so by name.
 
+**✅ #171 Backups & Recovery — BUILT as a disclosure, not a dashboard.**
+The design shows a backup table — *"Database Backup, Full, 2.4 GB, Completed"*,
+last-backup time, storage used. **None of that is observable from this
+application.** Postgres backups are held by Supabase; there is no API access, no
+credentials, and no way to confirm a backup ran. Every figure in that mock would
+have been invented.
+
+That matters more here than on any other screen, because this is the page someone
+opens **during an incident**, and it would answer the only question that
+matters — *"do we have a restore point?"* — with a number nobody measured.
+
+So the page documents the **posture** (where data lives, that the schema rebuilds
+from `supabase/migrations/`, that Stripe holds the authoritative payment record
+so a restore does not lose payment history) and links to the provider console for
+live state. The one thing it *does* show live is what CharitMe genuinely owns:
+whether anything is actively deleting records, read from `data_retention_runs` —
+and `null` renders as **unknown**, never "nothing was deleted".
+
+If a Supabase Management API token is ever provisioned, the live backup list
+belongs here as **measured** values, replacing that notice rather than sitting
+beside it.
+
 **✅ #150 Custom Domain — BUILT, and the objection was to the FAKE version.**
 I twice declined this page on the grounds that a "Verified ✓" badge nothing
 verifies is worse than no page. That was right about the fake version and wrong
