@@ -1,5 +1,22 @@
 # CharitMe — Execution Tracker
 
+## ✅ CI IS ALIVE AGAIN — red checks are real now (2026-08-01)
+
+The GitHub Actions outage is OVER. Verified on run `30704209059`:
+`runner_id: 1000001483`, a real runner name, all steps present, 3m09s. The
+outage signature was `runner_id: 0`, empty `runner_name`, created and failed in
+the same second, no steps.
+
+**Every note in this file saying "a red check is not a signal" is superseded.**
+Blocker #1 in the READ FIRST box is cleared.
+
+It immediately earned its keep: it caught five pages that were in the sitemap and
+linked from neither the header nor the footer — a real "wire all navigation"
+failure that the local suite missed because master had gained the guard and this
+branch had not merged it yet. **A local pass with fewer tests than CI is not
+flakiness; merge master before assuming CI is wrong.**
+
+
 ## 🛑 READ FIRST — what is blocked, and by whom (updated 2026-07-29)
 
 Everything below this box is engineering detail. These are the remaining
