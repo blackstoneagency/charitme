@@ -48,6 +48,7 @@ export const FOOTER_SECTIONS: Record<FooterSectionName, readonly FooterLink[]> =
     { label: 'Fast Payouts', href: '/fast-payouts', labelKey: 'footer.link.fast_payouts' },
     { label: 'Pricing', href: '/pricing', labelKey: 'footer.link.pricing' },
     { label: 'Success Stories', href: '/success-stories', labelKey: 'footer.link.success_stories' },
+    { label: 'Campaign Gallery', href: '/gallery', labelKey: 'footer.link.gallery' },
     { label: 'Leaderboard', href: '/leaderboard', labelKey: 'footer.link.leaderboard' },
     { label: 'Developers & API', href: '/developers', labelKey: 'footer.link.developers' },
   ],
@@ -67,6 +68,7 @@ export const FOOTER_SECTIONS: Record<FooterSectionName, readonly FooterLink[]> =
     { label: 'Matching Gifts', href: '/matching', labelKey: 'footer.link.matching' },
     { label: 'Grants', href: '/grants', labelKey: 'footer.link.grants' },
     { label: 'Events', href: '/events', labelKey: 'footer.link.events' },
+    { label: 'Donor Wall', href: '/donor-wall', labelKey: 'footer.link.donor_wall' },
   ],
   Company: [
     { label: 'About Us', href: '/about-us', labelKey: 'footer.link.about_us' },
@@ -78,6 +80,7 @@ export const FOOTER_SECTIONS: Record<FooterSectionName, readonly FooterLink[]> =
     { label: 'Help Center', href: '/help', labelKey: 'footer.link.help' },
     { label: 'FAQ', href: '/faq', labelKey: 'footer.link.faq' },
     { label: 'Supported Countries', href: '/supported-countries', labelKey: 'footer.link.supported_countries' },
+    { label: 'Careers', href: '/careers', labelKey: 'footer.link.careers' },
   ],
   Legal: [
     { label: 'Trust & Safety', href: '/trust-safety', labelKey: 'footer.link.trust_safety' },

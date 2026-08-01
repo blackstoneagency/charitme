@@ -132,8 +132,8 @@ full inventory — 60 designs measured against the 168 routes that exist — is 
 |---|---|---|
 | Saved Causes `/dashboard/saved` | ✅ done | the other lane (`03d40df`) — **I built `/saved` in parallel and withdrew it**, see below |
 | System Status `/status` + `/api/status` | ✅ done | this lane |
-| #121 Advanced Search | 🚧 **claimed** | this lane (tbaz3i) — `/search` ALREADY EXISTS and is linked from nowhere; this is nav wiring, not a build |
-| Nav orphans (10 indexable routes) | 🚧 **claimed** | this lane (tbaz3i) — measured 2026-08-01, see below |
+| #121 Advanced Search | ✅ done | this lane — `/search` existed; wired the header search button to it |
+| Nav orphans (10 indexable routes) | ✅ done | this lane — 7 wired, 3 exempted with a checked reason |
 | #98 Community Guidelines | ✅ done | this lane — `/community-guidelines` |
 | #94 Ambassador programme | ⬜ **unclaimed** | |
 | #130 Fundraising Tools hub | ✅ done | this lane — `/dashboard/tools` |
@@ -185,7 +185,31 @@ magnifying-glass button is labelled *"Search campaigns"* and links to
 search page — which already supports query, cause, location and sort. So #121
 needed wiring, not building.
 
-Being fixed in this lane.
+**Fixed. Seven wired, three exempted with a reason the test CHECKS:**
+
+| Route | Now reachable from |
+|---|---|
+| `/search` | the header search button — it pointed at `/campaigns` |
+| `/roles` | Resources → Learn |
+| `/supporter-space` | Resources → Learn ("Where to Give") |
+| `/teams` | Resources → Get Involved |
+| `/get-involved` | Resources → Get Involved |
+| `/gallery` | footer → Platform |
+| `/donor-wall` | footer → Ways to Give |
+| `/careers` | footer → Company |
+
+Exempt: `/` (the logo), `/search` (the header button — and the test asserts that
+button's href, so the exemption cannot quietly become a lie), and
+`/causes/mental-health` (a cause detail page reached from `/causes`, which is in
+the menu; linking all 20 individually would bury it).
+
+The Resources columns went 4/4/4 → **6/6/6** — still equal, which is what the
+design constrains. `/matching` and `/grants` joined For Organizations to keep
+them so, and both belong there anyway.
+
+`__tests__/nav-orphans.test.ts` pins this, and includes a check that the sweep
+can fail plus one that no exemption is stale — an exemption nobody verifies is a
+silenced test.
 
 ## 🔀 I18N LANE SPLIT — read this before touching a string (Claude, 2026-08-01)
 

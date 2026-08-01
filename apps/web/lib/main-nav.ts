@@ -76,6 +76,8 @@ export const RESOURCES: NavItem = {
         { label: 'Fundraising Guide', href: '/fundraising-guide', labelKey: 'nav.resource.fundraising_guide', description: 'A step-by-step playbook for your first campaign.' },
         { label: 'Impact Education', href: '/impact-education', labelKey: 'nav.resource.impact_education', description: 'How giving works, and how to measure what it changes.' },
         { label: 'Reports & Research', href: '/reports', labelKey: 'nav.resource.reports', description: 'Platform transparency reports and giving data.' },
+        { label: 'Account Roles', href: '/roles', labelKey: 'nav.resource.roles', description: 'What donor, organizer, nonprofit and admin actually mean.' },
+        { label: 'Where to Give', href: '/supporter-space', labelKey: 'nav.resource.supporter_space', description: 'Answered from live data: what is closing soonest and furthest from goal.' },
       ],
     },
     {
@@ -86,6 +88,8 @@ export const RESOURCES: NavItem = {
         { label: 'Events', href: '/events', labelKey: 'footer.link.events', description: 'Fundraising events near you and online.' },
         { label: 'Donate', href: '/donate', labelKey: 'nav.resource.donate', description: 'Give to a cause, or support the platform directly.' },
         { label: 'Partner With Us', href: '/partner', labelKey: 'nav.resource.partner', description: 'Bring CharitMe to your network or community.' },
+        { label: 'Team Fundraising', href: '/teams', labelKey: 'nav.resource.teams', description: 'Rally friends or colleagues behind one shared goal.' },
+        { label: 'All Ways to Take Part', href: '/get-involved', labelKey: 'nav.resource.get_involved', description: 'Every way to help, in one place.' },
       ],
     },
     {
@@ -96,6 +100,8 @@ export const RESOURCES: NavItem = {
         { label: 'Verification Process', href: '/verification', labelKey: 'nav.resource.verification', description: 'How we confirm organizations are who they say.' },
         { label: 'Nonprofit Dashboard', href: '/dashboard/nonprofit', labelKey: 'nav.resource.nonprofit_dashboard', description: 'Manage your organization, team, and payouts.' },
         { label: 'Corporate Partnerships', href: '/corporate-partnerships', labelKey: 'nav.resource.corporate', description: 'Matching gifts and workplace giving programmes.' },
+        { label: 'Matching Gifts', href: '/matching', labelKey: 'footer.link.matching', description: 'Double what your people give, up to a cap you set.' },
+        { label: 'Grants', href: '/grants', labelKey: 'footer.link.grants', description: 'Funding programmes organizations can apply to.' },
       ],
     },
   ],
