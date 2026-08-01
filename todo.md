@@ -177,7 +177,44 @@ Measured against `schema.sql` — this is the real constraint on the whole deck:
 |---|---|---|
 | **148 Donation Form Builder** | `donation_forms` | ✅ **EXISTS + applied in prod, and has NO reader** — orphan table |
 | 184 Organization Profile | `organizations` | ⚠️ exists but **not applied in prod** (see the migrations runbook) — building on it ships inert code |
-| 145 Tasks, 153 Documents, 149 Currencies, 150 Custom Domain, 166 Changelog, 168 Incidents, 169 Maintenance, 171 Backups, 172 Retention | **none of these tables exist** | each needs a migration first — and migrations **cannot be applied from the sandbox**, so they would ship inert like the volunteer/organization work already has |
+| 145 Tasks, 153 Documents, 150 Custom Domain, 168 Incidents, 169 Maintenance, 171 Backups, 172 Retention | **none of these tables exist** | each needs a migration first — and migrations **cannot be applied from the sandbox**, so they would ship inert like the volunteer/organization work already has |
+
+**✅ #166 Changelog — BUILT, no table** (`/changelog`). Editorial content in
+`lib/changelog.ts`, the `lib/blog-posts.ts` convention. A changelog is written by
+a person at release time, not accumulated by the app.
+Two rules stated in that file: **only merged work** is listed (a changelog is a
+public claim, trivially checkable against the repo), and entries are anchored to
+**dates, not invented semver** — the mock shows "v2.4.1" but this repo has no
+release tags, so a version number would imply a process that does not exist.
+
+### 📉 My "needs a table" list has now been wrong THREE times
+
+Worth stating as a rule rather than three separate corrections, because the
+pattern is the expensive part:
+
+| # | page | I claimed | reality |
+|---|---|---|---|
+| 1 | 174 Webhooks | no table | `outbound_webhook_endpoints` — I probed a **guessed name** |
+| 2 | 146 Email Templates | no table | `marketing_email_templates` — same guess |
+| 3 | 144 Calendar | needs a table | the dates were **already there**, in 3 tables nothing joined |
+| 4 | 166 Changelog | needs a table | **no storage needed at all** — it is editorial copy |
+
+**The rule: "this page needs a table" is a claim requiring the same evidence as
+any other.** Before asserting it, (a) read the actual schema rather than probing
+invented names — `npm run audit:orphan-tables` prints all 155; (b) ask whether
+the data already exists somewhere else; (c) ask whether it needs storage at all.
+Four of the eleven "blocked" pages fell to those three questions.
+
+**Still genuinely blocked (7)** — these need storage that does not exist, and the
+migration cannot be applied from here:
+`145 Tasks`, `153 Documents` (also needs file storage), `150 Custom Domain` (also
+needs DNS/TLS infra), `168 Incidents`, `169 Maintenance`, `171 Backups` (Supabase
+owns backups — a page here would report someone else's state), `172 Retention`.
+
+**#149 Multi-Currency is the next one to re-examine** under the rule above:
+`@shared/currencies` already exists, `campaign_launch_settings.currency` is a
+live column, and `donation_forms.currencies` is an array — so this may be
+another aggregator rather than a new table. Not yet claimed.
 
 **✅ #144 Calendar — BUILT, with no new table** (`/dashboard/calendar`).
 Second correction to the "needs a table" list, and a more useful one: the page
