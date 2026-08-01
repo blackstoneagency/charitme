@@ -155,13 +155,13 @@ volunteer (44/45), events (48), matching (55), accessibility (68), safety (69 �
 
 | # | Route | Design | Lane |
 |---|---|---|---|
-| 1 | `/search` — global + advanced search/filters | 36, 37 | 🔵 **CLAIMED wcu7oh** |
-| 2 | `/teams` — team hub | 49 | 🔵 **CLAIMED wcu7oh** |
+| 1 | `/search` — global + advanced search/filters | 36, 37 | ✅ **BUILT wcu7oh** |
+| 2 | `/teams` — team hub | 49 | ✅ **BUILT wcu7oh** |
 | 3 | `/teams/create` — 5-step wizard | 50–53 | ✅ **BUILT wcu7oh** |
 | 4 | `/impact-map` — global impact map | 59 | ✅ **BUILT wcu7oh** |
-| 5 | `/donor-wall` — hall of thanks / recognition | 62, 81 | 🔵 **CLAIMED wcu7oh** |
+| 5 | `/donor-wall` — hall of thanks / recognition | 62, 81 | ✅ **BUILT wcu7oh** |
 | 6 | `/glossary` | 73 | ✅ **BUILT wcu7oh** |
-| 7 | `/press` — press releases + detail | 77 | ⬜ unclaimed |
+| 7 | `/press` — press releases + detail | 77 | ✅ **BUILT wcu7oh** |
 | 8 | `/brand-assets` — media kit | 78 | ✅ **BUILT wcu7oh** |
 | 9 | `/mobile-app` | 67 | ✅ **BUILT wcu7oh** |
 | 10 | `/webinars` + detail | 76 | ✅ **BUILT wcu7oh** |
@@ -170,7 +170,21 @@ volunteer (44/45), events (48), matching (55), accessibility (68), safety (69 �
 | 13 | `/support/chat` — live support | 71 | ✅ **BUILT wcu7oh** |
 | 14 | `/internships` | 46 | ✅ **BUILT wcu7oh** |
 | 15 | `/feedback` | 47 | ✅ **BUILT wcu7oh** |
-| 16 | `/certificate` — donor certificate | 64 | 🔵 **CLAIMED wcu7oh 14:10** |
+| 16 | `/certificate` — donor certificate | 64 | 🟡 **the only one left** — see below |
+
+**15 of the 16 are BUILT and returning 200 on www.charitme.com** (verified by
+fetching every one, 2026-08-01 20:0x). Four rows above said CLAIMED or unclaimed
+when the page had in fact shipped — a stale table is worse than no table,
+because another lane reads it and rebuilds a live page. Status here is now
+checked against the filesystem AND production, not against memory.
+
+`/certificate` is the only genuine gap, and it should **not** be built as a
+separate route. `/donor/receipt/[donationId]` already exists and is owned by the
+donor-receipt lane; a standalone `/certificate` would be a second document
+rendering the same donation with no donation id in the URL — i.e. either a
+mock-up with invented figures, or a duplicate of a page another lane owns.
+Design 64 belongs as a *print/share view* on the existing receipt route. Left
+for that lane deliberately.
 
 ### Enhancements to EXISTING pages the sheets ask for
 
