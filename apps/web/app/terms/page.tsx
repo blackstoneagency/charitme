@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { PROCESSING_FEE_COPY, PLATFORM_FEE_COPY, SUGGESTED_SUPPORT_COPY } from '../../lib/fee-copy';
 
 export const metadata: Metadata = {
   title: 'Terms of Service',
@@ -47,7 +48,7 @@ export default function TermsPage() {
 
         <h2>5. Donations</h2>
         <p>
-          Donations are voluntary contributions. CharitMe charges 0% mandatory platform fee. Donors may optionally add a support tip to CharitMe at checkout (default 8%, changeable to $0). Stripe charges 2.9% + $0.30 per transaction, which donors may optionally cover.
+          Donations are voluntary contributions. CharitMe charges a {PLATFORM_FEE_COPY} mandatory platform fee. Donors may optionally add a support tip to CharitMe at checkout (suggested {SUGGESTED_SUPPORT_COPY}, changeable to $0). Stripe charges {PROCESSING_FEE_COPY} per transaction, which donors may optionally cover.
         </p>
         <p>
           Donations are generally non-refundable except where campaign funds are misused or fraud is confirmed. Contact the organizer first for any refund request.

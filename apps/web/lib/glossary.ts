@@ -1,3 +1,4 @@
+import { PROCESSING_FEE_COPY } from './fee-copy';
 // ─────────────────────────────────────────────────────────────────────────────
 // Glossary terms.
 //
@@ -31,7 +32,7 @@ export const GLOSSARY_TERMS: readonly GlossaryTerm[] = [
   { term: 'Payout', definition: 'The transfer of raised funds from CharitMe to the organiser’s connected bank account. Standard payouts follow a two-business-day schedule once Stripe onboarding is complete.', href: '/fast-payouts' },
   { term: 'Peer-to-peer fundraising', definition: 'Supporters raising money on behalf of a campaign, each with their own page and link. Everything they raise counts toward the parent campaign.', href: '/teams' },
   { term: 'Platform fee', definition: 'What the platform charges organisers as a percentage of donations. On CharitMe this is 0% — the platform is funded by optional donor support instead.', href: '/pricing' },
-  { term: 'Processing fee', definition: 'The charge taken by the payment processor, not by CharitMe. Card payments are 2.9% + $0.30; other methods differ and the exact rate is shown before a donor confirms.', href: '/fees' },
+  { term: 'Processing fee', definition: `The charge taken by the payment processor, not by CharitMe. Card payments are ${PROCESSING_FEE_COPY}; other methods differ and the exact rate is shown before a donor confirms.`, href: '/fees' },
   { term: 'Recurring donation', definition: 'A donation set to repeat automatically each month. It can be changed or cancelled at any time from the donor dashboard.' },
   { term: 'Refund', definition: 'The return of a donation to the donor. Refunds reverse the campaign’s raised total as well as the payment.', href: '/refunds' },
   { term: 'Stripe Connect', definition: 'The payment infrastructure CharitMe uses to verify organisers and move funds to their bank accounts. Identity is confirmed before any money can leave the platform.' },
