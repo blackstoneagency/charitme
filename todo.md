@@ -177,7 +177,31 @@ Measured against `schema.sql` — this is the real constraint on the whole deck:
 |---|---|---|
 | **148 Donation Form Builder** | `donation_forms` | ✅ **EXISTS + applied in prod, and has NO reader** — orphan table |
 | 184 Organization Profile | `organizations` | ⚠️ exists but **not applied in prod** (see the migrations runbook) — building on it ships inert code |
-| 144 Calendar, 145 Tasks, 153 Documents, 149 Currencies, 150 Custom Domain, 166 Changelog, 168 Incidents, 169 Maintenance, 171 Backups, 172 Retention | **none of these tables exist** | each needs a migration first — and migrations **cannot be applied from the sandbox**, so they would ship inert like the volunteer/organization work already has |
+| 145 Tasks, 153 Documents, 149 Currencies, 150 Custom Domain, 166 Changelog, 168 Incidents, 169 Maintenance, 171 Backups, 172 Retention | **none of these tables exist** | each needs a migration first — and migrations **cannot be applied from the sandbox**, so they would ship inert like the volunteer/organization work already has |
+
+**✅ #144 Calendar — BUILT, with no new table** (`/dashboard/calendar`).
+Second correction to the "needs a table" list, and a more useful one: the page
+does not need a `calendar_events` table because **the dates already exist**,
+spread across three tables nothing brought together —
+
+| source | field |
+|---|---|
+| `campaigns` | `deadline` |
+| `fundraising_events` | `starts_at` / `ends_at` |
+| `grant_deadlines` | `due_at`, via this user's `grant_applications` |
+
+So it aggregates rather than inventing storage: nothing inert, works in
+production today. **The general lesson for the rest of this deck: check whether
+the data already exists somewhere before concluding a page needs a table.**
+
+⚠️ **`volunteer_shifts` is deliberately NOT a source**, though it carries
+`starts_at`/`ends_at`. Its migration is one of the unapplied ones, so querying it
+would put the page in its degraded state *permanently in production* while
+working perfectly here. Add it when that migration lands.
+
+Each of the three sources is read **independently** and can fail on its own — the
+page names which one failed rather than blanking, or (worse) showing the
+survivors as if they were the whole calendar.
 
 ⚠️ **Correction to the row above — I probed guessed table names and got two wrong.**
 The first pass checked for `webhooks` and `email_templates`; the real tables are

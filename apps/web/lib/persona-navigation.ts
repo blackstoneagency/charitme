@@ -41,6 +41,9 @@ const ORGANIZER_NAV: readonly DashboardNavItem[] = [
   // tools hub: a page nothing navigates to is the same defect as a table nothing
   // reads.
   { label: 'Donation Forms', href: '/dashboard/forms', icon: 'gift' },
+  // Aggregates dates that already exist across campaigns, fundraising_events and
+  // grant_deadlines — no new table, so nothing here is inert in production.
+  { label: 'Calendar', href: '/dashboard/calendar', icon: 'stack' },
   { label: 'AI Growth Plan', href: '/dashboard/ai-growth-plan', icon: 'send', badge: 'New' },
   { label: 'AI Coach', href: '/dashboard/ai-coach', icon: 'send', badge: 'AI' },
   { label: 'Donations Received', href: '/dashboard/donations', icon: 'gift' },
