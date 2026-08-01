@@ -15767,6 +15767,29 @@ Three things the tests pin that are easy to get wrong:
   blank band under a widget with the cover turned off, and nobody edits a pasted
   snippet.
 
+**⚠️ Measured against a running server, not assumed.** Built against
+`scripts/supabase-stub.mjs`, served with `next start`, and each option probed
+over HTTP:
+
+```
+cover imgs: default=1 cover0=0
+donor line: default=1 progress0=0 donors0=0
+PASS default shows the cover (negative control: the probe CAN see it)
+PASS cover=0 removes the cover
+PASS default shows the donor line (negative control)
+PASS donors=0 removes the donor line
+PASS progress=0 removes the donor line with the block
+PASS garbage query renders the DEFAULT widget
+```
+
+Every assertion carries a negative control, because the first version of this
+harness reported two FALSE failures — it grepped for `<img` (matching the
+DonateButton's tip logo) and for `donors` (matching the site meta description).
+A probe that has never been shown to see the thing it is looking for proves
+nothing in either direction. The garbage-query check also had to compare the
+rendered `<main>` rather than the whole document: the RSC flight payload echoes
+the request URL, so the bytes differ by design.
+
 **#130 — every tool on it already existed.** The QR poster, the widget, the share
 kit, the ledger, the FAQ builder, the thank-donor mailer: all reachable ONLY from
 a tab strip inside one campaign's workspace. A fundraiser had to already know a
