@@ -118,6 +118,37 @@ describe('inline grid tracks can shrink too', () => {
   });
 });
 
+// Every CSS declaration, not only the ones inside a mobile block. A bare `1fr`
+// at the top level applies at EVERY width, so it can blow out a phone layout
+// that no breakpoint ever overrides — /admin/users kept two 250px KPI cards on a
+// 320px screen because its base rule was `repeat(4, 1fr)`. minmax(0, 1fr) is
+// also correct at desktop: it only removes a minimum that was never wanted.
+function allGridDeclarations(): { line: number; value: string }[] {
+  const out: { line: number; value: string }[] = [];
+  CSS.split('\n').forEach((line, index) => {
+    for (const m of line.matchAll(/grid-template-columns:\s*([^;}]+)/g)) {
+      out.push({ line: index + 1, value: m[1].trim() });
+    }
+  });
+  return out;
+}
+
+describe('every stylesheet grid track can shrink', () => {
+  it('scans a real stylesheet', () => {
+    expect(allGridDeclarations().length).toBeGreaterThan(200);
+  });
+
+  it('uses minmax(0, 1fr) everywhere, not only in mobile blocks', () => {
+    const offenders = allGridDeclarations()
+      .filter((d) => bareFrTracks(d.value))
+      .map((d) => `globals.css:${d.line} — ${d.value}`);
+    expect(
+      offenders,
+      `a bare \`1fr\` grows to its widest child at EVERY width:\n${offenders.join('\n')}`,
+    ).toEqual([]);
+  });
+});
+
 describe('mobile grid tracks can shrink', () => {
   it('scans a real stylesheet', () => {
     // Without this the sweep below passes vacuously if the parse breaks.
