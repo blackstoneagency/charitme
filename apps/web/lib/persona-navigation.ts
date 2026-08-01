@@ -68,6 +68,7 @@ const ORGANIZER_NAV: readonly DashboardNavItem[] = [
   // `outbound_webhook_endpoints` was the second orphan table found in this deck:
   // shipped since 20260525002000, read only by a row count on /admin/system.
   { label: 'Webhooks', href: '/dashboard/webhooks', icon: 'doc' },
+  { label: 'Custom Domain', href: '/dashboard/domains', icon: 'globe' },
   SETTINGS,
 ];
 

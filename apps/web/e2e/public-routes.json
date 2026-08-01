@@ -166,6 +166,7 @@
       "/dashboard/creator",
       "/dashboard/developers",
       "/dashboard/documents",
+      "/dashboard/domains",
       "/dashboard/donations",
       "/dashboard/forms",
       "/dashboard/donor",
