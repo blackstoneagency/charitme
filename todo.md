@@ -87,9 +87,17 @@ Both looked like defects and were verified before "fixing" them:
     rather than eyeballing mattered: three entries that looked decorative on that
     list (`.kind-hero h1`, `.home-hero h1`, `.cr2-launch-header h2`) turned out to
     be real headings that had escaped, and were routed.
-  - **Still open — section rhythm.** Section `padding-top` still runs 0→100px
-    across families (`/support` 0, `/how-it-works` 34, `/about-us` 100). Same
-    problem as the type scale, not yet tokenised.
+  - **Section rhythm: unified, and it is TWO constructs, not one.** Measuring
+    first stopped a wrong fix. Sections inside `.container` space themselves with
+    `margin-bottom` and were **already consistent at 52px** on every PageShell
+    page; only full-bleed bands had drifted, running
+    **22 / 34 / 38 / 48 / 52 / 64 / 100 / 120px**. Collapsing both onto one
+    number would have destroyed a real distinction, so only the bands are
+    tokenised — `--band-pad: 56px`, again anchored to the homepage. `/about-us`
+    and `/contact` now measure a uniform 56/56 where they were 100/100 and
+    120/120. `.mirror-metrics` and `.mirror-trust` stay at 22px: those are
+    deliberately tight strips, not content bands.
+    - Remaining: the `hiw-` family's bands (34–54px) are not routed.
   - **Still open — the h2-as-card-title tier.** ~20 rules use `h2` for a card or
     panel title at 19–28px. Those are correctly *not* on `--fs-h2` (a card title
     is an h3-scale element that is an `h2` for document-outline reasons), but
