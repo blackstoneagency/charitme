@@ -923,6 +923,27 @@ The cause is structural and known: **74 hardcoded multi-column
 query, so no breakpoint can reach them — the fix is to move those row templates
 into CSS classes, or to give the tables a scroll container of their own.
 
+### 📉 PROGRESS, MEASURED EACH ROUND
+
+| pass | overflows | routes | what changed |
+|---|---|---|---|
+| baseline | 71 | 40 | first time the signed-in half was ever measured on a phone |
+| + CSS `minmax(0, 1fr)` ×86, `.kf-metrics`, `.kf-row` | 48 | 28 | |
+| + `.ac-status-tabs` scroll, `.kf-table-scroll` on 3 tables | 46 | 27 | `/admin/campaigns` 1020px → 470px |
+| + inline `minmax(0, 1fr)` ×74 | *(measuring)* | | |
+
+**The one insight that took two passes to see.** Wrapping `/admin/reports`'s
+table in a scroll box moved its number by **zero**. The container cannot scroll
+against a width it does not have: the table sits inside an inline `'300px 1fr'`
+track, that bare `1fr` grew to the table's max-content, and the ancestor carried
+the whole document with it. The wrapper was correct and useless until the track
+above it could shrink.
+
+So the fix is the same one in both places, and the inline half matters *more*:
+CSS at least has breakpoints, while a bare `1fr` in a `style` prop can never be
+corrected at any width. 86 CSS declarations + 74 inline ones, both pinned by
+`__tests__/mobile-grid-tracks.test.ts`.
+
 ### In flight
 
 `audit-mobile.mjs` gains `--auth` and sweeps the gated routes from the same
