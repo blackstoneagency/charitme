@@ -31,13 +31,13 @@ keys to the same seven files produces merge conflicts on every single batch.
 | Header + mobile sheet (`AppShell`) | ✅ done | — |
 | `/causes`, `/causes/[slug]` (20 pages) | ✅ done | the other lane |
 | `/campaigns/[slug]` — campaign detail | ✅ done | this lane (#182) |
-| `/` — homepage | ⬜ **unclaimed** | |
-| `/campaigns` — discovery list | ⬜ **unclaimed** | |
+| `/` — homepage | 🔵 CLAIMED, in progress | this lane (wcu7oh) |
+| `/campaigns` — discovery list | 🔵 CLAIMED, in progress | this lane (wcu7oh) |
 | Donate flow (`DonateButton`, checkout) | ⬜ **unclaimed** | |
 | `/create` wizard | ⬜ **unclaimed** | |
 | `/dashboard/*` | ⬜ **unclaimed** | |
 | `/admin/*` | ⬜ **unclaimed** | |
-| The 13 new marketing pages | ⬜ **unclaimed** | |
+| The 13 new marketing pages | 🔵 CLAIMED, in progress | this lane (wcu7oh) — built by this lane, so it owns them |
 
 ### Two things that are easy to get wrong here
 
