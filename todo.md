@@ -211,10 +211,37 @@ migration cannot be applied from here:
 needs DNS/TLS infra), `168 Incidents`, `169 Maintenance`, `171 Backups` (Supabase
 owns backups — a page here would report someone else's state), `172 Retention`.
 
-**#149 Multi-Currency is the next one to re-examine** under the rule above:
-`@shared/currencies` already exists, `campaign_launch_settings.currency` is a
-live column, and `donation_forms.currencies` is an array — so this may be
-another aggregator rather than a new table. Not yet claimed.
+**✅ #149 Multi-Currency — examined, and it found a real defect.**
+The user-facing halves were already built (personal display currency in
+`/dashboard/settings`; campaign currency in the campaign settings panel). But:
+
+**🔴 FIXED — the currency picker offered 5 of 28 supported currencies.**
+`SettingsPanel.tsx` hardcoded `['USD','EUR','GBP','CAD','AUD']` while
+`@shared/currencies` defines **28** and the API accepts every one of them
+(`isSupportedCurrency`). So 23 currencies were reachable by the backend and
+unreachable by the organizer — a limit with no rule behind it, and invisible from
+either side alone: the API looks permissive, the UI looks intentional.
+
+This is the **CAMPAIGN_CATEGORIES failure verbatim** — the one CLAUDE.md already
+warns about ("three hand-maintained copies had already drifted"). So it got a
+test, not just a fix: `__tests__/currency-list-single-source.test.ts` fails on any
+hardcoded currency array **narrower than the shared list**.
+
+That test immediately found **two more** I had not touched —
+`admin/system/_components/SystemClient.tsx` and
+`admin/users/_components/AdminUsersClient.tsx`, both the same five. Three copies,
+exactly as the category list went. All three now render from the shared source.
+
+⚠️ **`@shared/currencies` was untestable until now.** `vitest.config.ts` aliased
+`@shared/*` module-by-module — `fees` and `entitlements` only — so importing
+`@shared/currencies` in a test failed to resolve, and nobody found out because no
+test had tried. Replaced with one regex alias covering every current and future
+shared module. **A per-module allowlist in test config silently decides what can
+be tested at all.**
+
+**Still blocked in #149:** the design's admin *exchange-rate* table needs an
+`exchange_rates` table and a rate feed — real storage plus an external
+dependency, so it stays with the other seven.
 
 **✅ #144 Calendar — BUILT, with no new table** (`/dashboard/calendar`).
 Second correction to the "needs a table" list, and a more useful one: the page
