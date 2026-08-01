@@ -272,6 +272,32 @@ Two details worth keeping:
 
 ⚠️ Inert until `20260820000000` is applied; the admin page says so by name.
 
+**✅ #150 Custom Domain — BUILT, and the objection was to the FAKE version.**
+I twice declined this page on the grounds that a "Verified ✓" badge nothing
+verifies is worse than no page. That was right about the fake version and wrong
+as a verdict on the page: **ownership verification is a live DNS TXT lookup**,
+which Node does natively. Checked in the sandbox — `resolveCname` works,
+`resolveTxt` times out *here specifically*, so the lookup is exercised in tests
+through an injected resolver rather than assumed.
+
+`status` becomes `verified` only when a resolver actually returns our token.
+No manual override, no optimistic path, and `custom_domains_verified_consistency`
+refuses a verified row without a timestamp.
+
+⚠️ **What it still cannot do, said on the page rather than buried:** verifying
+ownership does **not** make the domain serve traffic. Routing and TLS belong to
+the hosting provider. The honest split is "we can prove you own it; pointing it
+at us is a step you take in your host" — that is a real, useful half, unlike a
+green tick that means nothing.
+
+Two details that matter more than they look:
+- The failure reason is shown **verbatim**, and distinguishes *"no record yet"*
+  from *"we could not ask DNS"*. "Not verified" with no explanation is how this
+  feature wastes someone's afternoon.
+- Chunked TXT records are **joined before comparison** — resolvers split strings
+  over 255 bytes, and a per-chunk compare would tell a user their DNS was wrong
+  when it was right. Pinned by a test.
+
 **✅ #172 Data Retention — BUILT with its enforcement** (`/admin/retention`,
 `20260822000000`, `/api/cron/apply-retention`).
 
@@ -4735,6 +4761,7 @@ run**, because each one *is* a schema change:
 | `20260820000000_incidents_and_maintenance` | `/admin/incidents` and the incident/maintenance sections of `/status` report **unknown** — deliberately, never "no incidents" |
 | `20260821000000_tasks` | `/dashboard/tasks` reports **unknown** rather than an empty list |
 | `20260822000000_data_retention_policies` | `/admin/retention` unavailable; the retention job has no policy row to act on, so **nothing is deleted** — it fails safe |
+| `20260823000000_custom_domains` | `/dashboard/domains` unavailable |
 
 The third is the one to prioritise: it is a live data exposure, and it is a
 single `drop policy` + `create policy`, safe to run on its own.

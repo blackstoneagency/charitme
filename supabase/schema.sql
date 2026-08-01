@@ -1893,6 +1893,27 @@ CREATE TABLE public.creator_tips (
 
 
 --
+-- Name: custom_domains; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.custom_domains (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    owner_id uuid NOT NULL,
+    campaign_id uuid,
+    domain text NOT NULL,
+    verification_token text NOT NULL,
+    status text DEFAULT 'pending'::text NOT NULL,
+    verified_at timestamp with time zone,
+    last_checked_at timestamp with time zone,
+    last_error text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT custom_domains_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'verified'::text, 'failed'::text]))),
+    CONSTRAINT custom_domains_verified_consistency CHECK ((((status = 'verified'::text) AND (verified_at IS NOT NULL)) OR ((status <> 'verified'::text) AND (verified_at IS NULL))))
+);
+
+
+--
 -- Name: data_retention_policies; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -4654,6 +4675,22 @@ ALTER TABLE ONLY public.creator_tips
 
 
 --
+-- Name: custom_domains custom_domains_domain_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.custom_domains
+    ADD CONSTRAINT custom_domains_domain_key UNIQUE (domain);
+
+
+--
+-- Name: custom_domains custom_domains_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.custom_domains
+    ADD CONSTRAINT custom_domains_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: data_retention_policies data_retention_policies_category_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6168,6 +6205,20 @@ CREATE UNIQUE INDEX creator_profiles_user_id_unique ON public.creator_profiles U
 
 
 --
+-- Name: custom_domains_campaign_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX custom_domains_campaign_idx ON public.custom_domains USING btree (campaign_id) WHERE (campaign_id IS NOT NULL);
+
+
+--
+-- Name: custom_domains_owner_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX custom_domains_owner_idx ON public.custom_domains USING btree (owner_id);
+
+
+--
 -- Name: data_retention_runs_ran_at_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -7523,6 +7574,13 @@ CREATE TRIGGER contact_messages_set_updated_at BEFORE UPDATE ON public.contact_m
 --
 
 CREATE TRIGGER creator_profiles_set_updated_at BEFORE UPDATE ON public.creator_profiles FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
+-- Name: custom_domains custom_domains_touch; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER custom_domains_touch BEFORE UPDATE ON public.custom_domains FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 
 --
@@ -9182,6 +9240,22 @@ ALTER TABLE ONLY public.creator_tips
 
 ALTER TABLE ONLY public.creator_tips
     ADD CONSTRAINT creator_tips_supporter_id_fkey FOREIGN KEY (supporter_id) REFERENCES public.profiles(id) ON DELETE SET NULL;
+
+
+--
+-- Name: custom_domains custom_domains_campaign_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.custom_domains
+    ADD CONSTRAINT custom_domains_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES public.campaigns(id) ON DELETE CASCADE;
+
+
+--
+-- Name: custom_domains custom_domains_owner_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.custom_domains
+    ADD CONSTRAINT custom_domains_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
 
 
 --
@@ -11710,6 +11784,19 @@ ALTER TABLE public.creator_tips ENABLE ROW LEVEL SECURITY;
 CREATE POLICY creator_tips_private ON public.creator_tips FOR SELECT USING (((auth.uid() = supporter_id) OR (EXISTS ( SELECT 1
    FROM public.creator_profiles cp
   WHERE ((cp.id = creator_tips.creator_profile_id) AND (cp.user_id = auth.uid())))) OR public.is_admin()));
+
+
+--
+-- Name: custom_domains; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.custom_domains ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: custom_domains custom_domains_owner; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY custom_domains_owner ON public.custom_domains USING (((auth.uid() = owner_id) OR public.is_admin())) WITH CHECK (((auth.uid() = owner_id) OR public.is_admin()));
 
 
 --
