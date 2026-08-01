@@ -293,4 +293,15 @@ export const en: Dictionary = {
   'nav.group.resources_blurb': 'How CharitMe works, and how we keep it safe',
   'nav.open_menu': 'Open menu',
   'nav.home': 'Home',
+
+  // ── /causes page chrome ────────────────────────────────────────────────────
+  'causes.page_title': 'Browse causes',
+  'causes.page_intro': 'Every campaign on CharitMe belongs to a cause. Pick the one closest to what you care about, or browse them all — each page shows live campaigns you can support right now.',
+  'causes.live_one': '1 live campaign',
+  'causes.live_many': '{count} live campaigns',
+  'causes.missing_title': 'Do not see your cause?',
+  'causes.missing_body': 'You can start a fundraiser for anything that matters to you. It takes about five minutes, and there is no mandatory platform fee.',
+  'causes.narrower_note': 'Campaigns are not tagged at this level of detail, so this page shows the closest categories we do record.',
+
+  'nav.start_fundraiser': 'Start a fundraiser',
 };

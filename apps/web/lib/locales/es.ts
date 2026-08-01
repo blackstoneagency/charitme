@@ -273,4 +273,15 @@ export const es: Dictionary = {
   'nav.group.resources_blurb': 'Cómo funciona CharitMe y cómo lo mantenemos seguro',
   'nav.open_menu': 'Abrir menú',
   'nav.home': 'Inicio',
+
+  // ── /causes page chrome ────────────────────────────────────────────────────
+  'causes.page_title': 'Explorar causas',
+  'causes.page_intro': 'Cada campaña de CharitMe pertenece a una causa. Elige la que más te importe o explóralas todas: cada página muestra campañas activas que puedes apoyar ahora mismo.',
+  'causes.live_one': '1 campaña activa',
+  'causes.live_many': '{count} campañas activas',
+  'causes.missing_title': '¿No ves tu causa?',
+  'causes.missing_body': 'Puedes crear una campaña para cualquier cosa que te importe. Lleva unos cinco minutos y no hay comisión de plataforma obligatoria.',
+  'causes.narrower_note': 'Las campañas no se etiquetan con este nivel de detalle, así que esta página muestra las categorías más cercanas que sí registramos.',
+
+  'nav.start_fundraiser': 'Crear una campaña',
 };

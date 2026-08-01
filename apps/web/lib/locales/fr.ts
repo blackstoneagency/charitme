@@ -272,4 +272,15 @@ export const fr: Dictionary = {
   'nav.group.resources_blurb': 'Comment CharitMe fonctionne et reste sûr',
   'nav.open_menu': 'Ouvrir le menu',
   'nav.home': 'Accueil',
+
+  // ── /causes page chrome ────────────────────────────────────────────────────
+  'causes.page_title': 'Parcourir les causes',
+  'causes.page_intro': 'Chaque cagnotte sur CharitMe appartient à une cause. Choisissez celle qui vous parle ou parcourez-les toutes — chaque page présente des cagnottes en cours que vous pouvez soutenir immédiatement.',
+  'causes.live_one': '1 cagnotte en cours',
+  'causes.live_many': '{count} cagnottes en cours',
+  'causes.missing_title': 'Vous ne voyez pas votre cause ?',
+  'causes.missing_body': 'Vous pouvez lancer une cagnotte pour tout ce qui vous tient à cœur. Cela prend environ cinq minutes, et aucun frais de plateforme n’est obligatoire.',
+  'causes.narrower_note': 'Les cagnottes ne sont pas classées à ce niveau de détail ; cette page affiche donc les catégories les plus proches que nous enregistrons.',
+
+  'nav.start_fundraiser': 'Lancer une cagnotte',
 };

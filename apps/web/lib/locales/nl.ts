@@ -271,4 +271,15 @@ export const nl: Dictionary = {
   'nav.group.resources_blurb': 'Hoe CharitMe werkt en hoe we het veilig houden',
   'nav.open_menu': 'Menu openen',
   'nav.home': 'Home',
+
+  // ── /causes page chrome ────────────────────────────────────────────────────
+  'causes.page_title': 'Doelen bekijken',
+  'causes.page_intro': 'Elke actie op CharitMe hoort bij een doel. Kies het doel dat jou het meest raakt, of bekijk ze allemaal — elke pagina toont lopende acties die je nu kunt steunen.',
+  'causes.live_one': '1 lopende actie',
+  'causes.live_many': '{count} lopende acties',
+  'causes.missing_title': 'Staat jouw doel er niet bij?',
+  'causes.missing_body': 'Je kunt een actie starten voor alles wat jou raakt. Het duurt ongeveer vijf minuten en er zijn geen verplichte platformkosten.',
+  'causes.narrower_note': 'Acties worden niet op dit detailniveau gelabeld, dus deze pagina toont de dichtstbijzijnde categorieën die we wel vastleggen.',
+
+  'nav.start_fundraiser': 'Actie starten',
 };

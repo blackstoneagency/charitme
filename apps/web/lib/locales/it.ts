@@ -271,4 +271,15 @@ export const it: Dictionary = {
   'nav.group.resources_blurb': 'Come funziona CharitMe e come lo teniamo sicuro',
   'nav.open_menu': 'Apri il menu',
   'nav.home': 'Home',
+
+  // ── /causes page chrome ────────────────────────────────────────────────────
+  'causes.page_title': 'Esplora le cause',
+  'causes.page_intro': 'Ogni raccolta su CharitMe appartiene a una causa. Scegli quella che ti sta più a cuore o sfogliale tutte: ogni pagina mostra raccolte attive che puoi sostenere subito.',
+  'causes.live_one': '1 raccolta attiva',
+  'causes.live_many': '{count} raccolte attive',
+  'causes.missing_title': 'Non trovi la tua causa?',
+  'causes.missing_body': 'Puoi avviare una raccolta per qualsiasi cosa ti stia a cuore. Ci vogliono circa cinque minuti e non c’è alcuna commissione di piattaforma obbligatoria.',
+  'causes.narrower_note': 'Le raccolte non sono classificate a questo livello di dettaglio, quindi questa pagina mostra le categorie più vicine che registriamo.',
+
+  'nav.start_fundraiser': 'Avvia una raccolta',
 };

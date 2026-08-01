@@ -4,6 +4,7 @@ import { supabaseAdmin } from '../../lib/supabase';
 import { campaignColumns, applyLiveFilters } from '../../lib/campaign-visibility';
 import { CAUSES, POPULAR_CAUSES, ALL_CAUSES_COLUMN, type Cause } from '../../lib/causes';
 import { Card } from '../../components/ui';
+import { getTranslator } from '../../lib/locale-server';
 
 export const metadata: Metadata = {
   title: 'Browse Causes',
@@ -61,18 +62,24 @@ async function getCauseCounts(): Promise<Map<string, number>> {
   }
 }
 
-function CauseCard({ cause, count }: { cause: Cause; count: number | undefined }) {
+type Translate = (key: string, vars?: Record<string, string | number>) => string;
+
+function CauseCard({ cause, count, t }: { cause: Cause; count: number | undefined; t: Translate }) {
+  // The cause NAME already has a translation key — the mega-menu renders the same
+  // twenty names. Reusing `nav.cause.<slug>` keeps one string per cause instead of
+  // a second copy that would drift from the menu.
+  const label = t(`nav.cause.${cause.slug}`);
   return (
     <Link href={`/causes/${cause.slug}`} style={{ textDecoration: 'none' }}>
       <Card style={{ padding: '22px', height: '100%', display: 'flex', flexDirection: 'column', gap: '8px', cursor: 'pointer' }}>
         <h3 style={{ fontSize: '16px', fontWeight: 750, color: 'var(--t1)', lineHeight: 1.3 }}>
-          {cause.label}
+          {label === `nav.cause.${cause.slug}` ? cause.label : label}
         </h3>
         <p style={{ fontSize: '13px', color: 'var(--t3)', lineHeight: 1.5, flex: 1 }}>{cause.blurb}</p>
         {/* Rendered only when the query actually returned. See getCauseCounts. */}
         {count !== undefined && (
           <span style={{ fontSize: '12px', color: 'var(--t4)', fontWeight: 650 }}>
-            {count === 1 ? '1 live campaign' : `${count} live campaigns`}
+            {count === 1 ? t('causes.live_one') : t('causes.live_many', { count })}
           </span>
         )}
       </Card>
@@ -81,53 +88,50 @@ function CauseCard({ cause, count }: { cause: Cause; count: number | undefined }
 }
 
 export default async function CausesPage() {
-  const counts = await getCauseCounts();
+  const [counts, t] = await Promise.all([getCauseCounts(), getTranslator()]);
 
   return (
     <div className="container" style={{ padding: '48px 0 72px' }}>
       <header style={{ maxWidth: '720px', marginBottom: '40px' }}>
         <h1 style={{ fontSize: 'clamp(30px, 5vw, 44px)', fontWeight: 800, color: 'var(--t1)', lineHeight: 1.15, letterSpacing: '-.02em' }}>
-          Browse causes
+          {t('causes.page_title')}
         </h1>
         <p style={{ fontSize: '17px', color: 'var(--t3)', lineHeight: 1.6, marginTop: '14px' }}>
-          Every campaign on CharitMe belongs to a cause. Pick the one closest to what you
-          care about, or browse them all — each page shows live campaigns you can support
-          right now.
+          {t('causes.page_intro')}
         </p>
       </header>
 
       <section aria-labelledby="popular-causes" style={{ marginBottom: '48px' }}>
         <h2 id="popular-causes" style={{ fontSize: '20px', fontWeight: 750, color: 'var(--t1)', marginBottom: '18px' }}>
-          Popular causes
+          {t('nav.causes.popular')}
         </h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 260px), 1fr))', gap: '18px' }}>
           {POPULAR_CAUSES.map((cause) => (
-            <CauseCard key={cause.slug} cause={cause} count={counts.get(cause.slug)} />
+            <CauseCard key={cause.slug} cause={cause} count={counts.get(cause.slug)} t={t} />
           ))}
         </div>
       </section>
 
       <section aria-labelledby="all-causes">
         <h2 id="all-causes" style={{ fontSize: '20px', fontWeight: 750, color: 'var(--t1)', marginBottom: '18px' }}>
-          All causes
+          {t('nav.causes.all')}
         </h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 260px), 1fr))', gap: '18px' }}>
           {ALL_CAUSES_COLUMN.map((cause) => (
-            <CauseCard key={cause.slug} cause={cause} count={counts.get(cause.slug)} />
+            <CauseCard key={cause.slug} cause={cause} count={counts.get(cause.slug)} t={t} />
           ))}
         </div>
       </section>
 
       <div style={{ marginTop: '48px', padding: '28px', background: 'var(--s2)', border: '1px solid var(--b1)', borderRadius: 'var(--rl)', textAlign: 'center' }}>
         <h2 style={{ fontSize: '19px', fontWeight: 750, color: 'var(--t1)' }}>
-          Don&rsquo;t see your cause?
+          {t('causes.missing_title')}
         </h2>
         <p style={{ fontSize: '14px', color: 'var(--t3)', margin: '8px auto 18px', maxWidth: '520px', lineHeight: 1.55 }}>
-          You can start a fundraiser for anything that matters to you. It takes about five
-          minutes, and there is no mandatory platform fee.
+          {t('causes.missing_body')}
         </p>
         <Link href="/create" className="kind-start-pill" style={{ display: 'inline-flex' }}>
-          Start a fundraiser
+          {t('nav.start_fundraiser')}
         </Link>
       </div>
     </div>
