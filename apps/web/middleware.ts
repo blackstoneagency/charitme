@@ -103,6 +103,7 @@ export async function middleware(request: NextRequest) {
   ].join('; ');
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-nonce', nonce);
+  requestHeaders.set('x-pathname', path);
 
   // ── Automatic locale detection ─────────────────────────────────────────────
   //

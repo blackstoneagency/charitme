@@ -1,6 +1,7 @@
 import 'server-only';
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
+import { revalidateTag } from 'next/cache';
 import { supabaseAdmin } from '../../../../../lib/supabase';
 import { guardSuperAdmin, logSuperAdminAction } from '../../../../../lib/super-admin';
 import { FEATURE_PRICE_MIN_CENTS, FEATURE_PRICE_MAX_CENTS } from '../../../../../lib/featured';
@@ -16,6 +17,11 @@ const Schema = z.object({
   donationFeePercent: z.number().min(0).max(100).optional(),
   defaultDonorTipPercent: z.number().min(0).max(100).optional(),
   maintenanceMode: z.boolean().optional(),
+  maintenanceMessage: z.string().trim().max(240).optional(),
+  maintenanceExpectedBackAt: z.string().trim().max(40).refine(
+    (value) => value === '' || Number.isFinite(Date.parse(value)),
+    'Expected return time must be a valid date and time',
+  ).optional(),
   allowNewRegistrations: z.boolean().optional(),
   // The one-time fee a creator pays to be featured in the homepage rotator.
   // In CENTS on the wire — the UI collects dollars and converts, because a
@@ -62,6 +68,7 @@ export async function PATCH(request: NextRequest) {
     : await supabaseAdmin.from('platform_settings').insert({ id: 1, config: nextConfig });
   if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
 
+  revalidateTag('platform-settings');
   await logSuperAdminAction(guard.user.id, 'settings.update', 'platform_settings', null, { keys: Object.keys(parsed.data) });
   return NextResponse.json({ ok: true, config: nextConfig });
 }
