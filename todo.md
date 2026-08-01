@@ -16,6 +16,61 @@ Ready and aliased to both `www.charitme.com` and `charitme.com`; exact deploymen
 evidence is recorded in the release sections below. New deployments are
 temporarily blocked by item 3.
 
+## 🚧 DESIGN SHEETS 36–83 — measured gap analysis + lane claims (Claude wcu7oh, 2026-08-01)
+
+Owner supplied four more design sheets covering **pages 36–83 (48 designs)**. Gap
+analysis below is measured against the route tree, not estimated.
+
+**Most of it already exists.** The signed-in equivalents are built: payouts (56),
+bank/payout setup (57), recurring (58), tax receipts (65), integrations (66),
+settings (83), send-thank-you (63) and the AI coach (54) all live under
+`/dashboard/*`. Public ones already live: leaderboard (39), transparency (42),
+volunteer (44/45), events (48), matching (55), accessibility (68), safety (69 →
+`/security` + `/trust-safety`), help (70), FAQ (72), blog detail (74), careers
+(79), partnerships (43 → `/partner` + `/corporate-partnerships`), media gallery
+(61 → `/gallery`), cause category (38 → `/causes/[slug]`).
+
+### The 16 genuinely missing public routes
+
+| # | Route | Design | Lane |
+|---|---|---|---|
+| 1 | `/search` — global + advanced search/filters | 36, 37 | 🔵 **CLAIMED wcu7oh** |
+| 2 | `/teams` — team hub | 49 | 🔵 **CLAIMED wcu7oh** |
+| 3 | `/teams/create` — 5-step wizard | 50–53 | 🔵 **CLAIMED wcu7oh** |
+| 4 | `/impact-map` — global impact map | 59 | 🔵 **CLAIMED wcu7oh** |
+| 5 | `/donor-wall` — hall of thanks / recognition | 62, 81 | 🔵 **CLAIMED wcu7oh** |
+| 6 | `/glossary` | 73 | ⬜ unclaimed |
+| 7 | `/press` — press releases + detail | 77 | ⬜ unclaimed |
+| 8 | `/brand-assets` — media kit | 78 | ⬜ unclaimed |
+| 9 | `/mobile-app` | 67 | ⬜ unclaimed |
+| 10 | `/webinars` + detail | 76 | ⬜ unclaimed |
+| 11 | `/resources` — guide index + detail | 75 | ⬜ unclaimed |
+| 12 | `/community` — social feed | 82 | ⬜ unclaimed |
+| 13 | `/support/chat` — live support | 71 | ⬜ unclaimed |
+| 14 | `/internships` | 46 | ⬜ unclaimed |
+| 15 | `/feedback` | 47 | ⬜ unclaimed |
+| 16 | `/certificate` — donor certificate | 64 | ⬜ unclaimed |
+
+### Enhancements to EXISTING pages the sheets ask for
+
+- **`/causes/[slug]` (38)** — add the stats band (active campaigns / raised /
+  lives impacted) and the Active/Top Rated/Most Funded/Ending Soon tabs.
+- **`/transparency` (42)** — add Impact / Financial / Annual report tabs.
+- **`/leaderboard` (39)** — add the Most Funds Raised / Most Donors / Most Lives
+  Impacted / Fastest Growing tabs.
+- **`/donate` receipt (40)** — a post-donation receipt view.
+- **Share cause (41)** — a public share surface for a campaign.
+
+### Rules for this batch
+
+Same as everything else here, and they are what the guards enforce:
+- **Real Supabase data or an honest empty state.** Never a fabricated number —
+  the design mockups show figures like "120+ countries" and "$10M+ collaborated"
+  that we cannot substantiate. Do not copy them as literals.
+- Both themes, 320/768/1920, WCAG 2.2 A+AA, registered in **both**
+  `e2e/public-routes.json` and `lib/public-routes.ts`.
+- Translated, or explicitly listed in the i18n lane table as pending.
+
 ## 🔀 I18N LANE SPLIT — read this before touching a string (Claude, 2026-08-01)
 
 Two bots built the cause taxonomy, `/causes`, `/causes/[slug]` and the mega-menu
