@@ -52,6 +52,7 @@ export const FOOTER_SECTIONS: Record<FooterSectionName, readonly FooterLink[]> =
     { label: 'Leaderboard', href: '/leaderboard', labelKey: 'footer.link.leaderboard' },
     { label: 'Developers & API', href: '/developers', labelKey: 'footer.link.developers' },
     { label: 'CharitMe on Mobile', href: '/mobile-app', labelKey: 'footer.link.mobile_app' },
+    { label: 'Support', href: '/support', labelKey: 'footer.link.support' },
     { label: 'Start a Team', href: '/teams/create', labelKey: 'footer.link.create_team' },
   ],
   // Splitting the ways to GIVE out of "Platform" is what balances the grid, and
@@ -70,6 +71,7 @@ export const FOOTER_SECTIONS: Record<FooterSectionName, readonly FooterLink[]> =
     { label: 'Matching Gifts', href: '/matching', labelKey: 'footer.link.matching' },
     { label: 'Grants', href: '/grants', labelKey: 'footer.link.grants' },
     { label: 'Events', href: '/events', labelKey: 'footer.link.events' },
+    { label: 'Webinars', href: '/webinars', labelKey: 'footer.link.webinars' },
     { label: 'Impact Map', href: '/impact-map', labelKey: 'footer.link.impact_map' },
     { label: 'Donor Wall', href: '/donor-wall', labelKey: 'footer.link.donor_wall' },
     { label: 'Ambassador Programme', href: '/ambassadors', labelKey: 'footer.link.ambassadors' },
@@ -85,6 +87,7 @@ export const FOOTER_SECTIONS: Record<FooterSectionName, readonly FooterLink[]> =
     { label: 'FAQ', href: '/faq', labelKey: 'footer.link.faq' },
     { label: 'Supported Countries', href: '/supported-countries', labelKey: 'footer.link.supported_countries' },
     { label: 'Resources', href: '/resources', labelKey: 'footer.link.resources' },
+    { label: 'Community', href: '/community', labelKey: 'footer.link.community' },
     { label: 'Glossary', href: '/glossary', labelKey: 'footer.link.glossary' },
     { label: 'Careers', href: '/careers', labelKey: 'footer.link.careers' },
   ],
@@ -99,6 +102,8 @@ export const FOOTER_SECTIONS: Record<FooterSectionName, readonly FooterLink[]> =
     { label: 'Refund Policy', href: '/refunds', labelKey: 'footer.link.refunds' },
     { label: 'Send Feedback', href: '/feedback', labelKey: 'footer.link.feedback' },
     { label: 'Internships', href: '/internships', labelKey: 'footer.link.internships' },
+    { label: 'Press', href: '/press', labelKey: 'footer.link.press' },
+    { label: 'Brand Assets', href: '/brand-assets', labelKey: 'footer.link.brand_assets' },
     // "Privacy Center" (/privacy-center) used to sit here and REQUIRES A SESSION,
     // so a signed-out visitor clicking it from any page landed on /login with no
     // explanation. The legal bar already carries Privacy Notice, Cookie Policy

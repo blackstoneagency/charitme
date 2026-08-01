@@ -19,6 +19,41 @@ export const CHARITME_ORIGIN = 'https://www.charitme.com';
 
 export const INDEXABLE_PUBLIC_ROUTES: PublicRoute[] = [
   {
+    path: '/webinars',
+    title: 'Webinars & Online Events',
+    description: 'Live online sessions on fundraising strategy, storytelling, and running a campaign.',
+    priority: 0.65,
+    changeFrequency: 'weekly',
+  },
+  {
+    path: '/community',
+    title: 'Community',
+    description: 'Organiser updates from live campaigns and the gifts arriving as they happen.',
+    priority: 0.7,
+    changeFrequency: 'daily',
+  },
+  {
+    path: '/press',
+    title: 'Press',
+    description: 'Press and media enquiries — who to contact and the facts you can quote.',
+    priority: 0.6,
+    changeFrequency: 'monthly',
+  },
+  {
+    path: '/brand-assets',
+    title: 'Brand Assets',
+    description: 'Official CharitMe logo files, colour values, and usage guidelines.',
+    priority: 0.55,
+    changeFrequency: 'monthly',
+  },
+  {
+    path: '/support',
+    title: 'Support',
+    description: 'Get help with CharitMe — help centre, email, or a message to a person.',
+    priority: 0.7,
+    changeFrequency: 'monthly',
+  },
+  {
     path: '/resources',
     title: 'Resources',
     description: 'Guides, research, and reference for fundraisers and donors.',
