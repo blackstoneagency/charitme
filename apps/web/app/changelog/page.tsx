@@ -10,9 +10,14 @@ export const metadata: Metadata = {
 
 const dateFmt = new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
+// `--green`/`--blue` are the DECORATIVE fills — they are AA against nothing, and
+// as 11px badge text on the near-white page they measured 3.06:1 and 3.87:1,
+// both under the 4.5:1 floor. `--green-text`/`--blue-text` are the text-safe
+// siblings that exist for exactly this, and they adapt per theme. Same hue, same
+// badge, legible.
 const KIND_COLOR: Record<ChangeKind, string> = {
-  added: 'var(--green)',
-  improved: 'var(--blue)',
+  added: 'var(--green-text)',
+  improved: 'var(--blue-text)',
   fixed: 'var(--t3)',
 };
 
