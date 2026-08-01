@@ -430,6 +430,11 @@ export function AppShell({
       <header className="kind-header">
         <div className="container">
           <Logo />
+          {/* Theme toggle sits immediately after the wordmark, per the design.
+              Grouped with the account controls on the far right it read as an
+              account setting rather than the site-wide control it is — and a
+              signed-out visitor had no reason to look there for it. */}
+          <ThemeToggle />
           {/*
             The design specifies two mega-dropdowns (Explore Causes, Resources).
             This replaces the grouped `PrimaryNavMenu` that landed on master in
@@ -466,7 +471,6 @@ export function AppShell({
             )}
           </nav>
           <div className="kind-auth">
-            <ThemeToggle />
             <Link href="/campaigns" className="kind-search-btn" aria-label="Search campaigns">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.3-4.3" />

@@ -89,6 +89,67 @@ Item 5 is the only one an engineer could start today without the owner; it is
 sequenced rather than blocked, and it is deliberately not being done piecemeal
 because a half-migrated surface is worse than a consistently English one.
 
+## 🎯 DESIGN-MIRROR QUEUE — what is done and what is left (Claude, 2026-07-31)
+
+### ✅ Done
+| Item | Where |
+|---|---|
+| Nav mega-dropdowns (Explore Causes, Resources) | Codex, PR #180 |
+| 12 marketing pages + `/causes` + `/causes/[slug]` | Codex, PR #180 |
+| Supporter Space + keyboard focus audit | Codex, PR #181 |
+| **Theme toggle beside the wordmark**, verified site-wide | Claude, `157b92e` |
+| **OS language detection** (Accept-Language → market locale, before render) | Claude |
+| **216-key dictionary × 7 languages**, 100% for all 11 markets | Claude |
+| Footer (41 links) translated | Claude |
+
+### 🔴 THE BIG ONE — the new design surface is English-only
+PR #180/#181 added **13 pages and two mega-menus** and none of them call `t()`.
+Measured: `app/causes/page.tsx` **0** translation calls, `app/causes/[slug]/page.tsx`
+**0**, and only 4 in `AppShell.tsx`.
+
+So the site now **detects** the visitor's language, sets `<html lang>`, and then
+renders the new pages in English regardless. That is worse than no i18n, because
+the page claims a language it is not written in — screen readers will pronounce
+English text with German phonetics.
+
+**~2,300 hardcoded strings across 549 files.** Migration order by traffic:
+1. `/causes` + `/causes/[slug]` (linked from every header)
+2. `/donate` (the money path)
+3. `/campaigns` list + campaign detail
+4. Home
+5. The other 11 marketing pages
+6. Create wizard → dashboard → admin
+
+### 🔴 Verify the new pages against the rest of the goal
+The 13 new pages have **not** been through the existing sweeps. Each must pass:
+- `audit:contrast --strict-gradients` — 0 AA failures, both themes
+- `audit:a11y` — 0 axe violations (needs a PRODUCTION build; `next dev` fails 40/82)
+- `audit:mobile` — 0 overflow at 320/390px, 0 tap targets under 24px
+- `audit:page-images` — 0 duplicate images per page
+- Real Supabase reads, not fixtures — `/causes/[slug]` already queries live campaigns
+
+### ⚠️ Two bots built the same thing twice today
+I built a cause taxonomy, `/causes`, `/causes/[slug]` and a mega-menu; Codex landed
+the same four things first in #180. I reset and kept theirs — **their `narrower`
+flag is better than my version**: it records that "Mental Health" is a slice of
+Medical that the schema cannot express, so the page discloses the filter is coarse
+instead of silently rendering the same rows as Medical Research.
+
+**Cost: roughly an hour of duplicated work on both sides.** The lane split in this
+file does not cover *design implementation*, which is now the largest workstream.
+Proposed split, claim before starting:
+- **Codex** — page layout and marketing content for the design mirror.
+- **Claude** — i18n migration, the audit sweeps, and nav/global chrome.
+
+### ❓ Still needs the owner
+- **`/giving-guarantee`** — ⛔ do NOT build to close a checklist. `app/terms/page.tsx`
+  says CharitMe "does not verify the truth of campaign claims, guarantee fundraising
+  outcomes". The page would contradict the live ToS and commit real money to
+  underwriting fraud losses.
+- **Social Impact Funds** — needs a legal entity and a disbursement policy.
+- **Stripe test keys** — payment methods remain unverifiable; live keys must not be charged.
+- **Staging Supabase** — 3 migrations still unapplied; release policy blocks production DDL.
+
 ## 📌 THE WORKING QUEUE — one backlog for a 13,800-line file (Claude, 2026-07-29)
 
 This file has **154 `##` sections and 22 open checkboxes** scattered across it, so
