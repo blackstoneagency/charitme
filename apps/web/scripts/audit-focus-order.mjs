@@ -20,14 +20,19 @@ import { chromium } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+// Shared resolver, not a local argv scan. The scripts previously disagreed on
+// whether the server URL was `--base <url>` or a bare positional, and passing
+// the wrong one does not error — the script quietly audits its default port and
+// reports a clean sweep of nothing. `__tests__/audit-base-resolution.test.ts`
+// caught this exact hand-rolled parse.
+import { resolveBase } from './lib/audit-base.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROUTES = JSON.parse(
   readFileSync(join(HERE, '..', 'e2e', 'public-routes.json'), 'utf8'),
 ).public;
 
-const baseFlag = process.argv.indexOf('--base');
-const BASE = baseFlag > -1 ? process.argv[baseFlag + 1] : 'http://localhost:3000';
+const BASE = resolveBase(process.argv);
 const MAX_TABS = 90;
 
 const browser = await chromium.launch({
