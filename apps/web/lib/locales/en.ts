@@ -11,6 +11,7 @@
 import type { Dictionary } from '../i18n';
 
 export const en: Dictionary = {
+  'footer.link.resources': 'Resources',
   'footer.link.create_team': 'Start a Team',
   'footer.link.mobile_app': 'CharitMe on Mobile',
   'footer.link.impact_map': 'Impact Map',

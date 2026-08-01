@@ -84,8 +84,8 @@ export const FOOTER_SECTIONS: Record<FooterSectionName, readonly FooterLink[]> =
     { label: 'Help Center', href: '/help', labelKey: 'footer.link.help' },
     { label: 'FAQ', href: '/faq', labelKey: 'footer.link.faq' },
     { label: 'Supported Countries', href: '/supported-countries', labelKey: 'footer.link.supported_countries' },
+    { label: 'Resources', href: '/resources', labelKey: 'footer.link.resources' },
     { label: 'Glossary', href: '/glossary', labelKey: 'footer.link.glossary' },
-    { label: 'Internships', href: '/internships', labelKey: 'footer.link.internships' },
     { label: 'Careers', href: '/careers', labelKey: 'footer.link.careers' },
   ],
   Legal: [
@@ -98,6 +98,7 @@ export const FOOTER_SECTIONS: Record<FooterSectionName, readonly FooterLink[]> =
     { label: 'Fee Policy', href: '/fees', labelKey: 'footer.link.fees' },
     { label: 'Refund Policy', href: '/refunds', labelKey: 'footer.link.refunds' },
     { label: 'Send Feedback', href: '/feedback', labelKey: 'footer.link.feedback' },
+    { label: 'Internships', href: '/internships', labelKey: 'footer.link.internships' },
     // "Privacy Center" (/privacy-center) used to sit here and REQUIRES A SESSION,
     // so a signed-out visitor clicking it from any page landed on /login with no
     // explanation. The legal bar already carries Privacy Notice, Cookie Policy

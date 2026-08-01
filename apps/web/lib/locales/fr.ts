@@ -3,6 +3,7 @@
 import type { Dictionary } from '../i18n';
 
 export const fr: Dictionary = {
+  'footer.link.resources': 'Ressources',
   'footer.link.create_team': 'Créer une équipe',
   'footer.link.mobile_app': 'CharitMe sur mobile',
   'footer.link.impact_map': 'Carte d\'impact',

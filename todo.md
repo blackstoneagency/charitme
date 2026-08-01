@@ -61,7 +61,7 @@ volunteer (44/45), events (48), matching (55), accessibility (68), safety (69 �
 | 8 | `/brand-assets` — media kit | 78 | ⬜ unclaimed |
 | 9 | `/mobile-app` | 67 | ✅ **BUILT wcu7oh** |
 | 10 | `/webinars` + detail | 76 | ⬜ unclaimed |
-| 11 | `/resources` — guide index + detail | 75 | ⬜ unclaimed |
+| 11 | `/resources` — guide index + detail | 75 | ✅ **BUILT wcu7oh** |
 | 12 | `/community` — social feed | 82 | ⬜ unclaimed |
 | 13 | `/support/chat` — live support | 71 | ⬜ unclaimed |
 | 14 | `/internships` | 46 | ✅ **BUILT wcu7oh** |

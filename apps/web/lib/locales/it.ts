@@ -2,6 +2,7 @@
 import type { Dictionary } from '../i18n';
 
 export const it: Dictionary = {
+  'footer.link.resources': 'Risorse',
   'footer.link.create_team': 'Crea una squadra',
   'footer.link.mobile_app': 'CharitMe su mobile',
   'footer.link.impact_map': 'Mappa dell\'impatto',

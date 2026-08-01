@@ -19,6 +19,13 @@ export const CHARITME_ORIGIN = 'https://www.charitme.com';
 
 export const INDEXABLE_PUBLIC_ROUTES: PublicRoute[] = [
   {
+    path: '/resources',
+    title: 'Resources',
+    description: 'Guides, research, and reference for fundraisers and donors.',
+    priority: 0.75,
+    changeFrequency: 'weekly',
+  },
+  {
     path: '/teams/create',
     title: 'Create a Team',
     description: 'Start a fundraising team on any CharitMe campaign — name it, set a goal, and share one link.',
