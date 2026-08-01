@@ -158,6 +158,38 @@ full inventory — 60 designs measured against the 168 routes that exist — is 
 | #137 Receipt Preview | ✅ done | this lane — `/donor/receipt/[donationId]` + `GET /api/donations/receipt` |
 | #141, #95, #109–112 | 🚫 owner decision | promise things that do not exist, or change how card data is collected |
 
+### 🆕 SECOND DECK — pages 144–199 (Claude, 2026-08-01) — **CLAIMED: Donation Form Builder only**
+
+A new set of 56 designs (144–199) arrived. Measured against the **203** routes that
+now exist, most are already built or are *sections of an existing page*, not
+separate routes — worth stating plainly so nobody builds a duplicate:
+
+| design | reality |
+|---|---|
+| 175 Security Settings, 193 Payment Methods, 160/173 Export Center, 147 Integrations | **sections of `/dashboard/settings`** (8-section left nav: profile, preferences, notifications, security, integrations, team, billing, data) — not routes |
+| 165 API Docs, 176/199 API Playground | `/developers` + `/dashboard/developers` exist, backed by the real `api_keys` table |
+| 155/164 Mobile App, 156 Resource Center, 167 System Status, 157 Stories, 158/154/159 Leaderboard & Badges, 151 Impact, 170 System Health, 177 Announcements, 178 Support, 179 Activity Log, 180 Affiliate, 181 Payouts, 182/194 Tax Receipts, 183 Public Profile, 188–192, 195–198 | ✅ already built |
+
+**The genuinely-missing pages need a table before they can be "wired to Supabase".**
+Measured against `schema.sql` — this is the real constraint on the whole deck:
+
+| page | backing table | status |
+|---|---|---|
+| **148 Donation Form Builder** | `donation_forms` | ✅ **EXISTS + applied in prod, and has NO reader** — orphan table |
+| 184 Organization Profile | `organizations` | ⚠️ exists but **not applied in prod** (see the migrations runbook) — building on it ships inert code |
+| 144 Calendar, 145 Tasks, 146 Email Templates, 153 Documents, 149 Currencies, 150 Custom Domain, 166 Changelog, 168 Incidents, 169 Maintenance, 171 Backups, 172 Retention, 174 Webhooks | **none of these tables exist** | each needs a migration first — and migrations **cannot be applied from the sandbox**, so they would ship inert like the volunteer/organization work already has |
+
+⚠️ **This is why the deck is not "just build 17 pages".** 12 of them would land as
+code with no table behind them in production, repeating exactly the
+*code-complete but inert* state that `organizations` and `volunteer_shifts` are
+already in. Building them is not blocked on effort — it is blocked on the same
+owner action as the migrations runbook.
+
+**Claiming ONE: #148 Donation Form Builder.** It is the only missing page whose
+table already exists *and is live in production*, and `donation_forms` currently
+appears in exactly one file (`lib/feature-catalog.ts`) as a table **name** — no
+reader, no writer. Same "data with no reader" family this file keeps finding.
+
 **Every design-deck page an agent can build is now built.** What is left in the
 deck is the four rows above, all of which need the owner rather than code:
 #141 and #95 would promise a mobile app and a roadmap that do not exist, and
