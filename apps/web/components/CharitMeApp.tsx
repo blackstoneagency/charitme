@@ -70,6 +70,7 @@ const adminNav = [
   // Writes the public /status page. That page could probe whether a subsystem
   // responds but had no way to say what happened or that anyone knew.
   ['Incidents & Maintenance', '/admin/incidents', 'audit'],
+  ['Data Retention', '/admin/retention', 'sliders'],
   ['Supported Countries', '/admin/countries', 'globe'],
   ['⚙ Setup Diagnostic', '/admin/setup', 'check'],
 ] as const;

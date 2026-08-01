@@ -1893,6 +1893,38 @@ CREATE TABLE public.creator_tips (
 
 
 --
+-- Name: data_retention_policies; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.data_retention_policies (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    category text NOT NULL,
+    retention_days integer NOT NULL,
+    auto_delete boolean DEFAULT false NOT NULL,
+    updated_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT data_retention_policies_retention_days_check CHECK (((retention_days >= 1) AND (retention_days <= 3650)))
+);
+
+
+--
+-- Name: data_retention_runs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.data_retention_runs (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    category text NOT NULL,
+    cutoff_at timestamp with time zone NOT NULL,
+    matched_count integer DEFAULT 0 NOT NULL,
+    deleted_count integer DEFAULT 0 NOT NULL,
+    dry_run boolean DEFAULT true NOT NULL,
+    error text,
+    ran_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- Name: digital_products; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -4622,6 +4654,30 @@ ALTER TABLE ONLY public.creator_tips
 
 
 --
+-- Name: data_retention_policies data_retention_policies_category_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.data_retention_policies
+    ADD CONSTRAINT data_retention_policies_category_key UNIQUE (category);
+
+
+--
+-- Name: data_retention_policies data_retention_policies_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.data_retention_policies
+    ADD CONSTRAINT data_retention_policies_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: data_retention_runs data_retention_runs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.data_retention_runs
+    ADD CONSTRAINT data_retention_runs_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: digital_products digital_products_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6112,6 +6168,13 @@ CREATE UNIQUE INDEX creator_profiles_user_id_unique ON public.creator_profiles U
 
 
 --
+-- Name: data_retention_runs_ran_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX data_retention_runs_ran_at_idx ON public.data_retention_runs USING btree (ran_at DESC);
+
+
+--
 -- Name: digital_products_creator_profile_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -7460,6 +7523,13 @@ CREATE TRIGGER contact_messages_set_updated_at BEFORE UPDATE ON public.contact_m
 --
 
 CREATE TRIGGER creator_profiles_set_updated_at BEFORE UPDATE ON public.creator_profiles FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
+-- Name: data_retention_policies data_retention_policies_touch; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER data_retention_policies_touch BEFORE UPDATE ON public.data_retention_policies FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 
 --
@@ -9112,6 +9182,14 @@ ALTER TABLE ONLY public.creator_tips
 
 ALTER TABLE ONLY public.creator_tips
     ADD CONSTRAINT creator_tips_supporter_id_fkey FOREIGN KEY (supporter_id) REFERENCES public.profiles(id) ON DELETE SET NULL;
+
+
+--
+-- Name: data_retention_policies data_retention_policies_updated_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.data_retention_policies
+    ADD CONSTRAINT data_retention_policies_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.profiles(id) ON DELETE SET NULL;
 
 
 --
@@ -11663,6 +11741,18 @@ CREATE POLICY cwd_update_own ON public.campaign_wizard_drafts FOR UPDATE TO auth
 
 
 --
+-- Name: data_retention_policies; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.data_retention_policies ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: data_retention_runs; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.data_retention_runs ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: digital_products; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -13302,6 +13392,20 @@ ALTER TABLE public.refunds ENABLE ROW LEVEL SECURITY;
 --
 
 CREATE POLICY reports_admin_read ON public.campaign_reports FOR SELECT USING (public.is_admin());
+
+
+--
+-- Name: data_retention_policies retention_policies_admin_all; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY retention_policies_admin_all ON public.data_retention_policies USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+
+--
+-- Name: data_retention_runs retention_runs_admin_all; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY retention_runs_admin_all ON public.data_retention_runs USING (public.is_admin()) WITH CHECK (public.is_admin());
 
 
 --

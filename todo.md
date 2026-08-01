@@ -272,6 +272,39 @@ Two details worth keeping:
 
 ⚠️ Inert until `20260820000000` is applied; the admin page says so by name.
 
+**✅ #172 Data Retention — BUILT with its enforcement** (`/admin/retention`,
+`20260822000000`, `/api/cron/apply-retention`).
+
+Built the job as well as the screen deliberately. A retention policy nobody
+applies is a compliance claim with nothing behind it — the same defect as a
+delivery log for webhooks that are never sent — so the config drives a real cron
+route that reads these policies and acts on them.
+
+**Deleting is the only irreversible thing here, so it needs TWO independent
+opt-ins, neither of them default:** `auto_delete = true` on the category **and**
+`?dryRun=false` on the run. With either missing the job counts what is past its
+window and removes nothing. A scheduled job that destroys production data on the
+strength of a switch someone clicked once, unattended and forever, is not a
+feature.
+
+**The category list is a closed allowlist in `lib/retention.ts`, and that is the
+safety mechanism.** The admin API rejects any category not in it, so the form
+cannot become the allowlist. Nothing financial or identity-related is eligible —
+donations, refunds, ledger entries, tax receipts and verification documents carry
+legal retention that outlasts any preference set here. Only operational exhaust:
+analytics events, builder telemetry, share events, rate-limit counters, marketing
+events.
+
+Every run is logged to `data_retention_runs`, dry runs included, because the only
+question asked afterwards is "what happened to that record?" And `matched` is
+`number | null` — a failed count renders **unknown**, never 0, since "0 records
+past retention" is a false all-clear on a compliance screen.
+
+⚠️ **My own ratchet caught this one mid-build.** `upsert-onconflict-has-index`
+failed on the new `data_retention_policies` upsert until the mirror was
+regenerated with the migration defining `category` as UNIQUE — exactly the 42P10
+class it was written for, working on new code rather than old.
+
 **✅ #153 Documents — BUILT, and it needed NO table either** (`/dashboard/documents`).
 Fifth time the "needs a table" call was wrong, and this one was caught *by the
 rule* rather than by accident. Four applied tables already hold a fundraiser's
@@ -4701,6 +4734,7 @@ run**, because each one *is* a schema change:
 | `20260819000000_donation_forms_slug_and_campaign_owner` | Donation Form Builder: `slug` not unique (embeds resolve ambiguously), and campaign owners cannot edit their own form |
 | `20260820000000_incidents_and_maintenance` | `/admin/incidents` and the incident/maintenance sections of `/status` report **unknown** — deliberately, never "no incidents" |
 | `20260821000000_tasks` | `/dashboard/tasks` reports **unknown** rather than an empty list |
+| `20260822000000_data_retention_policies` | `/admin/retention` unavailable; the retention job has no policy row to act on, so **nothing is deleted** — it fails safe |
 
 The third is the one to prioritise: it is a live data exposure, and it is a
 single `drop policy` + `create policy`, safe to run on its own.

@@ -138,6 +138,7 @@
       "/admin/privacy",
       "/admin/reconciliation",
       "/admin/reports",
+      "/admin/retention",
       "/admin/settings",
       "/admin/setup",
       "/admin/sponsors",
