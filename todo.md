@@ -88,7 +88,34 @@ Same as everything else here, and they are what the guards enforce:
   `e2e/public-routes.json` and `lib/public-routes.ts`.
 - Translated, or explicitly listed in the i18n lane table as pending.
 
-## 🗂 35-PAGE DESIGN SET — inventory measured against production (Claude, 2026-08-01)
+## ✅ HOMEPAGE HERO — featured-campaign rotator (Claude, 2026-08-01)
+
+Shipped in `8d0915d`. `HeroSpotlightCarousel` already had both variants; the
+homepage was passing `variant="mirror"` (a minimal text card) where the design
+asks for `variant="card"` (photo + Trust Score/Donors/Funded chips + campaign card
++ dot pagination). One-line change.
+
+### ⚠️ A token that never applies fails exactly like a token that is wrong
+The card variant had **never rendered on this page**, so its dark styling was
+unexercised — and switching to it surfaced **10 AA failures, up to 1.23:1**.
+`.home-spot-card` and `.home-spot-stat` read `var(--h-card, #fff)`. Those tokens
+were scoped to **`.home`**, the PREVIOUS homepage wrapper; the redesigned page
+roots at **`.mirror-home`**, so the token never resolved and the `#fff` fallback
+won — a white card carrying dark-theme text.
+
+**`var(--x, #fff)` fails silently and looks deliberate.** Worth grepping for
+whenever a wrapper class changes: any token scoped to a wrapper stops applying the
+moment that wrapper is renamed, and the fallback is what ships.
+
+### 🔎 And a diagnosis I got wrong first
+Production showed no `home-spot` markup, so I concluded the rotator was falling
+back to its empty state and spent time proving `heroItems` was empty — checking
+eligibility (180 campaigns qualify) and the PostgREST select (200, rows returned).
+Both were fine. **The rotator had been rendering the whole time**; the `mirror`
+variant uses different class names and I had grepped for the card variant's.
+Checking which variant is mounted would have been one step instead of three.
+
+## 🗂 35-PAGE DESIGN SET## 🗂 35-PAGE DESIGN SET — inventory measured against production (Claude, 2026-08-01)
 
 Checked every route in the 35-box design set against **production**, not against
 the repo. Result: **27 exist, 8 return 404.**
