@@ -8,18 +8,14 @@ import { createClient } from '../lib/supabase-browser';
 import { ThemeToggle } from './ThemeProvider';
 import AnnouncementBanner, { type Announcement, type BannerAppearance } from './AnnouncementBanner';
 import FooterLocalePicker from './FooterLocalePicker';
+import { useT } from './LocaleProvider';
 import { FOOTER_LEGAL_BAR, FOOTER_SETTINGS_DEFAULTS, resolveFooterSections, type FooterSettings } from '../lib/footer-nav';
+import { MAIN_NAV, flattenNav, type NavItem } from '../lib/main-nav';
+import { getPhotosForCategory } from '../lib/photo-catalog';
 
-const NAV = [
-  ['Home', '/'],
-  ['AI Fundraising', '/ai-fundraising'],
-  ['How It Works', '/how-it-works'],
-  ['Pricing', '/pricing'],
-  ['Success Stories', '/success-stories'],
-  ['About Us', '/about-us'],
-  ['Blog', '/blog'],
-  ['Contact Us', '/contact'],
-] as const;
+// Structure lives in lib/main-nav.ts so the desktop bar and the mobile sheet
+// render from ONE source. When each held its own list, a link added to one
+// silently missed the other; `flattenNav()` derives the mobile list instead.
 
 const ACCOUNT_MENU = [
   ['Dashboard', '/dashboard'],
@@ -37,6 +33,36 @@ const ACCOUNT_MENU = [
 // to /terms in the same footer.
 const FOOTER_SECTIONS_RENDERED = resolveFooterSections();
 
+const CAUSE_PROMO_IMAGES = [
+  { src: getPhotosForCategory('Sports', 2)[1], alt: 'A young athlete on a football field' },
+  { src: getPhotosForCategory('Community', 3)[2], alt: 'Volunteers working together' },
+  { src: getPhotosForCategory('Animal', 2)[1], alt: 'A dog outdoors' },
+  { src: getPhotosForCategory('Education', 2)[1], alt: 'A student learning in a classroom' },
+  { src: getPhotosForCategory('Medical', 2)[1], alt: 'A caregiver supporting a patient' },
+  { src: getPhotosForCategory('Environment', 2)[1], alt: 'People caring for the environment' },
+] as const;
+
+const RESOURCE_PROMO_IMAGE = getPhotosForCategory('Community', 4)[3];
+
+const MENU_ICON_PATHS = [
+  <><circle key="a" cx="12" cy="12" r="8" /><path key="b" d="m8 15 3-6 2 3 3-4" /></>,
+  <><path key="a" d="M4 12c2-5 6-7 8-2 2-5 6-3 8 2-2 5-6 8-8 9-2-1-6-4-8-9Z" /><path key="b" d="M7 13h10" /></>,
+  <><path key="a" d="m3 11 9-8 9 8" /><path key="b" d="M5 10v10h14V10M9 20v-6h6v6" /></>,
+  <><path key="a" d="M3 12h4l2-5 4 10 2-5h6" /><path key="b" d="M4 5a4 4 0 0 1 7-1l1 1 1-1a4 4 0 0 1 7 1" /></>,
+  <><path key="a" d="M3 8l9-5 9 5-9 5-9-5Z" /><path key="b" d="M7 11v5c3 3 7 3 10 0v-5" /></>,
+  <><circle key="a" cx="7" cy="8" r="2" /><circle key="b" cx="17" cy="8" r="2" /><path key="c" d="M5 20v-3a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v3" /></>,
+] as const;
+
+function MenuLinkIcon({ index }: { index: number }) {
+  return (
+    <span className="kind-menu-link-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        {MENU_ICON_PATHS[index % MENU_ICON_PATHS.length]}
+      </svg>
+    </span>
+  );
+}
+
 // Bypass the public marketing shell for routes that have their own shell (dashboard/admin)
 // NOTE: /campaigns is intentionally NOT bypassed — public campaign pages need the header
 // NOTE: /create is intentionally NOT bypassed — it now shows the global nav above its wizard
@@ -52,6 +78,165 @@ const SHELL_BYPASS = ['/dashboard', '/admin', '/profile'];
 // page.
 export function isEmbedRoute(path: string): boolean {
   return /^\/campaigns\/[^/]+\/embed\/?$/.test(path);
+}
+
+/**
+ * One header dropdown.
+ *
+ * Opens on hover AND on click/keyboard, because hover alone is unusable by
+ * keyboard and touch. The trigger is a real <button> with aria-expanded and
+ * aria-controls so assistive tech announces the panel as an expandable region;
+ * a <div> with a click handler would announce nothing.
+ *
+ * `onDismiss` returns focus to the trigger — Escape that drops focus to the top
+ * of the document strands a keyboard user who was midway through the header.
+ */
+function NavMenu({
+  item,
+  open,
+  onOpen,
+  onClose,
+  align,
+}: {
+  item: Extract<NavItem, { kind: 'menu' }>;
+  open: boolean;
+  onOpen: () => void;
+  onClose: (returnFocus?: boolean) => void;
+  align: 'left' | 'right';
+}) {
+  const t = useT();
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  // Whether the panel currently open was opened by hover rather than by a click.
+  //
+  // Without this, a mouse user hovers the trigger (panel opens), clicks it, and
+  // the click handler sees `open === true` and closes it again — the menu
+  // flickers shut at the exact moment they tried to use it. It also made the
+  // e2e spec non-deterministic: Playwright moves the pointer before clicking,
+  // so whether the hover landed first decided the result, and the suite failed
+  // at 1440px while passing at 1280/1366/1920.
+  const hoverOpened = useRef(false);
+
+  // Escape is bound at the document rather than via onKeyDown on the wrapper:
+  // the wrapper is a plain <div>, and hanging a key handler on it makes it a
+  // non-native interactive element that keyboard users cannot reach in the
+  // first place. Bound here rather than in AppShell so this component can
+  // return focus to its own trigger — an Escape that drops focus to the top of
+  // the document strands someone midway through the header.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      onClose(true);
+      triggerRef.current?.focus();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
+  return (
+    // Hover here is a pure enhancement layered on top of a fully operable
+    // <button> — the menu opens and closes by click, Enter, Space and Escape
+    // without it, and the panel's links are ordinary anchors. The rule fires on
+    // any handler on a static element; adding a role to a div that exists only
+    // to scope mouseleave across trigger+panel would announce a widget that
+    // isn't one.
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+    <div
+      className="kind-menu-wrap"
+      onMouseEnter={() => { hoverOpened.current = !open; onOpen(); }}
+      onMouseLeave={() => { hoverOpened.current = false; onClose(false); }}
+    >
+      <button
+        ref={triggerRef}
+        type="button"
+        className={`kind-menu-trigger${open ? ' open' : ''}`}
+        aria-expanded={open}
+        aria-controls={`nav-panel-${item.id}`}
+        onClick={() => {
+          // A click on a panel that hover already opened means "I want this
+          // open", not "close it". Claiming it for the click makes the NEXT
+          // click close it, so the toggle still works.
+          if (open && !hoverOpened.current) { onClose(false); return; }
+          hoverOpened.current = false;
+          onOpen();
+        }}
+      >
+        {item.labelKey ? t(item.labelKey) : item.label}
+        <svg className="kind-menu-caret" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+
+      {/* Rendered only when open. Keeping it mounted and hidden with CSS would
+          leave up to 20 links in the tab order on every page of the site. */}
+      {open && (
+        <div id={`nav-panel-${item.id}`} className={`kind-menu-panel kind-menu-panel-${item.id} align-${align}`}>
+          <div className={`kind-menu-layout kind-menu-layout-${item.id}`}>
+          <div className="kind-menu-cols" data-cols={item.columns.length}>
+            {item.columns.map((col, columnIndex) => (
+              <div key={col.heading} className="kind-menu-col">
+                <h2 className="kind-menu-heading">{col.headingKey ? t(col.headingKey) : col.heading}</h2>
+                <ul>
+                  {col.links.map((link, linkIndex) => (
+                    <li key={`${col.heading}-${link.href}-${link.label}`}>
+                      <Link href={link.href} onClick={() => onClose(false)}>
+                        <MenuLinkIcon index={(columnIndex * 3) + linkIndex} />
+                        <span className="kind-menu-link-copy">
+                          <span className="kind-menu-label">{link.labelKey ? t(link.labelKey) : link.label}</span>
+                          {link.description && (
+                            <span className="kind-menu-desc">{link.description}</span>
+                          )}
+                        </span>
+                        <svg className="kind-menu-link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="m9 18 6-6-6-6" />
+                        </svg>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+                {col.footer && (
+                  <Link className="kind-menu-more" href={col.footer.href} onClick={() => onClose(false)}>
+                    {col.footer.labelKey ? t(col.footer.labelKey) : col.footer.label} <span aria-hidden="true">→</span>
+                  </Link>
+                )}
+              </div>
+            ))}
+          </div>
+          {item.id === 'explore-causes' ? (
+            <aside className="kind-menu-promo kind-menu-promo-causes" aria-label="Explore every cause">
+              <h2>Find a Cause<br />That Speaks to You</h2>
+              <p>Explore hundreds of causes making a real difference every day.</p>
+              <Link className="kind-menu-promo-cta" href="/causes" onClick={() => onClose(false)}>
+                Browse All Causes <span aria-hidden="true">&#8594;</span>
+              </Link>
+              <div className="kind-menu-mosaic">
+                {CAUSE_PROMO_IMAGES.map((image) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img key={image.src} src={image.src} alt={image.alt} width={220} height={150} loading="lazy" />
+                ))}
+              </div>
+              <div className="kind-menu-promo-note"><span aria-hidden="true">&#10022;</span> Every cause. Every community.<br />Every act of kindness matters.</div>
+            </aside>
+          ) : (
+            <aside className="kind-menu-promo kind-menu-promo-resources" aria-label="Resource center">
+              <h2>Resources to<br />Inspire Action</h2>
+              <p>Knowledge, tools, and support to help you make a bigger difference.</p>
+              <Link className="kind-menu-promo-cta" href="/help" onClick={() => onClose(false)}>
+                Visit Resource Center <span aria-hidden="true">&#8594;</span>
+              </Link>
+              <div className="kind-menu-resource-photo">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={RESOURCE_PROMO_IMAGE} alt="Hands joined in support" width={460} height={300} loading="lazy" />
+                <span aria-hidden="true">&#9825;</span>
+              </div>
+              <div className="kind-menu-promo-note"><span aria-hidden="true">&#10022;</span> Together, we have the power<br />to build a better tomorrow.</div>
+            </aside>
+          )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function Logo() {
@@ -159,13 +344,16 @@ export function AppShell({
   footerSettings?: FooterSettings;
   initialLocale?: string;
 }) {
+  const t = useT();
   const footer = footerSettings ?? FOOTER_SETTINGS_DEFAULTS;
   const path = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const accountRef = useRef<HTMLDivElement | null>(null);
+  const navRef = useRef<HTMLElement | null>(null);
   const supabase = useMemo(() => createClient(), []);
   const bypass = SHELL_BYPASS.some((p) => path === p || path.startsWith(p + '/')) || isEmbedRoute(path);
 
@@ -196,6 +384,30 @@ export function AppShell({
     return () => { cancelled = true; };
   }, [user, path]);
 
+  // Close both menus on navigation — a dropdown left open across a route change
+  // hangs over the new page. Done during render rather than in an effect: the
+  // effect version calls setState synchronously on every path change, which
+  // triggers a second render pass (and trips the lint rule that exists to catch
+  // exactly that). This is React's documented "adjust state while rendering"
+  // pattern, and it discards the stale render instead of committing it.
+  const [lastPath, setLastPath] = useState(path);
+  if (path !== lastPath) {
+    setLastPath(path);
+    setOpenMenu(null);
+    setMenuOpen(false);
+  }
+
+  // Outside click closes whichever mega-menu is open. Escape is handled inside
+  // NavMenu so it can also restore focus to the trigger it came from.
+  useEffect(() => {
+    if (!openMenu) return;
+    const onDown = (e: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(e.target as Node)) setOpenMenu(null);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [openMenu]);
+
   // Close the account dropdown on outside click
   useEffect(() => {
     if (!accountOpen) return;
@@ -218,16 +430,47 @@ export function AppShell({
       <header className="kind-header">
         <div className="container">
           <Logo />
-          <nav>
-            {NAV.map(([label, href]) => (
-              <Link key={href} href={href} className={path === href ? 'active' : ''}>
-                {label}
-                {label === 'AI Fundraising' && <span className="kind-new">New</span>}
-              </Link>
-            ))}
+          {/* Theme toggle sits immediately after the wordmark, per the design.
+              Grouped with the account controls on the far right it read as an
+              account setting rather than the site-wide control it is — and a
+              signed-out visitor had no reason to look there for it. */}
+          <ThemeToggle />
+          {/*
+            The design specifies two mega-dropdowns (Explore Causes, Resources).
+            This replaces the grouped `PrimaryNavMenu` that landed on master in
+            parallel: same goal — the header exposed 8 destinations while the
+            footer carried 41 — but the design's structure, and hit-tested at
+            every desktop width. Their groups' unique destinations (Crisis
+            Relief, Grants, Give, Leaderboard) are preserved one click deeper on
+            /get-involved rather than dropped.
+
+            aria-label is translated; the link labels resolve through `t()` with
+            keys registered in lib/locales/en.ts, so untranslated markets fall
+            back to English text rather than raw key strings.
+          */}
+          <nav ref={navRef} aria-label={t('nav.menu')}>
+            {MAIN_NAV.map((item) =>
+              item.kind === 'link' ? (
+                <Link key={item.href} href={item.href} className={path === item.href ? 'active' : ''}>
+                  {item.labelKey ? t(item.labelKey) : item.label}
+                  {item.isNew && <span className="kind-new">New</span>}
+                </Link>
+              ) : (
+                <NavMenu
+                  key={item.id}
+                  item={item}
+                  open={openMenu === item.id}
+                  onOpen={() => setOpenMenu(item.id)}
+                  onClose={() => setOpenMenu(null)}
+                  // Resources is three columns wide; left-aligning it under a
+                  // trigger that sits near the end of the bar pushes the panel
+                  // off the right edge of the viewport.
+                  align={item.id === 'resources' ? 'right' : 'left'}
+                />
+              ),
+            )}
           </nav>
           <div className="kind-auth">
-            <ThemeToggle />
             <Link href="/campaigns" className="kind-search-btn" aria-label="Search campaigns">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.3-4.3" />
@@ -289,7 +532,17 @@ export function AppShell({
         </div>
         {menuOpen && (
           <div className="kind-mobile">
-            {NAV.map(([label, href]) => <Link key={href} href={href} onClick={() => setMenuOpen(false)}>{label}</Link>)}
+            {/* Derived from MAIN_NAV, not a second hand-kept list. The headings
+                come through so the twenty cause links and twelve resource links
+                are not one undifferentiated column. */}
+            {flattenNav().map((link, i, all) => (
+              <React.Fragment key={`${link.heading ?? ''}-${link.href}-${link.label}`}>
+                {link.heading && link.heading !== all[i - 1]?.heading && (
+                  <span className="kind-mobile-heading">{link.headingKey ? t(link.headingKey) : link.heading}</span>
+                )}
+                <Link href={link.href} onClick={() => setMenuOpen(false)}>{link.labelKey ? t(link.labelKey) : link.label}</Link>
+              </React.Fragment>
+            ))}
             {user ? (
               <>
                 {ACCOUNT_MENU.map(([label, href]) => (
@@ -329,7 +582,7 @@ export function AppShell({
             {FOOTER_SECTIONS_RENDERED.map(({ name, links }) => (
               <div key={name}>
                 <h3>{name}</h3>
-                {links.map(({ label, href }) => <Link key={label} href={href}>{label}</Link>)}
+                {links.map(({ label, href, labelKey }) => <Link key={label} href={href}>{t(labelKey)}</Link>)}
               </div>
             ))}
           </div>
@@ -352,8 +605,8 @@ export function AppShell({
           <div className="foot-bottom-main">
             <nav className="foot-legal" aria-label="Legal">
               <span className="foot-copy">© {new Date().getFullYear()} CharitMe</span>
-              {FOOTER_LEGAL_BAR.map(({ label, href }) => (
-                <Link key={href} href={href}>{label}</Link>
+              {FOOTER_LEGAL_BAR.map(({ href, labelKey }) => (
+                <Link key={href} href={href}>{t(labelKey)}</Link>
               ))}
             </nav>
             <AppBadges settings={footer} />

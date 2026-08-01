@@ -9,7 +9,10 @@ export type DashboardNavItem = Readonly<{
 
 const DASHBOARD = { label: 'Dashboard', href: '/dashboard', icon: 'home' } as const;
 const GIVING_HISTORY = { label: 'Giving History', href: '/donor', icon: 'gift' } as const;
-const SAVED_CAUSES = { label: 'Saved Causes', href: '/saved', icon: 'gift' } as const;
+// Saved causes sits with giving history: both are 'things I already engaged
+// with'. Without a nav entry the page exists but is unreachable, which is how
+// saved_campaigns ended up with 240 rows and no reader.
+const SAVED_CAUSES = { label: 'Saved Causes', href: '/dashboard/saved', icon: 'heart' } as const;
 const TAX_DOCUMENTS = { label: 'Tax Documents', href: '/dashboard/tax', icon: 'doc' } as const;
 const VOLUNTEERING = { label: 'Volunteering', href: '/dashboard/volunteer', icon: 'team' } as const;
 const MESSAGES = { label: 'Messages', href: '/dashboard/messages', icon: 'chat' } as const;

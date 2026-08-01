@@ -4,6 +4,7 @@ import { safeJsonLd } from "../../../../lib/json-ld";
 import { buildCampaignJsonLd } from "../../../../lib/campaign-jsonld";
 import { notFound } from 'next/navigation';
 import { getCampaign } from '../get-campaign';
+import { getTranslator } from '../../../../lib/locale-server';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { createClient } from '../../../../lib/supabase-server';
@@ -31,6 +32,7 @@ import CampaignAssistant from '../CampaignAssistant';
 import { getPhotosForCategory, getCoverForCampaign } from '../../../../lib/photo-catalog';
 import { optimizedCoverUrl } from '../../../../lib/img-optimize';
 import { optimizeAsks, computeImpact } from '../../../../lib/donation-optimizer';
+import { campaignLifecycle, campaignTimeLabel } from '../../../../lib/campaign-lifecycle';
 
 export const dynamic = 'force-dynamic';
 
@@ -298,6 +300,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function CampaignPage({ params, searchParams }: Props) {
   type SP = NonNullable<Awaited<Props['searchParams']>>;
   const [{ slug }, sp] = await Promise.all([params, searchParams ?? Promise.resolve({} as SP)]);
+  // Server-side translator. `getTranslator()` has existed since the i18n layer
+  // landed and was called from nowhere — the entire server-rendered surface was
+  // English regardless of the visitor's locale, which is invisible when it
+  // breaks because the page still renders fine.
+  const t = await getTranslator();
   const justDonated = sp.donated === '1';
   const donatedAmountCents = sp.amount ? Number.parseInt(sp.amount, 10) : NaN;
   const campaign = await getCampaign(slug);
@@ -366,11 +373,18 @@ export default async function CampaignPage({ params, searchParams }: Props) {
   const trustScore = calculateTrustScore(trustInput);
   const trustSignals = getTrustSignals(trustInput).slice(0, 5);
   const organizer = asProfile(campaign.profiles);
-  const daysLeft: number | null = campaign.deadline
-    ? Math.max(0, Math.ceil((new Date(campaign.deadline).getTime() - RENDER_TIME) / 86_400_000))
-    : null;
   const acceptDonations = (campaign as { accept_donations?: boolean }).accept_donations !== false;
-  const isActive = campaign.status === 'active' && (daysLeft === null || daysLeft > 0) && acceptDonations;
+  // Countdown and call-to-action derive from ONE lifecycle. Computing them
+  // separately is how this panel rendered "136 days left" directly above
+  // "This campaign has ended." — the countdown read the deadline alone while the
+  // CTA also read status. See lib/campaign-lifecycle.ts.
+  const lifecycleInput = {
+    status: campaign.status,
+    deadline: campaign.deadline,
+    acceptDonations,
+  };
+  const timeLabel = campaignTimeLabel(lifecycleInput, RENDER_TIME);
+  const isActive = campaignLifecycle(lifecycleInput, RENDER_TIME) === 'active';
   const cover = campaign.cover_image_url || getCoverForCampaign(campaign.category, campaign.slug);
   const videoUrl: string | null = (campaign as { video_url?: string | null }).video_url ?? null;
   const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com';
@@ -523,7 +537,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
       {/* ── TOP HEADER ── */}
       <section className="pc-header">
         {/* Breadcrumb */}
-        <nav className="pc-breadcrumb" aria-label="Breadcrumb">
+        <nav className="pc-breadcrumb" aria-label={t('campaign.breadcrumb')}>
           <Link href="/">Home</Link>
           <span aria-hidden="true"> / </span>
           <Link href={`/campaigns?category=${encodeURIComponent(campaign.category ?? '')}`}>
@@ -601,7 +615,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
               </svg>
             </div>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>CharitMe Score</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>{t('campaign.score')}</div>
               <div style={{ fontSize: 11, fontWeight: 700, color: trustScore >= 70 ? 'var(--green-text)' : trustScore >= 45 ? 'var(--orange-text)' : 'var(--red-text)' }}>
                 {trustScore >= 70 ? 'Strong Trust' : trustScore >= 45 ? 'Needs Attention' : 'Needs Review'}
               </div>
@@ -658,7 +672,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
               <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', borderRadius: 14, background: '#000' }}>
                 <iframe
                   src={embedUrl}
-                  title="Campaign video"
+                  title={t('campaign.video')}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
                   style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
@@ -670,10 +684,10 @@ export default async function CampaignPage({ params, searchParams }: Props) {
           {/* Story card with tabs */}
           <article className="pc-story">
             <nav>
-              <a href="#story" className="active">Story</a>
+              <a href="#story" className="active">{t('campaign.story')}</a>
               <a href="#updates">Updates ({updates.length})</a>
               <a href="#donations">Donors ({campaign.backer_count ?? donations.length})</a>
-              <a href="#impact">Impact</a>
+              <a href="#impact">{t('campaign.impact')}</a>
             </nav>
 
             <h2>{organizer.full_name ? `${organizer.full_name.split(' ')[0]}’s Story` : 'Campaign Story'}</h2>
@@ -682,8 +696,8 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             {/* Tags */}
             <div className="pc-tags" style={{ marginTop: 22 }}>
               <span>{campaign.category ?? 'Campaign'}</span>
-              {campaign.trust_status === 'Verified' && <span>Verified</span>}
-              {(campaign as { nonprofit_verified?: boolean }).nonprofit_verified && <span>Tax Deductible</span>}
+              {campaign.trust_status === 'Verified' && <span>{t('campaign.verified')}</span>}
+              {(campaign as { nonprofit_verified?: boolean }).nonprofit_verified && <span>{t('campaign.tax_deductible')}</span>}
             </div>
 
             {/* Donate + Share buttons inline */}
@@ -707,7 +721,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
           {/* Co-organizers */}
           <div className="pc-organizers" id="updates">
             <h3 className="pc-section-h3">
-              Co-organizers
+              {t('campaign.co_organizers')}
               <span className="pc-section-count">{1}</span>
             </h3>
             <div className="pc-org-card">
@@ -719,9 +733,9 @@ export default async function CampaignPage({ params, searchParams }: Props) {
                 <small>Organizer · {campaign.location ?? 'New York, USA'}</small>
               </div>
               {user ? (
-                <a href="#donations" className="pc-org-message">Message</a>
+                <a href="#donations" className="pc-org-message">{t('campaign.message')}</a>
               ) : (
-                <Link href={`/login?next=${encodeURIComponent(`/campaigns/${slug}#donations`)}`} className="pc-org-message">Message</Link>
+                <Link href={`/login?next=${encodeURIComponent(`/campaigns/${slug}#donations`)}`} className="pc-org-message">{t('campaign.message')}</Link>
               )}
             </div>
           </div>
@@ -758,7 +772,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
 
             {/* "Boost by giving monthly" nudge */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-              <span style={{ fontSize: 13, fontWeight: 650, color: 'var(--t2)' }}>Boost your impact by giving monthly 🌱</span>
+              <span style={{ fontSize: 13, fontWeight: 650, color: 'var(--t2)' }}>{t('campaign.monthly_boost')}</span>
             </div>
 
             <strong className="pc-raised">{formatMoneyShort(raised, currency)}</strong>
@@ -766,7 +780,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             <div className="pc-progress"><span style={{ width: `${pct}%` }} /></div>
             <div className="pc-statline">
               <span><b style={{ color: 'var(--t1)' }}>{campaign.backer_count ?? donations.length}</b> donations</span>
-              <span>{daysLeft !== null ? `${daysLeft} days left` : 'No deadline'}</span>
+              <span>{timeLabel}</span>
             </div>
 
             <Milestones milestones={milestones} raisedCents={raised} currency={currency} />
@@ -787,9 +801,9 @@ export default async function CampaignPage({ params, searchParams }: Props) {
                 gift goes straight to the recipient&apos;s own bank account. CharitMe never holds funds.
               </div>
             ) : !acceptDonations && campaign.status === 'active' ? (
-              <div className="pc-ended">Donations are temporarily paused for this campaign.</div>
+              <div className="pc-ended">{t('campaign.paused_notice')}</div>
             ) : (
-              <div className="pc-ended">This campaign has ended.</div>
+              <div className="pc-ended">{t('campaign.ended')}</div>
             )}
 
             <ReportButton campaignId={campaign.id} />
@@ -803,19 +817,19 @@ export default async function CampaignPage({ params, searchParams }: Props) {
       <section className="pc-cards" id="impact">
 
         <article className="pc-ai">
-          <h2>Campaign created with AI</h2>
+          <h2>{t('campaign.created_with_ai')}</h2>
           <p>CharitMe helps organizers tell their story, reach more people, and maximize impact while keeping trust and transparency visible.</p>
           <ul>
-            <li><Link href="/features" style={{ color: 'var(--pc-ai-link, #4d31c9)', textDecoration: 'none', fontWeight: 650 }}>AI story assistant</Link></li>
-            <li><Link href="/features" style={{ color: 'var(--pc-ai-link, #4d31c9)', textDecoration: 'none', fontWeight: 650 }}>AI outreach plan</Link></li>
-            <li><Link href="/features" style={{ color: 'var(--pc-ai-link, #4d31c9)', textDecoration: 'none', fontWeight: 650 }}>AI growth strategy</Link></li>
+            <li><Link href="/features" style={{ color: 'var(--pc-ai-link, #4d31c9)', textDecoration: 'none', fontWeight: 650 }}>{t('campaign.ai_story')}</Link></li>
+            <li><Link href="/features" style={{ color: 'var(--pc-ai-link, #4d31c9)', textDecoration: 'none', fontWeight: 650 }}>{t('campaign.ai_outreach')}</Link></li>
+            <li><Link href="/features" style={{ color: 'var(--pc-ai-link, #4d31c9)', textDecoration: 'none', fontWeight: 650 }}>{t('campaign.ai_growth')}</Link></li>
           </ul>
         </article>
 
         {/* Impact Tracker */}
         <div className="pc-impact-card">
-          <h2 style={{ margin: '0 0 6px', fontSize: 20, fontWeight: 800, letterSpacing: '-.02em' }}>Impact Tracker</h2>
-          <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--t3)', lineHeight: 1.5 }}>Your generosity is making a difference</p>
+          <h2 style={{ margin: '0 0 6px', fontSize: 20, fontWeight: 800, letterSpacing: '-.02em' }}>{t('campaign.impact_tracker')}</h2>
+          <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--t3)', lineHeight: 1.5 }}>{t('campaign.generosity')}</p>
           <div className="pc-impact-donut">
             <svg width="130" height="130" viewBox="0 0 130 130" aria-hidden="true">
               <circle cx="65" cy="65" r={r} fill="none" stroke="#ede8ff" strokeWidth="14" />
@@ -831,20 +845,20 @@ export default async function CampaignPage({ params, searchParams }: Props) {
           {/* AI Impact Engine — momentum + projection */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, margin: '12px 0 0', padding: '12px 14px', background: 'rgba(108,53,255,.05)', border: '1px solid rgba(108,53,255,.12)', borderRadius: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--t2)' }}>
-              <span style={{ fontWeight: 700 }}>Momentum</span>
+              <span style={{ fontWeight: 700 }}>{t('campaign.momentum')}</span>
               <span style={{ fontWeight: 700, color: impact.momentum === 'surging' ? 'var(--green-text)' : impact.momentum === 'steady' ? 'var(--brand-text)' : 'var(--t3)' }}>
                 {impact.momentum === 'surging' ? '🔥 Surging' : impact.momentum === 'steady' ? '📈 Steady' : '🌱 Just started'}
               </span>
             </div>
             {impact.dailyVelocityCents >= 100 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--t2)' }}>
-                <span style={{ fontWeight: 700 }}>Raising per day</span>
+                <span style={{ fontWeight: 700 }}>{t('campaign.raising_per_day')}</span>
                 <span style={{ fontWeight: 700, color: 'var(--t1)' }}>~{formatMoneyShort(impact.dailyVelocityCents, currency)}</span>
               </div>
             )}
             {impact.projectedDaysToGoal !== null && impact.projectedDaysToGoal > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--t2)' }}>
-                <span style={{ fontWeight: 700 }}>On pace to hit goal in</span>
+                <span style={{ fontWeight: 700 }}>{t('campaign.on_pace')}</span>
                 <span style={{ fontWeight: 700, color: 'var(--green-text)' }}>~{impact.projectedDaysToGoal} day{impact.projectedDaysToGoal === 1 ? '' : 's'}</span>
               </div>
             )}
@@ -868,7 +882,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             </div>
           ) : (
             <p style={{ fontSize: 13, color: 'var(--t3)', padding: '12px 0 0', margin: 0 }}>
-              We are almost there! Keep sharing.
+              {t('campaign.no_updates')}
             </p>
           )}
         </div>
@@ -898,7 +912,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
       {similarCampaigns.length > 0 && (
         <section style={{ maxWidth: 1100, margin: '0 auto 40px', padding: '0 24px' }}>
           <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 16, color: 'var(--t1, #1a1a2e)' }}>
-            Similar Campaigns
+            {t('campaign.similar')}
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 14 }}>
             {similarCampaigns.map((c) => {
@@ -940,7 +954,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
         {faqs.length > 0 && (
           <>
             <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 16, color: 'var(--t1, #1a1a2e)' }}>
-              Frequently Asked Questions
+              {t('campaign.faq')}
             </h2>
             <div style={{ display: 'grid', gap: 8 }}>
               {faqs.map(faq => (
@@ -962,9 +976,9 @@ export default async function CampaignPage({ params, searchParams }: Props) {
 
       {/* ── Trust bar ── */}
       <section className="pc-safe">
-        <div><b>Secure donations</b><span>SSL encrypted checkout through Stripe.</span></div>
-        <div><b>No mandatory platform fee</b><span>Optional tips keep CharitMe running.</span></div>
-        <div><b>24/7 Support</b><span>Trust and safety tools protect every campaign.</span></div>
+        <div><b>{t('campaign.secure')}</b><span>{t('campaign.ssl')}</span></div>
+        <div><b>{t('campaign.no_platform_fee')}</b><span>{t('campaign.optional_tips')}</span></div>
+        <div><b>24/7 Support</b><span>{t('campaign.trust_tools')}</span></div>
       </section>
     </main>
   );

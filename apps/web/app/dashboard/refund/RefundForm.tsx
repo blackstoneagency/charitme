@@ -252,7 +252,11 @@ export default function RefundForm({
                       <span
                         style={{
                           background: 'rgba(245,158,11,.12)',
-                          color: '#c2410c',
+                          // #c2410c is a light-mode orange. Over the translucent
+                          // amber tint on a dark page it composites to 2.86:1
+                          // (caught by audit:signed-in). --orange-text is the
+                          // accent-as-text pair that flips per theme.
+                          color: 'var(--orange-text, #c2410c)',
                           padding: '1px 8px',
                           borderRadius: 6,
                           fontWeight: 700,
@@ -371,11 +375,19 @@ export default function RefundForm({
             padding: '0 28px',
             border: 0,
             borderRadius: 10,
+            // Disabled is a MUTED SURFACE, not a faded brand fill. The old
+            // rgba(108,53,255,.4) composited to light lavender and left white
+            // label text at 1.93:1 — unreadable, and it also made a dead control
+            // look like a live one. Muted surface + muted text reads as disabled
+            // and passes AA.
             background:
               submitting || !eligible || !reason.trim() || overLimit
-                ? 'rgba(108,53,255,.4)'
-                : 'linear-gradient(135deg, var(--violet, var(--violet)), #4d1ee0)',
-            color: '#fff',
+                ? 'var(--s3)'
+                : 'linear-gradient(135deg, var(--fill-brand), #4d1ee0)',
+            color:
+              submitting || !eligible || !reason.trim() || overLimit
+                ? 'var(--t3)'
+                : '#fff',
             fontWeight: 650,
             fontSize: 14,
             cursor:

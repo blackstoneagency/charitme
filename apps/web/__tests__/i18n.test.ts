@@ -7,6 +7,9 @@ import {
   DEFAULT_LOCALE,
   SUPPORTED_LOCALE_CODES,
 } from '../lib/i18n';
+// Dictionaries register on import; without this the registry is empty and every
+// lookup falls through to the key itself.
+import '../lib/locales';
 
 describe('isSupportedLocale / normalizeLocale', () => {
   it('recognizes supported primary codes and region variants', () => {
@@ -65,8 +68,25 @@ describe('t (translation + interpolation)', () => {
     expect(t('donate.button')).toBe('Donate now');
   });
 
-  it('falls back to English for a locale without a dictionary', () => {
-    expect(t('nav.discover', 'fr')).toBe('Discover');
+  it('translates into a language that HAS a dictionary', () => {
+    // This assertion used to read `t('nav.discover', 'fr')` === 'Discover',
+    // asserting French fell back because no French dictionary existed. It does
+    // now, so the old expectation was testing the absence of the feature.
+    expect(t('nav.discover', 'fr')).toBe('Découvrir');
+    expect(t('nav.discover', 'de')).toBe('Entdecken');
+  });
+
+  it('still falls back to English for a language we do not translate', () => {
+    // The fallback itself is unchanged and still worth guarding: Japanese has no
+    // dictionary, so English is served rather than a raw key.
+    expect(t('nav.discover', 'ja')).toBe('Discover');
+  });
+
+  it('a market tag consults that market first, then its language', () => {
+    expect(t('auth.email', 'fr-CA')).toBe('Courriel');       // Canadian override
+    expect(t('auth.email', 'fr-FR')).toBe('Adresse e-mail'); // base French
+    expect(t('nav.settings', 'es-MX')).toBe('Configuración');
+    expect(t('nav.settings', 'es-ES')).toBe('Ajustes');
   });
 
   it('returns the key itself when unknown (never throws/blank)', () => {

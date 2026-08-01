@@ -42,7 +42,13 @@ function sourceFiles(root: string): string[] {
 function stripComments(source: string): string {
   return source
     .replace(/\{\/\*[\s\S]*?\*\/\}/g, (m) => m.replace(/[^\n]/g, ' '))
-    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '));
+    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
+    // Line comments too. Only block comments were stripped, so a `//` comment
+    // that mentioned a <button> was scanned as if it were markup — this guard
+    // flagged a prose sentence in AppShell.tsx describing the trigger button.
+    // The `[^:]` prefix keeps `https://…` intact, which would otherwise have
+    // the rest of the line eaten.
+    .replace(/(^|[^:])\/\/[^\n]*/g, (m, p1: string) => p1 + ' '.repeat(m.length - p1.length));
 }
 
 /** Yields each `<button …>` opening tag, respecting braces in JSX expressions. */
