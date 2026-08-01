@@ -1,5 +1,123 @@
 # CharitMe — Execution Tracker
 
+## 🎨 DESIGN UNIFICATION — the primary CTA now has ONE definition (wcu7oh, 2026-08-01)
+
+**Measured before touching anything:** a browser sweep of every public page found
+**15 distinct primary-CTA treatments across 53 pages**, including four
+violet→magenta gradients differing by a handful of RGB points
+(`#7035ff→#ec39c3`, `#6c35ff→#5016e8`, `#7c3aed→#6c35ff`, `#4a18f0→#6023ff`).
+Nobody designed four almost-identical gradients — each is a copy of the last with
+a nudge.
+
+**Fixed:** one `--grad-brand` token (the homepage's gradient, which is the design
+target), used by `.kind-start`, `.kf-primary`, `.pub-btn.primary`,
+`.mirror-btn-primary` and a new `.cta-primary` for content pages. Content pages
+previously used `.kind-start-pill` — a neutral grey pill — so a marketing page's
+main action looked nothing like the homepage's.
+
+**Result, re-measured:** the brand gradient went from **2 pages to 25** as the
+dominant primary CTA.
+
+Safety checked before adopting, not after: all three gradient stops clear AA
+against white text (#6d28d9 = 7.1:1, #a21caf = 6.32:1, #b45309 = 5.02:1), so a
+white label is safe anywhere along the ramp. Contrast re-audited after the
+change: 0 failures over 78 pages × 2 themes.
+
+### Two things this sweep found that are NOT bugs
+
+Both looked like defects and were verified before "fixing" them:
+
+- **Broken cause images on the homepage** — a sandbox artifact only. The images
+  are Unsplash URLs that return 200 and are allowed by the live CSP; the sandbox
+  browser simply cannot reach them.
+- **`.kf-outline` hardcoding `background: #fff`** in a duplicate rule — a
+  `[data-theme="dark"]` override rescues it, and the resolved dark pair measures
+  14.57:1. The duplicate is dead code, not a dark-mode failure.
+
+### Remaining design work (real, measured)
+
+- ~~**28 near-identical violet ramps**~~ → **DONE, 28 → 5.** Twenty-two rules now
+  route through one of two tokens: `--grad-brand` for primary actions,
+  `--grad-violet` for every other violet surface (avatars, step numerals, label
+  chips, secondary buttons). The five left are deliberate and documented in
+  `__tests__/css-single-definition.test.ts`: the token definition itself, two
+  pink-ended ramps that must stay distinguishable from a violet sibling, and the
+  two halves of the decorative `.contact-mug`.
+  - **A real contrast failure fell out of it.** `#b43bef` measures **4.36:1**
+    against the white initials sitting on it (`.dash-account-avatar`,
+    `.growth-brand > span`) — under the 4.5:1 floor, on live signed-in surfaces.
+    **axe cannot see this**: it samples a computed background *colour*, and a
+    gradient has none, so `audit:contrast` reports a clean page regardless of
+    what the ramp does. Gradient stops have to be measured by hand. Both new
+    tokens clear AA at every stop (5.85 / 5.20 / 7.1 / 6.32 / 5.02).
+  - Still uncovered by tooling: **no audit checks text on a gradient.** A
+    stop-sampling contrast check is worth building and is not yet written.
+- ~~**12 genuine CSS conflicts**~~ → **partly done.** The dead `.kf-outline`
+  duplicate is deleted and `.kf-primary`'s dead `border`/`color`/`background` are
+  gone (only its live `box-shadow` remains). The duplicated-class ceiling stays
+  at **25** because most entries are a shared selector list followed by a
+  per-class rule — normal CSS, not a conflict. The test's premise is cruder than
+  the problem; tightening it to flag only genuinely-conflicting redeclarations is
+  open work.
+- **The CTA guard in that test was INERT and has been fixed.** It built its regex
+  as `` `\\${cls.replace('.', '\\.')}` ``, so the pattern began with a literal
+  backslash and matched nothing — it passed while `.kf-primary` was carrying its
+  own violet gradient. It now escapes properly and has a mutation test that
+  plants a violation and requires detection. Worth generalising: **any guard
+  whose only job is to fail needs a test that makes it fail**, or it is counted
+  as coverage while measuring nothing.
+- **Four design families still coexist**: the homepage's `mirror-*`, `PageShell`
+  (26 pages), legacy `kind-`/`pub-` (21 pages), and bespoke (31). They share the
+  dark palette and chrome so the site reads as coherent.
+  - **Type scale: unified.** Measured first, at 1280px: h1 ran **36→86px** and h2
+    ran **21→48px** across the families — six unrelated scales, not one. Someone
+    moving from `/about-us` to `/support` was looking at two different websites.
+    Now three tokens, anchored to the homepage because it is the design target
+    (`--fs-h2` is literally the homepage's own section heading):
+
+    | | before | after |
+    |---|---|---|
+    | hero h1 | 58 / 68 / 77 / 78 / 86 | **72** (`--fs-hero`) |
+    | page-header h1 | 36 / 46 / 51 / 56 | **52** (`--fs-h1`) |
+    | section h2 | 21 / 22 / 23 / 24 / 25 / 27 / 28 / 31 / 34 / 42 / 48 | **38** (`--fs-h2`) |
+
+    Nine heading-sized clamps survive and each was attributed before being
+    exempted — display numerals, two pull quotes, a form question, and two
+    `@media` overrides that deliberately shrink a hero on mobile. Attributing
+    rather than eyeballing mattered: three entries that looked decorative on that
+    list (`.kind-hero h1`, `.home-hero h1`, `.cr2-launch-header h2`) turned out to
+    be real headings that had escaped, and were routed.
+  - **Section rhythm: unified, and it is TWO constructs, not one.** Measuring
+    first stopped a wrong fix. Sections inside `.container` space themselves with
+    `margin-bottom` and were **already consistent at 52px** on every PageShell
+    page; only full-bleed bands had drifted, running
+    **22 / 34 / 38 / 48 / 52 / 64 / 100 / 120px**. Collapsing both onto one
+    number would have destroyed a real distinction, so only the bands are
+    tokenised — `--band-pad: 56px`, again anchored to the homepage. `/about-us`
+    and `/contact` now measure a uniform 56/56 where they were 100/100 and
+    120/120. `.mirror-metrics` and `.mirror-trust` stay at 22px: those are
+    deliberately tight strips, not content bands.
+    - **The `pub-` family is now routed too, and it was not a `hiw-` problem.**
+      `/how-it-works` measured 34–54px, but no `.hiw-section` padding rule
+      exists — the values came from `.pub-hero`/`.pub-section`/`.hiw-cta-band`,
+      shared across all 21 legacy pages. Found by asking the browser which rules
+      actually matched (`CSSOM` + `element.matches`) rather than grepping for the
+      class in the name. Routing those three unified every legacy page at once.
+    - **Measured after:** `/about-us`, `/contact`, `/how-it-works` all report
+      `[56,56,56,56,56]`. `/support` and `/press` report `[0,0,0]` — correct,
+      they are in-container sections spacing via `margin-bottom: 52px`.
+      The homepage keeps one `22px` strip (`.mirror-trust`), deliberately tight.
+    - Checked and correctly NOT routed: `.pricing-grid` (30px), `.pricing-promises`
+      (24px), `.pricing-faq`. Those are component inner-padding — a card grid's
+      gutter and a panel's own padding — which is a third construct again, not a
+      band. Forcing them to 56px would have been the same category error as
+      collapsing sections and bands together.
+  - **Still open — the h2-as-card-title tier.** ~20 rules use `h2` for a card or
+    panel title at 19–28px. Those are correctly *not* on `--fs-h2` (a card title
+    is an h3-scale element that is an `h2` for document-outline reasons), but
+    they drift among themselves and want a fourth token.
+
+
 ## ✅ CI IS ALIVE AGAIN — red checks are real now (2026-08-01)
 
 The GitHub Actions outage is OVER. Verified on run `30704209059`:
@@ -24,7 +142,7 @@ external release constraints after the latest production deployment.
 
 | # | Blocker | Evidence | Who can clear it |
 |---|---------|----------|------------------|
-| 1 | **GitHub Actions assigns no runner.** Every CI job fails in ~2s with `runner_id: 0`, `runner_name: ""`, and **no logs at all** (`get_job_logs` → 404). Repo-wide, including pushes straight to `master`. | 30 of 30 most recent runs | **Owner** — Actions minutes / billing |
+| 1 | ~~GitHub Actions assigns no runner~~ — **CLEARED 2026-08-01.** Run `30704209059` shows `runner_id: 1000001483`, a real runner name, all steps, 3m09s. Red checks are real signals again. | run 30704209059 | ✅ resolved |
 | 2 | **No CharitMe staging Supabase project is available.** The account exposes CharitMe production and an unrelated Auto Trading project. Preview Branch creation returns HTTP 402 because the account is not on Pro; dedicated `charitme-staging` creation is also rejected because the owner has reached the two-active-free-project limit. Database release policy correctly blocks production migration application until the same commit is verified on real staging. | Supabase project/branch inventory and both provisioning probes, 2026-07-29 | **Owner** — upgrade Supabase, pause/delete an unrelated project, or provision staging in another organization |
 | 3 | **Vercel's free daily deployment quota is exhausted again.** PR #163 reports `api-deployments-free-per-day` after more than 100 deployments. PR #162 is live, but the subsequent accessibility commit cannot become production in this quota window. | Vercel PR #163 check, 2026-07-29 | **External reset** — retry an exact-master deployment after the 24-hour window or upgrade Vercel |
 
@@ -51,13 +169,13 @@ volunteer (44/45), events (48), matching (55), accessibility (68), safety (69 �
 
 | # | Route | Design | Lane |
 |---|---|---|---|
-| 1 | `/search` — global + advanced search/filters | 36, 37 | 🔵 **CLAIMED wcu7oh** |
-| 2 | `/teams` — team hub | 49 | 🔵 **CLAIMED wcu7oh** |
+| 1 | `/search` — global + advanced search/filters | 36, 37 | ✅ **BUILT wcu7oh** |
+| 2 | `/teams` — team hub | 49 | ✅ **BUILT wcu7oh** |
 | 3 | `/teams/create` — 5-step wizard | 50–53 | ✅ **BUILT wcu7oh** |
 | 4 | `/impact-map` — global impact map | 59 | ✅ **BUILT wcu7oh** |
-| 5 | `/donor-wall` — hall of thanks / recognition | 62, 81 | 🔵 **CLAIMED wcu7oh** |
+| 5 | `/donor-wall` — hall of thanks / recognition | 62, 81 | ✅ **BUILT wcu7oh** |
 | 6 | `/glossary` | 73 | ✅ **BUILT wcu7oh** |
-| 7 | `/press` — press releases + detail | 77 | ⬜ unclaimed |
+| 7 | `/press` — press releases + detail | 77 | ✅ **BUILT wcu7oh** |
 | 8 | `/brand-assets` — media kit | 78 | ✅ **BUILT wcu7oh** |
 | 9 | `/mobile-app` | 67 | ✅ **BUILT wcu7oh** |
 | 10 | `/webinars` + detail | 76 | ✅ **BUILT wcu7oh** |
@@ -66,7 +184,21 @@ volunteer (44/45), events (48), matching (55), accessibility (68), safety (69 �
 | 13 | `/support/chat` — live support | 71 | ✅ **BUILT wcu7oh** |
 | 14 | `/internships` | 46 | ✅ **BUILT wcu7oh** |
 | 15 | `/feedback` | 47 | ✅ **BUILT wcu7oh** |
-| 16 | `/certificate` — donor certificate | 64 | 🔵 **CLAIMED wcu7oh 14:10** |
+| 16 | `/certificate` — donor certificate | 64 | 🟡 **the only one left** — see below |
+
+**15 of the 16 are BUILT and returning 200 on www.charitme.com** (verified by
+fetching every one, 2026-08-01 20:0x). Four rows above said CLAIMED or unclaimed
+when the page had in fact shipped — a stale table is worse than no table,
+because another lane reads it and rebuilds a live page. Status here is now
+checked against the filesystem AND production, not against memory.
+
+`/certificate` is the only genuine gap, and it should **not** be built as a
+separate route. `/donor/receipt/[donationId]` already exists and is owned by the
+donor-receipt lane; a standalone `/certificate` would be a second document
+rendering the same donation with no donation id in the URL — i.e. either a
+mock-up with invented figures, or a duplicate of a page another lane owns.
+Design 64 belongs as a *print/share view* on the existing receipt route. Left
+for that lane deliberately.
 
 ### Enhancements to EXISTING pages the sheets ask for
 

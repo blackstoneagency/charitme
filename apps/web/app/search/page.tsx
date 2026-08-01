@@ -119,7 +119,7 @@ export default async function SearchPage({ searchParams }: Props) {
 
   return (
     <div className="container" style={{ padding: '40px 0 72px' }}>
-      <h1 style={{ fontSize: 'clamp(26px, 4vw, 36px)', fontWeight: 800, color: 'var(--t1)', letterSpacing: '-.02em' }}>
+      <h1 style={{ fontSize: 'var(--fs-h1)', fontWeight: 800, color: 'var(--t1)', letterSpacing: '-.02em' }}>
         {q ? `Search results for “${q}”` : 'Search CharitMe'}
       </h1>
       <p style={{ fontSize: '15px', color: 'var(--t3)', marginTop: '8px', maxWidth: '620px', lineHeight: 1.6 }}>
@@ -154,7 +154,7 @@ export default async function SearchPage({ searchParams }: Props) {
             <option value="ending">Ending soon</option>
           </select>
         </label>
-        <button type="submit" className="kind-start-pill" style={{ display: 'inline-flex', justifyContent: 'center', minHeight: '42px' }}>
+        <button type="submit" className="cta-primary" style={{ display: 'inline-flex', justifyContent: 'center', minHeight: '42px' }}>
           Search
         </button>
       </form>

@@ -47,7 +47,7 @@ export function PageHero({
       )}
       <h1
         style={{
-          fontSize: 'clamp(30px, 5vw, 46px)',
+          fontSize: 'var(--fs-h1)',
           fontWeight: 800,
           color: 'var(--t1)',
           lineHeight: 1.12,
@@ -77,7 +77,7 @@ export function Section({
 }) {
   return (
     <section aria-labelledby={id} style={{ marginBottom: '52px' }}>
-      <h2 id={id} style={{ fontSize: '22px', fontWeight: 780, color: 'var(--t1)', letterSpacing: '-.01em' }}>
+      <h2 id={id} style={{ fontSize: 'var(--fs-h2)', fontWeight: 780, color: 'var(--t1)', letterSpacing: '-.01em' }}>
         {heading}
       </h2>
       {intro && (
@@ -194,12 +194,12 @@ export function CtaBand({
         textAlign: 'center',
       }}
     >
-      <h2 style={{ fontSize: '21px', fontWeight: 780, color: 'var(--t1)' }}>{heading}</h2>
+      <h2 style={{ fontSize: 'var(--fs-h2)', fontWeight: 780, color: 'var(--t1)' }}>{heading}</h2>
       <p style={{ fontSize: '15px', color: 'var(--t3)', margin: '10px auto 20px', maxWidth: '560px', lineHeight: 1.6 }}>
         {body}
       </p>
       <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-        <Link href={primary.href} className="kind-start-pill" style={{ display: 'inline-flex' }}>
+        <Link href={primary.href} className="cta-primary" style={{ display: 'inline-flex' }}>
           {primary.label}
         </Link>
         {secondary && (

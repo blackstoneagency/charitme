@@ -102,7 +102,7 @@ export default async function TeamsPage() {
         lede="Create or join a team to amplify your impact. Everyone raises toward one shared goal, with their own page and their own link."
         actions={
           <>
-            <Link href="/create" className="kind-start-pill" style={{ display: 'inline-flex' }}>
+            <Link href="/create" className="cta-primary" style={{ display: 'inline-flex' }}>
               Start a team
             </Link>
             <Link

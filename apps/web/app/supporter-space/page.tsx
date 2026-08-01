@@ -155,7 +155,7 @@ export default async function SupporterSpacePage() {
         }
         actions={
           <>
-            <Link href="/campaigns" className="kind-start-pill" style={{ display: 'inline-flex' }}>
+            <Link href="/campaigns" className="cta-primary" style={{ display: 'inline-flex' }}>
               Browse all campaigns
             </Link>
             <Link
