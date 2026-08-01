@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
+import { PROCESSING_FEE_COPY, PLATFORM_FEE_COPY, SUGGESTED_SUPPORT_COPY } from '../../lib/fee-copy';
 
 const CATEGORIES = [
   { id: 'getting-started', label: 'Getting Started', icon: '🚀' },
@@ -24,7 +25,7 @@ type Article = {
 const ARTICLES: Article[] = [
   // Getting Started
   { id: 'gs-1', category: 'getting-started', question: 'How do I start a fundraiser?', answer: 'Click "Get Started" on any page, sign in or create a free account, then follow the 5-step campaign wizard. You can save a draft at any time and publish when ready. AI Copilot can write your title and story automatically.' },
-  { id: 'gs-2', category: 'getting-started', question: 'Is it free to create a campaign?', answer: 'Yes. Creating and running a campaign is completely free. CharitMe charges 0% mandatory platform fee. Donors can choose to add an optional support tip (default 8%, changeable to $0) at checkout.' },
+  { id: 'gs-2', category: 'getting-started', question: 'Is it free to create a campaign?', answer: `Yes. Creating and running a campaign is completely free. CharitMe charges a ${PLATFORM_FEE_COPY} mandatory platform fee. Donors can choose to add an optional support tip (suggested ${SUGGESTED_SUPPORT_COPY}, changeable to $0) at checkout.` },
   { id: 'gs-3', category: 'getting-started', question: 'How long does it take to set up?', answer: 'Most organizers publish their first campaign in under 10 minutes using the AI Copilot. You need a campaign title, story, goal amount, and at least one photo. Bank verification (for payouts) takes 2–5 minutes via Stripe.' },
   { id: 'gs-4', category: 'getting-started', question: 'Can I fundraise for someone else?', answer: 'Yes. During setup, select who you\'re raising funds for — yourself, a friend, family member, or a nonprofit. You\'ll identify the beneficiary by name and relationship. Payouts go to the bank account you connect via Stripe Connect.' },
   { id: 'gs-5', category: 'getting-started', question: 'What categories can I fundraise for?', answer: 'CharitMe supports Medical, Memorial/Funeral, Emergency, Disaster Relief, Education, Animal/Pet, Community, Nonprofit, Sports/Teams, and more. Choose the category that best fits your need during campaign creation.' },
@@ -33,7 +34,7 @@ const ARTICLES: Article[] = [
   { id: 'don-1', category: 'donations', question: 'What payment methods are accepted?', answer: 'All major credit and debit cards (Visa, Mastercard, Amex, Discover), Apple Pay, Google Pay, and bank transfers in supported countries. All payments are processed by Stripe, a PCI DSS Level 1 certified provider.' },
   { id: 'don-2', category: 'donations', question: 'Can I donate anonymously?', answer: 'Yes. Check "Donate anonymously" at checkout. Your name will not appear in the public donation list, but your donation amount still counts toward the campaign goal.' },
   { id: 'don-3', category: 'donations', question: 'Can I set up recurring monthly donations?', answer: 'Yes. CharitMe supports monthly recurring donations with 0% platform fee — compared to GoFundMe\'s 5% recurring donor fee. Toggle "Give Monthly" on the campaign donate button, then cancel any time from your donor dashboard.' },
-  { id: 'don-4', category: 'donations', question: 'What fees does Stripe charge?', answer: 'Stripe charges 2.9% + $0.30 per card transaction (standard US rate). You can optionally check "Cover processing fee" to absorb this so 100% of your stated donation reaches the campaign. CharitMe does not add any markup on top of Stripe fees.' },
+  { id: 'don-4', category: 'donations', question: 'What fees does Stripe charge?', answer: `Stripe charges ${PROCESSING_FEE_COPY} per card transaction (standard US rate). You can optionally check "Cover processing fee" to absorb this so 100% of your stated donation reaches the campaign. CharitMe does not add any markup on top of Stripe fees.` },
   { id: 'don-5', category: 'donations', question: 'Will I get a receipt?', answer: 'Yes. An email receipt is sent automatically after every completed donation. The receipt includes the amount, campaign name, date, and a link to your donor dashboard. Contact support to resend a receipt.' },
   { id: 'don-6', category: 'donations', question: 'Can I cancel my monthly donation?', answer: 'Yes. Go to your donor dashboard → Recurring Donations → Cancel. Cancellation takes effect at the end of the current billing period so you\'re never double-charged.' },
 

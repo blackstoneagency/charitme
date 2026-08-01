@@ -1,14 +1,35 @@
 import Link from 'next/link';
+import { cache } from 'react';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: 'Supported Countries',
-  description: 'See which countries can create campaigns and receive donations on CharitMe. Fundraise from 20+ countries and accept donations from 70+ countries worldwide.',
-  alternates: { canonical: 'https://www.charitme.com/supported-countries' },
-};
+/**
+ * The description is COUNTED, not typed.
+ *
+ * It used to claim "20+ countries" to fundraise and "70+" to donate while the
+ * page body rendered the real figures from `supported_countries` right below it.
+ * Two numbers for one fact, one of which nobody would ever see go stale: the
+ * description is what appears in a search result and in a link preview, and it
+ * is the one place on the page that no visitor can check against the list.
+ *
+ * `cache()` means the metadata pass and the render share a single query.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const all = await getCountries();
+  const fundraisers = all.filter((c) => c.can_fundraise).length;
+  const description = all.length === 0
+    // Never invent a number to fill the gap. When the read fails, describe the
+    // page rather than assert a count that is not in hand.
+    ? 'See which countries can create campaigns and receive donations on CharitMe.'
+    : `See which countries can create campaigns and receive donations on CharitMe. Fundraise from ${fundraisers} countries and accept donations from ${all.length} countries worldwide.`;
+  return {
+    title: 'Supported Countries',
+    description,
+    alternates: { canonical: 'https://www.charitme.com/supported-countries' },
+  };
+}
 
 type Country = {
   id: string;
@@ -26,7 +47,7 @@ type Country = {
  * 500 on a public marketing page is not. Measured: this page returned 500 on a
  * cold production build with Supabase unreachable.
  */
-async function getCountries(): Promise<Country[]> {
+const getCountries = cache(async function getCountries(): Promise<Country[]> {
   try {
     const { data } = await supabaseAdmin
       .from('supported_countries')
@@ -38,7 +59,7 @@ async function getCountries(): Promise<Country[]> {
   } catch {
     return [];
   }
-}
+});
 
 export default async function SupportedCountriesPage() {
   const all = await getCountries();

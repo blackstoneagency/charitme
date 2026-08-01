@@ -392,6 +392,73 @@ them so, and both belong there anyway.
 can fail plus one that no exemption is stale — an exemption nobody verifies is a
 silenced test.
 
+## ⚠️ MEASURED: the whole /admin/payments console is unreachable (2026-08-01)
+
+Same sweep as the public one above, run against the admin consoles. 50 admin
+pages, 17 absent from both `adminNav` and `SUPER_ADMIN_NAV`. Eleven of those are
+`/admin/marketing/*`, most of which are compatibility redirects to
+`/admin/marketing?tab=…` and are fine. The other six are not:
+
+```
+/admin/payments/campaign-flows   ← the ONLY one with a nav entry
+/admin/payments/disputes
+/admin/payments/payouts
+/admin/payments/processors
+/admin/payments/reconciliation
+/admin/payments/refunds
+```
+
+**Five real, Supabase-wired pages** — disputes, owner payouts, processor status,
+reconciliation and refunds, all reading through `lib/payment-admin-data.ts` — and
+**nothing in the product links to any of them.** Grepping the whole tree for
+`/admin/payments/` outside that directory returns exactly two hrefs:
+`campaign-flows` and an export endpoint. An admin can reach the payment-flow
+table and has no way to discover the other five views of the same data.
+
+Claimed by this lane (tbaz3i). Fixing with a section sub-nav plus a test that
+every `app/admin/payments/*/page.tsx` on disk appears in it — so the next view
+added to this section cannot be born unreachable.
+
+## 🚨 FIXED: four public pages, including the TERMS OF SERVICE, stated the wrong fee (2026-08-01)
+
+`@shared/fees` has `SUGGESTED_SUPPORT_PERCENT = 15`. **Four public pages said the
+donor tip default was 8%** — `/terms`, `/faq`, `/for-donors` and `/help`. One of
+those is a contract. 8% is a real rung on the ladder
+(`SUPPORT_TIER_PERCENTS = [15, 12, 10, 8, 5, 3, 1, 0]`), which is exactly why the
+wrong number looked plausible for as long as it did.
+
+Nine pages also spelled out `2.9% + $0.30` as a literal, so any change to
+`PROCESSING_FEE_PERCENT` would have left nine public pages quoting a rate the
+product no longer charged.
+
+**And `/for-donors` carried a worked example that did not add up.** It claimed a
+$100 donation left the campaign **$94.00** after a **$3.20** processing fee and
+an **$8.00** tip — three numbers that do not reconcile under any reading of the
+fee model. The real figures, computed from the shared helpers: campaign receives
+**$96.80**, processing **$3.20**, suggested tip **$15.00** added on top, donor
+pays **$115.00**. That table is now computed, not typed.
+
+**Why nothing caught it:** a wrong number in a paragraph is valid TSX that
+renders perfectly, and a page contradicting another page reads exactly as
+confident as the one that is right. Neither typecheck, lint, axe, nor any
+rendering test can see it. Only comparing the prose against the constants finds
+it.
+
+**Same class, one page over:** `/supported-countries` hardcoded "20+ countries"
+and "70+ countries" in its `metadata.description` while the page body rendered
+the real counts from `supported_countries` immediately below it. The description
+is the one line on that page a visitor cannot check — it appears in search
+results and link previews — so it is now counted via `generateMetadata()`, with
+`cache()` sharing one query between the metadata pass and the render. When the
+read fails it describes the page instead of inventing a number.
+
+So `lib/fee-copy.ts` derives the prose from `@shared/fees`, and
+`__tests__/fee-copy.test.ts` sweeps `app/`, `components/` and `lib/` for a
+hardcoded fee figure or a default-tip percentage that disagrees with the
+constants. **The sweep found three of the four wrong pages on its first run** —
+only `/terms` was found by reading. It also asserts it can fail, and strips
+comments so a doc comment quoting a rate is not a finding.
+
 ## 🔀 I18N LANE SPLIT — read this before touching a string (Claude, 2026-08-01)
 
 Two bots built the cause taxonomy, `/causes`, `/causes/[slug]` and the mega-menu

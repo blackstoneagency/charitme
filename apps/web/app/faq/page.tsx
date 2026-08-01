@@ -3,6 +3,7 @@ import { safeJsonLd } from "../../lib/json-ld";
 import { getPublishedFaqs, groupFaqsByTopic } from '../../lib/aeo';
 import type { Metadata } from 'next';
 import JsonLd from '../../components/JsonLd';
+import { PROCESSING_FEE_COPY, PLATFORM_FEE_COPY, SUGGESTED_SUPPORT_COPY } from '../../lib/fee-copy';
 
 export const metadata: Metadata = {
   title: 'FAQ',
@@ -26,9 +27,9 @@ const FAQ_SECTIONS = [
   {
     title: 'Fees and pricing',
     items: [
-      { q: 'What is the platform fee?', a: 'CharitMe charges 0% mandatory platform fee. We earn only from optional donor support tips that donors choose to add at checkout. The default tip is 8% of the donation amount, but donors can change it to any amount including $0.' },
-      { q: 'What does Stripe charge?', a: 'Stripe charges 2.9% + $0.30 per transaction for standard card payments. This is Stripe\'s fee, not CharitMe\'s. Donors can optionally check a box at checkout to cover this fee so 100% of their stated donation reaches you.' },
-      { q: 'How does the optional donor tip work?', a: 'At checkout, donors see a transparent breakdown showing exactly how much goes to the campaign, how much covers processing, and the optional tip to CharitMe. The tip is pre-filled at 8% but the donor can change it to 0%, 5%, 10%, 12%, or any custom amount before paying.' },
+      { q: 'What is the platform fee?', a: `CharitMe charges a ${PLATFORM_FEE_COPY} mandatory platform fee. We earn only from optional donor support tips that donors choose to add at checkout. The tip is suggested at ${SUGGESTED_SUPPORT_COPY} of the donation amount, but donors can change it to any amount including $0.` },
+      { q: 'What does Stripe charge?', a: `Stripe charges ${PROCESSING_FEE_COPY} per transaction for standard card payments. This is Stripe\'s fee, not CharitMe\'s. Donors can optionally check a box at checkout to cover this fee so 100% of their stated donation reaches you.` },
+      { q: 'How does the optional donor tip work?', a: `At checkout, donors see a transparent breakdown showing exactly how much goes to the campaign, how much covers processing, and the optional tip to CharitMe. The tip is pre-filled at ${SUGGESTED_SUPPORT_COPY} but the donor can change it to any rung on the ladder, including 0%, or a custom amount before paying.` },
       { q: 'Are there fees to withdraw or receive payouts?', a: 'Standard payouts are always free. Same-day payouts have a 1% fee and instant payouts have a 1.5% fee. These are optional speed upgrades, not mandatory fees.' },
     ],
   },
@@ -129,7 +130,7 @@ export default async function FaqPage() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
               { label: 'Platform fee', value: '0%', sub: 'Always free to fundraise' },
-              { label: 'Donor tip', value: 'Optional', sub: 'Default 8%, editable to $0' },
+              { label: 'Donor tip', value: 'Optional', sub: `Suggested ${SUGGESTED_SUPPORT_COPY}, editable to $0` },
               { label: 'Fast payout', value: 'Verified users', sub: 'Standard is always free' },
               { label: 'Trust score', value: 'Every campaign', sub: 'Computed automatically' },
             ].map((item) => (

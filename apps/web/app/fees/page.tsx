@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { PROCESSING_FEE_COPY } from '../../lib/fee-copy';
 
 export const metadata: Metadata = {
   title: 'Fee Policy — 0% Platform Fee | CharitMe',
@@ -56,7 +57,7 @@ export default function FeePolicyPage() {
           <strong> processor, not to CharitMe</strong>. Typical rates:
         </p>
         <ul>
-          <li><strong>Card / Google Pay / Apple Pay:</strong> 2.9% + $0.30</li>
+          <li><strong>Card / Google Pay / Apple Pay:</strong> {PROCESSING_FEE_COPY}</li>
           <li><strong>Bank transfer (ACH):</strong> 0.8% (capped at $5.00)</li>
           <li><strong>Cash App, Link, Amazon Pay, Klarna, Afterpay:</strong> vary by provider</li>
         </ul>

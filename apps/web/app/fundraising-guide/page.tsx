@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { PageBody, PageHero, Section, CardGrid, InfoCard, CtaBand } from '../../components/PageShell';
+import { PROCESSING_FEE_COPY, PLATFORM_FEE_COPY } from '../../lib/fee-copy';
 
 export const metadata: Metadata = {
   title: 'Fundraising Guide',
@@ -101,8 +102,8 @@ export default function FundraisingGuidePage() {
         intro="CharitMe charges no mandatory platform fee. Donors are offered an optional tip, which is always reducible to zero, and payment processing is charged at cost."
       >
         <CardGrid min={250}>
-          <InfoCard title="Platform fee" body="0%. There is no percentage cut of your donations, and no monthly charge to run a campaign." />
-          <InfoCard title="Processing" body="Card payments are 2.9% + $0.30, charged by the payment processor. Other methods differ — the exact rate is shown to donors before they pay." />
+          <InfoCard title="Platform fee" body={`${PLATFORM_FEE_COPY}. There is no percentage cut of your donations, and no monthly charge to run a campaign.`} />
+          <InfoCard title="Processing" body={`Card payments are ${PROCESSING_FEE_COPY}, charged by the payment processor. Other methods differ — the exact rate is shown to donors before they pay.`} />
           <InfoCard title="Payouts" body="Standard payouts arrive on a two-business-day schedule once your Stripe account is connected and verified." />
         </CardGrid>
         <p style={{ fontSize: '13px', color: 'var(--t4)', marginTop: '14px' }}>

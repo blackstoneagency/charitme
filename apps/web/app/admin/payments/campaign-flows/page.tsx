@@ -1,6 +1,7 @@
 import { CharitMeShell, TopBar } from '../../../../components/CharitMeShellServer';
 import { getCampaignOptions, getPaymentAdminData, type PaymentFilters } from '../../../../lib/payment-admin-data';
 import { PaymentFiltersBar, PaymentTable, SummaryCards } from '../_components/PaymentAdminParts';
+import { PaymentsSubnav } from '../_components/PaymentsSubnav';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,6 +20,7 @@ export default async function CampaignPaymentFlowsPage({ searchParams }: PagePro
     <CharitMeShell active="Payment Flows" mode="admin">
       <TopBar title="Campaign Payment Flows" subtitle="Trace donor payment, processor fees, ChartiMe.com revenue, owner transfer, payout, and settlement." />
       <div className="kf-admin-dash">
+        <PaymentsSubnav />
         <SummaryCards data={data} />
         <PaymentFiltersBar campaigns={campaigns} />
         <PaymentTable rows={data.rows} />
