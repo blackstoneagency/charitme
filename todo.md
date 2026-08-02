@@ -1062,7 +1062,31 @@ a note, `rate_limit_hits` is reached through the `check_rate_limit` RPC, and
 `organizations` is code-complete but inert pending a migration the sandbox cannot
 apply. The rest are the real "wired to Supabase" gap.
 
-**Claimed next by this lane: `embedded_buttons`.** The persistent form of the
+### ✅ SHIPPED — embedded_buttons
+
+`lib/embedded-buttons-core.ts` (12 tests) · `GET/POST/DELETE /api/embedded-buttons`
+· `/dashboard/buttons`.
+
+The snippet for a saved button is rebuilt from its stored config through the
+**same `embedSnippet`** the per-campaign configurator uses, so a saved button and
+a freshly configured one cannot render differently.
+
+- **`parseButtonConfig` falls back per FIELD, not per object.** The column is
+  `jsonb DEFAULT '{}'`, so a row written by older code is missing fields;
+  rejecting the whole object would make an old button vanish from the list rather
+  than render with defaults.
+- **An explicit `false` survives.** `raw[key] ?? fallback` would turn a stored
+  `showCover: false` back into `true`, silently switching a feature on for every
+  saved button. Tested in that direction specifically.
+- **A donate button must have a campaign.** The column is nullable because the
+  other three types target something else, so the database cannot express it —
+  and a donate button with no campaign is a control that cannot take a donation,
+  the exact dead-control shape this repo keeps finding. Refused at the API, and
+  a saved row without one renders an explanation instead of a broken iframe.
+- **`owner_id` comes from the session, never the body**, and DELETE scopes by
+  owner in the same statement rather than trusting an id.
+
+**Was claimed as: `embedded_buttons`.** The persistent form of the
 widget configurator already built at `/dashboard/campaigns/[id]/widget`, which
 generates a snippet and forgets it.
 

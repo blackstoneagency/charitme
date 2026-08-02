@@ -79,6 +79,9 @@ const ORGANIZER_NAV: readonly DashboardNavItem[] = [
   // `donor_segments` + `donor_segment_members`: two more tables that shipped
   // with RLS and no code on either side of them.
   { label: 'Donor Segments', href: '/dashboard/segments', icon: 'users' },
+  // `embedded_buttons`: the persistent form of the per-campaign widget
+  // configurator, which built a snippet and forgot it.
+  { label: 'Embed Buttons', href: '/dashboard/buttons', icon: 'link' },
   SETTINGS,
 ];
 
