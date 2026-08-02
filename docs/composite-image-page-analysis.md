@@ -87,3 +87,58 @@ Nothing on these 12 pages. The platform-level blocker is unchanged and is
 recorded in `todo.md`: this sandbox has no database (`placeholder.supabase.co`),
 so nine migrations remain unapplied — three of which fix live defects, including
 a `creator_tips` exposure.
+
+---
+
+# Composite image (pages 48–59) — analysis and audit
+
+**Result: all 12 already exist. Two wizard *steps* from the design do not, and both need schema.**
+
+| # | Reference | Route | Backend |
+|---|---|---|---|
+| 48 | Events & Fundraisers | `/events` (route group `(list)`) | `fundraising_events` |
+| 49 | Teams | `/teams` | **`peer_fundraisers`** |
+| 50–53 | Create Team, steps 1–4 | `/teams/create` | `peer_fundraisers` |
+| 54 | AI Fundraising Coach | `/dashboard/ai-coach`, `/ai-fundraising` | AI routes + `ai_generations` |
+| 55 | Matching Donations | `/matching` (route group) | `matching_programs`, `matching_claims` |
+| 56 | Payouts / Withdrawals | `/dashboard/payouts` | `payouts` |
+| 57 | Bank Account / Payout Setup | `/dashboard/campaigns/[id]/payout-setup` | Stripe Connect |
+| 58 | Recurring Donations | `/dashboard/recurring` | `recurring_donations` |
+| 59 | Impact Map | `/impact-map` | impact tables |
+
+## The one real gap
+
+`/teams/create` is a **4-step** wizard — *Choose a campaign · Name your team ·
+Set a goal · Review*. The designs show **five**, adding **Invite Members** (#51)
+and **Story** (#52).
+
+Neither can be built from this sandbox, and the reason is schema, not effort:
+
+- **Story (#52)** wants a team story and cover image. `peer_fundraisers` has
+  `id, parent_campaign_id, fundraiser_id, slug, title, goal_amount,
+  raised_amount, status, created_at, updated_at` — **no description, no image
+  column.** Adding them is a migration, and migrations cannot be applied here.
+- **Members (#51)** wants email invites with Administrator/Member roles.
+  `team_members` already does exactly that — `invite_token`, `invite_email`,
+  `invite_sent_at`, `role`, `permissions` — but it is scoped to
+  **`campaign_id` / `nonprofit_id`**, not to a peer fundraiser. So the capability
+  exists and is reachable at `/dashboard/team`; pointing it at a *team* needs a
+  new foreign key, i.e. a migration.
+
+**The capability in #51 therefore is not missing from the product** — it is
+attached to the campaign, which is arguably the better owner, since permissions
+like `manage_payout` belong to the entity that receives money.
+
+## ⚠️ Third false "missing" from the same mistake
+
+The first probe of this deck reported `/events`, `/matching` and `/impact-map`
+as absent. All three exist: the first two live behind **route groups**
+(`app/events/(list)/page.tsx` renders at `/events`), and the third is
+`/impact-map`, not the `/impact/map` I guessed.
+
+That is the **third** time in this deck's work that an exact-match path guess
+produced a false negative — after probing invented table names, and after reading
+`page.tsx` for a `fetch` that lived in its client component.
+
+**Rule, since the pattern is now established:** never probe a route or table by a
+name I constructed. List what exists, then match against the list.
