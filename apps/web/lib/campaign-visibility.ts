@@ -1,6 +1,7 @@
 import 'server-only';
 import { supabaseAdmin } from './supabase';
 import { columnPresence, shouldFilter, isCacheable } from './campaign-visibility-core';
+import { withQueryTimeout } from './query-timeout';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Schema-resilient "live public campaign" filtering.
@@ -29,12 +30,42 @@ let _campaignCols: CampaignCols | null = null;
  * NOT cached, so the next call re-probes. Verified against production, where both
  * columns exist and a bogus column really does return 42703.
  */
+/**
+ * Deadline for the probe.
+ *
+ * Measured on a production build against an unreachable database: this probe
+ * cost ~7.05s on EVERY request to EVERY campaign-backed page, because the
+ * "only cache a definitive answer" rule above means an unreachable DB is never
+ * cacheable — so it re-probed forever. Pages that then ran their own read came
+ * to ~14.1s, and 13 public routes measured exactly that.
+ *
+ * The timeout fallback is `{ visibility: true, deletedAt: true }` — both filters
+ * ON. That is deliberately the same answer the "unknown" path already gives:
+ * fail toward privacy. A timeout must never be the reason a private or
+ * soft-deleted campaign becomes publicly listed.
+ */
+const PROBE_TIMEOUT_MS = 1_500;
+
+/** Fail-safe answer: apply every filter. Matches the `unknown` branch below. */
+const FAIL_TOWARD_PRIVACY: CampaignCols = { visibility: true, deletedAt: true };
+
 export async function campaignColumns(): Promise<CampaignCols> {
   if (_campaignCols) return _campaignCols;
-  const [v, d] = await Promise.all([
-    supabaseAdmin.from('campaigns').select('visibility').limit(1),
-    supabaseAdmin.from('campaigns').select('deleted_at').limit(1),
-  ]);
+
+  const probe = await withQueryTimeout(
+    Promise.all([
+      supabaseAdmin.from('campaigns').select('visibility').limit(1),
+      supabaseAdmin.from('campaigns').select('deleted_at').limit(1),
+    ]),
+    null,
+    PROBE_TIMEOUT_MS,
+  );
+
+  // Not cached, exactly like the unknown-error path: a slow moment must not
+  // freeze a guess in for the life of the process.
+  if (probe.degraded || !probe.data) return FAIL_TOWARD_PRIVACY;
+
+  const [v, d] = probe.data;
 
   const visibility = columnPresence(v.error);
   const deletedAt = columnPresence(d.error);
