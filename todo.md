@@ -1057,6 +1057,39 @@ keys to the same seven files produces merge conflicts on every single batch.
 remaining surfaces. This is the ONLY unblocked item left in this file — everything
 else is owner-gated (see the table below).
 
+## ⚠️ 42 server pages read Supabase with no `try/catch` (2026-08-02)
+
+Measured, not estimated: 42 server `page.tsx` files call `supabaseAdmin` with no
+`try/catch` anywhere in the file. Worst offenders by call count: `admin/page.tsx`
+(18), `admin/reports` (13), `admin/system` (13), `admin/finance` (9),
+`creators/[handle]` (7), `donor` (6), `dashboard/calendar` (6),
+`dashboard/documents` (6).
+
+**Why it matters.** Handling the returned `error` is not enough. `supabaseAdmin`
+is a Proxy whose `get` trap THROWS when the env is missing, so `.from(...)` can
+throw *before a query is issued*, and that escapes an `if (error)` check
+entirely. A page that carefully returns `null` on `error` still 500s on a throw.
+
+This is the exact bug that took the whole site down on 2026-08-02 via the root
+layout's `getActiveAnnouncements()`. Fixed there, plus `/status`,
+`/dashboard/saved`.
+
+**Severity is lower here than it was there, and that is the reason this is
+tracked rather than bulk-fixed.** The layout runs on all 432 routes, so one
+throw was site-wide. These are per-page: a throw takes out that page only, and
+most are admin/dashboard surfaces behind auth. Bulk-editing 42 files with a
+script is a worse risk than the defect — each needs its degraded state chosen
+(`null` for "unmeasurable" vs `[]` for "genuinely empty"), which is a judgement
+per loader, not a regex.
+
+**Do them in traffic order** — `donor`, `dashboard/*`, `creators/[handle]` before
+`admin/*` — and keep the house rule: a failed read renders an em-dash or an
+honest "we couldn't load", never `0` and never the empty state.
+
+Worth a guard once the count is down: a test that fails when a server page gains
+an unguarded `supabaseAdmin` call. Do not add it at 42 or it just gets a ceiling
+nobody lowers.
+
 ## ✅ ACTIONABLE QUEUE IS EMPTY — every remaining item names its blocker (2026-07-31)
 
 **There is no engineering work left in this file that can be done from here.**
