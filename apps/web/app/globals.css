@@ -8436,3 +8436,40 @@ summary:focus-visible,
   align-items: center;
   min-height: 24px;
 }
+
+/* Public campaign share page (`/campaigns/[slug]/share`). The cover is a fixed
+   ratio on desktop and goes full-width on a phone rather than leaving a 160px
+   thumbnail stranded beside wrapped text. */
+.share-cover {
+  width: 160px;
+  height: 110px;
+  object-fit: cover;
+  border-radius: var(--r);
+  flex: 0 0 auto;
+}
+@media (max-width: 560px) {
+  .share-cover { width: 100%; height: 170px; }
+}
+
+/* Partner roster (`/partner`) — real organisations from `sponsors`. Wraps rather
+   than scrolling, so every partner is reachable without a horizontal gesture. */
+.partner-roster {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-width: 0;
+}
+.partner-roster-item { min-width: 0; }
+.partner-roster-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  min-width: 0;
+  padding: 8px 14px;
+  border: 1px solid var(--b1);
+  border-radius: var(--rl);
+  background: var(--s1);
+  text-decoration: none;
+}
+a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }

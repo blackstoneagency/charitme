@@ -10,7 +10,7 @@
     "sweeps were auditing the login page under two other names and passing.",
     "",
     "Before adding a route to `public`, load it signed-out and confirm it renders",
-    "itself. If it redirects, it belongs in `authGated` instead — the sweeps assert",
+    "itself. If it redirects, it belongs in `authGated` instead \u2014 the sweeps assert",
     "the landed path matches the requested one and will fail loudly either way."
   ],
   "public": [
@@ -25,6 +25,7 @@
     "/brand-assets",
     "/campaigns",
     "/campaigns/security-header-fixture/embed",
+    "/campaigns/security-header-fixture/share",
     "/careers",
     "/causes",
     "/causes/mental-health",
@@ -107,7 +108,7 @@
     "exists so the --auth sweep can SUBTRACT them, rather than reporting 'fewer than",
     "5 visible text elements' forever on pages that are behaving correctly.",
     "",
-    "Do NOT 'fix the login page'. There is nothing wrong with it — bouncing a",
+    "Do NOT 'fix the login page'. There is nothing wrong with it \u2014 bouncing a",
     "signed-in user off the login page is the point."
   ],
   "signedOutOnly": [
@@ -126,7 +127,8 @@
       "/privacy-center",
       "/profile",
       "/sponsor/manage",
-      "/volunteer/hours"
+      "/volunteer/hours",
+      "/welcome"
     ],
     "consoles": [
       "/admin",

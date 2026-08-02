@@ -163,6 +163,11 @@ describe('public route list has a single source of truth', () => {
     const nonIndexedWorkflows = new Set([
       '/beneficiary/accept',
       '/campaigns/security-header-fixture/embed',
+      // Per-campaign helper surface, listed in the sweep only so the audits
+      // cover it. Its `alternates.canonical` points at the CAMPAIGN, so search
+      // engines should consolidate there rather than rank the share page — and
+      // it is a dynamic route, so it has no place in a static sitemap catalog.
+      '/campaigns/security-header-fixture/share',
       '/create/choose-path',
       '/features/fundraising-core',
       '/forgot-password',

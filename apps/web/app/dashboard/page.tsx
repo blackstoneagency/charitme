@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { CharitMeShell, KFIcon } from '../../components/CharitMeShellServer';
+import SetupPrompt from './SetupPrompt';
 import CampaignSortableList from './CampaignSortableList';
 import PeriodSelect from './PeriodSelect';
 import ShellAccountControls from '../../components/ShellAccountControls';
@@ -557,6 +558,10 @@ export default async function DashboardPage({
   return (
     <CharitMeShell active="Dashboard" userName={data.userName}>
       <div className="dash-home">
+        {/* Entry point to /welcome. Retires itself once the underlying rows say
+            setup is done, so it is not a permanent nav entry nagging every
+            established user. */}
+        <SetupPrompt userId={user.id} />
         <header className="dash-head">
           <div>
             <h1>

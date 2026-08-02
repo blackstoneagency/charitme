@@ -399,6 +399,41 @@ direction.** Pinned by `__tests__/newsletter-wired.test.ts` (verified red first)
 This affected every capture surface, not just the newsletter — donation opt-ins and
 popup captures had the same silent failure.
 
+**…and that first fix was itself only HALF the bug.** `unsubscribeEmail` writes to
+**two** places: `marketing_contacts.status` **and** `marketing_suppression_list`.
+Every send path — campaigns, automations, outreach — calls `isSuppressed()`
+*independently of status*, so flipping the status back and leaving the suppression
+row produces a contact that looks active in the admin UI and still receives nothing.
+Undoing one half of a two-half operation leaves the visible symptom completely
+unchanged. Now fixed by `resubscribeEmail()`, called from the capture route on an
+explicit opt-in.
+
+⚠️ `resubscribeEmail` clears **only** `reason = 'unsubscribed'`. A `bounced` or
+`complaint` suppression must survive someone typing their address into a form:
+those record an undeliverable address or a spam report, and re-enabling sends on
+that basis damages domain reputation for every other recipient. Pinned by test.
+
+### 🔧 Backfill: `scripts/repair-stale-unsubscribes.mjs`
+Read-only by default, `--apply` to write. **Run 2026-08-02 against production: 0
+rows to repair.** The bug was latent — `marketing_contacts` holds 2,391 rows but
+**not one is `status='unsubscribed'`** and the suppression list is empty, so no
+subscriber was ever actually affected. Nothing needed changing in production data.
+
+The criterion is exact and only works because of a lucky design decision:
+`unsubscribeEmail` writes its OWN consent row (`granted=false`), so the consent log
+is a complete ordered record of both directions. Repair iff the **latest** email
+consent is `granted=true` while status is still `unsubscribed` — which separates
+"re-opted in and we ignored it" from "consented once, unsubscribed later". Without
+that second write the two would be indistinguishable and the script could not
+exist safely.
+
+Because production has 0 affected rows, the script was **verified against real
+fixtures** instead — three contacts covering the bug, a legitimately-unsubscribed
+control, and a spam-complaint case — inserted, repaired, asserted, and deleted
+(0 left behind). 14/14 checks passed: dry run writes nothing, the control is
+untouched, and the complaint suppression survives. A repair script that has never
+run against an affected row is an assumption, not a tool.
+
 ### ✅ Signed-in contrast is now clean
 0 colour failures across 22,447 text elements per theme (was 182 earlier today).
 The last three were all one pattern, worth stating because it will recur: **a
@@ -951,6 +986,105 @@ hardcoded fee figure or a default-tip percentage that disagrees with the
 constants. **The sweep found three of the four wrong pages on its first run** —
 only `/terms` was found by reading. It also asserts it can fail, and strips
 comments so a doc comment quoting a rate is not a finding.
+
+## 🖼️ COMPOSITE IMAGE #2 (sub-images 72–83) — claimed by this lane (tbaz3i), 2026-08-02
+
+**11 of 12 already existed.** Same audit method as composite #1: read every route
+file, count Supabase references, then decide. Only `/welcome` was genuinely
+missing.
+
+| Workstream | Status | Evidence |
+|---|---|---|
+| 80 Onboarding / Welcome Tour (`/welcome`) | ✅ **new** | 20 tests · 0 overflow 320/390 signed-in · 0 AA contrast both themes |
+| 72 FAQ, 73 Glossary, 74 Blog detail, 75 Guide detail, 76 Event detail, 78 Brand assets, 79 Careers, 81 Donor wall, 82 Community, 83 Settings | ✅ pre-existing | covered by site sweeps |
+| 77 Press release detail | ⛔ **deliberately not built** | see below |
+
+**`/faq` was already wired and I nearly missed it** — it reads `aeo_entries` via
+`getPublishedFaqs` and renders them as `aeoSections`, so admin-managed Q&A already
+reaches humans and not only the JSON-LD.
+
+**`/welcome` needed no migration.** Every step writes to storage that exists:
+`profiles.full_name`, `profiles.notification_*`, and `saved_campaigns`. Progress
+is **derived from those rows, not from a flag** — an `onboarding_completed_at`
+column would have needed a migration this sandbox cannot apply, making the page
+inert everywhere it had not run. Deriving also means the tour goes quiet when
+someone sets their name in settings instead of nagging them.
+
+⚠️ **Correction made mid-build.** The notification step originally derived a
+"they chose their preferences" completion signal. It cannot:
+`notification_updates` defaults `true` and `notification_marketing` defaults
+`false`, so the database cannot tell an explicit choice from an untouched default.
+Marking it done would have claimed a consent decision nobody made. It is now
+excluded from `COMPLETABLE_STEPS`, never reports done, and a test pins the reason.
+
+⛔ **Page 77 — press release detail was deliberately NOT built.** A press release
+is a factual public statement by the company. The reference shows an invented
+announcement carrying specific figures ($8.5M raised, 2.3M lives impacted).
+Fabricating corporate announcements — even as filler — would put false claims
+about the company on a public URL. `/press` keeps its index; the detail pages need
+real releases from the company.
+
+⚠️ **The dashboard setup prompt is NOT visually verified.** `/dashboard` redirects
+to `/admin` for the stub session (that user is an admin), so the signed-in sweep
+cannot render it. The component is covered by typecheck, lint and the unit tests
+behind it, but nobody has seen it in a browser.
+
+**Also caught by my own guards, and fixed in the code rather than the guard:**
+an inline `display: grid` with no track list (`mobile-grid-tracks`), and a 148×20
+"Go to my dashboard" link failing WCAG 2.2 SC 2.5.8 (24×24 minimum), found by the
+signed-in tap-target sweep.
+
+---
+
+## 🖼️ COMPOSITE IMAGE (sub-images 36–47) — claimed by this lane (tbaz3i), 2026-08-02
+
+**Headline: 9 of the 12 referenced pages already existed.** The brief reads as a
+twelve-page greenfield build; the repository says otherwise. `/search`,
+`/causes/[slug]`, `/leaderboard`, `/thank-you`, `/transparency`, `/reports`,
+`/partner`, `/volunteer`, `/internships` and `/feedback` are all live routes.
+Building twelve would have produced twelve duplicates — forbidden by the brief
+itself. So the work was scoped by measuring each page, not by counting sub-images.
+
+| Workstream | Status | Evidence |
+|---|---|---|
+| Analysis + matrix | ✅ | `docs/composite-image-page-analysis.md`, `-page-matrix.md` |
+| Architecture decisions | ✅ | `docs/composite-image-architecture-decisions.md` |
+| 41 Share Cause (`/campaigns/[slug]/share`) | ✅ new | 15 tests · 0 axe both themes · 0 overflow 320/390 |
+| 43 Partnerships (`/partner` → `sponsors`) | ✅ wired | 11 tests · 0 contrast failures |
+| 46 Internships (`/internships` → `volunteer_opportunities`) | ✅ wired | 15 tests |
+| 36, 38, 39, 40, 44, 45, 47 | ✅ pre-existing | covered by site sweeps |
+| 37 Advanced Search | ✅ **already complete** | see correction below |
+| 42 Report/Transparency downloads | ⛔ owner-gated | needs a migration this sandbox cannot apply |
+| Testing report | ✅ | `docs/composite-image-testing-report.md` |
+| Production readiness | ✅ | `docs/composite-image-production-readiness.md` |
+| Seeding + attribution | ✅ | `docs/composite-image-seeding.md`, `docs/image-attribution.md` |
+
+**Correction made mid-build.** Page 37 was first marked "needs facets" from a
+line-count audit. Reading `/search` showed it already has keyword, cause-category,
+location and sort controls plus type scopes, as a deep-linkable GET form that
+works without JavaScript. Nothing was built; the row was corrected.
+
+**No migrations were written, and that is the intended outcome.** Every page runs
+on a table that already existed. An `internships` table would have duplicated a
+listing, a detail page, an apply flow and an admin surface, then drifted from
+them — a test now asserts no such table exists and no code reaches for one. Same
+for partners: `sponsors` was already there, with an admin CRUD and **no public
+reader anywhere on the site**.
+
+⚠️ **The share page is NOT covered by the site-wide sweeps**, and saying it was
+would be false. It is registered under the `security-header-fixture` slug, which
+does not exist in this database, so the sweeps skip it by the same rule that
+already applies to the embed fixture. It was measured directly against a real
+seeded campaign instead: HTTP 200, 0 unclipped overflow at 320 and 390, 0 axe
+violations in both themes.
+
+⛔ **Open dependency (page 42).** The reference's downloadable impact/financial/
+annual report PDFs have no table and no storage bucket, and this sandbox cannot
+apply migrations to the live database — same constraint as `organizations`. A
+downloads UI over a missing table is "a feature that appears complete but is not
+connected to the backend", forbidden by the brief, so it was not built.
+
+---
 
 ## 📱 MOBILE-FIRST PASS — claimed by this lane (tbaz3i), 2026-08-01
 

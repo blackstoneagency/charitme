@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { PageBody, PageHero, Section, CardGrid, InfoCard, CtaBand } from '../../components/PageShell';
+import PartnerRoster from './PartnerRoster';
 
 export const metadata: Metadata = {
   title: 'Partner With Us',
@@ -46,7 +47,7 @@ const PROCESS = [
   { step: 'STEP 04', title: 'Launch', body: 'You go live with your own campaigns, dashboard, and reporting.' },
 ];
 
-export default function PartnerPage() {
+export default async function PartnerPage() {
   return (
     <PageBody>
       <PageHero
@@ -67,6 +68,10 @@ export default function PartnerPage() {
           </>
         }
       />
+
+      {/* Real partners, read from `sponsors` — the table already existed and had
+          no public reader anywhere on the site. Renders nothing when empty. */}
+      <PartnerRoster />
 
       <Section id="types" heading="Ways to partner" intro="Pick the one closest to your organisation — we will point you the right way if none fit exactly.">
         <CardGrid min={280}>

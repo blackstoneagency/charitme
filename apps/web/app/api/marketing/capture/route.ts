@@ -2,7 +2,7 @@ import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { checkRateLimitDurable } from '../../../../lib/rate-limit-durable';
-import { resolveContact, trackEvent, refreshContactScores } from '../../../../lib/marketing-engine';
+import { resolveContact, trackEvent, refreshContactScores, resubscribeEmail } from '../../../../lib/marketing-engine';
 import { supabaseAdmin } from '../../../../lib/supabase';
 
 const CaptureSchema = z.object({
@@ -63,6 +63,15 @@ export async function POST(req: NextRequest) {
     marketingStatus: input.consentEmail === true ? 'active' : undefined,
   });
   if (!contactId) return NextResponse.json({ error: 'Could not create contact' }, { status: 500 });
+
+  // Status is only HALF of what `unsubscribeEmail` wrote. It also adds the
+  // address to `marketing_suppression_list`, and every send path checks that
+  // list independently of status — so undoing only the status leaves the
+  // symptom (the subscriber receives nothing) completely unchanged. Bounces and
+  // complaints are deliberately NOT cleared; see `resubscribeEmail`.
+  if (input.consentEmail === true && input.email) {
+    await resubscribeEmail(input.email);
+  }
 
   const recorded = await trackEvent({
     contactId,
