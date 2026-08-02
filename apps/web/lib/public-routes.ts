@@ -33,6 +33,13 @@ export const INDEXABLE_PUBLIC_ROUTES: PublicRoute[] = [
     changeFrequency: 'daily',
   },
   {
+    path: '/newsletter',
+    title: 'Newsletter',
+    description: 'One email a month — what got funded, what changed on CharitMe, and what we got wrong.',
+    priority: 0.5,
+    changeFrequency: 'monthly',
+  },
+  {
     path: '/press',
     title: 'Press',
     description: 'Press and media enquiries — who to contact and the facts you can quote.',

@@ -96,6 +96,10 @@ export const FOOTER_SECTIONS: Record<FooterSectionName, readonly FooterLink[]> =
     { label: 'Community', href: '/community', labelKey: 'footer.link.community' },
     { label: 'Glossary', href: '/glossary', labelKey: 'footer.link.glossary' },
     { label: 'Careers', href: '/careers', labelKey: 'footer.link.careers' },
+    // The footer is the only global surface that can carry /newsletter — it is
+    // not a header destination — and `nav-orphans` refuses a sitemap route that
+    // nothing links, which is how /signup got here too.
+    { label: 'Newsletter', href: '/newsletter', labelKey: 'footer.link.newsletter' },
   ],
   Legal: [
     { label: 'Trust & Safety', href: '/trust-safety', labelKey: 'footer.link.trust_safety' },

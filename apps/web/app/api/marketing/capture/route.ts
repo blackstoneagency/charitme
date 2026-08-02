@@ -53,6 +53,14 @@ export async function POST(req: NextRequest) {
     landingPage: input.url,
     consentEmail: input.consentEmail,
     consentSource: input.formId ? 'form' : 'capture',
+    // An EXPLICIT opt-in must be able to undo an earlier unsubscribe. Without
+    // this, someone who unsubscribed and later re-subscribed from /newsletter
+    // got a fresh consent row and a cheerful confirmation while their contact
+    // stayed `status: 'unsubscribed'` — so they would never receive anything,
+    // and nothing in the UI would say so. `resolveContact` only ever UPGRADES
+    // on 'active' and never downgrades, so passing it here cannot unsubscribe
+    // anyone; omitting it is the only unsafe direction.
+    marketingStatus: input.consentEmail === true ? 'active' : undefined,
   });
   if (!contactId) return NextResponse.json({ error: 'Could not create contact' }, { status: 500 });
 

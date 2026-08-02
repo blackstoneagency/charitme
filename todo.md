@@ -258,19 +258,23 @@ the repo. Result: **27 exist, 8 return 404.**
 | ~~18~~ | ~~Favorites / Saved Causes~~ | `/dashboard/saved` | ✅ **SHIPPED** (`03d40df`) — reads the 240 rows, in nav, in both sweep lists | |
 | 21 | Payment Methods | `/dashboard/payment-methods` | ⚠️ no `payment_methods` table | Stripe holds these; page must read the Stripe customer, not a local table |
 | 9 | Resources | `/resources` | content | |
-| 22 | Resources / Guides listing | `/guides` | no `guides` table | |
+| ~~22~~ | ~~Resources / Guides listing~~ | `/guides` | ✅ **SHIPPED** — 308 → `/resources`, which already IS this listing. A second guide index would drift the day someone adds a guide to one of them | |
 | 25 | Press / Media | `/press` | no `press_releases` table | |
-| 32 | Newsletter / Subscribe | `/newsletter` | ❌ no subscriber table — **needs DDL, which is blocked** | |
+| ~~32~~ | ~~Newsletter / Subscribe~~ | `/newsletter` | ✅ **SHIPPED** — wired to `marketing_contacts` + `marketing_consent` via `/api/marketing/capture`. **No DDL needed**; the "blocked" note was wrong | |
 | 33 | Verify Your Email | `/verify-email` | Supabase auth | |
 | 35 | Maintenance / Coming Soon | `/maintenance` | none | |
 | 31 | Thank You (post-donation) | `/thank-you` | `donations` | today the receipt renders inline on the campaign page |
 | 13 | Create Account | `/signup` | Supabase auth | `/login` handles both today — may be a redirect, not a new page |
 
-**⚠️ The newsletter page cannot be fully wired.** There is no subscriber table and
-DDL is blocked by the staging-Supabase blocker at the top of this file. Building the
-form without a table would collect addresses into nothing — worse than not shipping
-it. It needs either the migration path unblocked or an explicit decision to post to
-an existing table.
+**~~⚠️ The newsletter page cannot be fully wired.~~ — RETRACTED 2026-08-02.** That
+entry assumed no subscriber table exists. **One does.** `marketing_contacts` (migration
+`20260610010000_marketing_engine.sql`) has `client_type` with `newsletter` already an
+enumerated value, `status` (`active|unsubscribed|suppressed|archived`), and a separate
+`marketing_consent` audit table. `POST /api/marketing/capture` already accepts
+`clientType: 'newsletter'` and `consentEmail`, and `/api/marketing/unsubscribe` already
+implements both the POST and the one-click GET. **No DDL was needed** — the page ships
+wired. The lesson is the same one the `blog_posts` draft taught on `/resources`: check
+what the schema actually has before declaring a table missing.
 
 ### ✅ Present (27)
 Home, Explore Causes, Cause Details, Start a Campaign, Campaign Setup 1 & 2, Donate,
@@ -284,7 +288,23 @@ Notifications, Profile Settings, Blog, Careers, Terms, Privacy, Refund, Cookie, 
   walks a LIST, not the app directory, so any new page is unaudited until it is
   added to `e2e/authed-routes.json` **and** `public-routes.json → authGated.consoles`.
   Sweep coverage went 137 → 160 pages.
-- **`/thank-you`** — page 31, the money path. IN PROGRESS.
+- **`/thank-you`** — page 31, the money path. ✅ SHIPPED.
+- **`/newsletter`** (page 32) and **`/guides`** (page 22) — ✅ **SHIPPED 2026-08-02**.
+  **The 35-page design set now has zero 404s.** Every other route in the missing
+  table was closed by other lanes while this one was on i18n.
+
+### 🐛 A real bug found while wiring the newsletter
+`/api/marketing/capture` wrote a `marketing_consent` row and returned 200 on an
+explicit opt-in, but never touched `marketing_contacts.status`. So someone who had
+previously unsubscribed and then re-subscribed got a cheerful confirmation while
+staying `status: 'unsubscribed'` — they would receive nothing, forever, and nothing
+in the UI would say so. Fixed by passing `marketingStatus: 'active'` when
+`consentEmail === true`. `resolveContact` only ever UPGRADES on `'active'` and never
+downgrades, so this cannot unsubscribe anyone; **omitting it was the only unsafe
+direction.** Pinned by `__tests__/newsletter-wired.test.ts` (verified red first).
+
+This affected every capture surface, not just the newsletter — donation opt-ins and
+popup captures had the same silent failure.
 
 ### ✅ Signed-in contrast is now clean
 0 colour failures across 22,447 text elements per theme (was 182 earlier today).

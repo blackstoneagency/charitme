@@ -15,6 +15,7 @@ export const en: Dictionary = {
   'footer.link.community': 'Community',
   'footer.link.support': 'Support',
   'footer.link.press': 'Press',
+  'footer.link.newsletter': 'Newsletter',
   'footer.link.brand_assets': 'Brand Assets',
   'footer.link.resources': 'Resources',
   'footer.link.create_team': 'Start a Team',

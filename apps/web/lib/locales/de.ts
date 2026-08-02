@@ -6,6 +6,7 @@ export const de: Dictionary = {
   'footer.link.community': 'Community',
   'footer.link.support': 'Hilfe',
   'footer.link.press': 'Presse',
+  'footer.link.newsletter': 'Newsletter',
   'footer.link.brand_assets': 'Markenmaterial',
   'footer.link.resources': 'Ressourcen',
   'footer.link.create_team': 'Team gründen',

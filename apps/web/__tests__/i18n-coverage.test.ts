@@ -66,6 +66,10 @@ describe('translation coverage', () => {
       // 'Blog' is the same word in de/es/fr/it/nl (Portuguese uses 'Blogue', and
       // is correctly NOT exempt here). 'FAQ' is the same initialism in fr/it.
       'footer.link.blog', 'footer.link.faq',
+      // 'Newsletter' is the ordinary word in German and Italian — both are
+      // loanwords in everyday use, not untranslated English. Spanish, French,
+      // Dutch and Portuguese all have native words and are still held to the rule.
+      'footer.link.newsletter',
       // 'Causes' is spelled identically in French; Italian and Dutch both use the
       // English 'Home' for a site's landing page. German/Spanish/Portuguese do not,
       // and are still held to the rule.
