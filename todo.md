@@ -1062,7 +1062,41 @@ a note, `rate_limit_hits` is reached through the `check_rate_limit` RPC, and
 `organizations` is code-complete but inert pending a migration the sandbox cannot
 apply. The rest are the real "wired to Supabase" gap.
 
-**Claimed next by this lane: `donor_segments` + `donor_segment_members`.** Two
+### ✅ SHIPPED — donor_segments + donor_segment_members
+
+`lib/donor-segments-core.ts` (pure rule engine, 26 tests) ·
+`lib/donor-segments-server.ts` · `/dashboard/segments` ·
+`POST/PATCH/DELETE /api/crm/segments`.
+
+**A segment decides who gets emailed**, so both failure directions are tested:
+a rule that quietly matches everyone is a mailing to the whole contact list, and
+one that quietly matches nobody is a campaign that silently does not happen.
+
+Four decisions worth keeping:
+
+- **A never-donor is excluded from every "donated recently" window and included
+  in every lapsed one.** Reading a null `last_donated_at` as 0 would have put
+  them in *every* recency segment; excluding them from lapsed ones would hide
+  exactly the people a re-engagement campaign is for.
+- **An absent bound is not a zero bound.** `minLifetimeValueCents: 0` is a real,
+  permissive rule; omitting it is "no criterion". Conflating them makes "donors
+  worth over nothing" indistinguishable from "no filter at all".
+- **Contradictory-but-well-formed rules are refused with the reason** (a floor
+  above a ceiling, or "donated in 7 days" AND "no donation for 30"). They save
+  happily and then produce an empty segment nobody can explain.
+- **"Everyone" is allowed but must be chosen.** An empty rule set matches every
+  contact, so the button says so and asks for a second click rather than letting
+  a form that dropped its inputs mail the entire list.
+
+Membership is a materialised snapshot; refresh DELETEs before INSERTing, because
+an upsert-only refresh keeps emailing people who stopped qualifying.
+
+**`fetch-methods.test.ts` caught a real weakness in my code**: `fetch(url, {
+method })` with a variable verb is invisible to a guard that reads the literal,
+so it had to assume GET and reported a 405 that did not exist. Split into
+explicit `PATCH` and `DELETE` calls — the guard stays real rather than exempted.
+
+**Was claimed as: `donor_segments` + `donor_segment_members`.** Two
 orphans in one feature. `donor_crm_contacts` is already wired
 (`/api/crm/contacts`) and carries `tags`, `lifetime_value_cents`,
 `last_donated_at` and consent flags — everything a segment rule needs — so this

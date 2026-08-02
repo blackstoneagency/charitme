@@ -202,6 +202,7 @@
       "/dashboard/referrals",
       "/dashboard/refund",
       "/dashboard/saved",
+      "/dashboard/segments",
       "/dashboard/settings",
       "/dashboard/settings/mfa",
       "/dashboard/tasks",

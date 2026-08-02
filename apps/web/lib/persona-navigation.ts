@@ -76,6 +76,9 @@ const ORGANIZER_NAV: readonly DashboardNavItem[] = [
   // `giving_days` shipped with RLS, a unique slug and a foreign key, and nothing
   // that read or wrote it. This is the writer.
   { label: 'Giving Days', href: '/dashboard/giving-days', icon: 'stack' },
+  // `donor_segments` + `donor_segment_members`: two more tables that shipped
+  // with RLS and no code on either side of them.
+  { label: 'Donor Segments', href: '/dashboard/segments', icon: 'users' },
   SETTINGS,
 ];
 
