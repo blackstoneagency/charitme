@@ -1,5 +1,6 @@
 import 'server-only';
 import { supabaseAdmin } from './supabase';
+import { boundedQuery } from './query-timeout';
 import { campaignColumns, applyLiveFilters } from './campaign-visibility';
 import type { Cause } from './causes';
 
@@ -53,21 +54,32 @@ export async function getCauseStats(cause: Cause): Promise<CauseStats> {
   try {
   const cols = await campaignColumns();
 
+  // Bounded like every other discovery read. Both were unbounded, which put the
+  // cause page back to ~8.6s TTFB against a stalled database after it had been
+  // brought to ~4.2s. A timeout yields `{ data: null, error }`, and every figure
+  // below is already `number | null` rendering as an em dash — so a slow
+  // database shows "—", never a fabricated zero.
   const [rows, countries] = await Promise.all([
-    applyLiveFilters(
-      supabaseAdmin.from('campaigns').select('category, raised_amount, backer_count'),
-      cols,
-    )
-      .in('category', [...cause.categories])
-      // Bounded. `applyLiveFilters` adds a STATUS filter, which selects a large
-      // fraction of the table rather than one owner's rows, so it bounds
-      // nothing — the same hole that let five unbounded reads onto public pages.
-      .limit(CAUSE_STATS_SCAN_LIMIT),
-    supabaseAdmin
-      .from('supported_countries')
-      .select('id', { count: 'exact', head: true })
-      .eq('active', true)
-      .eq('can_donate', true),
+    // Both bounds, deliberately. Master added `.limit()` (a ROW bound — stops an
+    // unbounded scan) and this lane added `boundedQuery` (a TIME bound — stops a
+    // stalled connection). They solve different failures: a row cap does nothing
+    // when the database never answers, and a deadline does nothing about a query
+    // that answers slowly because it read the whole table.
+    boundedQuery(
+      applyLiveFilters(
+        supabaseAdmin.from('campaigns').select('category, raised_amount, backer_count'),
+        cols,
+      )
+        .in('category', [...cause.categories])
+        .limit(CAUSE_STATS_SCAN_LIMIT),
+    ),
+    boundedQuery(
+      supabaseAdmin
+        .from('supported_countries')
+        .select('id', { count: 'exact', head: true })
+        .eq('active', true)
+        .eq('can_donate', true),
+    ),
   ]);
 
   const perCategory: Record<string, number> = {};
