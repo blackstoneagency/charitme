@@ -1,5 +1,6 @@
 import 'server-only';
 import { supabaseAdmin } from './supabase';
+import { boundedQuery } from './query-timeout';
 import { campaignColumns, applyLiveFilters } from './campaign-visibility';
 import type { Cause } from './causes';
 
@@ -41,16 +42,25 @@ export interface CauseStats {
 export async function getCauseStats(cause: Cause): Promise<CauseStats> {
   const cols = await campaignColumns();
 
+  // Bounded like every other discovery read. Both were unbounded, which put the
+  // cause page back to ~8.6s TTFB against a stalled database after it had been
+  // brought to ~4.2s. A timeout yields `{ data: null, error }`, and every figure
+  // below is already `number | null` rendering as an em dash — so a slow
+  // database shows "—", never a fabricated zero.
   const [rows, countries] = await Promise.all([
-    applyLiveFilters(
-      supabaseAdmin.from('campaigns').select('category, raised_amount, backer_count'),
-      cols,
-    ).in('category', [...cause.categories]),
-    supabaseAdmin
-      .from('supported_countries')
-      .select('id', { count: 'exact', head: true })
-      .eq('active', true)
-      .eq('can_donate', true),
+    boundedQuery(
+      applyLiveFilters(
+        supabaseAdmin.from('campaigns').select('category, raised_amount, backer_count'),
+        cols,
+      ).in('category', [...cause.categories]),
+    ),
+    boundedQuery(
+      supabaseAdmin
+        .from('supported_countries')
+        .select('id', { count: 'exact', head: true })
+        .eq('active', true)
+        .eq('can_donate', true),
+    ),
   ]);
 
   const perCategory: Record<string, number> = {};
