@@ -968,6 +968,33 @@ into CSS classes, or to give the tables a scroll container of their own.
 | + inline `minmax(0, 1fr)` ×74 | 43 | 25 | `/admin/reports` 890px and `/admin/audit-log` 880px gone |
 | + top-level & wide-block CSS ×156 | **43** | **25** | ⚠️ **no change — see below** |
 | + scroll boundary (`min-width: 0` + `.kf-card` overflow) | **21** | **13** | the fix the previous pass was missing |
+| + form-control cap, KPI row | *(sweep 7 was STALE — see below)* | | |
+
+### ⚠️ TWO SWEEPS IN A ROW MEASURED A BUILD THAT WAS NOT THE WORKING TREE
+
+Sweep 7 returned byte-identical findings to sweep 6 — same routes, same document
+widths. That reads as "the fix did nothing", and it was wrong twice over:
+
+1. **The fix HAD worked at the element level.** Sweep 6 reported
+   `.users-kpi-card width=250` (two columns); sweep 7 reported `width=510` (one
+   column, as intended). The summary number was unchanged while the DOM
+   underneath it had changed — so "no change" was a misreading of my own data.
+2. **A direct DOM probe of `/admin/users` at 320px returned
+   `documentElement.scrollWidth === 320`.** The page does not overflow at all.
+   The sweep's 526px was stale.
+
+**Cause: a `next build` was still running when the sweep started its own build,
+both against the same `.next`.** This is the third time concurrency on that
+directory has produced a confidently wrong measurement (the first cost 46 phantom
+findings against an unstyled page; the second an `ENOTEMPTY` build failure).
+
+**Rule for this repo: one build at a time, and nothing else touching `.next`.**
+Kill by scanning `/proc/*/cmdline` for `next-server` — `pkill -f "next start"`
+does not match it, because `next start` re-execs under a different name.
+
+A probe that authenticates against the stub also needs a **stub build**:
+`NEXT_PUBLIC_*` is inlined at build time, so a real-Supabase build silently
+redirects every gated route to `/login` and the probe measures the login page.
 
 ### ⚠️ A NEGATIVE RESULT: 156 declarations fixed, zero overflows removed
 
