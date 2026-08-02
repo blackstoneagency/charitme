@@ -86,7 +86,19 @@ const GATED_PAGES = [
   ...ROUTE_DATA.authGated.consoles,
   ...ROUTE_DATA.authGated.dynamicSamples.map((sample) => sample.path),
 ];
-const PAGES = ONLY ?? (WITH_AUTH ? [...ALL_PAGES, ...GATED_PAGES] : ALL_PAGES);
+
+// `/login` and `/signup` redirect a signed-in visitor away on mount, so under
+// --auth they render an empty document — 0 text elements — and tripped the
+// "fewer than 5 visible text elements" guard on every run. That guard is doing
+// its job; the route list was wrong. They remain in `public` and are fully
+// measured by the signed-out sweeps.
+//
+// Declared in the shared route file rather than hardcoded here, so the e2e specs
+// and the other sweeps see the same classification. Subtracted only under
+// --auth: signed out, these are ordinary pages and must still be swept.
+const SIGNED_OUT_ONLY = new Set(ROUTE_DATA.signedOutOnly ?? []);
+const AUTH_PAGES = ALL_PAGES.filter((r) => !SIGNED_OUT_ONLY.has(r));
+const PAGES = ONLY ?? (WITH_AUTH ? [...AUTH_PAGES, ...GATED_PAGES] : ALL_PAGES);
 const THEMES = ['light', 'dark'];
 
 if (WITH_AUTH && !SESSION_COOKIE) {
