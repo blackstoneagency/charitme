@@ -178,6 +178,7 @@
       "/dashboard/nonprofit",
       "/dashboard/notifications",
       "/dashboard/payouts",
+      "/dashboard/payment-methods",
       "/dashboard/recurring",
       "/dashboard/recurring/cancel",
       "/dashboard/referrals",

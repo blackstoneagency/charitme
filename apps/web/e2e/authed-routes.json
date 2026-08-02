@@ -6,6 +6,7 @@
       "/dashboard/campaigns",
       "/dashboard/donations",
       "/dashboard/saved",
+      "/dashboard/payment-methods",
       "/dashboard/recurring",
       "/dashboard/donor",
       "/dashboard/payouts",
