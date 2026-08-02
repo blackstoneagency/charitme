@@ -73,6 +73,9 @@ const ORGANIZER_NAV: readonly DashboardNavItem[] = [
   // shipped since 20260525002000, read only by a row count on /admin/system.
   { label: 'Webhooks', href: '/dashboard/webhooks', icon: 'doc' },
   { label: 'Custom Domain', href: '/dashboard/domains', icon: 'globe' },
+  // `giving_days` shipped with RLS, a unique slug and a foreign key, and nothing
+  // that read or wrote it. This is the writer.
+  { label: 'Giving Days', href: '/dashboard/giving-days', icon: 'stack' },
   SETTINGS,
 ];
 

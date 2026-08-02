@@ -348,6 +348,7 @@ export const fr: Dictionary = {
   'footer.link.matching': 'Dons abondés',
   'footer.link.grants': 'Subventions',
   'footer.link.events': 'Événements',
+  'footer.link.giving_days': 'Journées de dons',
   'footer.link.about_us': 'À propos',
   'footer.link.contact': 'Nous contacter',
   'footer.link.for_nonprofits': 'Pour les associations',

@@ -347,6 +347,7 @@ export const de: Dictionary = {
   'footer.link.matching': 'Verdopplungsspenden',
   'footer.link.grants': 'Fördermittel',
   'footer.link.events': 'Veranstaltungen',
+  'footer.link.giving_days': 'Spendentage',
   'footer.link.about_us': 'Über uns',
   'footer.link.contact': 'Kontakt',
   'footer.link.for_nonprofits': 'Für gemeinnützige Organisationen',

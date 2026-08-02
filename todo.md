@@ -1073,6 +1073,42 @@ public page has to read through the service-role client — which means the
 TypeScript check is the only one that runs, and it must mirror the policy rather
 than diverge from it.
 
+### ✅ SHIPPED — giving_days now has a reader AND a writer
+
+| surface | what it is |
+|---|---|
+| `lib/giving-days-core.ts` | pure: window phase, progress, slug, the access rule (25 tests) |
+| `lib/giving-days-server.ts` | reads, batched — `null` on failure, `[]` on empty |
+| `/giving-days` | public list, ordered by phase not date |
+| `/giving-days/[slug]` | public detail, live countdown, real raised total |
+| `/dashboard/giving-days` | **the writer** — the first thing that can insert a row |
+| `POST/DELETE /api/giving-days` | ownership-checked against the row being written |
+
+**Three things worth keeping:**
+
+1. **`campaigns` has no `nonprofit_id`.** It links to a person (`user_id`), and
+   `nonprofit_profiles` names that person as `owner_id`, so a nonprofit's
+   campaigns are the ones its owner created. The first version of the raised
+   total queried `campaigns.nonprofit_id` and would have failed with PostgREST
+   42703 against a column that does not exist. Caught by reading the schema.
+2. **Two of the repo's own guards caught real problems in this work.**
+   `campaign-lifecycle.test.ts` flagged a hand-rolled "N days left" countdown —
+   the repo has shipped that contradiction ten times. Rather than add an
+   exemption (which is how a guard becomes decorative), `givingDayCountdown`
+   returns **number + unit** and is `null` unless the event is live, so the
+   sentence beside "Ended" is now unrepresentable rather than merely discouraged.
+3. **`feature-status-honesty.test.ts` went stale for the THIRD time** — it pins a
+   table that nothing reads, and `giving_days` acquiring a reader is exactly the
+   failure it is designed to produce. Its own comment says "do NOT weaken it;
+   move the fixture to one that still has none", so the fixture is now
+   `livestreams`, verified reader-less by the offline scan.
+
+**A giving day is a time box, not a pot.** Donations carry no giving-day column;
+the total is completed donations to that nonprofit's campaigns inside the window.
+There is no separate checkout and no separate money — which the public page says
+in as many words, because a visitor who thinks otherwise would be misled about
+where their donation lands.
+
 ## 🔀 I18N LANE SPLIT — read this before touching a string (Claude, 2026-08-01)
 
 Two bots built the cause taxonomy, `/causes`, `/causes/[slug]` and the mega-menu

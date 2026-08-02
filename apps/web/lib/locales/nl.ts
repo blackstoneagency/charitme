@@ -347,6 +347,7 @@ export const nl: Dictionary = {
   'footer.link.matching': 'Verdubbelde giften',
   'footer.link.grants': 'Subsidies',
   'footer.link.events': 'Evenementen',
+  'footer.link.giving_days': 'Doneerdagen',
   'footer.link.about_us': 'Over ons',
   'footer.link.contact': 'Contact',
   'footer.link.for_nonprofits': 'Voor goede doelen',

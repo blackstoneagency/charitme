@@ -328,6 +328,7 @@ export const en: Dictionary = {
   'footer.link.matching': 'Matching Gifts',
   'footer.link.grants': 'Grants',
   'footer.link.events': 'Events',
+  'footer.link.giving_days': 'Giving Days',
   'footer.link.about_us': 'About Us',
   'footer.link.contact': 'Contact Us',
   'footer.link.for_nonprofits': 'For Nonprofits',

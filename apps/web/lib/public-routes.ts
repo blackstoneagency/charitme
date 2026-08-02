@@ -511,6 +511,13 @@ export const INDEXABLE_PUBLIC_ROUTES: PublicRoute[] = [
     changeFrequency: 'yearly',
   },
   {
+    path: '/giving-days',
+    title: 'Giving Days',
+    description: 'Time-boxed fundraising events on CharitMe — what is live now, what is coming, and how much each has raised.',
+    priority: 0.55,
+    changeFrequency: 'daily',
+  },
+  {
     path: '/ambassadors',
     title: 'Ambassador Programme',
     description: 'Share campaigns with your own link and get credited for every donation you inspire — five recognition tiers, nothing to apply for.',

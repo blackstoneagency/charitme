@@ -347,6 +347,7 @@ export const pt: Dictionary = {
   'footer.link.matching': 'Donativos equivalentes',
   'footer.link.grants': 'Subsídios',
   'footer.link.events': 'Eventos',
+  'footer.link.giving_days': 'Dias de doação',
   'footer.link.about_us': 'Sobre nós',
   'footer.link.contact': 'Contacte-nos',
   'footer.link.for_nonprofits': 'Para organizações sem fins lucrativos',

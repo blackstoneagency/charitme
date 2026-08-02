@@ -75,6 +75,7 @@ export const FOOTER_SECTIONS: Record<FooterSectionName, readonly FooterLink[]> =
     { label: 'Matching Gifts', href: '/matching', labelKey: 'footer.link.matching' },
     { label: 'Grants', href: '/grants', labelKey: 'footer.link.grants' },
     { label: 'Events', href: '/events', labelKey: 'footer.link.events' },
+    { label: 'Giving Days', href: '/giving-days', labelKey: 'footer.link.giving_days' },
     { label: 'Webinars', href: '/webinars', labelKey: 'footer.link.webinars' },
     { label: 'Impact Map', href: '/impact-map', labelKey: 'footer.link.impact_map' },
     { label: 'Donor Wall', href: '/donor-wall', labelKey: 'footer.link.donor_wall' },
