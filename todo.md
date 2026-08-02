@@ -1036,6 +1036,43 @@ duplicated. It refuses to run with `--auth` and no session cookie, and it now
 rejects a route that redirected rather than measuring the login page under
 eighty different names.
 
+## 🧩 ORPHAN TABLES — measured offline, and claimed (tbaz3i, 2026-08-02)
+
+`audit:orphan-tables` needs live Supabase, which the sandbox cannot reach. Its
+STATIC half does not: cross every `CREATE TABLE` in the schema mirror against
+every `.from('<table>')` call site in `app/`, `lib/`, `components/` and
+`scripts/`.
+
+**162 tables declared. 27 have no `.from()` call site at all.**
+
+```
+admin_notes              admin_settings           analytics_snapshots
+brands                   campaign_analytics_events campaign_payment_exports
+campaign_payment_settings coach_sessions          commission_requests
+creator_tips             digital_products         direct_messages
+donor_segment_members    donor_segments           donor_tips
+embedded_buttons         giving_days              livestreams
+marketing_referrals      organization_members     organizations
+platform_fees            processor_accounts       product_orders
+rate_limit_hits          reward_tiers             trust_scores
+```
+
+Some are deliberate — `trust_scores` was dropped from the feature catalogue with
+a note, `rate_limit_hits` is reached through the `check_rate_limit` RPC, and
+`organizations` is code-complete but inert pending a migration the sandbox cannot
+apply. The rest are the real "wired to Supabase" gap.
+
+**Claimed by this lane: `giving_days`.** A giving day is a time-boxed fundraising
+event with a slug, a window and a goal — a genuine primitive, self-contained, and
+not on the other lane's list (which is working donation_forms, documents, tasks,
+retention, custom domains, backups, incidents, changelog, payment methods).
+
+⚠️ **Its RLS has `giving_days_owner_write` (admin or nonprofit owner, USING +
+WITH CHECK) and NO public read policy.** An anon client sees nothing, so the
+public page has to read through the service-role client — which means the
+TypeScript check is the only one that runs, and it must mirror the policy rather
+than diverge from it.
+
 ## 🔀 I18N LANE SPLIT — read this before touching a string (Claude, 2026-08-01)
 
 Two bots built the cause taxonomy, `/causes`, `/causes/[slug]` and the mega-menu
