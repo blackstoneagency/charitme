@@ -17,6 +17,18 @@ import { join, relative } from 'node:path';
 // Bounded means ANY of: .limit(), .range(), .single(), .maybeSingle(), or a
 // head-only count. A filter (.eq/.in/…) also counts — it makes the read
 // proportional to one user's data rather than the whole table.
+//
+// ⚠️ THAT LAST CLAUSE HAS A HOLE, and it let two unbounded reads onto the
+// PUBLIC /contact page. The reasoning holds for an identity filter like
+// `.eq('user_id', …)`. It does not hold for a STATUS filter:
+// `.eq('status','completed')` on `donations` selects nearly every row in the
+// table, and `.in('status',['resolved','closed'])` selects most support cases.
+// Those are proportional to the PLATFORM, not to a user — exactly what this
+// file exists to catch — and the filter check waved them through.
+//
+// `STATUS_ONLY_FILTER` below closes it: a query whose only filters are on a
+// status-like column is treated as UNBOUNDED and must carry a real limit.
+// Fixed at the two /contact call sites; the rule stops the next one.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const WEB = join(__dirname, '..');
@@ -30,6 +42,16 @@ const UNBOUNDED_TABLES = [
 
 const BOUNDED = /head:\s*true|\bhead\b|\.limit\(|\.single\(|\.maybeSingle\(|\.range\(/;
 const FILTERED = /\.eq\(|\.in\(|\.gte\(|\.lte\(|\.gt\(|\.lt\(|\.neq\(|\.is\(|\.contains\(|\.or\(|\.filter\(|\.ilike\(|\.match\(/;
+
+/**
+ * Filters that select a large FRACTION of a table rather than one owner's rows.
+ * A query filtered only by these is not bounded in any useful sense.
+ */
+const STATUS_ONLY_FILTER =
+  /\.(?:eq|in|neq)\(\s*['"](?:status|state|visibility|active|is_active|type|kind)['"]/;
+/** An identity filter genuinely does scope a read to one owner's data. */
+const IDENTITY_FILTER =
+  /\.(?:eq|in)\(\s*['"](?:id|user_id|owner_id|profile_id|campaign_id|donor_id|donation_id|parent_campaign_id|recipient_id|author_id|team_id|organization_id)['"]/;
 
 function sourceFiles(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
@@ -96,7 +118,13 @@ function findWholeTableReads(): string[] {
         if (!UNBOUNDED_TABLES.includes(m[1])) continue;
         const chain = statementFrom(src, m.index ?? 0);
         if (!/\.select\(/.test(chain)) continue;
-        if (BOUNDED.test(chain) || FILTERED.test(chain)) continue;
+        if (BOUNDED.test(chain)) continue;
+        // A filter only bounds the read if it scopes to an OWNER. A query whose
+        // only filter is a status needs a real limit — see the note at the top.
+        if (FILTERED.test(chain)) {
+          const statusOnly = STATUS_ONLY_FILTER.test(chain) && !IDENTITY_FILTER.test(chain);
+          if (!statusOnly) continue;
+        }
 
         // Builder pattern: `let q = supabase.from(…)…;` bounded LATER via
         // `await q.range(from, to)`. The bound is in a different statement, so a

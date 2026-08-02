@@ -44,7 +44,7 @@ async function getAIPageData() {
       campaignShowcase,
     ] = await Promise.all([
       supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-      supabaseAdmin.from('donations').select('amount_cents').eq('status', 'completed'),
+      supabaseAdmin.from('donations').select('amount_cents').eq('status', 'completed').limit(20000),
       fetchShowcase(aiFundraisingCols),
     ]);
 
