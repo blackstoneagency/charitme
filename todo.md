@@ -1114,6 +1114,27 @@ a note, `rate_limit_hits` is reached through the `check_rate_limit` RPC, and
 `organizations` is code-complete but inert pending a migration the sandbox cannot
 apply. The rest are the real "wired to Supabase" gap.
 
+### 🔨 CLAIMED (Claude, github-integration lane) — analytics_snapshots
+
+`analytics_snapshots` is the table that gives a campaign a **past**. Every number
+the dashboard shows today is the value right now: `raised_amount`,
+`backer_count`, a percentage. Nothing on the site can answer "how did last week
+compare to this one?" — the shape of the curve, which is the only thing a
+fundraiser can act on, is not recorded anywhere.
+
+Design notes before building, both of which shape it:
+
+- **It needs a WRITER before a reader is worth anything.** Unlike the four tables
+  wired before it, an empty `analytics_snapshots` is not a UI problem — there is
+  genuinely no history to show. The writer is a cron route in the shape the three
+  existing ones already use (`Bearer ${CRON_SECRET}`, or an admin session for a
+  manual run; `CRON_SECRET` unset fails SAFE and locks cron out).
+- **One row per (campaign, date), and re-running the same day must not double
+  it.** A cron that fires twice — a retry, a manual run after the scheduled one —
+  is normal, so the write has to be idempotent on the day. `metrics` is `jsonb`,
+  so the same per-field parse discipline as `embedded_buttons` applies: a row
+  written by older code is missing fields and must still render.
+
 ### ✅ SHIPPED — coach_sessions
 
 `lib/coach-sessions-core.ts` (20 tests) · `lib/coach-sessions-server.ts` ·
