@@ -1062,6 +1062,35 @@ a note, `rate_limit_hits` is reached through the `check_rate_limit` RPC, and
 `organizations` is code-complete but inert pending a migration the sandbox cannot
 apply. The rest are the real "wired to Supabase" gap.
 
+### ✅ SHIPPED — admin_notes
+
+`lib/admin-notes-core.ts` (13 tests) · `GET/POST/PATCH/DELETE /api/admin/notes` ·
+`components/AdminNotesPanel.tsx`, mounted as a **Case Notes** tool on the admin
+campaign detail view — where the moderation decision is actually made.
+
+Every trust decision here is made by a person reading a case cold. The note
+explaining *why the last reviewer did what they did* is the difference between a
+consistent review and a coin flip, and the table meant to hold it was empty
+because nothing could write one.
+
+- **The target vocabulary is diffed against the database.** The eight allowed
+  values are duplicated in TypeScript so a bad value is refused with a readable
+  reason instead of failing at the CHECK constraint — and the test parses the
+  constraint out of the schema mirror and compares, because a duplicated list
+  that drifts is worse than no list.
+- **`internal` defaults to true in both places.** A note is private unless
+  something explicitly says otherwise; the reverse default leaks moderation
+  reasoning to the person being moderated.
+- **Pinned sorts above newest.** That is the entire reason the column exists —
+  "this donor is in a chargeback dispute, do not refund" must not be buried under
+  twenty routine notes.
+- **A failed read says so.** An empty thread would tell a reviewer there is no
+  history when there may be a pinned warning.
+
+`react-hooks` caught a real pattern problem: a direct `load()` in an effect looks
+like it might set state during the effect body. Matched the async-IIFE shape the
+other panels use rather than disabling the rule.
+
 ### ✅ SHIPPED — donor_segments + donor_segment_members
 
 `lib/donor-segments-core.ts` (pure rule engine, 26 tests) ·

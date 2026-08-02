@@ -9,6 +9,7 @@ import SharePanel from '../../../dashboard/campaigns/[id]/_components/SharePanel
 import ThankDonorsPanel from '../../../dashboard/campaigns/[id]/_components/ThankDonorsPanel';
 import LedgerPanel from '../../../dashboard/campaigns/[id]/_components/LedgerPanel';
 import FaqsPanel from '../../../dashboard/campaigns/[id]/_components/FaqsPanel';
+import AdminNotesPanel from '../../../../components/AdminNotesPanel';
 import EditCampaignPanel from '../../../dashboard/campaigns/[id]/_components/EditCampaignPanel';
 import UpdatesPanel from '../../../dashboard/campaigns/[id]/_components/UpdatesPanel';
 import AnalyticsPanel from '../../../dashboard/campaigns/[id]/_components/AnalyticsPanel';
@@ -81,7 +82,7 @@ type ConfirmAction = {
 type DetailTab =
   | 'supporters' | 'share' | 'thank-donors' | 'ledger' | 'faqs' | 'qr-poster'
   | 'post-update' | 'analytics' | 'settings' | 'edit'
-  | 'overview' | 'donations' | 'payouts' | 'more';
+  | 'overview' | 'donations' | 'payouts' | 'more' | 'notes';
 
 // ─────────────────────────────────────────────────────────
 // Constants
@@ -117,6 +118,10 @@ const DETAIL_TOOLS: { key: DetailTab; icon: string; label: string; desc: string;
   { key: 'donations', icon: 'gift', label: 'Donations', desc: 'All donations (admin)', admin: true },
   { key: 'payouts', icon: 'audit', label: 'Payouts', desc: 'Freeze / unfreeze payouts', admin: true },
   { key: 'more', icon: 'settings', label: 'Admin Controls', desc: 'Trust, media, featured', admin: true },
+  // `admin_notes` shipped with RLS and a CHECK constraint and no reader or
+  // writer. A trust review done without the previous reviewer's reasoning is a
+  // coin flip dressed as a process.
+  { key: 'notes', icon: 'doc', label: 'Case Notes', desc: 'Why the last reviewer decided', admin: true },
 ];
 
 const STATUS_PANEL_TEXT: Record<string, string> = {
@@ -862,6 +867,9 @@ export default function AdminCampaignsClient({
           {!loadingTab && activeTab === 'thank-donors' && <ThankDonorsPanel campaignId={selected.id} />}
           {!loadingTab && activeTab === 'ledger' && <LedgerPanel campaignId={selected.id} />}
           {!loadingTab && activeTab === 'faqs' && <FaqsPanel campaignId={selected.id} />}
+          {!loadingTab && activeTab === 'notes' && (
+            <AdminNotesPanel targetType="campaign" targetId={selected.id} title="Case notes for this campaign" />
+          )}
           {!loadingTab && activeTab === 'qr-poster' && <QrPosterPanel campaignId={selected.id} />}
           {!loadingTab && activeTab === 'post-update' && <UpdatesPanel campaignId={selected.id} />}
           {!loadingTab && activeTab === 'analytics' && <AnalyticsPanel campaignId={selected.id} />}
