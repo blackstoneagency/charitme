@@ -24,6 +24,10 @@ const DONOR_NAV: readonly DashboardNavItem[] = [
   SAVED_CAUSES,
   TAX_DOCUMENTS,
   { label: 'Recurring Gifts', href: '/dashboard/recurring', icon: 'gift' },
+  // Sits beside Recurring Gifts on purpose: the reason someone looks for their
+  // saved cards is almost always a recurring donation that is about to fail on
+  // an expiring one.
+  { label: 'Payment Methods', href: '/dashboard/payment-methods', icon: 'wallet' },
   VOLUNTEERING,
   { label: 'Referrals', href: '/dashboard/referrals', icon: 'crown' },
   SETTINGS,
