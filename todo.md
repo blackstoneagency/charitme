@@ -36,7 +36,32 @@ stayed at 8.56s because it runs a SECOND `Promise.all` with two more unbounded
 reads, and the homepage stayed at 7.2s (below). Both were caught only by
 re-measuring. **The edit is not the evidence; the measurement is.**
 
-### 🟡 STILL OPEN — the homepage is ~7.2s and it is NOT the database
+### 🟡 STILL OPEN — the homepage is ~7.2s: the BOUNDED probe, called four times
+
+⚠️ **My first suspect was wrong, and the correction is the useful part.** I
+recorded `resolveCampaignCover` → `unsplashCoverForCampaign` as the likely cost.
+It is not: `searchUnsplashCovers` opens with `if (!key) return []`, and
+`UNSPLASH_ACCESS_KEY` is absent here, so it returns immediately and costs
+nothing. Reading the function beat guessing at it.
+
+**Measured cause, matching the arithmetic:** `campaignColumns()` appears **4×** in
+`lib/home-data.ts` (lines 54, 144, 168, 244), and `getHomeData`,
+`getCategoryStats` and `getRecentDonations` each call it. It is now bounded at
+1.5s — but the degraded path **deliberately never caches** (fail toward privacy),
+so against an unreachable database *every* call pays the full 1.5s.
+**4 × 1.5s = 6.0s**, plus ~1.2s of the rest ≈ the **7.2s** measured.
+
+So bounding the probe fixed the pages that call it once and exposed a second
+shape on the page that calls it four times.
+
+**The fix is NOT to cache the degraded answer** — that is exactly the privacy
+trade the current code refuses, and caching a guess would let a slow moment
+publicly list private campaigns for the life of the process. The right fix is
+**in-flight de-duplication**: share ONE probe promise across concurrent callers
+within a single render, so four calls cost 1.5s once rather than 6s, while still
+never persisting a guess. Not yet implemented.
+
+### 🟡 SUPERSEDED — earlier note: "the homepage is ~7.2s and it is NOT the database"
 
 `loadOrDegrade` on `/` is now bounded (it caught rejections but had no deadline),
 and `ok: false` already suppresses the metrics band — so a timeout yields fewer
