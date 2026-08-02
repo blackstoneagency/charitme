@@ -158,12 +158,41 @@ for (const width of WIDTHS) {
         const doc = document.documentElement;
         const scrollW = Math.max(doc.scrollWidth, document.body.scrollWidth);
         if (scrollW <= vw + 1) return null;
-        // Name the widest elements that actually cross the viewport edge.
+
+        // Name the elements that actually WIDEN THE PAGE.
+        //
+        // Crossing the viewport edge is not the same thing. A wide table inside
+        // an `overflow-x: auto` scroller crosses it by design and moves the page
+        // not at all — and this audit used to report exactly that, which is how
+        // /dashboard/donations was blamed on a 720px `.kf-row` while its document
+        // measured 417. Four innocent elements were named and the real culprit
+        // was in none of them, so every fix aimed at this output missed.
+        //
+        // An element is excused only when a NON-ROOT ancestor clips it.
+        //
+        // `html` and `body` both carry `overflow-x: hidden` in globals.css, so
+        // walking all the way to the root excuses every element on every page —
+        // which is exactly what happened, and turned a 13-route report into
+        // thirteen "no unclipped element" shrugs. That root rule is not a
+        // scroller: it stops the page sliding sideways and CLIPS the overflow
+        // instead, leaving the content cut off at the right edge with no way to
+        // reach it. Still a defect, and the one being measured here. Only a
+        // deliberate inner scroller — a table wrapper, a tab strip — excuses an
+        // element.
+        const clips = (el) => {
+          for (let p = el.parentElement; p && p !== document.body && p !== document.documentElement; p = p.parentElement) {
+            const ox = getComputedStyle(p).overflowX;
+            if (ox === 'auto' || ox === 'scroll' || ox === 'hidden' || ox === 'clip') return true;
+          }
+          return false;
+        };
+
         const guilty = [];
         for (const el of document.querySelectorAll('body *')) {
           const rect = el.getBoundingClientRect();
           if (rect.width === 0 || rect.height === 0) continue;
           if (rect.right <= vw + 1) continue;
+          if (clips(el)) continue;
           guilty.push({
             tag: el.tagName.toLowerCase(),
             cls: (el.className || '').toString().slice(0, 48),
@@ -173,7 +202,7 @@ for (const width of WIDTHS) {
         }
         guilty.sort((a, c) => c.right - a.right);
         // Keep the outermost few; children inherit their parent's overflow.
-        return { scrollW, guilty: guilty.slice(0, 4) };
+        return { scrollW, guilty: guilty.slice(0, 4), unattributed: guilty.length === 0 };
       }, width);
 
       // Tap targets — only at the narrowest width, where they are tightest.
@@ -248,9 +277,20 @@ for (const width of WIDTHS) {
 
       if (result) {
         failures.push({ path, width, ...result });
-        console.log(`✗ ${width}px ${path} — document is ${result.scrollW}px`);
+        // Named for what a phone actually shows. `overflow-x: hidden` at the root
+        // means the page does not slide sideways — the extra width is cut off
+        // and unreachable, which is why "content clipped" is the honest word and
+        // "page scrolls" would have been wrong on every one of these routes.
+        console.log(`✗ ${width}px ${path} — content is ${result.scrollW}px wide, clipped at ${width}px`);
         for (const g of result.guilty) {
           console.log(`      <${g.tag}> class="${g.cls}" width=${g.width} right=${g.right}`);
+        }
+        if (result.unattributed) {
+          // Said out loud rather than printed as an empty list. The page IS wider
+          // than the viewport, but every element crossing the edge sits inside a
+          // horizontal scroller — so the cause is a margin, a transform, or a
+          // pseudo-element, none of which have a box in `body *`.
+          console.log('      (no unclipped element crosses the edge — look for a negative margin, a transform, or a ::before)');
         }
       }
     } catch (e) {
