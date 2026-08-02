@@ -1048,7 +1048,7 @@ every `.from('<table>')` call site in `app/`, `lib/`, `components/` and
 ```
 admin_notes              admin_settings           analytics_snapshots
 brands                   campaign_analytics_events campaign_payment_exports
-campaign_payment_settings coach_sessions          commission_requests
+campaign_payment_settings coach_sessions ✅       commission_requests
 creator_tips             digital_products         direct_messages
 donor_segment_members    donor_segments           donor_tips
 embedded_buttons         giving_days              livestreams
@@ -1062,24 +1062,53 @@ a note, `rate_limit_hits` is reached through the `check_rate_limit` RPC, and
 `organizations` is code-complete but inert pending a migration the sandbox cannot
 apply. The rest are the real "wired to Supabase" gap.
 
-### 🔨 CLAIMED (Claude, github-integration lane) — coach_sessions
+### ✅ SHIPPED — coach_sessions
 
-Now the **only** seeded-and-unread table left besides the deliberately-dropped
-`trust_scores`: 500 rows, no reader and no writer. `/dashboard/ai-coach` streams
-answers and forgets every one of them — reload the page and the conversation is
-gone, and nothing on the site can say how much coaching a fundraiser has had.
+`lib/coach-sessions-core.ts` (20 tests) · `lib/coach-sessions-server.ts` ·
+writer inside `POST /api/ai/coach` · reader `GET /api/coach-sessions` ·
+surfaced on `/dashboard/ai-coach`.
 
-Two things worth stating before building, because both shape the design:
+**The orphan-table audit now reports 141 tables with a reader, and the only
+seeded-and-unread table left is `trust_scores`** — which is already resolved,
+deliberately, with a note (see below). That closes the seeded half of this gap.
 
-- **The table stores a session, not a transcript.** Its columns are
-  `user_id, campaign_id, message_count, created_at, updated_at` and **no
-  `coach_messages` table exists**. So the honest reader is "you have had N
-  conversations, most recent on <date>", not a chat history. Do not invent a
-  transcript UI the schema cannot fill.
-- **`coach_own_all` is a real owner policy** (`USING auth.uid() = user_id
-  WITH CHECK (...)`). Unlike the three service-role tables wired before it, this
-  one should go through the **session** client so RLS stays the backstop.
-  Reaching for `supabaseAdmin` out of habit here would throw that away.
+- **The table stores a session, not a transcript.** Columns are
+  `user_id, campaign_id, message_count, created_at, updated_at`, and **no
+  `coach_messages` table exists** — a test asserts that, so the day one lands
+  this note stops being true loudly rather than quietly. The reader therefore
+  shows counts and dates, not chat history. Nothing here should grow into a
+  transcript model the schema cannot fill.
+- **This one goes through the SESSION client, not `supabaseAdmin`.**
+  `coach_own_all` is a real owner policy (`USING (auth.uid() = user_id)
+  WITH CHECK (...)`), so RLS is a live backstop. After three service-role tables
+  in a row the reflex is to reach for the admin client; here that would throw the
+  backstop away for nothing. Statements are *also* scoped by `user_id` so the two
+  agree.
+- **"Same conversation" is inferred from time, because the schema has no session
+  token.** `shouldExtendSession` extends only when the campaign context matches
+  *and* the last message is within `SESSION_IDLE_MS` (30 min). Switching campaigns
+  mid-page starts a new row — folding that in would attribute advice to the wrong
+  campaign. An unparseable `updated_at` starts a new session too: that over-counts
+  rather than welding an old row onto a new conversation.
+- **`recordCoachExchange` never throws.** The opposite of the donation webhook,
+  and deliberately so: Stripe retries and `record_donation` is idempotent on
+  `p_stripe_event_id`, so throwing there is correct. Here there is no retry and
+  nothing to make idempotent — the worst case is one uncounted question, which
+  must not become a failed coaching answer. A failed *lookup* skips the write
+  entirely rather than inserting, since inserting on every failure would inflate
+  the conversation count without bound.
+- **Recorded on the no-OpenAI fallback path too.** Counting only the streaming
+  path would make the history vanish wherever `OPENAI_API_KEY` is unset — which
+  is the deployment most likely to be looked at.
+- The page distinguishes three states: not loaded, **read failed** (says so), and
+  genuinely zero (renders *nothing* — "0 conversations" reads as a scold on a
+  page whose whole job is to invite the first question).
+- The line on screen is phrased by `describeSummary`, the same pure function the
+  tests cover, so screen and test cannot drift.
+
+Also fixed while in the file: the campaign-context row on `/dashboard/ai-coach`
+was a nowrap `flex` with no `flexWrap` and a `min-width: auto` select — part of
+that route's 525px mobile overflow.
 
 ### ✅ SHIPPED — embedded_buttons
 

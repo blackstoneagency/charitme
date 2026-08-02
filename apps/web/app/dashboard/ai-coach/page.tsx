@@ -4,9 +4,11 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { TopBar } from '../../../components/CharitMeApp';
 import { CharitMeShell } from '../../../components/ShellSessionProvider';
 import { createClient } from '../../../lib/supabase-browser';
+import { describeSummary } from '../../../lib/coach-sessions-core';
 
 type Message = { role: 'user' | 'assistant'; content: string };
 type Campaign = { id: string; title: string };
+type CoachHistory = { sessions: number; messages: number; lastActiveAt: string | null };
 
 const STARTERS = [
   'How do I get my first 10 donors?',
@@ -23,6 +25,9 @@ export default function AiCoachPage() {
   const [loading, setLoading] = useState(false);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [selectedCampaign, setSelectedCampaign] = useState('');
+  // `undefined` = not loaded yet, `null` = the read FAILED. Neither is "you have
+  // never asked a question", which is a claim this page must not invent.
+  const [history, setHistory] = useState<CoachHistory | null | undefined>(undefined);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -42,6 +47,21 @@ export default function AiCoachPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  const loadHistory = useCallback(async () => {
+    try {
+      const res = await fetch('/api/coach-sessions');
+      if (!res.ok) { setHistory(null); return; }
+      const body = await res.json();
+      setHistory(body.summary as CoachHistory);
+    } catch {
+      setHistory(null);
+    }
+  }, []);
+
+  // Async IIFE rather than a bare `loadHistory()` — the effect body itself must
+  // not set state synchronously.
+  useEffect(() => { void (async () => { await loadHistory(); })(); }, [loadHistory]);
 
   const send = useCallback(async (text: string) => {
     const trimmed = text.trim();
@@ -103,8 +123,11 @@ export default function AiCoachPage() {
       setLoading(false);
       abortRef.current = null;
       inputRef.current?.focus();
+      // The exchange was recorded server-side; re-read rather than guessing the
+      // new numbers, so the line on screen is the row in the database.
+      void loadHistory();
     }
-  }, [messages, loading, selectedCampaign]);
+  }, [messages, loading, selectedCampaign, loadHistory]);
 
   const handleKey = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
@@ -114,6 +137,9 @@ export default function AiCoachPage() {
   };
 
   const selectedTitle = campaigns.find(c => c.id === selectedCampaign)?.title;
+  // Phrased by the same pure function the tests cover, so the line on screen and
+  // the line under test cannot drift apart.
+  const historyLine = history ? describeSummary({ ...history, campaignScoped: 0 }) : null;
 
   return (
     <CharitMeShell active="AI Coach">
@@ -126,18 +152,33 @@ export default function AiCoachPage() {
 
         {/* Campaign selector */}
         {campaigns.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, padding: '12px 0', borderBottom: '1px solid var(--b1)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, padding: '12px 0', borderBottom: '1px solid var(--b1)', flexWrap: 'wrap', minWidth: 0 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--t3)', whiteSpace: 'nowrap' }}>Campaign context:</span>
             <select aria-label="Campaign to coach on" value={selectedCampaign} onChange={e => setSelectedCampaign(e.target.value)}
-              style={{ height: 36, border: '1px solid var(--b2)', borderRadius: 8, padding: '0 12px', fontSize: 13, maxWidth: 280, background: 'var(--s1, #fff)', color: 'var(--t1)' }}>
+              style={{ height: 36, border: '1px solid var(--b2)', borderRadius: 8, padding: '0 12px', fontSize: 13, maxWidth: 280, minWidth: 0, background: 'var(--s1, #fff)', color: 'var(--t1)' }}>
               <option value="">No campaign selected</option>
               {campaigns.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
             </select>
             {selectedTitle && (
-              <span style={{ fontSize: 12, color: 'var(--t3)' }}>Coach will personalise advice for this campaign.</span>
+              <span style={{ fontSize: 12, color: 'var(--t3)', minWidth: 0 }}>Coach will personalise advice for this campaign.</span>
             )}
           </div>
         )}
+
+        {/* Coaching history — counts and times, because `coach_sessions` stores a
+            session and not a transcript. Rendered only when there is something
+            to say: "0 conversations" reads as a scold on a page whose job is to
+            invite the first question. */}
+        {history === null ? (
+          <p style={{ fontSize: 12, color: 'var(--t3)', margin: '0 0 12px' }}>
+            Your coaching history is unavailable right now — that is a read failure, not an empty history.
+          </p>
+        ) : historyLine ? (
+          <p style={{ fontSize: 12, color: 'var(--t3)', margin: '0 0 12px' }}>
+            {historyLine}
+            {history?.lastActiveAt ? ` · last on ${new Date(history.lastActiveAt).toLocaleDateString()}` : ''}
+          </p>
+        ) : null}
 
         {/* Messages */}
         <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 16 }}>
