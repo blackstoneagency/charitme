@@ -40,7 +40,7 @@ export default async function CommandCenterPage() {
       <TopBar
         title="Marketing Command Center"
         subtitle="What changed, what's active, and what's waiting — all on live data. Read-only executive view."
-        actions={<div style={{ display: 'flex', minWidth: 0, gap: 8 }}>
+        actions={<div style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap' }}>
           <Link href="/admin/marketing/campaign-plans" style={{ height: 38, display: 'inline-flex', alignItems: 'center', padding: '0 16px', borderRadius: 10, background: 'var(--s2)', color: 'var(--t1)', border: '1px solid var(--line)', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>Campaigns</Link>
           <Link href="/admin/marketing/opportunities" style={{ height: 38, display: 'inline-flex', alignItems: 'center', padding: '0 16px', borderRadius: 10, background: 'var(--s2)', color: 'var(--t1)', border: '1px solid var(--line)', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>Opportunities</Link>
           <Link href="/admin/marketing/goals" style={{ height: 38, display: 'inline-flex', alignItems: 'center', padding: '0 16px', borderRadius: 10, background: 'linear-gradient(135deg,var(--cta-from),var(--cta-to))', color: '#fff', fontWeight: 800, fontSize: 13, textDecoration: 'none' }}>Goals →</Link>

@@ -371,7 +371,7 @@ export default async function DonationsPage({
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) 120px 100px 90px',
+                gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 120px) minmax(0, 100px) 90px',
                 gap: 12,
                 padding: '8px 20px',
                 fontSize: 11,
@@ -398,7 +398,7 @@ export default async function DonationsPage({
                     className="kf-row"
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) 120px 100px 90px',
+                      gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 120px) minmax(0, 100px) 90px',
                       gap: 12,
                       alignItems: 'center',
                     }}

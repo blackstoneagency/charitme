@@ -841,6 +841,58 @@ comments so a doc comment quoting a rate is not a finding.
 
 ## 📱 MOBILE-FIRST PASS — claimed by this lane (tbaz3i), 2026-08-01
 
+### ✅ 2026-08-02 — ZERO overflows, 199 routes × {320, 390}px, public + signed-in
+
+`npm run audit:mobile:signed-in` reports no route wider than its viewport at
+either width. Getting there needed the **instrument fixed first**, and that is
+the part worth reading:
+
+**The audit had been naming innocent elements.** It listed any element crossing
+the viewport edge — including content inside a deliberate `overflow-x` scroller.
+`/dashboard/donations` was blamed on a 720px `.kf-row` while its document
+measured 417px: four elements named, the real culprit among none of them. Every
+fix aimed at that output missed. Now an element is excused only when a **non-root**
+ancestor clips it.
+
+**Why "non-root" is load-bearing:** `html` and `body` both set
+`overflow-x: hidden` in globals.css. Excusing clipped elements naively therefore
+excused *every element on every page*, and turned a 13-route report into thirteen
+"no offender found" shrugs. That root rule is not a scroller — the page does not
+slide sideways, it **cuts the content off**, unreachable. The finding is now
+phrased that way (`content is Npx wide, clipped at Npx`); "page scrolls" was
+wrong on all 13 routes.
+
+Both directions proved with planted controls — a widener is named, content inside
+a scroller is not, and with both present only the widener is named — run with
+`body { overflow-x: hidden }` in the fixture so the second fault could not pass
+unnoticed.
+
+**Added `scripts/probe-overflow.mjs`** (`--probe <path>` on the signed-in
+harness): the ancestor chain of the widest offender with the properties that
+decide whether each box can shrink, marking where the width is first introduced.
+It earned itself immediately — `minWidth: 0` alone made `/donor` **worse**
+(365 → 408px) and the probe explained why in one run, where two earlier rounds of
+reading class names had fixed the wrong element.
+
+**The three defect classes, all systemic, none visible to the old guard:**
+
+| Class | Why it is invisible | Fix |
+|---|---|---|
+| `display: grid` with only a `gap` | implicit column is `auto` = widest child's min-content. Same trap as a bare `1fr`, with no `1fr` for a text search to find | explicit `minmax(0, 1fr)` — 7 CSS wrappers, 274 inline |
+| flex rows | a flex item's default `min-width` is `auto`, so the row keeps its children's intrinsic width | `minWidth: 0` on 774 inline rows (non-visual on its own); `flexWrap: 'wrap'` on the 123 `space-between` rows, where the alternative is losing the actions off-screen |
+| fixed px grid tracks inline | `minmax(0, 1fr) 320px` cannot collapse, and an inline style carries no media query | `minmax(0, Npx)`, tracks ≥ 100px only — a 64px avatar track shrinking would squash the image, a 300px sidebar shrinking is exactly right |
+
+The guard now rejects an inline grid with no `gridTemplateColumns` at all, and
+was mutation-tested: planting one back on `/admin/backups` fails the suite.
+
+Progression, all measured with one build at a time: **19 overflows / 13 routes →
+10 / 9 → 7 / 7 (320px only) → 0**.
+
+The 6 remaining `!` lines are harness artifacts, not defects: `/login`, `/signup`
+and `/dashboard` redirect because the stub user is signed in and an admin.
+
+---
+
 Owner: "the entire site looks terrible on mobile." Measuring before rewriting,
 because the instrument disagrees with the impression and both facts matter.
 

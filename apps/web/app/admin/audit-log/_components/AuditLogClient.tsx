@@ -184,7 +184,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
       </div>
 
       {/* Charts row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 320px', gap: 18 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 320px)', gap: 18 }}>
         <section className="kf-card" style={{ overflow: 'hidden' }}>
           <div className="kf-card-head"><h2>Activity Over Time</h2><span style={{ color: 'var(--t3)', fontSize: 13 }}>Last 30 days</span></div>
           <div style={{ padding: '0 10px 8px' }}>
@@ -198,7 +198,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
       </div>
 
       {/* Recent feed + main table layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '280px minmax(0, 1fr)', gap: 18, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 280px) minmax(0, 1fr)', gap: 18, alignItems: 'start' }}>
         {/* Recent activity feed */}
         <section className="kf-card" style={{ overflow: 'hidden' }}>
           <div className="kf-card-head"><h2>Recent Activity</h2></div>
@@ -274,7 +274,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
               would scroll independently and the columns would drift apart. */}
           <div className="kf-table-scroll">
           {/* Table header */}
-          <div style={{ display: 'grid', gridTemplateColumns: '130px minmax(0, 1fr) 110px 90px 80px', gap: 12, padding: '8px 20px', background: 'var(--s2)', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 130px) minmax(0, 1fr) minmax(0, 110px) 90px 80px', gap: 12, padding: '8px 20px', background: 'var(--s2)', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase' }}>
             <span>Date & Time</span>
             <span>Action</span>
             <span>Category</span>
@@ -283,7 +283,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
           </div>
 
           {filtered.slice(0, 15).map(e => (
-            <div key={e.id} style={{ display: 'grid', gridTemplateColumns: '130px minmax(0, 1fr) 110px 90px 80px', gap: 12, padding: '12px 20px', borderBottom: '1px solid #eef0f7', alignItems: 'center' }}>
+            <div key={e.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 130px) minmax(0, 1fr) minmax(0, 110px) 90px 80px', gap: 12, padding: '12px 20px', borderBottom: '1px solid #eef0f7', alignItems: 'center' }}>
               <span style={{ fontSize: 11, color: 'var(--t3)' }}>{e.dateTime}</span>
               <div>
                 <strong style={{ display: 'block', fontSize: 12, fontWeight: 650 }}>{e.action}</strong>

@@ -121,7 +121,7 @@ export default function ReportsClient({ reports, categories, totalReports, sched
       </div>
 
       {/* Two-column layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '300px minmax(0, 1fr)', gap: 20, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 300px) minmax(0, 1fr)', gap: 20, alignItems: 'start' }}>
         {/* Left: category overview + donut */}
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 18 }}>
           {/* Category breakdown */}
@@ -225,7 +225,7 @@ export default function ReportsClient({ reports, categories, totalReports, sched
               independently and the columns would drift out of alignment. */}
           <div className="kf-table-scroll">
           {/* Table header */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 110px 120px 90px 80px 80px', gap: 12, padding: '8px 20px', background: 'var(--s2)', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 110px) minmax(0, 120px) 90px 80px 80px', gap: 12, padding: '8px 20px', background: 'var(--s2)', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase' }}>
             <span>Report Name</span>
             <span>Category</span>
             <span>Created By</span>
@@ -236,7 +236,7 @@ export default function ReportsClient({ reports, categories, totalReports, sched
 
           {/* Table rows */}
           {filtered.map(r => (
-            <div key={r.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 110px 120px 90px 80px 80px', gap: 12, padding: '12px 20px', borderBottom: '1px solid #eef0f7', alignItems: 'center' }}>
+            <div key={r.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 110px) minmax(0, 120px) 90px 80px 80px', gap: 12, padding: '12px 20px', borderBottom: '1px solid #eef0f7', alignItems: 'center' }}>
               <div>
                 <strong style={{ display: 'block', fontSize: 13, fontWeight: 650 }}>{r.name}</strong>
                 <small style={{ color: 'var(--t3)', fontSize: 11 }}>{r.description}</small>

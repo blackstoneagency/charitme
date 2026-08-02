@@ -252,7 +252,7 @@ export default async function MyCampaignsPage({
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: '56px minmax(0, 1fr) 120px 140px 80px 90px 110px',
+                gridTemplateColumns: '56px minmax(0, 1fr) minmax(0, 120px) minmax(0, 140px) 80px 90px minmax(0, 110px)',
                 gap: 12,
                 padding: '8px 20px',
                 fontSize: 11,
@@ -290,7 +290,7 @@ export default async function MyCampaignsPage({
                       className="kf-row"
                       style={{
                         display: 'grid',
-                        gridTemplateColumns: '56px minmax(0, 1fr) 120px 140px 80px 90px 110px',
+                        gridTemplateColumns: '56px minmax(0, 1fr) minmax(0, 120px) minmax(0, 140px) 80px 90px minmax(0, 110px)',
                         gap: 12,
                         alignItems: 'center',
                       }}

@@ -41,7 +41,7 @@ export default function AnnouncementsClient({ rows: initial }: { rows: Announcem
   async function del(id: string) { await fetch(`/api/admin/super/announcements?id=${id}`, { method: 'DELETE' }); setRows((p) => p.filter((r) => r.id !== id)); flash('Deleted'); }
 
   return (
-    <div style={{ padding: '0 4px 48px', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 360px', gap: 18, alignItems: 'start' }}>
+    <div style={{ padding: '0 4px 48px', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0, 360px)', gap: 18, alignItems: 'start' }}>
       <div className="kf-card" style={{ padding: 16 }}>
         <h3 style={{ margin: '0 0 12px', fontSize: 15 }}>Announcements ({rows.length})</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

@@ -306,14 +306,14 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
             {ingesting ? 'Working…' : '＋ Add sample filings'}
           </button>
 
-          <div style={{ display: 'flex', minWidth: 0, gap: 6, alignItems: 'center' }}>
+          <div style={{ display: 'flex', minWidth: 0, gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
             <input
               type="date"
               value={ocDateFrom}
               max={ocDateTo}
               onChange={(e) => setOcDateFrom(e.target.value)}
               aria-label="Filed from"
-              style={{ padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 10, fontSize: 13 }}
+              style={{ padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 10, fontSize: 13, minWidth: 0, maxWidth: '100%' }}
             />
             <span style={{ color: 'var(--t3)', fontSize: 12 }}>to</span>
             <input
@@ -322,7 +322,7 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
               min={ocDateFrom}
               onChange={(e) => setOcDateTo(e.target.value)}
               aria-label="Filed to"
-              style={{ padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 10, fontSize: 13 }}
+              style={{ padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 10, fontSize: 13, minWidth: 0, maxWidth: '100%' }}
             />
           </div>
 

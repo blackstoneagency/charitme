@@ -1220,7 +1220,7 @@ export default function DonationsClient({
             </div>
 
             {/* Table header */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) 120px 120px 130px', gap: 12, padding: '10px 20px', background: 'var(--s2)', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 120px) minmax(0, 120px) minmax(0, 130px)', gap: 12, padding: '10px 20px', background: 'var(--s2)', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
               <span>Donor</span><span>Campaign</span><span>Amount</span><span>Status</span><span>Date</span>
             </div>
 
@@ -1228,7 +1228,7 @@ export default function DonationsClient({
             {currentPage.map(d => (
               <div
                 key={d.id}
-                style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) 120px 120px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
+                style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 120px) minmax(0, 120px) minmax(0, 130px)', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
                 onClick={() => { fetchDetail(d.id); }}
                 onKeyDown={event => {
                   if (event.key === 'Enter' || event.key === ' ') {
@@ -1372,12 +1372,12 @@ export default function DonationsClient({
               <div style={{ textAlign: 'center', padding: '32px', color: 'var(--t3)', fontSize: 14 }}>No refunded donations.</div>
             ) : (
               <div style={{ border: '1px solid #e6e9f2', borderRadius: 12, overflow: 'hidden' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) 120px 130px', gap: 12, padding: '10px 18px', background: 'var(--s2)', borderBottom: '1px solid #e6e9f2', color: 'var(--t3)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 120px) minmax(0, 130px)', gap: 12, padding: '10px 18px', background: 'var(--s2)', borderBottom: '1px solid #e6e9f2', color: 'var(--t3)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em' }}>
                   <span>Donor</span><span>Campaign</span><span>Amount</span><span>Date</span>
                 </div>
                 {donations.filter(d => d.status === 'refunded').map((d, i, arr) => (
                   <div key={d.id}
-                    style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) 120px 130px', gap: 12, padding: '14px 18px', alignItems: 'center', borderBottom: i < arr.length - 1 ? '1px solid #f0f2f8' : 'none', background: 'var(--s1)', cursor: 'pointer' }}
+                    style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 120px) minmax(0, 130px)', gap: 12, padding: '14px 18px', alignItems: 'center', borderBottom: i < arr.length - 1 ? '1px solid #f0f2f8' : 'none', background: 'var(--s1)', cursor: 'pointer' }}
                     onClick={() => { fetchDetail(d.id); }}
                     onKeyDown={event => {
                       if (event.key === 'Enter' || event.key === ' ') {

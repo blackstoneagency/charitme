@@ -585,13 +585,13 @@ export default function ContentClient({
               </select>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 130px 120px 130px', gap: 12, padding: '10px 20px', background: 'var(--s2)', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 130px) minmax(0, 120px) minmax(0, 130px)', gap: 12, padding: '10px 20px', background: 'var(--s2)', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
               <span>Title</span><span>Type</span><span>Campaign</span><span>Updated</span>
             </div>
 
             {currentPage.map(c => (
               <div key={c.id}
-                style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 130px 120px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
+                style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 130px) minmax(0, 120px) minmax(0, 130px)', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
                 onClick={() => setSelected(c)}
                 onKeyDown={event => {
                   if (event.key === 'Enter' || event.key === ' ') {
