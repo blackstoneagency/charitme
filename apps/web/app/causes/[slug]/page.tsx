@@ -7,6 +7,8 @@ import { CAUSES, getCause, type Cause } from '../../../lib/causes';
 import { CampaignCard, CampaignGrid, type CampaignCardData } from '../../../components/CampaignCard';
 import { EmptyState } from '../../../components/ui';
 import { getTranslator } from '../../../lib/locale-server';
+import { getCauseStats } from '../../../lib/cause-landing';
+import CauseLanding, { CauseCtaBand } from './CauseLanding';
 
 const PAGE_SIZE = 24;
 
@@ -61,23 +63,27 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
   const cause = getCause(slug);
   if (!cause) notFound();
 
-  const campaigns = await getCampaigns(cause);
+  // Stats are fetched alongside the campaigns rather than after them: they are
+  // independent queries and this page is a common entry point from a share.
+  const [campaigns, stats] = await Promise.all([getCampaigns(cause), getCauseStats(cause)]);
 
   return (
-    <div className="container" style={{ padding: '48px 0 72px' }}>
-      <nav aria-label="Breadcrumb" style={{ marginBottom: '18px' }}>
-        <Link href="/causes" style={{ display: 'inline-flex', alignItems: 'center', minHeight: '24px', fontSize: '13px', color: 'var(--t3)', fontWeight: 650 }}>
-          ← All causes
-        </Link>
-      </nav>
+    <div className="cause-landing">
+      <div className="container" style={{ padding: '20px 0 0' }}>
+        <nav aria-label="Breadcrumb" style={{ marginBottom: '18px' }}>
+          <Link href="/causes" style={{ display: 'inline-flex', alignItems: 'center', minHeight: '24px', fontSize: '13px', color: 'var(--t3)', fontWeight: 650 }}>
+            ← All causes
+          </Link>
+        </nav>
+      </div>
 
+      <CauseLanding cause={cause} stats={stats} />
+
+      <div className="container" style={{ padding: '8px 0 72px' }}>
       <header style={{ maxWidth: '760px', marginBottom: '32px' }}>
-        <h1 style={{ fontSize: 'clamp(28px, 5vw, 42px)', fontWeight: 800, color: 'var(--t1)', lineHeight: 1.15, letterSpacing: '-.02em' }}>
-          {cause.label}
-        </h1>
-        <p style={{ fontSize: '17px', color: 'var(--t3)', lineHeight: 1.6, marginTop: '12px' }}>
-          {cause.blurb}
-        </p>
+        <h2 id="cause-campaigns" style={{ fontSize: 'var(--fs-h2)', fontWeight: 800, color: 'var(--t1)', lineHeight: 1.15, letterSpacing: '-.02em' }}>
+          {cause.label} campaigns
+        </h2>
 
         {/* The disclosure. Campaigns are not tagged at this granularity, so this
             page can only show its parent categories. Saying so is the difference
@@ -150,6 +156,9 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
           )}
         </>
       )}
+      </div>
+
+      <CauseCtaBand cause={cause} />
     </div>
   );
 }

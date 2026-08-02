@@ -8492,3 +8492,225 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   .cu-layout > main { order: 1; }
   .cu-layout > aside { order: 2; }
 }
+
+/* ── Cause landing (/causes/[slug]) ──────────────────────────────────────────
+   The reference is a dark hero with a photo, a programme panel, a stats band and
+   a "ways to help" row. Everything below is token-driven rather than the mock's
+   literal near-black: the site ships BOTH themes, and a hardcoded dark surface
+   renders dark-on-dark text the moment a visitor is in light mode. That exact
+   failure has reached production here before. */
+.cause-landing { display: block; }
+
+.cl-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  align-items: center;
+  max-width: var(--container, 1200px);
+  margin: 0 auto 44px;
+  padding: 0 var(--gutter, 20px);
+}
+.cl-eyebrow {
+  margin: 0 0 12px;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  color: var(--brand-text);
+}
+.cl-hero-title {
+  margin: 0;
+  /* The shared token, not a fourth bespoke clamp — css-single-definition.test.ts
+     holds the scale to three heading sizes and this is a full-bleed hero h1. */
+  font-size: var(--fs-hero);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -.03em;
+  color: var(--t1);
+}
+.cl-hero-lede {
+  margin: 16px 0 0;
+  font-size: 16.5px;
+  line-height: 1.65;
+  color: var(--t3);
+  max-width: 46ch;
+}
+.cl-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 26px;
+}
+.cl-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 22px;
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  background: var(--s1);
+  color: var(--t1);
+  font-size: 14.5px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.cl-btn-secondary:hover { border-color: var(--t3); background: var(--s2); }
+.cl-hero-proof {
+  margin: 22px 0 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--t3);
+}
+.cl-hero-proof strong { color: var(--t1); font-weight: 800; }
+
+.cl-hero-media { min-width: 0; }
+.cl-hero-img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--rxl);
+  border: 1px solid var(--b1);
+}
+
+.cl-programs {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--b1);
+  border-radius: var(--rl);
+  background: var(--s1);
+}
+.cl-programs-title { margin: 0 0 14px; font-size: 16px; font-weight: 780; color: var(--t1); }
+.cl-programs-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.cl-program {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: var(--r);
+  background: var(--s2);
+  text-decoration: none;
+}
+.cl-program:hover { background: var(--s3); }
+.cl-program-name { font-size: 14px; font-weight: 700; color: var(--t1); }
+.cl-program-count { font-size: 12.5px; font-weight: 700; color: var(--t3); white-space: nowrap; }
+.cl-programs-more {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  margin-top: 14px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--brand-text);
+  text-decoration: none;
+}
+
+.cl-stats {
+  max-width: var(--container, 1200px);
+  margin: 0 auto 44px;
+  padding: 28px var(--gutter, 20px);
+}
+.cl-stats-title {
+  margin: 0 0 22px;
+  font-size: var(--fs-h2);
+  font-weight: 780;
+  color: var(--t1);
+  text-align: center;
+}
+.cl-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: 18px;
+  margin: 0;
+}
+.cl-stat {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  border: 1px solid var(--b1);
+  border-radius: var(--rl);
+  background: var(--s1);
+  text-align: center;
+}
+.cl-stat dt { font-size: 13px; color: var(--t3); order: 2; margin-top: 6px; }
+.cl-stat dd {
+  margin: 0;
+  order: 1;
+  /* A statistic is not a heading, so it takes a plain size rather than adding
+     another entry to the heading scale. */
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  color: var(--t1);
+}
+.cl-stats-note {
+  margin: 18px auto 0;
+  max-width: 70ch;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--t3);
+  text-align: center;
+}
+
+.cl-ways {
+  max-width: var(--container, 1200px);
+  margin: 0 auto 44px;
+  padding: 0 var(--gutter, 20px);
+}
+.cl-ways-title { margin: 0 0 20px; font-size: var(--fs-h2); font-weight: 780; color: var(--t1); }
+.cl-ways-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr));
+  gap: 18px;
+}
+.cl-way {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+  border: 1px solid var(--b1);
+  border-radius: var(--rl);
+  overflow: hidden;
+  background: var(--s1);
+  text-decoration: none;
+}
+.cl-way:hover { border-color: var(--b2); }
+.cl-way-img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
+.cl-way-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 16px; }
+.cl-way-body strong { font-size: 15.5px; font-weight: 750; color: var(--t1); }
+.cl-way-body > span:not(.cl-way-cta) { font-size: 13.5px; line-height: 1.55; color: var(--t3); }
+.cl-way-cta { font-size: 13.5px; font-weight: 700; color: var(--brand-text); }
+
+.cl-cta { padding: 0 var(--gutter, 20px) 64px; }
+.cl-cta-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  align-items: center;
+  max-width: var(--container, 1200px);
+  margin: 0 auto;
+  padding: 32px 28px;
+  border: 1px solid var(--b1);
+  border-radius: var(--rxl);
+  background: var(--s2);
+}
+.cl-cta-inner h2 { margin: 0; font-size: var(--fs-h2); font-weight: 780; color: var(--t1); }
+.cl-cta-inner p { margin: 8px 0 0; font-size: 14.5px; line-height: 1.6; color: var(--t3); max-width: 52ch; }
+.cl-cta-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+
+/* Desktop: hero becomes copy | photo | programme panel, matching the reference.
+   Below this the three stack, with the PHOTO first — a visitor arriving on a
+   phone from a share should see the cause before a category list. */
+@media (min-width: 960px) {
+  .cl-hero {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr) minmax(0, 300px);
+    gap: 28px;
+  }
+  .cl-cta-inner { grid-template-columns: minmax(0, 1fr) auto; }
+}
+@media (max-width: 959px) {
+  .cl-hero-media { order: -1; }
+}
