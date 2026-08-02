@@ -115,7 +115,7 @@ function StatusDonut({ pending, completed, failed, total }: { pending: number; c
         <text x={cx} y={cy - 4} textAnchor="middle" fontSize="16" fontWeight="950" fill="#101944">{total}</text>
         <text x={cx} y={cy + 14} textAnchor="middle" fontSize="9" fill="#8c9ab5">Total</text>
       </svg>
-      <div style={{ display: 'grid', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
         {slices.map(s => (
           <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>
             <i style={{ width: 8, height: 8, borderRadius: '50%', background: s.color, flexShrink: 0, display: 'block' }} />
@@ -201,7 +201,7 @@ function PayoutDetailPanel({ payout, onClose }: { payout: PayoutRecord; onClose:
 
         <div style={{ padding: '20px 24px', flex: 1 }}>
           {activeTab === 'info' && (
-            <div style={{ display: 'grid', gap: 2 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 2 }}>
               {[
                 ['Campaign', payout.campaign_title],
                 ['Amount', fmtCents(payout.amount_cents)],
@@ -222,7 +222,7 @@ function PayoutDetailPanel({ payout, onClose }: { payout: PayoutRecord; onClose:
           )}
 
           {activeTab === 'history' && (
-            <div style={{ display: 'grid', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
               {[
                 { event: 'Payout requested', date: payout.created_at, color: 'var(--brand-text)' },
                 payout.paid_at ? { event: 'Payout completed', date: payout.paid_at, color: 'var(--green-text)' } : null,
@@ -239,7 +239,7 @@ function PayoutDetailPanel({ payout, onClose }: { payout: PayoutRecord; onClose:
           )}
 
           {activeTab === 'action' && (
-            <div style={{ display: 'grid', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 13, color: 'var(--t3)', fontWeight: 700 }}>Current Status:</span>
                 <StatusPill status={payout.status} />
@@ -259,7 +259,7 @@ function PayoutDetailPanel({ payout, onClose }: { payout: PayoutRecord; onClose:
                   </div>
                 </label>
               ))}
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
+              <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
                 Add Note
                 <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Optional note…" style={{ border: '1px solid #dfe3ee', borderRadius: 9, padding: '10px 14px', fontSize: 14, minHeight: 80, resize: 'vertical' }} />
               </label>
@@ -551,20 +551,20 @@ export default function PayoutsClient({
                 ✓ Payout created successfully. Reload the page to see it in the list.
               </div>
             )}
-            <div style={{ maxWidth: 460, display: 'grid', gap: 16 }}>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
+            <div style={{ maxWidth: 460, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16 }}>
+              <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
                 Recipient User ID <span style={{ color: 'var(--red-text)' }}>*</span>
                 <input type="text" value={addUserId} onChange={e => setAddUserId(e.target.value)} placeholder="e.g. 12a3bc45-6d7e-..." style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }} />
               </label>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
+              <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
                 Campaign ID (optional)
                 <input type="text" value={addCampaignId} onChange={e => setAddCampaignId(e.target.value)} placeholder="Leave blank for unattached payout" style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }} />
               </label>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
+              <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
                 Amount (USD) <span style={{ color: 'var(--red-text)' }}>*</span>
                 <input type="number" min="0.01" step="0.01" value={addAmount} onChange={e => setAddAmount(e.target.value)} placeholder="0.00" style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }} />
               </label>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
+              <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
                 Payout Method
                 <select value={addMethod} onChange={e => setAddMethod(e.target.value)} style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }}>
                   <option>Bank Transfer</option>
@@ -574,7 +574,7 @@ export default function PayoutsClient({
                   <option>Check</option>
                 </select>
               </label>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
+              <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
                 Internal Note
                 <textarea value={addNote} onChange={e => setAddNote(e.target.value)} placeholder="Reason for manual payout…" style={{ border: '1px solid #dfe3ee', borderRadius: 9, padding: '10px 14px', fontSize: 14, minHeight: 80, resize: 'vertical' }} />
               </label>
@@ -592,7 +592,7 @@ export default function PayoutsClient({
         {activeTab === 'methods' && (
           <div style={{ padding: '20px' }}>
             <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700 }}>Payout Methods</h3>
-            <div style={{ display: 'grid', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
               {[
                 { name: 'Bank Transfer', isDefault: true },
                 { name: 'PayPal', isDefault: false },
@@ -629,7 +629,7 @@ export default function PayoutsClient({
           <div style={{ padding: '20px' }}>
             <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 700 }}>Export Payouts</h3>
             <p style={{ margin: '0 0 20px', fontSize: 13, color: 'var(--t3)' }}>{payouts.length.toLocaleString()} total payouts available for export.</p>
-            <div style={{ maxWidth: 420, display: 'grid', gap: 16 }}>
+            <div style={{ maxWidth: 420, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16 }}>
               <div style={{ padding: '14px 16px', border: '1px solid #e6e9f2', borderRadius: 10, background: 'var(--s2)', fontSize: 13 }}>
                 <div style={{ fontWeight: 650, marginBottom: 4, color: 'var(--t1)' }}>Columns included:</div>
                 <div style={{ color: 'var(--t3)' }}>Recipient, Email, Campaign, Amount (USD), Status, Method, Date</div>

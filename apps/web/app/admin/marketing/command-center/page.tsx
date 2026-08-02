@@ -70,7 +70,7 @@ export default async function CommandCenterPage() {
           </div>
 
           {/* Right column: needs attention + pulse + freshness */}
-          <div style={{ display: 'grid', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16 }}>
             <div style={{ ...card, background: cc.goalsAwaitingActivation > 0 ? 'var(--s2)' : 'var(--s1)', borderColor: cc.goalsAwaitingActivation > 0 ? 'var(--b2)' : 'var(--line)' }}>
               <div style={{ fontWeight: 800, fontSize: 13, color: 'var(--t1)', marginBottom: 8 }}>Needs your attention</div>
               {cc.goalsAwaitingActivation > 0 ? (

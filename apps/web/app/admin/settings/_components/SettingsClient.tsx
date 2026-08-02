@@ -58,7 +58,7 @@ type Props = {
 };
 
 const fieldStyle: React.CSSProperties = { height: 44, border: '1px solid var(--b1)', borderRadius: 8, padding: '0 14px', fontSize: 14, background: 'var(--s1)', color: 'var(--t1)' };
-const labelStyle: React.CSSProperties = { display: 'grid', gap: 6, fontSize: 13, fontWeight: 650, color: 'var(--t1)' };
+const labelStyle: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 650, color: 'var(--t1)' };
 
 function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
   return (

@@ -35,7 +35,7 @@ const TOOLS: { key: ToolKey; icon: string; label: string; desc: string }[] = [
 export function QrPosterPanel({ campaignId }: { campaignId: string }) {
   const posterUrl = `/api/campaigns/${campaignId}/qr-poster`;
   return (
-    <div style={{ display: 'grid', gap: 16, maxWidth: 900 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16, maxWidth: 900 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
         <div>
           <h2 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 700, color: 'var(--t1)' }}>Print QR Poster</h2>

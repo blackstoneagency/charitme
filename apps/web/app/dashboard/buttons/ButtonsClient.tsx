@@ -113,16 +113,16 @@ export default function ButtonsClient({
   }
 
   return (
-    <div style={{ display: 'grid', gap: 22, maxWidth: 780 }}>
-      <form onSubmit={create} style={{ display: 'grid', gap: 12, padding: 18, border: '1px solid var(--b1)', borderRadius: 'var(--rl)', background: 'var(--s1)' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 22, maxWidth: 780 }}>
+      <form onSubmit={create} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12, padding: 18, border: '1px solid var(--b1)', borderRadius: 'var(--rl)', background: 'var(--s1)' }}>
         <h2 style={{ margin: 0, fontSize: 15, fontWeight: 750, color: 'var(--t1)' }}>New button</h2>
 
-        <label style={{ display: 'grid', gap: 5 }}>
+        <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 5 }}>
           <span style={labelStyle}>Label</span>
           <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Support our work" maxLength={60} style={inputStyle} required />
         </label>
 
-        <label style={{ display: 'grid', gap: 5 }}>
+        <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 5 }}>
           <span style={labelStyle}>Type</span>
           <select value={buttonType} onChange={(e) => setButtonType(e.target.value as ButtonType)} style={inputStyle}>
             {BUTTON_TYPES.map((t) => <option key={t} value={t}>{describeButtonType(t)}</option>)}
@@ -130,7 +130,7 @@ export default function ButtonsClient({
         </label>
 
         {needsCampaign && (
-          <label style={{ display: 'grid', gap: 5 }}>
+          <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 5 }}>
             <span style={labelStyle}>Campaign</span>
             {campaigns.length === 0 ? (
               <span style={{ fontSize: 13, color: 'var(--t3)' }}>
@@ -165,7 +165,7 @@ export default function ButtonsClient({
         ) : initialButtons.length === 0 ? (
           <p style={{ fontSize: 14, color: 'var(--t3)' }}>None yet.</p>
         ) : (
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 12 }}>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
             {initialButtons.map((button) => {
               const snippet = snippetFor(button);
               return (

@@ -215,7 +215,7 @@ function DonutChart({ slices }: { slices: { label: string; value: number; color:
         })}
         <circle cx={cx} cy={cy} r={r - 12} fill="#fff" />
       </svg>
-      <div style={{ display: 'grid', gap: 8 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8 }}>
         {slices.map(s => (
           <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>
             <i style={{ width: 8, height: 8, borderRadius: '50%', background: s.color, flexShrink: 0, display: 'block' }} />
@@ -1429,7 +1429,7 @@ export default function DonationsClient({
         {panelTab === 'Export' && (
           <div style={{ padding: '20px' }}>
             <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>Export Data</h3>
-            <div style={{ maxWidth: 460, display: 'grid', gap: 18 }}>
+            <div style={{ maxWidth: 460, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 18 }}>
               <div className="ado-field">
                 <label htmlFor="exp-datatype">Data Type</label>
                 <select id="exp-datatype" className="ac-input" value={exportDataType} onChange={e => setExportDataType(e.target.value)}>

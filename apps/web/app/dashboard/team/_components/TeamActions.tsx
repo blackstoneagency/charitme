@@ -138,12 +138,12 @@ export function InviteMemberButton({ campaigns, onAdded }: { campaigns: Campaign
               <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--t1)' }}>Invite Team Member</div>
               <button type="button" onClick={() => setOpen(false)} style={{ width: 32, height: 32, border: '1px solid var(--b1)', borderRadius: '50%', background: 'var(--s1)', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: 'var(--t3)' }}>×</button>
             </div>
-            <div style={{ padding: '24px', display: 'grid', gap: 16 }}>
+            <div style={{ padding: '24px', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16 }}>
               {error && <div style={{ padding: '10px 14px', background: 'rgba(190,18,60,.08)', borderRadius: 9, color: 'var(--red, var(--red))', fontSize: 13, fontWeight: 700 }}>{error}</div>}
               {success && <div style={{ padding: '10px 14px', background: 'rgba(25,184,106,.08)', borderRadius: 9, color: 'var(--green-dark, var(--green-dark))', fontSize: 13, fontWeight: 700 }}>{success}</div>}
 
               {campaigns.length > 1 && (
-                <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
+                <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
                   Campaign
                   <select value={campaignId} onChange={e => setCampaignId(e.target.value)} style={{ height: 44, border: '1px solid var(--b2, var(--b1))', borderRadius: 9, padding: '0 14px', fontSize: 14, background: 'var(--s1)', color: 'var(--t1)' }}>
                     {campaigns.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
@@ -151,7 +151,7 @@ export function InviteMemberButton({ campaigns, onAdded }: { campaigns: Campaign
                 </label>
               )}
 
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
+              <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
                 Email Address
                 <input
                   type="email"
@@ -163,7 +163,7 @@ export function InviteMemberButton({ campaigns, onAdded }: { campaigns: Campaign
                 <span style={{ fontSize: 11, color: 'var(--t3, var(--t3))', fontWeight: 400 }}>The user must already have a CharitMe account.</span>
               </label>
 
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
+              <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
                 Role
                 <select value={role} onChange={e => setRole(e.target.value as 'admin' | 'member' | 'viewer')} style={{ height: 44, border: '1px solid var(--b2, var(--b1))', borderRadius: 9, padding: '0 14px', fontSize: 14, background: 'var(--s1)', color: 'var(--t1)' }}>
                   <option value="admin">Admin</option>

@@ -113,7 +113,7 @@ export default function CampaignMilestonesPage({ params }: { params: Promise<{ i
         {milestones.length > 0 && (
           <section className="kf-card" style={{ padding: 24 }}>
             <h2 style={{ fontSize: 14, fontWeight: 800, margin: '0 0 16px' }}>Current Milestones ({milestones.length})</h2>
-            <div style={{ display: 'grid', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
               {milestones.map((m, i) => (
                 <div key={m.id} style={{ padding: '14px 16px', border: '1px solid var(--b2)', borderRadius: 10, background: 'var(--s1)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
@@ -144,13 +144,13 @@ export default function CampaignMilestonesPage({ params }: { params: Promise<{ i
         {/* Add milestone form */}
         <section className="kf-card" style={{ padding: 24 }}>
           <h2 style={{ fontSize: 14, fontWeight: 800, margin: '0 0 16px' }}>Add a Milestone</h2>
-          <div style={{ display: 'grid', gap: 14 }}>
-            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14 }}>
+            <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
               Title
               <input value={newTitle} onChange={e => setNewTitle(e.target.value)} maxLength={200}
                 placeholder="e.g. Cover first month of rent" style={{ height: 42, border: '1px solid var(--b2)', borderRadius: 9, padding: '0 12px', fontSize: 14 }} />
             </label>
-            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
+            <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
               Target amount (optional)
               <div style={{ position: 'relative' }}>
                 <span style={{ position: 'absolute', left: 12, top: 0, bottom: 0, display: 'flex', alignItems: 'center', color: 'var(--t3)', fontWeight: 800 }}>{currencySymbol(currency)}</span>
@@ -158,7 +158,7 @@ export default function CampaignMilestonesPage({ params }: { params: Promise<{ i
                   placeholder="2500" style={{ width: '100%', boxSizing: 'border-box', height: 42, border: '1px solid var(--b2)', borderRadius: 9, padding: '0 12px 0 26px', fontSize: 14 }} />
               </div>
             </label>
-            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
+            <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
               Description (optional)
               <textarea value={newDescription} onChange={e => setNewDescription(e.target.value)} rows={3} maxLength={1000}
                 placeholder="What happens once this goal is reached?" style={{ border: '1px solid var(--b2)', borderRadius: 9, padding: '10px 12px', fontSize: 14, resize: 'vertical', lineHeight: 1.6 }} />

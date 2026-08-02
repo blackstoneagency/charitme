@@ -235,7 +235,7 @@ export function CreatorClient({ initialProfile, initialTiers, initialPosts }: Pr
   }
 
   return (
-    <div style={{ display: 'grid', gap: 24 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 24 }}>
       {/* ── Creator page ─────────────────────────────────────────────────── */}
       <Card>
         <h2 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 800, color: 'var(--t1)' }}>Your creator page</h2>
@@ -252,7 +252,7 @@ export function CreatorClient({ initialProfile, initialTiers, initialPosts }: Pr
           )}
         </p>
 
-        <form onSubmit={saveProfile} style={{ display: 'grid', gap: 16 }}>
+        <form onSubmit={saveProfile} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 16 }}>
             <Input
               label="Handle"
@@ -354,7 +354,7 @@ export function CreatorClient({ initialProfile, initialTiers, initialPosts }: Pr
                 No tiers yet. The Memberships section stays off your public page until you add one.
               </p>
             ) : (
-              <ul style={{ listStyle: 'none', margin: '0 0 22px', padding: 0, display: 'grid', gap: 12 }}>
+              <ul style={{ listStyle: 'none', margin: '0 0 22px', padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
                 {tiers.map((t) => (
                   <li
                     key={t.id}
@@ -398,7 +398,7 @@ export function CreatorClient({ initialProfile, initialTiers, initialPosts }: Pr
               </ul>
             )}
 
-            <form onSubmit={addTier} style={{ display: 'grid', gap: 14, borderTop: '1px solid var(--b1)', paddingTop: 18 }}>
+            <form onSubmit={addTier} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14, borderTop: '1px solid var(--b1)', paddingTop: 18 }}>
               <h3 style={{ margin: 0, fontSize: 14.5, fontWeight: 800, color: 'var(--t1)' }}>Add a tier</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14 }}>
                 <Input label="Name" value={tTitle} onChange={(e) => setTTitle(e.target.value)} placeholder="Supporter" required />
@@ -466,7 +466,7 @@ export function CreatorClient({ initialProfile, initialTiers, initialPosts }: Pr
         ) : (
           <>
             {posts.length > 0 && (
-              <ul style={{ listStyle: 'none', margin: '0 0 22px', padding: 0, display: 'grid', gap: 12 }}>
+              <ul style={{ listStyle: 'none', margin: '0 0 22px', padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
                 {posts.map((p) => (
                   <li
                     key={p.id}
@@ -513,7 +513,7 @@ export function CreatorClient({ initialProfile, initialTiers, initialPosts }: Pr
               </ul>
             )}
 
-            <form onSubmit={addPost} style={{ display: 'grid', gap: 14, borderTop: posts.length > 0 ? '1px solid var(--b1)' : 'none', paddingTop: posts.length > 0 ? 18 : 0 }}>
+            <form onSubmit={addPost} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14, borderTop: posts.length > 0 ? '1px solid var(--b1)' : 'none', paddingTop: posts.length > 0 ? 18 : 0 }}>
               <h3 style={{ margin: 0, fontSize: 14.5, fontWeight: 800, color: 'var(--t1)' }}>Write a post</h3>
               <Input label="Title" value={pTitle} onChange={(e) => setPTitle(e.target.value)} placeholder="What's new" required />
               <Textarea

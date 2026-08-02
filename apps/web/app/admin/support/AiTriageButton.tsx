@@ -114,7 +114,7 @@ export default function AiTriageButton({ caseId, subject }: Props) {
             {error && <div style={{ padding: '10px 14px', background: 'var(--tint-rose)', border: '1px solid #fecdd3', borderRadius: 8, color: 'var(--red-text)', fontSize: 13, fontWeight: 600 }}>⚠ {error}</div>}
 
             {result && (
-              <div style={{ display: 'grid', gap: 14 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14 }}>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   <span style={{ background: (CATEGORY_COLORS[result.category] ?? '#6b7280') + '18', color: CATEGORY_COLORS[result.category] ?? '#6b7280', padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 800 }}>
                     {result.categoryLabel}

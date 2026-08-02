@@ -142,7 +142,7 @@ export default function AdminGrantsClient() {
   }
 
   return (
-    <div style={{ display: 'grid', gap: 20 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 20 }}>
       {msg && (
         <div style={{
           padding: '10px 14px', borderRadius: 10, fontSize: 13, fontWeight: 600,
@@ -248,7 +248,7 @@ export default function AdminGrantsClient() {
             No grants yet. Add your first one above — it goes live on <strong>/grants</strong> immediately.
           </div>
         ) : (
-          <div style={{ display: 'grid', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8 }}>
             {grants.map((g) => (
               <div key={g.id} style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '12px 16px', background: 'var(--s1)', border: '1px solid #eef0f7', borderRadius: 12 }}>
                 <div style={{ minWidth: 0, flex: '1 1 220px' }}>

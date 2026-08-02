@@ -122,7 +122,7 @@ export default async function ImpactMapPage() {
                 action={<Link href="/campaigns" style={{ fontSize: '14px', color: 'var(--green-text)', fontWeight: 600 }}>Browse campaigns</Link>}
               />
             ) : (
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: '8px' }}>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '8px' }}>
                 {data.places.map((p) => (
                   <li key={p.location}>
                     <Link
@@ -142,7 +142,7 @@ export default async function ImpactMapPage() {
           </Section>
 
           <Section id="causes" heading="Campaigns by cause" intro="What the live campaigns are actually funding.">
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: '8px' }}>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '8px' }}>
               {data.categories.map((c) => (
                 <li key={c.category}>
                   <Link

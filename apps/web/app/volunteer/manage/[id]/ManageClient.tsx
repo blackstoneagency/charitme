@@ -127,7 +127,7 @@ export default function ManageClient({
       {pending.length === 0 ? (
         <EmptyState icon="✅" title="Nothing to verify" body="Completed check-outs will appear here for review." />
       ) : (
-        <div style={{ display: 'grid', gap: 10, marginBottom: 32 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10, marginBottom: 32 }}>
           {pending.map((p) => {
             const capped = p.hours >= CAP_HOURS;
             return (
@@ -184,7 +184,7 @@ export default function ManageClient({
       {shifts.length === 0 ? (
         <EmptyState icon="🗓" title="No shifts yet" body="Schedule one above so volunteers can check in." />
       ) : (
-        <div style={{ display: 'grid', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
           {shifts.map((s) => (
             <Card key={s.id}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>

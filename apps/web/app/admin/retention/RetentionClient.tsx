@@ -82,7 +82,7 @@ export default function RetentionClient({
   }
 
   return (
-    <div className="kf-admin-dash" style={{ display: 'grid', gap: 20, maxWidth: 900 }}>
+    <div className="kf-admin-dash" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 20, maxWidth: 900 }}>
       <header>
         <h1 style={{ margin: 0, fontSize: 22 }}>Data Retention</h1>
         <p style={{ margin: '4px 0 0', color: 'var(--t3)', fontSize: 14 }}>
@@ -117,7 +117,7 @@ export default function RetentionClient({
 
       <Card>
         <h2 style={{ margin: '0 0 12px', fontSize: 16 }}>Categories</h2>
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 12 }}>
+        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
           {categories.map((c) => {
             const policy = byCategory.get(c.key);
             return (
@@ -159,7 +159,7 @@ export default function RetentionClient({
             No runs recorded yet. The job is at <code>/api/cron/apply-retention</code>.
           </p>
         ) : (
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 8 }}>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8 }}>
             {initialRuns.map((r) => (
               <li key={r.id} style={{ fontSize: 13, color: 'var(--t2)', borderTop: '1px solid var(--b1)', paddingTop: 8 }}>
                 <strong style={{ color: 'var(--t1)' }}>{r.category}</strong> —{' '}

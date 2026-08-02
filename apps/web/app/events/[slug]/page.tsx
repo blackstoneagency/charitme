@@ -106,7 +106,7 @@ export default async function EventDetailPage({ params }: PageProps) {
       {tickets.length > 0 && (
         <section style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--b2)' }}>
           <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>Tickets</h2>
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 10 }}>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
             {tickets.map((t) => {
               const left = ticketsRemaining(t);
               const soldOut = isTicketSoldOut(t);

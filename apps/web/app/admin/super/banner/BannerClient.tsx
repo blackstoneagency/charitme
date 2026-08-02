@@ -122,7 +122,7 @@ export default function BannerClient({
         <div style={{ fontSize: 12.5, color: 'var(--t3)', marginBottom: 14 }}>
           Saved copy appears site-wide immediately. Leave the title blank to use the newest active announcement instead.
         </div>
-        <div style={{ display: 'grid', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14 }}>
           <div>
             <label htmlFor="banner-title" style={label}>Title</label>
             <input

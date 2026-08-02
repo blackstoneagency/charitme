@@ -34,7 +34,7 @@ export default function FlagsClient({ flags: initial }: { flags: Flag[] }) {
         <button style={btn} onClick={create}>Add flag</button>
       </div>
 
-      <div style={{ display: 'grid', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
         {flags.map((f) => (
           <div key={f.id} className="kf-card" style={{ padding: 14, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
             <button

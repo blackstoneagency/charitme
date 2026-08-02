@@ -81,7 +81,7 @@ export default function FeeOptimizerCard({ campaigns }: Props) {
       )}
 
       {result && tone && (
-        <div style={{ display: 'grid', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <span style={{ background: tone.bg, color: tone.color, padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 800 }}>
               {tone.label}
@@ -98,7 +98,7 @@ export default function FeeOptimizerCard({ campaigns }: Props) {
 
           <div>
             <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--t2)', marginBottom: 6 }}>Payout speed comparison</div>
-            <div style={{ display: 'grid', gap: 6 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6 }}>
               {result.speedOptions.map((opt) => (
                 <div key={opt.speed} style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, fontSize: 13,

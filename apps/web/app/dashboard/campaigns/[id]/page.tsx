@@ -157,7 +157,7 @@ export default async function CampaignDetailPage({
         subtitle={campaign.tagline ?? campaign.category ?? 'Campaign details'}
       />
 
-      <div style={{ padding: '0 32px 40px', display: 'grid', gap: 24 }}>
+      <div style={{ padding: '0 32px 40px', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 24 }}>
 
         {/* ── Status + Metrics strip ── */}
         <div className="kf-card" style={{ padding: 24 }}>

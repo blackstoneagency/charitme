@@ -112,7 +112,7 @@ export default function AdminNotesPanel({
     <section style={{ border: '1px solid var(--b1)', borderRadius: 'var(--rl)', background: 'var(--s1)', padding: 16, minWidth: 0 }}>
       <h3 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 750, color: 'var(--t1)' }}>{title}</h3>
 
-      <form onSubmit={add} style={{ display: 'grid', gap: 8, marginBottom: 14 }}>
+      <form onSubmit={add} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8, marginBottom: 14 }}>
         <textarea
           value={body}
           onChange={(e) => setBody(e.target.value)}
@@ -149,7 +149,7 @@ export default function AdminNotesPanel({
       )}
 
       {state === 'ready' && notes.length > 0 && (
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 8 }}>
+        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8 }}>
           {notes.map((note) => (
             <li
               key={note.id}

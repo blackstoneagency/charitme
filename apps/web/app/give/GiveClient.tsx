@@ -82,7 +82,7 @@ export default function GiveClient({ campaigns }: { campaigns: GiveCampaign[] })
   const byId = new Map(campaigns.map((c) => [c.id, c]));
 
   return (
-    <div style={{ display: 'grid', gap: 24 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 24 }}>
       <Card>
         <h2 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 800, color: 'var(--t1)' }}>
           1. How much would you like to give?
@@ -174,7 +174,7 @@ export default function GiveClient({ campaigns }: { campaigns: GiveCampaign[] })
           </p>
         ) : (
           <>
-            <ul style={{ listStyle: 'none', margin: '12px 0 0', padding: 0, display: 'grid', gap: 8 }}>
+            <ul style={{ listStyle: 'none', margin: '12px 0 0', padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8 }}>
               {split.map((p) => (
                 <li
                   key={p.campaignId}
@@ -219,7 +219,7 @@ export default function GiveClient({ campaigns }: { campaigns: GiveCampaign[] })
       </Card>
 
       <Card>
-        <div style={{ display: 'grid', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14 }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, color: 'var(--t2)' }}>
             <input type="checkbox" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)} />
             Give anonymously

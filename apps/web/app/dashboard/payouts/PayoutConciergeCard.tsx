@@ -79,7 +79,7 @@ export default function PayoutConciergeCard({ campaigns }: Props) {
       )}
 
       {result && tone && (
-        <div style={{ display: 'grid', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <span style={{ background: tone.bg, color: tone.color, padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 800 }}>
               {tone.label}
@@ -94,7 +94,7 @@ export default function PayoutConciergeCard({ campaigns }: Props) {
           {result.blockers.length > 0 && (
             <div>
               <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--t2)', marginBottom: 6 }}>Next steps</div>
-              <div style={{ display: 'grid', gap: 6 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6 }}>
                 {result.blockers.map(b => (
                   <Link key={b.code} href={b.actionUrl}
                     style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, fontSize: 13, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--b1)', textDecoration: 'none', color: 'var(--t1)' }}>
@@ -109,7 +109,7 @@ export default function PayoutConciergeCard({ campaigns }: Props) {
           {result.readiness === 'ready' && (
             <div>
               <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--t2)', marginBottom: 6 }}>Payout speed timelines</div>
-              <div style={{ display: 'grid', gap: 6 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6 }}>
                 {Object.entries(result.timelines).map(([speed, desc]) => (
                   <div key={speed} style={{ fontSize: 12.5, color: 'var(--t3)', display: 'flex', gap: 8 }}>
                     <strong style={{ color: 'var(--t1)', textTransform: 'capitalize', minWidth: 70 }}>{speed.replace('_', ' ')}</strong>

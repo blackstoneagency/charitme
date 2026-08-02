@@ -87,7 +87,7 @@ export default function DomainsClient({
   }
 
   return (
-    <div className="kf-admin-dash" style={{ display: 'grid', gap: 20, maxWidth: 860 }}>
+    <div className="kf-admin-dash" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 20, maxWidth: 860 }}>
       {/* The limit is stated up front, not discovered after verification. */}
       <div
         role="note"
@@ -160,7 +160,7 @@ export default function DomainsClient({
                 <p style={{ fontSize: 13, color: 'var(--t2)', margin: '0 0 8px' }}>
                   Create this TXT record at your DNS provider, then choose <em>Check now</em>:
                 </p>
-                <dl style={{ margin: 0, display: 'grid', gap: 6, fontSize: 13 }}>
+                <dl style={{ margin: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13 }}>
                   <div>
                     <dt style={{ color: 'var(--t3)' }}>Name</dt>
                     <dd style={{ margin: 0, fontFamily: 'var(--mono)', wordBreak: 'break-all' }}>

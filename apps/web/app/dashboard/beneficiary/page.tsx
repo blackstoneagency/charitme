@@ -57,7 +57,7 @@ export default async function BeneficiaryPage() {
               body="When an organizer names you as the beneficiary of a fundraiser, it will appear here — with what has been raised and whether funds have been paid out."
             />
           ) : (
-            <div style={{ display: 'grid', gap: 14, padding: '4px 0 8px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14, padding: '4px 0 8px' }}>
               {summary.campaigns.map((c) => {
                 return (
                   <article

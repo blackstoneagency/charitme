@@ -104,7 +104,7 @@ export default function RecordOfflineDonation({ campaignId }: { campaignId: stri
       )}
 
       {open && (
-        <form onSubmit={submit} style={{ marginTop: 16, display: 'grid', gap: 12 }}>
+        <form onSubmit={submit} style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
             <div>
               <label style={label} htmlFor="od-amount">Amount</label>

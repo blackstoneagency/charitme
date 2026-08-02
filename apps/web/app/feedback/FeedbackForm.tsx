@@ -79,20 +79,20 @@ export default function FeedbackForm() {
   };
 
   return (
-    <form onSubmit={submit} style={{ display: 'grid', gap: '14px', maxWidth: '560px' }}>
-      <label style={{ display: 'grid', gap: '6px' }}>
+    <form onSubmit={submit} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '14px', maxWidth: '560px' }}>
+      <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '6px' }}>
         <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--t2)' }}>Type of feedback</span>
         <select value={form.subject} onChange={update('subject')} style={field} required>
           {TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
         </select>
       </label>
 
-      <label style={{ display: 'grid', gap: '6px' }}>
+      <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '6px' }}>
         <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--t2)' }}>Your name</span>
         <input value={form.name} onChange={update('name')} required minLength={2} maxLength={120} style={field} />
       </label>
 
-      <label style={{ display: 'grid', gap: '6px' }}>
+      <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '6px' }}>
         <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--t2)' }}>Email</span>
         <input type="email" value={form.email} onChange={update('email')} required maxLength={180} style={field} />
         <span style={{ fontSize: '12px', color: 'var(--t4)' }}>
@@ -100,7 +100,7 @@ export default function FeedbackForm() {
         </span>
       </label>
 
-      <label style={{ display: 'grid', gap: '6px' }}>
+      <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '6px' }}>
         <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--t2)' }}>Your message</span>
         <textarea
           value={form.message}

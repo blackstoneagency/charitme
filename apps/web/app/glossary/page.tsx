@@ -57,7 +57,7 @@ export default function GlossaryPage() {
           >
             {letter}
           </h2>
-          <dl style={{ display: 'grid', gap: '14px', margin: 0 }}>
+          <dl style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '14px', margin: 0 }}>
             {terms.map((t) => (
               <div
                 key={t.term}

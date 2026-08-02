@@ -42,7 +42,7 @@ export default function DocumentsClient({
   }, [documents]);
 
   return (
-    <div className="kf-admin-dash" style={{ display: 'grid', gap: 20, maxWidth: 900 }}>
+    <div className="kf-admin-dash" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 20, maxWidth: 900 }}>
       {failedSources.length > 0 && (
         <div
           role="alert"
@@ -119,7 +119,7 @@ export default function DocumentsClient({
         />
       ) : (
         <Card>
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 8 }}>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8 }}>
             {visible.map((d) => (
               <li
                 key={d.id}

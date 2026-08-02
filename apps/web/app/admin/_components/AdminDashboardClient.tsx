@@ -161,7 +161,7 @@ function SourceDonut({ sources, total }: { sources: SourceItem[]; total: string 
           <small style={{ color: 'var(--t3)', fontSize: 11 }}>Total</small>
         </div>
       </div>
-      <div style={{ display: 'grid', gap: 10, flex: 1 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10, flex: 1 }}>
         {sources.map((src) => (
           <p key={src.label} style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0, color: 'var(--t1)', fontWeight: 650 }}>
             <i style={{ width: 10, height: 10, borderRadius: '50%', background: src.color, flexShrink: 0 }} />
@@ -262,7 +262,7 @@ export default function AdminDashboardClient({ metrics, campaigns, donations, we
         {/* System Health */}
         <section className="kf-card">
           <div className="kf-card-head"><h2>System Health</h2></div>
-          <div style={{ padding: '0 20px 16px', display: 'grid', gap: 10 }}>
+          <div style={{ padding: '0 20px 16px', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
             {services.map((s) => (
               <div key={s.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 9, border: '1px solid var(--line)', background: 'var(--s2)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

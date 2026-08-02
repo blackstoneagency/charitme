@@ -279,7 +279,7 @@ export default async function StatusPage() {
         </div>
       </div>
 
-      <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 12 }}>
+      <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
         {subsystems.map((s) => {
           const t = TONE[s.state];
           return (
@@ -337,7 +337,7 @@ export default async function StatusPage() {
           <h2 style={{ fontSize: 18, fontWeight: 800, margin: '0 0 12px', color: 'var(--t1)' }}>
             Scheduled maintenance
           </h2>
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 12 }}>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
             {maintenance.map((m) => (
               <li key={m.id} style={{ border: '1px solid var(--b2)', borderRadius: 10, padding: '12px 14px' }}>
                 <strong style={{ color: 'var(--t1)', fontSize: 15 }}>{m.title}</strong>
@@ -369,7 +369,7 @@ export default async function StatusPage() {
             No incidents reported in the last 30 days.
           </p>
         ) : (
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 12 }}>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
             {incidents.map((inc) => (
               <li key={inc.id} style={{ border: '1px solid var(--b2)', borderRadius: 10, padding: '12px 14px' }}>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>

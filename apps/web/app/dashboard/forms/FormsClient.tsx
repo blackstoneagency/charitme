@@ -92,7 +92,7 @@ export default function FormsClient({
   }
 
   return (
-    <div className="kf-admin-dash" style={{ display: 'grid', gap: 20 }}>
+    <div className="kf-admin-dash" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 20 }}>
       {err && (
         <div role="alert" style={{ color: 'var(--red)', fontSize: 14 }}>
           {err}
@@ -108,7 +108,7 @@ export default function FormsClient({
         />
       ) : (
         <div style={{ display: 'grid', gap: 20, gridTemplateColumns: 'minmax(0, 280px) minmax(0, 1fr)' }}>
-          <nav aria-label="Your donation forms" style={{ display: 'grid', gap: 8, alignContent: 'start' }}>
+          <nav aria-label="Your donation forms" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8, alignContent: 'start' }}>
             {forms.map((f) => (
               <button
                 key={f.id}
@@ -272,10 +272,10 @@ function FormEditor({
   const embedSnippet = `<iframe src="${typeof window !== 'undefined' ? window.location.origin : ''}/f/${slug}" width="100%" height="620" style="border:0" title="${title}"></iframe>`;
 
   return (
-    <div style={{ display: 'grid', gap: 16 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16 }}>
       <Card>
         <h2 style={{ margin: '0 0 14px', fontSize: 16 }}>Form settings</h2>
-        <div style={{ display: 'grid', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14 }}>
           <div>
             <label htmlFor="ed-title" style={{ display: 'block', fontSize: 13, marginBottom: 6 }}>
               Title

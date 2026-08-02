@@ -867,7 +867,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             )}
           </div>
           {updates.length > 0 ? (
-            <div style={{ display: 'grid', gap: 14, marginTop: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14, marginTop: 8 }}>
               {updates.slice(0, 3).map((update) => (
                 <article key={update.id} style={{ display: 'grid', gridTemplateColumns: '18px minmax(0, 1fr)', gap: 12, alignItems: 'start' }}>
                   <span style={{ width: 14, height: 14, borderRadius: '50%', background: 'var(--violet)', boxShadow: '0 0 0 5px var(--s2, #eee8ff)', display: 'block', marginTop: 3 }} />
@@ -956,7 +956,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 16, color: 'var(--t1, #1a1a2e)' }}>
               {t('campaign.faq')}
             </h2>
-            <div style={{ display: 'grid', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8 }}>
               {faqs.map(faq => (
                 <details key={faq.id} style={{ background: 'var(--s1, #fff)', border: '1px solid var(--b1, #e8ecf4)', borderRadius: 12, overflow: 'hidden' }}>
                   <summary style={{ padding: '16px 20px', fontSize: 15, fontWeight: 700, cursor: 'pointer', color: 'var(--t1, #1a1a2e)', listStyle: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

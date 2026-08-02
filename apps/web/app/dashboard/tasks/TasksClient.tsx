@@ -142,7 +142,7 @@ export default function TasksClient({
   }
 
   return (
-    <div className="kf-admin-dash" style={{ display: 'grid', gap: 20, maxWidth: 880 }}>
+    <div className="kf-admin-dash" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 20, maxWidth: 880 }}>
       {err && (
         <p role="alert" style={{ color: 'var(--red)', fontSize: 14, margin: 0 }}>
           {err}
@@ -236,7 +236,7 @@ export default function TasksClient({
         />
       ) : (
         <Card>
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 8 }}>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8 }}>
             {visible.map((t) => {
               const overdue = t.status !== 'done' && t.due_at && new Date(t.due_at).getTime() < new Date(nowIso).getTime();
               const canEdit = t.owner_id === currentUserId;

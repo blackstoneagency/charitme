@@ -178,13 +178,13 @@ export default function RefundForm({
 
   // ── Main form ─────────────────────────────────────────────────────────────
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 22, maxWidth: 560 }}>
+    <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 22, maxWidth: 560 }}>
       {/* Donation selector */}
       <section className="kf-card" style={{ padding: 20 }}>
         <h2 style={{ fontSize: 14, fontWeight: 650, margin: '0 0 14px', color: 'var(--t1)' }}>
           Select a donation
         </h2>
-        <div style={{ display: 'grid', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
           {donations.map((d) => {
             const isSelected = d.id === selectedId;
             const hasPending = d.existing_request;
@@ -291,7 +291,7 @@ export default function RefundForm({
       {/* Reason */}
       <section className="kf-card" style={{ padding: 20 }}>
         <label
-          style={{ display: 'grid', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}
+          style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}
         >
           Reason for refund request *
           <textarea

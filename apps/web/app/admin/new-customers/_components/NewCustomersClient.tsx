@@ -255,7 +255,7 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
   ];
 
   return (
-    <div style={{ padding: '24px 32px', display: 'grid', gap: 20 }}>
+    <div style={{ padding: '24px 32px', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 20 }}>
 
       {/* Pipeline flow */}
       <div style={card}>
@@ -295,7 +295,7 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
       </div>
 
       {/* Toolbar */}
-      <div style={{ ...card, display: 'grid', gap: 12 }}>
+      <div style={{ ...card, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
           <button
             type="button"
@@ -377,7 +377,7 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
           <div style={{ fontSize: 14, fontWeight: 900, color: '#1d4ed8', marginBottom: 10 }}>
             ⚡ Auto-pull (last 24h): {autoPullResult.inserted} new · {autoPullResult.enriched} enriched · {autoPullResult.alerted} alerted
           </div>
-          <div style={{ display: 'grid', gap: 6 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6 }}>
             {Object.entries(autoPullResult.sources).map(([src, r]) => (
               <div key={src} style={{ display: 'flex', gap: 8, fontSize: 12.5, fontFamily: 'monospace' }}>
                 <strong style={{ minWidth: 140 }}>{src}</strong>
@@ -396,7 +396,7 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
           <div style={{ fontSize: 14, fontWeight: 900, color: testResult.ok ? 'var(--green-text)' : 'var(--red-text)', marginBottom: 10 }}>
             {testResult.ok ? '✅ All API checks passed' : '❌ Some API checks failed'}
           </div>
-          <div style={{ display: 'grid', gap: 6 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6 }}>
             {testResult.checks.map((c) => (
               <div key={c.name} style={{ display: 'flex', gap: 8, fontSize: 12.5, fontFamily: 'monospace' }}>
                 <span>{c.ok ? '✓' : '✗'}</span>
@@ -485,7 +485,7 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
                     {/* Contact */}
                     <td style={{ padding: '12px 16px', minWidth: 190 }}>
                       {l.enriched_at ? (
-                        <div style={{ display: 'grid', gap: 2, fontSize: 12.5 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 2, fontSize: 12.5 }}>
                           {l.website ? <a href={l.website} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--blue-text)', textDecoration: 'none' }}>🌐 {l.website.replace(/^https?:\/\//, '')}</a> : <span style={{ color: 'var(--t3)' }}>🌐 —</span>}
                           {l.email ? <a href={`mailto:${l.email}`} style={{ color: 'var(--brand-text)', textDecoration: 'none' }}>✉️ {l.email}</a> : <span style={{ color: 'var(--t3)' }}>✉️ —</span>}
                           {l.phone ? <span style={{ color: 'var(--t2)' }}>📞 {l.phone}</span> : <span style={{ color: 'var(--t3)' }}>📞 —</span>}

@@ -330,7 +330,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
 
               <div style={{ marginTop: 8, padding: '20px 28px', border: '1px solid var(--b1)', borderRadius: 14, background: 'var(--s2)', minWidth: 340 }}>
                 <p style={{ margin: '0 0 14px', fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>What&apos;s Next?</p>
-                <div style={{ display: 'grid', gap: 10 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
                   <button
                     type="button"
                     style={{ height: 40, border: '1px solid #d8d2ff', borderRadius: 9, background: 'var(--s1)', color: 'var(--brand-text)', fontSize: 13, fontWeight: 650, cursor: 'pointer', textAlign: 'left', padding: '0 14px' }}
@@ -524,7 +524,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
       <div className="sys-form">
         <div className="sys-form-section">
           <h3>Payment Gateways</h3>
-          <div style={{ display: 'grid', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
             {/* Stripe */}
             <div className={`sys-toggle-card${Boolean(s.stripeLive) ? ' active' : ''}`}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -595,7 +595,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
       <div className="sys-form">
         <div className="sys-form-section">
           <h3>Third-Party Integrations</h3>
-          <div style={{ display: 'grid', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
             {/* Google Analytics */}
             <div className={`sys-toggle-card${Boolean(s.googleAnalyticsEnabled) ? ' active' : ''}`}>
               <div>
@@ -657,7 +657,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
       <div className="sys-form">
         <div className="sys-form-section">
           <h3>Notification Channels</h3>
-          <div style={{ display: 'grid', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
             {[
               { key: 'inAppEnabled', label: 'In-App Notifications', icon: '🔔', desc: 'Show notifications inside the platform' },
               { key: 'emailEnabled', label: 'Email Notifications', icon: '✉', desc: 'Send email digests and alerts' },
@@ -842,7 +842,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
         </div>
         <div className="sys-form-section">
           <h3>Debugging &amp; Registrations</h3>
-          <div style={{ display: 'grid', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
             <div className={`sys-toggle-card${debugOn ? ' active' : ''}`}>
               <div>
                 <strong style={{ fontSize: 14, fontWeight: 700, color: debugOn ? 'var(--orange-text)' : 'var(--t1)' }}>Debug Mode</strong>
@@ -1087,7 +1087,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
                 {changes.length === 0 ? (
                   <p style={{ color: 'var(--t3)', fontSize: 13 }}>No changes detected.</p>
                 ) : (
-                  <div style={{ display: 'grid', gap: 8 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8 }}>
                     {/* Header row */}
                     <div className="sys-diff-row" style={{ background: 'var(--s2)', fontWeight: 700, fontSize: 11, color: 'var(--t3)', textTransform: 'uppercase' }}>
                       <span>Field</span>

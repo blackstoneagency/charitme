@@ -113,17 +113,17 @@ export default function GivingDaysClient({
   }
 
   return (
-    <div style={{ display: 'grid', gap: 22, maxWidth: 760 }}>
-      <form onSubmit={create} style={{ display: 'grid', gap: 12, padding: 18, border: '1px solid var(--b1)', borderRadius: 'var(--rl)', background: 'var(--s1)' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 22, maxWidth: 760 }}>
+      <form onSubmit={create} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12, padding: 18, border: '1px solid var(--b1)', borderRadius: 'var(--rl)', background: 'var(--s1)' }}>
         <h2 style={{ margin: 0, fontSize: 15, fontWeight: 750, color: 'var(--t1)' }}>Schedule a giving day</h2>
 
-        <label style={{ display: 'grid', gap: 5 }}>
+        <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 5 }}>
           <span style={labelStyle}>Title</span>
           <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Giving Tuesday 2026" style={inputStyle} required minLength={3} maxLength={120} />
         </label>
 
         {nonprofits.length > 1 && (
-          <label style={{ display: 'grid', gap: 5 }}>
+          <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 5 }}>
             <span style={labelStyle}>Organisation</span>
             <select value={nonprofitId} onChange={(e) => setNonprofitId(e.target.value)} style={inputStyle}>
               {nonprofits.map((np) => <option key={np.id} value={np.id}>{np.name}</option>)}
@@ -132,11 +132,11 @@ export default function GivingDaysClient({
         )}
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 12 }}>
-          <label style={{ display: 'grid', gap: 5 }}>
+          <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 5 }}>
             <span style={labelStyle}>Opens</span>
             <input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} style={inputStyle} required />
           </label>
-          <label style={{ display: 'grid', gap: 5 }}>
+          <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 5 }}>
             <span style={labelStyle}>Closes</span>
             <input type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} style={inputStyle} required />
           </label>
@@ -146,7 +146,7 @@ export default function GivingDaysClient({
           so the window opens when you mean it to wherever a donor is.
         </p>
 
-        <label style={{ display: 'grid', gap: 5 }}>
+        <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 5 }}>
           <span style={labelStyle}>Goal (optional)</span>
           <input type="number" min={0} step="1" value={goal} onChange={(e) => setGoal(e.target.value)} placeholder="50000" style={inputStyle} />
           <span style={{ fontSize: 12.5, color: 'var(--t3)' }}>
@@ -173,7 +173,7 @@ export default function GivingDaysClient({
         ) : initialDays.length === 0 ? (
           <p style={{ fontSize: 14, color: 'var(--t3)' }}>None scheduled yet.</p>
         ) : (
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 10 }}>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
             {initialDays.map((day) => (
               <li key={day.id} style={{ padding: 14, border: '1px solid var(--b1)', borderRadius: 'var(--r)', background: 'var(--s1)', minWidth: 0 }}>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>

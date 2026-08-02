@@ -101,8 +101,8 @@ export default function SeoAeoClient({ initialSeo, initialAeo, coverage, initial
   }
 
   return (
-    <div style={{ display: 'grid', gap: 18 }}>
-      <div style={{ ...box, display: 'grid', gap: 12 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 18 }}>
+      <div style={{ ...box, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
         <div>
           <h2 style={h2}>Search coverage</h2>
           <p style={{ fontSize: 13, color: 'var(--t3)', margin: '0' }}>Live coverage calculated from the public route registry and Supabase content.</p>
@@ -158,7 +158,7 @@ export default function SeoAeoClient({ initialSeo, initialAeo, coverage, initial
           <div style={box}>
             <h2 style={h2}>Route overrides</h2>
             {initialSeo.length === 0 ? <p style={{ color: 'var(--t3)', fontSize: 14 }}>No route overrides yet. Add one above.</p> : (
-              <div style={{ display: 'grid', gap: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8 }}>
                 {initialSeo.map(r => (
                   <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', border: '1px solid var(--b1)', borderRadius: 10 }}>
                     <div style={{ minWidth: 0, flex: 1 }}>
@@ -176,7 +176,7 @@ export default function SeoAeoClient({ initialSeo, initialAeo, coverage, initial
       )}
 
       {tab === 'aeo' && (
-        <div style={{ display: 'grid', gap: 18 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 18 }}>
           <form style={box} onSubmit={saveAeo}>
             <h2 style={h2}>{aeoForm.id ? 'Edit' : 'Add'} AEO answer</h2>
             <p style={{ fontSize: 13, color: 'var(--t3)', margin: '0 0 6px' }}>Concise, factual Q&A that AI search engines and FAQ rich results can cite. Published entries are the source of truth for the public AEO surface.</p>
@@ -207,7 +207,7 @@ export default function SeoAeoClient({ initialSeo, initialAeo, coverage, initial
           <div style={box}>
             <h2 style={h2}>Answers ({initialAeo.length})</h2>
             {initialAeo.length === 0 ? <p style={{ color: 'var(--t3)', fontSize: 14 }}>No AEO answers yet. Add one above.</p> : (
-              <div style={{ display: 'grid', gap: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8 }}>
                 {initialAeo.map(a => (
                   <div key={a.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px', border: '1px solid var(--b1)', borderRadius: 10 }}>
                     <div style={{ minWidth: 0, flex: 1 }}>

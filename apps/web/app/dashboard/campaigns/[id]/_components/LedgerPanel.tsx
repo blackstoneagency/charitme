@@ -99,7 +99,7 @@ export default function LedgerPanel({ campaignId }: { campaignId: string }) {
   const statusColor = (s: string) => s === 'verified' || s === 'paid' || s === 'received' ? 'green' : 'orange';
 
   return (
-    <div style={{ display: 'grid', gap: 20, maxWidth: 720 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 20, maxWidth: 720 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
         <div>
           <h2 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 700, color: 'var(--t1)' }}>Transparency Ledger</h2>
@@ -118,31 +118,31 @@ export default function LedgerPanel({ campaignId }: { campaignId: string }) {
       {showForm && (
         <section className="kf-card" style={{ padding: 24 }}>
           <h2 style={{ fontSize: 14, fontWeight: 650, margin: '0 0 18px' }}>New Ledger Entry</h2>
-          <div style={{ display: 'grid', gap: 14 }}>
-            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14 }}>
+            <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
               Entry type
               <select value={form.item_type} onChange={e => setForm(p => ({ ...p, item_type: e.target.value }))}
                 style={{ height: 42, border: '1px solid var(--b2)', borderRadius: 9, padding: '0 12px', fontSize: 14, background: 'var(--s1)' }}>
                 {ITEM_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
             </label>
-            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
+            <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
               Title / Description *
               <input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} maxLength={200}
                 placeholder="e.g. Hospital invoice — surgery" style={{ height: 42, border: '1px solid var(--b2)', borderRadius: 9, padding: '0 12px', fontSize: 14 }} />
             </label>
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)', gap: 14 }}>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
+              <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
                 Amount ($) <span style={{ fontWeight: 400 }}>optional</span>
                 <input type="number" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} min="0" step="0.01"
                   placeholder="0.00" style={{ height: 42, border: '1px solid var(--b2)', borderRadius: 9, padding: '0 12px', fontSize: 14 }} />
               </label>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
+              <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
                 Category <span style={{ fontWeight: 400 }}>optional</span>
                 <input value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} maxLength={80}
                   placeholder="Medical, Travel…" style={{ height: 42, border: '1px solid var(--b2)', borderRadius: 9, padding: '0 12px', fontSize: 14 }} />
               </label>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
+              <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
                 Status
                 <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))}
                   style={{ height: 42, border: '1px solid var(--b2)', borderRadius: 9, padding: '0 12px', fontSize: 14, background: 'var(--s1)' }}>

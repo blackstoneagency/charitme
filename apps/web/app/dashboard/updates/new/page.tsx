@@ -109,8 +109,8 @@ export default function NewUpdatePage() {
                   <a href="/create/choose-path" style={{ color: 'var(--green-text)', textDecoration: 'none', fontWeight: 700 }}>Create one →</a>
                 </div>
               ) : (
-                <div style={{ display: 'grid', gap: 16 }}>
-                  <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16 }}>
+                  <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
                     Campaign *
                     <select
                       value={campaignId}
@@ -124,7 +124,7 @@ export default function NewUpdatePage() {
                     </select>
                   </label>
 
-                  <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
+                  <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
                     Title <span style={{ color: 'var(--t3)', fontWeight: 400 }}>(optional)</span>
                     <input
                       type="text"
@@ -136,7 +136,7 @@ export default function NewUpdatePage() {
                     />
                   </label>
 
-                  <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
+                  <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
                     Update *
                     <textarea
                       value={body}

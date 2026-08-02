@@ -42,7 +42,7 @@ export function PaymentFiltersBar({ campaigns }: { campaigns: Array<{ id: string
       <Select name="paymentStatus" label="Payment" values={['', 'pending', 'processing', 'succeeded', 'failed', 'canceled', 'refunded', 'partially_refunded', 'disputed']} />
       <Select name="payoutStatus" label="Payout" values={['', 'not_applicable', 'requested', 'approved', 'pending', 'paid', 'failed', 'frozen', 'released']} />
       <Select name="reconciliationStatus" label="Reconciliation" values={['', 'reconciled', 'pending_data', 'mismatch', 'failed', 'needs_review', 'ignored']} />
-      <label style={{ display: 'grid', gap: 5, color: 'var(--t3)', fontSize: 11, fontWeight: 700 }}>
+      <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 5, color: 'var(--t3)', fontSize: 11, fontWeight: 700 }}>
         Campaign
         <select name="campaignId" style={inputStyle}>
           <option value="">All</option>
@@ -56,7 +56,7 @@ export function PaymentFiltersBar({ campaigns }: { campaigns: Array<{ id: string
 
 function Select({ name, label, values }: { name: string; label: string; values: string[] }) {
   return (
-    <label style={{ display: 'grid', gap: 5, color: 'var(--t3)', fontSize: 11, fontWeight: 700 }}>
+    <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 5, color: 'var(--t3)', fontSize: 11, fontWeight: 700 }}>
       {label}
       <select name={name} style={inputStyle}>
         {values.map(v => <option key={v || 'all'} value={v}>{v || 'All'}</option>)}

@@ -60,7 +60,7 @@ export default async function BackupsPage() {
   };
 
   return (
-    <div className="kf-admin-dash" style={{ display: 'grid', gap: 20, maxWidth: 880 }}>
+    <div className="kf-admin-dash" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 20, maxWidth: 880 }}>
       <header>
         <h1 style={{ margin: 0, fontSize: 22 }}>Backups &amp; Recovery</h1>
         <p style={{ margin: '4px 0 0', color: 'var(--t3)', fontSize: 14 }}>
@@ -89,7 +89,7 @@ export default async function BackupsPage() {
 
       <section style={card}>
         <h2 style={{ margin: '0 0 12px', fontSize: 16 }}>Where the data is</h2>
-        <dl style={{ margin: 0, display: 'grid', gap: 10, fontSize: 14 }}>
+        <dl style={{ margin: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10, fontSize: 14 }}>
           <div>
             <dt style={{ color: 'var(--t3)', fontSize: 12 }}>Primary database</dt>
             <dd style={{ margin: 0 }}>Supabase-managed PostgreSQL. Backups, retention window and
@@ -155,7 +155,7 @@ export default async function BackupsPage() {
             is the expected state unless someone enabled it deliberately.
           </p>
         ) : (
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 8 }}>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8 }}>
             {deletions.map((r) => (
               <li key={r.id} style={{ fontSize: 13, color: 'var(--t2)' }}>
                 <strong style={{ color: 'var(--t1)' }}>{r.category}</strong> — {r.deleted_count}{' '}

@@ -181,7 +181,7 @@ export default function AiControlCenterClient({
   const anyDegraded = github.health !== 'connected' || platform.health !== 'connected';
 
   return (
-    <div style={{ padding: '0 4px 48px', display: 'grid', gap: 22 }}>
+    <div style={{ padding: '0 4px 48px', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 22 }}>
       {anyDegraded && (
         <div
           role="alert"
@@ -224,7 +224,7 @@ export default function AiControlCenterClient({
       </section>
 
       {/* ── Delivery state ──────────────────────────────────────────────── */}
-      <section aria-labelledby="ai-delivery" style={{ display: 'grid', gap: 12 }}>
+      <section aria-labelledby="ai-delivery" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
         <h2 id="ai-delivery" style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>
           Delivery state
         </h2>
@@ -242,7 +242,7 @@ export default function AiControlCenterClient({
       </section>
 
       {/* ── Roster ──────────────────────────────────────────────────────── */}
-      <section aria-labelledby="ai-roster" style={{ display: 'grid', gap: 12 }}>
+      <section aria-labelledby="ai-roster" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
         <h2 id="ai-roster" style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>
           Agent roster
         </h2>
@@ -250,7 +250,7 @@ export default function AiControlCenterClient({
           {agents.map((agent) => {
             const tone = statusTone(agent.status);
             return (
-              <article key={agent.id} className="kf-card" style={{ padding: 18, display: 'grid', gap: 10 }}>
+              <article key={agent.id} className="kf-card" style={{ padding: 18, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   <strong style={{ fontSize: 15, flex: '1 1 auto', minWidth: 0 }}>{agent.name}</strong>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: TONE_COLOR[tone], fontWeight: 600 }}>
@@ -282,7 +282,7 @@ export default function AiControlCenterClient({
       </section>
 
       {/* ── Built context pack ──────────────────────────────────────────── */}
-      <section aria-labelledby="ai-context" aria-live="polite" style={{ display: 'grid', gap: 12 }}>
+      <section aria-labelledby="ai-context" aria-live="polite" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
         <h2 id="ai-context" style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>
           Context pack
         </h2>
@@ -300,7 +300,7 @@ export default function AiControlCenterClient({
           </div>
         )}
         {pack && (
-          <div className="kf-card" style={{ padding: 18, display: 'grid', gap: 12 }}>
+          <div className="kf-card" style={{ padding: 18, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
               <strong style={{ fontSize: 15, flex: '1 1 auto' }}>{pack.agentName}</strong>
               <Btn size="sm" variant="secondary" onClick={copyPack}>

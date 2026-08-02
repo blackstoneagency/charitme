@@ -212,7 +212,7 @@ export default async function DonorPortalPage() {
               Manage →
             </Link>
           </h2>
-          <div style={{ display: 'grid', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
             {recurring.map(r => {
               const camp = campaignMap.get(r.campaign_id);
               return (

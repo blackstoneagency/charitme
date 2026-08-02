@@ -66,7 +66,7 @@ function RoleCard({ role }: { role: (typeof ROLE_ORDER)[number] }) {
         {def.description}
       </p>
 
-      <ul style={{ margin: 0, paddingLeft: 18, display: 'grid', gap: 6 }}>
+      <ul style={{ margin: 0, paddingLeft: 18, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6 }}>
         {def.capabilities.map((cap) => (
           <li key={cap.label} style={{ fontSize: 14, color: 'var(--t2)', lineHeight: 1.55 }}>
             {cap.label}

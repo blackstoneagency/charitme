@@ -84,7 +84,7 @@ export default function SharePanel({ campaignId }: { campaignId: string }) {
   }
 
   return (
-    <div style={{ display: 'grid', gap: 24, maxWidth: 900 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 24, maxWidth: 900 }}>
       <div>
         <h2 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 700, color: 'var(--t1)' }}>Share &amp; Grow</h2>
         <p style={{ margin: 0, fontSize: 14, color: 'var(--t3)' }}>
@@ -135,7 +135,7 @@ export default function SharePanel({ campaignId }: { campaignId: string }) {
         </div>
 
         {/* Context input */}
-        <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t1)', marginBottom: 14 }}>
+        <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t1)', marginBottom: 14 }}>
           Extra context <span style={{ fontWeight: 400, color: 'var(--t3)' }}>optional — e.g. &ldquo;we just hit 50% of our goal&rdquo;</span>
           <input value={context} onChange={e => setContext(e.target.value)} maxLength={200} placeholder="Any specific message or milestone to include..."
             style={{ height: 42, border: '1.5px solid var(--b2)', borderRadius: 10, padding: '0 14px', fontSize: 14, outline: 'none', background: 'var(--s1)', color: 'var(--t1)' }} />

@@ -107,7 +107,7 @@ export default function ThankDonorsPanel({ campaignId }: { campaignId: string })
   }
 
   return (
-    <div style={{ display: 'grid', gap: 20, maxWidth: 760 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 20, maxWidth: 760 }}>
       <div>
         <h2 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 700, color: 'var(--t1)' }}>Thank Your Donors</h2>
         <p style={{ margin: 0, fontSize: 14, color: 'var(--t3)' }}>
@@ -150,7 +150,7 @@ export default function ThankDonorsPanel({ campaignId }: { campaignId: string })
                 <button type="button" onClick={() => setSelected(new Set())} style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}>Clear</button>
               </div>
             </div>
-            <div style={{ display: 'grid', gap: 8, maxHeight: 320, overflowY: 'auto' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8, maxHeight: 320, overflowY: 'auto' }}>
               {donations.map(d => (
                 <label key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', border: `1px solid ${selected.has(d.id) ? 'var(--green)' : 'var(--b2)'}`, borderRadius: 10, cursor: 'pointer', background: selected.has(d.id) ? 'rgba(18,166,83,.12)' : 'var(--s1)', transition: 'border-color .1s' }}>
                   <input type="checkbox" checked={selected.has(d.id)} onChange={e => {

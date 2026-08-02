@@ -1463,7 +1463,7 @@ input, select, textarea, button { max-width: 100%; }
 }
 
 /* Admin users end-to-end flow */
-.admin-users { padding: 0 32px 34px; display: grid; gap: 20px; }
+.admin-users { padding: 0 32px 34px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
 .admin-user-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
 .admin-user-shell { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 18px; align-items: start; }
 .admin-user-rail { position: sticky; top: 18px; display: grid; gap: 9px; border: 1px solid #e8ebf4; border-radius: 16px; background: #fff; padding: 12px; box-shadow: 0 14px 36px rgba(40,30,110,.06); }
@@ -1733,6 +1733,13 @@ input, select, textarea, button { max-width: 100%; }
   display: flex;
   align-items: center;
   gap: 14px;
+  /* Wraps rather than pushing the top bar past the viewport. Four 44px controls
+     plus a 154px button measure 401px, which is wider than a 390px phone — and
+     because the root clips instead of scrolling, the last control was simply cut
+     off and unreachable. */
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0;
 }
 .kf-shell-account-controls .theme-toggle-btn,
 .kf-shell-account-controls .kind-search-btn,
@@ -1780,9 +1787,9 @@ input, select, textarea, button { max-width: 100%; }
 }
 .kf-icon-btn span { position: absolute; right: 6px; top: -4px; min-width: 20px; height: 20px; display: grid; place-items: center; border-radius: 999px; background: #4e16f5; color: #fff; font-size: 11px; font-weight: 700; }
 .kf-content-grid { display: grid; grid-template-columns: minmax(0, 1fr) 356px; gap: 24px; padding: 0 32px 32px; }
-.kf-content-main { min-width: 0; display: grid; gap: 22px; }
-.kf-admin-dash { display: grid; gap: 22px; padding: 0 32px 32px; }
-.kf-side-panels { display: grid; align-content: start; gap: 20px; }
+.kf-content-main { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; }
+.kf-admin-dash { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; padding: 0 32px 32px; }
+.kf-side-panels { display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 20px; }
 .kf-card {
   border: 1px solid #e6e9f2;
   border-radius: 13px;
@@ -1835,7 +1842,7 @@ input, select, textarea, button { max-width: 100%; }
 .kf-tabs.compact button { height: 40px; padding: 0 20px; border-bottom: 0; border-right: 1px solid #e8ddff; }
 .kf-tabs.compact button.active { background: #f7f2ff; }
 .kf-table-card { overflow: hidden; }
-.kf-rows { display: grid; }
+.kf-rows { display: grid; grid-template-columns: minmax(0, 1fr); }
 .kf-row {
   min-height: 84px;
   display: grid;
@@ -4515,7 +4522,7 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 .sys-textarea { border: 1px solid var(--b1); border-radius: 9px; background: var(--s1); color: var(--t1); padding: 10px 14px; font-size: 13px; font-weight: 650; width: 100%; box-sizing: border-box; resize: vertical; min-height: 90px; }
 
 /* ── Users E2E enhancements ──────────────────────────────── */
-.users-layout { display: grid; gap: 24px; padding: 0 32px 40px; }
+.users-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; padding: 0 32px 40px; }
 .users-overview-grid { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; }
 .users-kpi-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 20px; }
 .users-kpi-card { padding: 20px; border: 1px solid #eef0f7; border-radius: 16px; background: #fff; }
@@ -4848,7 +4855,7 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 .ac-cell-campaign small { font-size: 11px; color: var(--t3); }
 .ac-empty { padding: 40px 20px; text-align: center; color: var(--t3); font-size: 14px; }
 .ac-pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; font-size: 12px; color: var(--t3); }
-.ac-pages { display: flex; gap: 4px; align-items: center; }
+.ac-pages { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; min-width: 0; }
 .ac-pages button { width: 32px; height: 32px; border: 1px solid #eef0f7; border-radius: 7px; background: #fff; font-size: 13px; font-weight: 600; color: #3a4166; cursor: pointer; }
 .ac-pages button.active { background: #551cf2; color: #fff; border-color: var(--brand-text); }
 .ac-pages button:disabled { opacity: .4; cursor: default; }

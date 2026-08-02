@@ -88,10 +88,10 @@ export default function WidgetPanel({ campaignId }: { campaignId: string }) {
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,420px)', gap: 24, alignItems: 'start' }} className="widget-config">
-      <div style={{ display: 'grid', gap: 18, minWidth: 0 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 18, minWidth: 0 }}>
         <section style={card}>
           <h2 style={cardTitle}>Appearance</h2>
-          <div role="radiogroup" aria-label="Widget theme" style={{ display: 'grid', gap: 8 }}>
+          <div role="radiogroup" aria-label="Widget theme" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8 }}>
             {THEMES.map((t) => (
               <label key={t.value} style={row(options.theme === t.value)}>
                 <input
@@ -114,7 +114,7 @@ export default function WidgetPanel({ campaignId }: { campaignId: string }) {
 
         <section style={card}>
           <h2 style={cardTitle}>What to show</h2>
-          <div style={{ display: 'grid', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8 }}>
             {TOGGLES.map((t) => {
               const disabled = t.key === 'showDonorCount' && !options.showProgress;
               return (

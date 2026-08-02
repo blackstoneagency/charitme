@@ -141,7 +141,7 @@ export default function MfaPage() {
             </div>
             <div className="kf-setpanel-body">
               {factors.length > 0 ? (
-                <div style={{ display: 'grid', gap: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
                   {factors.map(f => (
                     <div key={f.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', border: '1px solid var(--b2)', borderRadius: 10, background: 'var(--s2)' }}>
                       <div>
@@ -162,7 +162,7 @@ export default function MfaPage() {
                   ))}
                 </div>
               ) : qrCode ? (
-                <div style={{ display: 'grid', gap: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16 }}>
                   <p style={{ fontSize: 14, color: 'var(--t2)' }}>
                     Scan the QR code below with your authenticator app (Google Authenticator, Authy, 1Password, etc.), then enter the 6-digit code to verify.
                   </p>
@@ -196,7 +196,7 @@ export default function MfaPage() {
                   </button>
                 </div>
               ) : (
-                <div style={{ display: 'grid', gap: 14 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14 }}>
                   <p style={{ fontSize: 14, color: 'var(--t2)', lineHeight: 1.6 }}>
                     Two-factor authentication adds a second step when signing in, making your account more secure.
                     You will need an authenticator app on your phone (Google Authenticator, Authy, 1Password).

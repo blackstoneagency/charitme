@@ -190,7 +190,7 @@ export default function HoursClient({ rows, titles, totals, loadFailed }: Props)
           body="Once you check in to a shift, your time will appear here."
         />
       ) : (
-        <div style={{ display: 'grid', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
           {rows.map((r) => (
             <Card key={r.id}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>

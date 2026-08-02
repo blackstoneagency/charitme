@@ -164,7 +164,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
   });
 
   return (
-    <div style={{ padding: '0 32px 32px', display: 'grid', gap: 22 }}>
+    <div style={{ padding: '0 32px 32px', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 22 }}>
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 18 }}>
         {[
@@ -321,7 +321,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
           onClick={event => { if (event.target === event.currentTarget) setSelectedEvent(null); }}
         >
           <div
-            style={{ width: 420, background: 'var(--s1)', overflowY: 'auto', padding: 28, display: 'grid', alignContent: 'start', gap: 18 }}
+            style={{ width: 420, background: 'var(--s1)', overflowY: 'auto', padding: 28, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', alignContent: 'start', gap: 18 }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>Event Details</h2>
@@ -395,7 +395,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
           <div style={{ width: 380, padding: 28, borderRadius: 16, background: 'var(--s1)', boxShadow: '0 24px 80px rgba(55,42,130,.18)' }}>
             <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 800 }}>Export Audit Logs</h2>
             <p style={{ margin: '0 0 20px', color: 'var(--t3)', fontSize: 13 }}>Choose the format to export {totalEvents.toLocaleString()} events.</p>
-            <div style={{ display: 'grid', gap: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
               {(['CSV', 'Excel', 'PDF'] as const).map(fmt => (
                 <label key={fmt} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', border: `1px solid ${exportFmt === fmt ? '#6c35ff' : '#e0e4ef'}`, borderRadius: 9, cursor: 'pointer', fontSize: 14, fontWeight: 650 }}>
                   <input type="radio" name="export-fmt" value={fmt} checked={exportFmt === fmt} onChange={() => setExportFmt(fmt)} />

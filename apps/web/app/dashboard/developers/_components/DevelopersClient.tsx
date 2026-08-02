@@ -87,7 +87,7 @@ export function DevelopersClient({ initialKeys, availableScopes }: Props) {
   const revoked = keys.filter((k) => k.revoked_at);
 
   return (
-    <div style={{ display: 'grid', gap: 24 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 24 }}>
       {plaintext && (
         <Card style={{ border: '1px solid var(--green)', background: 'var(--green-light)' }}>
           <h2 style={{ margin: '0 0 6px', fontSize: 15.5, fontWeight: 800, color: 'var(--green-dark)' }}>
@@ -142,7 +142,7 @@ export function DevelopersClient({ initialKeys, availableScopes }: Props) {
           <code style={{ fontFamily: 'var(--mono)' }}>Authorization: Bearer …</code>.
         </p>
 
-        <form onSubmit={createKey} style={{ display: 'grid', gap: 14 }}>
+        <form onSubmit={createKey} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14 }}>
           <Input
             label="Key name"
             value={name}
@@ -153,7 +153,7 @@ export function DevelopersClient({ initialKeys, availableScopes }: Props) {
           />
           <fieldset style={{ border: '1px solid var(--b1)', borderRadius: 'var(--r)', padding: '12px 14px', margin: 0 }}>
             <legend style={{ fontSize: 13, fontWeight: 600, color: 'var(--t2)', padding: '0 6px' }}>Scopes</legend>
-            <div style={{ display: 'grid', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8 }}>
               {availableScopes.map((s) => (
                 <label key={s} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, color: 'var(--t2)' }}>
                   <input type="checkbox" checked={scopes.includes(s)} onChange={() => toggleScope(s)} />
@@ -176,7 +176,7 @@ export function DevelopersClient({ initialKeys, availableScopes }: Props) {
         {keys.length === 0 ? (
           <EmptyState title="No API keys yet" body="Create one above to start using the CharitMe API." />
         ) : (
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 12 }}>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
             {[...active, ...revoked].map((k) => (
               <li
                 key={k.id}

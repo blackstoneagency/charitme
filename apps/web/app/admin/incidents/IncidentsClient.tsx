@@ -123,7 +123,7 @@ export default function IncidentsClient({
   }
 
   return (
-    <div className="kf-admin-dash" style={{ display: 'grid', gap: 20, maxWidth: 900 }}>
+    <div className="kf-admin-dash" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 20, maxWidth: 900 }}>
       <header>
         <h1 style={{ margin: 0, fontSize: 22 }}>Incidents &amp; Maintenance</h1>
         <p style={{ margin: '4px 0 0', color: 'var(--t3)', fontSize: 14 }}>
@@ -196,7 +196,7 @@ export default function IncidentsClient({
         ) : incidents.length === 0 ? (
           <p style={{ fontSize: 14, color: 'var(--t3)', margin: 0 }}>No incidents recorded.</p>
         ) : (
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 10 }}>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
             {incidents.map((inc) => (
               <li
                 key={inc.id}
@@ -247,7 +247,7 @@ export default function IncidentsClient({
 
       <Card>
         <h2 style={{ margin: '0 0 12px', fontSize: 16 }}>Schedule maintenance</h2>
-        <form onSubmit={scheduleWindow} style={{ display: 'grid', gap: 12 }}>
+        <form onSubmit={scheduleWindow} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
           <div>
             <label htmlFor="mw-title" style={{ display: 'block', fontSize: 13, marginBottom: 6 }}>
               Title
@@ -287,7 +287,7 @@ export default function IncidentsClient({
             Scheduled windows could not be loaded.
           </p>
         ) : windows.length > 0 ? (
-          <ul style={{ listStyle: 'none', margin: '16px 0 0', padding: 0, display: 'grid', gap: 8 }}>
+          <ul style={{ listStyle: 'none', margin: '16px 0 0', padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8 }}>
             {windows.map((w) => (
               <li key={w.id} style={{ fontSize: 13, color: 'var(--t2)' }}>
                 <strong style={{ color: 'var(--t1)' }}>{w.title}</strong> — {new Date(w.starts_at).toUTCString()} →{' '}

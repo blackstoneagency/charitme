@@ -89,7 +89,7 @@ export default function SettingsClient({ config: initial }: { config: PlatformCo
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 18 }}>
         <section className="kf-card" style={{ padding: 18 }}>
           <h3 style={{ margin: '0 0 12px', fontSize: 15 }}>Branding</h3>
-          <div style={{ display: 'grid', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
             <Field label="Platform name" k="platformName" value={c.platformName} ph="CharitMe" onSet={set} />
             <Field label="Tagline" k="tagline" value={c.tagline} onSet={set} />
             <Field label="Support email" k="supportEmail" value={c.supportEmail} ph="hello@charitme.com" onSet={set} />
@@ -98,7 +98,7 @@ export default function SettingsClient({ config: initial }: { config: PlatformCo
         </section>
         <section className="kf-card" style={{ padding: 18 }}>
           <h3 style={{ margin: '0 0 12px', fontSize: 15 }}>Fees &amp; currency</h3>
-          <div style={{ display: 'grid', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
             <Field label="Default currency (ISO)" k="currency" value={c.currency} ph="USD" onSet={set} />
             <Field label="Platform fee %" k="platformFeePercent" value={c.platformFeePercent} type="number" onSet={set} />
             <Field label="Processing fee %" k="donationFeePercent" value={c.donationFeePercent} type="number" onSet={set} />

@@ -69,7 +69,7 @@ export default function AuctionLots({
   if (lots.length === 0) return null;
 
   return (
-    <div style={{ display: 'grid', gap: 14 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14 }}>
       {lots.map((item) => {
         const open = isAuctionOpen(item);
         const minimum = minimumNextBidCents(item);
@@ -84,7 +84,7 @@ export default function AuctionLots({
               borderRadius: 'var(--rl, 14px)',
               background: 'var(--s1)',
               padding: 16,
-              display: 'grid',
+              display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)',
               gap: 8,
             }}
           >

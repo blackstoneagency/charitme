@@ -140,7 +140,7 @@ export default async function CommunityPage() {
                 action={<Link href="/campaigns" style={{ fontSize: '14px', color: 'var(--green-text)', fontWeight: 600 }}>Browse campaigns</Link>}
               />
             ) : (
-              <div style={{ display: 'grid', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '12px' }}>
                 {feed.updates.map((u) => (
                   <article key={u.id} style={{ padding: '18px', border: '1px solid var(--b1)', borderRadius: 'var(--rl)', background: 'var(--s1)' }}>
                     {u.title && (
@@ -170,7 +170,7 @@ export default async function CommunityPage() {
                 action={<Link href="/donate" style={{ fontSize: '14px', color: 'var(--green-text)', fontWeight: 600 }}>Be the first</Link>}
               />
             ) : (
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: '8px' }}>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '8px' }}>
                 {feed.donations.map((d) => (
                   <li key={d.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 14px', border: '1px solid var(--b1)', borderRadius: 'var(--rl)', background: 'var(--s1)' }}>
                     <span style={{ flex: 1, minWidth: 0, fontSize: '14px', color: 'var(--t1)' }}>

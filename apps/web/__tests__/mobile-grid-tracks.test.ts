@@ -118,6 +118,61 @@ describe('inline grid tracks can shrink too', () => {
   });
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// The half the `1fr` rules above cannot see: a grid with NO track list at all.
+//
+// `display: grid` with only a `gap` is the same trap wearing different clothes.
+// The implicit column is `auto`, whose minimum is the widest child's min-content
+// — identical behaviour to a bare `1fr`, and there is no `1fr` anywhere in the
+// declaration for a text search to find.
+//
+// Measured, not theorised: `.kf-admin-dash`, `.users-layout`, `.kf-content-main`
+// and `.kf-rows` were all bare `display: grid` wrappers, and they are why
+// /admin/users rendered 526px of content on a 390px phone and /dashboard/updates/new
+// rendered 486px. Because `html` and `body` both set `overflow-x: hidden`, that
+// width did not scroll — it was CUT OFF and unreachable.
+//
+// A single-column stack loses nothing by declaring `minmax(0, 1fr)`: it is the
+// same layout, minus a minimum nobody wanted.
+//
+// Grids that place a single centred child (`place-items`), flow by column, or
+// declare rows are excluded — those are icon boxes and one-offs where the
+// implicit column is deliberate.
+const PLACEMENT_INTENT = /placeItems|placeContent|gridTemplateRows|gridAutoFlow|gridTemplate\b/;
+
+function inlineGridsWithoutTracks(): string[] {
+  const offenders: string[] = [];
+  // Object literals, including nested one level deep (media-ish helper objects).
+  const objects = /\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/gs;
+  for (const file of tsxSources()) {
+    const src = readFileSync(file, 'utf8');
+    for (const m of src.matchAll(objects)) {
+      const body = m[1];
+      if (!/display:\s*['"]grid['"]/.test(body)) continue;
+      if (PLACEMENT_INTENT.test(body)) continue;
+      if (/gridTemplateColumns/.test(body)) continue;
+      offenders.push(`${file.split('/apps/web/')[1] ?? file} — ${body.trim().slice(0, 70)}`);
+    }
+  }
+  return offenders;
+}
+
+describe('inline grids declare a track that can shrink', () => {
+  it('scans a real tree', () => {
+    expect(tsxSources().length).toBeGreaterThan(100);
+  });
+
+  it('never leaves an inline grid to its implicit auto column', () => {
+    const offenders = inlineGridsWithoutTracks();
+    expect(
+      offenders,
+      'an implicit `auto` column grows to its widest child exactly as a bare ' +
+      '`1fr` does, and no breakpoint can reach an inline style. Add ' +
+      `gridTemplateColumns: 'minmax(0, 1fr)':\n${offenders.join('\n')}`,
+    ).toEqual([]);
+  });
+});
+
 // Every CSS declaration, not only the ones inside a mobile block. A bare `1fr`
 // at the top level applies at EVERY width, so it can blow out a phone layout
 // that no breakpoint ever overrides — /admin/users kept two 250px KPI cards on a

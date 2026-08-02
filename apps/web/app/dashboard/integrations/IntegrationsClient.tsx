@@ -101,13 +101,13 @@ function ConnectModal({
           <button type="button" onClick={onClose} style={{ width: 30, height: 30, border: '1px solid var(--b1, var(--b1))', borderRadius: '50%', background: 'var(--s1, #fff)', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: 'var(--t3, var(--t3))' }}>×</button>
         </div>
 
-        <div style={{ padding: 24, display: 'grid', gap: 14 }}>
+        <div style={{ padding: 24, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14 }}>
           {error && (
             <div style={{ padding: '10px 14px', background: 'rgba(190,18,60,.08)', borderRadius: 9, color: 'var(--red, var(--red))', fontSize: 13, fontWeight: 700 }}>{error}</div>
           )}
 
           {needsWebhook ? (
-            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
+            <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
               Webhook URL
               <input
                 type="url"
@@ -121,7 +121,7 @@ function ConnectModal({
               </span>
             </label>
           ) : (
-            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
+            <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
               {item.name === 'Google Analytics' ? 'Tracking ID / Measurement ID' : item.name === 'Facebook Pixel' ? 'Pixel ID' : 'API Key'}
               <input
                 type="text"

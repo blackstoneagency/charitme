@@ -142,7 +142,7 @@ export default function HelpPage() {
           <p style={{ fontSize: 13, marginTop: 6 }}>Try different keywords or <a href="/contact" style={{ color: 'var(--violet-ink)', fontWeight: 700 }}>contact support</a>.</p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gap: 4 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 4 }}>
           {filtered.map(article => (
             <div key={article.id}
               style={{ border: '1px solid var(--b2)', borderRadius: 12, overflow: 'hidden' }}>

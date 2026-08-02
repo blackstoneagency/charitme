@@ -116,7 +116,7 @@ export default function CreateTeamWizard({ campaigns }: { campaigns: CampaignOpt
           each person creates their own page, and everything they raise counts toward the same
           total.
         </p>
-        <label style={{ display: 'grid', gap: '6px', marginTop: '18px' }}>
+        <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '6px', marginTop: '18px' }}>
           <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--t2)' }}>Share this link</span>
           <input readOnly value={shareUrl} style={field} onFocus={(e) => e.currentTarget.select()} />
         </label>
@@ -162,9 +162,9 @@ export default function CreateTeamWizard({ campaigns }: { campaigns: CampaignOpt
         ))}
       </ol>
 
-      <div style={{ display: 'grid', gap: '14px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '14px' }}>
         {step === 0 && (
-          <label style={{ display: 'grid', gap: '6px' }}>
+          <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '6px' }}>
             <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--t2)' }}>Which campaign are you raising for?</span>
             <select value={campaignId} onChange={(e) => setCampaignId(e.target.value)} style={field}>
               {campaigns.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
@@ -176,7 +176,7 @@ export default function CreateTeamWizard({ campaigns }: { campaigns: CampaignOpt
         )}
 
         {step === 1 && (
-          <label style={{ display: 'grid', gap: '6px' }}>
+          <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '6px' }}>
             <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--t2)' }}>Team name</span>
             <input
               value={title}
@@ -193,7 +193,7 @@ export default function CreateTeamWizard({ campaigns }: { campaigns: CampaignOpt
         )}
 
         {step === 2 && (
-          <label style={{ display: 'grid', gap: '6px' }}>
+          <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '6px' }}>
             <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--t2)' }}>Team goal (USD)</span>
             <input
               type="number"
@@ -212,7 +212,7 @@ export default function CreateTeamWizard({ campaigns }: { campaigns: CampaignOpt
 
         {step === 3 && (
           <div style={{ padding: '18px', border: '1px solid var(--b1)', borderRadius: 'var(--rl)', background: 'var(--s2)' }}>
-            <dl style={{ display: 'grid', gap: '10px', margin: 0 }}>
+            <dl style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '10px', margin: 0 }}>
               {[
                 ['Campaign', campaign?.title ?? '—'],
                 ['Team name', title.trim() || '—'],

@@ -451,7 +451,7 @@ export default function AdminUsersClient({
             <h3>Recent Users</h3>
             <button onClick={() => setView('list')}>View all users →</button>
           </div>
-          <div style={{ display: 'grid' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)' }}>
             <div className="users-recent-row" style={{ fontWeight: 700, fontSize: 11, color: 'var(--t3)', textTransform: 'uppercase' }}>
               <span>User</span><span>Role</span><span>Joined</span>
             </div>
@@ -1143,7 +1143,7 @@ function SettingsTab({
 
   return (
     <div className="users-tab-content">
-      <div style={{ maxWidth: 480, display: 'grid', gap: 18 }}>
+      <div style={{ maxWidth: 480, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 18 }}>
 
         <div className="users-add-field">
           <label htmlFor="au-fullname">Full Name</label>

@@ -87,7 +87,7 @@ export default function RunFraudScanButton() {
             {error && <div style={{ padding: '10px 14px', background: 'var(--tint-rose)', border: '1px solid #fecdd3', borderRadius: 8, color: 'var(--red-text)', fontSize: 13, fontWeight: 600 }}>⚠ {error}</div>}
 
             {result && (
-              <div style={{ display: 'grid', gap: 14 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14 }}>
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                   <div style={{ flex: 1, minWidth: 120, background: 'var(--s2)', border: '1px solid #f0f4f8', borderRadius: 10, padding: '10px 14px', textAlign: 'center' }}>
                     <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--t1)' }}>{result.scanned}</div>
@@ -106,7 +106,7 @@ export default function RunFraudScanButton() {
                 {result.flaggedCampaigns.length > 0 && (
                   <div>
                     <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--t3)', marginBottom: 6 }}>Newly flagged campaigns</div>
-                    <div style={{ display: 'grid', gap: 8 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8 }}>
                       {result.flaggedCampaigns.map((c) => (
                         <div key={c.campaignId} style={{ border: '1px solid #f0f4f8', borderRadius: 10, padding: '10px 14px' }}>
                           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)', marginBottom: 6 }}>{c.campaignTitle}</div>

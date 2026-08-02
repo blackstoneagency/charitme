@@ -137,7 +137,7 @@ export default function AdminVolunteersClient() {
   }
 
   return (
-    <div style={{ display: 'grid', gap: 20 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 20 }}>
       {msg && (
         <div style={{
           padding: '10px 14px', borderRadius: 10, fontSize: 13, fontWeight: 600,
@@ -245,7 +245,7 @@ export default function AdminVolunteersClient() {
             No opportunities yet. Add your first one above — it goes live on <strong>/volunteer</strong> immediately.
           </div>
         ) : (
-          <div style={{ display: 'grid', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8 }}>
             {opps.map((o) => {
               const full = o.slots != null && o.slots_filled >= o.slots;
               return (

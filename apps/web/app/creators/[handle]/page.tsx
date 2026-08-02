@@ -275,7 +275,7 @@ export default async function CreatorPage({ params }: { params: Promise<{ handle
       {posts.length > 0 && (
         <section style={{ marginTop: 32 }}>
           <h2 style={{ fontSize: 19, fontWeight: 800, color: 'var(--t1)', margin: '0 0 18px' }}>Posts</h2>
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 14 }}>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14 }}>
             {posts.map((p) => (
               <li
                 key={p.id}

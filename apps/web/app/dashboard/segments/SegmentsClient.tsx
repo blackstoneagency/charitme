@@ -127,21 +127,21 @@ export default function SegmentsClient({
   }
 
   return (
-    <div style={{ display: 'grid', gap: 22, maxWidth: 780 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 22, maxWidth: 780 }}>
       <p style={{ fontSize: 13.5, color: 'var(--t3)', margin: 0 }}>
         Selecting from <strong style={{ color: 'var(--t2)' }}>{contactCount.toLocaleString()}</strong> contacts.
       </p>
 
-      <form onSubmit={create} style={{ display: 'grid', gap: 12, padding: 18, border: '1px solid var(--b1)', borderRadius: 'var(--rl)', background: 'var(--s1)' }}>
+      <form onSubmit={create} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12, padding: 18, border: '1px solid var(--b1)', borderRadius: 'var(--rl)', background: 'var(--s1)' }}>
         <h2 style={{ margin: 0, fontSize: 15, fontWeight: 750, color: 'var(--t1)' }}>New segment</h2>
 
-        <label style={{ display: 'grid', gap: 5 }}>
+        <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 5 }}>
           <span style={labelStyle}>Name</span>
           <input value={name} onChange={(e) => { setName(e.target.value); setConfirmEveryone(false); }} placeholder="Lapsed major donors" style={inputStyle} required minLength={2} maxLength={80} />
         </label>
 
         {nonprofits.length > 1 && (
-          <label style={{ display: 'grid', gap: 5 }}>
+          <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 5 }}>
             <span style={labelStyle}>Organisation</span>
             <select value={nonprofitId} onChange={(e) => setNonprofitId(e.target.value)} style={inputStyle}>
               {nonprofits.map((np) => <option key={np.id} value={np.id}>{np.name}</option>)}
@@ -149,21 +149,21 @@ export default function SegmentsClient({
           </label>
         )}
 
-        <label style={{ display: 'grid', gap: 5 }}>
+        <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 5 }}>
           <span style={labelStyle}>Tags (comma separated, all must match)</span>
           <input value={tags} onChange={(e) => { setTags(e.target.value); setConfirmEveryone(false); }} placeholder="major, monthly" style={inputStyle} />
         </label>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
-          <label style={{ display: 'grid', gap: 5 }}>
+          <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 5 }}>
             <span style={labelStyle}>Gave at least ($)</span>
             <input type="number" min={0} value={minValue} onChange={(e) => { setMinValue(e.target.value); setConfirmEveryone(false); }} style={inputStyle} />
           </label>
-          <label style={{ display: 'grid', gap: 5 }}>
+          <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 5 }}>
             <span style={labelStyle}>Donated in the last (days)</span>
             <input type="number" min={0} value={withinDays} onChange={(e) => { setWithinDays(e.target.value); setConfirmEveryone(false); }} style={inputStyle} />
           </label>
-          <label style={{ display: 'grid', gap: 5 }}>
+          <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 5 }}>
             <span style={labelStyle}>No donation for (days)</span>
             <input type="number" min={0} value={lapsedDays} onChange={(e) => { setLapsedDays(e.target.value); setConfirmEveryone(false); }} style={inputStyle} />
           </label>
@@ -216,7 +216,7 @@ export default function SegmentsClient({
         ) : initialSegments.length === 0 ? (
           <p style={{ fontSize: 14, color: 'var(--t3)' }}>None yet.</p>
         ) : (
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 10 }}>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
             {initialSegments.map((seg) => (
               <li key={seg.id} style={{ padding: 14, border: '1px solid var(--b1)', borderRadius: 'var(--r)', background: 'var(--s1)', minWidth: 0 }}>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>

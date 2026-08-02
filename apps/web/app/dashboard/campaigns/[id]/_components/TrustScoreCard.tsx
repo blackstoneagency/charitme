@@ -69,7 +69,7 @@ export default function TrustScoreCard({ campaignId }: Props) {
       )}
 
       {result && tone && (
-        <div style={{ display: 'grid', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <span style={{ background: tone.bg, color: tone.color, padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 800 }}>
               {result.status}
@@ -83,7 +83,7 @@ export default function TrustScoreCard({ campaignId }: Props) {
 
           <div>
             <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--t2)', marginBottom: 6 }}>Trust signals</div>
-            <div style={{ display: 'grid', gap: 6 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6 }}>
               {result.signals.map((s) => {
                 const sig = SIGNAL_ICON[s.state];
                 return (
@@ -102,7 +102,7 @@ export default function TrustScoreCard({ campaignId }: Props) {
           {result.suggestions.length > 0 && (
             <div>
               <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--t2)', marginBottom: 6 }}>Ways to raise your score</div>
-              <div style={{ display: 'grid', gap: 6 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6 }}>
                 {result.suggestions.map((sug) => {
                   const content = (
                     <>

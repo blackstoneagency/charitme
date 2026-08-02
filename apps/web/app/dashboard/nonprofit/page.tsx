@@ -141,7 +141,7 @@ export default async function NonprofitPage() {
               action={<BtnLink href="/create">Start a campaign</BtnLink>}
             />
           ) : (
-            <div style={{ display: 'grid', gap: 12, padding: '4px 0 8px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12, padding: '4px 0 8px' }}>
               {campaigns.map((c) => (
                 <div key={c.id} style={{ padding: 12, borderRadius: 12, border: '1px solid var(--b1)', background: 'var(--s1)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>

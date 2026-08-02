@@ -76,7 +76,7 @@ export default function TemplatesClient({
   }
 
   return (
-    <div className="kf-admin-dash" style={{ display: 'grid', gap: 20 }}>
+    <div className="kf-admin-dash" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 20 }}>
       <header style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
         <div style={{ flex: '1 1 240px' }}>
           <h1 style={{ margin: 0, fontSize: 22 }}>Email Templates</h1>
@@ -102,7 +102,7 @@ export default function TemplatesClient({
         />
       ) : (
         <div style={{ display: 'grid', gap: 20, gridTemplateColumns: 'minmax(0, 300px) minmax(0, 1fr)' }}>
-          <nav aria-label="Email templates" style={{ display: 'grid', gap: 16, alignContent: 'start' }}>
+          <nav aria-label="Email templates" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16, alignContent: 'start' }}>
             {byCategory.map(([category, list]) => (
               <div key={category}>
                 <h2
@@ -121,7 +121,7 @@ export default function TemplatesClient({
                     </span>
                   )}
                 </h2>
-                <div style={{ display: 'grid', gap: 6 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6 }}>
                   {list.map((t) => (
                     <button
                       key={t.id}
@@ -233,7 +233,7 @@ function TemplateEditor({
         {template.is_system && <Badge>Built-in</Badge>}
       </div>
 
-      <div style={{ display: 'grid', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14 }}>
         <div>
           <label htmlFor="t-name" style={{ display: 'block', fontSize: 13, marginBottom: 6 }}>
             Name

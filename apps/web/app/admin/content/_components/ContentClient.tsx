@@ -97,7 +97,7 @@ function TypeDonut({ items }: { items: { type: string; count: number }[] }) {
         <text x={cx} y={cy - 4} textAnchor="middle" fontSize="16" fontWeight="950" fill="#101944">{total}</text>
         <text x={cx} y={cy + 14} textAnchor="middle" fontSize="9" fill="#8c9ab5">Total</text>
       </svg>
-      <div style={{ display: 'grid', gap: 7 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 7 }}>
         {items.map((item, i) => (
           <div key={item.type} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 700, color: 'var(--t1)' }}>
             <i style={{ width: 8, height: 8, borderRadius: '50%', background: colors[i % colors.length], flexShrink: 0, display: 'block' }} />
@@ -149,12 +149,12 @@ function EditModal({ item, onClose, onSaved }: { item: ContentRecord; onClose: (
           <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>Edit Content</h2>
           <button onClick={onClose} style={{ width: 32, height: 32, border: '1px solid #e6e9f2', borderRadius: '50%', background: 'var(--s1)', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: 'var(--t3)' }}>×</button>
         </div>
-        <div style={{ padding: '24px', display: 'grid', gap: 16 }}>
-          <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
+        <div style={{ padding: '24px', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16 }}>
+          <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
             Title (optional)
             <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Update title…" style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }} />
           </label>
-          <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
+          <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
             Content <span style={{ color: 'var(--red-text)' }}>*</span>
             <textarea value={body} onChange={e => setBody(e.target.value)} style={{ border: '1px solid #dfe3ee', borderRadius: 9, padding: '10px 14px', fontSize: 14, minHeight: 160, resize: 'vertical' }} />
           </label>
@@ -259,7 +259,7 @@ function ContentDetailPanel({
 
         <div style={{ padding: '20px 24px', flex: 1 }}>
           {activeTab === 'overview' && (
-            <div style={{ display: 'grid', gap: 2 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 2 }}>
               {[
                 ['Type', item.type],
                 ['Author', item.author],
@@ -282,7 +282,7 @@ function ContentDetailPanel({
             </div>
           )}
           {activeTab === 'history' && (
-            <div style={{ display: 'grid', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
               {[
                 { event: 'Content created', date: item.created_at, color: 'var(--green-text)' },
                 { event: 'Content last updated', date: item.updated_at, color: 'var(--brand-text)' },
@@ -299,7 +299,7 @@ function ContentDetailPanel({
           )}
         </div>
 
-        <div style={{ padding: '16px 24px', borderTop: '1px solid #eef0f7', display: 'grid', gap: 8 }}>
+        <div style={{ padding: '16px 24px', borderTop: '1px solid #eef0f7', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 8 }}>
             <button type="button" onClick={onEdit} style={{ height: 40, border: '1px solid #6c35ff', borderRadius: 9, background: '#f3ecff', color: 'var(--brand-text)', fontSize: 13, fontWeight: 650, cursor: 'pointer' }}>Edit Content</button>
             <button type="button" onClick={onDelete} style={{ height: 40, border: '1px solid #ff3b5f30', borderRadius: 9, background: 'var(--tint-rose)', color: 'var(--red-text)', fontSize: 13, fontWeight: 650, cursor: 'pointer' }}>Delete Content</button>
@@ -380,10 +380,10 @@ function CreateContentWizard({
 
         <div style={{ padding: '24px' }}>
           {step === 1 && (
-            <div style={{ display: 'grid', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16 }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 4 }}>Campaign Target</div>
               <p style={{ margin: 0, fontSize: 13, color: 'var(--t3)' }}>Enter the Campaign ID this update belongs to. You can find campaign IDs in Admin → Campaigns.</p>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
+              <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
                 Campaign ID <span style={{ color: 'var(--red-text)' }}>*</span>
                 <input
                   value={campaignId}
@@ -395,20 +395,20 @@ function CreateContentWizard({
             </div>
           )}
           {step === 2 && (
-            <div style={{ display: 'grid', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16 }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 4 }}>Content Details</div>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
+              <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
                 Title (optional)
                 <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Update title…" style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }} />
               </label>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
+              <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
                 Content <span style={{ color: 'var(--red-text)' }}>*</span>
                 <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Write the campaign update…" style={{ border: '1px solid #dfe3ee', borderRadius: 9, padding: '10px 14px', fontSize: 14, minHeight: 140, resize: 'vertical' }} />
               </label>
             </div>
           )}
           {step === 3 && (
-            <div style={{ display: 'grid', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16 }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 4 }}>Review & Publish</div>
               <div style={{ padding: '14px', background: 'var(--s2)', borderRadius: 10, border: '1px solid #e6e9f2', fontSize: 13, lineHeight: 1.8 }}>
                 <div><b>Campaign ID:</b> {campaignId}</div>

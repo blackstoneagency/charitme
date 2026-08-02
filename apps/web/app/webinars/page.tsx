@@ -107,11 +107,11 @@ export default async function WebinarsPage() {
             action={<Link href="/fundraising-guide" style={{ fontSize: '14px', color: 'var(--green-text)', fontWeight: 600 }}>Read the fundraising guide</Link>}
           />
         ) : (
-          <div style={{ display: 'grid', gap: '14px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '14px' }}>
             {upcoming.map((e) => (
               <article
                 key={e.id}
-                style={{ padding: '20px', border: '1px solid var(--b1)', borderRadius: 'var(--rl)', background: 'var(--s1)', display: 'grid', gap: '8px' }}
+                style={{ padding: '20px', border: '1px solid var(--b1)', borderRadius: 'var(--rl)', background: 'var(--s1)', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '8px' }}
               >
                 <h3 style={{ fontSize: '17px', fontWeight: 750, color: 'var(--t1)', lineHeight: 1.3 }}>
                   <Link href={`/events/${e.slug}`} style={{ color: 'var(--t1)', textDecoration: 'none' }}>

@@ -28,6 +28,11 @@ const selectStyle: React.CSSProperties = {
   fontSize: 12, fontWeight: 700, color: 'var(--t2, #475569)', padding: '6px 10px',
   borderRadius: 8, border: '1px solid var(--b2, #e2e8f0)', background: 'var(--s1, #fff)',
   outline: 'none', cursor: 'pointer',
+  // A <select> is as wide as its widest OPTION, and the campaign filter's options
+  // are campaign titles. One long title made this control 368px on a 390px phone
+  // and pushed the card past the viewport, where the root clips instead of
+  // scrolling — so the end of the row was cut off and unreachable.
+  minWidth: 0, maxWidth: '100%',
 };
 
 function fmtDate(iso: string) {
@@ -126,7 +131,7 @@ export default function DonationHistoryList({
         <h2 style={{ fontSize: 16, fontWeight: 800, margin: 0 }}>
           Donation History <span style={{ color: 'var(--t3)', fontWeight: 600 }}>({filtered.length} of {items.length}{hasMore ? '+' : ''})</span>
         </h2>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, minWidth: 0, maxWidth: '100%' }}>
           <select aria-label="Filter by status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)} style={selectStyle}>
             <option value="all">All statuses</option>
             <option value="completed">Completed</option>

@@ -106,7 +106,7 @@ export default function ReportsClient({ reports, categories, totalReports, sched
   ];
 
   return (
-    <div style={{ padding: '0 32px 32px', display: 'grid', gap: 22 }}>
+    <div style={{ padding: '0 32px 32px', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 22 }}>
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 18 }}>
         {metrics.map((m) => (
@@ -123,7 +123,7 @@ export default function ReportsClient({ reports, categories, totalReports, sched
       {/* Two-column layout */}
       <div style={{ display: 'grid', gridTemplateColumns: '300px minmax(0, 1fr)', gap: 20, alignItems: 'start' }}>
         {/* Left: category overview + donut */}
-        <div style={{ display: 'grid', gap: 18 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 18 }}>
           {/* Category breakdown */}
           <section className="kf-card" style={{ padding: 20 }}>
             <h2 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700 }}>Reports Overview</h2>
@@ -275,7 +275,7 @@ export default function ReportsClient({ reports, categories, totalReports, sched
           <div role="dialog" aria-modal="true" aria-labelledby="export-report-title" style={{ width: 380, padding: 28, borderRadius: 16, background: 'var(--s1)', boxShadow: '0 24px 80px rgba(55,42,130,.18)' }}>
             <h2 id="export-report-title" style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 800 }}>Export Report</h2>
             <p style={{ margin: '0 0 20px', color: 'var(--t3)', fontSize: 13 }}>{exportReport.name}</p>
-            <div style={{ display: 'grid', gap: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
               {(['CSV', 'Excel', 'PDF'] as const).map(fmt => (
                 <label key={fmt} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', border: `1px solid ${exportFmt === fmt ? '#6c35ff' : '#e0e4ef'}`, borderRadius: 9, cursor: 'pointer', fontSize: 14, fontWeight: 650 }}>
                   <input type="radio" name="fmt" value={fmt} checked={exportFmt === fmt} onChange={() => setExportFmt(fmt)} />

@@ -65,7 +65,7 @@ export default async function GivingDaysPage() {
             action={<Link href="/campaigns" style={{ fontWeight: 650, color: 'var(--green-text)' }}>Browse campaigns</Link>}
           />
         ) : (
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 14 }}>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14 }}>
             {days.map((day) => {
               const pct = givingDayProgress(day.raisedCents, day.goal_amount);
               const tone = PHASE_TONE[day.phase];
