@@ -410,3 +410,85 @@ function samplePathMatchesTemplate(template: string, samplePath: string): boolea
     .join('/');
   return new RegExp(`^${pattern}$`).test(samplePath);
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Signed-out-only routes.
+//
+// `/login` and `/signup` call supabase.auth.getUser() on mount and redirect a
+// signed-in visitor away, so the --auth contrast sweep rendered an empty
+// document for them — 0 text elements — and tripped its "fewer than 5 visible
+// text elements" guard on every run. The guard was right; the route list was
+// wrong.
+//
+// The risk in having an exclusion list at all is that it becomes a place to hide
+// a page that genuinely renders nothing. These assertions close that: an entry
+// must still be swept somewhere (it stays in `public`), must be a real page on
+// disk, and must actually contain the redirect that justifies the exclusion.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('signed-out-only routes are excluded from the signed-in sweep, not from coverage', () => {
+  const data = JSON.parse(
+    readFileSync(path.join(WEB_ROOT, 'e2e', 'public-routes.json'), 'utf8'),
+  ) as { public: string[]; signedOutOnly?: string[] };
+
+  const signedOutOnly = data.signedOutOnly ?? [];
+
+  it('is declared, and stays small — this is an exclusion list, not a dumping ground', () => {
+    expect(signedOutOnly.length).toBeGreaterThan(0);
+    expect(signedOutOnly.length).toBeLessThanOrEqual(4);
+  });
+
+  it.each(signedOutOnly)('%s is still in the public list, so it is still measured', (route) => {
+    expect(data.public).toContain(route);
+  });
+
+  it.each(signedOutOnly)('%s resolves to a real page', (route) => {
+    const dir = path.join(WEB_ROOT, 'app', route.replace(/^\//, ''));
+    const direct =
+      statExists(path.join(dir, 'page.tsx')) || statExists(path.join(dir, 'page.ts'));
+    const grouped = (() => {
+      try {
+        return readdirSync(dir, { withFileTypes: true }).some(
+          (e) =>
+            e.isDirectory() &&
+            e.name.startsWith('(') &&
+            statExists(path.join(dir, e.name, 'page.tsx')),
+        );
+      } catch {
+        return false;
+      }
+    })();
+    expect(direct || grouped, `${route} has no page under app${route}`).toBe(true);
+  });
+
+  it.each(signedOutOnly)('%s really does redirect a signed-in visitor', (route) => {
+    // Without this, any page could be parked here to silence the guard. The
+    // exclusion is only justified by the redirect that empties the document.
+    const dir = path.join(WEB_ROOT, 'app', route.replace(/^\//, ''));
+    const sources = readdirSync(dir, { withFileTypes: true })
+      .filter((e) => e.isFile() && /\.tsx?$/.test(e.name))
+      .map((e) => readFileSync(path.join(dir, e.name), 'utf8'));
+
+    // The page may delegate to a shared panel (/login and /signup both render
+    // AuthPanel), so follow one hop — but ONLY into components this route
+    // actually imports. An earlier version appended AuthPanel unconditionally,
+    // and since AuthPanel contains router.replace, every route passed: planting
+    // /faq here was accepted. Mutation-tested both ways after fixing.
+    const own = sources.join('\n');
+    const followed = ['AuthPanel']
+      .filter((name) => new RegExp(`import\\s+\\w*${name}\\b|from\\s+['"][^'"]*${name}['"]`).test(own))
+      .map((name) => path.join(WEB_ROOT, 'components', `${name}.tsx`))
+      .filter(statExists)
+      .map((f) => readFileSync(f, 'utf8'));
+
+    const all = [own, ...followed].join('\n');
+    expect(all, `${route} is excluded but never redirects`).toMatch(/router\.replace|redirect\(/);
+  });
+
+  it('the contrast sweep subtracts them under --auth and only under --auth', () => {
+    const sweep = readFileSync(path.join(WEB_ROOT, 'scripts', 'audit-contrast.mjs'), 'utf8');
+    expect(sweep).toContain('signedOutOnly');
+    // Subtracted from the auth page set, never from the signed-out one.
+    expect(sweep).toMatch(/AUTH_PAGES\s*=\s*ALL_PAGES\.filter/);
+    expect(sweep).toMatch(/WITH_AUTH\s*\?\s*\[\.\.\.AUTH_PAGES/);
+  });
+});
