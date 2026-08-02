@@ -16989,3 +16989,74 @@ Measured before/after on the same build with env blanked: `/status` **500 → 20
 · build exit 0 · contrast **0 failures, 80 pages × 2 themes, 9,610 elements per
 theme** · responsive **0 regressions, 80 × 3 viewports × 2 themes** · axe **4/4
 projects**. 80 pages, up from 79 — `/signup` is measured for the first time.
+
+## ✅ VERIFIED — `supabase/catch_up.sql` actually executes (Claude, 2026-08-02)
+
+Asked to "apply every SQL". **I cannot** — every path out of this sandbox to the
+database is closed, checked rather than assumed:
+
+| Path | Result |
+|---|---|
+| `*.supabase.co` / `api.supabase.com` | `403` to CONNECT at the gateway |
+| `db.<ref>.supabase.co:5432` | blocked |
+| pooler `:6543` | blocked |
+| `POST /api/admin/apply-schema` | **410 by design** — "apply through the release workflow" |
+| `.github/workflows/release.yml` | needs a runner; Actions assigns none (blocker #1) |
+
+Credentials are NOT the issue — access token, DB password and project ref are all
+in `.env.local`. The proxy allowlist is empty; everything outside a fixed
+no-proxy list is refused. **I deliberately did not re-enable the in-app apply
+route**: someone disabled it on purpose, and undoing a security decision to work
+around my own sandbox is the wrong trade.
+
+⚠️ **`npm run provision` cannot work either, for a reason that is not obvious.**
+Production mode requires `STAGING_VERIFIED_COMMIT` to equal current HEAD — this
+exact commit must have passed **staging** first. No staging Supabase project
+exists (Preview Branches → HTTP 402; a dedicated project is refused at the
+two-free-project limit). So the sanctioned path is blocked at three independent
+points, not one.
+
+### So instead: proved the artifact works, on a real Postgres
+
+`supabase/catch_up.sql` (694KB, all 114 migrations, idempotent) had apparently
+never actually been executed. Postgres 16 binaries are present in this sandbox,
+so it was run for real against a local instance with Supabase-shaped scaffolding
+(`auth` schema + `auth.uid/role/jwt`, `storage.buckets/objects`, the roles, the
+migration ledger).
+
+| Run | Errors |
+|---|---|
+| **Fresh database** | **0** |
+| Second run (re-apply) | **1**, harmless — see below |
+
+**End state verified by query, not by the absence of errors:** 162 tables, 70
+functions, 245 RLS policies, 89 triggers, `record_donation` carrying the correct
+**11-argument** signature including `p_peer_fundraiser_id`, and
+**`profiles.locale` present as `text`** — the column the footer locale picker
+needs.
+
+**The single re-run error is deliberate and documented in the file itself.**
+`record_donation` needed a 10→11 argument change, and `create or replace` would
+have created an **overload** rather than replacing: the caller uses named
+arguments, which would then match both signatures, and Postgres fails with
+"function … is not unique" — on the donation webhook, on the money path, retried
+forever. So it is `drop function <exact 10-arg signature>` then `create`. On a
+second run the drop is a no-op and the create collides. The file's own header
+says "safe to run **ONCE** on an existing database", and that is exactly right.
+
+**First correction to make out loud:** I initially reported `profiles.locale` was
+missing from `catch_up.sql` on the strength of one grep. The pattern was too
+narrow — the statement spans two lines. It was there all along (line 10823), which
+is why regenerating produced a byte-identical file.
+
+### What the owner needs to do
+
+Run **once**, from anywhere with network access to the project:
+
+```bash
+psql "$SUPABASE_DB_URL" -f supabase/catch_up.sql
+```
+
+The dashboard SQL editor also works but 694KB is near its practical paste limit;
+`psql` is the reliable route. Nothing is destructive — no `drop table`, no
+`drop column`, 173 guarded `create table if not exists` and **0** unguarded.
