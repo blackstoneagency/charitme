@@ -8473,3 +8473,22 @@ summary:focus-visible,
   text-decoration: none;
 }
 a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
+
+/* ── Campaign updates feed (/campaigns/[slug]/updates) ───────────────────────
+   The desktop layout is a 300px campaign sidebar beside the feed. Left to
+   shrink, that grid resolved to `288px 0px` at 320px — the feed column
+   collapsed to ZERO and the entire page content was invisible on a phone. No
+   horizontal overflow was produced, so the responsive sweep passed the whole
+   time; "no overflow" is not the same as "readable".
+
+   Below 900px it becomes one column with the FEED FIRST: someone who followed
+   a link to read an update wants the update, not a summary of the campaign they
+   just came from. */
+@media (max-width: 900px) {
+  .cu-layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 24px !important;
+  }
+  .cu-layout > main { order: 1; }
+  .cu-layout > aside { order: 2; }
+}

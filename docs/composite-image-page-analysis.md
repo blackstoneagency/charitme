@@ -130,3 +130,133 @@ from navigation.
 
 Detail for each page is maintained in `composite-image-page-matrix.md`, which
 carries the per-page route, tables, navigation location and live test status.
+
+---
+---
+
+# Composite image — page analysis (sub-images 60–71)
+
+A **second, distinct** composite, labelled 60–71 in the artwork. Appended rather
+than replacing the 36–47 analysis above: both briefs are live and each set of
+numbers refers to a different reference image.
+
+Analysed **2026-08-02** against the live repository and the production Supabase
+database.
+
+## The headline finding: only 5 of 12 are missing
+
+Same binding constraint as the 36–47 set — *"do not create duplicate pages when a
+suitable page already exists"*, *"do not overwrite stronger existing
+functionality"*. **Seven of the twelve already ship.**
+
+| # | Design | Verdict | Route |
+|---|--------|---------|-------|
+| 60 | Cause Updates | 🔴 **MISSING → SHIPPED** | `/campaigns/[slug]/updates` |
+| 61 | Media Gallery | 🔴 MISSING | `/campaigns/[slug]/gallery` (planned) |
+| 62 | Donor Wall | ✅ exists | `/donor-wall` |
+| 63 | Send Thank You Note | 🔴 MISSING | fundraiser action (planned) |
+| 64 | Certificate / Impact Report | 🔴 MISSING | donor artefact (planned) |
+| 65 | Tax Receipts | ✅ exists | `/dashboard/tax` |
+| 66 | Integrations | ✅ exists | `/dashboard/integrations` |
+| 67 | Mobile App | ✅ exists | `/mobile-app` |
+| 68 | Accessibility Statement | ✅ exists | `/accessibility` |
+| 69 | Safety & Security | ✅ exists | `/security` + `/trust-safety` |
+| 70 | Help Center | ✅ exists | `/help` |
+| 71 | Chat / Live Support | 🔴 MISSING | `support_cases` has 500 rows (planned) |
+
+## Data census (production, read-only, 2026-08-02)
+
+Measured **before** any UI was written, because a page wired to an empty table is a
+form posting into nothing. Run it again with
+`node scripts/measure-composite-tables.mjs`.
+
+| Table | Rows | Serves |
+|---|---:|---|
+| `campaign_updates` | 740 | 60 |
+| `campaign_media` | 500 | 61 |
+| `donations` | 740 | 62, 64, 65 |
+| `donor_messages` | 1,120 | 62, 63 |
+| `campaigns` | 500 | 60, 61 |
+| `integration_connections` | 500 | 66 |
+| `support_cases` | 500 | 71 |
+| `tax_receipts` | 120 | 65 |
+| `impact_metrics` | 120 | 64 |
+| `donation_receipts` | **0** | — |
+| `support_notes` | **0** | 71 (message bodies) |
+| `organizer_sends` | **0** | 63 (thank-you delivery) |
+| `direct_messages` | **0** | 71 |
+
+⚠️ Pages **63** and **71** depend on tables that exist but are **empty**. They can be
+built against real schema, but their populated state has to be seeded — stated here
+rather than glossed, because a thank-you composer that appears to send is exactly
+the "appears complete but is not connected" failure the brief forbids.
+
+---
+
+## 60. Cause Updates — `/campaigns/[slug]/updates` ✅ SHIPPED
+
+1. **Reference position** — top-left of the composite.
+2. **Page name** — Campaign Updates feed.
+3. **User goal** — "What has actually happened since I donated?"
+4. **Core functionality** — reverse-chronological feed of the organiser's progress
+   reports with **full body text**, filtering, and the campaign's live progress
+   alongside.
+5. **Route** — `/campaigns/[slug]/updates`.
+6. **Data model** — `campaign_updates` (id, campaign_id, title, body, ai_generated,
+   scheduled_at, published_at, created_at) + `campaigns` for the sidebar.
+7. **Main interactions** — filter (all / last 30 days / milestones), expand a long
+   update, share the campaign, return to the campaign.
+8. **Navigation entry** — the detail page's "Updates (N)" story tab, and a
+   "Read all N updates →" link beneath the sidebar timeline.
+9. **Design improvements over the mock** — the mock shows per-update like and
+   comment counts. **No table backs either**, so rendering them would have been
+   fabricated engagement on someone else's campaign. Replaced with a working
+   filter, progressive disclosure, and a genuine read-failure state.
+10. **Acceptance criteria** — met; evidence in `docs/composite-image-testing-report.md`.
+
+### Three real defects found and fixed building it
+
+- **740 update rows had no readable public surface.** The detail page `select`s
+  `body` and renders only title + date in a sidebar timeline. An organiser writing
+  a detailed progress report was publishing into a void.
+- **The "Updates (N)" tab scrolled to the wrong section** — `href="#updates"` while
+  `id="updates"` sat on the **co-organisers** block.
+- **The tab count was wrong above four updates** — it used `updates.length` from a
+  query capped at `.limit(4)`, so a campaign with twenty advertised "Updates (4)".
+
+### Security surface
+
+`campaign_updates` stores drafts and future-scheduled posts beside live ones;
+**240 draft rows exist site-wide.** The visibility rule is applied in the PostgREST
+query **and** re-applied in `visibleUpdates()` (unit-tested) — a `.or()` combining a
+null check with a timestamp comparison is easy to get subtly wrong, and getting it
+wrong publishes an organiser's unpublished announcement. Verified against real data:
+the sample campaign holds 3 rows (1 published, 2 drafts); the page renders exactly 1.
+
+### Two audit defects this page exposed
+
+- **`audit-responsive` had no data-dependent-route exemption.** Every sibling sweep
+  (a11y, mobile, page-images, `e2e/data-routes`) skips a fixture route that 404s;
+  this one failed on them, so it was red on every run against a database without the
+  stub fixtures — including for another lane's `/share`. A permanently-red audit is
+  an ignored audit. Fixed.
+- **"No overflow" is not "readable".** The two-column grid resolved to
+  `288px 0px` at 320px: the entire feed column collapsed to **zero width** and the
+  page content was invisible on a phone, while the responsive sweep passed because
+  nothing overflowed. Fixed with a real stacking breakpoint (feed first).
+
+### One pre-existing bug fixed in a shared component
+
+`ShareButtons`' "Download printable poster" link was a bare 14px-tall inline link —
+below the WCAG 2.2 SC 2.5.8 24px floor, and not exempt since it is a standalone
+control rather than a link inside a sentence. It had never been measured: the only
+routes rendering it are listed under a stub-fixture slug that 404s, so every sweep
+skipped them. Now 24px, which also fixes `/campaigns/[slug]/share`.
+
+---
+
+## 61–71 — pending
+
+Documented in this structure as each is built. Status lives in
+`docs/composite-image-page-matrix.md` and `todo.md`. **Nothing is marked complete on
+the strength of a layout existing.**

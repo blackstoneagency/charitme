@@ -69,6 +69,22 @@ async function getRecentDonations(campaignId: string) {
   return data ?? [];
 }
 
+/**
+ * Exact number of PUBLIC updates, for the story tab.
+ *
+ * `getUpdates` caps at 4 for the sidebar timeline, so using its length as the tab
+ * count under-reported every campaign with more than four updates. `null` on
+ * failure so the caller can fall back rather than render a confident 0.
+ */
+async function getUpdatesCount(campaignId: string): Promise<number | null> {
+  const { count, error } = await supabaseAdmin
+    .from('campaign_updates')
+    .select('id', { count: 'exact', head: true })
+    .eq('campaign_id', campaignId)
+    .or(`published_at.not.is.null,scheduled_at.lte.${new Date().toISOString()}`);
+  return error ? null : count ?? 0;
+}
+
 async function getUpdates(campaignId: string) {
   // Exclude updates still waiting on their "schedule for later" time —
   // they become visible once published_at is set or scheduled_at has passed.
@@ -346,9 +362,10 @@ export default async function CampaignPage({ params, searchParams }: Props) {
     referrerId,
   };
 
-  const [donations, updates, faqs, donorMessages, milestones, teamFundraisers, rewards, currency, payoutDestination, trustInput, similarCampaigns] = await Promise.all([
+  const [donations, updates, updatesCount, faqs, donorMessages, milestones, teamFundraisers, rewards, currency, payoutDestination, trustInput, similarCampaigns] = await Promise.all([
     getRecentDonations(campaign.id),
     getUpdates(campaign.id),
+    getUpdatesCount(campaign.id),
     getFAQs(campaign.id),
     getDonorMessages(campaign.id),
     getMilestones(campaign.id),
@@ -685,7 +702,12 @@ export default async function CampaignPage({ params, searchParams }: Props) {
           <article className="pc-story">
             <nav>
               <a href="#story" className="active">{t('campaign.story')}</a>
-              <a href="#updates">Updates ({updates.length})</a>
+              {/* Points at the real updates FEED, not at `#updates` — that id sits
+                  on the co-organisers block below, so this tab used to scroll to
+                  the wrong section entirely. The count is an exact head count, not
+                  `updates.length`: the sidebar query is capped at 4, so a campaign
+                  with 20 updates advertised "Updates (4)". */}
+              <a href={`/campaigns/${slug}/updates`}>Updates ({updatesCount ?? updates.length})</a>
               <a href="#donations">Donors ({campaign.backer_count ?? donations.length})</a>
               <a href="#impact">{t('campaign.impact')}</a>
             </nav>
@@ -719,7 +741,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
           </article>
 
           {/* Co-organizers */}
-          <div className="pc-organizers" id="updates">
+          <div className="pc-organizers" id="organizers">
             <h3 className="pc-section-h3">
               {t('campaign.co_organizers')}
               <span className="pc-section-count">{1}</span>
@@ -888,6 +910,16 @@ export default async function CampaignPage({ params, searchParams }: Props) {
                   </div>
                 </article>
               ))}
+              {/* The timeline shows titles and dates only — the BODY of every
+                  update was fetched and discarded here, so a detailed progress
+                  report had no readable surface anywhere on the site until
+                  /campaigns/[slug]/updates existed. */}
+              <Link
+                href={`/campaigns/${slug}/updates`}
+                style={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-text)', textDecoration: 'none' }}
+              >
+                Read all {updatesCount ?? updates.length} update{(updatesCount ?? updates.length) === 1 ? '' : 's'} →
+              </Link>
             </div>
           ) : (
             <p style={{ fontSize: 13, color: 'var(--t3)', padding: '12px 0 0', margin: 0 }}>

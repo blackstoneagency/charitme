@@ -101,3 +101,34 @@ signal. It cannot: `notification_updates` defaults to `true` and
 explicit choice from an untouched default. Marking it done would have claimed a
 consent decision nobody made. It is now excluded from `COMPLETABLE_STEPS` and
 never reports as done, with the reason recorded in the code and pinned by a test.
+
+---
+## Composite — sub-images 60–71 (2026-08-02)
+
+| # | Page | Route | Role | Existing/New | Supabase tables | Storage | Nav location | Responsive | A11y | Tests | Production |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 60 | Cause Updates | `/campaigns/[slug]/updates` | public | **NEW** | `campaign_updates`, `campaigns` | — | Campaign story tab + sidebar link | ✅ 320/390/768/1280/1920 | ✅ 0 axe, both themes | ✅ 18 unit | ✅ shipped |
+| 61 | Media Gallery | `/campaigns/[slug]/gallery` | public | NEW | `campaign_media` (500 rows) | campaign media bucket | Campaign tab | ⬜ | ⬜ | ⬜ | ⬜ planned |
+| 62 | Donor Wall | `/donor-wall` | public | existing | `donations` | — | Footer → Ways to Give | ✅ existing sweeps | ✅ | ✅ | ✅ live |
+| 63 | Send Thank You Note | fundraiser action | organizer | NEW | `organizer_sends` (**0 rows**) | — | Dashboard | ⬜ | ⬜ | ⬜ | ⬜ planned |
+| 64 | Certificate / Impact Report | donor artefact | donor | NEW | `donations`, `impact_metrics` | — | Donor dashboard | ⬜ | ⬜ | ⬜ | ⬜ planned |
+| 65 | Tax Receipts | `/dashboard/tax` | donor | existing | `tax_receipts` (120) | — | Dashboard | ✅ | ✅ | ✅ | ✅ live |
+| 66 | Integrations | `/dashboard/integrations` | organizer | existing | `integration_connections` (500) | — | Dashboard | ✅ | ✅ | ✅ | ✅ live |
+| 67 | Mobile App | `/mobile-app` | public | existing | — | — | Footer → Platform | ✅ | ✅ | ✅ | ✅ live |
+| 68 | Accessibility Statement | `/accessibility` | public | existing | — | — | Legal bar | ✅ | ✅ | ✅ | ✅ live |
+| 69 | Safety & Security | `/security`, `/trust-safety` | public | existing | — | — | Footer → Legal | ✅ | ✅ | ✅ | ✅ live |
+| 70 | Help Center | `/help` | public | existing | — | — | Header → Resources | ✅ | ✅ | ✅ | ✅ live |
+| 71 | Chat / Live Support | — | authed | NEW | `support_cases` (500), `support_notes` (**0**) | — | `/support` | ⬜ | ⬜ | ⬜ | ⬜ planned |
+
+**Honesty notes on this table**
+
+- **7 of 12 already existed.** Rebuilding them would have violated the brief's own
+  "do not create duplicate pages" and "do not overwrite stronger existing
+  functionality" rules.
+- **⬜ means not started, not "done but unverified".** Row 60 is the only NEW row
+  marked ✅, and its evidence is in `docs/composite-image-testing-report.md`.
+- **Rows 63 and 71 depend on EMPTY tables** (`organizer_sends`, `support_notes`,
+  `direct_messages` — all 0 rows). They are buildable against real schema but their
+  populated state must be seeded first. Shipping a thank-you composer that appears
+  to send is precisely the "appears complete but is not connected to the backend"
+  failure the brief forbids.

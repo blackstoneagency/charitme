@@ -96,3 +96,82 @@ Stated rather than papered over:
   carries an internship category, so `/internships` renders its empty state. That
   state is the tested path; the populated path is covered by unit tests over the
   same pure helpers, not by a browser run.
+
+---
+
+## Second composite — page 60, Cause Updates (2026-08-02)
+
+All evidence below is from a **production build** (`next build` + `next start`)
+against the **production Supabase database**, not a dev server or a stub.
+
+### Unit — 18 tests, `__tests__/campaign-updates-feed.test.ts`
+
+Covers the visibility rule (the page's security surface), the reader-visible date,
+sorting, the three filters, excerpting, and the detail-page wiring this page fixed.
+Notably asserts that a **future-scheduled** update and a **draft** are both hidden,
+and that an exactly-now schedule counts as visible.
+
+### Live data verification
+
+Against the real campaign `campaign-1-49b50f84`:
+
+- `campaign_updates` holds **3 rows** for it — 1 published, 0 scheduled, **2 drafts**.
+- The page renders **exactly 1**, and the on-page counter reads "1 of 1 update".
+- The rendered title is a real row: *"Surgery went well — thank you!"*
+- Site-wide there are **240 draft updates**; every one is excluded by this rule.
+
+That is the non-vacuous form of the test: the page is not merely "not leaking
+because there is nothing to leak".
+
+### Accessibility — 0 violations
+
+`scripts/audit-one-url.mjs` (new: the sweeps validate `--only` against the static
+route list, so a **dynamic** route against real data could not otherwise be
+measured). axe-core with `wcag2a, wcag2aa, wcag21a, wcag21aa, wcag22aa`:
+
+- light — **0 violations**, 31 checks passed
+- dark — **0 violations**, 31 checks passed
+
+### Contrast — 0 failures
+
+`audit:contrast --only /campaigns/campaign-1-49b50f84/updates`:
+**122 text elements per theme, 0 AA failures** in both light and dark.
+
+### Responsive — clean at 5 widths, both themes
+
+320 / 390 / 768 / 1280 / 1920: **no horizontal overflow, all targets ≥ 24px**.
+
+Grid resolution verified directly rather than inferred:
+
+| Width | `grid-template-columns` | Feed width |
+|---|---|---|
+| 320px | `320px` | 320px |
+| 390px | `390px` | 390px |
+| 768px | `768px` | 768px |
+| 1280px | `300px 948px` | 948px |
+
+### Full-suite gates
+
+- **2,611 tests pass** (232 files) — up from 2,567
+- `tsc --noEmit` clean · `eslint .` 0 errors · production build ✓
+- Full site responsive sweep: **84 pages × 3 viewports × 2 themes, 0 regressions**
+
+### Two defects the audits themselves had, found here
+
+1. **`audit-responsive` failed on data-dependent routes.** Every sibling sweep skips
+   a fixture route that 404s; this one counted them as findings, so it was red on
+   every run against a database without the stub fixtures — including for another
+   lane's `/share`. Fixed; the sweep is green and the skips are printed explicitly.
+2. **"No overflow" passed a page that was invisible.** The two-column grid resolved
+   to `288px 0px` at 320px — the feed column collapsed to **zero width**, so the
+   entire page content was unreachable on a phone while the responsive sweep passed.
+   Caught only by measuring the resolved track widths. Fixed with a stacking
+   breakpoint; the table above is the evidence.
+
+### Regression fixed in a shared component
+
+`ShareButtons`' "Download printable poster" link was 14px tall — below the WCAG 2.2
+SC 2.5.8 24px floor, and not covered by the inline-link exception. It had **never
+been measured**, because the only routes rendering it sit under a stub-fixture slug
+that 404s and every sweep skipped them. Now 24px, which also fixes
+`/campaigns/[slug]/share`.

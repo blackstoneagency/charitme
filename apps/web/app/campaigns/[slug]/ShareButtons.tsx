@@ -152,7 +152,16 @@ export default function ShareButtons({ campaignId, campaignUrl, campaignTitle, q
             <a
               href={`/api/campaigns/${qrPosterId}/qr-poster`}
               target="_blank"
-              style={{ fontSize: 12, fontWeight: 700, color: 'var(--green-text)', textDecoration: 'none' }}
+              // 14px tall as a bare inline link, which fails WCAG 2.2 SC 2.5.8
+              // (24px floor). It is a standalone control, not a link inside a
+              // sentence, so the inline exception does not apply. This went
+              // unmeasured for as long as it existed: the only routes rendering
+              // this component are listed under a stub-fixture slug that 404s,
+              // so every sweep skipped them.
+              style={{
+                display: 'inline-flex', alignItems: 'center', minHeight: 24,
+                fontSize: 12, fontWeight: 700, color: 'var(--green-text)', textDecoration: 'none',
+              }}
             >
               🖨 Download printable poster →
             </a>
