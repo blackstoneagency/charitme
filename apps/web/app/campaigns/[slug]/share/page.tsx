@@ -82,7 +82,11 @@ export default async function CampaignSharePage({ params }: Props) {
   return (
     <main style={{ maxWidth: 900, margin: '0 auto', padding: '28px 20px 56px', minWidth: 0 }}>
       <nav aria-label="Breadcrumb" style={{ marginBottom: 18 }}>
-        <ol style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 8, listStyle: 'none', margin: 0, padding: 0, fontSize: 13, color: 'var(--t3)' }}>
+        {/* Breadcrumb links are padded to a 44px target. The sweep measured
+            "Campaigns" at 73x15, which fails WCAG 2.2 SC 2.5.8 — a breadcrumb is
+            a list of links, not prose, so the inline-text exception does not
+            apply to it. */}
+        <ol className="share-crumbs" style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', alignItems: 'center', gap: 8, listStyle: 'none', margin: 0, padding: 0, fontSize: 13, color: 'var(--t3)' }}>
           <li><Link href="/campaigns" style={{ color: 'var(--t3)' }}>Campaigns</Link></li>
           <li aria-hidden="true">›</li>
           <li><Link href={`/campaigns/${slug}`} style={{ color: 'var(--t3)' }}>{campaign.title}</Link></li>

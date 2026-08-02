@@ -78,6 +78,8 @@ const ROUTE_DATA = JSON.parse(
 // and the run fails loudly on the redirect guard below rather than quietly
 // measuring the login page 97 times.
 const WITH_AUTH = argv.includes('--auth');
+// Set by audit-signed-in.mjs --no-admin: /admin/* is out of scope for a member.
+const SKIP_ADMIN = process.env.AUDIT_SKIP_ADMIN === '1';
 const SESSION_COOKIE = process.env.STUB_SESSION_COOKIE ?? '';
 
 // The campaign-embed fixture needs seeded data; the e2e sweep covers it.
@@ -301,6 +303,14 @@ for (const theme of THEMES) {
 
   if (WITH_AUTH && theme === THEMES[0]) {
     for (const expected of ROUTE_DATA.authGated.redirects) {
+      // A member session cannot reach /admin/*, so these compatibility aliases
+      // land on /dashboard instead of their admin destination. That is CORRECT
+      // for a member, and counting it as a failure kept the member-mode run
+      // permanently red — the same reason audit-mobile skips them.
+      if (SKIP_ADMIN && expected.from.startsWith('/admin')) {
+        console.log(`\u00b7 redirect ${expected.from} - SKIPPED (admin route, member session)`);
+        continue;
+      }
       try {
         const response = await page.goto(BASE + expected.from, {
           waitUntil: 'domcontentloaded',

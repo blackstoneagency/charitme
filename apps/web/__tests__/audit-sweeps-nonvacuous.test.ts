@@ -115,10 +115,27 @@ describe('signed-in audit integrity', () => {
       .toBeLessThan(browserHelper.indexOf("'/opt/pw-browsers/chromium'"));
   });
 
-  it('starts Next portably and verifies the admin build target', () => {
+  it('starts Next portably and verifies the build target for BOTH roles', () => {
     expect(signedInSource).toContain("require.resolve('next/dist/bin/next')");
     expect(signedInSource).not.toContain("spawnChild('npx'");
-    expect(signedInSource).toContain('`${BASE}/admin`');
+    // The probe is mode-aware, and each route proves both halves of what is
+    // needed: `/admin` renders only for an admin, `/dashboard` renders 200 only
+    // for a non-admin. Probing the wrong one would either fail on a correct
+    // build or pass on a build with no admin grant at all.
+    expect(signedInSource).toContain("const probePath = AS_MEMBER ? '/dashboard' : '/admin'");
+    expect(signedInSource).toContain('`${BASE}${probePath}`');
+  });
+
+  it('switches the FIXTURE USER for --no-admin, not just the env var', () => {
+    // Clearing ADMIN_EMAILS is not enough: `isAdmin` also reads the profile's
+    // `roles` array, and the default fixture carries admin + super_admin. With
+    // only the env var changed the sweep stayed an admin and /dashboard kept
+    // redirecting — which is how the member dashboard went unmeasured by every
+    // audit in this repo.
+    expect(signedInSource).toContain("const AS_MEMBER = process.argv.slice(2).includes('--no-admin')");
+    expect(signedInSource).toContain('00000000-0000-4000-8000-000000000012');
+    // The stub resolves the persona from the bearer token, so that must switch too.
+    expect(signedInSource).toContain("const USER_TOKEN = AS_MEMBER ? 'stub-organizer-access-token'");
   });
 
   it('passes machine-readable output through without orchestration text', () => {

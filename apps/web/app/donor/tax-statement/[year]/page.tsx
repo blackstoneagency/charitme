@@ -69,7 +69,7 @@ export default async function TaxStatementPage({ params, searchParams }: { param
     <div style={{ maxWidth: 760, margin: '0 auto', padding: '32px 24px' }}>
       {/* Toolbar (not printed) */}
       <div className="no-print" style={{ display: 'flex', minWidth: 0, justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
-        <Link href={`/dashboard/tax?year=${year}&currency=${encodeURIComponent(currency)}`} style={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-text)', textDecoration: 'none' }}>Back to tax documents</Link>
+        <Link href={`/dashboard/tax?year=${year}&currency=${encodeURIComponent(currency)}`} style={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-text)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '11px 0' }}>Back to tax documents</Link>
         <div style={{ display: 'flex', minWidth: 0, gap: 10 }}>
           <a
             href={`/api/donor/tax-statement?year=${year}&currency=${encodeURIComponent(currency)}&format=csv`}
