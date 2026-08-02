@@ -29,7 +29,7 @@ const STATUS_COPY: Record<VerificationStatus, { label: string; color: 'green' | 
  */
 export default async function NonprofitPage() {
   const user = await requireUser();
-  const { profile, campaigns, totalRaisedCents, activeCount } = await getNonprofitSummary(user.id);
+  const { profile, campaigns, totalRaisedCents, activeCount, totalSupporters, fundedCount } = await getNonprofitSummary(user.id);
 
   if (!profile) {
     return (
@@ -54,6 +54,13 @@ export default async function NonprofitPage() {
   const metrics = [
     { label: 'Raised',           value: fmt(totalRaisedCents), change: 'across your campaigns', icon: 'chart',  tone: 'violet' as const },
     { label: 'Active campaigns', value: String(activeCount),   change: `${campaigns.length} total`, icon: 'doc', tone: 'blue' as const },
+    // ⚠️ "Supporters", not "donors". This sums each campaign's `backer_count`,
+    // so someone who gave to two of your campaigns is counted twice. The
+    // reference artwork labels the equivalent tile "Total Donors"; using that
+    // wording over this number would overstate reach, and reach is the figure a
+    // nonprofit is most likely to quote publicly.
+    { label: 'Supporters', value: totalSupporters.toLocaleString(), change: 'across campaigns, not deduplicated', icon: 'team', tone: 'green' as const },
+    { label: 'Fully funded', value: String(fundedCount), change: fundedCount === 1 ? 'campaign reached its goal' : 'campaigns reached their goal', icon: 'crown', tone: 'green' as const },
     { label: 'Verification',     value: status.label,          change: profile.taxId ? `EIN ${profile.taxId}` : 'no EIN on file', icon: 'check', tone: profile.isVerified ? 'green' as const : 'orange' as const },
     { label: 'Donor tax receipts', value: profile.donorsGetTaxReceipts ? 'On' : 'Off', change: profile.donorsGetTaxReceipts ? 'issued automatically' : 'not being issued', icon: 'wallet', tone: profile.donorsGetTaxReceipts ? 'green' as const : 'orange' as const },
   ];
