@@ -200,18 +200,36 @@ Phase 1 of the AI Context Manager: an agent roster plus one-click context packs.
 - Health check: `GET /api/health` → `{"status":"ok","ts":...}`
 
 
-## ✅ CI IS ALIVE AGAIN (2026-08-01) — a red check is now REAL
+## 🔁 CI FLIPS BETWEEN REAL AND DEAD — run the test, don't trust the last verdict
 
-**The Actions outage is over.** Verified on run `30704209059`:
-`runner_id: 1000001483`, `runner_name: "GitHub Actions 1000001483"`, all steps
-present (checkout → setup-node → install → typecheck → lint → unit tests →
-audit → build), 3m09s duration. Compare the outage signature, which was
-`runner_id: 0`, empty `runner_name`, created and failed in the SAME second, and
-no steps at all.
+This section has now been rewritten **three times**, in both directions, because
+the runners keep going away and coming back. So it no longer states a verdict.
+**Run the check yourself — it takes one call.**
 
-**So treat a red check as a real failure and fix it.** Everything previously
-written here and in `todo.md` telling you to ignore red checks is superseded.
-It was correct for the ~2 weeks the runners were unassigned; it is wrong now.
+```
+mcp__github__actions_get  method=get_workflow_run_usage  resource_id=<run_id>
+mcp__github__actions_get  method=get_workflow_job        resource_id=<job_id>
+```
+
+| | runners DEAD (ignore the red check) | runners ALIVE (fix the red check) |
+|---|---|---|
+| `billable.UBUNTU.total_ms` | **0** | thousands |
+| `runner_id` | **0** | e.g. `1000001483` |
+| `runner_name` | **empty** | e.g. `"GitHub Actions 1000001483"` |
+| duration | ~10s, start≈finish | minutes (~3m09s for a full run) |
+| steps | **none** | checkout → setup-node → install → typecheck → lint → tests → audit → build |
+| logs | 404 | present |
+
+**Also check `master`.** If master's recent runs fail identically, the failure is
+not your branch. Both facts together are conclusive.
+
+**Timeline so far:** dead for ~2 weeks → alive 2026-08-01 (run `30704209059`,
+`runner_id: 1000001483`, 3m09s) → **dead again 2026-08-02**, verified on run
+`30751833105` (`runner_id: 0`, empty `runner_name`, 10s, 0 billable ms) *and* on
+master run `30750918547` (same signature; master's last 6 runs all failed).
+
+**Whichever state it is in, verify locally — that is the only signal that never
+lies:**
 
 ⚠️ **CI can fail where your local run passes, and usually for one reason:**
 master has gained tests your branch has not merged. A local run of 2251 against
