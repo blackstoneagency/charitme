@@ -894,6 +894,55 @@ constants. **The sweep found three of the four wrong pages on its first run** �
 only `/terms` was found by reading. It also asserts it can fail, and strips
 comments so a doc comment quoting a rate is not a finding.
 
+## 🖼️ COMPOSITE IMAGE #2 (sub-images 72–83) — claimed by this lane (tbaz3i), 2026-08-02
+
+**11 of 12 already existed.** Same audit method as composite #1: read every route
+file, count Supabase references, then decide. Only `/welcome` was genuinely
+missing.
+
+| Workstream | Status | Evidence |
+|---|---|---|
+| 80 Onboarding / Welcome Tour (`/welcome`) | ✅ **new** | 20 tests · 0 overflow 320/390 signed-in · 0 AA contrast both themes |
+| 72 FAQ, 73 Glossary, 74 Blog detail, 75 Guide detail, 76 Event detail, 78 Brand assets, 79 Careers, 81 Donor wall, 82 Community, 83 Settings | ✅ pre-existing | covered by site sweeps |
+| 77 Press release detail | ⛔ **deliberately not built** | see below |
+
+**`/faq` was already wired and I nearly missed it** — it reads `aeo_entries` via
+`getPublishedFaqs` and renders them as `aeoSections`, so admin-managed Q&A already
+reaches humans and not only the JSON-LD.
+
+**`/welcome` needed no migration.** Every step writes to storage that exists:
+`profiles.full_name`, `profiles.notification_*`, and `saved_campaigns`. Progress
+is **derived from those rows, not from a flag** — an `onboarding_completed_at`
+column would have needed a migration this sandbox cannot apply, making the page
+inert everywhere it had not run. Deriving also means the tour goes quiet when
+someone sets their name in settings instead of nagging them.
+
+⚠️ **Correction made mid-build.** The notification step originally derived a
+"they chose their preferences" completion signal. It cannot:
+`notification_updates` defaults `true` and `notification_marketing` defaults
+`false`, so the database cannot tell an explicit choice from an untouched default.
+Marking it done would have claimed a consent decision nobody made. It is now
+excluded from `COMPLETABLE_STEPS`, never reports done, and a test pins the reason.
+
+⛔ **Page 77 — press release detail was deliberately NOT built.** A press release
+is a factual public statement by the company. The reference shows an invented
+announcement carrying specific figures ($8.5M raised, 2.3M lives impacted).
+Fabricating corporate announcements — even as filler — would put false claims
+about the company on a public URL. `/press` keeps its index; the detail pages need
+real releases from the company.
+
+⚠️ **The dashboard setup prompt is NOT visually verified.** `/dashboard` redirects
+to `/admin` for the stub session (that user is an admin), so the signed-in sweep
+cannot render it. The component is covered by typecheck, lint and the unit tests
+behind it, but nobody has seen it in a browser.
+
+**Also caught by my own guards, and fixed in the code rather than the guard:**
+an inline `display: grid` with no track list (`mobile-grid-tracks`), and a 148×20
+"Go to my dashboard" link failing WCAG 2.2 SC 2.5.8 (24×24 minimum), found by the
+signed-in tap-target sweep.
+
+---
+
 ## 🖼️ COMPOSITE IMAGE (sub-images 36–47) — claimed by this lane (tbaz3i), 2026-08-02
 
 **Headline: 9 of the 12 referenced pages already existed.** The brief reads as a

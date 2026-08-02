@@ -127,7 +127,8 @@
       "/privacy-center",
       "/profile",
       "/sponsor/manage",
-      "/volunteer/hours"
+      "/volunteer/hours",
+      "/welcome"
     ],
     "consoles": [
       "/admin",

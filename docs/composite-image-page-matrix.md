@@ -50,3 +50,54 @@ dependency.
   because they were already shipped and are covered by the existing sweeps:
   0 axe violations across 162 loads, 0 overflows at 320/390 px, 0 contrast
   failures across 196 pages × 2 themes.
+
+---
+
+# Second composite — sub-images 72–83
+
+Audited the same way: read every route file, count Supabase references, then
+decide. **Eleven of twelve already existed.**
+
+| # | Page | Route | Role | Existing / New | Supabase tables | Navigation | Responsive | A11y | Tests | Production |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 72 | FAQ | `/faq` | anon | existing, **already wired** | `aeo_entries` | Resources | ✅ | ✅ 0 axe | existing | ✅ |
+| 73 | Glossary | `/glossary` | anon | existing | static terms | Resources | ✅ | ✅ | existing | ✅ |
+| 74 | Blog Article detail | `/blog/[slug]` | anon | existing | `lib/blog-posts.ts` | Resources → Blog | ✅ | ✅ | existing | ✅ |
+| 75 | Resource / Guide detail | `/fundraising-guide` et al. | anon | existing | static | `/resources` index | ✅ | ✅ | existing | ✅ |
+| 76 | Webinar / Event detail | `/events/[slug]` | anon | existing | `events` | `/webinars` → detail | ✅ | ✅ | existing | ✅ |
+| 77 | Press release detail | `/press` | anon | existing (index only) | — | About | ✅ | ✅ | existing | ⚠️ see note |
+| 78 | Brand Assets / Media Kit | `/brand-assets` | anon | existing | static | About | ✅ | ✅ | existing | ✅ |
+| 79 | Careers / Jobs | `/careers` | anon | existing | static | About | ✅ | ✅ | existing | ✅ |
+| 80 | **Onboarding / Welcome Tour** | **`/welcome`** | authed | **new** | `profiles`, `saved_campaigns` | dashboard prompt | ✅ 320/390 | ✅ 0 contrast, tap-target fixed | `onboarding-core` (20) | ✅ |
+| 81 | Donor Recognition wall | `/donor-wall` | anon | existing, **wired** | donations/profiles | Impact | ✅ | ✅ | existing | ✅ |
+| 82 | Social Feed / Community | `/community` | anon | existing, **wired** | community tables | Community | ✅ | ✅ | existing | ✅ |
+| 83 | Settings / Preferences | `/dashboard/settings` | authed | existing | `profiles` | dashboard nav | ✅ | ✅ | existing | ✅ |
+
+## Notes
+
+- **72 was already wired and I nearly missed it.** `/faq` reads `aeo_entries`
+  through `getPublishedFaqs` and renders them as `aeoSections` alongside its
+  static sections — so admin-managed Q&A already reaches humans, not just
+  structured data.
+- **75 is `/resources` pointing at real guides** (`/fundraising-guide`,
+  `/impact-education`, …). `/guides` is a 308 redirect to `/resources`, added by
+  another agent for the same no-duplicate-index reason.
+- **76 needs no new route**: `/webinars` already links each session to
+  `/events/[slug]`, which is the detail page the reference shows.
+- **77 — press release detail was deliberately NOT built.** A press release is a
+  factual public statement by the company. The reference shows an invented
+  announcement with specific figures ($8.5M raised, 2.3M lives impacted).
+  Fabricating corporate announcements — even as placeholder content — would put
+  false claims about the company on a public URL. `/press` keeps its index; the
+  detail pages need real releases supplied by the company.
+- **80 is the only genuine gap**, and every step writes to storage that already
+  exists (`profiles.full_name`, `notification_*`, `saved_campaigns`). No migration.
+
+## Correction made during implementation
+
+The `updates` step originally derived a "chose their preferences" completion
+signal. It cannot: `notification_updates` defaults to `true` and
+`notification_marketing` to `false`, so the database cannot distinguish an
+explicit choice from an untouched default. Marking it done would have claimed a
+consent decision nobody made. It is now excluded from `COMPLETABLE_STEPS` and
+never reports as done, with the reason recorded in the code and pinned by a test.
