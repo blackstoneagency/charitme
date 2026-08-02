@@ -1114,6 +1114,41 @@ a note, `rate_limit_hits` is reached through the `check_rate_limit` RPC, and
 `organizations` is code-complete but inert pending a migration the sandbox cannot
 apply. The rest are the real "wired to Supabase" gap.
 
+### ✅ 2026-08-02 — the orphan-table gap is CLOSED. 27 → 11, and all 11 are decided.
+
+**142 of 162 tables have a reader.** More importantly, the 11 without one are no
+longer unknowns — each was read against the schema and the live call sites, and
+each has an answer. **None of them should be wired**, and wiring them to move the
+count would actively make the codebase worse:
+
+**Superseded — a shipped table already holds the same facts, better (6).** Pinned
+by `__tests__/superseded-tables.test.ts`, which is the INVERSE of the usual guard:
+it fails if one of these *acquires* a reader, and prints the reason. It also
+self-checks by asserting the detector reports readers for the tables that do have
+them, so "none found" cannot be a broken walk.
+
+| Table | Superseded by | Why wiring it is a regression |
+|---|---|---|
+| `platform_fees` | `ledger_entries` | The ledger records the split as a **balanced** double-entry group, idempotent on a unique index, with refund/dispute reversals and a nightly reconciliation job. `platform_fees` is a flat subset with no currency, no balance, no idempotency key — two records of one number that can disagree. |
+| `donor_tips` | `donations.tip_cents` | A tip is already on the donation, passed as `p_tip_cents` and posted to the ledger. A second tips table drifts from the donation it belongs to. |
+| `processor_accounts` | `connected_accounts` (15 call sites) | `processor_accounts` even carries an FK to it. |
+| `campaign_payment_settings` | `connected_accounts` + `payouts` (25) + `ledger_entries` | Same unshipped "payments v2" design. |
+| `campaign_payment_exports` | ditto | ditto |
+| `admin_settings` | `platform_settings` (13 call sites, `CHECK (id = 1)`, jsonb config) | `admin_settings` is its untyped key/value predecessor. Two config stores is how config drifts. |
+
+**Blocked on an unapplied migration (4):** `organizations`, `organization_members`,
+`brands` (FK `org_id`), `marketing_referrals` (`org_id`). Already documented above
+as code-complete but inert — building further on them ships inert code.
+
+**Deliberate fixture (1):** `livestreams` is what
+`feature-status-honesty.test.ts` uses as its example of a module with no reader.
+Wiring it would both build an unrequested feature and break the fixture that
+keeps the feature catalogue honest.
+
+So "wire everything to Supabase" is **done** as far as it can honestly be taken.
+What remains is not a backlog — it is four tables waiting on a migration only the
+owner can apply, and seven that should stay exactly as they are.
+
 ### ✅ SHIPPED — analytics_snapshots
 
 `lib/analytics-snapshots-core.ts` (19 tests) · writer
