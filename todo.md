@@ -1062,6 +1062,25 @@ a note, `rate_limit_hits` is reached through the `check_rate_limit` RPC, and
 `organizations` is code-complete but inert pending a migration the sandbox cannot
 apply. The rest are the real "wired to Supabase" gap.
 
+### 🔨 CLAIMED (Claude, github-integration lane) — coach_sessions
+
+Now the **only** seeded-and-unread table left besides the deliberately-dropped
+`trust_scores`: 500 rows, no reader and no writer. `/dashboard/ai-coach` streams
+answers and forgets every one of them — reload the page and the conversation is
+gone, and nothing on the site can say how much coaching a fundraiser has had.
+
+Two things worth stating before building, because both shape the design:
+
+- **The table stores a session, not a transcript.** Its columns are
+  `user_id, campaign_id, message_count, created_at, updated_at` and **no
+  `coach_messages` table exists**. So the honest reader is "you have had N
+  conversations, most recent on <date>", not a chat history. Do not invent a
+  transcript UI the schema cannot fill.
+- **`coach_own_all` is a real owner policy** (`USING auth.uid() = user_id
+  WITH CHECK (...)`). Unlike the three service-role tables wired before it, this
+  one should go through the **session** client so RLS stays the backstop.
+  Reaching for `supabaseAdmin` out of habit here would throw that away.
+
 ### ✅ SHIPPED — embedded_buttons
 
 `lib/embedded-buttons-core.ts` (12 tests) · `GET/POST/DELETE /api/embedded-buttons`
