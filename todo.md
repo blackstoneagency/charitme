@@ -965,7 +965,28 @@ into CSS classes, or to give the tables a scroll container of their own.
 | baseline | 71 | 40 | first time the signed-in half was ever measured on a phone |
 | + CSS `minmax(0, 1fr)` ×86, `.kf-metrics`, `.kf-row` | 48 | 28 | |
 | + `.ac-status-tabs` scroll, `.kf-table-scroll` on 3 tables | 46 | 27 | `/admin/campaigns` 1020px → 470px |
-| + inline `minmax(0, 1fr)` ×74 | *(measuring)* | | |
+| + inline `minmax(0, 1fr)` ×74 | 43 | 25 | `/admin/reports` 890px and `/admin/audit-log` 880px gone |
+| + top-level & wide-block CSS ×156 | **43** | **25** | ⚠️ **no change — see below** |
+| + scroll boundary (`min-width: 0` + `.kf-card` overflow) | **21** | **13** | the fix the previous pass was missing |
+
+### ⚠️ A NEGATIVE RESULT: 156 declarations fixed, zero overflows removed
+
+Sweeping the bare `1fr` out of the top-level rules and the 1024–1180px media
+blocks moved the number by **nothing**. 43/25 before, 43/25 after.
+
+It was still worth doing — `.users-kpi-row { repeat(4, 1fr) }` is a genuine trap
+and `minmax(0, 1fr)` is correct at every width — but it is **hygiene, not a fix**,
+and recording it as progress would have been false. The pages that were going to
+be fixed by shrinkable tracks were already fixed by the first two passes.
+
+**What is actually left is different in kind.** The remaining tables carry FIXED
+pixel columns — `120px 120px 130px` is 370px of track before any flexible column
+— so no track type fits them on a 320px screen. They need a scroll boundary, not
+a shrinkable track, and the boundary needs `min-width: 0` on the box itself: a
+card that is a grid or flex item defaults to `min-width: auto`, so its own
+minimum is its content's max-content and the ancestor track simply grows to fit.
+The `overflow` property then has nothing to clip against. That is the same
+auto-minimum as the `1fr` tracks, one level down.
 
 **The one insight that took two passes to see.** Wrapping `/admin/reports`'s
 table in a scroll box moved its number by **zero**. The container cannot scroll
