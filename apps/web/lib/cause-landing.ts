@@ -39,7 +39,19 @@ export interface CauseStats {
   perCategory: Record<string, number>;
 }
 
+/** Every field null — what an unreadable database honestly looks like here. */
+const UNMEASURED: CauseStats = {
+  liveCampaigns: null,
+  raisedCents: null,
+  supporters: null,
+  countries: null,
+  perCategory: {},
+};
+
+const CAUSE_STATS_SCAN_LIMIT = 2000;
+
 export async function getCauseStats(cause: Cause): Promise<CauseStats> {
+  try {
   const cols = await campaignColumns();
 
   // Bounded like every other discovery read. Both were unbounded, which put the
@@ -48,11 +60,18 @@ export async function getCauseStats(cause: Cause): Promise<CauseStats> {
   // below is already `number | null` rendering as an em dash — so a slow
   // database shows "—", never a fabricated zero.
   const [rows, countries] = await Promise.all([
+    // Both bounds, deliberately. Master added `.limit()` (a ROW bound — stops an
+    // unbounded scan) and this lane added `boundedQuery` (a TIME bound — stops a
+    // stalled connection). They solve different failures: a row cap does nothing
+    // when the database never answers, and a deadline does nothing about a query
+    // that answers slowly because it read the whole table.
     boundedQuery(
       applyLiveFilters(
         supabaseAdmin.from('campaigns').select('category, raised_amount, backer_count'),
         cols,
-      ).in('category', [...cause.categories]),
+      )
+        .in('category', [...cause.categories])
+        .limit(CAUSE_STATS_SCAN_LIMIT),
     ),
     boundedQuery(
       supabaseAdmin
@@ -93,6 +112,18 @@ export async function getCauseStats(cause: Cause): Promise<CauseStats> {
     countries: countries.error ? null : countries.count ?? 0,
     perCategory,
   };
+  } catch {
+    // `supabaseAdmin` throws on property access when the env is missing, before
+    // any query runs — which the `rows.error` / `countries.error` checks above
+    // cannot see, and which 500'd /causes/[slug] outright.
+    //
+    // This guard existed in the page-local copy of this function that the #196
+    // merge deleted in favour of this shared one. Consolidating was right — two
+    // implementations of one statistic is how two surfaces quote different
+    // numbers — but it dropped the guard with the duplicate. Restored here, where
+    // it now covers every caller instead of one.
+    return UNMEASURED;
+  }
 }
 
 /**

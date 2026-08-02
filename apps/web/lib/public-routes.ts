@@ -229,6 +229,14 @@ export const INDEXABLE_PUBLIC_ROUTES: PublicRoute[] = [
     changeFrequency: 'daily',
   },
   {
+    path: '/needs',
+    title: 'Current Needs',
+    description:
+      'What communities still need funding for right now — measured from live campaign shortfalls, ordered by urgency.',
+    priority: 0.68,
+    changeFrequency: 'daily',
+  },
+  {
     path: '/campaigns',
     title: 'Browse Fundraising Campaigns',
     description: 'Discover active CharitMe campaigns and support verified people, nonprofits, and causes.',

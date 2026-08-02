@@ -340,6 +340,7 @@ export const de: Dictionary = {
   'footer.link.leaderboard': 'Bestenliste',
   'footer.link.developers': 'Entwickler und API',
   'footer.link.campaigns': 'Kampagnen durchsuchen',
+  'footer.link.needs': 'Aktueller Bedarf',
   'footer.link.give': 'An viele Zwecke spenden',
   'footer.link.crisis': 'Krisenhilfe',
   'footer.link.nearby': 'Kampagnen in Ihrer Nähe',

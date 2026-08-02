@@ -341,6 +341,7 @@ export const fr: Dictionary = {
   'footer.link.leaderboard': 'Classement',
   'footer.link.developers': 'Développeurs et API',
   'footer.link.campaigns': 'Parcourir les cagnottes',
+  'footer.link.needs': 'Besoins actuels',
   'footer.link.give': 'Donner à plusieurs causes',
   'footer.link.crisis': 'Aide d’urgence',
   'footer.link.nearby': 'Cagnottes près de chez vous',
