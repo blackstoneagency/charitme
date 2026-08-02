@@ -8887,3 +8887,37 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 /* `.growth-brand h2 em` ("New") keeps a light violet plate in both themes, so
    like the "Beta" chip its ink must stay dark there — it measured 1.84:1. */
 [data-theme="dark"] .growth-brand h2 em { color: #4c1d95; background: #f1ecff; }
+
+/* ── Cause landing: "Ways to help" ─────────────────────────────────────────
+   Distinct from `.cl-ways`, which lists other CAUSES. Each card states whether
+   it narrows to this cause: only /campaigns accepts a category filter, so the
+   rest are marked "all causes" rather than implying a filter that is not there. */
+.cl-help { max-width: 1180px; margin: 0 auto; padding: 8px 24px 8px; min-width: 0; }
+.cl-help-title { margin: 0 0 6px; font-size: var(--fs-h2); font-weight: 800; color: var(--t1); letter-spacing: -.02em; }
+.cl-help-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+  gap: 12px;
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  min-width: 0;
+}
+.cl-help-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  align-content: start;
+  min-height: 44px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--b1);
+  border-radius: var(--rl);
+  background: var(--s1);
+  text-decoration: none;
+}
+.cl-help-card:hover { border-color: var(--b2); background: var(--s2); }
+.cl-help-label { font-size: 15px; font-weight: 750; color: var(--t1); }
+.cl-help-scope { font-size: 12px; font-weight: 600; color: var(--t3); }
+.cl-help-blurb { font-size: 13.5px; line-height: 1.55; color: var(--t2); }
+.cl-help-note { margin: 14px 0 0; max-width: 640px; font-size: 12.5px; line-height: 1.6; color: var(--t3); }

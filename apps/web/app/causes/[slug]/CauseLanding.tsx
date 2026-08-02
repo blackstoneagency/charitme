@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getTranslator } from '../../../lib/locale-server';
+import { causeWays, scopeDisclosure } from '../../../lib/cause-ways-core';
 import CampaignImage from '../../../components/CampaignImage';
 import { POPULAR_CAUSES, causeBrowseHref, type Cause } from '../../../lib/causes';
 import { formatStat, formatMoneyStat, type CauseStats } from '../../../lib/cause-landing';
@@ -34,6 +35,8 @@ export default async function CauseLanding({
   stats: CauseStats;
 }) {
   const t = await getTranslator();
+  const ways = causeWays(cause);
+  const disclosure = scopeDisclosure(ways, cause.label);
   const heroPhoto = getCoverForCategory(cause.categories[0]);
   const otherCauses = POPULAR_CAUSES.filter((c) => c.slug !== cause.slug).slice(0, 4);
 
@@ -135,6 +138,30 @@ export default async function CauseLanding({
           the number of countries where we can accept a donation today, not a claim about where money has
           been spent.
         </p>
+      </section>
+
+      {/* ── Ways to help THIS cause ──────────────────────────────────────
+          Distinct from `cl-ways` below, which is other CAUSES. Each link
+          carries an explicit "site-wide" marker unless it genuinely narrows to
+          this cause — only /campaigns accepts a category filter. */}
+      <section className="cl-help" aria-labelledby="cl-help-title">
+        <h2 id="cl-help-title" className="cl-help-title">Ways to help</h2>
+        <ul className="cl-help-grid">
+          {ways.map((way) => (
+            <li key={way.id}>
+              <Link href={way.href} className="cl-help-card">
+                <strong className="cl-help-label">
+                  {way.label}
+                  {!way.scoped && (
+                    <span className="cl-help-scope"> · all causes</span>
+                  )}
+                </strong>
+                <span className="cl-help-blurb">{way.blurb}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+        {disclosure && <p className="cl-help-note">{disclosure}</p>}
       </section>
 
       {/* ── Other ways to help ───────────────────────────────────────────── */}
