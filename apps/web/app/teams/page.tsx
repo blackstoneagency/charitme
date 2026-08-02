@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../lib/supabase';
+import { getCause } from '../../lib/causes';
+import { boundedQuery } from '../../lib/query-timeout';
 import { formatCents } from '../../lib/stripe';
 import { ProgressBar, EmptyState } from '../../components/ui';
 import { PageBody, PageHero, Section, CardGrid, InfoCard, StatCard, CtaBand } from '../../components/PageShell';
@@ -41,26 +43,51 @@ interface TeamsData {
  * figure here is counted, and anything that cannot be counted renders as an
  * em-dash rather than a plausible number.
  */
-async function getTeams(): Promise<TeamsData | null> {
+/**
+ * `categories` scopes the LIST to one cause. `peer_fundraisers` has no category
+ * of its own, so the filter reaches through `parent_campaign_id` — which is NOT
+ * NULL, so unlike events no team is dropped by the join.
+ *
+ * The headline count and total stay platform-wide on purpose: they are labelled
+ * as platform totals, and silently reinterpreting them as cause totals is the
+ * kind of quiet mislabel this repo keeps finding.
+ */
+async function getTeams(categories?: readonly string[]): Promise<TeamsData | null> {
+  const scoped = categories && categories.length > 0;
   try {
+    const listQuery = supabaseAdmin
+      .from('peer_fundraisers')
+      .select(
+        scoped
+          ? 'id, slug, title, goal_amount, raised_amount, parent_campaign_id, campaigns:parent_campaign_id!inner(title, slug, category)'
+          : 'id, slug, title, goal_amount, raised_amount, parent_campaign_id, campaigns:parent_campaign_id(title, slug)',
+      )
+      .eq('status', 'active');
+
+    // Bounded like every other discovery read: a stalled database held this page
+    // for ~7s with no ceiling. A timeout yields `{ data: null, error }`, which
+    // the `null` return below already renders as "could not load", not "none".
     const [listRes, countRes, sumRes] = await Promise.all([
-      supabaseAdmin
-        .from('peer_fundraisers')
-        .select('id, slug, title, goal_amount, raised_amount, parent_campaign_id, campaigns:parent_campaign_id(title, slug)')
-        .eq('status', 'active')
-        .order('raised_amount', { ascending: false })
-        .limit(12),
-      supabaseAdmin
-        .from('peer_fundraisers')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'active'),
+      boundedQuery(
+        (scoped ? listQuery.in('campaigns.category', categories as string[]) : listQuery)
+          .order('raised_amount', { ascending: false })
+          .limit(12),
+      ),
+      boundedQuery(
+        supabaseAdmin
+          .from('peer_fundraisers')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'active'),
+      ),
       // Bounded: the sum is over active teams only and capped. A full-table
       // scan here is what `__tests__/unbounded-reads.test.ts` exists to stop.
-      supabaseAdmin
+      boundedQuery(
+        supabaseAdmin
         .from('peer_fundraisers')
         .select('raised_amount')
         .eq('status', 'active')
         .limit(5000),
+      ),
     ]);
 
     if (listRes.error) return null;
@@ -90,8 +117,16 @@ const WHAT_IS_A_TEAM = [
   { title: 'Track progress together', body: 'See who has joined, what each member has raised, and how close the team is to its goal.' },
 ];
 
-export default async function TeamsPage() {
-  const data = await getTeams();
+export default async function TeamsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ cause?: string }>;
+}) {
+  // `?cause=` scopes the team list to one cause. An unknown slug falls through
+  // to the full list rather than 404ing, so a stale link still lands somewhere.
+  const sp = (await searchParams) ?? {};
+  const cause = typeof sp.cause === 'string' ? getCause(sp.cause) : undefined;
+  const data = await getTeams(cause?.categories);
   const dash = '—';
 
   return (

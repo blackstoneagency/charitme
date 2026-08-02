@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Badge, EmptyState } from '../../../components/ui';
 import { listPublishedEvents } from '../../../lib/events';
+import { getCause } from '../../../lib/causes';
 import { remainingCapacity } from '../../../lib/events-core';
 
 export const metadata: Metadata = {
@@ -15,13 +16,32 @@ function dateLabel(iso: string): string {
   return new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 }
 
-export default async function EventsPage() {
-  const events = await listPublishedEvents(60);
+export default async function EventsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ cause?: string }>;
+}) {
+  // `?cause=` scopes the list to one cause's campaign categories, which is how
+  // a cause hub links to "its" events without a second page that would drift.
+  // An unknown slug is ignored rather than 404'd — a stale link should still
+  // land on the full list.
+  const sp = (await searchParams) ?? {};
+  const cause = typeof sp.cause === 'string' ? getCause(sp.cause) : undefined;
+  const events = await listPublishedEvents(60, cause?.categories);
 
   return (
     <div className="container" style={{ padding: '40px 24px' }}>
       <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 8 }}>📅 Events</h1>
+        {cause && (
+          <nav aria-label="Breadcrumb" style={{ marginBottom: 10 }}>
+            <Link href={`/causes/${cause.slug}`} style={{ fontSize: 13, fontWeight: 650, color: 'var(--t3)' }}>
+              ← {cause.label}
+            </Link>
+          </nav>
+        )}
+        <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 8 }}>
+          📅 {cause ? `${cause.label} events` : 'Events'}
+        </h1>
         <p style={{ color: 'var(--t3)', fontSize: 15, maxWidth: 640 }}>
           Upcoming fundraising events, galas, and giving days. RSVP in one click — organizers can
           host an event and check attendees in from their dashboard.
@@ -29,7 +49,16 @@ export default async function EventsPage() {
       </div>
 
       {events.length === 0 ? (
-        <EmptyState icon="📅" title="No upcoming events yet" body="Check back soon, or host the first event from the manage page." />
+        <EmptyState
+          icon="📅"
+          title={cause ? `No upcoming ${cause.label} events` : 'No upcoming events yet'}
+          body={
+            cause
+              ? 'Nothing scheduled under this cause right now. Browse every upcoming event instead.'
+              : 'Check back soon, or host the first event from the manage page.'
+          }
+          action={cause ? <Link className="cta-primary" href="/events" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '0 18px', borderRadius: 'var(--r)', textDecoration: 'none', fontWeight: 700 }}>All events</Link> : undefined}
+        />
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: 18 }}>
           {events.map((e) => {

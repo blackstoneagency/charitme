@@ -211,6 +211,33 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
         </section>
       )}
 
+      {/* The cause hub. Each link is the EXISTING page scoped by `?cause=`, not a
+          new per-cause page — twenty causes times six pages would be 120 routes
+          that drift apart. Campaigns and volunteering already accepted a cause;
+          events and teams gained it in this change. */}
+      <nav aria-label={`More in ${cause.label}`} style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', margin: '0 0 32px' }}>
+        {[
+          { href: `/campaigns?cause=${cause.slug}`, label: 'All campaigns' },
+          { href: `/events?cause=${cause.slug}`, label: 'Events' },
+          { href: `/teams?cause=${cause.slug}`, label: 'Teams & clubs' },
+          { href: `/volunteer?cause=${cause.slug}`, label: 'Volunteer' },
+          { href: '/success-stories', label: 'Stories' },
+          { href: '/impact', label: 'Impact reports' },
+        ].map((l) => (
+          <Link
+            key={l.href}
+            href={l.href}
+            style={{
+              display: 'inline-flex', alignItems: 'center', minHeight: '44px', padding: '0 16px',
+              borderRadius: '999px', border: '1px solid var(--b2)', background: 'var(--s1)',
+              color: 'var(--t1)', fontSize: '14px', fontWeight: 650, textDecoration: 'none',
+            }}
+          >
+            {l.label}
+          </Link>
+        ))}
+      </nav>
+
       {campaigns === null ? (
         <EmptyState
           icon="⚠️"

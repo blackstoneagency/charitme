@@ -27,17 +27,33 @@ async function registeredQtyByEvent(eventIds: string[]): Promise<Map<string, num
   return map;
 }
 
-export async function listPublishedEvents(limit = 60): Promise<EventWithCounts[]> {
+/**
+ * Published events, optionally scoped to a cause's campaign categories.
+ *
+ * `fundraising_events` has no category of its own — it has a nullable
+ * `campaign_id` — so a cause-scoped list has to reach the category through the
+ * campaign. That uses an INNER join (`campaigns!inner`), which drops events with
+ * no campaign, and that is the correct semantics rather than a limitation: an
+ * event attached to no campaign belongs to no cause, so it cannot honestly
+ * appear under one. Unscoped listing is unaffected and still shows everything.
+ */
+export async function listPublishedEvents(
+  limit = 60,
+  categories?: readonly string[],
+): Promise<EventWithCounts[]> {
+  const scoped = categories && categories.length > 0;
+  const base = supabaseAdmin
+    .from('fundraising_events')
+    .select(scoped ? `${EVENT_COLUMNS}, campaigns!inner(category)` : EVENT_COLUMNS)
+    .eq('status', 'published');
+
   const { data, error } = await boundedQuery(
-  supabaseAdmin
-      .from('fundraising_events')
-      .select(EVENT_COLUMNS)
-      .eq('status', 'published')
+    (scoped ? base.in('campaigns.category', categories as string[]) : base)
       .order('starts_at', { ascending: true })
       .limit(Math.min(limit, 200)),
   );
   if (error || !data) return [];
-  return withCounts(data as FundraisingEvent[]);
+  return withCounts(data as unknown as FundraisingEvent[]);
 }
 
 export async function getEventBySlug(slug: string): Promise<EventWithCounts | null> {
