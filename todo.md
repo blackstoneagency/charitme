@@ -17796,3 +17796,58 @@ re-derive it.
 
 **Verified:** typecheck 0 · lint 0 errors · **vitest 2411/2411 across 220 files**
 · build exit 0 · signed-in sweep **0 failures, 192 pages × 2 themes**.
+
+## 🖼 SECOND COMPOSITE — sub-images 60–71 (Claude, 2026-08-02)
+
+A **second** composite arrived, labelled 60–71 in the artwork (the earlier one was
+36–47; both briefs are live and the numbers refer to different images).
+
+**Only 5 of the 12 are missing.** Seven already ship — `/donor-wall`,
+`/dashboard/tax`, `/dashboard/integrations`, `/mobile-app`, `/accessibility`,
+`/security`+`/trust-safety`, `/help`. Rebuilding them would break the brief's own
+"do not create duplicate pages" and "do not overwrite stronger existing
+functionality" rules.
+
+Data census run FIRST (`node scripts/measure-composite-tables.mjs`), because a page
+wired to an empty table is a form posting into nothing.
+
+| # | Page | Status | Blocking fact |
+|---|---|---|---|
+| 60 | Cause Updates | ✅ **SHIPPED** `/campaigns/[slug]/updates` | 740 rows |
+| 61 | Media Gallery | 🔵 CLAIMED by this lane | `campaign_media` 500 rows, unused publicly |
+| 63 | Send Thank You Note | ⚠️ blocked-ish | `organizer_sends` is **0 rows** — needs seeding |
+| 64 | Certificate / Impact Report | ⬜ unclaimed | `donations` + `impact_metrics` both populated |
+| 71 | Chat / Live Support | ⚠️ blocked-ish | `support_notes` + `direct_messages` **0 rows** |
+
+### ✅ Page 60 shipped — and it fixed three real defects
+
+- **740 update rows had no readable public surface.** The campaign detail page
+  `select`s `body` and renders only title + date in a sidebar timeline. Organisers
+  writing detailed progress reports were publishing into a void.
+- **The "Updates (N)" tab scrolled to the wrong section** — `href="#updates"` while
+  `id="updates"` sat on the **co-organisers** block.
+- **The tab count under-reported above four** — `updates.length` from a `.limit(4)`
+  query, so a campaign with 20 updates advertised "Updates (4)".
+
+Security: 240 draft updates exist site-wide. Visibility is filtered in the query AND
+re-applied in a unit-tested pure function. Verified non-vacuously — the sample
+campaign has 3 rows (1 published, 2 drafts) and renders exactly 1.
+
+### ⚠️ Two traps worth remembering, both found here
+
+1. **"No overflow" is NOT "readable".** The two-column grid resolved to
+   `288px 0px` at 320px — the feed column collapsed to **zero width**, so the whole
+   page was invisible on a phone while `audit:responsive` passed cleanly. Only
+   measuring the *resolved track widths* caught it. Check computed
+   `grid-template-columns`, not just overflow.
+2. **`audit-responsive` had no data-dependent-route exemption**, unlike every
+   sibling sweep. It went red on every run against a database without the stub
+   fixtures — for another lane's `/share` as well as mine. A permanently-red audit
+   is an ignored audit; that is exactly how a light-mode contrast bug reached
+   production before. Fixed.
+
+### 🔧 New tooling: `scripts/audit-one-url.mjs`
+The sweeps validate `--only` against the static route list — correct, but it means a
+**dynamic** route against real data cannot be measured at all. This runs axe +
+overflow + touch-target checks on one arbitrary URL, both themes, 5 widths. Use it
+for any `[slug]` route.
