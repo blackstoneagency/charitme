@@ -80,30 +80,67 @@ function Icon({ name, className = '' }: { name: string; className?: string }) {
 }
 
 async function getContactStatsUncached() {
+  // ⚠️ Two reads here were UNBOUNDED, on a public page that anyone can load.
+  //
+  // `__tests__/unbounded-reads.test.ts` passed them because it treats any
+  // filter as bounding the query — its stated reasoning is that a filter makes
+  // a read "proportional to one user's data rather than the whole table". That
+  // is true of `.eq('user_id', …)`. It is NOT true of a STATUS filter:
+  // `.eq('status','completed')` on `donations` selects nearly every row that
+  // exists, and `.in('status',['resolved','closed'])` selects most support
+  // cases. Proportional to the platform, not to a user.
+  //
+  // Left alone they are wrong either way: unbounded and slow, or silently
+  // capped by PostgREST's default row ceiling and quietly under-counting. So
+  // both are explicitly capped and the derived figures are labelled for what
+  // they now are — a sample, and a floor.
+  const RESPONSE_SAMPLE = 500;
+  const DONOR_SAMPLE = 5000;
   try {
     const [casesCountRes, resolvedRes, activeCampRes, donationsRes] = await Promise.all([
       supabaseAdmin.from('support_cases').select('id', { count: 'exact', head: true }),
-      supabaseAdmin.from('support_cases').select('created_at,updated_at').in('status', ['resolved', 'closed']),
+      supabaseAdmin
+        .from('support_cases')
+        .select('created_at,updated_at')
+        .in('status', ['resolved', 'closed'])
+        .order('updated_at', { ascending: false })
+        .limit(RESPONSE_SAMPLE),
       supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-      supabaseAdmin.from('donations').select('donor_id').eq('status', 'completed'),
+      supabaseAdmin
+        .from('donations')
+        .select('donor_id')
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false })
+        .limit(DONOR_SAMPLE),
     ]);
+
+    // A failed read is NOT zero. Rendering "0 Active Campaigns" on a public
+    // page because a query timed out states something false about the platform.
+    if (casesCountRes.error || resolvedRes.error || activeCampRes.error || donationsRes.error) {
+      return null;
+    }
 
     const resolvedRows = (resolvedRes.data ?? []) as { created_at: string; updated_at: string }[];
     const avgResponseHours = resolvedRows.length > 0
       ? resolvedRows.reduce((sum, row) => sum + (new Date(row.updated_at).getTime() - new Date(row.created_at).getTime()), 0)
         / resolvedRows.length / 3_600_000
-      : 0;
+      : null;
     const donorsHelped = new Set(((donationsRes.data ?? []) as { donor_id: string | null }[]).map((d) => d.donor_id).filter(Boolean)).size;
 
     return {
-      totalCases: casesCountRes.count ?? 0,
+      totalCases: casesCountRes.count,
       resolvedCases: resolvedRows.length,
       avgResponseHours,
-      activeCampaigns: activeCampRes.count ?? 0,
+      activeCampaigns: activeCampRes.count,
+      // A floor, not a total: distinct donors across the most recent
+      // DONOR_SAMPLE completed donations. Counting every distinct donor needs a
+      // database-side aggregate we do not have, and reading the whole donations
+      // table on a public page to fake one is the trade this cap exists to
+      // refuse.
       donorsHelped,
     };
   } catch {
-    return { totalCases: 0, resolvedCases: 0, avgResponseHours: 0, activeCampaigns: 0, donorsHelped: 0 };
+    return null;
   }
 }
 
@@ -115,14 +152,18 @@ async function getContactStatsUncached() {
  */
 const getContactStats = unstable_cache(getContactStatsUncached, ['public-contact-stats'], { revalidate: 60, tags: ['contact-stats'] });
 
-function fmtResponseTime(hours: number): string {
+/** `null` = could not measure. An em-dash, never a confident 0. */
+function fmtResponseTime(hours: number | null): string {
+  if (hours === null) return '—';
   if (hours <= 0) return '< 24 hrs';
   if (hours < 1) return '< 1 hr';
   if (hours < 24) return `${Math.round(hours)} hrs`;
   return `${Math.round(hours / 24)} days`;
 }
 
-function fmtCount(value: number): string {
+/** `null` = could not measure. An em-dash, never a confident 0. */
+function fmtCount(value: number | null): string {
+  if (value === null) return '—';
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M+`;
   if (value >= 1_000) return `${Math.round(value / 1_000)}K+`;
   if (value > 0) return `${value.toLocaleString()}+`;
@@ -160,22 +201,22 @@ export default async function ContactPage() {
           {/* Live stat pills — pulled straight from Supabase */}
           <div className="about-hero-stats">
             <div className="about-stat-pill">
-              <span className="about-stat-num">{fmtResponseTime(stats.avgResponseHours)}</span>
+              <span className="about-stat-num">{fmtResponseTime(stats?.avgResponseHours ?? null)}</span>
               <span className="about-stat-label">Avg. Response Time</span>
             </div>
             <div className="about-stat-divider" />
             <div className="about-stat-pill">
-              <span className="about-stat-num">{fmtCount(stats.resolvedCases)}</span>
+              <span className="about-stat-num">{fmtCount(stats?.resolvedCases ?? null)}</span>
               <span className="about-stat-label">Cases Resolved</span>
             </div>
             <div className="about-stat-divider" />
             <div className="about-stat-pill">
-              <span className="about-stat-num">{fmtCount(stats.activeCampaigns)}</span>
+              <span className="about-stat-num">{fmtCount(stats?.activeCampaigns ?? null)}</span>
               <span className="about-stat-label">Active Campaigns</span>
             </div>
             <div className="about-stat-divider" />
             <div className="about-stat-pill">
-              <span className="about-stat-num">{fmtCount(stats.donorsHelped)}</span>
+              <span className="about-stat-num">{fmtCount(stats?.donorsHelped ?? null)}</span>
               <span className="about-stat-label">Donors Supported</span>
             </div>
           </div>
@@ -194,7 +235,7 @@ export default async function ContactPage() {
               <div>
                 <h3>Email Us</h3>
                 <p>hello@charitme.com</p>
-                <span>We typically reply within {fmtResponseTime(stats.avgResponseHours)}</span>
+                <span>We typically reply within {fmtResponseTime(stats?.avgResponseHours ?? null)}</span>
               </div>
             </div>
             <div className="contact-info-card-v2">
@@ -217,7 +258,7 @@ export default async function ContactPage() {
               <div className="contact-info-icon-v2"><Icon name="clock" /></div>
               <div>
                 <h3>Live Support Queue</h3>
-                <p>{stats.totalCases > 0 ? `${stats.totalCases.toLocaleString()} conversations handled` : 'Always-on support team'}</p>
+                <p>{stats?.totalCases ? `${stats.totalCases.toLocaleString()} conversations handled` : 'Always-on support team'}</p>
                 <span>Every message becomes a tracked ticket — nothing falls through the cracks.</span>
               </div>
             </div>
@@ -249,9 +290,9 @@ export default async function ContactPage() {
       <section className="about-impact-strip">
         <div className="about-impact-inner">
           {[
-            { num: fmtResponseTime(stats.avgResponseHours), label: 'Average first response',  icon: '⚡' },
-            { num: fmtCount(stats.resolvedCases),           label: 'Support cases resolved',  icon: '✅' },
-            { num: fmtCount(stats.activeCampaigns),         label: 'Campaigns we support',    icon: '📣' },
+            { num: fmtResponseTime(stats?.avgResponseHours ?? null), label: 'Average first response',  icon: '⚡' },
+            { num: fmtCount(stats?.resolvedCases ?? null),           label: 'Support cases resolved',  icon: '✅' },
+            { num: fmtCount(stats?.activeCampaigns ?? null),         label: 'Campaigns we support',    icon: '📣' },
             { num: '0%',                                    label: 'Mandatory platform fee',  icon: '💚' },
           ].map((item) => (
             <div key={item.label} className="about-impact-item">

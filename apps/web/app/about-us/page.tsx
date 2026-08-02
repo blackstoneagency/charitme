@@ -14,9 +14,9 @@ export const dynamic = 'force-dynamic';
 async function getLiveStatsUncached() {
   try {
     const [donRes, campRes, donorRes] = await Promise.all([
-      supabaseAdmin.from('donations').select('amount_cents').eq('status', 'completed'),
+      supabaseAdmin.from('donations').select('amount_cents').eq('status', 'completed').limit(20000),
       supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-      supabaseAdmin.from('donations').select('donor_id').eq('status', 'completed'),
+      supabaseAdmin.from('donations').select('donor_id').eq('status', 'completed').limit(20000),
     ]);
     const totalRaised  = ((donRes.data ?? []) as { amount_cents: number }[]).reduce((s, d) => s + d.amount_cents, 0);
     const activeCamps  = campRes.count ?? 0;

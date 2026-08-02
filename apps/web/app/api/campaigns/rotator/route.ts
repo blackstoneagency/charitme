@@ -60,7 +60,11 @@ function baseQuery(nowIso: string) {
     .neq('cover_image_url', '')
     // Ended campaigns are dropped in SQL. A null deadline means "runs
     // indefinitely" and must stay — most campaigns have no deadline at all.
-    .or(`deadline.is.null,deadline.gt.${nowIso}`);
+    .or(`deadline.is.null,deadline.gt.${nowIso}`)
+    // Capped: every filter here is a status/visibility predicate, so this scales
+    // with the whole campaigns table, not with one owner's rows. The rotator
+    // shows a handful of cards — it never needed more than a page of candidates.
+    .limit(500);
 }
 
 function normalize(rows: Raw[]) {

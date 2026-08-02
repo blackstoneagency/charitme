@@ -8493,6 +8493,76 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   .cu-layout > aside { order: 2; }
 }
 
+/* ═══ /campaigns — browse layout (design: "Campaigns That Change Lives") ═══ */
+.cb-page { width: min(100% - 40px, 1280px); margin-inline: auto; padding: 28px 0 72px; }
+
+.cb-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; color: var(--t3); margin-bottom: 18px; }
+.cb-crumbs a { color: var(--t3); text-decoration: none; display: inline-flex; align-items: center; min-height: 24px; }
+.cb-crumbs a:hover { color: var(--t1); }
+.cb-crumbs b { color: var(--t1); font-weight: 700; }
+
+.cb-hero { max-width: 720px; margin-bottom: 26px; }
+.cb-hero h1 { font-size: var(--fs-h1); font-weight: 850; line-height: 1.1; letter-spacing: -.03em; color: var(--t1); }
+.cb-hero p { margin-top: 12px; font-size: 16px; line-height: 1.6; color: var(--t3); }
+
+/* Chips scroll horizontally on small screens rather than wrapping into a wall.
+   `overflow-x: auto` on the row itself keeps the SCROLL INSIDE this element —
+   without it the widest chip pushes the page and the whole document scrolls
+   sideways, which is the failure `audit:responsive` checks for. */
+.cb-chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 26px; scrollbar-width: thin; }
+.cb-chip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 16px;
+  border: 1px solid var(--b1);
+  border-radius: 999px;
+  background: var(--s1);
+  color: var(--t2);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.cb-chip:hover { border-color: var(--b2); color: var(--t1); }
+.cb-chip.is-active { background: var(--grad-brand); border-color: transparent; color: #fff; }
+
+/* Mobile-first: one column. The sidebar only becomes a column where there is
+   room for it AND the main list beside it — below that it stacks underneath,
+   which is the right reading order anyway (results before ways-to-help). */
+.cb-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 32px; align-items: start; }
+@media (min-width: 1060px) {
+  .cb-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 320px); gap: 40px; }
+}
+.cb-main { min-width: 0; }
+.cb-aside { min-width: 0; display: grid; gap: 20px; }
+
+.cb-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; margin: 30px 0 16px; }
+.cb-section-head h2 { font-size: var(--fs-h3); font-weight: 800; color: var(--t1); margin: 0; }
+.cb-section-head a { font-size: 13px; font-weight: 700; color: var(--green-text); text-decoration: none; display: inline-flex; align-items: center; gap: 5px; min-height: 24px; }
+.cb-count { font-size: 13px; color: var(--t3); font-weight: 650; }
+.cb-featured { margin-bottom: 8px; }
+
+.cb-panel { padding: 22px; border: 1px solid var(--b1); border-radius: var(--rl); background: var(--s1); }
+.cb-panel h2 { font-size: var(--fs-h3); font-weight: 800; color: var(--t1); margin: 0; }
+.cb-panel .cb-section-head { margin: 0 0 14px; }
+.cb-panel-lede { margin: 8px 0 0; font-size: 14px; line-height: 1.6; color: var(--t3); }
+.cb-panel-cta { display: inline-flex; margin-top: 18px; width: 100%; justify-content: center; }
+
+.cb-actions { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 12px; }
+.cb-actions a { display: grid; gap: 3px; padding: 12px 14px; border: 1px solid var(--b1); border-radius: var(--r); text-decoration: none; background: var(--s2); }
+.cb-actions a:hover { border-color: var(--b2); }
+.cb-actions strong { font-size: 14px; font-weight: 750; color: var(--t1); }
+.cb-actions span { font-size: 13px; line-height: 1.5; color: var(--t3); }
+
+.cb-donors { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.cb-donors li { display: flex; align-items: center; gap: 11px; min-width: 0; }
+.cb-rank { flex: none; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; background: var(--s3); color: var(--t2); font-size: 11px; font-weight: 800; }
+/* `min-width: 0` + ellipsis: a long display name would otherwise widen the grid
+   track and push the amount out of the panel. */
+.cb-donor-name { flex: 1; min-width: 0; font-size: 14px; font-weight: 650; color: var(--t1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cb-donor-amount { flex: none; font-size: 13px; font-weight: 750; color: var(--green-text); }
 /* ── Cause landing (/causes/[slug]) ──────────────────────────────────────────
    The reference is a dark hero with a photo, a programme panel, a stats band and
    a "ways to help" row. Everything below is token-driven rather than the mock's
