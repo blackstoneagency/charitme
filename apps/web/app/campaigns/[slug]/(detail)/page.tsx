@@ -764,6 +764,15 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             qrPosterId={campaign.id}
           />
 
+          {/* The share page is the linkable version of the block above — a
+              supporter can send THAT url to someone rather than re-explaining
+              the campaign themselves. Linked here so it is not an orphan route. */}
+          <p style={{ margin: '10px 0 0', fontSize: 13 }}>
+            <Link href={`/campaigns/${campaign.slug}/share`} style={{ color: 'var(--brand-text)', fontWeight: 650 }}>
+              More ways to share, and messages you can copy →
+            </Link>
+          </p>
+
         </div>{/* end pc-left */}
 
         {/* RIGHT column: sticky donation form */}
