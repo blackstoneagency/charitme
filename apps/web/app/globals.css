@@ -1112,7 +1112,13 @@ input, select, textarea, button { max-width: 100%; }
   border-bottom: 1px solid var(--b1, #e9e5f5);
 }
 .legal-index li:last-child { border-bottom: 0; }
-.legal-index a { font-size: 16px; font-weight: 750; color: var(--violet-ink, #5b2fd6); }
+/* `inline-flex` + 24px min-height because this is a NAVIGATION LIST, not prose.
+   WCAG 2.5.8's inline exemption covers a link whose size is constrained by the
+   line-height of surrounding text; these each sit alone in their own <li>, so
+   nothing constrains them and the exemption does not apply. Measured at 390px
+   they were 19px tall — seven of the fifteen remaining undersized targets on
+   the whole site. */
+.legal-index a { display: inline-flex; align-items: center; min-height: 24px; font-size: 16px; font-weight: 750; color: var(--violet-ink, #5b2fd6); }
 .legal-index span { display: block; margin-top: 4px; color: var(--t3, #5b6688); font-size: 14px; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -5783,7 +5789,7 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 .sc-hero-glow { position: absolute; inset: 0; background: radial-gradient(ellipse 70% 60% at 50% 20%, rgba(109,53,255,.35) 0%, transparent 70%); pointer-events: none; }
 .sc-hero-inner { position: relative; max-width: 760px; margin: 0 auto; }
 .sc-breadcrumb { display: flex; justify-content: center; align-items: center; gap: 6px; font-size: 13px; color: rgba(255,255,255,.55); margin-bottom: 20px; }
-.sc-breadcrumb a { color: rgba(255,255,255,.55); text-decoration: none; }
+.sc-breadcrumb a { display: inline-flex; align-items: center; min-height: 24px; color: rgba(255,255,255,.55); text-decoration: none; }
 .sc-breadcrumb a:hover { color: #fff; }
 .sc-hero-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.15); color: rgba(255,255,255,.85); font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 5px 14px; border-radius: 999px; margin-bottom: 20px; }
 .sc-hero h1 { font-size: var(--fs-hero); font-weight: 800; line-height: 1.1; margin: 0 0 18px; letter-spacing: -.02em; }
@@ -8430,4 +8436,14 @@ summary:focus-visible,
   .maintenance-cloud-two { right: -26px; }
   .super-maintenance-fields { grid-template-columns: minmax(0, 1fr); }
   .super-maintenance-fields label:first-child { grid-row: auto; }
+}
+
+/* EmptyState's recovery action. The wrapper cannot fix this on its own — the tap
+   target is the LINK, not its container — so the size goes on the child. */
+.empty-state-action { display: flex; justify-content: center; }
+.empty-state-action > a,
+.empty-state-action > button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
 }

@@ -55,7 +55,7 @@ export default function BrandAssetsPage() {
               <h3 style={{ fontSize: '15px', fontWeight: 750, color: 'var(--t1)' }}>{l.name}</h3>
               <p style={{ fontSize: '13px', color: 'var(--t3)', lineHeight: 1.55, marginTop: '6px' }}>{l.note}</p>
               <p style={{ marginTop: '12px' }}>
-                <a href={l.file} download style={{ fontSize: '13px', color: 'var(--green-text)', fontWeight: 700 }}>
+                <a href={l.file} download style={{ display: 'inline-flex', alignItems: 'center', minHeight: '24px', fontSize: '13px', color: 'var(--green-text)', fontWeight: 700 }}>
                   Download PNG →
                 </a>
               </p>

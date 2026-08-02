@@ -255,7 +255,17 @@ export function EmptyState({ icon, title, body, action }: {
       {icon && <div style={{ fontSize: '40px', marginBottom: '16px' }}>{icon}</div>}
       <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--t2)', marginBottom: '8px' }}>{title}</h3>
       {body && <p style={{ fontSize: '14px', marginBottom: '20px' }}>{body}</p>}
-      {action}
+      {/* The action is a standalone recovery control ("Try again", "Browse all
+          campaigns"), not a link inside a sentence — so WCAG 2.5.8's inline
+          exemption does NOT apply to it and a bare <Link> here measured 73×16
+          CSS px on a phone. Measured at 390px across 92 pages: this one wrapper
+          was the cause on six of them.
+          axe passes it either way, because axe cannot tell a standalone action
+          from inline prose; the exemption is about being constrained by the
+          line-height of surrounding text, and there is no surrounding text
+          here. Sizing it in the shared component fixes every caller at once
+          rather than 24px-ing six pages by hand. */}
+      {action && <div className="empty-state-action">{action}</div>}
     </div>
   );
 }
