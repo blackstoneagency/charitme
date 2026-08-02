@@ -1021,6 +1021,53 @@ constants. **The sweep found three of the four wrong pages on its first run** �
 only `/terms` was found by reading. It also asserts it can fail, and strips
 comments so a doc comment quoting a rate is not a finding.
 
+## ✅ 2026-08-02 — WCAG 2.5.8 closed out, and a 500 on a public route
+
+### Every remaining tap target under 24px is fixed (9 routes, 22 controls)
+
+The signed-in sweep had been reporting these for a while. Now zero across 400
+signed-in page loads.
+
+Worst by a distance: **`/dashboard/notifications` had EIGHTEEN "Dismiss" buttons
+at 13×16** — a bare `×` glyph with no padding, the smallest control in the
+product, once per row. Visual weight unchanged; only the hit area grew.
+
+The rest: "Export CSV" in `PaymentAdminParts` (one component, three payment
+routes), "Manage" on the marketing command centre, "View Page" on
+`/admin/countries`, "Back to Dashboard" on `/admin/setup`, the opportunity title
+on `/admin/volunteers` (254×16, and it is the primary way into a row), and the
+"Active now" checkbox **label** on `/admin/super/announcements` — the label is
+the effective target for a checkbox, so it carries the minimum.
+
+### `/campaigns/[slug]/gallery` was answering HTTP 500 — optional chaining is not a type check
+
+```
+TypeError: c?.some is not a function
+```
+
+`data?.some(...)` on a Supabase Storage `list()` result. **`?.` guards `null` and
+`undefined`, not a value of the wrong TYPE.** When `list()` returned a non-array
+the call threw — and `campaign-media-storage.ts` documents itself as returning
+`null` on ANY failure, so it was breaking its own contract on a page anyone can
+open. The sibling call site had the identical latent bug (`data ?? []` fails the
+same way); both now go through one `asFileList` guard in a new pure
+`lib/campaign-media-core.ts` (the storage module imports React `cache()`, which
+cannot be imported from a unit test).
+
+⚠️ **Found because an audit REFUSED to measure.** The mobile sweep reports a
+non-200 rather than skipping it, so "HTTP 500; nothing to measure" is what
+surfaced a route that had been failing silently behind a fixture slug.
+
+### Whole-site state, measured on this build
+
+| Surface | Overflow | Tap targets | axe | Contrast | Focus order |
+|---|---|---|---|---|---|
+| Public (87 routes) | 0 | 0 | 0 across 166 loads | 0 across 86 × 2 themes | 0 traps, 14,830 stops |
+| Admin mode (400 loads) | 0 | 0 | — | clean 199 × 2 | — |
+| Member mode (300 pages) | 0 | 0 | — | clean | — |
+
+---
+
 ## 🖼️ COMPOSITE IMAGE #4 (12 resource pages in the signed-in shell) — tbaz3i, 2026-08-02
 
 **All twelve routes already existed** (`/blog`, `/volunteer`, `/for-nonprofits`,
