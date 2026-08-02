@@ -238,7 +238,7 @@ export default function AdminCountriesClient() {
           🌍 Public page:{' '}
           <code style={{ background: 'rgba(0,0,0,.06)', padding: '2px 6px', borderRadius: 4 }}>/supported-countries</code>
         </span>
-        <Link href="/supported-countries" target="_blank" style={{ fontSize: 12, fontWeight: 650, color: 'var(--brand-text)', textDecoration: 'none' }}>
+        <Link href="/supported-countries" target="_blank" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, fontSize: 12, fontWeight: 650, color: 'var(--brand-text)', textDecoration: 'none' }}>
           View Page →
         </Link>
       </div>
