@@ -208,7 +208,7 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
       ) : (
         <>
           <CampaignGrid>
-            {campaigns.map((c) => <CampaignCard key={c.id} campaign={c} />)}
+            {campaigns.map((c) => <CampaignCard key={c.id} campaign={c} variant="feature" />)}
           </CampaignGrid>
 
           {campaigns.length === PAGE_SIZE && (

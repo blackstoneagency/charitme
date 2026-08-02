@@ -18077,3 +18077,24 @@ raised, 47 gifts, 69 countries for Sports & Youth. The mock's white stats card i
 also NOT reproduced — a literal white surface is a white slab in dark mode. The
 sheet uses surface tokens; only the photo hero commits to dark in both themes,
 and there the scrim guarantees contrast rather than the theme.
+
+### 🃏 Campaign cards on the cause landing — `feature` variant
+The reference's card is quieter than the site's listing card: cover, title, one
+line of description, raised-of-goal and a bar. Shipped as a **variant inside
+`CampaignCard`**, not a second component — this file exists precisely because
+lookalike copies drift here (three category lists, five route lists, ten
+"days left" implementations, one of which shipped *"136 days left"* directly
+above *"This campaign has ended"*).
+
+**Kept despite the mock showing no chips**: the Verified badge and an Ended
+badge. Dropping the first removes a signal a donor decides on; dropping the
+second is the exact bug above. **Dropped**: the numeric trust score and the
+donor/goal tiles — visual noise the reference removes without losing a decision.
+
+Money uses the shared `formatMoneyCompact`, so the card reads `$1,205 of $21,000`
+like the reference rather than `$1,205.00`. The description is clamped in CSS
+(`-webkit-line-clamp`) rather than `slice(0, 90)`, which cuts at a different
+place at every width and mid-word at some of them.
+
+The other four pages using this card (`/campaigns`, `/search`, `/donate`,
+`/supporter-space`) are untouched and a test asserts they stay on the dense card.
