@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../lib/supabase';
+import { boundedQuery } from '../../lib/query-timeout';
 import { campaignColumns, applyLiveFilters } from '../../lib/campaign-visibility';
 import { CAUSES, POPULAR_CAUSES, ALL_CAUSES_COLUMN, type Cause } from '../../lib/causes';
 import { Card } from '../../components/ui';
@@ -38,10 +39,15 @@ async function getCauseCounts(): Promise<Map<string, number>> {
 
     const results = await Promise.all(
       categories.map(async (category) => {
-        const { count, error } = await applyLiveFilters(
-          supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true }),
-          cols,
-        ).eq('category', category);
+        // Bounded per category: these run concurrently, so one stalled count
+        // held the whole page. A timeout yields `error`, and the guard below
+        // already refuses to publish a partial total.
+        const { count, error } = await boundedQuery(
+          applyLiveFilters(
+            supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true }),
+            cols,
+          ).eq('category', category),
+        );
         return [category, error ? null : count ?? 0] as const;
       }),
     );

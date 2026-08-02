@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../lib/supabase';
+import { boundedQuery } from '\.\./\.\./lib/query-timeout';
 import { campaignColumns, applyLiveFilters } from '../../lib/campaign-visibility';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 import { EmptyState } from '../../components/ui';
@@ -47,11 +48,15 @@ async function getMapData(): Promise<MapData | null> {
 
     const [locRes, countryRes] = await Promise.all([
       // Bounded read of just the two columns needed to group.
-      applyLiveFilters(
-        supabaseAdmin.from('campaigns').select('location, category'),
-        cols,
-      ).limit(5000),
-      supabaseAdmin.from('supported_countries').select('id', { count: 'exact', head: true }),
+      boundedQuery(
+        applyLiveFilters(
+          supabaseAdmin.from('campaigns').select('location, category'),
+          cols,
+        ).limit(5000)
+      ),
+      boundedQuery(
+        supabaseAdmin.from('supported_countries').select('id', { count: 'exact', head: true })
+      ),
     ]);
 
     if (locRes.error) return null;

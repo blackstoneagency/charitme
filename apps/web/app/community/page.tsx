@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../lib/supabase';
+import { boundedQuery } from '\.\./\.\./lib/query-timeout';
 import { campaignColumns } from '../../lib/campaign-visibility';
 import { mapRecentDonations, type RawDonationRow } from '../../lib/home-data';
 import { formatCents } from '../../lib/stripe';
@@ -52,17 +53,21 @@ async function getFeed(): Promise<Feed | null> {
       : 'campaigns:campaign_id(title, slug)';
 
     const [updRes, donRes] = await Promise.all([
-      supabaseAdmin
-        .from('campaign_updates')
-        .select(`id, title, body, created_at, ${campaignJoin}`)
-        .order('created_at', { ascending: false })
-        .limit(30),
-      supabaseAdmin
-        .from('donations')
-        .select(`id, amount_cents, anonymous, created_at, offline_donor_name, ${campaignJoin}, profiles:donor_id(full_name, show_public_profile)`)
-        .eq('status', 'completed')
-        .order('created_at', { ascending: false })
-        .limit(30),
+      boundedQuery(
+        supabaseAdmin
+          .from('campaign_updates')
+          .select(`id, title, body, created_at, ${campaignJoin}`)
+          .order('created_at', { ascending: false })
+          .limit(30)
+      ),
+      boundedQuery(
+        supabaseAdmin
+          .from('donations')
+          .select(`id, amount_cents, anonymous, created_at, offline_donor_name, ${campaignJoin}, profiles:donor_id(full_name, show_public_profile)`)
+          .eq('status', 'completed')
+          .order('created_at', { ascending: false })
+          .limit(30)
+      ),
     ]);
 
     if (updRes.error || donRes.error) return null;

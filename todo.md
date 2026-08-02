@@ -22,7 +22,31 @@ three properties.
 | 12 discovery pages (`/donate`, `/causes`, `/campaigns`, `/crisis`, `/gallery`, `/give`, `/community`, `/donor-wall`, `/supporter-space`, `/teams/create`, `/impact-map`, `/ai-fundraising`) | 14.1s | **8.56s** |
 | `/leaderboard` | 9.56s | **4.02s** |
 
-### 🟡 STILL OPEN — the residual ~7s is each page's own read
+### ✅ DONE — all 13 pages now ~4.0s (Claude, 2026-08-02)
+
+Every one of the 13 is bounded with `boundedQuery`, which synthesises the same
+`{ data: null, error }` supabase-js produces on failure, so a timeout takes each
+page's EXISTING error branch and nothing downstream changed. **14.1s → ~4.03s**
+(= 1.5s bounded probe + 2.5s bounded query) on `/donate`, `/gallery`, `/give`,
+`/crisis`, `/ai-fundraising`, `/community`, `/donor-wall`, `/supporter-space`,
+`/impact-map`, `/causes`, `/campaigns`; `/leaderboard` 9.56s → 4.02s.
+
+⚠️ **Twice, a patch that read correctly did not move the page** — `/ai-fundraising`
+stayed at 8.56s because it runs a SECOND `Promise.all` with two more unbounded
+reads, and the homepage stayed at 7.2s (below). Both were caught only by
+re-measuring. **The edit is not the evidence; the measurement is.**
+
+### 🟡 STILL OPEN — the homepage is ~7.2s and it is NOT the database
+
+`loadOrDegrade` on `/` is now bounded (it caught rejections but had no deadline),
+and `ok: false` already suppresses the metrics band — so a timeout yields fewer
+numbers, never wrong ones. **The page did not get faster**, so the ~7s is
+somewhere else: the remaining suspect is
+`resolveCampaignCover` → `unsplashCoverForCampaign`, called **per hero item** in a
+`Promise.all`, i.e. a network call per campaign. Unverified — do not "fix" it
+before measuring which call actually costs the time.
+
+### 🟡 ORIGINAL NOTE — the residual ~7s is each page's own read
 
 8.56s = 1.5s (bounded probe) + ~7.05s (the page's own unbounded query).
 **13 pages, no shared helper** — each has its own `from('campaigns')` /

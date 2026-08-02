@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../lib/supabase';
+import { boundedQuery } from '\.\./\.\./lib/query-timeout';
 import { campaignColumns } from '../../lib/campaign-visibility';
 import { mapRecentDonations, type RawDonationRow, type RecentDonation } from '../../lib/home-data';
 import { formatCents } from '../../lib/stripe';
@@ -46,12 +47,18 @@ async function getWall(): Promise<WallData | null> {
     const select = `${SELECT_BASE}, ${campaignJoin}`;
 
     const [topRes, recentRes, countRes] = await Promise.all([
-      supabaseAdmin.from('donations').select(select).eq('status', 'completed')
-        .order('amount_cents', { ascending: false }).limit(30),
-      supabaseAdmin.from('donations').select(select).eq('status', 'completed')
-        .order('created_at', { ascending: false }).limit(45),
-      supabaseAdmin.from('donations').select('id', { count: 'exact', head: true })
-        .eq('status', 'completed'),
+      boundedQuery(
+        supabaseAdmin.from('donations').select(select).eq('status', 'completed')
+          .order('amount_cents', { ascending: false }).limit(30)
+      ),
+      boundedQuery(
+        supabaseAdmin.from('donations').select(select).eq('status', 'completed')
+          .order('created_at', { ascending: false }).limit(45)
+      ),
+      boundedQuery(
+        supabaseAdmin.from('donations').select('id', { count: 'exact', head: true })
+          .eq('status', 'completed')
+      ),
     ]);
 
     if (topRes.error || recentRes.error) return null;
