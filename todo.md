@@ -17016,3 +17016,141 @@ Measured before/after on the same build with env blanked: `/status` **500 → 20
 · build exit 0 · contrast **0 failures, 80 pages × 2 themes, 9,610 elements per
 theme** · responsive **0 regressions, 80 × 3 viewports × 2 themes** · axe **4/4
 projects**. 80 pages, up from 79 — `/signup` is measured for the first time.
+
+## ✅ VERIFIED — `supabase/catch_up.sql` actually executes (Claude, 2026-08-02)
+
+Asked to "apply every SQL". **I cannot** — every path out of this sandbox to the
+database is closed, checked rather than assumed:
+
+| Path | Result |
+|---|---|
+| `*.supabase.co` / `api.supabase.com` | `403` to CONNECT at the gateway |
+| `db.<ref>.supabase.co:5432` | blocked |
+| pooler `:6543` | blocked |
+| `POST /api/admin/apply-schema` | **410 by design** — "apply through the release workflow" |
+| `.github/workflows/release.yml` | needs a runner; Actions assigns none (blocker #1) |
+
+Credentials are NOT the issue — access token, DB password and project ref are all
+in `.env.local`. The proxy allowlist is empty; everything outside a fixed
+no-proxy list is refused. **I deliberately did not re-enable the in-app apply
+route**: someone disabled it on purpose, and undoing a security decision to work
+around my own sandbox is the wrong trade.
+
+⚠️ **`npm run provision` cannot work either, for a reason that is not obvious.**
+Production mode requires `STAGING_VERIFIED_COMMIT` to equal current HEAD — this
+exact commit must have passed **staging** first. No staging Supabase project
+exists (Preview Branches → HTTP 402; a dedicated project is refused at the
+two-free-project limit). So the sanctioned path is blocked at three independent
+points, not one.
+
+### So instead: proved the artifact works, on a real Postgres
+
+`supabase/catch_up.sql` (694KB, all 114 migrations, idempotent) had apparently
+never actually been executed. Postgres 16 binaries are present in this sandbox,
+so it was run for real against a local instance with Supabase-shaped scaffolding
+(`auth` schema + `auth.uid/role/jwt`, `storage.buckets/objects`, the roles, the
+migration ledger).
+
+| Run | Errors |
+|---|---|
+| **Fresh database** | **0** |
+| Second run (re-apply) | **1**, harmless — see below |
+
+**End state verified by query, not by the absence of errors:** 162 tables, 70
+functions, 245 RLS policies, 89 triggers, `record_donation` carrying the correct
+**11-argument** signature including `p_peer_fundraiser_id`, and
+**`profiles.locale` present as `text`** — the column the footer locale picker
+needs.
+
+**The single re-run error is deliberate and documented in the file itself.**
+`record_donation` needed a 10→11 argument change, and `create or replace` would
+have created an **overload** rather than replacing: the caller uses named
+arguments, which would then match both signatures, and Postgres fails with
+"function … is not unique" — on the donation webhook, on the money path, retried
+forever. So it is `drop function <exact 10-arg signature>` then `create`. On a
+second run the drop is a no-op and the create collides. The file's own header
+says "safe to run **ONCE** on an existing database", and that is exactly right.
+
+**First correction to make out loud:** I initially reported `profiles.locale` was
+missing from `catch_up.sql` on the strength of one grep. The pattern was too
+narrow — the statement spans two lines. It was there all along (line 10823), which
+is why regenerating produced a byte-identical file.
+
+### What the owner needs to do
+
+Run **once**, from anywhere with network access to the project:
+
+```bash
+psql "$SUPABASE_DB_URL" -f supabase/catch_up.sql
+```
+
+The dashboard SQL editor also works but 694KB is near its practical paste limit;
+`psql` is the reliable route. Nothing is destructive — no `drop table`, no
+`drop column`, 173 guarded `create table if not exists` and **0** unguarded.
+
+## ✅ C1 IS CLEARED — 355 → 0 signed-in contrast failures (Claude, 2026-08-02)
+
+The working queue's single biggest item. **Measured, not assumed:**
+`npm run audit:signed-in` now reports **0 AA contrast failures across 192 pages
+× 2 themes, 28,063 text elements examined per theme.**
+
+Nothing here re-fixed those 355 — the admin literals, the `#94a3b8`/`#8c9ab5`
+muted pair and the status-badge palette were cleared by work already merged.
+What this session did was **verify** it and close the two things still making the
+sweep report less than it measured.
+
+⚠️ **The audit refuses to run against a normally-built app, and that guard is
+right.** It exits 2 with `/admin answered 307` unless the build itself points at
+the stub. `NEXT_PUBLIC_SUPABASE_URL` is inlined at build time, so a runtime env
+var cannot redirect it — rebuild with the stub URL or the sweep silently measures
+97 login pages. Command is in the error message; follow it literally.
+
+### 1. `/login` and `/signup` were being swept while signed IN
+
+Both call `supabase.auth.getUser()` on mount and redirect away when a session
+exists, so under `--auth` they rendered an **empty document — 0 text elements**
+— and tripped the "fewer than 5 visible text elements" guard on every run. The
+guard was right; the route list was wrong. Bouncing a signed-in user off the
+login page is the point.
+
+Fixed at the data layer: `signedOutOnly` in `e2e/public-routes.json`, subtracted
+by the sweep **only** under `--auth`. They stay in `public` and are still fully
+measured signed-out. A hardcoded skip inside the script would have been a fourth
+copy of a route list in a repo that has already been bitten by exactly that.
+
+**The guard for it was VACUOUS on first write, and a mutation test caught it.**
+It followed one hop into `AuthPanel.tsx` to find the redirect — but appended that
+file *unconditionally*, and since AuthPanel contains `router.replace`, every
+route matched. Planting `/faq` in the exclusion list **passed**. Now the hop only
+follows components the route actually imports; re-planting `/faq` fails with
+"is excluded but never redirects". Verified failing-and-passing both ways.
+
+### 2. Two pages were rendering empty because the STUB had no rows
+
+Not product defects — fixture gaps that made the sweep under-report:
+
+| page | before | cause |
+|---|---|---|
+| `/dashboard/saved` | 6 elements | no `saved_campaigns` rows — the whole saved grid unaudited |
+| `/admin/marketing/templates` | 5 elements | no `marketing_email_templates` rows — table, category grouping and system badge unaudited |
+
+Both fixtures added (following the `notifications` precedent already in that
+file, added for the identical reason). `saved_campaigns.campaign_id` points at
+real fixture campaigns or the page's hydrate step drops the row and it is empty
+again; `is_system` is varied deliberately so the system-template badge is
+actually rendered and measured.
+
+**Result: thin-render warnings 6 → 2, and 157 more elements measured per theme.**
+
+### 🟡 One warning left, deliberately not chased
+
+`/dashboard/campaigns/[id]/updates` renders **14** against a threshold of 15.
+It is a **client** page: `UpdatesPanel` fetches `/api/campaigns/{id}/updates`
+in a `useEffect`, so 14 is the shell — back link, heading, form — before the
+list hydrates. `campaign_updates` fixtures already exist and link to
+`campaigns[0]`, so this is a hydration-timing question, not a missing-data one.
+One page, one element under the line. Recorded so the next person does not
+re-derive it.
+
+**Verified:** typecheck 0 · lint 0 errors · **vitest 2411/2411 across 220 files**
+· build exit 0 · signed-in sweep **0 failures, 192 pages × 2 themes**.

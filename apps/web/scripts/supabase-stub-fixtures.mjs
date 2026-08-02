@@ -686,6 +686,43 @@ export function buildFixtures() {
     // its entire notification UI (rows, unread state, mark-read controls) went
     // unaudited. Column names follow supabase/schema.sql: kind and title are
     // NOT NULL, read_at is nullable and drives the unread filter.
+    // /dashboard/saved reads saved_campaigns (campaign_id, created_at) filtered
+    // by user_id, then hydrates each id from `campaigns`. With no fixture the
+    // list came back empty and the page rendered 6 text elements — its entire
+    // saved-campaign grid (cards, cover art, progress, unsave controls) went
+    // unaudited. campaign_id must point at real fixture campaigns or the
+    // hydrate step drops the row and the page is empty again.
+    saved_campaigns: Array.from({ length: 12 }, (_, i) => ({
+      id: uuid('savd', i + 1),
+      user_id: USER_ID,
+      campaign_id: campaigns[i % campaigns.length].id,
+      created_at: daysAgo(i * 2),
+    })),
+
+    // /admin/marketing/templates selects an explicit column list and orders by
+    // category then name. With no fixture it rendered 5 text elements — the
+    // template table, its category grouping and the system-template badge were
+    // all unmeasured. `is_system` is varied deliberately: system templates
+    // render a distinct badge, so a fixture that was uniformly false would leave
+    // that badge unaudited in both themes.
+    marketing_email_templates: Array.from({ length: 14 }, (_, i) => {
+      const category = ['onboarding', 'donation', 'campaign', 'newsletter', 'reengagement'][i % 5];
+      return {
+        id: uuid('mtpl', i + 1),
+        name: `${category.charAt(0).toUpperCase() + category.slice(1)} template ${i + 1}`,
+        category,
+        subject: 'Thank you for supporting {{campaign_title}}',
+        preview_text: 'A short line that shows in the inbox preview.',
+        body: 'Hi {{first_name}}, thank you for backing {{campaign_title}}. '
+          + 'Here is where the money has gone so far and what is still ahead.',
+        variables: ['first_name', 'campaign_title'],
+        is_system: i % 3 === 0,
+        created_by: USER_ID,
+        created_at: daysAgo(i * 4),
+        updated_at: daysAgo(i),
+      };
+    }),
+
     notifications: genericRows('notf', 30, (i) => ({
       kind: ['donation', 'comment', 'payout', 'campaign', 'system'][i % 5],
       title: [
