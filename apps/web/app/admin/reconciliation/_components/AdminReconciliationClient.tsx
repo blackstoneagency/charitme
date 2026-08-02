@@ -82,7 +82,7 @@ export default function AdminReconciliationClient({ initialExceptions }: { initi
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         {filters.map((f) => (
           <Btn key={f} size="sm" variant={filter === f ? 'primary' : 'secondary'} onClick={() => load(f)}>
             {f[0].toUpperCase() + f.slice(1)}
@@ -139,7 +139,7 @@ export default function AdminReconciliationClient({ initialExceptions }: { initi
                     <td style={{ padding: '10px', color: 'var(--t4)' }}>{new Date(r.created_at).toLocaleDateString()}</td>
                     <td style={{ padding: '10px' }}>
                       {openish ? (
-                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap' }}>
                           {r.status === 'open' && (
                             <Btn size="sm" variant="secondary" disabled={busyId === r.id} onClick={() => act(r.id, 'assigned')}>
                               Claim

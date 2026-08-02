@@ -548,7 +548,7 @@ export default function AdminCampaignsClient({
               key={m.key}
               onClick={() => { setStatusTab(tabKey); setPage(1); }}
               style={{
-                display: 'flex', alignItems: 'center', gap: 14,
+                display: 'flex', minWidth: 0, alignItems: 'center', gap: 14,
                 padding: '16px 18px', borderRadius: 14, textAlign: 'left',
                 background: isActive ? m.tone : 'var(--s1)',
                 border: `2px solid ${isActive ? m.tone : 'var(--line)'}`,
@@ -559,7 +559,7 @@ export default function AdminCampaignsClient({
               <div style={{
                 width: 42, height: 42, borderRadius: 10, flexShrink: 0,
                 background: isActive ? 'rgba(255,255,255,.25)' : m.bg,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center',
                 color: isActive ? '#fff' : m.tone, fontSize: 18,
               }}>
                 <KFIcon name={m.icon} />
@@ -662,7 +662,7 @@ export default function AdminCampaignsClient({
             <span className="ac-cell"><b>{fmtCents(c.raisedAmount)}</b></span>
             <span className="ac-cell">{c.backerCount.toLocaleString()}</span>
             <span className="ac-cell"><SPill status={c.status} /></span>
-            <span className="ac-cell" style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+            <span className="ac-cell" style={{ display: 'flex', minWidth: 0, gap: 4, flexWrap: 'wrap' }}>
               {c.featured && (
                 <span style={{ fontSize: 10, fontWeight: 650, padding: '2px 7px', borderRadius: 6, background: 'var(--tint-amber)', border: '1px solid #fcd34d', color: 'var(--orange-text)' }}>⭐ Featured</span>
               )}
@@ -727,7 +727,7 @@ export default function AdminCampaignsClient({
 
         {/* ── Hero strip (status + metrics) ── */}
         <div className="kf-card" style={{ padding: 24, marginBottom: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', minWidth: 0, alignItems: 'flex-start', gap: 20, flexWrap: 'wrap' }}>
             <div
               style={{
                 width: 96, height: 96, borderRadius: 12, flexShrink: 0,
@@ -737,7 +737,7 @@ export default function AdminCampaignsClient({
               }}
             />
             <div style={{ flex: 1, minWidth: 200 }}>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', minWidth: 0, gap: 8, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
                 <SPill status={selected.status} />
                 {selected.category && (
                   <span style={{ fontSize: 12, color: 'var(--t3)', background: 'var(--s2)', padding: '2px 8px', borderRadius: 6 }}>
@@ -748,14 +748,14 @@ export default function AdminCampaignsClient({
                   Created {fmtDate(selected.createdAt)}
                 </span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--t2)', marginBottom: 6 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', fontSize: 13, color: 'var(--t2)', marginBottom: 6 }}>
                 <span><strong style={{ color: 'var(--green-text)' }}>{fmtCents(selected.raisedAmount)}</strong> raised of {fmtCents(selected.goalAmount)}</span>
                 <span><strong>{progress}%</strong> funded</span>
               </div>
               <div style={{ height: 8, borderRadius: 99, background: 'var(--b1)', overflow: 'hidden', marginBottom: 12 }}>
                 <div style={{ height: '100%', width: `${progress}%`, background: 'var(--green)', borderRadius: 99, transition: 'width 0.4s ease' }} />
               </div>
-              <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', minWidth: 0, gap: 24, flexWrap: 'wrap' }}>
                 {[
                   { label: 'Backers', value: selected.backerCount.toLocaleString() },
                   // Shared with the public campaign page, and it consults `status`.
@@ -786,24 +786,24 @@ export default function AdminCampaignsClient({
               type="button"
               onClick={() => { setActiveTab('edit'); setShowActions(false); }}
               className="kf-primary"
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, whiteSpace: 'nowrap', cursor: 'pointer' }}
+              style={{ display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', gap: 6, whiteSpace: 'nowrap', cursor: 'pointer' }}
             >
               <KFIcon name="doc" /> Edit Campaign
             </button>
             <button type="button" onClick={backToList} className="kf-outline"
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap', cursor: 'pointer' }}>
+              style={{ display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap', cursor: 'pointer' }}>
               ← Back
             </button>
           </div>
           <section className="kf-card" style={{ padding: 24 }}>
             <h2 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 650 }}>Campaign Status</h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
               <SPill status={selected.status} />
               <span style={{ fontSize: 13, color: 'var(--t3)' }}>
                 {STATUS_PANEL_TEXT[selected.status] ?? ''}
               </span>
             </div>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', minWidth: 0, gap: 10, flexWrap: 'wrap' }}>
               {(STATUS_PANEL_ACTIONS[selected.status] ?? []).map(action => (
                 <button
                   key={action.next}
@@ -1164,7 +1164,7 @@ export default function AdminCampaignsClient({
             </div>
             <div className="ac-create-nav">
               <button className="ac-btn-outline" onClick={backToList}>Cancel</button>
-              <div style={{ display: 'flex', gap: 10 }}>
+              <div style={{ display: 'flex', minWidth: 0, gap: 10 }}>
                 <button className="ac-btn-ghost" onClick={() => { setCreateStep(2); }}>Save as Draft</button>
                 <button className="ac-btn-primary" onClick={() => {
                   if (createDraft.title.trim().length < 3) { setCreateError('Title must be at least 3 characters.'); return; }
@@ -1500,9 +1500,9 @@ function EditForm({
 
       {/* ── MEDIA MANAGEMENT ── */}
       <div className="ac-field full" style={{ borderTop: '1px solid #eef0f7', paddingTop: 20, marginTop: 4 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
           <strong style={{ fontSize: 14, fontWeight: 650, color: 'var(--t1)' }}>Media Management</strong>
-          <div style={{ display: 'flex', gap: 4, background: 'var(--s2)', borderRadius: 10, padding: 4 }}>
+          <div style={{ display: 'flex', minWidth: 0, gap: 4, background: 'var(--s2)', borderRadius: 10, padding: 4 }}>
             <button style={sectionTabStyle(mediaSection === 'cover')}   onClick={() => setMediaSection('cover')}>Cover Image</button>
             <button style={sectionTabStyle(mediaSection === 'gallery')} onClick={() => setMediaSection('gallery')}>Gallery ({(draft.imageUrls ?? []).length})</button>
             <button style={sectionTabStyle(mediaSection === 'video')}   onClick={() => setMediaSection('video')}>Video</button>
@@ -1526,19 +1526,19 @@ function EditForm({
                   alt="Campaign cover"
                   style={{ width: '100%', maxWidth: 480, height: 200, objectFit: 'cover', borderRadius: 12, border: '1px solid #e2e8f0', display: 'block' }}
                 />
-                <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 6 }}>
+                <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', minWidth: 0, gap: 6 }}>
                   <a
                     href={draft.coverImageUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(0,0,0,.55)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, textDecoration: 'none' }}
+                    style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(0,0,0,.55)', color: '#fff', display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', fontSize: 14, textDecoration: 'none' }}
                     title="View full size"
                   >↗</a>
                   <button
                     type="button"
                     title="Remove cover image"
                     onClick={() => { upd('coverImageUrl', null); }}
-                    style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(190,18,60,.85)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(190,18,60,.85)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 16, display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center' }}
                   >×</button>
                 </div>
                 <div style={{ marginTop: 6, fontSize: 11, color: 'var(--t3)', wordBreak: 'break-all' }}>
@@ -1546,13 +1546,13 @@ function EditForm({
                 </div>
               </div>
             ) : (
-              <div style={{ width: '100%', maxWidth: 480, height: 160, borderRadius: 12, border: '2px dashed #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--t3)', fontSize: 14, fontWeight: 600, marginBottom: 14 }}>
+              <div style={{ width: '100%', maxWidth: 480, height: 160, borderRadius: 12, border: '2px dashed #e2e8f0', display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', color: 'var(--t3)', fontSize: 14, fontWeight: 600, marginBottom: 14 }}>
                 No cover image set
               </div>
             )}
             <input aria-label="Upload cover image" ref={coverInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" style={{ display: 'none' }}
               onChange={e => { const f = e.target.files?.[0]; if (f) void uploadCover(f); e.target.value = ''; }} />
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', minWidth: 0, gap: 10, flexWrap: 'wrap' }}>
               <button type="button" disabled={uploadingCover} onClick={() => coverInputRef.current?.click()}
                 style={{ padding: '8px 18px', border: '1px solid #6c35ff', borderRadius: 9, background: 'var(--s2)', color: 'var(--brand-text)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
                 {uploadingCover ? 'Uploading…' : draft.coverImageUrl ? '↑ Replace Cover Image' : '↑ Upload Cover Image'}
@@ -1580,22 +1580,22 @@ function EditForm({
                   <div key={url} style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', border: '1px solid #e2e8f0' }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={url} alt={`Gallery ${i + 1}`} style={{ width: '100%', height: 120, objectFit: 'cover', display: 'block' }} />
-                    <div style={{ position: 'absolute', top: 4, right: 4, display: 'flex', gap: 4 }}>
+                    <div style={{ position: 'absolute', top: 4, right: 4, display: 'flex', minWidth: 0, gap: 4 }}>
                       {i === 0 && (
                         <span style={{ padding: '2px 8px', background: '#6c35ff', color: '#fff', fontSize: 10, fontWeight: 650, borderRadius: 6 }}>
                           COVER
                         </span>
                       )}
                     </div>
-                    <div style={{ position: 'absolute', bottom: 0, right: 0, left: 0, display: 'flex', justifyContent: 'space-between', padding: '4px 6px', background: 'linear-gradient(0deg,rgba(0,0,0,.6),transparent)' }}>
+                    <div style={{ position: 'absolute', bottom: 0, right: 0, left: 0, display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', padding: '4px 6px', background: 'linear-gradient(0deg,rgba(0,0,0,.6),transparent)' }}>
                       <span style={{ fontSize: 10, color: 'rgba(255,255,255,.8)' }}>#{i + 1}</span>
-                      <div style={{ display: 'flex', gap: 4 }}>
+                      <div style={{ display: 'flex', minWidth: 0, gap: 4 }}>
                         <a href={url} target="_blank" rel="noopener noreferrer"
-                          style={{ width: 24, height: 24, borderRadius: 6, background: 'rgba(255,255,255,.2)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, textDecoration: 'none' }}
+                          style={{ width: 24, height: 24, borderRadius: 6, background: 'rgba(255,255,255,.2)', color: '#fff', display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', fontSize: 12, textDecoration: 'none' }}
                           title="View full size">↗</a>
                         <button type="button" onClick={() => removeGalleryImage(url)}
                           title="Remove image"
-                          style={{ width: 24, height: 24, borderRadius: 6, background: 'rgba(190,18,60,.75)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          style={{ width: 24, height: 24, borderRadius: 6, background: 'rgba(190,18,60,.75)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 14, display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center' }}>
                           ×
                         </button>
                       </div>
@@ -1650,7 +1650,7 @@ function EditForm({
                 No video set. Paste a YouTube or Vimeo URL below.
               </div>
             )}
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <div style={{ display: 'flex', minWidth: 0, gap: 10, alignItems: 'center' }}>
               <input
                 className="ac-input"
                 aria-label="Video URL" value={draft.videoUrl ?? ''}
@@ -1674,7 +1674,7 @@ function EditForm({
 
       {/* ── Feature Campaign ── */}
       <div className="ac-field full" style={{ borderTop: '1px solid #eef0f7', paddingTop: 20, marginTop: 4 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div>
             <strong style={{ fontSize: 14, fontWeight: 650, color: 'var(--t1)', display: 'block', marginBottom: 4 }}>
               {draft.featured ? '⭐ Featured on Homepage' : '☆ Feature on Homepage'}

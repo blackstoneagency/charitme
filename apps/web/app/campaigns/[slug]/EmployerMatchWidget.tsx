@@ -37,7 +37,7 @@ export default function EmployerMatchWidget({ amountCents }: { amountCents: numb
         type="button"
         onClick={() => setOpen(true)}
         style={{
-          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          width: '100%', display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', gap: 8,
           padding: '11px 14px', borderRadius: 11, cursor: 'pointer',
           border: `1.5px dashed ${BD}`, background: 'transparent',
           fontSize: 13.5, fontWeight: 750, color: INK, fontFamily: 'inherit',
@@ -50,7 +50,7 @@ export default function EmployerMatchWidget({ amountCents }: { amountCents: numb
 
   return (
     <div style={{ border: `1.5px solid ${BD}`, borderRadius: 12, padding: '13px 14px', background: 'var(--s1, #fff)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 9 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'center', marginBottom: 9 }}>
         <span style={{ fontSize: 13.5, fontWeight: 800, color: INK }}>🏢 Employer match</span>
         <button
           type="button"
@@ -82,7 +82,7 @@ export default function EmployerMatchWidget({ amountCents }: { amountCents: numb
                     type="button"
                     onClick={() => setPicked(r)}
                     style={{
-                      width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8,
+                      width: '100%', display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'center', gap: 8,
                       padding: '8px 10px', borderRadius: 8, cursor: 'pointer',
                       border: `1px solid ${BD}`, background: 'var(--s2, #f8fafc)',
                       fontSize: 13.5, fontWeight: 700, color: INK, fontFamily: 'inherit', textAlign: 'left',
@@ -106,7 +106,7 @@ export default function EmployerMatchWidget({ amountCents }: { amountCents: numb
 
       {picked && estimate && (
         <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
             <span style={{ fontSize: 14, fontWeight: 800, color: INK }}>{picked.name}</span>
             <button
               type="button"

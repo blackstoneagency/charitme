@@ -51,7 +51,7 @@ export default function ChangelogPage() {
                 </header>
                 <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
                   {release.changes.map((change, i) => (
-                    <li key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                    <li key={i} style={{ display: 'flex', minWidth: 0, gap: 10, alignItems: 'flex-start' }}>
                       <span
                         style={{
                           flex: '0 0 auto',

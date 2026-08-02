@@ -79,7 +79,7 @@ export default async function GivingDaysPage() {
                       background: 'var(--s1)', textDecoration: 'none',
                     }}
                   >
-                    <span style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
+                    <span style={{ display: 'flex', minWidth: 0, gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
                       <span style={{
                         fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.05em',
                         padding: '3px 9px', borderRadius: 999, background: tone.bg, color: tone.fg,

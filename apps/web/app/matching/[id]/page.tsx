@@ -53,7 +53,7 @@ export default async function MatchingDetailPage({ params }: PageProps) {
         ← All matching programs
       </Link>
 
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '18px 0 12px' }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap', margin: '18px 0 12px' }}>
         <Badge color="green">{p.match_ratio}:1 match</Badge>
         {p.annual_cap_cents > 0 && <Badge color="gray">Up to {formatMoneyShort(p.annual_cap_cents, p.currency)}/yr</Badge>}
         {p.min_donation_cents > 0 && <Badge color="gray">Min {formatMoneyShort(p.min_donation_cents, p.currency)}</Badge>}

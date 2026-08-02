@@ -49,7 +49,7 @@ export default function CampaignAssistant({ campaignId }: Props) {
 
   return (
     <div style={{ background: 'var(--s1, #fff)', border: '1px solid var(--b1, #e8ecf4)', borderRadius: 14, padding: '20px 22px', marginTop: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8 }}>
         <span style={{ fontSize: 20 }}>💬</span>
         <strong style={{ fontSize: 15, fontWeight: 900, color: 'var(--t1)' }}>Ask about this campaign</strong>
       </div>
@@ -84,7 +84,7 @@ export default function CampaignAssistant({ campaignId }: Props) {
       )}
 
       {messages.length === 0 && (
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
           {SUGGESTED_QUESTIONS.map((sq) => (
             <button
               key={sq}
@@ -105,7 +105,7 @@ export default function CampaignAssistant({ campaignId }: Props) {
 
       {error && <p style={{ fontSize: 12.5, color: 'var(--red, #be123c)', margin: '0 0 10px' }}>{error}</p>}
 
-      <form onSubmit={(e) => { e.preventDefault(); ask(question); }} style={{ display: 'flex', gap: 8 }}>
+      <form onSubmit={(e) => { e.preventDefault(); ask(question); }} style={{ display: 'flex', minWidth: 0, gap: 8 }}>
         <input
           type="text"
           aria-label="Ask a question about this campaign"

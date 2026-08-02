@@ -178,7 +178,7 @@ export default function GiveClient({ campaigns }: { campaigns: GiveCampaign[] })
               {split.map((p) => (
                 <li
                   key={p.campaignId}
-                  style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13.5, color: 'var(--t2)' }}
+                  style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', gap: 12, fontSize: 13.5, color: 'var(--t2)' }}
                 >
                   <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {byId.get(p.campaignId)?.title ?? p.campaignId}
@@ -194,7 +194,7 @@ export default function GiveClient({ campaigns }: { campaigns: GiveCampaign[] })
                 borderTop: '1px solid var(--b1)',
                 marginTop: 12,
                 paddingTop: 12,
-                display: 'flex',
+                display: 'flex', flexWrap: 'wrap', minWidth: 0,
                 justifyContent: 'space-between',
                 fontSize: 14,
                 fontWeight: 800,
@@ -220,7 +220,7 @@ export default function GiveClient({ campaigns }: { campaigns: GiveCampaign[] })
 
       <Card>
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, color: 'var(--t2)' }}>
+          <label style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, fontSize: 13.5, color: 'var(--t2)' }}>
             <input type="checkbox" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)} />
             Give anonymously
           </label>

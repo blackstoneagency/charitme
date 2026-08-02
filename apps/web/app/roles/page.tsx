@@ -37,7 +37,7 @@ function RoleCard({ role }: { role: (typeof ROLE_ORDER)[number] }) {
       className="kf-card"
       style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 12 }}
     >
-      <header style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+      <header style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <h3 style={{ fontSize: 17, fontWeight: 700, margin: 0 }}>{def.label}</h3>
         {def.isDefault && (
           <span

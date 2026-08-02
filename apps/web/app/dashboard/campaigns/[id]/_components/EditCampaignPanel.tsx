@@ -152,7 +152,7 @@ export default function EditCampaignPanel({ campaignId }: { campaignId: string }
 
   return (
     <div style={{ maxWidth: 720, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 20 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', minWidth: 0, justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
         <div>
           <h2 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 700, color: 'var(--t1)' }}>Edit Campaign</h2>
           <p style={{ margin: 0, fontSize: 14, color: 'var(--t3)' }}>Update your campaign details. Changes are live immediately.</p>
@@ -209,7 +209,7 @@ export default function EditCampaignPanel({ campaignId }: { campaignId: string }
 
       {/* Beneficiary */}
       <section className="kf-card" style={{ padding: 24, position: 'relative' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>
           <h2 style={{ fontSize: 15, fontWeight: 650, margin: 0 }}>Beneficiary</h2>
           <BeneficiaryInviteButton campaignId={campaignId} />
         </div>
@@ -238,7 +238,7 @@ export default function EditCampaignPanel({ campaignId }: { campaignId: string }
         <h2 style={{ fontSize: 15, fontWeight: 650, margin: '0 0 18px' }}>Media</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16 }}>
           <Field label="Cover Photo">
-            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', minWidth: 0, gap: 10, alignItems: 'flex-start', flexWrap: 'wrap' }}>
               {form.coverImageUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={form.coverImageUrl} alt="Cover" style={{ width: 120, height: 80, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--b2)' }} />
@@ -266,7 +266,7 @@ export default function EditCampaignPanel({ campaignId }: { campaignId: string }
       </section>
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: 12 }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 12 }}>
         <button type="button" onClick={handleSave} disabled={saving}
           style={{
             height: 48, padding: '0 32px', border: 0, borderRadius: 10,
@@ -334,7 +334,7 @@ function BeneficiaryInviteButton({ campaignId }: { campaignId: string }) {
         <textarea value={msg} onChange={e => setMsg(e.target.value)} rows={2} maxLength={500}
           style={{ border: '1px solid var(--b1)', borderRadius: 8, padding: '8px 10px', fontSize: 13, resize: 'none' }} />
       </label>
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 8 }}>
         <button type="button" disabled={sending || !email || !name}
           onClick={async () => {
             if (!email || !name) return;

@@ -133,7 +133,7 @@ export default function PrivacyCenter({ initialRequests }: { initialRequests: Pr
               rows={2}
               placeholder="Tell us why you're leaving (optional)…"
             />
-            <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ display: 'flex', minWidth: 0, gap: 10 }}>
               <Btn variant="danger" disabled={submitting} onClick={requestDeletion}>
                 {submitting ? 'Submitting…' : 'Confirm deletion request'}
               </Btn>
@@ -157,7 +157,7 @@ export default function PrivacyCenter({ initialRequests }: { initialRequests: Pr
                 <div
                   key={r.id}
                   style={{
-                    display: 'flex',
+                    display: 'flex', minWidth: 0,
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     gap: 12,

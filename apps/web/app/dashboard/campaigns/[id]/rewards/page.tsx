@@ -112,13 +112,13 @@ export default function CampaignRewardsPage({ params }: { params: Promise<{ id: 
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
               {rewards.map((r) => (
                 <div key={r.id} style={{ padding: '14px 16px', border: '1px solid var(--b2)', borderRadius: 10, background: 'var(--s1)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                     <div style={{ flex: 1 }}>
                       <strong style={{ fontSize: 13, color: 'var(--t1)', display: 'block', marginBottom: 4 }}>
                         {money(r.amount_cents)} or more — {r.title}
                       </strong>
                       {r.description && <span style={{ fontSize: 13, color: 'var(--t2)', lineHeight: 1.5, display: 'block', marginBottom: 4 }}>{r.description}</span>}
-                      <div style={{ display: 'flex', gap: 12, fontSize: 12, color: 'var(--t3)', fontWeight: 600 }}>
+                      <div style={{ display: 'flex', minWidth: 0, gap: 12, fontSize: 12, color: 'var(--t3)', fontWeight: 600 }}>
                         {r.estimated_delivery && <span>📦 Est. delivery: {r.estimated_delivery}</span>}
                         {r.item_limit != null
                           ? <span>{r.claimed_count} of {r.item_limit} claimed</span>
@@ -149,7 +149,7 @@ export default function CampaignRewardsPage({ params }: { params: Promise<{ id: 
             <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
               Minimum pledge amount
               <div style={{ position: 'relative' }}>
-                <span style={{ position: 'absolute', left: 12, top: 0, bottom: 0, display: 'flex', alignItems: 'center', color: 'var(--t3)', fontWeight: 800 }}>{currencySymbol(currency)}</span>
+                <span style={{ position: 'absolute', left: 12, top: 0, bottom: 0, display: 'flex', minWidth: 0, alignItems: 'center', color: 'var(--t3)', fontWeight: 800 }}>{currencySymbol(currency)}</span>
                 <input value={newAmount} onChange={e => setNewAmount(e.target.value)} type="number" min="1" step="1"
                   placeholder="25" style={{ width: '100%', boxSizing: 'border-box', height: 42, border: '1px solid var(--b2)', borderRadius: 9, padding: '0 12px 0 26px', fontSize: 14 }} />
               </div>

@@ -76,7 +76,7 @@ function DonorRow({ d, rank }: { d: RecentDonation; rank?: number }) {
   return (
     <li
       style={{
-        display: 'flex',
+        display: 'flex', minWidth: 0,
         alignItems: 'center',
         gap: '12px',
         padding: '12px 14px',

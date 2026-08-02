@@ -550,7 +550,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
         </nav>
 
         {/* Verified + category pills */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <span className="pc-verified">✓ Verified Campaign</span>
           {campaign.category && (
             <span style={{ display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 12px', borderRadius: 999, background: 'rgba(108,53,255,.12)', color: 'var(--brand-text)', fontSize: 12, fontWeight: 650, letterSpacing: '.04em' }}>
@@ -565,14 +565,14 @@ export default async function CampaignPage({ params, searchParams }: Props) {
         </div>
 
         {/* Title */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', minWidth: 0, alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
           <h1 className="pc-title-h1" style={{ margin: 0 }}>{campaign.title}</h1>
           <SaveCampaignButton campaignId={campaign.id} initialSaved={isSaved} isAuthenticated={!!user} loginNext={`/campaigns/${slug}`} />
         </div>
 
         {/* Organizer row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,var(--violet),var(--violet-2))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 15, flexShrink: 0 }}>
+        <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,var(--violet),var(--violet-2))', display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 15, flexShrink: 0 }}>
             {(organizer.full_name ?? 'C')[0]}
           </div>
           <p className="pc-organizer" style={{ margin: 0 }}>
@@ -634,7 +634,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             const icon   = isVerified ? '✓' : isWatch ? '⚠' : '○';
             return (
               <div key={signal.label} className="pc-trust-signal" title={signal.detail}>
-                <span style={{ width: 28, height: 28, borderRadius: '50%', background: bg, color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
+                <span style={{ width: 28, height: 28, borderRadius: '50%', background: bg, color, display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
                   {icon}
                 </span>
                 <div>
@@ -771,7 +771,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
           <div className="pc-donate" id="donate-section">
 
             {/* "Boost by giving monthly" nudge */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
               <span style={{ fontSize: 13, fontWeight: 650, color: 'var(--t2)' }}>{t('campaign.monthly_boost')}</span>
             </div>
 
@@ -844,20 +844,20 @@ export default async function CampaignPage({ params, searchParams }: Props) {
 
           {/* AI Impact Engine — momentum + projection */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, margin: '12px 0 0', padding: '12px 14px', background: 'rgba(108,53,255,.05)', border: '1px solid rgba(108,53,255,.12)', borderRadius: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--t2)' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', fontSize: 12.5, color: 'var(--t2)' }}>
               <span style={{ fontWeight: 700 }}>{t('campaign.momentum')}</span>
               <span style={{ fontWeight: 700, color: impact.momentum === 'surging' ? 'var(--green-text)' : impact.momentum === 'steady' ? 'var(--brand-text)' : 'var(--t3)' }}>
                 {impact.momentum === 'surging' ? '🔥 Surging' : impact.momentum === 'steady' ? '📈 Steady' : '🌱 Just started'}
               </span>
             </div>
             {impact.dailyVelocityCents >= 100 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--t2)' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', fontSize: 12.5, color: 'var(--t2)' }}>
                 <span style={{ fontWeight: 700 }}>{t('campaign.raising_per_day')}</span>
                 <span style={{ fontWeight: 700, color: 'var(--t1)' }}>~{formatMoneyShort(impact.dailyVelocityCents, currency)}</span>
               </div>
             )}
             {impact.projectedDaysToGoal !== null && impact.projectedDaysToGoal > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--t2)' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', fontSize: 12.5, color: 'var(--t2)' }}>
                 <span style={{ fontWeight: 700 }}>{t('campaign.on_pace')}</span>
                 <span style={{ fontWeight: 700, color: 'var(--green-text)' }}>~{impact.projectedDaysToGoal} day{impact.projectedDaysToGoal === 1 ? '' : 's'}</span>
               </div>
@@ -935,7 +935,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
                         <div style={{ background: 'var(--s3, #f1f5f9)', borderRadius: 99, height: 6, overflow: 'hidden', marginBottom: 6 }}>
                           <div style={{ height: '100%', width: `${sPct}%`, background: 'var(--green, #19b86a)', borderRadius: 99 }} />
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', fontSize: 12 }}>
                           <strong style={{ color: 'var(--t1, #1a1a2e)' }}>{formatMoneyShort(c.raised_amount, c.currency ?? 'usd')}</strong>
                           <span style={{ color: 'var(--t3)' }}>{sPct}% funded</span>
                         </div>
@@ -959,7 +959,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8 }}>
               {faqs.map(faq => (
                 <details key={faq.id} style={{ background: 'var(--s1, #fff)', border: '1px solid var(--b1, #e8ecf4)', borderRadius: 12, overflow: 'hidden' }}>
-                  <summary style={{ padding: '16px 20px', fontSize: 15, fontWeight: 700, cursor: 'pointer', color: 'var(--t1, #1a1a2e)', listStyle: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <summary style={{ padding: '16px 20px', fontSize: 15, fontWeight: 700, cursor: 'pointer', color: 'var(--t1, #1a1a2e)', listStyle: 'none', display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'center' }}>
                     {faq.question}
                     <span style={{ fontSize: 20, color: 'var(--violet, #6c35ff)', flexShrink: 0, marginLeft: 12 }}>+</span>
                   </summary>

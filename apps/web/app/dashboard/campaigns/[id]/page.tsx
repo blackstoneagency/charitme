@@ -161,7 +161,7 @@ export default async function CampaignDetailPage({
 
         {/* ── Status + Metrics strip ── */}
         <div className="kf-card" style={{ padding: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', minWidth: 0, alignItems: 'flex-start', gap: 20, flexWrap: 'wrap' }}>
             {/* Cover image */}
             {campaign.cover_image_url ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -175,7 +175,7 @@ export default async function CampaignDetailPage({
             )}
 
             <div style={{ flex: 1, minWidth: 200 }}>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', minWidth: 0, gap: 8, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
                 <span className={`kf-pill ${pillTone(campaign.status)}`}>
                   {campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}
                 </span>
@@ -190,7 +190,7 @@ export default async function CampaignDetailPage({
               </div>
 
               {/* Progress bar */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--t2)', marginBottom: 6 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', fontSize: 13, color: 'var(--t2)', marginBottom: 6 }}>
                 <span><strong style={{ color: 'var(--green-text)' }}>{totalRaisedDisplay}</strong> raised of {goalDisplay}</span>
                 <span><strong>{progress}%</strong> funded</span>
               </div>
@@ -199,7 +199,7 @@ export default async function CampaignDetailPage({
               </div>
 
               {/* Stat row */}
-              <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', minWidth: 0, gap: 24, flexWrap: 'wrap' }}>
                 {[
                   { label: 'Backers', value: campaign.backer_count.toLocaleString() },
                   { label: 'Deadline', value: deadline },
@@ -214,7 +214,7 @@ export default async function CampaignDetailPage({
               </div>
 
               {/* Featured-campaign placement */}
-              <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--b1)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--b1)', display: 'flex', minWidth: 0, alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                 <FeatureCampaignButton
                   campaignId={campaign.id}
                   featured={campaign.featured === true}

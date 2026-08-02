@@ -143,7 +143,9 @@ const PLACEMENT_INTENT = /placeItems|placeContent|gridTemplateRows|gridAutoFlow|
 function inlineGridsWithoutTracks(): string[] {
   const offenders: string[] = [];
   // Object literals, including nested one level deep (media-ish helper objects).
-  const objects = /\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/gs;
+  // No `/s` flag: TS1501 rejects it for this target, and the pattern never uses
+  // `.` anyway — the character classes already span newlines.
+  const objects = /\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/g;
   for (const file of tsxSources()) {
     const src = readFileSync(file, 'utf8');
     for (const m of src.matchAll(objects)) {

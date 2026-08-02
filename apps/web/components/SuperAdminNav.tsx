@@ -60,7 +60,7 @@ export default function SuperAdminNav() {
 
   return (
     <div className="kf-super-nav">
-      <div className="kf-section-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div className="kf-section-label" style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 6 }}>
         <span style={{ display: 'inline-flex', width: 8, height: 8, borderRadius: 999, background: 'linear-gradient(135deg,#7c3aed,#ff8a1e)' }} />
         Super Admin
       </div>

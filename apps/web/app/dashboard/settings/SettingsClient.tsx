@@ -82,7 +82,7 @@ function Toggle({ checked, onChange, id, label }: { checked: boolean; onChange: 
 function NavItem({ label, desc, icon, active, onClick }: { label: string; desc?: string; icon: React.ReactNode; active: boolean; onClick: () => void }) {
   return (
     <button type="button" className={`kf-setnav-item${active ? ' active' : ''}`} onClick={onClick} style={{ flexDirection: 'column', alignItems: 'flex-start', height: 'auto', paddingTop: 10, paddingBottom: 10 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%' }}>
+      <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 9, width: '100%' }}>
         {icon}
         <span style={{ fontWeight: active ? 950 : 750, fontSize: 13 }}>{label}</span>
       </div>
@@ -351,7 +351,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
               </div>
               <div className="kf-setpanel-body">
                 {/* Avatar */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 8 }}>
+                <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 16, marginBottom: 8 }}>
                   <div style={{ width: 64, height: 64, borderRadius: '50%', background: avatarUrl ? `url(${avatarUrl}) center/cover no-repeat` : 'linear-gradient(135deg,rgba(109,53,255,.14),var(--violet))', display: 'grid', placeItems: 'center', fontSize: 22, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
                     {!avatarUrl && (fullName.charAt(0) || userEmail.charAt(0)).toUpperCase()}
                   </div>
@@ -531,7 +531,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--t3)', margin: '16px 0 10px' }}>Privacy</div>
               <div className="kf-setpref">
                 <div className="kf-setpref-info"><strong>Profile Visibility</strong><span>Who can see your giving activity on the leaderboard and donor walls</span></div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10 }}>
                   {showPublicProfile && (
                     <Link href={`/donors/${userId}`} target="_blank" style={{ fontSize: 13, fontWeight: 700, color: 'var(--green-text)', textDecoration: 'none' }}>
                       Preview →
@@ -564,11 +564,11 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 12 }}>Connected</div>
               {hasStripeCustomer ? (
                 <div className="kf-setpref">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12 }}>
                     <div style={{ width: 36, height: 36, borderRadius: 10, background: '#6772e515', border: '1px solid #6772e530', display: 'grid', placeItems: 'center', fontSize: 14, fontWeight: 700, color: '#6772e5', flexShrink: 0 }}>S</div>
                     <div className="kf-setpref-info"><strong>Stripe</strong><span>Payment processing</span></div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8 }}>
                     <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--green-text)', background: 'rgba(18,166,83,.14)', padding: '3px 10px', borderRadius: 999 }}>Connected</span>
                     <BillingPortalButton />
                   </div>
@@ -585,7 +585,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                 { name: 'Google Analytics', desc: 'Website analytics', color: '#ea4335' },
               ].map(i => (
                 <div key={i.name} className="kf-setpref">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12 }}>
                     <div style={{ width: 36, height: 36, borderRadius: 10, background: `${i.color}15`, border: `1px solid ${i.color}30`, display: 'grid', placeItems: 'center', fontSize: 14, fontWeight: 700, color: i.color, flexShrink: 0 }}>{i.name.charAt(0)}</div>
                     <div className="kf-setpref-info"><strong>{i.name}</strong><span>{i.desc}</span></div>
                   </div>
@@ -608,14 +608,14 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
             <div className="kf-setpanel-body">
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 12 }}>Team Members</div>
               <div className="kf-setpref">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12 }}>
                   <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,rgba(109,53,255,.14),var(--violet))', display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0 }}>{(initialProfile.full_name || userEmail).charAt(0).toUpperCase()}</div>
                   <div className="kf-setpref-info"><strong>{initialProfile.full_name || userEmail}</strong><span>{userEmail}</span></div>
                 </div>
                 <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--brand-text)', background: 'rgba(109,53,255,.14)', padding: '3px 10px', borderRadius: 999 }}>Owner</span>
               </div>
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--t3)', margin: '18px 0 12px' }}>Invite Team Member</div>
-              <div style={{ padding: '14px 16px', background: 'var(--s3)', borderRadius: 'var(--r)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+              <div style={{ padding: '14px 16px', background: 'var(--s3)', borderRadius: 'var(--r)', display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
                 <p style={{ fontSize: 13, color: 'var(--t2)', margin: 0 }}>Invite collaborators and manage permissions from the Team page.</p>
                 <Link href="/dashboard/team" style={{ flexShrink: 0, fontSize: 13, fontWeight: 600, color: 'var(--brand-text)', textDecoration: 'none', background: 'rgba(109,53,255,.14)', borderRadius: 8, padding: '8px 16px', whiteSpace: 'nowrap' }}>Go to Team →</Link>
               </div>
@@ -635,9 +635,9 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
             </div>
             <div className="kf-setpanel-body">
               {/* Current plan */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px', background: 'var(--s3)', borderRadius: 'var(--r)' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px', background: 'var(--s3)', borderRadius: 'var(--r)' }}>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                  <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10, marginBottom: 4 }}>
                     {Ico.crown}
                     <strong style={{ fontSize: 16 }}>{planInfo.label} Plan</strong>
                     <span className={`kf-plan-chip ${planInfo.chipClass}`}>Current</span>
@@ -654,7 +654,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
               </div>
 
               {currentPlan !== 'pro' && (
-                <div style={{ padding: '18px', background: 'linear-gradient(135deg,var(--s3),var(--s4))', border: '1px solid var(--b2)', borderRadius: 'var(--r)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+                <div style={{ padding: '18px', background: 'linear-gradient(135deg,var(--s3),var(--s4))', border: '1px solid var(--b2)', borderRadius: 'var(--r)', display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
                   <div>
                     <strong style={{ fontSize: 15 }}>Upgrade to CharitMe Pro</strong>
                     <p style={{ fontSize: 13, color: 'var(--t2)', margin: '4px 0 0' }}>Unlimited campaigns, custom branding, AI tools, and priority support.</p>
@@ -696,15 +696,15 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
             <div className="kf-setpanel-body">
               <div className="kf-setpref">
                 <div className="kf-setpref-info"><strong>Export Donations CSV</strong><span>Download a full history of all donations</span></div>
-                <Link href="/api/exports/donations" style={{ fontSize: 13, fontWeight: 700, color: 'var(--green-text)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>{Ico.download} Download</Link>
+                <Link href="/api/exports/donations" style={{ fontSize: 13, fontWeight: 700, color: 'var(--green-text)', textDecoration: 'none', display: 'flex', minWidth: 0, alignItems: 'center', gap: 6 }}>{Ico.download} Download</Link>
               </div>
               <div className="kf-setpref">
                 <div className="kf-setpref-info"><strong>Export Donors CSV</strong><span>Download a list of all donors</span></div>
-                <Link href="/api/exports/donors" style={{ fontSize: 13, fontWeight: 700, color: 'var(--green-text)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>{Ico.download} Download</Link>
+                <Link href="/api/exports/donors" style={{ fontSize: 13, fontWeight: 700, color: 'var(--green-text)', textDecoration: 'none', display: 'flex', minWidth: 0, alignItems: 'center', gap: 6 }}>{Ico.download} Download</Link>
               </div>
               <div className="kf-setpref">
                 <div className="kf-setpref-info"><strong>Export All Data</strong><span>Download a complete data export (JSON)</span></div>
-                <Link href="/api/exports/full" download style={{ fontSize: 13, fontWeight: 700, color: 'var(--green-text)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>{Ico.download} Download Export</Link>
+                <Link href="/api/exports/full" download style={{ fontSize: 13, fontWeight: 700, color: 'var(--green-text)', textDecoration: 'none', display: 'flex', minWidth: 0, alignItems: 'center', gap: 6 }}>{Ico.download} Download Export</Link>
               </div>
               <div className="kf-setpref" style={{ borderBottom: 0 }}>
                 <div className="kf-setpref-info">
@@ -764,7 +764,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
           <div className="kf-setright-card">
             <div className="kf-setright-head">{Ico.crown} Plan & Usage</div>
             <div className="kf-setright-body">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: 13, fontWeight: 650, color: 'var(--t2)' }}>Current Plan</span>
                 <span className={`kf-plan-chip ${planInfo.chipClass}`}>{planInfo.label}</span>
               </div>

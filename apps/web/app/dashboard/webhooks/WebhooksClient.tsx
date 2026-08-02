@@ -172,7 +172,7 @@ export default function WebhooksClient({
             <legend style={{ fontSize: 13, marginBottom: 6, padding: 0 }}>Events</legend>
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 4 }}>
               {EVENTS.map((ev) => (
-                <label key={ev} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 14, minHeight: 44 }}>
+                <label key={ev} style={{ display: 'flex', minWidth: 0, gap: 8, alignItems: 'center', fontSize: 14, minHeight: 44 }}>
                   <input
                     type="checkbox"
                     checked={selected.includes(ev)}
@@ -207,7 +207,7 @@ export default function WebhooksClient({
                   border: '1px solid var(--b2)',
                   borderRadius: 'var(--r)',
                   padding: 12,
-                  display: 'flex',
+                  display: 'flex', minWidth: 0,
                   gap: 12,
                   flexWrap: 'wrap',
                   alignItems: 'center',

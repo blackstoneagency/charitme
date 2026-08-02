@@ -290,7 +290,7 @@ export default async function DonorsPage({
             {/* Card header + tab strip */}
             <div className="kf-card-head">
               <h2>All Donors</h2>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12 }}>
                 <span style={{ fontSize: 13, color: 'var(--t3)' }}>
                   {totalUnique.toLocaleString()} donor{totalUnique !== 1 ? 's' : ''}
                 </span>
@@ -299,7 +299,7 @@ export default async function DonorsPage({
                   style={{
                     fontSize: 12, fontWeight: 700, color: 'var(--t2)', textDecoration: 'none',
                     border: '1px solid var(--b2)', borderRadius: 8, padding: '4px 10px',
-                    display: 'flex', alignItems: 'center', gap: 6,
+                    display: 'flex', minWidth: 0, alignItems: 'center', gap: 6,
                   }}
                 >
                   ⬇ Export CSV
@@ -323,7 +323,7 @@ export default async function DonorsPage({
             </div>
 
             {allTags.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, padding: '10px 20px', borderBottom: '1px solid var(--b1)' }}>
+              <div style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', alignItems: 'center', gap: 6, padding: '10px 20px', borderBottom: '1px solid var(--b1)' }}>
                 <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginRight: 4 }}>
                   Tags:
                 </span>
@@ -392,7 +392,7 @@ export default async function DonorsPage({
                     }}
                   >
                     {/* Donor identity */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10 }}>
                       <div
                         style={{
                           width: 36,
@@ -400,7 +400,7 @@ export default async function DonorsPage({
                           borderRadius: '50%',
                           background: AVATAR_COLORS[i % AVATAR_COLORS.length],
                           color: '#fff',
-                          display: 'flex',
+                          display: 'flex', minWidth: 0,
                           alignItems: 'center',
                           justifyContent: 'center',
                           fontSize: 13,

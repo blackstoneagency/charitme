@@ -62,7 +62,7 @@ function Documents({ docs, available }: { docs: GrantDocument[]; available: bool
       <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', marginBottom: 6 }}>
         {docs.length === 1 ? '1 attachment' : `${docs.length} attachments`}
       </div>
-      <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+      <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 8 }}>
         {docs.map((d) => (
           <li key={d.id} style={{ minWidth: 0 }}>
             <a
@@ -135,7 +135,7 @@ export default function GrantApplicationsClient() {
   }
 
   if (apps === null) {
-    return <div style={{ display: 'flex', justifyContent: 'center', padding: 60, color: 'var(--t3)' }}><Spinner /></div>;
+    return <div style={{ display: 'flex', minWidth: 0, justifyContent: 'center', padding: 60, color: 'var(--t3)' }}><Spinner /></div>;
   }
 
   if (apps.length === 0) {
@@ -154,11 +154,11 @@ export default function GrantApplicationsClient() {
       {error && <div style={{ fontSize: 13, color: 'var(--red-text)' }}>{error}</div>}
       {apps.map((a) => (
         <div key={a.id} style={{
-          display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between',
+          display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between',
           background: 'var(--bg)', border: '1px solid var(--b1)', borderRadius: 'var(--rl)', padding: 16,
         }}>
           <div style={{ minWidth: 0, flex: '1 1 240px' }}>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', minWidth: 0, gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               <Badge color={statusColor[a.status]}>{grantApplicationStatusLabel(a.status)}</Badge>
               {a.grants && <span style={{ fontSize: 12, color: 'var(--t3)', fontWeight: 700 }}>{a.grants.funder_name}</span>}
             </div>
@@ -173,7 +173,7 @@ export default function GrantApplicationsClient() {
             </div>
           </div>
           <Documents docs={a.documents ?? []} available={docsAvailable} />
-          <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+          <div style={{ display: 'flex', minWidth: 0, gap: 8, flexShrink: 0 }}>
             {a.status === 'draft' && (
               <Btn size="sm" loading={busy === a.id} onClick={() => transition(a.id, 'submitted')}>Submit</Btn>
             )}

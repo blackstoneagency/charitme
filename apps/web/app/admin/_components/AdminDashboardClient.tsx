@@ -130,7 +130,7 @@ function SourceDonut({ sources, total }: { sources: SourceItem[]; total: string 
   const totalPct = sources.reduce((s, it) => s + it.pct, 0) || 100;
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 32, padding: '10px 22px 20px' }}>
+    <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 32, padding: '10px 22px 20px' }}>
       <div style={{ position: 'relative', width: 150, height: 150, flexShrink: 0 }}>
         <svg viewBox="0 0 42 42" style={{ width: 150, height: 150, transform: 'rotate(-90deg)' }}>
           {sources.map((src, i) => {
@@ -163,7 +163,7 @@ function SourceDonut({ sources, total }: { sources: SourceItem[]; total: string 
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10, flex: 1 }}>
         {sources.map((src) => (
-          <p key={src.label} style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0, color: 'var(--t1)', fontWeight: 650 }}>
+          <p key={src.label} style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10, margin: 0, color: 'var(--t1)', fontWeight: 650 }}>
             <i style={{ width: 10, height: 10, borderRadius: '50%', background: src.color, flexShrink: 0 }} />
             {src.label}
             <b style={{ marginLeft: 'auto' }}>{src.pct}%</b>
@@ -222,7 +222,7 @@ export default function AdminDashboardClient({ metrics, campaigns, donations, we
             {campaigns.slice(0, 5).map((c) => (
               <div key={c.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: '1px solid #eef0f7' }}>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, marginBottom: 4 }}>
                     <StatusPill>{c.status}</StatusPill>
                     <strong style={{ fontSize: 13, fontWeight: 650 }}>{c.title}</strong>
                   </div>
@@ -242,7 +242,7 @@ export default function AdminDashboardClient({ metrics, campaigns, donations, we
           <div className="kf-card-head"><h2>Recent Donations</h2></div>
           <div>
             {donations.slice(0, 5).map((d) => (
-              <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: '1px solid #eef0f7' }}>
+              <div key={d.id} style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: '1px solid #eef0f7' }}>
                 <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg, #8b5cf6, #f59e0b)', display: 'grid', placeItems: 'center', color: '#fff', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
                   {d.donor.charAt(0).toUpperCase()}
                 </div>
@@ -264,8 +264,8 @@ export default function AdminDashboardClient({ metrics, campaigns, donations, we
           <div className="kf-card-head"><h2>System Health</h2></div>
           <div style={{ padding: '0 20px 16px', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
             {services.map((s) => (
-              <div key={s.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 9, border: '1px solid var(--line)', background: 'var(--s2)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div key={s.name} style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 9, border: '1px solid var(--line)', background: 'var(--s2)' }}>
+                <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10 }}>
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: s.status === 'Operational' ? '#19b86a' : s.status === 'Degraded' ? '#f59e0b' : s.status === 'Unknown' ? '#94a3b8' : '#ef4444' }} />
                   <span style={{ fontSize: 13, fontWeight: 650 }}>{s.name}</span>
                 </div>

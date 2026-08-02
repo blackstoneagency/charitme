@@ -64,7 +64,7 @@ export function CampaignCard({
             decoding="async"
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
           />
-          <div style={{ position: 'absolute', top: '10px', left: '10px', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <div style={{ position: 'absolute', top: '10px', left: '10px', display: 'flex', minWidth: 0, gap: 6, flexWrap: 'wrap' }}>
             {c.category && <Badge color="gray">{c.category}</Badge>}
             {isVerified && <Badge color="green">✓ Verified</Badge>}
             {c.nonprofit_verified && <Badge color="green">💚 Tax Deductible</Badge>}
@@ -103,7 +103,7 @@ export function CampaignCard({
             ))}
           </div>
           <ProgressBar value={c.raised_amount ?? 0} max={c.goal_amount} />
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', flexWrap: 'wrap', gap: '4px' }}>
+          <div style={{ display: 'flex', minWidth: 0, justifyContent: 'space-between', marginTop: '10px', flexWrap: 'wrap', gap: '4px' }}>
             <div>
               <span style={{ fontWeight: 700, color: 'var(--green-text)', fontSize: '14px' }}>
                 {formatCents(c.raised_amount ?? 0, currency)}

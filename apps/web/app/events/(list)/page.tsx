@@ -41,7 +41,7 @@ export default async function EventsPage() {
                 href={`/events/${e.slug}`}
                 style={{ display: 'block', border: '1px solid var(--b2)', borderRadius: 'var(--rl)', padding: 18, background: 'var(--s1)', textDecoration: 'none', color: 'inherit' }}
               >
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+                <div style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
                   <Badge color="blue">{e.event_type.replace('_', ' ')}</Badge>
                   {e.virtual_url ? <Badge color="green">Virtual</Badge> : e.location ? <Badge color="gray">{e.location}</Badge> : null}
                   {full ? <Badge color="red">Full</Badge> : Number.isFinite(remaining) ? <Badge color="green">{remaining} spots left</Badge> : null}

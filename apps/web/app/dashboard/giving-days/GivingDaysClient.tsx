@@ -176,7 +176,7 @@ export default function GivingDaysClient({
           <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
             {initialDays.map((day) => (
               <li key={day.id} style={{ padding: 14, border: '1px solid var(--b1)', borderRadius: 'var(--r)', background: 'var(--s1)', minWidth: 0 }}>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', minWidth: 0, gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
                   <strong style={{ fontSize: 14.5, color: 'var(--t1)' }}>{day.title}</strong>
                   <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', color: day.phase === 'live' ? 'var(--green-text)' : 'var(--t3)' }}>
                     {day.phase}

@@ -56,9 +56,9 @@ export default function FeeOptimizerCard({ campaigns }: Props) {
 
   return (
     <section className="kf-card" style={{ padding: 24 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
+      <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
         <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>✨ AI Fee Optimizer</h2>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 8, alignItems: 'center' }}>
           {campaigns.length > 1 && (
             <select aria-label="Campaign to optimise fees for" value={campaignId} onChange={e => { setCampaignId(e.target.value); setResult(null); }}
               style={{ height: 36, border: '1px solid var(--b2)', borderRadius: 8, padding: '0 10px', fontSize: 13, background: 'var(--s1)' }}>
@@ -82,7 +82,7 @@ export default function FeeOptimizerCard({ campaigns }: Props) {
 
       {result && tone && (
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <span style={{ background: tone.bg, color: tone.color, padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 800 }}>
               {tone.label}
             </span>
@@ -101,7 +101,7 @@ export default function FeeOptimizerCard({ campaigns }: Props) {
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6 }}>
               {result.speedOptions.map((opt) => (
                 <div key={opt.speed} style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, fontSize: 13,
+                  display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'center', gap: 12, fontSize: 13,
                   padding: '8px 12px', borderRadius: 8,
                   border: opt.speed === result.recommended ? '1.5px solid var(--violet)' : '1px solid var(--b1)',
                   background: opt.speed === result.recommended ? 'rgba(109,53,255,.08)' : 'transparent',

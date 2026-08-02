@@ -76,7 +76,7 @@ export default function SavedCampaigns() {
                     <div style={{ background: 'var(--s3, #f1f5f9)', borderRadius: 99, height: 6, overflow: 'hidden', marginBottom: 6 }}>
                       <div style={{ height: '100%', width: `${pct}%`, background: 'var(--green, #19b86a)', borderRadius: 99 }} />
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', fontSize: 12 }}>
                       <strong style={{ color: 'var(--t1, #1a1a2e)' }}>{formatCents(c.raised_amount, c.currency ?? 'usd')}</strong>
                       <span style={{ color: 'var(--t3)' }}>{pct}% funded</span>
                     </div>

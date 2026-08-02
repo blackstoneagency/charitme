@@ -151,8 +151,8 @@ export default function NewUpdatePage() {
                   </label>
 
                   {/* Schedule option */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 4 }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                  <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12, paddingTop: 4 }}>
+                    <label style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
                       <input type="checkbox" checked={scheduleMode} onChange={e => setScheduleMode(e.target.checked)} style={{ width: 16, height: 16 }} />
                       Schedule for later
                     </label>
@@ -168,7 +168,7 @@ export default function NewUpdatePage() {
                     )}
                   </div>
 
-                  <div style={{ display: 'flex', gap: 12, paddingTop: 8 }}>
+                  <div style={{ display: 'flex', minWidth: 0, gap: 12, paddingTop: 8 }}>
                     <button
                       type="submit"
                       disabled={saving || !body.trim() || (scheduleMode && !scheduledAt)}

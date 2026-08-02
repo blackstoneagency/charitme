@@ -150,7 +150,7 @@ function auditActionColor(action: string): string {
 function TrendLine({ points }: { points: WeekPoint[] }) {
   if (points.length < 2) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200, color: 'var(--t3)', fontSize: 14 }}>
+      <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', height: 200, color: 'var(--t3)', fontSize: 14 }}>
         Not enough data for chart
       </div>
     );
@@ -198,7 +198,7 @@ function DonutChart({ slices }: { slices: { label: string; value: number; color:
   const cy = 80;
   const circumference = 2 * Math.PI * r;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+    <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 24 }}>
       <svg viewBox="0 0 160 160" style={{ width: 120, height: 120, flexShrink: 0 }}>
         {slices.map((s, index) => {
           const frac = s.value / total;
@@ -217,7 +217,7 @@ function DonutChart({ slices }: { slices: { label: string; value: number; color:
       </svg>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8 }}>
         {slices.map(s => (
-          <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>
+          <div key={s.label} style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>
             <i style={{ width: 8, height: 8, borderRadius: '50%', background: s.color, flexShrink: 0, display: 'block' }} />
             <span>{s.label}</span>
             <b style={{ marginLeft: 'auto', color: 'var(--t1)' }}>{s.value}</b>
@@ -260,7 +260,7 @@ function ActionItem({
       onClick={onClick}
       disabled={disabled ?? loading}
       style={{
-        display: 'flex', alignItems: 'center', gap: 10,
+        display: 'flex', minWidth: 0, alignItems: 'center', gap: 10,
         width: '100%', padding: '10px 14px', marginBottom: 6,
         border: `1px solid ${color}22`, borderRadius: 10, background: bg,
         color, fontWeight: 650, fontSize: 13, cursor: disabled ?? loading ? 'default' : 'pointer',
@@ -298,7 +298,7 @@ function MoreActionsPanel({
     // Backdrop dismissal is supplementary; Escape and the close button remain available.
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div
-      style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex' }}
+      style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', minWidth: 0 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="ado-actions-panel">
@@ -709,7 +709,7 @@ function DetailView({
           {detail.donorEmail && <span>{detail.donorEmail}</span>}
           {detail.anonymous && <span style={{ color: 'var(--t3)', fontSize: 11, fontStyle: 'italic' }}>Anonymous donation</span>}
         </div>
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', minWidth: 0, alignItems: 'center', gap: 16, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: 30, fontWeight: 800, color: 'var(--t1)', letterSpacing: '-.02em', lineHeight: 1 }}>
               {fmtCents(detail.amountCents)}
@@ -998,7 +998,7 @@ export default function DonationsClient({
   if (viewState === 'detail') {
     if (detailLoading) {
       return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 400, color: 'var(--t3)', fontSize: 14 }}>
+        <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', height: 400, color: 'var(--t3)', fontSize: 14 }}>
           Loading donation…
         </div>
       );
@@ -1081,7 +1081,7 @@ export default function DonationsClient({
             ]} />
             <div style={{ marginTop: 12 }}>
               {top5.map(c => (
-                <div key={c.campaign_id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f0f2f8', fontSize: 13 }}>
+                <div key={c.campaign_id} style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f0f2f8', fontSize: 13 }}>
                   <span style={{ color: 'var(--t1)', fontWeight: 700 }}>{c.campaign_title.slice(0, 28)}</span>
                   <div style={{ textAlign: 'right' }}>
                     <strong style={{ color: 'var(--t1)' }}>{fmtCents(c.total_cents)}</strong>
@@ -1101,7 +1101,7 @@ export default function DonationsClient({
           {donations.slice(0, 5).map(d => (
             <div
               key={d.id}
-              style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer' }}
+              style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 14, padding: '12px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer' }}
               onClick={() => { fetchDetail(d.id); }}
               onKeyDown={event => {
                 if (event.key === 'Enter' || event.key === ' ') {
@@ -1137,7 +1137,7 @@ export default function DonationsClient({
         <section className="kf-card">
           <div className="kf-card-head"><h2>Top Donors</h2></div>
           {topDonors.slice(0, 5).map((d, i) => (
-            <div key={d.donor_id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: '1px solid #f0f2f8' }}>
+            <div key={d.donor_id} style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: '1px solid #f0f2f8' }}>
               <span style={{ width: 22, textAlign: 'center', fontSize: 12, fontWeight: 700, color: 'var(--t3)' }}>{i + 1}</span>
               <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,#efe8ff,#6c35ff)', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
                 {d.donor_name.charAt(0).toUpperCase()}
@@ -1158,7 +1158,7 @@ export default function DonationsClient({
       {/* Main tabbed section */}
       <section className="kf-card" style={{ marginBottom: 24 }}>
         {/* Panel tabs */}
-        <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid #eef0f7', overflowX: 'auto', padding: '0 20px' }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 0, borderBottom: '1px solid #eef0f7', overflowX: 'auto', padding: '0 20px' }}>
           {panelTabs.map(t => (
             <button key={t} type="button" onClick={() => setPanelTab(t)}
               style={{
@@ -1175,7 +1175,7 @@ export default function DonationsClient({
         {/* ── Donations tab ─────────────────────────────────────────────────── */}
         {panelTab === 'Donations' && (
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', borderBottom: '1px solid #eef0f7', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12, padding: '16px 20px', borderBottom: '1px solid #eef0f7', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 200, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, padding: '0 14px', background: 'var(--s1)' }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="#8c9ab5" strokeWidth={2} width={16} height={16} aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
                 <input
@@ -1204,7 +1204,7 @@ export default function DonationsClient({
             </div>
 
             {/* Status sub-tabs */}
-            <div style={{ display: 'flex', gap: 0, padding: '0 20px', borderBottom: '1px solid #eef0f7' }}>
+            <div style={{ display: 'flex', minWidth: 0, gap: 0, padding: '0 20px', borderBottom: '1px solid #eef0f7' }}>
               {statusTabs.map(t => (
                 <button key={t.id} type="button"
                   onClick={() => { setFilterStatus(t.id); setPage(0); }}
@@ -1241,7 +1241,7 @@ export default function DonationsClient({
                 onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10 }}>
                   <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg,#efe8ff,#6c35ff)', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
                     {d.donor_name.charAt(0).toUpperCase()}
                   </div>
@@ -1262,11 +1262,11 @@ export default function DonationsClient({
             )}
 
             {/* Pagination */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderTop: '1px solid #eef0f7' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderTop: '1px solid #eef0f7' }}>
               <span style={{ fontSize: 13, color: 'var(--t3)' }}>
                 Showing {filtered.length === 0 ? 0 : page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filtered.length)} of {filtered.length}
               </span>
-              <div style={{ display: 'flex', gap: 6 }}>
+              <div style={{ display: 'flex', minWidth: 0, gap: 6 }}>
                 <button type="button" disabled={page === 0} onClick={() => setPage(p => p - 1)}
                   style={{ height: 34, padding: '0 14px', border: '1px solid #e0e4ef', borderRadius: 8, background: 'var(--s1)', cursor: page === 0 ? 'default' : 'pointer', opacity: page === 0 ? 0.4 : 1, fontSize: 13 }}>
                   ← Prev
@@ -1293,7 +1293,7 @@ export default function DonationsClient({
               </div>
               {topDonors.slice(0, 20).map((d, i) => (
                 <div key={d.donor_id} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.2fr minmax(0, 1fr) minmax(0, 1fr)', gap: 12, padding: '14px 18px', alignItems: 'center', borderBottom: i < topDonors.length - 1 ? '1px solid #f0f2f8' : 'none', background: 'var(--s1)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10 }}>
                     <span style={{ width: 22, fontSize: 12, fontWeight: 700, color: i < 3 ? 'var(--brand-text)' : 'var(--t3)', textAlign: 'center' }}>#{i + 1}</span>
                     <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,#efe8ff,#6c35ff)', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
                       {d.donor_name.charAt(0).toUpperCase()}
@@ -1364,7 +1364,7 @@ export default function DonationsClient({
         {/* ── Refunds tab ────────────────────────────────────────────────────── */}
         {panelTab === 'Refunds' && (
           <div style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
               <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>Refunded Donations</h3>
               <span className="kf-pill red">{refundedCount} refunded</span>
             </div>
@@ -1506,7 +1506,7 @@ function AuditTab() {
         <div style={{ textAlign: 'center', padding: '32px', color: 'var(--t3)', fontSize: 14 }}>No audit entries yet.</div>
       ) : (
         entries.map(e => (
-          <div key={e.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '12px 0', borderBottom: '1px solid #f0f2f8' }}>
+          <div key={e.id} style={{ display: 'flex', minWidth: 0, alignItems: 'flex-start', gap: 14, padding: '12px 0', borderBottom: '1px solid #f0f2f8' }}>
             <div style={{ width: 10, height: 10, borderRadius: '50%', background: auditActionColor(e.action), marginTop: 4, flexShrink: 0 }} />
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 13, fontWeight: 650, color: 'var(--t1)' }}>{auditActionLabel(e.action)}</div>

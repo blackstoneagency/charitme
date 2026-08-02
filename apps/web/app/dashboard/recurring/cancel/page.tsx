@@ -71,7 +71,7 @@ export default function CancelRecurringPage() {
             The campaign organiser will no longer receive your monthly support.
           </p>
           {error && <p style={{ color: 'var(--red)', fontSize: 13, fontWeight: 600, marginBottom: 16 }}>⚠ {error}</p>}
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', minWidth: 0, gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             <button onClick={() => void handleCancel()} disabled={loading}
               style={{ padding: '12px 28px', background: loading ? 'var(--b2)' : 'var(--red)', color: '#fff', border: 0, borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: loading ? 'wait' : 'pointer' }}>
               {loading ? 'Cancelling…' : 'Yes, cancel subscription'}

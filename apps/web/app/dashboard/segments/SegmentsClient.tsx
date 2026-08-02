@@ -169,7 +169,7 @@ export default function SegmentsClient({
           </label>
         </div>
 
-        <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <label style={{ display: 'flex', minWidth: 0, gap: 8, alignItems: 'center' }}>
           <input type="checkbox" checked={emailConsent} onChange={(e) => { setEmailConsent(e.target.checked); setConfirmEveryone(false); }} />
           <span style={{ fontSize: 13.5, color: 'var(--t2)' }}>Only contacts who accept email</span>
         </label>
@@ -219,12 +219,12 @@ export default function SegmentsClient({
           <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
             {initialSegments.map((seg) => (
               <li key={seg.id} style={{ padding: 14, border: '1px solid var(--b1)', borderRadius: 'var(--r)', background: 'var(--s1)', minWidth: 0 }}>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', minWidth: 0, gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
                   <strong style={{ fontSize: 14.5, color: 'var(--t1)' }}>{seg.name}</strong>
                   <span style={{ fontSize: 12.5, color: 'var(--t2)' }}>{seg.memberCount.toLocaleString()} members</span>
                 </div>
                 <p style={{ fontSize: 12.5, color: 'var(--t3)', margin: '6px 0 8px' }}>{describeRules(seg.rules)}</p>
-                <div style={{ display: 'flex', gap: 14 }}>
+                <div style={{ display: 'flex', minWidth: 0, gap: 14 }}>
                   <button type="button" onClick={() => void refresh(seg.id)} disabled={busy} style={linkButton('var(--brand-text)')}>
                     Refresh members
                   </button>

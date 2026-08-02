@@ -99,7 +99,7 @@ function Dot({ tone }: { tone: 'green' | 'amber' | 'grey' }) {
 
 function SourceRow({ name, health, detail }: { name: string; health: SourceHealth; detail: string | null }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', padding: '6px 0' }}>
+    <div style={{ display: 'flex', minWidth: 0, alignItems: 'baseline', gap: 10, flexWrap: 'wrap', padding: '6px 0' }}>
       <Dot tone={SOURCE_TONE[health]} />
       <strong style={{ fontSize: 14 }}>{name}</strong>
       <span style={{ fontSize: 13, color: 'var(--t2)' }}>{SOURCE_LABEL[health]}</span>
@@ -251,7 +251,7 @@ export default function AiControlCenterClient({
             const tone = statusTone(agent.status);
             return (
               <article key={agent.id} className="kf-card" style={{ padding: 18, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   <strong style={{ fontSize: 15, flex: '1 1 auto', minWidth: 0 }}>{agent.name}</strong>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: TONE_COLOR[tone], fontWeight: 600 }}>
                     <Dot tone={tone} />
@@ -301,7 +301,7 @@ export default function AiControlCenterClient({
         )}
         {pack && (
           <div className="kf-card" style={{ padding: 18, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', minWidth: 0, gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
               <strong style={{ fontSize: 15, flex: '1 1 auto' }}>{pack.agentName}</strong>
               <Btn size="sm" variant="secondary" onClick={copyPack}>
                 {copied ? 'Copied' : 'Copy as markdown'}

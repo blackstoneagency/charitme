@@ -148,7 +148,7 @@ export default function AdminVolunteersClient() {
 
       {/* Create / edit form */}
       <form onSubmit={submit} style={{ background: 'var(--s1)', border: '1px solid #eef0f7', borderRadius: 16, padding: 20 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ display: 'flex', minWidth: 0, justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
           <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: 'var(--t1)' }}>
             {editId ? 'Edit opportunity' : 'Add a volunteer opportunity'}
           </h3>
@@ -216,7 +216,7 @@ export default function AdminVolunteersClient() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 14, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 16, marginTop: 14, flexWrap: 'wrap' }}>
           <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
             <input type="checkbox" checked={form.isRemote} onChange={(e) => set('isRemote', e.target.checked)} />
             Remote-friendly
@@ -249,9 +249,9 @@ export default function AdminVolunteersClient() {
             {opps.map((o) => {
               const full = o.slots != null && o.slots_filled >= o.slots;
               return (
-                <div key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '12px 16px', background: 'var(--s1)', border: '1px solid var(--line)', borderRadius: 12 }}>
+                <div key={o.id} style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '12px 16px', background: 'var(--s1)', border: '1px solid var(--line)', borderRadius: 12 }}>
                   <div style={{ minWidth: 0, flex: '1 1 220px' }}>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', minWidth: 0, gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                       <span style={{
                         fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
                         background: o.status === 'open' ? 'var(--green-light)' : o.status === 'upcoming' ? 'var(--s3)' : 'var(--s2)',
@@ -268,7 +268,7 @@ export default function AdminVolunteersClient() {
                       <a href={`/volunteer/${o.slug}`} target="_blank" rel="noreferrer">{o.title}</a>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', minWidth: 0, gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>
                     <button onClick={() => startEdit(o)} style={btn('var(--brand-text)')}>Edit</button>
                     {o.status !== 'open' && <button onClick={() => quickStatus(o.id, 'open')} style={btn('var(--green-text)')}>Open</button>}
                     {o.status !== 'closed' && <button onClick={() => quickStatus(o.id, 'closed')} style={btn('var(--t3)')}>Close</button>}

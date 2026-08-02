@@ -20,7 +20,7 @@ function OppCard({ opp }: { opp: VolunteerOpportunity }) {
         display: 'flex', flexDirection: 'column', gap: 10, height: '100%',
         background: 'var(--bg)', border: '1px solid var(--b1)', borderRadius: 'var(--rl)', padding: 18,
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)' }}>{opp.org_name}</span>
           {opp.verified && <Badge color="green">Verified</Badge>}
         </div>
@@ -29,11 +29,11 @@ function OppCard({ opp }: { opp: VolunteerOpportunity }) {
           <p style={{ fontSize: 13, color: 'var(--t3)', margin: 0, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{opp.summary}</p>
         )}
         {opp.skills.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          <div style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 6 }}>
             {opp.skills.slice(0, 3).map((s) => <Badge key={s} color="blue">{s}</Badge>)}
           </div>
         )}
-        <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8, borderTop: '1px solid var(--b1)' }}>
+        <div style={{ marginTop: 'auto', display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'center', paddingTop: 8, borderTop: '1px solid var(--b1)' }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)' }}>{whenLabel(opp.starts_at, opp.is_remote)}</span>
           <span style={{ fontSize: 12, fontWeight: 700, color: full ? 'var(--red-text)' : 'var(--green-text)' }}>
             {full ? 'Full' : opp.time_commitment || 'Open'}
@@ -89,7 +89,7 @@ export default function VolunteerClient({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
+      <div style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
         <div style={{ flex: '1 1 260px', minWidth: 0 }}>
           <input
             value={query}
@@ -116,7 +116,7 @@ export default function VolunteerClient({
       </div>
 
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: 60, color: 'var(--t3)' }}><Spinner /></div>
+        <div style={{ display: 'flex', minWidth: 0, justifyContent: 'center', padding: 60, color: 'var(--t3)' }}><Spinner /></div>
       ) : error ? (
         <EmptyState icon="⚠️" title="Something went wrong" body={error}
           action={<Btn variant="secondary" onClick={() => runSearch(query, category, remoteOnly)}>Retry</Btn>} />

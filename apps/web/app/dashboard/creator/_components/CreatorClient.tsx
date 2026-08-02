@@ -298,8 +298,8 @@ export function CreatorClient({ initialProfile, initialTiers, initialPosts }: Pr
             />
           </div>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'center' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, fontWeight: 600, color: 'var(--t2)' }}>
+          <div style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 20, alignItems: 'center' }}>
+            <label style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, fontSize: 13.5, fontWeight: 600, color: 'var(--t2)' }}>
               <span>Brand colour</span>
               <input
                 type="color"
@@ -308,11 +308,11 @@ export function CreatorClient({ initialProfile, initialTiers, initialPosts }: Pr
                 style={{ width: 44, height: 30, border: '1px solid var(--b1)', borderRadius: 'var(--r)', background: 'var(--bg)', padding: 2 }}
               />
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, color: 'var(--t2)' }}>
+            <label style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, fontSize: 13.5, color: 'var(--t2)' }}>
               <input type="checkbox" checked={acceptsTips} onChange={(e) => setAcceptsTips(e.target.checked)} />
               Show &ldquo;Accepts tips&rdquo;
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, color: 'var(--t2)' }}>
+            <label style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, fontSize: 13.5, color: 'var(--t2)' }}>
               <input type="checkbox" checked={acceptsCommissions} onChange={(e) => setAcceptsCommissions(e.target.checked)} />
               Show &ldquo;Open for commissions&rdquo;
             </label>
@@ -363,7 +363,7 @@ export function CreatorClient({ initialProfile, initialTiers, initialPosts }: Pr
                       borderRadius: 'var(--rl)',
                       padding: 14,
                       background: 'var(--s1)',
-                      display: 'flex',
+                      display: 'flex', minWidth: 0,
                       gap: 14,
                       flexWrap: 'wrap',
                       alignItems: 'flex-start',
@@ -371,7 +371,7 @@ export function CreatorClient({ initialProfile, initialTiers, initialPosts }: Pr
                     }}
                   >
                     <div style={{ minWidth: 220, flex: '1 1 260px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                         <strong style={{ fontSize: 14.5, color: 'var(--t1)' }}>{t.title}</strong>
                         <Badge color={t.active ? 'green' : 'gray'}>{t.active ? 'Active' : 'Retired'}</Badge>
                       </div>
@@ -475,7 +475,7 @@ export function CreatorClient({ initialProfile, initialTiers, initialPosts }: Pr
                       borderRadius: 'var(--rl)',
                       padding: 14,
                       background: 'var(--s1)',
-                      display: 'flex',
+                      display: 'flex', minWidth: 0,
                       gap: 14,
                       flexWrap: 'wrap',
                       alignItems: 'flex-start',
@@ -483,7 +483,7 @@ export function CreatorClient({ initialProfile, initialTiers, initialPosts }: Pr
                     }}
                   >
                     <div style={{ minWidth: 220, flex: '1 1 280px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                         <strong style={{ fontSize: 14.5, color: 'var(--t1)' }}>{p.title}</strong>
                         <Badge color={p.visibility === 'public' ? 'green' : 'blue'}>
                           {p.visibility === 'public'

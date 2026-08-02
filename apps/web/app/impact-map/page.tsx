@@ -127,7 +127,7 @@ export default async function ImpactMapPage() {
                   <li key={p.location}>
                     <Link
                       href={`/campaigns?location=${encodeURIComponent(p.location)}`}
-                      style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', border: '1px solid var(--b1)', borderRadius: 'var(--rl)', background: 'var(--s1)', textDecoration: 'none', minHeight: '24px' }}
+                      style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: '12px', padding: '10px 14px', border: '1px solid var(--b1)', borderRadius: 'var(--rl)', background: 'var(--s1)', textDecoration: 'none', minHeight: '24px' }}
                     >
                       <span style={{ flex: 1, fontSize: '14px', fontWeight: 650, color: 'var(--t1)' }}>{p.location}</span>
                       <span aria-hidden="true" style={{ width: '96px', height: '6px', borderRadius: '3px', background: 'var(--s3)', overflow: 'hidden', flexShrink: 0 }}>
@@ -147,7 +147,7 @@ export default async function ImpactMapPage() {
                 <li key={c.category}>
                   <Link
                     href={`/campaigns?category=${encodeURIComponent(c.category)}`}
-                    style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', border: '1px solid var(--b1)', borderRadius: 'var(--rl)', background: 'var(--s1)', textDecoration: 'none', minHeight: '24px' }}
+                    style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: '12px', padding: '10px 14px', border: '1px solid var(--b1)', borderRadius: 'var(--rl)', background: 'var(--s1)', textDecoration: 'none', minHeight: '24px' }}
                   >
                     <span style={{ flex: 1, fontSize: '14px', fontWeight: 650, color: 'var(--t1)' }}>{c.category}</span>
                     <span aria-hidden="true" style={{ width: '96px', height: '6px', borderRadius: '3px', background: 'var(--s3)', overflow: 'hidden', flexShrink: 0 }}>

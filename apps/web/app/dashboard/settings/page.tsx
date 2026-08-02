@@ -101,7 +101,7 @@ export default async function SettingsPage({ searchParams }: PageProps) {
           borderRadius: 10,
           background: 'rgba(16,185,129,.12)',
           border: '1px solid #b6eecb',
-          display: 'flex',
+          display: 'flex', minWidth: 0,
           alignItems: 'center',
           gap: 12,
           fontSize: 14,

@@ -98,11 +98,11 @@ export default function AiTriageButton({ caseId, subject }: Props) {
         // Backdrop dismissal is supplementary; Escape and the close button remain available.
         // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
         <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 16 }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 16 }}
           onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}
         >
           <div role="dialog" aria-modal="true" aria-label="AI Complaint Resolver" style={{ background: 'var(--s1)', borderRadius: 20, padding: 28, width: '100%', maxWidth: 520, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 24px 60px rgba(0,0,0,.2)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
               <div style={{ minWidth: 0 }}>
                 <h2 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: 'var(--t1)' }}>✨ AI Complaint Resolver</h2>
                 <p style={{ margin: '4px 0 0', fontSize: 12.5, color: 'var(--t3)', maxWidth: 380, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{subject}</p>
@@ -115,7 +115,7 @@ export default function AiTriageButton({ caseId, subject }: Props) {
 
             {result && (
               <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14 }}>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap' }}>
                   <span style={{ background: (CATEGORY_COLORS[result.category] ?? '#6b7280') + '18', color: CATEGORY_COLORS[result.category] ?? '#6b7280', padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 800 }}>
                     {result.categoryLabel}
                   </span>
@@ -129,7 +129,7 @@ export default function AiTriageButton({ caseId, subject }: Props) {
                 </div>
 
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                     <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--t3)' }}>Draft response</div>
                     <button type="button" onClick={() => void handleCopy()} style={{ border: '1px solid #e8ecf4', background: 'var(--s1)', borderRadius: 8, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer', color: 'var(--brand-text)' }}>
                       {copied ? 'Copied!' : 'Copy'}

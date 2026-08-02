@@ -133,7 +133,7 @@ export default function GoalsClient() {
           rows={2}
           style={{ ...input, resize: 'vertical', marginBottom: 10 }}
         />
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap' }}>
           <button onClick={preview} disabled={busy || !text.trim()} style={{ ...btn, opacity: busy || !text.trim() ? 0.5 : 1 }}>
             {busy ? 'Analyzing…' : 'Analyze objective →'}
           </button>
@@ -198,7 +198,7 @@ function GoalCard({ g, onPatch }: { g: Goal; onPatch: (id: string, body: Record<
   const p = g.progress;
   return (
     <div style={card}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', minWidth: 0, justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 200 }}>
           <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--t1)' }}>{g.title}</div>
           <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 3 }}>
@@ -207,7 +207,7 @@ function GoalCard({ g, onPatch }: { g: Goal; onPatch: (id: string, body: Record<
             {g.deadline ? ` · due ${g.deadline}` : ''}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: PRIORITY_COLOR[g.priority], padding: '3px 8px', borderRadius: 20, textTransform: 'uppercase' }}>{g.priority}</span>
           <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)' }}>{AUTONOMY[g.autonomy_level]}</span>
         </div>
@@ -217,7 +217,7 @@ function GoalCard({ g, onPatch }: { g: Goal; onPatch: (id: string, body: Record<
       <div style={{ marginTop: 14 }}>
         {p.measurable ? (
           <>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 5 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', fontSize: 12, marginBottom: 5 }}>
               <span style={{ color: '#475569', fontWeight: 700 }}>
                 {fmt(p.gained, g.unit)} of {fmt(p.target, g.unit)} {p.percent != null ? `(${Math.round(p.percent)}%)` : ''}
               </span>
@@ -236,7 +236,7 @@ function GoalCard({ g, onPatch }: { g: Goal; onPatch: (id: string, body: Record<
       </div>
 
       {/* status controls */}
-      <div style={{ display: 'flex', gap: 6, marginTop: 14, alignItems: 'center', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 6, marginTop: 14, alignItems: 'center', flexWrap: 'wrap' }}>
         <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: STATUS_COLOR[g.status], padding: '3px 9px', borderRadius: 20, textTransform: 'uppercase' }}>{g.status}</span>
         {g.status === 'draft' && <button onClick={() => onPatch(g.id, { status: 'active' })} style={btnGhost}>Activate</button>}
         {g.status === 'active' && <button onClick={() => onPatch(g.id, { status: 'paused' })} style={btnGhost}>Pause</button>}

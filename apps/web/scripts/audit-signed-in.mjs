@@ -193,7 +193,14 @@ if (!AS_JSON) console.log('· signed-in probe: /admin renders (200)');
 
 // ─── 4. sweep ───────────────────────────────────────────────────────────────
 const MOBILE = argv.includes('--mobile');
-const sweepArgs = MOBILE
+// `--probe <path> [width]` explains ONE route instead of sweeping all of them:
+// the ancestor chain of the widest offender, with the properties that decide
+// whether each box can shrink. Reuses this harness because the interesting
+// overflows are all behind a session.
+const PROBE = argv.includes('--probe') ? argv[argv.indexOf('--probe') + 1] : null;
+const sweepArgs = PROBE
+  ? ['scripts/probe-overflow.mjs', BASE, PROBE, ...(argv.includes('--width') ? [argv[argv.indexOf('--width') + 1]] : [])]
+  : MOBILE
   ? [
     'scripts/audit-mobile.mjs',
     BASE,

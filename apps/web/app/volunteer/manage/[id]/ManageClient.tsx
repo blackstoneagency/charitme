@@ -132,7 +132,7 @@ export default function ManageClient({
             const capped = p.hours >= CAP_HOURS;
             return (
               <Card key={p.id}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+                <div style={{ display: 'flex', minWidth: 0, justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontWeight: 700, color: 'var(--t1)', fontSize: 15 }}>{p.volunteer_name}</div>
                     <div style={{ fontSize: 13, color: 'var(--t3)', marginTop: 2 }}>
@@ -146,7 +146,7 @@ export default function ManageClient({
                       </div>
                     )}
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                     <span style={{ fontWeight: 800, color: 'var(--t1)' }}>{p.hours.toFixed(2)} h</span>
                     <Btn onClick={() => decide(p.id, 'verified')} disabled={busy === p.id}>
                       {busy === p.id ? 'Saving…' : 'Verify'}
@@ -187,7 +187,7 @@ export default function ManageClient({
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
           {shifts.map((s) => (
             <Card key={s.id}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+              <div style={{ display: 'flex', minWidth: 0, justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontWeight: 700, color: 'var(--t1)', fontSize: 15 }}>{s.title}</div>
                   <div style={{ fontSize: 13, color: 'var(--t3)', marginTop: 2 }}>
@@ -206,7 +206,7 @@ export default function ManageClient({
                     <code style={{ fontFamily: 'var(--mono)', color: 'var(--t3)' }}>{s.id}</code>
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   <Badge color={s.status === 'scheduled' ? 'green' : 'gray'}>
                     {s.status === 'scheduled' ? 'Scheduled' : s.status === 'cancelled' ? 'Cancelled' : 'Completed'}
                   </Badge>

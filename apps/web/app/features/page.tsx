@@ -47,7 +47,7 @@ export default function FeaturesPage() {
         <div style={{ position: 'absolute', bottom: -80, right: '5%', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(180,59,239,.25) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
         <div className="container" style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+          <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10, marginBottom: 20 }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(108,53,255,.25)', border: '1px solid rgba(108,53,255,.4)', borderRadius: 999, padding: '5px 14px', fontSize: 12, fontWeight: 800, color: '#b89eff', letterSpacing: '.1em', textTransform: 'uppercase' }}>
               ✦ Platform Coverage
             </span>
@@ -62,7 +62,7 @@ export default function FeaturesPage() {
             events, auctions, and AI-powered trust in one production-ready platform — with 0% mandatory platform fees.
           </p>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 56 }}>
+          <div style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 12, marginBottom: 56 }}>
             <Link href="/create/choose-path" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 52, padding: '0 28px', borderRadius: 14, background: 'linear-gradient(135deg, var(--cta-from, #6736ff), var(--cta-to, #bd33cd))', color: '#fff', fontWeight: 900, fontSize: 15, textDecoration: 'none', boxShadow: '0 16px 32px rgba(103,54,255,.4)' }}>
               Start Free →
             </Link>
@@ -72,7 +72,7 @@ export default function FeaturesPage() {
           </div>
 
           {/* Stats row */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+          <div style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 16 }}>
             {[
               { value: coverage.moduleCount, label: 'Product modules' },
               { value: coverage.builtFeatureCount, label: 'Features shipped' },
@@ -132,8 +132,8 @@ export default function FeaturesPage() {
                 style={{ textDecoration: 'none' }}
               >
                 <div className="feat-card">
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
-                    <div style={{ width: 48, height: 48, borderRadius: 14, background: 'linear-gradient(135deg,#f3f0ff,#ede9fe)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
+                    <div style={{ width: 48, height: 48, borderRadius: 14, background: 'linear-gradient(135deg,#f3f0ff,#ede9fe)', display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
                       {MODULE_ICONS[module.slug] ?? '✦'}
                     </div>
                     <span style={{ background: module.status === 'Live' ? 'var(--tint-green)' : module.status === 'Planned' ? 'var(--tint-amber)' : 'var(--tint-violet)', color: module.status === 'Live' ? 'var(--green-text)' : module.status === 'Planned' ? 'var(--orange-text)' : 'var(--brand-text)', borderRadius: 999, padding: '4px 12px', fontSize: 11, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase' }}>
@@ -145,7 +145,7 @@ export default function FeaturesPage() {
                   <h3 style={{ fontSize: 18, fontWeight: 900, color: 'var(--t1, #0e0520)', margin: '0 0 10px', lineHeight: 1.3 }}>{module.title}</h3>
                   <p style={{ fontSize: 13, color: 'var(--t2, #475569)', lineHeight: 1.65, margin: '0 0 18px', flex: 1 }}>{module.summary}</p>
 
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 20 }}>
+                  <div style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 6, marginBottom: 20 }}>
                     {module.features.slice(0, 5).map((feature) => (
                       <span key={`${module.slug}-${feature.name}`} style={{ background: 'var(--s2, #f8f7ff)', border: '1px solid var(--b1, #ede9fe)', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 700, color: 'var(--violet-ink, #5b21b6)' }}>
                         {feature.name}
@@ -162,7 +162,7 @@ export default function FeaturesPage() {
                     )}
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 800, color: 'var(--violet-ink, #5b21b6)' }}>
+                  <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 800, color: 'var(--violet-ink, #5b21b6)' }}>
                     Open module
                     <span style={{ fontSize: 16 }}>→</span>
                   </div>
@@ -188,7 +188,7 @@ export default function FeaturesPage() {
               return (
                 <div key={competitor.name} style={{ background: 'var(--s1, #fafafa)', border: '1.5px solid var(--b1, #f1f5f9)', borderRadius: 16, padding: '20px 20px 18px', position: 'relative', overflow: 'hidden' }}>
                   <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: accent, borderRadius: '16px 16px 0 0' }} />
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, marginBottom: 8 }}>
                     <span style={{ width: 10, height: 10, borderRadius: '50%', background: accent, flexShrink: 0 }} />
                     <span style={{ fontSize: 15, fontWeight: 900, color: 'var(--t1, #0e0520)' }}>{competitor.name}</span>
                   </div>
@@ -202,11 +202,11 @@ export default function FeaturesPage() {
                       to be hardcoded, which advertised parity that included features
                       the catalog itself marks as not built. */}
                   {competitor.fullParity ? (
-                    <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: 'var(--green-text, #15803d)' }}>
+                    <div style={{ marginTop: 12, display: 'flex', minWidth: 0, alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: 'var(--green-text, #15803d)' }}>
                       <span>✓</span> Full parity
                     </div>
                   ) : (
-                    <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: 'var(--t3)' }}>
+                    <div style={{ marginTop: 12, display: 'flex', minWidth: 0, alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: 'var(--t3)' }}>
                       <span aria-hidden="true">◐</span> {competitor.planned} in development
                     </div>
                   )}
@@ -233,7 +233,7 @@ export default function FeaturesPage() {
           <p style={{ color: 'rgba(255,255,255,.92)', fontSize: 17, margin: '0 0 36px' }}>
             Join thousands of fundraisers who trust CharitMe&apos;s AI-powered platform.
           </p>
-          <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 14 }}>
+          <div style={{ display: 'flex', minWidth: 0, justifyContent: 'center', flexWrap: 'wrap', gap: 14 }}>
             <Link href="/create/choose-path" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 54, padding: '0 32px', borderRadius: 15, background: 'linear-gradient(135deg, var(--cta-from, #6736ff), var(--cta-to, #bd33cd))', color: '#fff', fontWeight: 900, fontSize: 16, textDecoration: 'none', boxShadow: '0 16px 40px rgba(103,54,255,.45)' }}>
               Start Your Fundraiser Free →
             </Link>

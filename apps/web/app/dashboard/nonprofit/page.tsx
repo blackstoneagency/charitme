@@ -144,7 +144,7 @@ export default async function NonprofitPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12, padding: '4px 0 8px' }}>
               {campaigns.map((c) => (
                 <div key={c.id} style={{ padding: 12, borderRadius: 12, border: '1px solid var(--b1)', background: 'var(--s1)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
+                  <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
                     <Link href={`/campaigns/${c.slug}`} style={{ fontWeight: 800, color: 'var(--t1)', textDecoration: 'none', fontSize: 14.5 }}>
                       {c.title}
                     </Link>

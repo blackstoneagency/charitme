@@ -14,14 +14,14 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
   return (
     <html lang="en">
       <body style={{ margin: 0, fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif', background: '#0e0520', color: '#f4f2fb', minHeight: '100vh' }}>
-        <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+        <div style={{ display: 'flex', minWidth: 0, minHeight: '100vh', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
           <div style={{ maxWidth: 480, textAlign: 'center' }}>
             <div style={{ fontSize: 44, marginBottom: 16 }} aria-hidden="true">⚠️</div>
             <h1 style={{ fontSize: 24, fontWeight: 800, margin: '0 0 10px' }}>Something went wrong</h1>
             <p style={{ fontSize: 15, lineHeight: 1.6, color: '#c9c2e0', margin: '0 0 28px' }}>
               CharitMe hit an unexpected error. Please try again — if it keeps happening, head back to the homepage.
             </p>
-            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', minWidth: 0, gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
               <button
                 type="button"
                 onClick={() => reset()}

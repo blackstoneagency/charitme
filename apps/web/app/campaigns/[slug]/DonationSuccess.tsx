@@ -49,7 +49,7 @@ export default function DonationSuccess({ campaignId, amountCents }: Props) {
         color: '#fff',
         borderRadius: 14,
         padding: '16px 24px',
-        display: 'flex',
+        display: 'flex', minWidth: 0,
         alignItems: 'center',
         gap: 14,
         boxShadow: '0 8px 32px rgba(25, 184, 106, .35)',

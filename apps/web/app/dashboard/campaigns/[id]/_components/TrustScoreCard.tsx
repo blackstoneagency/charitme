@@ -52,7 +52,7 @@ export default function TrustScoreCard({ campaignId }: Props) {
 
   return (
     <section className="kf-card" style={{ padding: 24 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
+      <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
         <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>✨ AI Trust Score Coach</h2>
         <button type="button" onClick={() => void handleCheck()} disabled={loading}
           style={{ height: 36, padding: '0 16px', borderRadius: 8, border: 'none', background: loading ? 'var(--b2)' : 'linear-gradient(135deg,#6c35ff,#4d1ee0)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: loading ? 'wait' : 'pointer' }}>
@@ -70,7 +70,7 @@ export default function TrustScoreCard({ campaignId }: Props) {
 
       {result && tone && (
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <span style={{ background: tone.bg, color: tone.color, padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 800 }}>
               {result.status}
             </span>
@@ -87,7 +87,7 @@ export default function TrustScoreCard({ campaignId }: Props) {
               {result.signals.map((s) => {
                 const sig = SIGNAL_ICON[s.state];
                 return (
-                  <div key={s.label} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13, padding: '6px 0' }}>
+                  <div key={s.label} style={{ display: 'flex', minWidth: 0, alignItems: 'flex-start', gap: 10, fontSize: 13, padding: '6px 0' }}>
                     <span style={{ color: sig.color, fontWeight: 800, flexShrink: 0 }}>{sig.icon}</span>
                     <div>
                       <strong style={{ color: 'var(--t1)' }}>{s.label}</strong>
@@ -107,7 +107,7 @@ export default function TrustScoreCard({ campaignId }: Props) {
                   const content = (
                     <>
                       <span>{sug.label}</span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                      <span style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, flexShrink: 0 }}>
                         <span style={{ fontWeight: 800, color: 'var(--green-text)', fontSize: 12 }}>+{sug.pointsGain}</span>
                         {sug.actionUrl && (
                           <span style={{ color: 'var(--brand-text)', fontWeight: 700, fontSize: 12 }}>{sug.actionLabel ?? 'Resolve'} →</span>
@@ -116,7 +116,7 @@ export default function TrustScoreCard({ campaignId }: Props) {
                     </>
                   );
                   const style: React.CSSProperties = {
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, fontSize: 13,
+                    display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'center', gap: 12, fontSize: 13,
                     padding: '8px 12px', borderRadius: 8, border: '1px solid var(--b1)', textDecoration: 'none', color: 'var(--t1)',
                   };
                   return sug.actionUrl ? (

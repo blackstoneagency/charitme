@@ -68,7 +68,7 @@ function avatarStyle(index: number): React.CSSProperties {
     borderRadius: '50%',
     background: AVATAR_COLORS[index % AVATAR_COLORS.length],
     color: '#fff',
-    display: 'flex',
+    display: 'flex', minWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
     fontSize: 13,
@@ -277,11 +277,14 @@ export default async function DonationsPage({
         title="Donations"
         subtitle="Track every donation across all your campaigns."
         actions={
-          <div style={{ display: 'flex', gap: 10 }}>
+          // Wraps: two 154px buttons in a nowrap row measure 401px, wider than any
+          // phone, and the root clips rather than scrolls — so "Export" was cut
+          // off and unreachable.
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', minWidth: 0 }}>
             <Link
               href="/dashboard/refund"
               className="kf-outline"
-              style={{ display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+              style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 6, textDecoration: 'none' }}
             >
               Request Refund
             </Link>
@@ -289,14 +292,14 @@ export default async function DonationsPage({
               href="/api/exports/donations"
               download
               className="kf-outline"
-              style={{ display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+              style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 6, textDecoration: 'none' }}
             >
               <KFIcon name="upload" /> Export CSV
             </a>
             <Link
               href="/dashboard/tax"
               className="kf-outline"
-              style={{ display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+              style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 6, textDecoration: 'none' }}
             >
               <KFIcon name="doc" /> Tax Documents
             </Link>
@@ -403,7 +406,7 @@ export default async function DonationsPage({
                     {/* Donor */}
                     <div
                       className="kf-row-main"
-                      style={{ display: 'flex', alignItems: 'center', gap: 10 }}
+                      style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10 }}
                     >
                       <div style={avatarStyle(i)}>
                         {initials(d.donorName)}

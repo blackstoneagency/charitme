@@ -134,7 +134,7 @@ export default function SettingsPanel({ campaignId }: { campaignId: string }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {options.map(opt => (
         <label key={opt.value} style={{
-          display: 'flex', gap: 12, alignItems: 'flex-start', padding: '12px 14px',
+          display: 'flex', minWidth: 0, gap: 12, alignItems: 'flex-start', padding: '12px 14px',
           borderRadius: 10, cursor: 'pointer', border: '1.5px solid',
           borderColor: value === opt.value ? 'var(--violet)' : 'var(--b1)',
           background: value === opt.value ? 'rgba(109,53,255,.12)' : 'var(--s1)',
@@ -177,7 +177,7 @@ export default function SettingsPanel({ campaignId }: { campaignId: string }) {
         )}
 
         {field('Accept donations', 'Pause or resume donations without taking the campaign offline.',
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12 }}>
             <div
               role="switch"
               tabIndex={0}

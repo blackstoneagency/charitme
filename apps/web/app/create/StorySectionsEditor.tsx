@@ -39,7 +39,7 @@ export default function StorySectionsEditor({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--t2, #475569)' }}>
           Build your story section by section
         </span>
@@ -52,7 +52,7 @@ export default function StorySectionsEditor({
         const done = (sections[sec.id]?.trim().length ?? 0) >= 15;
         return (
           <div key={sec.id} style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-            <label htmlFor={`cr-sec-${sec.id}`} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <label htmlFor={`cr-sec-${sec.id}`} style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8 }}>
               <span style={{
                 flexShrink: 0, width: 20, height: 20, borderRadius: 999, fontSize: 11, fontWeight: 900,
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -79,7 +79,7 @@ export default function StorySectionsEditor({
         <span style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: 'var(--t2, #475569)', marginBottom: 8 }}>
           ✨ Rewrite in a tone
         </span>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 8 }}>
           {TONE_PRESETS.map((t) => (
             <button
               key={t.id}

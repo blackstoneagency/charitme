@@ -62,8 +62,8 @@ export default function DocumentsClient({
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }} role="group" aria-label="Filter by type">
+      <div style={{ display: 'flex', minWidth: 0, gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap' }} role="group" aria-label="Filter by type">
           {CATEGORIES.map((c) => (
             <button
               key={c}
@@ -124,7 +124,7 @@ export default function DocumentsClient({
               <li
                 key={d.id}
                 style={{
-                  display: 'flex',
+                  display: 'flex', minWidth: 0,
                   gap: 12,
                   alignItems: 'center',
                   flexWrap: 'wrap',

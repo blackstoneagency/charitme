@@ -121,7 +121,7 @@ export default async function PeerFundraiserPage({
       </header>
 
       <Card>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
+        <div style={{ display: 'flex', minWidth: 0, alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
           <strong style={{ fontSize: 26, fontWeight: 900, color: 'var(--t1)' }}>
             {formatMoneyShort(peer.raised_amount, DEFAULT_CURRENCY)}
           </strong>

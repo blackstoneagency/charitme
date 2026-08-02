@@ -24,18 +24,18 @@ export default function Image() {
           fontFamily: 'sans-serif',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+        <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 24 }}>
           {/* A raw <img> on purpose: ImageResponse renders at the edge and cannot
               use next/image. The rule is turned off for this path in
               eslint.config.mjs rather than with an inline directive — see the
               comment there for why an inline one cannot be stable. */}
-          <img src={LOGO} width={104} height={104} alt="" style={{ display: 'flex' }} />
-          <div style={{ fontSize: 76, fontWeight: 900, letterSpacing: '-0.02em', display: 'flex' }}>CharitMe</div>
+          <img src={LOGO} width={104} height={104} alt="" style={{ display: 'flex', minWidth: 0 }} />
+          <div style={{ fontSize: 76, fontWeight: 900, letterSpacing: '-0.02em', display: 'flex', minWidth: 0 }}>CharitMe</div>
         </div>
-        <div style={{ marginTop: 30, fontSize: 38, fontWeight: 800, textAlign: 'center', maxWidth: 900, display: 'flex' }}>
+        <div style={{ marginTop: 30, fontSize: 38, fontWeight: 800, textAlign: 'center', maxWidth: 900, display: 'flex', minWidth: 0 }}>
           Raise More, Faster — With AI
         </div>
-        <div style={{ marginTop: 18, fontSize: 26, fontWeight: 700, color: 'rgba(255,255,255,0.85)', display: 'flex' }}>
+        <div style={{ marginTop: 18, fontSize: 26, fontWeight: 700, color: 'rgba(255,255,255,0.85)', display: 'flex', minWidth: 0 }}>
           0% Platform Fees · AI-Powered Fundraising
         </div>
       </div>

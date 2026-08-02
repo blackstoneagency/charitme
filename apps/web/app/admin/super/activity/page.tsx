@@ -41,7 +41,7 @@ export default async function SuperAdminActivityPage() {
           {rows.length === 0 && <p style={{ color: 'var(--t3)', fontSize: 13 }}>No audited actions yet. Super-admin actions (role changes, settings, flags, marketing) appear here.</p>}
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {rows.map((r) => (
-              <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 4px', borderTop: '1px solid var(--b1)' }}>
+              <div key={r.id} style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12, padding: '10px 4px', borderTop: '1px solid var(--b1)' }}>
                 <span className={`kf-pill ${tone(r.action)}`} style={{ minWidth: 130, textAlign: 'center' }}>{r.action}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <strong style={{ fontSize: 13 }}>{actorMap.get(r.actor_id ?? '') ?? 'System'}</strong>

@@ -100,7 +100,7 @@ export default function LedgerPanel({ campaignId }: { campaignId: string }) {
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 20, maxWidth: 720 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', minWidth: 0, justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
         <div>
           <h2 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 700, color: 'var(--t1)' }}>Transparency Ledger</h2>
           <p style={{ margin: 0, fontSize: 14, color: 'var(--t3)' }}>
@@ -173,9 +173,9 @@ export default function LedgerPanel({ campaignId }: { campaignId: string }) {
         ) : (
           <div>
             {items.map(item => (
-              <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderBottom: '1px solid var(--b1)' }}>
+              <div key={item.id} style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 14, padding: '14px 20px', borderBottom: '1px solid var(--b1)' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', minWidth: 0, gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                     <strong style={{ fontSize: 14 }}>{item.title}</strong>
                     <span className={`kf-pill ${statusColor(item.status)}`} style={{ fontSize: 10 }}>{item.status}</span>
                   </div>

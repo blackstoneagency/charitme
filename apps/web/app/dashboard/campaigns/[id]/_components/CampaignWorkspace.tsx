@@ -36,7 +36,7 @@ export function QrPosterPanel({ campaignId }: { campaignId: string }) {
   const posterUrl = `/api/campaigns/${campaignId}/qr-poster`;
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16, maxWidth: 900 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', minWidth: 0, justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
         <div>
           <h2 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 700, color: 'var(--t1)' }}>Print QR Poster</h2>
           <p style={{ margin: 0, fontSize: 14, color: 'var(--t3)' }}>
@@ -75,12 +75,12 @@ export default function CampaignWorkspace({
             type="button"
             onClick={() => setActiveTool('edit')}
             className="kf-primary"
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, whiteSpace: 'nowrap', cursor: 'pointer' }}
+            style={{ display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', gap: 6, whiteSpace: 'nowrap', cursor: 'pointer' }}
           >
             <KFIcon name="doc" /> Edit Campaign
           </button>
           <Link href="/dashboard/campaigns" className="kf-outline"
-            style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap' }}>
+            style={{ textDecoration: 'none', display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap' }}>
             ← Back
           </Link>
         </div>

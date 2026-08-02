@@ -79,7 +79,7 @@ const inputStyle = {
 export function PaymentTable({ rows, baseHref = '/admin/payments/campaign-flows' }: { rows: AdminPaymentRow[]; baseHref?: string }) {
   return (
     <div style={{ background: 'var(--s1)', border: '1px solid var(--line)', borderRadius: 16, overflow: 'hidden' }}>
-      <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between' }}>
+      <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--line)', display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between' }}>
         <strong>Campaign Payment Ledger</strong>
         <Link href="/api/admin/payments/export?type=campaign-ledger" style={{ color: 'var(--brand-text)', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>Export CSV</Link>
       </div>

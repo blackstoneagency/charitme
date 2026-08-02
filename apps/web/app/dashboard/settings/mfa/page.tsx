@@ -143,7 +143,7 @@ export default function MfaPage() {
               {factors.length > 0 ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
                   {factors.map(f => (
-                    <div key={f.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', border: '1px solid var(--b2)', borderRadius: 10, background: 'var(--s2)' }}>
+                    <div key={f.id} style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', border: '1px solid var(--b2)', borderRadius: 10, background: 'var(--s2)' }}>
                       <div>
                         <div style={{ fontWeight: 600, fontSize: 14 }}>{f.friendly_name ?? 'Authenticator'}</div>
                         <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>
@@ -171,7 +171,7 @@ export default function MfaPage() {
                   <div style={{ fontFamily: 'monospace', fontSize: 13, background: 'var(--s2)', padding: '10px 14px', borderRadius: 8, wordBreak: 'break-all', color: 'var(--t2)' }}>
                     Manual code: <strong>{secret}</strong>
                   </div>
-                  <div style={{ display: 'flex', gap: 10 }}>
+                  <div style={{ display: 'flex', minWidth: 0, gap: 10 }}>
                     <input
                       type="text"
                       aria-label="Six-digit authentication code"

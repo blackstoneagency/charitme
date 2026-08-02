@@ -135,7 +135,7 @@ export default async function CampaignsPage({ searchParams }: Props) {
 
   return (
     <div className="container" style={{ padding: '40px 24px' }}>
-      <div style={{ marginBottom: '28px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+      <div style={{ marginBottom: '28px', display: 'flex', minWidth: 0, alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 style={{ fontSize: '28px', fontWeight: 650, marginBottom: '8px' }}>Browse trusted campaigns</h1>
           <p style={{ color: 'var(--t3)', fontSize: '15px' }}>
@@ -156,7 +156,7 @@ export default async function CampaignsPage({ searchParams }: Props) {
 
       {/* ── Search + filter bar ── */}
       <form method="GET" style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
           <input
             name="q"
             defaultValue={q}
@@ -191,7 +191,7 @@ export default async function CampaignsPage({ searchParams }: Props) {
 
         {/* ── Toggle filters — submitted together with the search above so typed
              keywords/location aren't lost when toggling these checkboxes ── */}
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
           <label className="cb-filter-pill verified">
             <input type="checkbox" name="verified" value="1" defaultChecked={verified} />
             <span>✓ Verified only</span>
@@ -237,7 +237,7 @@ export default async function CampaignsPage({ searchParams }: Props) {
       )}
 
       {totalPages > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', marginTop: '32px' }}>
+        <div style={{ display: 'flex', minWidth: 0, justifyContent: 'center', alignItems: 'center', gap: '12px', marginTop: '32px' }}>
           {page > 1 ? (
             <Link href={pageHref(page - 1)} style={{ padding: '10px 18px', borderRadius: 'var(--r)', border: '1px solid var(--b2)', color: 'var(--t1)', fontSize: '13px', fontWeight: 700, textDecoration: 'none' }}>
               ← Previous

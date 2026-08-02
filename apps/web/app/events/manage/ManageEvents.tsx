@@ -162,7 +162,7 @@ function Attendees({ eventId }: { eventId: string }) {
       )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {regs!.map((r) => (
-          <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '8px 12px', border: '1px solid var(--b2)', borderRadius: 'var(--r)' }}>
+          <div key={r.id} style={{ display: 'flex', minWidth: 0, justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '8px 12px', border: '1px solid var(--b2)', borderRadius: 'var(--r)' }}>
             <div style={{ fontSize: 14 }}>
               {r.attendee_name || r.attendee_email || 'Guest'}
               {r.quantity > 1 && <span style={{ color: 'var(--t4)' }}> ×{r.quantity}</span>}{' '}
@@ -202,9 +202,9 @@ export default function ManageEvents({ initialEvents, eventTypes }: { initialEve
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {initialEvents.map((e) => (
             <div key={e.id} style={{ border: '1px solid var(--b2)', borderRadius: 'var(--rl)', padding: 18 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', minWidth: 0, justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <h3 style={{ fontSize: 16, fontWeight: 700 }}>{e.title}</h3>
                     <Badge color={e.status === 'published' ? 'green' : 'gray'}>{e.status}</Badge>
                   </div>
@@ -213,7 +213,7 @@ export default function ManageEvents({ initialEvents, eventTypes }: { initialEve
                     {' · '}{e.registered_qty} registered{e.capacity ? ` / ${e.capacity}` : ''}
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                <div style={{ display: 'flex', minWidth: 0, gap: 8, alignItems: 'flex-start' }}>
                   <Btn size="sm" variant="ghost" onClick={() => setExpanded(expanded === e.id ? null : e.id)}>
                     {expanded === e.id ? 'Hide attendees' : 'Attendees'}
                   </Btn>

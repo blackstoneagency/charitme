@@ -115,7 +115,7 @@ export default function DomainsClient({
 
       <Card>
         <h2 style={{ margin: '0 0 12px', fontSize: 16 }}>Add a domain</h2>
-        <form onSubmit={add} style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <form onSubmit={add} style={{ display: 'flex', minWidth: 0, gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div style={{ flex: '1 1 260px', minWidth: 0 }}>
             <label htmlFor="dom" style={{ display: 'block', fontSize: 13, marginBottom: 6 }}>
               Domain
@@ -139,7 +139,7 @@ export default function DomainsClient({
       ) : (
         domains.map((d) => (
           <Card key={d.id}>
-            <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
+            <div style={{ display: 'flex', minWidth: 0, gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
               <strong style={{ fontSize: 16, flex: '1 1 auto', wordBreak: 'break-all' }}>{d.domain}</strong>
               <Badge>{d.status === 'verified' ? 'Verified' : 'Awaiting DNS'}</Badge>
               <Btn type="button" onClick={() => check(d.id)} disabled={checkingId === d.id}>

@@ -54,9 +54,9 @@ export default function PayoutConciergeCard({ campaigns }: Props) {
 
   return (
     <section className="kf-card" style={{ padding: 24 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
+      <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
         <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>✨ AI Payout Concierge</h2>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 8, alignItems: 'center' }}>
           {campaigns.length > 1 && (
             <select aria-label="Campaign to review payouts for" value={campaignId} onChange={e => { setCampaignId(e.target.value); setResult(null); }}
               style={{ height: 36, border: '1px solid var(--b2)', borderRadius: 8, padding: '0 10px', fontSize: 13, background: 'var(--s1)' }}>
@@ -80,7 +80,7 @@ export default function PayoutConciergeCard({ campaigns }: Props) {
 
       {result && tone && (
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <span style={{ background: tone.bg, color: tone.color, padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 800 }}>
               {tone.label}
             </span>
@@ -97,7 +97,7 @@ export default function PayoutConciergeCard({ campaigns }: Props) {
               <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6 }}>
                 {result.blockers.map(b => (
                   <Link key={b.code} href={b.actionUrl}
-                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, fontSize: 13, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--b1)', textDecoration: 'none', color: 'var(--t1)' }}>
+                    style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'center', gap: 12, fontSize: 13, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--b1)', textDecoration: 'none', color: 'var(--t1)' }}>
                     {b.label}
                     <span style={{ color: 'var(--brand-text)', fontWeight: 700, fontSize: 12 }}>Resolve →</span>
                   </Link>
@@ -111,7 +111,7 @@ export default function PayoutConciergeCard({ campaigns }: Props) {
               <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--t2)', marginBottom: 6 }}>Payout speed timelines</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6 }}>
                 {Object.entries(result.timelines).map(([speed, desc]) => (
-                  <div key={speed} style={{ fontSize: 12.5, color: 'var(--t3)', display: 'flex', gap: 8 }}>
+                  <div key={speed} style={{ fontSize: 12.5, color: 'var(--t3)', display: 'flex', minWidth: 0, gap: 8 }}>
                     <strong style={{ color: 'var(--t1)', textTransform: 'capitalize', minWidth: 70 }}>{speed.replace('_', ' ')}</strong>
                     {desc}
                   </div>

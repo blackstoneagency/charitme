@@ -24,7 +24,7 @@ export default function GlossaryPage() {
 
       {/* The letter index is DERIVED from the terms, so it can never advertise a
           letter that has nothing under it. */}
-      <nav aria-label="Jump to letter" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '32px' }}>
+      <nav aria-label="Jump to letter" style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: '6px', marginBottom: '32px' }}>
         {letters.map((l) => (
           <a
             key={l}

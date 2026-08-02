@@ -109,7 +109,7 @@ export default function HelpPage() {
       </section>
 
       {/* Category pills */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 28 }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap', marginBottom: 28 }}>
         <button onClick={() => setActiveCategory('all')}
           style={{
             padding: '7px 16px', borderRadius: 20, border: '1.5px solid',
@@ -150,7 +150,7 @@ export default function HelpPage() {
                 type="button"
                 onClick={() => setOpenId(openId === article.id ? null : article.id)}
                 style={{
-                  width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  width: '100%', display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'center',
                   padding: '16px 20px', background: openId === article.id ? 'var(--s2)' : 'var(--s1)',
                   border: 0, cursor: 'pointer', fontSize: 15, fontWeight: 700, textAlign: 'left', color: 'var(--t1)',
                   gap: 16,

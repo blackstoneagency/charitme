@@ -61,7 +61,7 @@ function Endpoint({
 }) {
   return (
     <div style={{ border: '1px solid var(--b1)', borderRadius: 'var(--rl)', padding: 18, background: 'var(--s1)' }}>
-      <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
         <span
           style={{
             fontFamily: 'var(--mono)',

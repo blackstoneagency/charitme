@@ -217,7 +217,7 @@ export default async function CreatorPage({ params }: { params: Promise<{ handle
           </p>
         )}
 
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 16 }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 16 }}>
           {creator.website_url && (
             <a
               href={creator.website_url}
@@ -286,7 +286,7 @@ export default async function CreatorPage({ params }: { params: Promise<{ handle
                   padding: 16,
                 }}
               >
-                <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', minWidth: 0, gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
                   <h3 style={{ margin: 0, fontSize: 15.5, fontWeight: 800, color: 'var(--t1)' }}>{p.title}</h3>
                   <time
                     dateTime={p.created_at}
@@ -301,7 +301,7 @@ export default async function CreatorPage({ params }: { params: Promise<{ handle
                       margin: '10px 0 0',
                       fontSize: 13,
                       color: 'var(--t3)',
-                      display: 'flex',
+                      display: 'flex', minWidth: 0,
                       alignItems: 'center',
                       gap: 8,
                     }}

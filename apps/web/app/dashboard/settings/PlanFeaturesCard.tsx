@@ -46,7 +46,7 @@ export default function PlanFeaturesCard({
         margin: '0 0 20px',
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', minWidth: 0, justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
         <div>
           <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
             Your plan
@@ -92,7 +92,7 @@ export default function PlanFeaturesCard({
           {FEATURE_KEYS.map((key) => {
             const on = features[key] === true;
             return (
-              <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: on ? 'var(--t1)' : 'var(--t4)' }}>
+              <div key={key} style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, fontSize: 14, color: on ? 'var(--t1)' : 'var(--t4)' }}>
                 <span
                   aria-hidden
                   style={{

@@ -266,8 +266,8 @@ export default function DonateButton({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
       {/* ── Header ── */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+        <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12 }}>
           <span style={{ width: 44, height: 44, flexShrink: 0, borderRadius: 14, background: VL, color: V, display: 'grid', placeItems: 'center', padding: 10 }}>
             <TipIcon name="hand" />
           </span>
@@ -276,7 +276,7 @@ export default function DonateButton({
             <div style={{ fontSize: 13, color: MU, marginTop: 2 }}>Your generosity powers our mission.</div>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: MU, fontSize: 11.5, fontWeight: 700, flexShrink: 0, textAlign: 'right', lineHeight: 1.2 }}>
+        <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 6, color: MU, fontSize: 11.5, fontWeight: 700, flexShrink: 0, textAlign: 'right', lineHeight: 1.2 }}>
           <span style={{ width: 18, height: 18, color: V, flexShrink: 0 }}><TipIcon name="lock" /></span>
           <span>Secure &amp;<br />Trusted</span>
         </div>
@@ -300,7 +300,7 @@ export default function DonateButton({
               cursor: 'pointer',
               boxShadow: frequency === f ? '0 2px 10px rgba(0,0,0,.12)' : 'none',
               transition: 'all .15s',
-              display: 'flex',
+              display: 'flex', minWidth: 0,
               alignItems: 'center',
               justifyContent: 'center',
               gap: 6,
@@ -366,14 +366,14 @@ export default function DonateButton({
                     transition: 'border-color .15s, background .15s',
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
                     <span style={{ fontWeight: 900, fontSize: 14, color: active ? V : INK }}>{moneyShort(r.amount_cents)} or more</span>
                     {soldOut && <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--red-text)' }}>Sold out</span>}
                   </div>
                   <span style={{ fontWeight: 800, fontSize: 13, color: INK }}>{r.title}</span>
                   {r.description && <span style={{ fontSize: 12, color: MU, lineHeight: 1.5 }}>{r.description}</span>}
                   {(r.estimated_delivery || r.item_limit != null || r.claimed_count > 0) && (
-                    <div style={{ display: 'flex', gap: 12, fontSize: 11, color: MU, fontWeight: 700, marginTop: 2, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', minWidth: 0, gap: 12, fontSize: 11, color: MU, fontWeight: 700, marginTop: 2, flexWrap: 'wrap' }}>
                       {r.estimated_delivery && <span>📦 Est. delivery: {r.estimated_delivery}</span>}
                       {r.item_limit != null
                         ? <span>{Math.max(0, r.item_limit - r.claimed_count)} of {r.item_limit} left</span>
@@ -464,7 +464,7 @@ export default function DonateButton({
             requestAnimationFrame(() => customAmountRef.current?.focus());
           }}
           style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+            display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', gap: 7,
             width: '100%', padding: '11px 8px', marginTop: 2,
             border: `1.5px dashed ${BD}`, borderRadius: 14, background: 'transparent',
             color: V, fontWeight: 700, fontSize: 13.5, cursor: 'pointer', fontFamily: 'inherit',
@@ -480,7 +480,7 @@ export default function DonateButton({
           <label htmlFor="custom-donation-amount" style={{ display: 'block', fontSize: 12, fontWeight: 700, color: MU, marginBottom: 6 }}>
             Custom donation amount
           </label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, border: `1.5px solid ${V}`, borderRadius: 14, padding: '10px 14px', background: 'var(--s1, #fff)' }}>
+          <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, border: `1.5px solid ${V}`, borderRadius: 14, padding: '10px 14px', background: 'var(--s1, #fff)' }}>
             <span style={{ fontSize: 20, fontWeight: 800, color: INK }}>{symbol}</span>
             <input
               id="custom-donation-amount"
@@ -515,7 +515,7 @@ export default function DonateButton({
 
       {/* ── "You're giving" — big editable amount + currency + reassurance ── */}
       <div style={{ background: VL, borderRadius: 16, padding: '16px 18px', border: `1px solid ${BD}` }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, minWidth: 0 }}>
             <span style={{ fontSize: 12.5, fontWeight: 700, color: V, whiteSpace: 'nowrap' }}>You&rsquo;re giving</span>
             <span style={{ display: 'inline-flex', alignItems: 'baseline', minWidth: 0 }}>
@@ -542,7 +542,7 @@ export default function DonateButton({
             </span>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, color: MU, fontSize: 13 }}>
+        <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, marginTop: 12, color: MU, fontSize: 13 }}>
           <span style={{ width: 18, height: 18, color: V, flexShrink: 0 }}><TipIcon name="shieldCheck" /></span>
           Thank you! Your contribution makes a difference.
         </div>
@@ -560,13 +560,13 @@ export default function DonateButton({
           aria-controls="service-fee-panel"
           aria-label={`Service fee: CharitMe tip ${customTipCents != null ? money(customTipCents) : `${tipPercent}%`}. Tap to ${serviceOpen ? 'collapse' : 'expand'} the options.`}
           style={{
-            width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+            width: '100%', display: 'flex', minWidth: 0, alignItems: 'center', gap: 12,
             padding: '13px 16px', background: 'var(--s1, #fff)',
             border: `1.5px solid ${serviceOpen ? V : BD}`, borderRadius: 14,
             cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'border-color .15s',
           }}
         >
-          <span style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--s2, #f5f5f5)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <span style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--s2, #f5f5f5)', display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             {/* CharitMe brand mark — transparent-background PNG that reads on the
                 theme-adaptive (--s2) chip in both dark and light mode. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -624,7 +624,7 @@ export default function DonateButton({
                 type="button"
                 onClick={() => { setCustomTip(''); requestAnimationFrame(() => customTipRef.current?.focus()); }}
                 style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                  display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', gap: 7,
                   width: '100%', padding: '10px 8px', marginTop: 10,
                   border: `1.5px dashed ${BD}`, borderRadius: 12, background: 'transparent',
                   color: V, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
@@ -640,7 +640,7 @@ export default function DonateButton({
                 <label htmlFor="custom-tip-amount" style={{ display: 'block', fontSize: 12, fontWeight: 700, color: MU, marginBottom: 6 }}>
                   Custom support amount
                 </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, border: `1.5px solid ${V}`, borderRadius: 12, padding: '9px 12px', background: 'var(--s1, #fff)' }}>
+                <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, border: `1.5px solid ${V}`, borderRadius: 12, padding: '9px 12px', background: 'var(--s1, #fff)' }}>
                   <span style={{ fontSize: 17, fontWeight: 800, color: INK }}>{symbol}</span>
                   <input
                     id="custom-tip-amount"
@@ -693,13 +693,13 @@ export default function DonateButton({
               aria-controls="payment-method-panel"
               aria-label={`Payment method: ${sel.label}, ${selFee.label}. Tap to ${methodOpen ? 'collapse' : 'expand'} the options.`}
               style={{
-                width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                width: '100%', display: 'flex', minWidth: 0, alignItems: 'center', gap: 12,
                 padding: '13px 16px', background: 'var(--s1, #fff)',
                 border: `1.5px solid ${methodOpen ? V : BD}`, borderRadius: 14,
                 cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'border-color .15s',
               }}
             >
-              <span style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--s2, #f5f5f5)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <span style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--s2, #f5f5f5)', display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 {sel.icon}
               </span>
               <span style={{ flex: 1, fontSize: 14, fontWeight: 800, color: INK }}>{sel.label}</span>
@@ -724,7 +724,7 @@ export default function DonateButton({
                 <label
                   key={opt.id}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 12,
+                    display: 'flex', minWidth: 0, alignItems: 'center', gap: 12,
                     padding: '13px 16px', background: active ? VL : 'var(--s1, #fff)',
                     borderTop: idx > 0 ? `1px solid ${BD}` : 'none',
                     cursor: 'pointer', transition: 'background .15s',
@@ -738,7 +738,7 @@ export default function DonateButton({
                     onChange={() => setPreferredMethod(opt.id)}
                     style={{ accentColor: V, width: 16, height: 16, flexShrink: 0 }}
                   />
-                  <span style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--s2, #f5f5f5)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <span style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--s2, #f5f5f5)', display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     {opt.icon}
                   </span>
                   <span style={{ flex: 1, fontSize: 14, fontWeight: active ? 800 : 600, color: active ? V : INK }}>
@@ -777,7 +777,7 @@ export default function DonateButton({
 
       {/* ── Checkboxes ── */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', fontSize: 13, color: 'var(--t2, #4c5679)', fontWeight: 600, lineHeight: 1.5 }}>
+        <label style={{ display: 'flex', minWidth: 0, alignItems: 'flex-start', gap: 10, cursor: 'pointer', fontSize: 13, color: 'var(--t2, #4c5679)', fontWeight: 600, lineHeight: 1.5 }}>
           <input
             type="checkbox"
             checked={anonymous}
@@ -787,7 +787,7 @@ export default function DonateButton({
           Don&apos;t display my name or profile publicly on the fundraiser
           <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, borderRadius: '50%', border: `1px solid ${BD}`, fontSize: 10, color: MU, flexShrink: 0, cursor: 'help' }} title="Your name will not appear on the donor list">ⓘ</span>
         </label>
-        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', fontSize: 13, color: 'var(--t2, #4c5679)', fontWeight: 600, lineHeight: 1.5 }}>
+        <label style={{ display: 'flex', minWidth: 0, alignItems: 'flex-start', gap: 10, cursor: 'pointer', fontSize: 13, color: 'var(--t2, #4c5679)', fontWeight: 600, lineHeight: 1.5 }}>
           <input
             type="checkbox"
             checked={subscribeEmail}
@@ -831,18 +831,18 @@ export default function DonateButton({
             />
           )}
           {amountCents > 0 && !isMonthly && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 700, color: GR }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', fontSize: 13, fontWeight: 700, color: GR }}>
               <span>Recipient receives</span>
               <span>{money(breakdown.netToRecipient)}</span>
             </div>
           )}
-          <div style={{ borderTop: `1px solid ${BD}`, marginTop: 4, paddingTop: 10, display: 'flex', justifyContent: 'space-between', fontSize: 18, fontWeight: 800, color: INK }}>
+          <div style={{ borderTop: `1px solid ${BD}`, marginTop: 4, paddingTop: 10, display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', fontSize: 18, fontWeight: 800, color: INK }}>
             <span>You pay{isMonthly ? '/month' : ''}</span>
             <span>{money(breakdown.total)}</span>
           </div>
           {/* Recipient always receives the full donation — tip + processing are
               added on top, never deducted (Stripe Connect destination charge). */}
-          <div style={{ marginTop: 6, padding: '9px 11px', borderRadius: 9, background: 'rgba(16,185,129,.10)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13.5, fontWeight: 750, color: 'var(--green-dark, #047857)' }}>
+          <div style={{ marginTop: 6, padding: '9px 11px', borderRadius: 9, background: 'rgba(16,185,129,.10)', display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'center', fontSize: 13.5, fontWeight: 750, color: 'var(--green-dark, #047857)' }}>
             <span>✓ {campaignTitle ? 'Recipient' : 'They'} receive{isMonthly ? '' : 's'} {money(amountCents)}</span>
             <span style={{ fontSize: 11.5, fontWeight: 700 }}>100% of your donation</span>
           </div>
@@ -906,7 +906,7 @@ export default function DonateButton({
 
 function BRow({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: MU }}>
+    <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', fontSize: 14, color: MU }}>
       <span>{label}</span>
       <span style={{ fontWeight: 650, color: INK }}>{value}</span>
     </div>

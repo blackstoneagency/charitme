@@ -43,7 +43,7 @@ export default async function TransactionDetailPage({ params }: PageProps): Prom
 
         <section style={panel}>
           <h2 style={h2}>Status</h2>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', minWidth: 0, gap: 10, flexWrap: 'wrap' }}>
             <Pill value={payment.payment_status} />
             <Pill value={payment.transfer_status} />
             <Pill value={payment.payout_status} />

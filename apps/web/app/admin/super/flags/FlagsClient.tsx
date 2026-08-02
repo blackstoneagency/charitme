@@ -28,7 +28,7 @@ export default function FlagsClient({ flags: initial }: { flags: Flag[] }) {
 
   return (
     <div style={{ padding: '0 4px 48px' }}>
-      <div className="kf-card" style={{ padding: 16, marginBottom: 16, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+      <div className="kf-card" style={{ padding: 16, marginBottom: 16, display: 'flex', minWidth: 0, gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <label style={{ fontSize: 12, color: 'var(--t3)' }}>New flag key<br /><input style={{ ...input, width: 200 }} value={nk} onChange={(e) => setNk(e.target.value)} placeholder="new_feature" /></label>
         <label style={{ fontSize: 12, color: 'var(--t3)', flex: 1, minWidth: 200 }}>Description<br /><input style={{ ...input, width: '100%' }} value={nd} onChange={(e) => setNd(e.target.value)} /></label>
         <button style={btn} onClick={create}>Add flag</button>
@@ -36,7 +36,7 @@ export default function FlagsClient({ flags: initial }: { flags: Flag[] }) {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
         {flags.map((f) => (
-          <div key={f.id} className="kf-card" style={{ padding: 14, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+          <div key={f.id} className="kf-card" style={{ padding: 14, display: 'flex', minWidth: 0, alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
             <button
               type="button"
               onClick={() => patch(f.id, { enabled: !f.enabled })}
@@ -49,7 +49,7 @@ export default function FlagsClient({ flags: initial }: { flags: Flag[] }) {
               <code style={{ fontSize: 13, fontWeight: 700 }}>{f.key}</code>
               <div style={{ fontSize: 12, color: 'var(--t3)' }}>{f.description || 'No description'}</div>
             </div>
-            <label style={{ fontSize: 12, color: 'var(--t3)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <label style={{ fontSize: 12, color: 'var(--t3)', display: 'flex', minWidth: 0, alignItems: 'center', gap: 8 }}>
               Rollout
               <input type="range" min={0} max={100} value={f.rollout_pct} onChange={(e) => setFlags((p) => p.map((x) => x.id === f.id ? { ...x, rollout_pct: Number(e.target.value) } : x))} onMouseUp={(e) => patch(f.id, { rollout_pct: Number((e.target as HTMLInputElement).value) })} onTouchEnd={(e) => patch(f.id, { rollout_pct: Number((e.target as HTMLInputElement).value) })} />
               <b style={{ width: 38, textAlign: 'right' }}>{f.rollout_pct}%</b>

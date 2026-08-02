@@ -133,9 +133,9 @@ export default function NotificationBell() {
           border: '1px solid var(--b1, #e8e8f0)', overflow: 'hidden',
         }}>
           {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: '1px solid var(--b1, #f0f0f8)' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: '1px solid var(--b1, #f0f0f8)' }}>
             <span style={{ fontWeight: 900, fontSize: 14, color: 'var(--t1, #1a1a2e)' }}>Notifications</span>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div style={{ display: 'flex', minWidth: 0, gap: 8, alignItems: 'center' }}>
               {unread > 0 && (
                 <button type="button" onClick={() => void markAllRead()} style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--violet, #6c35ff)', fontWeight: 700, cursor: 'pointer', padding: 0 }}>
                   Mark all read
@@ -165,7 +165,7 @@ export default function NotificationBell() {
                 onClick={() => { void markRead(n.id); if (n.link) window.location.href = n.link; setOpen(false); }}
                 style={{
                   width: '100%', textAlign: 'left', border: 0, font: 'inherit', fontFamily: 'inherit',
-                  display: 'flex', gap: 12, alignItems: 'flex-start',
+                  display: 'flex', minWidth: 0, gap: 12, alignItems: 'flex-start',
                   padding: '12px 16px', cursor: 'pointer',
                   background: n.read_at ? 'var(--s1, #fff)' : 'var(--s2, #f5f0ff)',
                   borderBottom: '1px solid var(--b1, #f5f5fa)',

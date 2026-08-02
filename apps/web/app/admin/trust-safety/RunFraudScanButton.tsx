@@ -74,11 +74,11 @@ export default function RunFraudScanButton() {
         // Backdrop dismissal is supplementary; Escape and the close button remain available.
         // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
         <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 16 }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 16 }}
           onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}
         >
           <div role="dialog" aria-modal="true" aria-label="AI Fraud and Misuse Monitor" style={{ background: 'var(--s1)', borderRadius: 20, padding: 28, width: '100%', maxWidth: 560, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 24px 60px rgba(0,0,0,.2)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
               <h2 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: 'var(--t1)' }}>✨ AI Fraud & Misuse Monitor</h2>
               <button type="button" onClick={() => setOpen(false)} style={{ border: 'none', background: 'transparent', fontSize: 18, cursor: 'pointer', color: 'var(--t3)' }}>✕</button>
             </div>
@@ -88,7 +88,7 @@ export default function RunFraudScanButton() {
 
             {result && (
               <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14 }}>
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', minWidth: 0, gap: 10, flexWrap: 'wrap' }}>
                   <div style={{ flex: 1, minWidth: 120, background: 'var(--s2)', border: '1px solid #f0f4f8', borderRadius: 10, padding: '10px 14px', textAlign: 'center' }}>
                     <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--t1)' }}>{result.scanned}</div>
                     <div style={{ fontSize: 11.5, color: 'var(--t3)', marginTop: 2 }}>Campaigns scanned</div>
@@ -110,7 +110,7 @@ export default function RunFraudScanButton() {
                       {result.flaggedCampaigns.map((c) => (
                         <div key={c.campaignId} style={{ border: '1px solid #f0f4f8', borderRadius: 10, padding: '10px 14px' }}>
                           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)', marginBottom: 6 }}>{c.campaignTitle}</div>
-                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', minWidth: 0, gap: 6, flexWrap: 'wrap' }}>
                             {c.flags.map((f) => (
                               <span key={f.code} style={{ background: (SEV_COLOR[f.severity] ?? '#6b7280') + '18', color: SEV_COLOR[f.severity] ?? '#6b7280', padding: '3px 10px', borderRadius: 20, fontSize: 11.5, fontWeight: 700 }}>
                                 {f.label}

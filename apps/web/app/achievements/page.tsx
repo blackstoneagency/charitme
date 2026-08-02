@@ -87,9 +87,9 @@ export default async function AchievementsPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {challenges.map((c) => (
               <div key={c.id} style={{ border: '1px solid var(--b2)', borderRadius: 'var(--rl)', padding: 18 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+                <div style={{ display: 'flex', minWidth: 0, justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       <h3 style={{ fontSize: 16, fontWeight: 700 }}>{c.title}</h3>
                       {c.complete && <Badge color="green">Complete</Badge>}
                     </div>

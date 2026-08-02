@@ -172,7 +172,7 @@ export default async function CommunityPage() {
             ) : (
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '8px' }}>
                 {feed.donations.map((d) => (
-                  <li key={d.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 14px', border: '1px solid var(--b1)', borderRadius: 'var(--rl)', background: 'var(--s1)' }}>
+                  <li key={d.id} style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: '12px', padding: '11px 14px', border: '1px solid var(--b1)', borderRadius: 'var(--rl)', background: 'var(--s1)' }}>
                     <span style={{ flex: 1, minWidth: 0, fontSize: '14px', color: 'var(--t1)' }}>
                       <strong style={{ fontWeight: 700 }}>{d.name}</strong>{' '}
                       <span style={{ color: 'var(--t3)' }}>gave to</span>{' '}

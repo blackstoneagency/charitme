@@ -117,7 +117,7 @@ export default function CampaignSortableList({
         <div style={{ padding: '12px 20px 4px' }}>
           <div
             style={{
-              display: 'flex',
+              display: 'flex', minWidth: 0,
               alignItems: 'center',
               gap: '10px',
               padding: '10px 14px',

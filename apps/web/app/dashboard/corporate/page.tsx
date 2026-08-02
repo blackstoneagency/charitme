@@ -112,7 +112,7 @@ function ProgramSection({
 
   return (
     <section className="kf-card">
-      <div className="kf-card-head" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+      <div className="kf-card-head" style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <h2 style={{ margin: 0 }}>{company}</h2>
         <span style={{ fontSize: 12, fontWeight: 800, padding: '3px 10px', borderRadius: 999, background: statusTone.bg, color: statusTone.fg, textTransform: 'capitalize' }}>
           {status}
@@ -126,7 +126,7 @@ function ProgramSection({
         <p style={{ margin: '0 0 12px', fontSize: 13.5, color: 'var(--t2, var(--t2))', lineHeight: 1.5 }}>{description}</p>
       )}
 
-      <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', margin: '4px 0 16px', fontSize: 13 }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 20, flexWrap: 'wrap', margin: '4px 0 16px', fontSize: 13 }}>
         <Stat label="Committed" value={formatMoneyShort(summary.committedCents, currency)} />
         <Stat label="Paid" value={formatMoneyShort(summary.paidCents, currency)} />
         <Stat label="Pending" value={`${summary.pending} claim${summary.pending === 1 ? '' : 's'}`} />

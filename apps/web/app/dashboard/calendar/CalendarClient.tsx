@@ -94,7 +94,7 @@ export default function CalendarClient({
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 8 }} role="group" aria-label="Which dates to show">
+      <div style={{ display: 'flex', minWidth: 0, gap: 8 }} role="group" aria-label="Which dates to show">
         {([['Upcoming', false], ['Past', true]] as const).map(([label, val]) => (
           <button
             key={label}
@@ -137,7 +137,7 @@ export default function CalendarClient({
                   <li
                     key={e.id}
                     style={{
-                      display: 'flex',
+                      display: 'flex', minWidth: 0,
                       gap: 12,
                       alignItems: 'center',
                       padding: '10px 0',

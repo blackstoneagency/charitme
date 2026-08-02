@@ -144,7 +144,7 @@ export default function WidgetPanel({ campaignId }: { campaignId: string }) {
 
         <section style={card}>
           <h2 style={cardTitle}>Width</h2>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12 }}>
             <input
               type="range"
               min={WIDGET_MIN_WIDTH}
@@ -183,7 +183,7 @@ export default function WidgetPanel({ campaignId }: { campaignId: string }) {
               background: 'var(--s2)', color: 'var(--t1)', resize: 'vertical',
             }}
           />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12, marginTop: 10, flexWrap: 'wrap' }}>
             <button type="button" onClick={copy} className="kf-primary" style={{ cursor: 'pointer' }}>
               {copied ? 'Copied ✓' : 'Copy embed code'}
             </button>
@@ -206,7 +206,7 @@ export default function WidgetPanel({ campaignId }: { campaignId: string }) {
           This is the real widget, loaded from the same URL as the code above — not
           a mock-up of it.
         </p>
-        <div style={{ background: 'var(--s2)', border: '1px dashed var(--b1)', borderRadius: 'var(--rl)', padding: 16, display: 'flex', justifyContent: 'center' }}>
+        <div style={{ background: 'var(--s2)', border: '1px dashed var(--b1)', borderRadius: 'var(--rl)', padding: 16, display: 'flex', minWidth: 0, justifyContent: 'center' }}>
           <iframe
             key={previewSrc}
             src={previewSrc}

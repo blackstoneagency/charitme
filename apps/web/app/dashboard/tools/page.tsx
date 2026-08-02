@@ -105,7 +105,7 @@ export default async function FundraisingToolsPage({
         ) : (
           <>
             {campaigns.length > 1 && (
-              <nav aria-label="Choose a campaign" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
+              <nav aria-label="Choose a campaign" style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
                 {campaigns.map((c) => {
                   const active = c.id === selected.id;
                   return (

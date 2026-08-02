@@ -128,14 +128,14 @@ export default function ReportsClient({ reports, categories, totalReports, sched
           <section className="kf-card" style={{ padding: 20 }}>
             <h2 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700 }}>Reports Overview</h2>
             {categories.map((c) => (
-              <div key={c.label} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+              <div key={c.label} style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10, marginBottom: 10 }}>
                 <i style={{ width: 10, height: 10, borderRadius: '50%', background: c.color, flexShrink: 0 }} />
                 <span style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>{c.label}</span>
                 <b style={{ fontSize: 13, fontWeight: 700 }}>{c.count}</b>
               </div>
             ))}
             {/* Simple donut */}
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
+            <div style={{ display: 'flex', minWidth: 0, justifyContent: 'center', marginTop: 16 }}>
               <div style={{ position: 'relative', width: 120, height: 120 }}>
                 <svg viewBox="0 0 42 42" style={{ width: 120, height: 120, transform: 'rotate(-90deg)' }}>
                   {(() => {
@@ -172,7 +172,7 @@ export default function ReportsClient({ reports, categories, totalReports, sched
             <div className="kf-card-head"><h2>Recent Reports</h2></div>
             {reports.slice(0, 5).map(r => (
               <div key={r.id} style={{ padding: '10px 16px', borderBottom: '1px solid #eef0f7' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                   <strong style={{ fontSize: 12, fontWeight: 650, flex: 1 }}>{r.name}</strong>
                   <StatusPill>{r.status}</StatusPill>
                 </div>
@@ -189,7 +189,7 @@ export default function ReportsClient({ reports, categories, totalReports, sched
           </div>
 
           {/* Search + category filter */}
-          <div style={{ padding: '0 20px 14px', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ padding: '0 20px 14px', display: 'flex', minWidth: 0, gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
             <label className="kf-search" style={{ width: 260, height: 44 }}>
               <KFIcon name="search" />
               <input
@@ -198,7 +198,7 @@ export default function ReportsClient({ reports, categories, totalReports, sched
                 onChange={e => setSearch(e.target.value)}
               />
             </label>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap' }}>
               {allCategories.map(cat => (
                 <button
                   key={cat}
@@ -247,7 +247,7 @@ export default function ReportsClient({ reports, categories, totalReports, sched
               <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--t2)' }}>{r.createdBy}</span>
               <StatusPill>{r.status}</StatusPill>
               <span style={{ fontSize: 11, color: 'var(--t3)' }}>{r.createdOn}</span>
-              <div style={{ display: 'flex', gap: 6 }}>
+              <div style={{ display: 'flex', minWidth: 0, gap: 6 }}>
                 <button
                   onClick={() => setExportReport(r)}
                   style={{ height: 30, padding: '0 10px', borderRadius: 7, border: '1px solid #e0e4ef', background: 'var(--s1)', color: 'var(--brand-text)', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
@@ -277,14 +277,14 @@ export default function ReportsClient({ reports, categories, totalReports, sched
             <p style={{ margin: '0 0 20px', color: 'var(--t3)', fontSize: 13 }}>{exportReport.name}</p>
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
               {(['CSV', 'Excel', 'PDF'] as const).map(fmt => (
-                <label key={fmt} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', border: `1px solid ${exportFmt === fmt ? '#6c35ff' : '#e0e4ef'}`, borderRadius: 9, cursor: 'pointer', fontSize: 14, fontWeight: 650 }}>
+                <label key={fmt} style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12, padding: '14px 16px', border: `1px solid ${exportFmt === fmt ? '#6c35ff' : '#e0e4ef'}`, borderRadius: 9, cursor: 'pointer', fontSize: 14, fontWeight: 650 }}>
                   <input type="radio" name="fmt" value={fmt} checked={exportFmt === fmt} onChange={() => setExportFmt(fmt)} />
                   Export as {fmt}
                 </label>
               ))}
             </div>
             {exportError && <p style={{ margin: '10px 0 0', color: 'var(--red-text)', fontSize: 13 }}>{exportError}</p>}
-            <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', minWidth: 0, gap: 10, marginTop: 20, justifyContent: 'flex-end' }}>
               <button onClick={() => { setExportReport(null); setExportError(''); }} style={{ height: 42, padding: '0 20px', border: '1px solid #e0e4ef', borderRadius: 8, background: 'var(--s1)', fontWeight: 650, cursor: 'pointer' }}>Cancel</button>
               <button className="kf-primary" style={{ height: 42, padding: '0 22px', opacity: exportLoading ? 0.7 : 1 }} onClick={downloadReport} disabled={exportLoading}>{exportLoading ? 'Exporting…' : 'Download'}</button>
             </div>

@@ -92,7 +92,7 @@ export default async function ReferralsPage() {
                   <div
                     key={tier.name}
                     className="kf-row"
-                    style={{ display: 'flex', alignItems: 'center', gap: 14, opacity: earned ? 1 : 0.5 }}
+                    style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 14, opacity: earned ? 1 : 0.5 }}
                   >
                     <span style={{ fontSize: 28 }}>{tier.icon}</span>
                     <div style={{ flex: 1 }}>

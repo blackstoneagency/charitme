@@ -112,7 +112,7 @@ export function DevelopersClient({ initialKeys, availableScopes }: Props) {
           >
             {plaintext}
           </code>
-          <div style={{ marginTop: 12, display: 'flex', gap: 10 }}>
+          <div style={{ marginTop: 12, display: 'flex', minWidth: 0, gap: 10 }}>
             <Btn
               size="sm"
               onClick={async () => {
@@ -155,7 +155,7 @@ export function DevelopersClient({ initialKeys, availableScopes }: Props) {
             <legend style={{ fontSize: 13, fontWeight: 600, color: 'var(--t2)', padding: '0 6px' }}>Scopes</legend>
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8 }}>
               {availableScopes.map((s) => (
-                <label key={s} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, color: 'var(--t2)' }}>
+                <label key={s} style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, fontSize: 13.5, color: 'var(--t2)' }}>
                   <input type="checkbox" checked={scopes.includes(s)} onChange={() => toggleScope(s)} />
                   <code style={{ fontFamily: 'var(--mono)' }}>{s}</code>
                 </label>
@@ -185,7 +185,7 @@ export function DevelopersClient({ initialKeys, availableScopes }: Props) {
                   borderRadius: 'var(--rl)',
                   padding: 14,
                   background: 'var(--s1)',
-                  display: 'flex',
+                  display: 'flex', minWidth: 0,
                   gap: 14,
                   flexWrap: 'wrap',
                   alignItems: 'flex-start',
@@ -194,7 +194,7 @@ export function DevelopersClient({ initialKeys, availableScopes }: Props) {
                 }}
               >
                 <div style={{ minWidth: 220, flex: '1 1 260px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <strong style={{ fontSize: 14.5, color: 'var(--t1)' }}>{k.name}</strong>
                     <Badge color={k.revoked_at ? 'gray' : 'green'}>{k.revoked_at ? 'Revoked' : 'Active'}</Badge>
                   </div>

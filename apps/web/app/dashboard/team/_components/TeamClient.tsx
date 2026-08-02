@@ -244,7 +244,7 @@ export function TeamClient({ campaigns, initialMembers, profiles, currentUserId 
                   <div style={{ fontSize: 12, color: 'var(--t3)' }}>{fmtDate(m.created_at)}</div>
 
                   {/* Action */}
-                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <div style={{ display: 'flex', minWidth: 0, justifyContent: 'flex-end' }}>
                     {canRemove ? (
                       <RemoveMemberButton
                         memberId={m.id}

@@ -175,16 +175,16 @@ export default async function DonorPortalPage() {
 
       {/* Tax statements — consolidated annual giving statements for filing */}
       <div style={{ ...cardStyle, marginBottom: 28 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 6, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', minWidth: 0, justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 6, flexWrap: 'wrap' }}>
           <h2 style={{ fontSize: 16, fontWeight: 650, margin: 0 }}>Tax Statements</h2>
         </div>
         <p style={{ color: 'var(--t3)', fontSize: 13, margin: '0 0 14px' }}>
           Download a consolidated annual giving statement for your records, with a clear
           tax-deductible vs. non-deductible breakdown.
         </p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+        <div style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 10 }}>
           {taxYears.map(y => (
-            <div key={y} style={{ display: 'flex', alignItems: 'center', gap: 8, border: '1px solid var(--b1, #e8ecf4)', borderRadius: 'var(--r, 10px)', padding: '8px 12px' }}>
+            <div key={y} style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, border: '1px solid var(--b1, #e8ecf4)', borderRadius: 'var(--r, 10px)', padding: '8px 12px' }}>
               <Link href={`/donor/tax-statement/${y}`} style={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-text)', textDecoration: 'none' }}>
                 {y} statement
               </Link>
@@ -206,7 +206,7 @@ export default async function DonorPortalPage() {
       {/* Recurring donations */}
       {recurring.length > 0 && (
         <div style={{ ...cardStyle, marginBottom: 24 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 650, margin: '0 0 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 style={{ fontSize: 16, fontWeight: 650, margin: '0 0 16px', display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'center' }}>
             Recurring Donations
             <Link href="/dashboard/recurring" style={{ fontSize: 13, color: 'var(--brand-text)', fontWeight: 700, textDecoration: 'none' }}>
               Manage →
@@ -216,7 +216,7 @@ export default async function DonorPortalPage() {
             {recurring.map(r => {
               const camp = campaignMap.get(r.campaign_id);
               return (
-                <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid var(--b1, #f1f5f9)' }}>
+                <div key={r.id} style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid var(--b1, #f1f5f9)' }}>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 14 }}>
                       {camp ? (
@@ -227,7 +227,7 @@ export default async function DonorPortalPage() {
                       {cadenceLabel(r.cadence)} · {r.next_bill_at ? `Next: ${fmtDate(r.next_bill_at)}` : `Started ${fmtDate(r.created_at)}`}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12 }}>
                     <strong style={{ color: 'var(--brand-text)' }}>{formatCents(r.amount_cents, currencyMap.get(r.campaign_id) ?? 'usd')}/{r.cadence === 'monthly' ? 'mo' : r.cadence}</strong>
                     <span style={{
                       fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20,

@@ -15,7 +15,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
         title="Something went wrong"
         body="We hit an unexpected error loading this page. Try again, or head back to the homepage."
         action={
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', minWidth: 0, gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Btn variant="primary" onClick={() => reset()}>Try again</Btn>
             <BtnLink href="/" variant="secondary">Back to home</BtnLink>
           </div>

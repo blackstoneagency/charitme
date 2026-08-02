@@ -193,7 +193,7 @@ export default function HoursClient({ rows, titles, totals, loadFailed }: Props)
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
           {rows.map((r) => (
             <Card key={r.id}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+              <div style={{ display: 'flex', minWidth: 0, justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontWeight: 700, color: 'var(--t1)', fontSize: 15 }}>
                     {titles[r.opportunity_id] ?? 'Volunteering'}
@@ -202,7 +202,7 @@ export default function HoursClient({ rows, titles, totals, loadFailed }: Props)
                     {fmtDate(r.checked_in_at)} · {fmtTime(r.checked_in_at)} – {r.checked_out_at ? fmtTime(r.checked_out_at) : 'in progress'}
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12 }}>
                   <span style={{ fontWeight: 800, color: 'var(--t1)' }}>
                     {r.checked_out_at ? `${r.hours.toFixed(2)} h` : '—'}
                   </span>

@@ -124,7 +124,7 @@ export default function ManageImpact({
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 20 }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 20 }}>
         <Select
           label="Campaign"
           value={selectedId ?? ''}
@@ -162,7 +162,7 @@ export default function ManageImpact({
           <div>
             <Btn size="sm" variant="ghost" onClick={() => setItems((p) => [...p, { label: '', planned: '', spent: '' }])}>+ Add line item</Btn>
           </div>
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ display: 'flex', minWidth: 0, gap: 10 }}>
             <Btn disabled={busy} onClick={() => savePlan('published')}>Publish plan</Btn>
             <Btn disabled={busy} variant="ghost" onClick={() => savePlan('draft')}>Save draft</Btn>
           </div>
@@ -187,7 +187,7 @@ export default function ManageImpact({
       <div style={card}>
         <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 14 }}>Outcome metrics</h2>
         {bundle && bundle.metrics.length > 0 && (
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+          <div style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
             {bundle.metrics.map((m) => (
               <span key={m.id} style={{ fontSize: 13, padding: '4px 10px', borderRadius: 999, background: 'var(--s3)', color: 'var(--t2)' }}>
                 {m.label}: {m.current_value.toLocaleString()}{m.target_value ? `/${m.target_value.toLocaleString()}` : ''}{m.unit ? ` ${m.unit}` : ''}

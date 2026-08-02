@@ -143,7 +143,7 @@ export default function IncidentsClient({
 
       <Card>
         <h2 style={{ margin: '0 0 12px', fontSize: 16 }}>Open an incident</h2>
-        <form onSubmit={openIncident} style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <form onSubmit={openIncident} style={{ display: 'flex', minWidth: 0, gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div style={{ flex: '1 1 280px', minWidth: 0 }}>
             <label htmlFor="inc-title" style={{ display: 'block', fontSize: 13, marginBottom: 6 }}>
               What is happening?
@@ -204,7 +204,7 @@ export default function IncidentsClient({
                   border: '1px solid var(--b2)',
                   borderRadius: 'var(--r)',
                   padding: 12,
-                  display: 'flex',
+                  display: 'flex', minWidth: 0,
                   gap: 12,
                   flexWrap: 'wrap',
                   alignItems: 'center',
@@ -261,7 +261,7 @@ export default function IncidentsClient({
               required
             />
           </div>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', minWidth: 0, gap: 12, flexWrap: 'wrap' }}>
             <div style={{ flex: '1 1 200px' }}>
               <label htmlFor="mw-start" style={{ display: 'block', fontSize: 13, marginBottom: 6 }}>
                 Starts

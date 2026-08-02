@@ -71,7 +71,7 @@ export default function AdminPrivacyClient({ initialRequests }: { initialRequest
                   <td style={{ padding: '10px', color: 'var(--t4)' }}>{new Date(r.created_at).toLocaleDateString()}</td>
                   <td style={{ padding: '10px' }}>
                     {open ? (
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap' }}>
                         {r.status === 'pending' && (
                           <Btn size="sm" variant="secondary" disabled={busyId === r.id} onClick={() => act(r.id, 'in_progress')}>
                             Start

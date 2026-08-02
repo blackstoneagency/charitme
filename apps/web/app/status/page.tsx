@@ -255,7 +255,7 @@ export default async function StatusPage() {
       <div
         role="status"
         style={{
-          display: 'flex',
+          display: 'flex', minWidth: 0,
           alignItems: 'center',
           gap: 12,
           border: '1px solid var(--b1)',
@@ -290,7 +290,7 @@ export default async function StatusPage() {
                 background: 'var(--s1)',
                 borderRadius: 'var(--rl)',
                 padding: '14px 16px',
-                display: 'flex',
+                display: 'flex', minWidth: 0,
                 gap: 14,
                 alignItems: 'flex-start',
                 justifyContent: 'space-between',
@@ -372,7 +372,7 @@ export default async function StatusPage() {
           <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
             {incidents.map((inc) => (
               <li key={inc.id} style={{ border: '1px solid var(--b2)', borderRadius: 10, padding: '12px 14px' }}>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', minWidth: 0, gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
                   <strong style={{ color: 'var(--t1)', fontSize: 15 }}>{inc.title}</strong>
                   <span
                     style={{

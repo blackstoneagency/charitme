@@ -52,7 +52,7 @@ export default async function SponsorDetailPage({ params }: PageProps) {
         ← All opportunities
       </Link>
 
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '18px 0 12px' }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap', margin: '18px 0 12px' }}>
         <Badge color="blue">{o.category}</Badge>
         {o.min_amount_cents > 0 && <Badge color="gray">From {formatMoneyShort(o.min_amount_cents, o.currency)}</Badge>}
         {!accepting && <Badge color="red">Closed</Badge>}

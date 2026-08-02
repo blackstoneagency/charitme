@@ -181,7 +181,7 @@ export default function VolunteerApplicantsClient() {
         background: 'var(--s1)', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', minWidth: 0, alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div style={{ minWidth: 0 }}>
           <strong style={{ fontSize: 15, color: 'var(--t1)' }}>{a.name}</strong>
           {a.profile?.headline && (
@@ -195,7 +195,7 @@ export default function VolunteerApplicantsClient() {
       </div>
 
       {a.profile && (
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 6, flexWrap: 'wrap' }}>
           {a.profile.skills.slice(0, 8).map((s) => (
             <span key={s} style={{ fontSize: 11.5, fontWeight: 600, padding: '2px 8px', borderRadius: 6, background: 'var(--s2)', color: 'var(--t2)' }}>
               {s}
@@ -219,7 +219,7 @@ export default function VolunteerApplicantsClient() {
       )}
 
       {a.status === 'applied' && (
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap' }}>
           <button
             type="button"
             className="kf-primary"

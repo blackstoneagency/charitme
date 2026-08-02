@@ -116,15 +116,15 @@ export default function CampaignMilestonesPage({ params }: { params: Promise<{ i
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
               {milestones.map((m, i) => (
                 <div key={m.id} style={{ padding: '14px 16px', border: '1px solid var(--b2)', borderRadius: 10, background: 'var(--s1)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                     <div style={{ flex: 1 }}>
                       <strong style={{ fontSize: 13, color: 'var(--t1)', display: 'block', marginBottom: 4 }}>
                         {i + 1}. {m.title}{m.target_amount != null ? ` — ${money(m.target_amount)}` : ''}
                       </strong>
                       {m.description && <span style={{ fontSize: 13, color: 'var(--t2)', lineHeight: 1.5 }}>{m.description}</span>}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: m.reached_at ? 'var(--green-dark, var(--green-dark))' : 'var(--t3)', cursor: 'pointer' }}>
+                    <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                      <label style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: m.reached_at ? 'var(--green-dark, var(--green-dark))' : 'var(--t3)', cursor: 'pointer' }}>
                         <input type="checkbox" checked={!!m.reached_at} onChange={() => void toggleReached(m)} style={{ accentColor: 'var(--violet)', width: 15, height: 15 }} />
                         Reached
                       </label>
@@ -153,7 +153,7 @@ export default function CampaignMilestonesPage({ params }: { params: Promise<{ i
             <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
               Target amount (optional)
               <div style={{ position: 'relative' }}>
-                <span style={{ position: 'absolute', left: 12, top: 0, bottom: 0, display: 'flex', alignItems: 'center', color: 'var(--t3)', fontWeight: 800 }}>{currencySymbol(currency)}</span>
+                <span style={{ position: 'absolute', left: 12, top: 0, bottom: 0, display: 'flex', minWidth: 0, alignItems: 'center', color: 'var(--t3)', fontWeight: 800 }}>{currencySymbol(currency)}</span>
                 <input value={newTarget} onChange={e => setNewTarget(e.target.value)} type="number" min="1" step="1"
                   placeholder="2500" style={{ width: '100%', boxSizing: 'border-box', height: 42, border: '1px solid var(--b2)', borderRadius: 9, padding: '0 12px 0 26px', fontSize: 14 }} />
               </div>

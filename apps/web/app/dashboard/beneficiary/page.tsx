@@ -81,7 +81,7 @@ export default async function BeneficiaryPage() {
                     </div>
 
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+                      <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
                         <Link
                           href={`/campaigns/${c.slug}`}
                           style={{ fontWeight: 800, color: 'var(--t1)', textDecoration: 'none', fontSize: 15 }}
@@ -97,7 +97,7 @@ export default async function BeneficiaryPage() {
 
                       <ProgressBar value={c.raisedCents} max={Math.max(1, c.goalCents)} />
 
-                      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 8, fontSize: 12.5 }}>
+                      <div style={{ display: 'flex', minWidth: 0, gap: 14, flexWrap: 'wrap', marginTop: 8, fontSize: 12.5 }}>
                         <span style={{ color: 'var(--t2)' }}>
                           <strong style={{ color: 'var(--t1)' }}>{fmt(c.raisedCents)}</strong> raised
                           {c.goalCents > 0 && <> of {fmt(c.goalCents)}</>}

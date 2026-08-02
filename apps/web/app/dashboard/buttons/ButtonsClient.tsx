@@ -170,7 +170,7 @@ export default function ButtonsClient({
               const snippet = snippetFor(button);
               return (
                 <li key={button.id} style={{ padding: 14, border: '1px solid var(--b1)', borderRadius: 'var(--r)', background: 'var(--s1)', minWidth: 0 }}>
-                  <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', minWidth: 0, gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
                     <strong style={{ fontSize: 14.5, color: 'var(--t1)' }}>{button.label}</strong>
                     <span style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', color: 'var(--t3)' }}>
                       {describeButtonType(button.button_type as ButtonType)}
@@ -191,7 +191,7 @@ export default function ButtonsClient({
                           border: '1px solid var(--b1)', borderRadius: 'var(--r)', resize: 'vertical',
                         }}
                       />
-                      <div style={{ display: 'flex', gap: 14, marginTop: 8 }}>
+                      <div style={{ display: 'flex', minWidth: 0, gap: 14, marginTop: 8 }}>
                         <button type="button" onClick={() => void copy(button.id, snippet)} style={linkButton('var(--brand-text)')}>
                           {copiedId === button.id ? 'Copied ✓' : 'Copy embed code'}
                         </button>

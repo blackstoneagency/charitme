@@ -185,8 +185,8 @@ export default function AiCoachPage() {
 
           {messages.length === 0 && (
             <div style={{ padding: '24px 0' }}>
-              <div style={{ display: 'flex', gap: 14, marginBottom: 24, alignItems: 'flex-start' }}>
-                <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg,var(--violet),#ec3fb4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
+              <div style={{ display: 'flex', minWidth: 0, gap: 14, marginBottom: 24, alignItems: 'flex-start' }}>
+                <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg,var(--violet),#ec3fb4)', display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
                   🤖
                 </div>
                 <div style={{ background: 'var(--s2)', border: '1px solid var(--b2)', borderRadius: '4px 14px 14px 14px', padding: '14px 18px', maxWidth: 480, fontSize: 14, lineHeight: 1.6, color: 'var(--t1)' }}>
@@ -196,7 +196,7 @@ export default function AiCoachPage() {
               <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 12 }}>
                 Quick starters
               </p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <div style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 8 }}>
                 {STARTERS.map(s => (
                   <button key={s} type="button" onClick={() => void send(s)}
                     style={{ padding: '8px 16px', borderRadius: 20, border: '1px solid var(--b2)', background: 'var(--s1, #fff)', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: 'var(--t1)', transition: 'border-color .15s' }}>
@@ -208,11 +208,11 @@ export default function AiCoachPage() {
           )}
 
           {messages.map((msg, i) => (
-            <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flexDirection: msg.role === 'user' ? 'row-reverse' : 'row' }}>
+            <div key={i} style={{ display: 'flex', minWidth: 0, gap: 12, alignItems: 'flex-start', flexDirection: msg.role === 'user' ? 'row-reverse' : 'row' }}>
               <div style={{
                 width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
                 background: msg.role === 'user' ? 'var(--violet)' : 'linear-gradient(135deg,var(--violet),#ec3fb4)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center',
                 fontSize: 14, color: '#fff', fontWeight: 700,
               }}>
                 {msg.role === 'user' ? 'U' : '🤖'}
@@ -236,7 +236,7 @@ export default function AiCoachPage() {
 
         {/* Input */}
         <div style={{ borderTop: '1px solid var(--b1)', paddingTop: 16, paddingBottom: 24, background: 'var(--s1, #fff)' }}>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
+          <div style={{ display: 'flex', minWidth: 0, gap: 10, alignItems: 'flex-end' }}>
             <textarea
               ref={inputRef}
               aria-label="Ask the AI fundraising coach"
@@ -258,7 +258,7 @@ export default function AiCoachPage() {
                 height: 48, width: 48, border: 0, borderRadius: 12, flexShrink: 0,
                 background: loading || !input.trim() ? 'var(--b2)' : 'linear-gradient(135deg,var(--violet),#4d1ee0)',
                 color: '#fff', cursor: loading || !input.trim() ? 'not-allowed' : 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
+                display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', fontSize: 20,
               }}>
               {loading ? '…' : '↑'}
             </button>

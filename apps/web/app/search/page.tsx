@@ -159,7 +159,7 @@ export default async function SearchPage({ searchParams }: Props) {
         </button>
       </form>
 
-      <nav aria-label="Result types" style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', margin: '18px 0 26px', borderBottom: '1px solid var(--b1)', paddingBottom: '10px' }}>
+      <nav aria-label="Result types" style={{ display: 'flex', minWidth: 0, gap: '6px', flexWrap: 'wrap', margin: '18px 0 26px', borderBottom: '1px solid var(--b1)', paddingBottom: '10px' }}>
         {SEARCH_SCOPES.map((s) => {
           const n = counts[s.value];
           const active = scope === s.value;

@@ -78,7 +78,7 @@ export default async function CampaignEmbedPage({ params, searchParams }: Props)
         {/* Progress */}
         {options.showProgress && (
         <div style={{ marginBottom: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', marginBottom: 6 }}>
             <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--brand-text)' }}>{fmt(raised)}</span>
             <span style={{ fontSize: 13, color: 'var(--t3)' }}>of {fmt(goal)}</span>
           </div>

@@ -308,7 +308,7 @@ function CampaignPreviewModal({
                 </div>
                 <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 9 }}>
                   {donorView.checks.map((c) => (
-                    <li key={c.id} style={{ display: 'flex', gap: 9, alignItems: 'flex-start' }}>
+                    <li key={c.id} style={{ display: 'flex', minWidth: 0, gap: 9, alignItems: 'flex-start' }}>
                       <span aria-hidden style={{ color: c.passed ? 'var(--green, #059669)' : 'var(--t4, #94a3b8)', fontWeight: 800, lineHeight: 1.4 }}>
                         {c.passed ? '✓' : '○'}
                       </span>
@@ -1124,7 +1124,7 @@ export default function CreatePage() {
             </div>
             <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
               {draftList.map((d) => (
-                <li key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', background: 'var(--s1, #fff)', border: '1px solid var(--b1, #e8ecf4)', borderRadius: 12, padding: '10px 14px' }}>
+                <li key={d.id} style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10, flexWrap: 'wrap', background: 'var(--s1, #fff)', border: '1px solid var(--b1, #e8ecf4)', borderRadius: 12, padding: '10px 14px' }}>
                   <div style={{ flex: '1 1 220px', minWidth: 0 }}>
                     <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--t1, #1a1a2e)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {d.title?.trim() || 'Untitled campaign'}
@@ -1146,7 +1146,7 @@ export default function CreatePage() {
                 </li>
               ))}
             </ul>
-            <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', minWidth: 0, gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
               <button type="button" onClick={startNewDraft}
                 style={{ padding: '8px 14px', borderRadius: 10, border: '1.5px solid var(--violet, #6c35ff)', background: 'transparent', color: 'var(--violet, #6c35ff)', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>
                 + Start another campaign
@@ -1162,13 +1162,13 @@ export default function CreatePage() {
 
       {/* ── Draft recovery banner ── */}
       {recoverableDraft && step !== 'live' && (
-        <div role="region" aria-label="Resume unfinished campaign" style={{ background: 'linear-gradient(135deg, var(--violet), var(--violet-2))', color: '#fff', padding: '14px 18px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, justifyContent: 'center' }}>
+        <div role="region" aria-label="Resume unfinished campaign" style={{ background: 'linear-gradient(135deg, var(--violet), var(--violet-2))', color: '#fff', padding: '14px 18px', display: 'flex', minWidth: 0, flexWrap: 'wrap', alignItems: 'center', gap: 12, justifyContent: 'center' }}>
           <span style={{ fontSize: 20 }} aria-hidden>↩️</span>
           <span style={{ fontWeight: 700, fontSize: 15 }}>
             Welcome back — pick up where you left off?
           </span>
           <span style={{ fontSize: 13, opacity: .9 }}>Saved {draftAgeLabel(recoverableDraft.ts)}</span>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', minWidth: 0, gap: 8 }}>
             <button type="button" onClick={resumeDraft} style={{ background: 'var(--s1, #fff)', color: 'var(--brand-text)', border: 0, borderRadius: 999, padding: '8px 18px', fontWeight: 800, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
               Resume
             </button>
@@ -1475,7 +1475,7 @@ export default function CreatePage() {
               {/* ── Step: Title ── */}
               {step === 'title' && (
                 <div className="cr2-title-panel">
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 22, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 22, flexWrap: 'wrap' }}>
                     <h2 className="cr2-step-q" style={{ padding: 0, margin: 0 }}>Give your fundraiser a Title</h2>
                     <button
                       type="button"
@@ -1535,7 +1535,7 @@ export default function CreatePage() {
                         {goalGuidance.goalHitRate != null && ` About ${Math.round(goalGuidance.goalHitRate * 100)}% reach their goal.`}
                         {' '}A goal you can realistically pass builds momentum — you can raise it later.
                       </div>
-                      <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', minWidth: 0, gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
                         {[goalGuidance.lowCents, goalGuidance.highCents].map((c, i) => (
                           <button
                             key={i}
@@ -1551,7 +1551,7 @@ export default function CreatePage() {
                   )}
 
                   <div className="cr2-field">
-                    <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'center' }}>
                       <span>Fundraising Goal</span>
                       <button
                         type="button"
@@ -1694,7 +1694,7 @@ export default function CreatePage() {
                   </div>
 
                   {!payoutLoading && !payoutLinked && (
-                    <div style={{ margin: '0 0 16px', padding: '12px 14px', borderRadius: 12, background: 'rgba(16,185,129,.10)', border: '1px solid rgba(16,185,129,.3)', display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 13.5, lineHeight: 1.5, color: 'var(--t2)' }}>
+                    <div style={{ margin: '0 0 16px', padding: '12px 14px', borderRadius: 12, background: 'rgba(16,185,129,.10)', border: '1px solid rgba(16,185,129,.3)', display: 'flex', minWidth: 0, gap: 10, alignItems: 'flex-start', fontSize: 13.5, lineHeight: 1.5, color: 'var(--t2)' }}>
                       <span aria-hidden style={{ fontSize: 17 }}>✅</span>
                       <span>
                         <strong>This is optional right now.</strong> You can publish your campaign and start sharing it in the next step — set up payouts here or later from your dashboard. You&rsquo;ll be able to <em>receive</em> donations once payouts are connected.
@@ -1870,7 +1870,7 @@ export default function CreatePage() {
                                 className="cr2-payout-more-toggle"
                                 onClick={() => setShowAltPayouts(true)}
                                 style={{
-                                  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                                  width: '100%', display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', gap: 8,
                                   padding: '12px 16px', marginTop: 6, borderRadius: 12, cursor: 'pointer',
                                   border: '1.5px dashed var(--b1, #e8ecf4)', background: 'transparent',
                                   fontSize: 13.5, fontWeight: 700, color: 'var(--t2, #475569)', fontFamily: 'inherit',
@@ -1972,7 +1972,7 @@ export default function CreatePage() {
                   </div>
 
                   {!payoutLinked && (
-                    <div style={{ margin: '4px 0 14px', padding: '12px 14px', borderRadius: 12, background: 'rgba(245,158,11,.10)', border: '1px solid rgba(245,158,11,.35)', fontSize: 13.5, lineHeight: 1.5, color: 'var(--t2)', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                    <div style={{ margin: '4px 0 14px', padding: '12px 14px', borderRadius: 12, background: 'rgba(245,158,11,.10)', border: '1px solid rgba(245,158,11,.35)', fontSize: 13.5, lineHeight: 1.5, color: 'var(--t2)', display: 'flex', minWidth: 0, gap: 10, alignItems: 'flex-start' }}>
                       <span aria-hidden style={{ fontSize: 17 }}>💡</span>
                       <span>
                         <strong>You can launch now.</strong> Your campaign goes live and is shareable immediately. To start <em>receiving</em> donations, connect a payout method — you can{' '}
@@ -2004,7 +2004,7 @@ export default function CreatePage() {
                     {/* Cover / Media */}
                     <div className="cr2-review-row">
                       <span className="cr2-review-label">Media</span>
-                      <span className="cr2-review-val" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span className="cr2-review-val" style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10 }}>
                         <div className="cr2-review-cover">
                           {form.coverImageUrl && (
                             // eslint-disable-next-line @next/next/no-img-element
@@ -2069,7 +2069,7 @@ export default function CreatePage() {
               {/* Navigation */}
               <div className="cr2-nav">
                 <button type="button" className="cr2-nav-back" onClick={goPrev} disabled={stepIdx === 0}>← Back</button>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <div style={{ display: 'flex', minWidth: 0, gap: 10, alignItems: 'center' }}>
                   {stepIdx >= 1 && step !== 'payout' && step !== 'summary' && (
                     <button type="button" className="cr2-nav-draft" onClick={() => void saveDraft()} disabled={loading}>
                       {loading ? 'Saving…' : 'Save Draft'}

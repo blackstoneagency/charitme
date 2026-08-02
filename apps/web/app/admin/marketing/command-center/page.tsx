@@ -40,7 +40,7 @@ export default async function CommandCenterPage() {
       <TopBar
         title="Marketing Command Center"
         subtitle="What changed, what's active, and what's waiting — all on live data. Read-only executive view."
-        actions={<div style={{ display: 'flex', gap: 8 }}>
+        actions={<div style={{ display: 'flex', minWidth: 0, gap: 8 }}>
           <Link href="/admin/marketing/campaign-plans" style={{ height: 38, display: 'inline-flex', alignItems: 'center', padding: '0 16px', borderRadius: 10, background: 'var(--s2)', color: 'var(--t1)', border: '1px solid var(--line)', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>Campaigns</Link>
           <Link href="/admin/marketing/opportunities" style={{ height: 38, display: 'inline-flex', alignItems: 'center', padding: '0 16px', borderRadius: 10, background: 'var(--s2)', color: 'var(--t1)', border: '1px solid var(--line)', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>Opportunities</Link>
           <Link href="/admin/marketing/goals" style={{ height: 38, display: 'inline-flex', alignItems: 'center', padding: '0 16px', borderRadius: 10, background: 'linear-gradient(135deg,var(--cta-from),var(--cta-to))', color: '#fff', fontWeight: 800, fontSize: 13, textDecoration: 'none' }}>Goals →</Link>
@@ -56,7 +56,7 @@ export default async function CommandCenterPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.4fr) minmax(0,1fr)', gap: 16, alignItems: 'start' }}>
           {/* Active goals */}
           <div style={{ ...card }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--t1)' }}>Active goals</div>
               <Link href="/admin/marketing/goals" style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand-text)', textDecoration: 'none' }}>Manage →</Link>
             </div>
@@ -134,7 +134,7 @@ function GoalRow({ g }: { g: MarketingGoal & { progress: GoalProgress } }) {
   const p = g.progress;
   return (
     <div style={{ padding: '10px 0', borderBottom: '1px solid var(--line)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', gap: 10 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>{g.title}</div>
         <div style={{ fontSize: 11, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{METRIC_LABEL[g.target_metric]}</div>
       </div>
@@ -156,7 +156,7 @@ function GoalRow({ g }: { g: MarketingGoal & { progress: GoalProgress } }) {
 
 function PulseRow({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: 13, borderBottom: '1px solid var(--line)' }}>
+    <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', padding: '6px 0', fontSize: 13, borderBottom: '1px solid var(--line)' }}>
       <span style={{ color: 'var(--t3)', fontWeight: 600 }}>{label}</span>
       <b style={{ color: 'var(--t1)' }}>{value}</b>
     </div>
@@ -165,7 +165,7 @@ function PulseRow({ label, value }: { label: string; value: string }) {
 
 function ActivityRow({ a }: { a: ActivityItem }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--line)' }}>
+    <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--line)' }}>
       <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: a.actor === 'system' ? '#6c35ff' : '#64748b', padding: '2px 7px', borderRadius: 20, textTransform: 'uppercase' }}>{a.actor}</span>
       <span style={{ fontSize: 13, color: 'var(--t2)', fontWeight: 600, flex: 1 }}>
         {a.action.replaceAll('_', ' ')} <span style={{ color: 'var(--t3)', fontWeight: 500 }}>· {a.summary}</span>

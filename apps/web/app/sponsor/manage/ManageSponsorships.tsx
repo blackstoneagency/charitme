@@ -148,7 +148,7 @@ function RequestsList({ opportunityId, currency }: { opportunityId: string; curr
         <div
           key={r.id}
           style={{
-            display: 'flex',
+            display: 'flex', minWidth: 0,
             justifyContent: 'space-between',
             alignItems: 'center',
             gap: 12,
@@ -166,7 +166,7 @@ function RequestsList({ opportunityId, currency }: { opportunityId: string; curr
             </div>
             {r.message && <div style={{ fontSize: 13, color: 'var(--t3)', marginTop: 4 }}>{r.message}</div>}
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', minWidth: 0, gap: 8 }}>
             {r.status === 'pending' && (
               <>
                 <Btn size="sm" disabled={busyId === r.id} onClick={() => act(r.id, 'accepted')}>Accept</Btn>
@@ -215,9 +215,9 @@ export default function ManageSponsorships({
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {initialOpportunities.map((o) => (
             <div key={o.id} style={{ border: '1px solid var(--b2)', borderRadius: 'var(--rl)', padding: 18 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', minWidth: 0, justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <h3 style={{ fontSize: 16, fontWeight: 700 }}>{o.title}</h3>
                     <Badge color={o.status === 'open' ? 'green' : 'gray'}>{o.status}</Badge>
                   </div>
@@ -226,7 +226,7 @@ export default function ManageSponsorships({
                     {o.target_amount_cents ? ` of ${formatMoneyShort(o.target_amount_cents, o.currency)}` : ''} · {o.category}
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                <div style={{ display: 'flex', minWidth: 0, gap: 8, alignItems: 'flex-start' }}>
                   <Btn size="sm" variant="ghost" onClick={() => setExpanded(expanded === o.id ? null : o.id)}>
                     {expanded === o.id ? 'Hide offers' : 'View offers'}
                   </Btn>

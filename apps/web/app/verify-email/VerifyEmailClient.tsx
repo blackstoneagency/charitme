@@ -73,7 +73,7 @@ export default function VerifyEmailClient({ email }: { email: string }) {
         </p>
       )}
 
-      <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
         <button
           type="button"
           onClick={resend}

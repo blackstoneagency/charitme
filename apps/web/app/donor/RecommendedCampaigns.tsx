@@ -51,7 +51,7 @@ export default function RecommendedCampaigns() {
 
   if (loading) {
     return (
-      <div style={{ ...cardStyle, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10, color: 'var(--t3)' }}>
+      <div style={{ ...cardStyle, marginBottom: 24, display: 'flex', minWidth: 0, alignItems: 'center', gap: 10, color: 'var(--t3)' }}>
         <Spinner size={16} />
         <span style={{ fontSize: 13.5, fontWeight: 600 }}>Finding campaigns for you…</span>
       </div>
@@ -83,7 +83,7 @@ export default function RecommendedCampaigns() {
                   <div style={{ background: 'var(--s3, #f1f5f9)', borderRadius: 99, height: 6, overflow: 'hidden', marginBottom: 6 }}>
                     <div style={{ height: '100%', width: `${r.percentFunded}%`, background: 'var(--green, #19b86a)', borderRadius: 99 }} />
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', fontSize: 12 }}>
                     <strong style={{ color: 'var(--t1, #1a1a2e)' }}>{formatCents(r.raisedAmount, r.currency ?? 'usd')}</strong>
                     <span style={{ color: 'var(--t3)' }}>{r.percentFunded}% funded</span>
                   </div>

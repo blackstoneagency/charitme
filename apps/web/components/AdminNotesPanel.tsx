@@ -126,8 +126,8 @@ export default function AdminNotesPanel({
             borderRadius: 'var(--r)', resize: 'vertical',
           }}
         />
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-          <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 12.5, color: 'var(--t2)' }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          <label style={{ display: 'flex', minWidth: 0, gap: 6, alignItems: 'center', fontSize: 12.5, color: 'var(--t2)' }}>
             <input type="checkbox" checked={internal} onChange={(e) => setInternal(e.target.checked)} />
             Internal only
           </label>
@@ -159,7 +159,7 @@ export default function AdminNotesPanel({
                 background: 'var(--s2)',
               }}
             >
-              <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap', marginBottom: 5 }}>
+              <div style={{ display: 'flex', minWidth: 0, gap: 8, alignItems: 'baseline', flexWrap: 'wrap', marginBottom: 5 }}>
                 <strong style={{ fontSize: 12.5, color: 'var(--t1)' }}>{note.authorName}</strong>
                 <span style={{ fontSize: 11.5, color: 'var(--t3)' }}>
                   {new Date(note.created_at).toLocaleString()}
@@ -170,7 +170,7 @@ export default function AdminNotesPanel({
               <p style={{ fontSize: 13.5, color: 'var(--t2)', margin: '0 0 7px', whiteSpace: 'pre-wrap', lineHeight: 1.55 }}>
                 {note.body}
               </p>
-              <div style={{ display: 'flex', gap: 12 }}>
+              <div style={{ display: 'flex', minWidth: 0, gap: 12 }}>
                 <button type="button" onClick={() => void togglePin(note.id, !note.pinned)} disabled={busy} style={linkButton('var(--brand-text)')}>
                   {note.pinned ? 'Unpin' : 'Pin'}
                 </button>

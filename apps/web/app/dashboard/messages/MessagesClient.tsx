@@ -65,7 +65,7 @@ function Avatar({ name, idx }: { name: string; idx: number }) {
     <div style={{
       width: 36, height: 36, borderRadius: '50%',
       background: COLORS[idx % COLORS.length],
-      color: '#fff', display: 'flex', alignItems: 'center',
+      color: '#fff', display: 'flex', minWidth: 0, alignItems: 'center',
       justifyContent: 'center', fontSize: 13, fontWeight: 700,
       flexShrink: 0,
     }}>
@@ -276,7 +276,7 @@ export default function MessagesClient({ threads, campaignMap, replies, threadSt
               >
                 <Avatar name={thread.donorName} idx={threads.findIndex(t => t.donorId === thread.donorId)} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <strong style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <strong style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 6 }}>
                     {thread.donorName}
                     {unread && <span aria-label="Unread" style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--violet, var(--violet))', flexShrink: 0 }} />}
                   </strong>
@@ -314,7 +314,7 @@ export default function MessagesClient({ threads, campaignMap, replies, threadSt
               <button
                 onClick={() => void toggleArchive(activeThread.donorId)}
                 style={{
-                  marginLeft: 'auto', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6,
+                  marginLeft: 'auto', flexShrink: 0, display: 'flex', minWidth: 0, alignItems: 'center', gap: 6,
                   padding: '8px 14px', borderRadius: 999, border: '1px solid var(--b1)',
                   background: 'var(--s2)', color: 'var(--t2)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
                 }}
@@ -354,7 +354,7 @@ export default function MessagesClient({ threads, campaignMap, replies, threadSt
                     {r.message}
                     <small>{fmtDate(r.created_at)}</small>
                   </p>
-                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--violet)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--violet)', color: '#fff', display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
                     Me
                   </div>
                 </div>
@@ -388,7 +388,7 @@ export default function MessagesClient({ threads, campaignMap, replies, threadSt
             </div>
           </>
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--t3)', fontSize: 14 }}>
+          <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--t3)', fontSize: 14 }}>
             Select a conversation
           </div>
         )}
@@ -400,7 +400,7 @@ export default function MessagesClient({ threads, campaignMap, replies, threadSt
           <h2 style={{ fontSize: 15, fontWeight: 700, padding: '16px 20px 8px' }}>Donor Info</h2>
           {activeThread ? (
             <div style={{ padding: '8px 20px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12 }}>
                 <Avatar name={activeThread.donorName} idx={threads.findIndex(t => t.donorId === activeThread.donorId)} />
                 <div>
                   <strong style={{ fontSize: 14 }}>{activeThread.donorName}</strong>

@@ -151,7 +151,7 @@ export default function TasksClient({
 
       <Card>
         <h2 style={{ margin: '0 0 12px', fontSize: 16 }}>Add a task</h2>
-        <form onSubmit={create} style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <form onSubmit={create} style={{ display: 'flex', minWidth: 0, gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div style={{ flex: '2 1 240px', minWidth: 0 }}>
             <label htmlFor="t-title" style={{ display: 'block', fontSize: 13, marginBottom: 6 }}>
               Task
@@ -206,7 +206,7 @@ export default function TasksClient({
         </form>
       </Card>
 
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }} role="group" aria-label="Filter tasks">
+      <div style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap' }} role="group" aria-label="Filter tasks">
         {FILTERS.map((f) => (
           <button
             key={f.id}
@@ -244,7 +244,7 @@ export default function TasksClient({
                 <li
                   key={t.id}
                   style={{
-                    display: 'flex',
+                    display: 'flex', minWidth: 0,
                     gap: 12,
                     alignItems: 'center',
                     flexWrap: 'wrap',
@@ -253,7 +253,7 @@ export default function TasksClient({
                     padding: 12,
                   }}
                 >
-                  <label style={{ display: 'flex', alignItems: 'center', minHeight: 44, gap: 8 }}>
+                  <label style={{ display: 'flex', minWidth: 0, alignItems: 'center', minHeight: 44, gap: 8 }}>
                     <input
                       type="checkbox"
                       checked={t.status === 'done'}

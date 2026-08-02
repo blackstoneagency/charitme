@@ -309,7 +309,7 @@ export default async function MyCampaignsPage({
 
                       {/* Copy */}
                       <div className="kf-row-main" style={{ minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                           <span className={`kf-pill ${pillTone(c.status)}`} style={{ fontSize: 10 }}>
                             {c.status.charAt(0).toUpperCase() + c.status.slice(1)}
                           </span>
@@ -383,7 +383,7 @@ export default async function MyCampaignsPage({
                       </div>
 
                       {/* Actions */}
-                      <div className="kf-row-action" style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                      <div className="kf-row-action" style={{ display: 'flex', minWidth: 0, gap: 8, justifyContent: 'flex-end' }}>
                         <Link
                           href={`/dashboard/campaigns/${c.id}`}
                           style={{

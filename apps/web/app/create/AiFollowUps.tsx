@@ -47,7 +47,7 @@ export default function AiFollowUps({
   if (!current) {
     return (
       <div style={wrap}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, fontSize: 14.5, color: 'var(--green-dark, #047857)' }}>
+        <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, fontWeight: 800, fontSize: 14.5, color: 'var(--green-dark, #047857)' }}>
           <span>✓</span> All set — your draft has everything we need. Continue when you&apos;re ready.
         </div>
       </div>
@@ -72,7 +72,7 @@ export default function AiFollowUps({
 
   return (
     <div style={wrap}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
         <span style={{ fontWeight: 800, fontSize: 12.5, letterSpacing: '.03em', color: 'var(--violet, #6c35ff)' }}>
           ✨ A FEW QUICK QUESTIONS
         </span>
@@ -91,7 +91,7 @@ export default function AiFollowUps({
 
       <div style={{ marginTop: 12 }}>
         {current.kind === 'choice' && current.options && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 8 }}>
             {current.options.map((o) => (
               <button
                 key={o.value}
@@ -114,7 +114,7 @@ export default function AiFollowUps({
 
         {current.kind === 'money' && (
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 6 }}>
               <span style={{ fontSize: 20, fontWeight: 800, color: 'var(--t3)' }}>$</span>
               <input aria-labelledby="ai-followup-question" ref={inputRef} type="number" min="1" step="1" inputMode="numeric" value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="5000" style={inputStyle} />
             </div>

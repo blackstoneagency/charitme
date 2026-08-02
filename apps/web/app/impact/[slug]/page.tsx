@@ -46,7 +46,7 @@ export default async function ImpactPage({ params }: PageProps) {
         ← {campaign.title}
       </Link>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', margin: '18px 0 8px' }}>
+      <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 16, flexWrap: 'wrap', margin: '18px 0 8px' }}>
         <h1 style={{ fontSize: 28, fontWeight: 800, margin: 0 }}>Impact & Transparency</h1>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 26, fontWeight: 900, color: 'var(--green-dark)' }}>{transparency.score}</span>
@@ -64,7 +64,7 @@ export default async function ImpactPage({ params }: PageProps) {
       {/* Transparency factors */}
       <div style={{ border: '1px solid var(--b2)', borderRadius: 'var(--rl)', padding: 16, margin: '16px 0 28px' }}>
         {transparency.factors.map((f) => (
-          <div key={f.label} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '4px 0' }}>
+          <div key={f.label} style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12, padding: '4px 0' }}>
             <span style={{ flex: '1 1 200px', fontSize: 14, color: 'var(--t2)' }}>{f.label}</span>
             <div style={{ flex: '2 1 200px' }}><ProgressBar value={f.points} max={f.max} /></div>
             <span style={{ fontSize: 13, color: 'var(--t4)', width: 52, textAlign: 'right' }}>{f.points}/{f.max}</span>
@@ -84,7 +84,7 @@ export default async function ImpactPage({ params }: PageProps) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {plan.items.map((it) => (
               <div key={it.id}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 4 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', fontSize: 14, marginBottom: 4 }}>
                   <span>{it.label}{it.category ? <span style={{ color: 'var(--t4)' }}> · {it.category}</span> : null}</span>
                   <span style={{ color: 'var(--t3)' }}>
                     {formatMoneyShort(it.spent_amount_cents, currency)} / {formatMoneyShort(it.planned_amount_cents, currency)}
@@ -129,7 +129,7 @@ export default async function ImpactPage({ params }: PageProps) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
             {updates.map((u) => (
               <article key={u.id} style={{ border: '1px solid var(--b2)', borderRadius: 'var(--rl)', padding: 16 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', minWidth: 0, justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
                   <h3 style={{ fontSize: 16, fontWeight: 700 }}>{u.title}</h3>
                   <span style={{ fontSize: 12, color: 'var(--t4)' }}>
                     {new Date(u.created_at).toLocaleDateString()}
@@ -143,7 +143,7 @@ export default async function ImpactPage({ params }: PageProps) {
                 )}
                 <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--t2)', whiteSpace: 'pre-wrap', marginTop: 6 }}>{u.body}</p>
                 {u.evidence.length > 0 && (
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                  <div style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
                     {u.evidence.map((e) => (
                       <a key={e.id} href={e.url} target="_blank" rel="noopener noreferrer"
                         style={{ fontSize: 12, padding: '4px 10px', borderRadius: 999, background: 'var(--s3)', color: 'var(--t2)', textDecoration: 'none' }}>

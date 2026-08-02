@@ -195,7 +195,7 @@ export default async function TrustSafetyPage() {
                     <td style={{ padding: '12px 16px', color: 'var(--t3)' }}>
                       {new Date(r.created_at).toLocaleDateString()}
                     </td>
-                    <td style={{ padding: '12px 16px', display: 'flex', gap: 8 }}>
+                    <td style={{ padding: '12px 16px', display: 'flex', minWidth: 0, gap: 8 }}>
                       <Link href={`/admin/campaigns?report=${r.id}`}
                         style={{ fontSize: 12, padding: '5px 12px', background: 'var(--s2)', color: 'var(--brand-text)', borderRadius: 8, fontWeight: 700, textDecoration: 'none' }}>
                         Review
