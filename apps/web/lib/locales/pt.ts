@@ -340,6 +340,7 @@ export const pt: Dictionary = {
   'footer.link.leaderboard': 'Classificação',
   'footer.link.developers': 'Programadores e API',
   'footer.link.campaigns': 'Explorar campanhas',
+  'footer.link.needs': 'Necessidades atuais',
   'footer.link.give': 'Doar a várias causas',
   'footer.link.crisis': 'Ajuda em crises',
   'footer.link.nearby': 'Campanhas perto de si',

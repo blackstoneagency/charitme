@@ -8921,3 +8921,33 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 .cl-help-scope { font-size: 12px; font-weight: 600; color: var(--t3); }
 .cl-help-blurb { font-size: 13.5px; line-height: 1.55; color: var(--t2); }
 .cl-help-note { margin: 14px 0 0; max-width: 640px; font-size: 12.5px; line-height: 1.6; color: var(--t3); }
+
+/* ═══ /needs — current needs list ═══ */
+.needs-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+/* Mobile-first: the amount column drops beneath the copy until there is room for
+   it alongside. `minmax(0, 1fr)` on the copy track stops a long campaign title
+   widening the row past the viewport. */
+.needs-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid var(--b1);
+  border-radius: var(--rl);
+  background: var(--s1);
+}
+@media (min-width: 720px) {
+  .needs-row { grid-template-columns: minmax(0, 1fr) minmax(0, 180px); align-items: center; }
+}
+.needs-copy { min-width: 0; }
+.needs-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.needs-title { font-size: 16px; font-weight: 750; color: var(--t1); text-decoration: none; display: inline-flex; align-items: center; min-height: 24px; }
+.needs-title:hover { color: var(--green-text); }
+.needs-meta { margin: 6px 0 0; font-size: 13px; color: var(--t3); }
+.needs-bar { margin-top: 12px; height: 6px; border-radius: 999px; background: var(--s3); overflow: hidden; }
+.needs-bar > span { display: block; height: 100%; border-radius: inherit; background: var(--grad-brand); }
+.needs-progress { margin: 8px 0 0; font-size: 13px; color: var(--t3); }
+.needs-amount { min-width: 0; display: grid; gap: 2px; align-content: start; }
+.needs-amount strong { font-size: 20px; font-weight: 850; color: var(--t1); letter-spacing: -.02em; }
+.needs-amount span { font-size: 12px; color: var(--t3); }
+.needs-cta { display: inline-flex; justify-content: center; margin-top: 10px; }

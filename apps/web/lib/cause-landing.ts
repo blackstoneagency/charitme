@@ -38,14 +38,31 @@ export interface CauseStats {
   perCategory: Record<string, number>;
 }
 
+/** Every field null — what an unreadable database honestly looks like here. */
+const UNMEASURED: CauseStats = {
+  liveCampaigns: null,
+  raisedCents: null,
+  supporters: null,
+  countries: null,
+  perCategory: {},
+};
+
+const CAUSE_STATS_SCAN_LIMIT = 2000;
+
 export async function getCauseStats(cause: Cause): Promise<CauseStats> {
+  try {
   const cols = await campaignColumns();
 
   const [rows, countries] = await Promise.all([
     applyLiveFilters(
       supabaseAdmin.from('campaigns').select('category, raised_amount, backer_count'),
       cols,
-    ).in('category', [...cause.categories]),
+    )
+      .in('category', [...cause.categories])
+      // Bounded. `applyLiveFilters` adds a STATUS filter, which selects a large
+      // fraction of the table rather than one owner's rows, so it bounds
+      // nothing — the same hole that let five unbounded reads onto public pages.
+      .limit(CAUSE_STATS_SCAN_LIMIT),
     supabaseAdmin
       .from('supported_countries')
       .select('id', { count: 'exact', head: true })
@@ -83,6 +100,18 @@ export async function getCauseStats(cause: Cause): Promise<CauseStats> {
     countries: countries.error ? null : countries.count ?? 0,
     perCategory,
   };
+  } catch {
+    // `supabaseAdmin` throws on property access when the env is missing, before
+    // any query runs — which the `rows.error` / `countries.error` checks above
+    // cannot see, and which 500'd /causes/[slug] outright.
+    //
+    // This guard existed in the page-local copy of this function that the #196
+    // merge deleted in favour of this shared one. Consolidating was right — two
+    // implementations of one statistic is how two surfaces quote different
+    // numbers — but it dropped the guard with the duplicate. Restored here, where
+    // it now covers every caller instead of one.
+    return UNMEASURED;
+  }
 }
 
 /**

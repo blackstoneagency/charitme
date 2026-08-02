@@ -340,6 +340,7 @@ export const nl: Dictionary = {
   'footer.link.leaderboard': 'Ranglijst',
   'footer.link.developers': 'Ontwikkelaars en API',
   'footer.link.campaigns': 'Acties bekijken',
+  'footer.link.needs': 'Huidige behoeften',
   'footer.link.give': 'Geef aan meerdere doelen',
   'footer.link.crisis': 'Noodhulp',
   'footer.link.nearby': 'Acties bij jou in de buurt',
