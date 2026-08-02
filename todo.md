@@ -306,6 +306,41 @@ direction.** Pinned by `__tests__/newsletter-wired.test.ts` (verified red first)
 This affected every capture surface, not just the newsletter — donation opt-ins and
 popup captures had the same silent failure.
 
+**…and that first fix was itself only HALF the bug.** `unsubscribeEmail` writes to
+**two** places: `marketing_contacts.status` **and** `marketing_suppression_list`.
+Every send path — campaigns, automations, outreach — calls `isSuppressed()`
+*independently of status*, so flipping the status back and leaving the suppression
+row produces a contact that looks active in the admin UI and still receives nothing.
+Undoing one half of a two-half operation leaves the visible symptom completely
+unchanged. Now fixed by `resubscribeEmail()`, called from the capture route on an
+explicit opt-in.
+
+⚠️ `resubscribeEmail` clears **only** `reason = 'unsubscribed'`. A `bounced` or
+`complaint` suppression must survive someone typing their address into a form:
+those record an undeliverable address or a spam report, and re-enabling sends on
+that basis damages domain reputation for every other recipient. Pinned by test.
+
+### 🔧 Backfill: `scripts/repair-stale-unsubscribes.mjs`
+Read-only by default, `--apply` to write. **Run 2026-08-02 against production: 0
+rows to repair.** The bug was latent — `marketing_contacts` holds 2,391 rows but
+**not one is `status='unsubscribed'`** and the suppression list is empty, so no
+subscriber was ever actually affected. Nothing needed changing in production data.
+
+The criterion is exact and only works because of a lucky design decision:
+`unsubscribeEmail` writes its OWN consent row (`granted=false`), so the consent log
+is a complete ordered record of both directions. Repair iff the **latest** email
+consent is `granted=true` while status is still `unsubscribed` — which separates
+"re-opted in and we ignored it" from "consented once, unsubscribed later". Without
+that second write the two would be indistinguishable and the script could not
+exist safely.
+
+Because production has 0 affected rows, the script was **verified against real
+fixtures** instead — three contacts covering the bug, a legitimately-unsubscribed
+control, and a spam-complaint case — inserted, repaired, asserted, and deleted
+(0 left behind). 14/14 checks passed: dry run writes nothing, the control is
+untouched, and the complaint suppression survives. A repair script that has never
+run against an affected row is an assumption, not a tool.
+
 ### ✅ Signed-in contrast is now clean
 0 colour failures across 22,447 text elements per theme (was 182 earlier today).
 The last three were all one pattern, worth stating because it will recur: **a

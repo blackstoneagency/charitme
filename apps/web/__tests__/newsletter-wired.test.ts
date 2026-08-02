@@ -10,11 +10,13 @@ import { resolve } from 'node:path';
 const rateLimit = vi.fn(async () => true);
 const resolveContact = vi.fn(async () => 'contact-1');
 const trackEvent = vi.fn(async () => true);
+const resubscribeEmail = vi.fn(async () => undefined);
 
 vi.mock('../lib/rate-limit-durable', () => ({ checkRateLimitDurable: (...a: unknown[]) => rateLimit(...(a as [])) }));
 vi.mock('../lib/marketing-engine', () => ({
   resolveContact: (...a: unknown[]) => resolveContact(...(a as [])),
   trackEvent: (...a: unknown[]) => trackEvent(...(a as [])),
+  resubscribeEmail: (...a: unknown[]) => resubscribeEmail(...(a as [])),
   refreshContactScores: async () => undefined,
 }));
 vi.mock('../lib/supabase', () => ({ supabaseAdmin: {} }));
@@ -35,7 +37,24 @@ describe('newsletter capture', () => {
     rateLimit.mockClear();
     resolveContact.mockClear();
     trackEvent.mockClear();
+    resubscribeEmail.mockClear();
     rateLimit.mockResolvedValue(true);
+  });
+
+  it('also clears the suppression list, which is the other half of an unsubscribe', () => {
+    // `unsubscribeEmail` writes TWO things: contact status AND a row in
+    // marketing_suppression_list. Every send path (campaigns, automations,
+    // outreach) checks isSuppressed() independently of status, so undoing only
+    // the status leaves the symptom — receives nothing — completely unchanged.
+    return POST(request({ email: 'back@example.com', consentEmail: true })).then(() => {
+      expect(resubscribeEmail).toHaveBeenCalledWith('back@example.com');
+    });
+  });
+
+  it('never touches suppression without an explicit opt-in', async () => {
+    await POST(request({ email: 'browsing@example.com' }));
+    await POST(request({ email: 'declined@example.com', consentEmail: false }));
+    expect(resubscribeEmail).not.toHaveBeenCalled();
   });
 
   it('an explicit opt-in re-activates someone who previously unsubscribed', async () => {
@@ -109,5 +128,21 @@ describe('/guides', () => {
     const src = read('app/guides/page.tsx');
     expect(src).toContain("permanentRedirect('/resources')");
     expect(src).not.toContain('CardGrid');
+  });
+});
+
+describe('resubscribeEmail', () => {
+  it('clears ONLY an unsubscribe suppression, never a bounce or complaint', () => {
+    // A 'bounced' row means the address is undeliverable; a 'complaint' means its
+    // owner reported us as spam. Someone typing that address into a form is not
+    // evidence either was resolved, and re-enabling sends on that basis damages
+    // domain reputation for every other recipient. So the delete is narrowed by
+    // reason — dropping that filter is the dangerous edit this guards.
+    const src = readFileSync(resolve(__dirname, '..', 'lib/marketing-engine.ts'), 'utf8');
+    const fn = src.slice(src.indexOf('export async function resubscribeEmail'));
+    const body = fn.slice(0, fn.indexOf('\n}'));
+    expect(body).toContain("from('marketing_suppression_list')");
+    expect(body).toContain('.delete()');
+    expect(body).toContain(".eq('reason', 'unsubscribed')");
   });
 });
