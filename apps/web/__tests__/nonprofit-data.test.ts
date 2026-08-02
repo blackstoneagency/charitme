@@ -110,3 +110,58 @@ describe('buildNonprofitSummary', () => {
     expect(buildNonprofitSummary(row({ public_profile_enabled: false }), []).profile?.publicProfileEnabled).toBe(false);
   });
 });
+
+describe('the metric tiles on /dashboard/nonprofit', () => {
+  const campaign = (over: Record<string, unknown> = {}) => ({
+    id: 'c1', slug: 'c1', title: 'C1', status: 'active',
+    goal_amount: 10_000, raised_amount: 0, backer_count: 0,
+    cover_image_url: null, category: null, ...over,
+  });
+
+  it('sums supporters across campaigns WITHOUT deduplicating, and says so', () => {
+    // `backer_count` is a per-campaign tally, so a donor who gave to two of the
+    // organisation's campaigns is counted twice. That is the honest limit of
+    // this number — the tile is labelled "Supporters ... not deduplicated"
+    // rather than "Total Donors", which would overstate reach.
+    const s = buildNonprofitSummary(row(), [
+      campaign({ id: 'a', backer_count: 12 }),
+      campaign({ id: 'b', backer_count: 30 }),
+    ] as never);
+    expect(s.totalSupporters).toBe(42);
+  });
+
+  it('ignores a negative stored backer count rather than subtracting it', () => {
+    const s = buildNonprofitSummary(row(), [
+      campaign({ id: 'a', backer_count: -5 }),
+      campaign({ id: 'b', backer_count: 7 }),
+    ] as never);
+    expect(s.totalSupporters).toBe(7);
+  });
+
+  it('counts a campaign funded only when it reached a real goal', () => {
+    const s = buildNonprofitSummary(row(), [
+      campaign({ id: 'met', goal_amount: 1_000, raised_amount: 1_000 }),
+      campaign({ id: 'over', goal_amount: 1_000, raised_amount: 2_500 }),
+      campaign({ id: 'under', goal_amount: 1_000, raised_amount: 999 }),
+      // No goal: there is nothing to have reached, so counting it would inflate
+      // the figure with drafts.
+      campaign({ id: 'nogoal', goal_amount: 0, raised_amount: 5_000 }),
+    ] as never);
+    expect(s.fundedCount).toBe(2);
+  });
+
+  it('is zero on both counts for an organisation with no campaigns', () => {
+    const s = buildNonprofitSummary(row(), []);
+    expect(s.totalSupporters).toBe(0);
+    expect(s.fundedCount).toBe(0);
+  });
+
+  it('does NOT expose an "impact reached" figure', () => {
+    // The reference artwork shows an "Impact Reached: 12,540" tile. Nothing in
+    // the schema measures impact, so inventing one would put a fabricated
+    // statistic on a nonprofit's own dashboard — the number most likely to be
+    // repeated to funders.
+    const s = buildNonprofitSummary(row(), []);
+    expect(Object.keys(s)).not.toContain('impactReached');
+  });
+});

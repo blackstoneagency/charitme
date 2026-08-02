@@ -1021,6 +1021,64 @@ constants. **The sweep found three of the four wrong pages on its first run** �
 only `/terms` was found by reading. It also asserts it can fail, and strips
 comments so a doc comment quoting a rate is not a finding.
 
+## 🖼️ COMPOSITE IMAGE #4 (12 resource pages in the signed-in shell) — tbaz3i, 2026-08-02
+
+**All twelve routes already existed** (`/blog`, `/volunteer`, `/for-nonprofits`,
+`/fundraising-guide`, `/events`, `/verification`, `/donate`,
+`/dashboard/nonprofit`, `/impact-education`, `/reports`, `/partner`,
+`/corporate-partnerships`). What the artwork actually shows that the product did
+not have is the **signed-in sidebar** beside them.
+
+### The real gap: the resource pages were unreachable from inside the product
+
+Measured, not assumed: none of these pages render inside `CharitMeShell`, and
+`persona-navigation.ts` had **no entry for any of them**. A signed-in member had
+no in-app path to the fundraising guide, the events list or the help centre —
+the only way in was the public marketing header, which the app shell replaces
+once you sign in. Twelve live pages, invisible from the product.
+
+`RESOURCE_NAV` now appends four hub entries (Fundraising Guide, Resources,
+Events, Help Centre) to **every** persona, rather than being duplicated per role
+— a guide is equally useful to a donor, an organizer and a nonprofit, and three
+copies of one list is how this repo's category list drifted three ways. Kept to
+four deliberately: all twelve in the sidebar would bury each persona's actual
+tools, and each of the four is a hub linking onward.
+
+### Nonprofit Dashboard — two real metrics added, one deliberately refused
+
+`/dashboard/nonprofit` already existed and was wired. The artwork shows four
+tiles; two were missing and one cannot honestly exist:
+
+- **Supporters** — sum of `backer_count`. Labelled "across campaigns, not
+  deduplicated", NOT "Total Donors" as the artwork has it: `backer_count` is a
+  per-campaign tally, so a donor who gave to two campaigns is counted twice.
+  Reach is the number a nonprofit is most likely to quote to funders, so
+  overstating it is the worst place to be loose.
+- **Fully funded** — campaigns at or past goal. A campaign with no goal is
+  excluded; counting it would inflate the figure with drafts.
+- ⛔ **"Impact Reached: 12,540" was NOT built.** Nothing in the schema measures
+  impact. Inventing it would put a fabricated statistic on a nonprofit's own
+  dashboard. A test asserts the field stays absent.
+
+### Two latent bugs the work surfaced
+
+1. **`KFIcon` falls back to the HOUSE icon for an unknown name** —
+   `paths[name] ?? paths.home` — so a wrong icon renders *confidently wrong*
+   rather than blank, and `icon` is typed `string` so nothing caught it. The new
+   `nav-icons-exist` guard immediately found a **pre-existing** case: "Saved
+   Causes" has used `icon: 'heart'`, which never existed, so it has been showing
+   a house. Both `heart` and `calendar` added.
+2. **`dashboard-nav-reachable` did not understand route groups** — it looked only
+   for `app/<href>/page.tsx` and so reported `/events` as a dead nav entry when
+   it is served by `app/events/(list)/page.tsx`. Fixed to descend into `(group)`
+   directories.
+
+Measured: 6 changed routes × {320, 390} px — 0 overflow, 0 tap failures; 0 AA
+contrast failures across 6 pages × 2 themes. 2688 tests, lint clean, build
+EXIT=0.
+
+---
+
 ## 🖼️ COMPOSITE IMAGE #3 (Sports & Youth vertical, 11 sub-images) — tbaz3i, 2026-08-02
 
 **All eleven already existed as routes.** The landing is `/causes/[slug]` (rebuilt

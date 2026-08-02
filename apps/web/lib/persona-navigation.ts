@@ -110,11 +110,40 @@ const STAFF_NAV: readonly DashboardNavItem[] = [
   SETTINGS,
 ];
 
+/**
+ * Resource pages, reachable from INSIDE the app.
+ *
+ * ⚠️ These twelve pages (blog, volunteer, guides, verification, reports,
+ * partnerships …) are all live public routes, but none of them appeared in the
+ * signed-in navigation. A member had no in-app path to any of them: the only way
+ * in was the public marketing header, which the app shell replaces once you sign
+ * in. So the pages existed and were, from inside the product, unreachable.
+ *
+ * Appended to every persona rather than duplicated per role — a fundraising
+ * guide is equally useful to a donor, an organizer and a nonprofit, and three
+ * copies of one list is how this repo's category list drifted three ways.
+ *
+ * `RESOURCE_NAV` is deliberately SHORT. Putting all twelve in the sidebar would
+ * bury the persona's actual tools; these four are the ones that answer "how do I
+ * do this?", and each is a hub that links onward to the rest.
+ */
+const RESOURCE_NAV: readonly DashboardNavItem[] = [
+  { label: 'Fundraising Guide', href: '/fundraising-guide', icon: 'doc' },
+  { label: 'Resources', href: '/resources', icon: 'stack' },
+  { label: 'Events', href: '/events', icon: 'calendar' },
+  { label: 'Help Centre', href: '/help', icon: 'chat' },
+];
+
+/** Every persona gets the resource block, appended after its own tools. */
+function withResources(items: readonly DashboardNavItem[]): readonly DashboardNavItem[] {
+  return [...items, ...RESOURCE_NAV];
+}
+
 const PERSONA_NAVIGATION: Readonly<Record<UserRole, readonly DashboardNavItem[]>> = {
-  donor: DONOR_NAV,
-  organizer: ORGANIZER_NAV,
-  beneficiary: BENEFICIARY_NAV,
-  nonprofit: NONPROFIT_NAV,
+  donor: withResources(DONOR_NAV),
+  organizer: withResources(ORGANIZER_NAV),
+  beneficiary: withResources(BENEFICIARY_NAV),
+  nonprofit: withResources(NONPROFIT_NAV),
   admin: STAFF_NAV,
   super_admin: STAFF_NAV,
 };

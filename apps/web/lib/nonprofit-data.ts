@@ -46,6 +46,21 @@ export type NonprofitSummary = {
   campaigns: NonprofitCampaign[];
   totalRaisedCents: number;
   activeCount: number;
+  /**
+   * Supporters counted ACROSS campaigns, summed from each campaign's
+   * `backer_count`.
+   *
+   * ⚠️ Not a unique-donor count. Someone who gives to two of this
+   * organisation's campaigns is counted twice, because `backer_count` is a
+   * per-campaign tally and deduplicating would need a query over `donations`
+   * this summary does not run. The label on screen says "supporters across
+   * campaigns" for exactly that reason — calling it "total donors" would
+   * overstate reach, which is the one number a nonprofit is most tempted to
+   * quote publicly.
+   */
+  totalSupporters: number;
+  /** Campaigns that have reached or passed their goal. */
+  fundedCount: number;
 };
 
 type ProfileRow = {
@@ -118,6 +133,10 @@ export function buildNonprofitSummary(
     campaigns,
     totalRaisedCents: campaigns.reduce((sum, c) => sum + c.raisedCents, 0),
     activeCount: campaigns.filter((c) => c.status === 'active').length,
+    totalSupporters: campaigns.reduce((sum, c) => sum + Math.max(0, c.backerCount), 0),
+    // A campaign with no goal is not "funded" — there is nothing to have
+    // reached. Counting it would inflate the figure with drafts.
+    fundedCount: campaigns.filter((c) => c.goalCents > 0 && c.raisedCents >= c.goalCents).length,
   };
 }
 
