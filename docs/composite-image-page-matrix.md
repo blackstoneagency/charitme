@@ -10,17 +10,26 @@ dependency.
 | # | Page | Route | Role | Existing / New | Supabase tables | Storage | Edge fn | Navigation | Responsive | A11y | Tests | Production |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 36 | Global Search | `/search` | anon | existing | `campaigns`, `causes` | — | — | header search | ✅ 320/390 clean | ✅ 0 axe | existing | ✅ |
-| 37 | Advanced Search / Filters | `/search` (facets) | anon | existing, elevated | `campaigns`, `causes` | — | — | header search | ✅ | ✅ | 🔨 | 🔨 |
+| 37 | Advanced Search / Filters | `/search` | anon | **existing, already complete** | `campaigns`, `causes` | — | — | header search | ✅ | ✅ | existing | ✅ |
 | 38 | Cause Category | `/causes/[slug]` | anon | existing | `causes`, `campaigns` | — | — | Explore Causes | ✅ | ✅ | existing | ✅ |
 | 39 | Cause Leaderboard | `/leaderboard` | anon | existing | via `lib/leaderboard` | — | — | Impact | ✅ | ✅ | existing | ✅ |
 | 40 | Donation Receipt | `/thank-you`, `/donor/receipt/[id]` | donor | existing | `donations`, `campaigns` | — | — | post-donation, donor portal | ✅ | ✅ | `receipt-template`, `receipt-load` | ✅ |
-| 41 | Share Cause | `/campaigns/[slug]/share` | anon | **new** | `campaigns`, `share_events` | — | — | campaign detail | 🔨 | 🔨 | 🔨 | 🔨 |
+| 41 | Share Cause | `/campaigns/[slug]/share` | anon | **new** | `campaigns`, `share_events` | — | — | campaign detail | ✅ 320/390 | ✅ 0 axe, both themes | `share-page-core` (15) | ✅ |
 | 42 | Report / Transparency | `/transparency`, `/reports` | anon | existing, elevated | `getHomeData` aggregates | ⛔ report PDFs | — | Resources | ✅ | ✅ | existing | ⛔ partial |
-| 43 | Partnerships | `/partner` | anon | existing, elevated | `sponsors` | — | — | About Us | 🔨 | 🔨 | 🔨 | 🔨 |
+| 43 | Partnerships | `/partner` | anon | existing, **now wired** | `sponsors` | — | — | About Us | ✅ | ✅ | `sponsors-core` (11) | ✅ |
 | 44 | Volunteer | `/volunteer` | anon | existing | `volunteer_opportunities` | — | — | Get Involved | ✅ | ✅ | existing | ✅ |
 | 45 | Volunteer Opportunities | `/volunteer`, `/volunteer/[slug]` | anon | existing | `volunteer_opportunities` | — | — | Get Involved | ✅ | ✅ | existing | ✅ |
-| 46 | Internships | `/internships` | anon | existing, elevated | `volunteer_opportunities` (category) | — | — | Get Involved / Careers | 🔨 | 🔨 | 🔨 | 🔨 |
+| 46 | Internships | `/internships` | anon | existing, **now wired** | `volunteer_opportunities` (category) | — | — | Get Involved / Careers | ✅ | ✅ | `internships-core` (15) | ✅ |
 | 47 | Feedback / Suggest | `/feedback` | anon | existing | via `/api/contact` | — | — | Support | ✅ | ✅ | existing | ✅ |
+
+## Corrections made during implementation
+
+- **37 was marked in progress on a bad reading.** The initial audit judged
+  `/search` by line count and saw no facets. Reading the file showed it already
+  has keyword, cause-category, location and sort controls plus type scopes, as a
+  deep-linkable GET form that works without JavaScript. Building anything there
+  would have been the duplicate the brief forbids, so the row is corrected to
+  already-complete and nothing was built.
 
 ## Notes that change how a row should be read
 

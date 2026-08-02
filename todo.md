@@ -894,6 +894,56 @@ constants. **The sweep found three of the four wrong pages on its first run** �
 only `/terms` was found by reading. It also asserts it can fail, and strips
 comments so a doc comment quoting a rate is not a finding.
 
+## 🖼️ COMPOSITE IMAGE (sub-images 36–47) — claimed by this lane (tbaz3i), 2026-08-02
+
+**Headline: 9 of the 12 referenced pages already existed.** The brief reads as a
+twelve-page greenfield build; the repository says otherwise. `/search`,
+`/causes/[slug]`, `/leaderboard`, `/thank-you`, `/transparency`, `/reports`,
+`/partner`, `/volunteer`, `/internships` and `/feedback` are all live routes.
+Building twelve would have produced twelve duplicates — forbidden by the brief
+itself. So the work was scoped by measuring each page, not by counting sub-images.
+
+| Workstream | Status | Evidence |
+|---|---|---|
+| Analysis + matrix | ✅ | `docs/composite-image-page-analysis.md`, `-page-matrix.md` |
+| Architecture decisions | ✅ | `docs/composite-image-architecture-decisions.md` |
+| 41 Share Cause (`/campaigns/[slug]/share`) | ✅ new | 15 tests · 0 axe both themes · 0 overflow 320/390 |
+| 43 Partnerships (`/partner` → `sponsors`) | ✅ wired | 11 tests · 0 contrast failures |
+| 46 Internships (`/internships` → `volunteer_opportunities`) | ✅ wired | 15 tests |
+| 36, 38, 39, 40, 44, 45, 47 | ✅ pre-existing | covered by site sweeps |
+| 37 Advanced Search | ✅ **already complete** | see correction below |
+| 42 Report/Transparency downloads | ⛔ owner-gated | needs a migration this sandbox cannot apply |
+| Testing report | ✅ | `docs/composite-image-testing-report.md` |
+| Production readiness | ✅ | `docs/composite-image-production-readiness.md` |
+| Seeding + attribution | ✅ | `docs/composite-image-seeding.md`, `docs/image-attribution.md` |
+
+**Correction made mid-build.** Page 37 was first marked "needs facets" from a
+line-count audit. Reading `/search` showed it already has keyword, cause-category,
+location and sort controls plus type scopes, as a deep-linkable GET form that
+works without JavaScript. Nothing was built; the row was corrected.
+
+**No migrations were written, and that is the intended outcome.** Every page runs
+on a table that already existed. An `internships` table would have duplicated a
+listing, a detail page, an apply flow and an admin surface, then drifted from
+them — a test now asserts no such table exists and no code reaches for one. Same
+for partners: `sponsors` was already there, with an admin CRUD and **no public
+reader anywhere on the site**.
+
+⚠️ **The share page is NOT covered by the site-wide sweeps**, and saying it was
+would be false. It is registered under the `security-header-fixture` slug, which
+does not exist in this database, so the sweeps skip it by the same rule that
+already applies to the embed fixture. It was measured directly against a real
+seeded campaign instead: HTTP 200, 0 unclipped overflow at 320 and 390, 0 axe
+violations in both themes.
+
+⛔ **Open dependency (page 42).** The reference's downloadable impact/financial/
+annual report PDFs have no table and no storage bucket, and this sandbox cannot
+apply migrations to the live database — same constraint as `organizations`. A
+downloads UI over a missing table is "a feature that appears complete but is not
+connected to the backend", forbidden by the brief, so it was not built.
+
+---
+
 ## 📱 MOBILE-FIRST PASS — claimed by this lane (tbaz3i), 2026-08-01
 
 ### ✅ 2026-08-02 — ZERO overflows, 199 routes × {320, 390}px, public + signed-in
