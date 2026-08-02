@@ -72,9 +72,16 @@ type DashData = {
     anonymousCount: number;
   };
   growthCounts: {
-    contentCreated: number;
+    // `contentCreated` and `engagement` come from Supabase `{ count }` queries,
+    // and `count` is null when the query fails. Typing them `number` forced a
+    // `?? 0` at the assignment, which rendered a confident "0 posts & updates"
+    // to a fundraiser who had posted plenty — the failure just looked like
+    // inactivity. Nullable here so the render can say "—" and mean it.
+    // `peopleReached` and `newDonors` are derived by summing/counting rows we
+    // already hold, so they genuinely cannot be unmeasurable-but-present.
+    contentCreated: number | null;
     peopleReached: number;
-    engagement: number;
+    engagement: number | null;
     newDonors: number;
   };
 };
@@ -178,7 +185,7 @@ async function getDashboardData(userId: string, period: Period): Promise<DashDat
     activity: [],
     chartDays: [],
     donorBreakdown: { total: 0, newCount: 0, returningCount: 0, anonymousCount: 0 },
-    growthCounts: { contentCreated: 0, peopleReached: 0, engagement: 0, newDonors: 0 },
+    growthCounts: { contentCreated: null, peopleReached: 0, engagement: null, newDonors: 0 },
   };
 
   try {
@@ -217,7 +224,7 @@ async function getDashboardData(userId: string, period: Period): Promise<DashDat
     let activity: ActivityItem[] = [];
     let chartDays: ChartDay[] = [];
     let donorBreakdown = { total: 0, newCount: 0, returningCount: 0, anonymousCount: 0 };
-    let growthCounts = { contentCreated: 0, peopleReached: 0, engagement: 0, newDonors: 0 };
+    let growthCounts: DashData['growthCounts'] = { contentCreated: null, peopleReached: 0, engagement: null, newDonors: 0 };
 
     // Build the chart's date range + bucket layout for the selected period
     const { totalDays, buckets: numBuckets } = PERIODS[period];
@@ -376,9 +383,9 @@ async function getDashboardData(userId: string, period: Period): Promise<DashDat
       ).size;
 
       growthCounts = {
-        contentCreated: updatesCount ?? 0,
+        contentCreated: updatesCount,
         peopleReached: totalBackers,
-        engagement: messagesCount ?? 0,
+        engagement: messagesCount,
         newDonors: newDonorIds,
       };
     }
@@ -816,24 +823,29 @@ export default async function DashboardPage({
                 <p>Our AI is working to grow your campaigns 24/7</p>
               </div>
             </div>
+            {/* An em-dash whenever the value could not be measured — either the
+                whole load failed (`unavailable`) or that individual count query
+                did. The same treatment the donor strip 140 lines above already
+                uses; this block was rendering 0 through both. On a growth panel
+                a 0 does not read as "unknown", it reads as "you did nothing". */}
             <GrowthMetric
               label="Content Created"
-              value={shortNum(g.contentCreated)}
+              value={unavailable || g.contentCreated === null ? '—' : shortNum(g.contentCreated)}
               sub="Posts & updates"
             />
             <GrowthMetric
               label="People Reached"
-              value={shortNum(g.peopleReached)}
+              value={unavailable ? '—' : shortNum(g.peopleReached)}
               sub="Total backers"
             />
             <GrowthMetric
               label="Engagement"
-              value={shortNum(g.engagement)}
+              value={unavailable || g.engagement === null ? '—' : shortNum(g.engagement)}
               sub="Donor messages"
             />
             <GrowthMetric
               label="New Donors"
-              value={shortNum(g.newDonors)}
+              value={unavailable ? '—' : shortNum(g.newDonors)}
               sub="Last 7 days"
             />
             <Link href="/dashboard/analytics">

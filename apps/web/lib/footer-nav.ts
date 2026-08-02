@@ -54,6 +54,10 @@ export const FOOTER_SECTIONS: Record<FooterSectionName, readonly FooterLink[]> =
     { label: 'CharitMe on Mobile', href: '/mobile-app', labelKey: 'footer.link.mobile_app' },
     { label: 'Support', href: '/support', labelKey: 'footer.link.support' },
     { label: 'Start a Team', href: '/teams/create', labelKey: 'footer.link.create_team' },
+    // /signup had no inbound link anywhere, which `nav-orphans` correctly
+    // refused: a route in the sitemap that the global chrome never links is a
+    // page search engines find and visitors cannot.
+    { label: 'Create an Account', href: '/signup', labelKey: 'footer.link.signup' },
   ],
   // Splitting the ways to GIVE out of "Platform" is what balances the grid, and
   // it is better navigation besides: a donor looking for somewhere to give was

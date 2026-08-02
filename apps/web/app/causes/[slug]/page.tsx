@@ -66,7 +66,7 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
   return (
     <div className="container" style={{ padding: '48px 0 72px' }}>
       <nav aria-label="Breadcrumb" style={{ marginBottom: '18px' }}>
-        <Link href="/causes" style={{ fontSize: '13px', color: 'var(--t3)', fontWeight: 650 }}>
+        <Link href="/causes" style={{ display: 'inline-flex', alignItems: 'center', minHeight: '24px', fontSize: '13px', color: 'var(--t3)', fontWeight: 650 }}>
           ← All causes
         </Link>
       </nav>
