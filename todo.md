@@ -1,5 +1,49 @@
 # CharitMe — Execution Tracker
 
+## ⏱️ PERF — 13 public pages stalled ~14.1s; shared cause fixed, per-page reads open (Claude, 2026-08-02)
+
+Timed **all 83 public routes** on a production build. Thirteen returned in
+**~14.1s** — and 14.1 ≈ **2 × 7.05**, i.e. two sequential unbounded reads.
+
+**Shared cause, fixed:** `campaignColumns()` probes whether `campaigns.visibility`
+/ `deleted_at` exist. It caches only a *definitive* answer, and an unreachable
+database is never definitive — so it **re-probed on every request, forever**,
+costing ~7.05s before each page ran its own query. Now bounded at 1.5s via the
+existing `withQueryTimeout`.
+
+The timeout fallback is **both filters ON**, matching what the existing `unknown`
+branch already returns. That direction is not optional: a slow page is a
+performance bug; a page listing private campaigns because a probe timed out is a
+privacy breach. The timeout answer is also **not cached**. Three tests pin all
+three properties.
+
+| route(s) | before | after |
+|---|---|---|
+| 12 discovery pages (`/donate`, `/causes`, `/campaigns`, `/crisis`, `/gallery`, `/give`, `/community`, `/donor-wall`, `/supporter-space`, `/teams/create`, `/impact-map`, `/ai-fundraising`) | 14.1s | **8.56s** |
+| `/leaderboard` | 9.56s | **4.02s** |
+
+### 🟡 STILL OPEN — the residual ~7s is each page's own read
+
+8.56s = 1.5s (bounded probe) + ~7.05s (the page's own unbounded query).
+**13 pages, no shared helper** — each has its own `from('campaigns')` /
+`from('donations')` call, so this is 13 individual edits with `withQueryTimeout`.
+All are public discovery pages with a sensible empty state, exactly what that
+helper is for. Expected: **~8.5s → ~4s**.
+
+⚠️ **Do NOT "fix" this globally by giving the Supabase client a timeout `fetch`.**
+It looks like one clean change instead of thirteen, and it would also bound every
+**write** — including the webhook that records donations. An aborted write may
+still have committed server-side while the caller sees a failure. Some of those
+writes are idempotent (`record_donation` on `p_stripe_event_id`) and some are
+not; betting money paths on that distinction is not worth saving twelve edits.
+
+**Honest framing of every number above:** measured against an **unreachable**
+database (`placeholder.supabase.co`), so these are worst-case figures, not normal
+operation. That is precisely what the fix addresses — there was no ceiling at all,
+so any degradation degraded every page without bound. Do not quote
+"14.1s → 8.56s" as a general speed-up.
+
+
 ## 🎨 DESIGN UNIFICATION — the primary CTA now has ONE definition (wcu7oh, 2026-08-01)
 
 **Measured before touching anything:** a browser sweep of every public page found
