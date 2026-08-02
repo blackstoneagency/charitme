@@ -29,6 +29,8 @@ import { resolveBase } from './lib/audit-base.mjs';
 
 const argv = process.argv;
 const WITH_AUTH = argv.includes('--auth');
+// Set by audit-signed-in.mjs --no-admin: /admin/* is out of scope for a member.
+const SKIP_ADMIN = process.env.AUDIT_SKIP_ADMIN === '1';
 const onlyArg = argv.includes('--only') ? argv[argv.indexOf('--only') + 1] : null;
 const ONLY = onlyArg ? onlyArg.split(',').map((x) => x.trim()).filter(Boolean) : null;
 
@@ -127,6 +129,14 @@ for (const width of WIDTHS) {
       // readings of the login page.
       const landed = new URL(page.url()).pathname.replace(/\/$/, '') || '/';
       const asked = path.replace(/\/$/, '') || '/';
+      // A member session cannot reach /admin/*, and that redirect is CORRECT
+      // behaviour rather than a defect. Counted as failures it made the
+      // member-mode run permanently red (~104 of them), which would have made
+      // the whole mode unreadable. Skipped, not analyzed — it was not measured.
+      if (SKIP_ADMIN && asked.startsWith('/admin')) {
+        console.log(`· ${width}px ${path} — SKIPPED (admin route, member session)`);
+        continue;
+      }
       if (landed !== asked) {
         errors.push(`${width}px ${path} (redirected to ${landed})`);
         console.log(`! ${width}px ${path} — REDIRECTED to ${landed}; not measured`);

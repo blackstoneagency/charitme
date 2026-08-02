@@ -1808,7 +1808,11 @@ input, select, textarea, button { max-width: 100%; }
 }
 .kf-card-head h2 { margin: 0; font-size: var(--fs-h3); letter-spacing: -.02em; font-weight: 700; }
 .kf-card-head p { margin: 6px 0 0; color: var(--t2); font-size: 13px; }
+/* `.kf-link` is a standalone action link (a "Back to …" or "View all"), not
+   prose, so it needs a 44px target — measured 168x20, failing WCAG 2.2 SC
+   2.5.8. `.kf-card-head a` keeps its own box; only .kf-link is padded. */
 .kf-card-head a, .kf-link { color: var(--brand-text); font-size: 13px; font-weight: 700; }
+.kf-link { display: inline-flex; align-items: center; min-height: 44px; }
 .kf-card-head button, .kf-card-tools button {
   height: 40px;
   border: 1px solid #e0e4ef;
@@ -2464,11 +2468,17 @@ input, select, textarea, button { max-width: 100%; }
 .dash-account-signout { color: #ff3158; }
 .dash-account-signout:hover { background: rgba(255,49,88,.08); color: #ff3158; }
 .dash-account-signout:disabled { opacity: .6; cursor: default; }
-.dash-grid { display: grid; grid-template-columns: minmax(0, 1fr) 368px; gap: 24px; }
-.dash-main { min-width: 0; display: grid; gap: 20px; }
-.dash-side { display: grid; align-content: start; gap: 16px; }
+/* The 368px rail is a MAXIMUM, not a fixed width: as a bare `368px` track it
+   could not shrink, and on a phone it forced the whole dashboard to ~578px of
+   content that the root then clipped. */
+.dash-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 368px); gap: 24px; }
+.dash-main { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+.dash-side { display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 16px; }
 .dash-card { border: 1px solid #e9ecf4; border-radius: 12px; background: #fff; box-shadow: 0 1px 2px rgba(16,24,64,.04), 0 4px 16px rgba(16,24,64,.03); }
-.dash-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+/* auto-fit rather than a fixed 4, so this needs no breakpoint: four across on
+   a desktop, two on a tablet, one on a narrow phone. As `repeat(4, ...)` it
+   kept four 118px columns at 390px and overflowed to 520px. */
+.dash-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 16px; }
 .dash-metric { min-height: 104px; display: flex; align-items: center; gap: 16px; padding: 20px 22px; }
 .dash-icon { width: 44px; height: 44px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 11px; }
 .dash-icon.violet { color: var(--brand-text); background: #f1ecff; }
@@ -2542,7 +2552,10 @@ input, select, textarea, button { max-width: 100%; }
   .campaign-detail { grid-column: 1 / -1; width: 100%; }
 }
 
-.dash-analytics { display: grid; grid-template-columns: 1.17fr .83fr; gap: 20px; }
+/* `1.17fr .83fr` is the same auto-minimum trap as a bare `1fr`: both tracks
+   grew to their widest child and the pair overflowed a 358px container to
+   536px. minmax(0, …) lets them shrink; below a tablet they stack. */
+.dash-analytics { display: grid; grid-template-columns: minmax(0, 1.17fr) minmax(0, .83fr); gap: 20px; }
 .performance-card { min-height: 350px; }
 .performance-body { display: grid; grid-template-columns: minmax(0, 1fr) 150px; gap: 16px; padding: 0 20px 22px; }
 .perf-chart { position: relative; min-height: 250px; padding-left: 42px; }
@@ -2565,7 +2578,11 @@ input, select, textarea, button { max-width: 100%; }
 .perf-summary span { margin-top: 4px; color: #5b6584; font-size: 13px; font-weight: 500; }
 .perf-summary small { margin-top: 5px; color: #16a34a; font-size: 12px; font-weight: 600; }
 .source-card { padding: 22px 22px 24px; }
-.source-body { display: flex; align-items: center; justify-content: center; gap: 38px; min-height: 240px; }
+/* Wraps and shrinks: the donut plus its legend measured 190px+ side by side
+   inside a 236px card, which pushed the whole dashboard to 536px on a phone.
+   `min-width: 0` lets the legend text shrink; `flex-wrap` puts it under the
+   donut when it cannot. */
+.source-body { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 38px; min-height: 240px; min-width: 0; }
 .source-donut { width: 176px; height: 176px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 44px; background: conic-gradient(#6c35ff 0 32%, #ec3fb4 32% 56%, #2f80ed 56% 74%, #19b86a 74% 86%, #f59e0b 86% 93%, #a9afc2 93% 100%); box-shadow: 0 18px 42px rgba(108,53,255,.12); transform: rotate(-8deg); }
 .source-donut span { width: 108px; height: 108px; display: grid; place-items: center; align-content: center; border-radius: 30px; background: #fff; transform: rotate(8deg); }
 .source-donut b, .source-donut small { display: block; text-align: center; }
@@ -5497,7 +5514,8 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 .cr2-proof-line span { font-size: 20px; flex-shrink: 0; }
 
 /* Location step */
-.cr2-countries-link { font-size: 12px; color: var(--brand-text); text-decoration: none; font-weight: 700; margin-top: 4px; }
+/* 44px target: measured 286x18, failing WCAG 2.2 SC 2.5.8 (24x24 minimum). */
+.cr2-countries-link { display: inline-flex; align-items: center; min-height: 44px; font-size: 12px; color: var(--brand-text); text-decoration: none; font-weight: 700; margin-top: 4px; }
 .cr2-countries-link:hover { text-decoration: underline; }
 .cr2-loc-banner { display: flex; align-items: center; gap: 12px; padding: 18px 20px; background: linear-gradient(135deg, #f0fdf4, #ecfdf5); border: 1.5px solid #86efac; border-radius: 16px; }
 .cr2-loc-banner span:first-child { font-size: 24px; flex-shrink: 0; }
@@ -8784,3 +8802,88 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 @media (max-width: 959px) {
   .cl-hero-media { order: -1; }
 }
+/* Member dashboard on a phone: the rail stacks under the main column rather than
+   competing with it for a 390px viewport. Below this width a two-column
+   dashboard has nothing useful to say in either column. */
+@media (max-width: 900px) {
+  .dash-grid { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+}
+
+/* The donut is decorative sizing, not information: below a phone width it shrinks
+   so the legend beside it keeps a readable column instead of being pushed out of
+   the card. */
+@media (max-width: 560px) {
+  .source-body { gap: 18px; }
+  .source-donut { width: 140px; height: 140px; border-radius: 36px; }
+  .source-donut span { width: 88px; height: 88px; border-radius: 24px; }
+}
+
+@media (max-width: 760px) {
+  .dash-analytics { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Share-page breadcrumbs: each link is its own tap target, so it is padded to
+   44px rather than left at its 15px line box. */
+.share-crumbs a { display: inline-flex; align-items: center; min-height: 44px; padding: 11px 0; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MEMBER DASHBOARD — AA CONTRAST
+   ═══════════════════════════════════════════════════════════════════════════
+   These 21 failures survived every previous sweep because the signed-in audit
+   always ran as an ADMIN, and /dashboard redirects an admin to /admin. The page
+   was therefore never measured by anything. The worst was 1:1 — #0f1535 heading
+   text on the #121534 dark card, i.e. genuinely invisible.
+
+   Fixed by pointing the offenders at theme tokens rather than by nudging hex
+   values, so they follow the theme instead of needing this block again. */
+
+/* Light mode: muted greys and status colours below 4.5:1 at 12px. */
+.dash-metric small,
+.perf-summary small,
+.growth-metric small { color: var(--green-text); }
+.perf-chart > span,
+.perf-tip small,
+.perf-days,
+.source-donut small { color: var(--t2); }
+.dash-search kbd { color: var(--t2); }
+.dash-account-signout,
+.dash-account-signout:hover { color: var(--red-text); }
+
+/* Dark mode: hardcoded near-black ink that never got an override. */
+[data-theme="dark"] .dash-metric strong,
+[data-theme="dark"] .perf-summary strong,
+[data-theme="dark"] .source-donut b,
+[data-theme="dark"] .ai-assistant h3,
+[data-theme="dark"] .growth-brand h2 { color: var(--t1); }
+
+[data-theme="dark"] .campaign-copy p,
+[data-theme="dark"] .perf-summary span,
+[data-theme="dark"] .ai-assistant > p,
+[data-theme="dark"] .ai-builder-sub { color: var(--t2); }
+
+/* The donut's centre plate stays white in both themes (it sits on a coloured
+   conic gradient), so its text must stay dark there rather than follow --t1. */
+/* ⚠️ The centre plate does NOT stay white in dark mode — an existing rule
+   (`[data-theme="dark"] .source-donut span { background: var(--s1) }`) turns it
+   dark. An earlier version of this block assumed otherwise and pinned the ink to
+   #0f1535, which produced 1:1 dark-on-dark: exactly the failure it was meant to
+   fix. The ink follows the theme. */
+[data-theme="dark"] .source-donut > span b,
+[data-theme="dark"] .source-donut > span small { color: var(--t1); }
+
+/* Remaining dashboard AA failures, each measured rather than guessed. */
+/* "Get started" / "Step 3" chips: 3.6:1 and 3.83:1 on white at 12px. */
+.task-row em { color: var(--t2); }
+.task-row em.today { color: var(--red-text); }
+/* The "Beta" chip keeps a light violet plate in BOTH themes, so its ink must
+   stay dark there — in dark mode the text had gone light against a plate that
+   had not, giving 1.9:1. */
+[data-theme="dark"] .assistant-title em { color: #4c1d95; background: #f5f0ff; border-color: #e4dbff; }
+/* Donut legend labels: #0f1535 on the dark card was 1:1 — invisible. */
+[data-theme="dark"] .source-list p,
+[data-theme="dark"] .source-list b,
+[data-theme="dark"] .source-list small { color: var(--t1); }
+
+/* `.growth-brand h2 em` ("New") keeps a light violet plate in both themes, so
+   like the "Beta" chip its ink must stay dark there — it measured 1.84:1. */
+[data-theme="dark"] .growth-brand h2 em { color: #4c1d95; background: #f1ecff; }
