@@ -10,11 +10,11 @@ export const metadata: Metadata = {
 
 const dateFmt = new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
-// `--green`/`--blue` are the DECORATIVE fills — they are AA against nothing, and
-// as 11px badge text on the near-white page they measured 3.06:1 and 3.87:1,
-// both under the 4.5:1 floor. `--green-text`/`--blue-text` are the text-safe
-// siblings that exist for exactly this, and they adapt per theme. Same hue, same
-// badge, legible.
+// The *-text tokens, not the brand fills. These render as 11px/800 label text
+// (and its border), and the fills do not clear AA at that size on the light
+// surface: --green measured 3.06:1 and --blue 3.87:1 against 4.5:1. The
+// accent-as-text pairs exist for exactly this, and also clear the 3:1 that the
+// border needs as a non-text graphic.
 const KIND_COLOR: Record<ChangeKind, string> = {
   added: 'var(--green-text)',
   improved: 'var(--blue-text)',

@@ -223,6 +223,37 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* Live campaign spotlight — moved out of the hero's right column to its
+          own band here, on the LEFT.
+
+          It is the same component, same props, same data (`heroItems`): the
+          rotator, the Trust Score / Donors / Funded chips, the ACTIVE or
+          VERIFIED badge, organiser, raised-of-goal with its progress bar,
+          donation count, days left, the Donate Now link and the dot pagination
+          all move together. Nothing was re-implemented, so nothing can drift
+          from what the hero was rendering.
+
+          The copy sits on the right, mirroring the hero above (copy left, card
+          right) so the two bands read as a pair rather than a repeat. */}
+      <section className="mirror-band mirror-spotlight" aria-labelledby="mirror-spotlight-title">
+        <div className="mirror-wrap mirror-spotlight-inner">
+          <HeroSpotlightCarousel items={heroItems} variant="card" />
+          <div className="mirror-spotlight-copy">
+            <h2 id="mirror-spotlight-title">Live Right Now</h2>
+            <p>
+              Real campaigns, updating as donations arrive. Every one shows its
+              CharitScore trust rating, how much it has raised, and how long is
+              left — so you can see exactly what you are supporting before you give.
+            </p>
+            <div className="mirror-actions">
+              <Link href="/campaigns" className="mirror-btn mirror-btn-primary">
+                Browse All Campaigns <Icon name="arrow" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {metricsAvailable && (
         <section className="mirror-band mirror-metrics" aria-label="Our community impact">
           <div className="mirror-wrap mirror-metric-grid">
@@ -237,14 +268,12 @@ export default async function HomePage() {
 
       <section id="impact" className="mirror-band mirror-proof" aria-labelledby="mirror-proof-title">
         <div className="mirror-wrap mirror-proof-grid">
-          {/* The featured-campaign rotator, moved down from the hero. It reads
-              better here: the impact section is where someone who has just seen
-              the platform totals is deciding what to actually fund, so a live
-              campaign with its progress bar and Donate button is the next step
-              rather than an interruption over the hero photograph.
-              First in the DOM so it is also first for a keyboard and a screen
-              reader, matching its visual position in the left column. */}
-          <HeroSpotlightCarousel items={heroItems} variant="card" />
+          {/* The rotator is NOT here. Two lanes independently moved it out of the
+              hero: this branch put it in this grid's left column, and #193 gave
+              it its own `.mirror-spotlight` band below "Causes That Change
+              Lives". Merging both would have rendered the same carousel twice on
+              one page. #193's band already places it lower and on the left, which
+              is what was asked for, so it wins and this column is dropped. */}
           <div className="mirror-proof-copy">
             <div className="mirror-testimonials">
               {recentDonations.length > 0
