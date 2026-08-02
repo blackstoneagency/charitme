@@ -1845,6 +1845,37 @@ keys to the same seven files produces merge conflicts on every single batch.
 remaining surfaces. This is the ONLY unblocked item left in this file — everything
 else is owner-gated (see the table below).
 
+## ⚠️ PRODUCTION DEPLOYS STALLED — two merges behind (2026-08-02 ~18:2x UTC)
+
+**www.charitme.com is serving a build that predates #198 and #199.** Measured
+rather than inferred, by grepping the live CSS bundle for markers from each
+merge:
+
+| merge | marker | in production? |
+|---|---|---|
+| ff24f9d9 (pre-#197) | `.cause-landing` | ✅ |
+| #197 (16:36) | `.cb-page` | ✅ |
+| #198 (17:46) | `.needs-list` | ❌ |
+| #199 | — | ❌ |
+
+Consequence: **`/needs` returns 404 on production** and is absent from
+`sitemap.xml`, while being present and green on master and rendering 200 from a
+local `next start` of the same commit. The code is fine; it has not shipped.
+
+**This is NOT the GitHub Actions outage.** That was checked: `release.yml` only
+triggers on `v*.*.*` tags, so production comes from Vercel's own git
+integration and is not gated on Actions runners. Two separate faults.
+
+**Not diagnosable from the agent sandbox** — there is no Vercel CLI, no
+`VERCEL_*` token and no `~/.vercel` auth here, so the deployment log is not
+reachable. The Vercel dashboard will say whether the production deploy errored,
+is queued, or is stuck behind the several merges that landed in quick
+succession.
+
+Worth knowing before assuming a code fault next time: a page can be correct, on
+master, and green in every local check while still being absent from the site.
+Verify a claim of "shipped" against the live origin, not against the merge.
+
 ## ⚠️ 42 server pages read Supabase with no `try/catch` (2026-08-02)
 
 Measured, not estimated: 42 server `page.tsx` files call `supabaseAdmin` with no
