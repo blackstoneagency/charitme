@@ -1084,6 +1084,39 @@ keys to the same seven files produces merge conflicts on every single batch.
 remaining surfaces. This is the ONLY unblocked item left in this file — everything
 else is owner-gated (see the table below).
 
+## ⚠️ 42 server pages read Supabase with no `try/catch` (2026-08-02)
+
+Measured, not estimated: 42 server `page.tsx` files call `supabaseAdmin` with no
+`try/catch` anywhere in the file. Worst offenders by call count: `admin/page.tsx`
+(18), `admin/reports` (13), `admin/system` (13), `admin/finance` (9),
+`creators/[handle]` (7), `donor` (6), `dashboard/calendar` (6),
+`dashboard/documents` (6).
+
+**Why it matters.** Handling the returned `error` is not enough. `supabaseAdmin`
+is a Proxy whose `get` trap THROWS when the env is missing, so `.from(...)` can
+throw *before a query is issued*, and that escapes an `if (error)` check
+entirely. A page that carefully returns `null` on `error` still 500s on a throw.
+
+This is the exact bug that took the whole site down on 2026-08-02 via the root
+layout's `getActiveAnnouncements()`. Fixed there, plus `/status`,
+`/dashboard/saved`.
+
+**Severity is lower here than it was there, and that is the reason this is
+tracked rather than bulk-fixed.** The layout runs on all 432 routes, so one
+throw was site-wide. These are per-page: a throw takes out that page only, and
+most are admin/dashboard surfaces behind auth. Bulk-editing 42 files with a
+script is a worse risk than the defect — each needs its degraded state chosen
+(`null` for "unmeasurable" vs `[]` for "genuinely empty"), which is a judgement
+per loader, not a regex.
+
+**Do them in traffic order** — `donor`, `dashboard/*`, `creators/[handle]` before
+`admin/*` — and keep the house rule: a failed read renders an em-dash or an
+honest "we couldn't load", never `0` and never the empty state.
+
+Worth a guard once the count is down: a test that fails when a server page gains
+an unguarded `supabaseAdmin` call. Do not add it at 42 or it just gets a ceiling
+nobody lowers.
+
 ## ✅ ACTIONABLE QUEUE IS EMPTY — every remaining item names its blocker (2026-07-31)
 
 **There is no engineering work left in this file that can be done from here.**
@@ -1174,7 +1207,7 @@ the *actionable* queue is empty, not that the history has been deleted.
 | 6 | `/social-impact-funds` | Needs a **legal entity and a disbursement policy** before a page can honestly describe it | **Owner** — legal |
 | 7 | `/giving-guarantee` | ⛔ **Must not be built by engineering.** `app/terms/page.tsx` states CharitMe "does not verify the truth of campaign claims, guarantee fundraising outcomes". The page would contradict the live ToS and commit real money to underwriting fraud losses. | **Owner** — policy + capital, not code |
 | 8 | Venmo (G6) | `ONE_TIME_PAYMENT_METHOD_TYPES` excludes it; the Stripe account has `paypal_payments` inactive | **Owner** — Stripe account |
-| 9 | GitHub Actions CI | `runner_id: 0`, no runner ever assigned, jobs fail in 2s with no logs. Reproduces on `master` and on docs-only commits. | **Owner** — Actions billing |
+| 9 | GitHub Actions CI | ⛔ **DOWN AGAIN from ~23:02 UTC 2026-08-01.** It was genuinely alive for most of 2026-08-01 (real runners `1000001505`/`1000001519`/`1000001520`, full step lists, ~9 min main job, green conclusions) — and then it stopped. **Current signature is the outage one: `runner_id: 0`, empty `runner_name`, jobs created and failed 2–11 seconds later, NO `steps` array, and log download 404s.** This is NOT branch-specific: master's own runs fail the same way — `422e6c5b` (35s), `fe9858f1` (11s), `562c5896` (11s), all merged work from other lanes. ⚠️ **So a red check is currently NOT evidence of a broken branch.** Verify locally instead (`npm run typecheck && npm run lint && npm test && npm run build`, then the audit scripts) and say plainly that CI could not run. ⚠️ Do not confuse with two things that also look like an outage and are not: (a) a run **vanishing** — rapid pushes cancel the previous one via `concurrency: cancel-in-progress`; (b) **no run created at all** — that means `mergeable_state: "dirty"`, i.e. a merge conflict stops GitHub computing `refs/pull/N/merge`, so a `pull_request` workflow has nothing to run on. Fix the conflict; don't blame Actions. **Check the runner_id before concluding anything.** | **Owner** — Actions billing/runners |
 | 10 | Marketing OS §9/§10/§12–13/§30/§32 (approval engine, brand constitution, agent framework, external connectors, experiments) | Large greenfield feature programme, not a defect backlog | **Owner** — prioritisation |
 
 Item 5 is the only one an engineer could start today without the owner; it is
@@ -16877,3 +16910,109 @@ costs ~20 minutes to re-verify and this is a warning, not a failure — but do n
 (disabled button, WCAG-exempt), 1 warning explained (this). **Genuinely
 remaining: 2**, both hardcoded light surfaces in dark mode —
 `dark /admin/countries` and `dark /admin/reports`.
+
+## ✅ DONE — Live campaign spotlight moved out of the hero (Claude, 2026-08-02)
+
+**Asked for:** move the hero's campaign card down the page to the left side,
+after "Causes That Change Lives", keeping it fully wired.
+
+Done by relocating the existing `<HeroSpotlightCarousel items={heroItems}
+variant="card" />` — same component, same props, same data — into a new
+`.mirror-spotlight` band. Nothing was re-implemented, so nothing can drift from
+what the hero was rendering: the rotator, Trust Score / Donors / Funded chips,
+ACTIVE|VERIFIED badge, organiser, raised-of-goal with progress bar, donation
+count, days left, the Donate Now link and the dot pagination all moved together.
+
+`.mirror-hero-inner` drops to a single column. Its second track was
+`minmax(280px, 340px)` for the card; leaving it would reserve up to 340px of
+dead space at the right of every hero.
+
+**The card is WIDER here (440px) than the 340px it had in the hero.** That width
+was set by what was left over beside the headline. In its own band there is no
+such constraint, and at 340px the title, the "Organized by" line and the
+"$29,450 raised $95,000 goal" row each wrapped mid-phrase with an empty half of
+the band beside them.
+
+### ⚠️ Verifying this needed the Supabase stub, and the first attempt was a lie
+
+The homepage renders the rotator's **empty state** ("Start a trusted campaign on
+CharitMe") in this sandbox, because there is no database. A screenshot of that
+proves the card moved but proves **nothing about the wiring** — every stat, the
+progress bar, the dots and the donate href are exactly what the empty state
+omits.
+
+`scripts/supabase-stub.mjs` (120 campaigns) fixes it, with one catch: the
+homepage is ISR (`export const revalidate = 120`), so `next start` serves the
+build-time prerender — captured with no database — and the stub changes nothing.
+`next dev` renders fresh and shows the real card. Verified there: live title,
+`/campaigns/<slug>` donate link, 3 chips, progress bar, 16 dots, 2 arrows.
+
+### ⚠️ Two false results, both from a build that had not actually happened
+
+A sweep reported **10 failures including `/offline` at 1:1 white-on-white**.
+That is physically impossible on a page that renders dark text, and it was the
+stale-server trap again in a new costume: the rebuild had been chained after a
+`pkill` that matched **its own shell**, so the command died with exit 144, the
+build never ran, and a server was started on top of a half-written `.next`.
+
+The tell was cheap and should be the standing habit: **curl the page and grep
+for the token you just changed.** `/changelog` was still serving `var(--green)`
+after the "rebuild". Nothing downstream of that is worth reading.
+
+Also note `npm run build … | tail -4` throws away the compiler error and leaves
+only npm's useless epilogue — capture the full log to a file instead.
+
+### Fixed in passing
+
+`/changelog` used `var(--green)` / `var(--blue)` as 11px/800 label text (and its
+border): **3.06:1 and 3.87:1**. Moved to `--green-text` / `--blue-text`, which
+clear 4.5:1 for the text and 3:1 for the border. Same accent-as-text class as
+the grants/volunteer chips and `Btn variant="primary"` before `--green-btn`.
+
+**Verified on a build confirmed fresh** (served CSS greps as `--green-text`,
+single server, no EADDRINUSE): typecheck 0 · lint 0 errors · **vitest 2399/2399
+across 219 files** · build exit 0 · contrast sweep **0 failures, 79 pages × 2
+themes, 9,437 elements per theme** (equal counts both themes) · responsive sweep
+**0 regressions, 79 pages × 3 viewports × 2 themes** · axe **4/4 projects**.
+
+## ✅ DONE — Landed PR #192's work without its competing rotator move (Claude, 2026-08-02)
+
+Two agents independently moved the homepage rotator, to **different places**,
+from different supplied designs — #192 to an impact section with testimonials
+beside it, this branch to after "Causes That Change Lives". Both also fixed
+`/changelog`'s badge contrast identically. The owner chose this branch's
+placement, so #192 was merged with its rotator/hero changes dropped and
+everything else kept.
+
+**Kept:** the announcements 500 guard, `/status` hardening, `/signup` as a real
+route (sharing `AuthPanel` with `/login`), the Payment Methods page + API, the
+`nav-label-keys` guard, locale entries, nav/route registrations.
+
+**Dropped:** `app/page.tsx` hero + impact-section changes, and the CSS that only
+those supported — `.mirror-hero-aside*` and `.mirror-impact-*`, **68 lines,
+verified zero references** across every `.ts/.tsx/.mjs/.json` in the repo before
+deleting. Dead CSS describing a component that does not exist is exactly the
+drift this file keeps recording.
+
+### The 500 claim was real but overstated, and worth measuring rather than trusting
+
+#192 reported "before, every page 500". On current master that does **not**
+reproduce: `/`, `/faq`, `/transparency`, `/grants` and the rest all returned
+**200** with the Supabase env blanked. Only **`/status`** actually 500ed.
+
+The underlying defect is real — the server log shows
+`active-announcements … Error: SUPABASE_SERVICE_ROLE_KEY is not set`, and
+`announcements-data.ts` was the one root-layout loader with **0** `catch` blocks
+against `banner-settings.ts`'s 2 and `footer-settings.ts`'s 1. What saved the
+other pages is ISR: `unstable_cache` served already-generated HTML and logged the
+revalidation error instead of throwing. **On a cold cache — a fresh production
+deploy during a Supabase outage — there is nothing to serve and it does
+propagate.** So the guard matters; the blast radius was just smaller than
+reported until the first deploy after an outage.
+
+Measured before/after on the same build with env blanked: `/status` **500 → 200**.
+
+**Verified:** typecheck 0 · lint 0 errors · **vitest 2403/2403 across 220 files**
+· build exit 0 · contrast **0 failures, 80 pages × 2 themes, 9,610 elements per
+theme** · responsive **0 regressions, 80 × 3 viewports × 2 themes** · axe **4/4
+projects**. 80 pages, up from 79 — `/signup` is measured for the first time.

@@ -40,35 +40,50 @@ type SavedRow = {
  * gone.
  */
 async function getSaved(userId: string): Promise<SavedRow[] | null> {
-  const { data: saved, error } = await supabaseAdmin
-    .from('saved_campaigns')
-    .select('campaign_id, created_at')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(200);
-  if (error) {
-    console.warn('[dashboard/saved] save list unavailable', { code: error.code });
+  // The `error` branches below were already right — `null` for a failed read,
+  // never the empty state. But a returned `error` is not the only way this
+  // fails: `supabaseAdmin` is a Proxy whose `get` trap THROWS when the env is
+  // missing, so `.from(...)` can throw before a query is ever issued, and that
+  // escapes an `if (error)` check entirely.
+  //
+  // That exact gap took the whole site down through the root layout's
+  // announcements loader. Same shape here, smaller blast radius: this page
+  // would 500 instead of degrading. The catch maps a throw onto the same `null`
+  // the error path already returns, so the honest "we couldn't load your saves"
+  // message covers both.
+  try {
+    const { data: saved, error } = await supabaseAdmin
+      .from('saved_campaigns')
+      .select('campaign_id, created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(200);
+    if (error) {
+      console.warn('[dashboard/saved] save list unavailable', { code: error.code });
+      return null;
+    }
+
+    const ids = (saved ?? []).map((s) => s.campaign_id as string);
+    if (ids.length === 0) return [];
+
+    const { data: campaigns, error: campaignError } = await supabaseAdmin
+      .from('campaigns')
+      .select('id, slug, title, tagline, category, cover_image_url, goal_amount, raised_amount, backer_count, status')
+      .in('id', ids)
+      .neq('visibility', 'private')
+      .is('deleted_at', null);
+    if (campaignError) {
+      console.warn('[dashboard/saved] campaign read failed', { code: campaignError.code });
+      return null;
+    }
+
+    // Preserve save order — the list is "most recently saved first", and the
+    // campaigns query returns whatever order Postgres likes.
+    const byId = new Map((campaigns ?? []).map((c) => [c.id as string, c as SavedRow]));
+    return ids.map((id) => byId.get(id)).filter((c): c is SavedRow => Boolean(c));
+  } catch {
     return null;
   }
-
-  const ids = (saved ?? []).map((s) => s.campaign_id as string);
-  if (ids.length === 0) return [];
-
-  const { data: campaigns, error: campaignError } = await supabaseAdmin
-    .from('campaigns')
-    .select('id, slug, title, tagline, category, cover_image_url, goal_amount, raised_amount, backer_count, status')
-    .in('id', ids)
-    .neq('visibility', 'private')
-    .is('deleted_at', null);
-  if (campaignError) {
-    console.warn('[dashboard/saved] campaign read failed', { code: campaignError.code });
-    return null;
-  }
-
-  // Preserve save order — the list is "most recently saved first", and the
-  // campaigns query returns whatever order Postgres likes.
-  const byId = new Map((campaigns ?? []).map((c) => [c.id as string, c as SavedRow]));
-  return ids.map((id) => byId.get(id)).filter((c): c is SavedRow => Boolean(c));
 }
 
 export default async function SavedCausesPage() {

@@ -9,6 +9,7 @@ export const nl: Dictionary = {
   'footer.link.brand_assets': 'Merkmateriaal',
   'footer.link.resources': 'Bronnen',
   'footer.link.create_team': 'Start een team',
+  'footer.link.signup': 'Account aanmaken',
   'footer.link.mobile_app': 'CharitMe op mobiel',
   'footer.link.impact_map': 'Impactkaart',
   'footer.link.glossary': 'Woordenlijst',
@@ -422,4 +423,25 @@ export const nl: Dictionary = {
   'saved.failed_title': 'We konden je bewaarde doelen niet laden',
   'saved.failed_body': 'Dit ligt aan ons. Er is niets uit je lijst verwijderd.',
   'campaign.ended_short': 'afgelopen',
+
+  // ── /thank-you ─────────────────────────────────────────────────────────────
+  'thanks.title': 'Bedankt!',
+  'thanks.subtitle': 'Je donatie is gelukt.',
+  'thanks.receipt_sent': 'Je hebt zojuist echt verschil gemaakt. De bevestiging is onderweg naar je inbox.',
+  'thanks.summary': 'Overzicht van je donatie',
+  'thanks.cause': 'Doel',
+  'thanks.date': 'Datum',
+  'thanks.reference': 'Referentie',
+  'thanks.back_to_cause': 'Terug naar het doel',
+
+  // ── /verify-email ──────────────────────────────────────────────────────────
+  'verify.title': 'Bevestig je e-mailadres',
+  'verify.sent_to': 'We hebben een verificatielink gestuurd naar',
+  'verify.sent_generic': 'We hebben je een verificatielink gestuurd.',
+  'verify.check_spam': 'Klik op de link om je account af te ronden. Komt hij niet binnen een paar minuten aan, kijk dan in je spamfolder.',
+  'verify.resend': 'E-mail opnieuw sturen',
+  'verify.change_email': 'Ander e-mailadres gebruiken',
+  'verify.resent': 'Verstuurd. Kijk zo meteen opnieuw in je inbox.',
+  'verify.rate_limited': 'Wacht even voordat je een nieuwe e-mail aanvraagt.',
+  'verify.no_email': 'We weten niet naar welk adres we moeten sturen. Log in om verder te gaan.',
 };

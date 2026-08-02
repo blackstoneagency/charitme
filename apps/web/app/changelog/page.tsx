@@ -10,9 +10,14 @@ export const metadata: Metadata = {
 
 const dateFmt = new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
+// The *-text tokens, not the brand fills. These render as 11px/800 label text
+// (and its border), and the fills do not clear AA at that size on the light
+// surface: --green measured 3.06:1 and --blue 3.87:1 against 4.5:1. The
+// accent-as-text pairs exist for exactly this, and also clear the 3:1 that the
+// border needs as a non-text graphic.
 const KIND_COLOR: Record<ChangeKind, string> = {
-  added: 'var(--green)',
-  improved: 'var(--blue)',
+  added: 'var(--green-text)',
+  improved: 'var(--blue-text)',
   fixed: 'var(--t3)',
 };
 

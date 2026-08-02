@@ -9,6 +9,7 @@ export const it: Dictionary = {
   'footer.link.brand_assets': 'Risorse del marchio',
   'footer.link.resources': 'Risorse',
   'footer.link.create_team': 'Crea una squadra',
+  'footer.link.signup': 'Crea un account',
   'footer.link.mobile_app': 'CharitMe su mobile',
   'footer.link.impact_map': 'Mappa dell\'impatto',
   'footer.link.glossary': 'Glossario',
@@ -422,4 +423,25 @@ export const it: Dictionary = {
   'saved.failed_title': 'Non siamo riusciti a caricare le tue cause salvate',
   'saved.failed_body': 'È un problema nostro. Non è stato rimosso nulla dal tuo elenco.',
   'campaign.ended_short': 'conclusa',
+
+  // ── /thank-you ─────────────────────────────────────────────────────────────
+  'thanks.title': 'Grazie!',
+  'thanks.subtitle': 'La tua donazione è andata a buon fine.',
+  'thanks.receipt_sent': 'Hai appena fatto una differenza reale. La ricevuta sta arrivando nella tua casella di posta.',
+  'thanks.summary': 'Riepilogo della donazione',
+  'thanks.cause': 'Causa',
+  'thanks.date': 'Data',
+  'thanks.reference': 'Riferimento',
+  'thanks.back_to_cause': 'Torna alla causa',
+
+  // ── /verify-email ──────────────────────────────────────────────────────────
+  'verify.title': 'Verifica la tua email',
+  'verify.sent_to': 'Abbiamo inviato un link di verifica a',
+  'verify.sent_generic': 'Ti abbiamo inviato un link di verifica.',
+  'verify.check_spam': 'Clicca sul link per completare la configurazione del tuo account. Se non arriva entro qualche minuto, controlla la cartella spam.',
+  'verify.resend': 'Invia di nuovo',
+  'verify.change_email': 'Usa un’altra email',
+  'verify.resent': 'Inviata. Ricontrolla la tua casella tra poco.',
+  'verify.rate_limited': 'Attendi un momento prima di richiedere un’altra email.',
+  'verify.no_email': 'Non sappiamo a quale indirizzo inviare. Accedi per continuare.',
 };

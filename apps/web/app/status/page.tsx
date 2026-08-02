@@ -172,26 +172,41 @@ type MaintenanceRow = {
   status: string;
 };
 
+// Both loaders below already use `null` to mean "could not measure" — which the
+// page renders as an honest unknown rather than "no incidents". They handled a
+// returned `error` but not a THROW, and `supabaseAdmin` is a Proxy that throws
+// on property access when the env is missing, i.e. before any query runs. So the
+// status page — the one page whose entire job is to work when things are broken
+// — was the last page still 500ing once the layout was fixed. The try/catch maps
+// a throw onto the same `null` the error path already produces.
 async function recentIncidents(): Promise<IncidentRow[] | null> {
   const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-  const { data, error } = await supabaseAdmin
-    .from('incidents')
-    .select('id, title, component, status, impact, started_at, resolved_at')
-    .gte('started_at', since)
-    .order('started_at', { ascending: false })
-    .limit(20);
-  return error ? null : ((data ?? []) as IncidentRow[]);
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('incidents')
+      .select('id, title, component, status, impact, started_at, resolved_at')
+      .gte('started_at', since)
+      .order('started_at', { ascending: false })
+      .limit(20);
+    return error ? null : ((data ?? []) as IncidentRow[]);
+  } catch {
+    return null;
+  }
 }
 
 async function upcomingMaintenance(): Promise<MaintenanceRow[] | null> {
-  const { data, error } = await supabaseAdmin
-    .from('maintenance_windows')
-    .select('id, title, description, starts_at, ends_at, status')
-    .in('status', ['scheduled', 'in_progress'])
-    .gte('ends_at', new Date().toISOString())
-    .order('starts_at', { ascending: true })
-    .limit(10);
-  return error ? null : ((data ?? []) as MaintenanceRow[]);
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('maintenance_windows')
+      .select('id, title, description, starts_at, ends_at, status')
+      .in('status', ['scheduled', 'in_progress'])
+      .gte('ends_at', new Date().toISOString())
+      .order('starts_at', { ascending: true })
+      .limit(10);
+    return error ? null : ((data ?? []) as MaintenanceRow[]);
+  } catch {
+    return null;
+  }
 }
 
 const INCIDENT_TONE: Record<string, string> = {

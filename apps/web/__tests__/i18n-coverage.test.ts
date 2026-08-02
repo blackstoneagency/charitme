@@ -50,6 +50,8 @@ describe('translation coverage', () => {
     // someone pasted English in. Words genuinely identical across languages are
     // listed explicitly rather than pattern-matched, so the exemption stays honest.
     const IDENTICAL_IS_FINE = new Set([
+      // 'Cause' and 'Date' are spelled identically in French.
+      'thanks.cause', 'thanks.date',
       'nav.menu', 'nav.profile', 'footer.blog', 'footer.cookies', 'footer.privacy',
       'auth.password', 'auth.email', 'settings.privacy', 'settings.account',
       'dashboard.title', 'nav.dashboard', 'campaign.updates', 'dashboard.updates',

@@ -45,7 +45,7 @@ export default async function FeatureDetailPage({ params }: FeaturePageProps) {
       <JsonLd json={safeJsonLd(breadcrumbJsonLd)} />
       <section className="border-b border-slate-200 bg-slate-950 text-white">
         <div className="container py-14">
-          <Link href="/features" className="text-sm font-black text-emerald-300">All features</Link>
+          <Link href="/features" className="text-sm font-black text-emerald-300" style={{ display: 'inline-flex', alignItems: 'center', minHeight: '24px' }}>All features</Link>
           <div className="mt-8 grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
             <div>
               <p className="text-sm font-black uppercase tracking-[0.2em] text-emerald-300">{platformModule.eyebrow}</p>
