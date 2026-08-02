@@ -17955,3 +17955,36 @@ With it fixed, the full sweep is green: **0 AA failures across 85 pages × 2 the
 That is now the third sweep found carrying this defect (`audit-responsive` and
 `audit-contrast` both fixed this session). If you add a data-dependent route,
 check every `scripts/audit-*.mjs` for a status branch, not just one.
+
+## 🎨 CAUSE LANDING — matched to the Sports & Youth reference (Claude, 2026-08-02)
+
+`/causes/[slug]` now renders the photo hero from the reference: full-bleed image
+with a scrim, breadcrumb over it, cause name + heart as the H1, gradient tagline,
+CTAs, a floating support card, and a stats sheet lifting over the hero.
+
+**Removed on request**: the "Other ways you can help" cross-sell row of sibling
+causes (`cl-ways`). Its two translation keys were deleted in all 7 languages —
+an orphaned key is a string every translator still maintains. A test keeps the
+section from returning via copy-paste.
+
+### ⚠️ Reconciled a real duplication the merge created
+Two lanes had independently built a hero and a stats block for this page, so it
+rendered **the tagline twice, the CTAs twice and the four figures twice**. The
+hero and stats now live only in `CauseLanding`; `page.tsx` keeps the campaigns
+section, the narrower disclosure (moved beside the list it qualifies), the
+`helps` cards and the cause hub nav — all of which are the other lane's and are
+untouched.
+
+### Copy is authored per cause, not generated
+Every one of the 20 causes has its own `tagline` and `intro`. The first draft put
+"Hope changes everything." in every H1, which made 20 pages compete for one
+heading in search. Tests assert every cause has both, that intros are long enough
+to fill the hero, and that **no two causes share a tagline**.
+
+### The mock's figures, again, are not real
+A four-digit campaign count, an eight-figure raised total, a six-figure "lives
+impacted", a three-digit country count. Measured: 38 live campaigns, $12,600
+raised, 47 gifts, 69 countries for Sports & Youth. The mock's white stats card is
+also NOT reproduced — a literal white surface is a white slab in dark mode. The
+sheet uses surface tokens; only the photo hero commits to dark in both themes,
+and there the scrim guarantees contrast rather than the theme.

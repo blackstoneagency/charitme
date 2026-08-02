@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { boundedQuery } from '../../../lib/query-timeout';
-import { formatMoneyCompact } from '@shared/currencies';
 import { campaignColumns, applyLiveFilters } from '../../../lib/campaign-visibility';
 import { CAUSES, getCause, type Cause } from '../../../lib/causes';
 import { CampaignCard, CampaignGrid, type CampaignCardData } from '../../../components/CampaignCard';
@@ -100,42 +99,22 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
 
   return (
     <div className="cause-landing">
-      <div className="container" style={{ padding: '20px 0 0' }}>
-        <nav aria-label="Breadcrumb" style={{ marginBottom: '18px' }}>
-          <Link href="/causes" style={{ display: 'inline-flex', alignItems: 'center', minHeight: '24px', fontSize: '13px', color: 'var(--t3)', fontWeight: 650 }}>
-            ← All causes
-          </Link>
-        </nav>
-      </div>
-
       <CauseLanding cause={cause} stats={stats} />
 
       <div className="container" style={{ padding: '8px 0 72px' }}>
-      <header style={{ maxWidth: '760px', marginBottom: '32px' }}>
-        <h2 id="cause-campaigns" style={{ fontSize: 'var(--fs-h2)', fontWeight: 800, color: 'var(--t1)', lineHeight: 1.15, letterSpacing: '-.02em' }}>
-          {cause.label} campaigns
+      <header style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '24px' }}>
+        <h2 id="cause-campaigns" style={{ fontSize: 'var(--fs-h2)', fontWeight: 800, color: 'var(--t1)', lineHeight: 1.15, letterSpacing: '-.02em', margin: 0 }}>
+          {t('cl.featured')}
         </h2>
+        <Link
+          href={cause.categories.length === 1 ? `/campaigns?category=${encodeURIComponent(cause.categories[0])}` : `/campaigns?cause=${cause.slug}`}
+          style={{ display: 'inline-flex', alignItems: 'center', minHeight: '24px', fontSize: '14px', fontWeight: 700, color: 'var(--brand-text)', textDecoration: 'none' }}
+        >
+          {t('cl.view_all')}
+        </Link>
+      </header>
 
-        {/* The disclosure. Campaigns are not tagged at this granularity, so this
-            page can only show its parent categories. Saying so is the difference
-            between a filtered view and one that merely looks filtered — without
-            it, Mental Health and Medical Research would show identical lists
-            while each implying it had narrowed something. */}
-        {cause.tagline && (
-          <p style={{ fontSize: '18px', fontWeight: 700, color: 'var(--brand-text)', margin: '10px 0 0' }}>
-            {cause.tagline}
-          </p>
-        )}
-
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '22px' }}>
-          <Link href="/campaigns" className="cta-primary" style={{ minHeight: '44px', display: 'inline-flex', alignItems: 'center', padding: '0 22px', borderRadius: 'var(--r)', fontWeight: 700, textDecoration: 'none' }}>
-            Donate now
-          </Link>
-          <Link href="/create" style={{ minHeight: '44px', display: 'inline-flex', alignItems: 'center', padding: '0 22px', borderRadius: 'var(--r)', border: '1px solid var(--b2)', color: 'var(--t1)', fontWeight: 700, textDecoration: 'none' }}>
-            Start a fundraiser →
-          </Link>
-        </div>
-
+      <div style={{ marginBottom: '28px' }}>
         {cause.narrower && (
           <p
             style={{
@@ -156,29 +135,11 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
             {cause.categories.length === 1 ? t('cause.narrower_one_suffix') : t('cause.narrower_many_suffix')}
           </p>
         )}
-      </header>
+      </div>
 
-      {/* Measured figures only. `null` renders as an em dash — a failed count and
-          a real zero are different facts, and this repo has shipped the bug of
-          conflating them before. */}
-      <section aria-label={`${cause.label} at a glance`} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 170px), 1fr))', gap: '14px', margin: '0 0 34px' }}>
-        {[
-          { label: 'Active fundraisers', value: stats.liveCampaigns === null ? '—' : stats.liveCampaigns.toLocaleString() },
-          { label: 'Raised through CharitMe', value: stats.raisedCents === null ? '—' : formatMoneyCompact(stats.raisedCents, 'usd') },
-          { label: 'Supporters', value: stats.supporters === null ? '—' : stats.supporters.toLocaleString() },
-          // "Countries", not "Communities". The shared loader counts entries in
-          // `supported_countries` — places CharitMe can operate — which is a
-          // different fact from the distinct free-text locations the removed
-          // local loader counted. Relabelled so the tile matches its number.
-          { label: 'Countries supported', value: stats.countries === null ? '—' : stats.countries.toLocaleString() },
-        ].map((s) => (
-          <div key={s.label} style={{ background: 'var(--s2)', border: '1px solid var(--b1)', borderRadius: 'var(--rl)', padding: '18px 16px' }}>
-            <div style={{ fontSize: '26px', fontWeight: 850, color: 'var(--t1)', lineHeight: 1.1 }}>{s.value}</div>
-            <div style={{ fontSize: '13px', color: 'var(--t3)', marginTop: '4px' }}>{s.label}</div>
-          </div>
-        ))}
-      </section>
-
+      {/* The four measured figures moved into CauseLanding's stats sheet, which
+          is where the design puts them. Rendering them here as well meant two
+          sets of the same numbers on one page. */}
       {cause.helps && cause.helps.length > 0 && (
         <section aria-labelledby="how-support-helps" style={{ margin: '0 0 38px' }}>
           <h2 id="how-support-helps" style={{ fontSize: '22px', fontWeight: 800, color: 'var(--t1)', margin: '0 0 16px' }}>

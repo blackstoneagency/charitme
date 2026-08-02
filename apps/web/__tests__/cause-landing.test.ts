@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { formatStat, formatMoneyStat } from '../lib/cause-landing';
-import { POPULAR_CAUSES, getCause } from '../lib/causes';
+import { CAUSES } from '../lib/causes';
 
 const read = (p: string) => readFileSync(resolve(__dirname, '..', p), 'utf8');
 const landing = read('app/causes/[slug]/CauseLanding.tsx');
@@ -108,25 +108,50 @@ describe('the landing is wired to real destinations', () => {
     expect(landing).toContain('/campaigns?category=');
   });
 
-  it('links every other-cause card to a cause that exists', () => {
-    // The cards are generated from POPULAR_CAUSES, so this checks the source
-    // list rather than parsing JSX — a card can only point where the data does.
-    for (const c of POPULAR_CAUSES) {
-      expect(getCause(c.slug), `${c.slug} must resolve`).toBeTruthy();
+  it('does not render a cross-sell row of other causes', () => {
+    // Removed on request. Asserted rather than merely deleted so a later
+    // copy-paste cannot quietly bring the section back.
+    expect(landing).not.toContain('cl-ways');
+    expect(landing).not.toContain('otherCauses');
+  });
+
+  it('leaves no orphaned translation keys behind', () => {
+    // A key nobody renders is still a string every translator maintains.
+    const en = read('lib/locales/en.ts');
+    for (const dead of ["'cl.other_ways'", "'cl.help_now'", "'cl.hero_title'"]) {
+      expect(en, `${dead} is no longer rendered`).not.toContain(dead);
     }
-    expect(landing).toContain('/causes/${other.slug}');
   });
 
-  it('excludes the current cause from "other ways to help"', () => {
-    // Otherwise the page offers the visitor a link back to the page they are on.
-    expect(landing).toContain('c.slug !== cause.slug');
+  it('the H1 is the cause name, not a slogan shared by all 20 pages', () => {
+    // The first draft put "Hope changes everything." in every cause's H1, which
+    // made twenty pages compete for the same heading in search results.
+    expect(landing).toContain('{cause.label}');
+    expect(landing).toContain("id=\"cl-hero-title\"");
   });
 
-  it('decorative card images carry empty alt, the hero image does not', () => {
-    // The card's text already names the cause; repeating it in alt makes a
-    // screen reader say it twice. The hero photo is the page's only image with
-    // independent meaning.
+  it('treats the hero photo as decorative, since the H1 beside it names the cause', () => {
     expect(landing).toContain('alt=""');
-    expect(landing).toContain('alt={`Photograph representing ${cause.label}');
+    expect(landing).toContain('aria-hidden="true"');
+  });
+
+  it('every cause has authored hero copy — no page falls back to a blank', () => {
+    for (const c of CAUSES) {
+      expect(c.tagline, `${c.slug} needs a tagline`).toBeTruthy();
+      expect(c.intro, `${c.slug} needs an intro`).toBeTruthy();
+      expect(c.intro!.length, `${c.slug} intro is too short to fill the hero`).toBeGreaterThan(80);
+    }
+  });
+
+  it('no two causes share a tagline', () => {
+    // A shared tagline is the same duplicate-heading problem in a smaller font.
+    const seen = new Map<string, string>();
+    const dupes: string[] = [];
+    for (const c of CAUSES) {
+      const prior = seen.get(c.tagline!);
+      if (prior) dupes.push(`${c.slug} repeats ${prior}`);
+      seen.set(c.tagline!, c.slug);
+    }
+    expect(dupes).toEqual([]);
   });
 });
