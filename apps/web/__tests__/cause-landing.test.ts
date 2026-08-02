@@ -40,9 +40,18 @@ describe('no fabricated statistics', () => {
   // and the country claim specifically is already recorded in docs/ as a
   // fabricated statistic this repo has been caught by before.
   //
-  // The literals live in this array ONLY — spelling them in prose would make the
-  // guard fail on its own explanation.
-  const source = `${landing} ${page}`;
+  // Comments are STRIPPED before checking, so this measures what renders rather
+  // than what is explained. Without that the guard punishes its own subject
+  // matter: a comment in page.tsx documenting *why* the mock's "68K+ Athletes
+  // Supported" is not used made this fail, which would push the next author to
+  // delete the explanation instead of the figure — exactly backwards.
+  //
+  // It loses no teeth. A fabricated figure has to REACH THE PAGE to matter, and
+  // anything that renders (JSX text, a string literal, an attribute) survives
+  // comment-stripping untouched.
+  const stripComments = (src: string) =>
+    src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
+  const source = `${stripComments(landing)} ${stripComments(page)}`;
 
   it('hardcodes none of the mock figures', () => {
     for (const fake of ['2.3M', '68K', '1,250+', '120+', '25,000+', '4.9']) {

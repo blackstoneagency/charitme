@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../../lib/supabase';
+import { boundedQuery } from '../../../lib/query-timeout';
+import { formatMoneyCompact } from '@shared/currencies';
 import { campaignColumns, applyLiveFilters } from '../../../lib/campaign-visibility';
 import { CAUSES, getCause, type Cause } from '../../../lib/causes';
 import { CampaignCard, CampaignGrid, type CampaignCardData } from '../../../components/CampaignCard';
@@ -33,22 +35,51 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
  * campaigns. The page renders different copy for each — conflating them would
  * tell a visitor a cause is empty because our database was down.
  */
+/**
+ * Headline numbers for a cause — every one MEASURED, none invented.
+ *
+ * The design for this page shows figures like "125K+ Youth Impacted" and
+ * "68K+ Athletes Supported". Nothing in the schema records either, and this repo
+ * has a standing rule against presenting a number it has not measured, so those
+ * are not reproduced. What IS renderable from real rows is shown instead, with
+ * labels that say exactly what was counted.
+ *
+ * `null` means the read failed. That renders as an em dash, never as 0 — "no
+ * fundraisers yet" and "we could not count them" are opposite claims.
+ */
+// NOTE (merge takeover of #196): a local `CauseStats` + `getCauseStats` lived
+// here and duplicated `lib/cause-landing.ts`, which master added with the causes
+// landing design. Two implementations of the same statistic is how two surfaces
+// end up quoting different numbers for the same cause, so the local copy is
+// gone and the shared one is imported.
+//
+// The shared version is also the STRICTER of the two. It reports
+// `countries` from `supported_countries` — where CharitMe can actually operate
+// — whereas the local copy derived `communities` by counting distinct
+// `location` strings, which is free text ("Nashville, TN"), so "Nashville" and
+// "nashville, tn" counted twice and neither is a country.
+
 async function getCampaigns(cause: Cause): Promise<CampaignCardData[] | null> {
   try {
     const cols = await campaignColumns();
-    const { data, error } = await applyLiveFilters(
-      supabaseAdmin
-        .from('campaigns')
-        .select(
-          'id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, status, trust_status, nonprofit_verified, location, campaign_health_score',
-        ),
-      cols,
-    )
-      // `.in()` is why multi-category causes have their own page: /campaigns
-      // filters on a single category and would silently drop the rest.
-      .in('category', [...cause.categories])
-      .order('raised_amount', { ascending: false })
-      .limit(PAGE_SIZE);
+    // Bounded, like every other discovery read. A timeout returns
+    // `{ data: null, error }`, which takes the `null` branch below — and the page
+    // already renders that as "we could not load these", not as "none exist".
+    const { data, error } = await boundedQuery(
+      applyLiveFilters(
+        supabaseAdmin
+          .from('campaigns')
+          .select(
+            'id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, status, trust_status, nonprofit_verified, location, campaign_health_score',
+          ),
+        cols,
+      )
+        // `.in()` is why multi-category causes have their own page: /campaigns
+        // filters on a single category and would silently drop the rest.
+        .in('category', [...cause.categories])
+        .order('raised_amount', { ascending: false })
+        .limit(PAGE_SIZE),
+    );
 
     if (error) return null;
     return (data ?? []) as CampaignCardData[];
@@ -90,6 +121,21 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
             between a filtered view and one that merely looks filtered — without
             it, Mental Health and Medical Research would show identical lists
             while each implying it had narrowed something. */}
+        {cause.tagline && (
+          <p style={{ fontSize: '18px', fontWeight: 700, color: 'var(--brand-text)', margin: '10px 0 0' }}>
+            {cause.tagline}
+          </p>
+        )}
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '22px' }}>
+          <Link href="/campaigns" className="cta-primary" style={{ minHeight: '44px', display: 'inline-flex', alignItems: 'center', padding: '0 22px', borderRadius: 'var(--r)', fontWeight: 700, textDecoration: 'none' }}>
+            Donate now
+          </Link>
+          <Link href="/create" style={{ minHeight: '44px', display: 'inline-flex', alignItems: 'center', padding: '0 22px', borderRadius: 'var(--r)', border: '1px solid var(--b2)', color: 'var(--t1)', fontWeight: 700, textDecoration: 'none' }}>
+            Start a fundraiser →
+          </Link>
+        </div>
+
         {cause.narrower && (
           <p
             style={{
@@ -111,6 +157,70 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
           </p>
         )}
       </header>
+
+      {/* Measured figures only. `null` renders as an em dash — a failed count and
+          a real zero are different facts, and this repo has shipped the bug of
+          conflating them before. */}
+      <section aria-label={`${cause.label} at a glance`} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 170px), 1fr))', gap: '14px', margin: '0 0 34px' }}>
+        {[
+          { label: 'Active fundraisers', value: stats.liveCampaigns === null ? '—' : stats.liveCampaigns.toLocaleString() },
+          { label: 'Raised through CharitMe', value: stats.raisedCents === null ? '—' : formatMoneyCompact(stats.raisedCents, 'usd') },
+          { label: 'Supporters', value: stats.supporters === null ? '—' : stats.supporters.toLocaleString() },
+          // "Countries", not "Communities". The shared loader counts entries in
+          // `supported_countries` — places CharitMe can operate — which is a
+          // different fact from the distinct free-text locations the removed
+          // local loader counted. Relabelled so the tile matches its number.
+          { label: 'Countries supported', value: stats.countries === null ? '—' : stats.countries.toLocaleString() },
+        ].map((s) => (
+          <div key={s.label} style={{ background: 'var(--s2)', border: '1px solid var(--b1)', borderRadius: 'var(--rl)', padding: '18px 16px' }}>
+            <div style={{ fontSize: '26px', fontWeight: 850, color: 'var(--t1)', lineHeight: 1.1 }}>{s.value}</div>
+            <div style={{ fontSize: '13px', color: 'var(--t3)', marginTop: '4px' }}>{s.label}</div>
+          </div>
+        ))}
+      </section>
+
+      {cause.helps && cause.helps.length > 0 && (
+        <section aria-labelledby="how-support-helps" style={{ margin: '0 0 38px' }}>
+          <h2 id="how-support-helps" style={{ fontSize: '22px', fontWeight: 800, color: 'var(--t1)', margin: '0 0 16px' }}>
+            How your support helps
+          </h2>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 210px), 1fr))', gap: '14px' }}>
+            {cause.helps.map((h) => (
+              <li key={h.title} style={{ background: 'var(--s1)', border: '1px solid var(--b1)', borderRadius: 'var(--rl)', padding: '18px 16px' }}>
+                <h3 style={{ fontSize: '15px', fontWeight: 750, color: 'var(--t1)', margin: '0 0 6px' }}>{h.title}</h3>
+                <p style={{ fontSize: '13.5px', color: 'var(--t3)', lineHeight: 1.55, margin: 0 }}>{h.body}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* The cause hub. Each link is the EXISTING page scoped by `?cause=`, not a
+          new per-cause page — twenty causes times six pages would be 120 routes
+          that drift apart. Campaigns and volunteering already accepted a cause;
+          events and teams gained it in this change. */}
+      <nav aria-label={`More in ${cause.label}`} style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', margin: '0 0 32px' }}>
+        {[
+          { href: `/campaigns?cause=${cause.slug}`, label: 'All campaigns' },
+          { href: `/events?cause=${cause.slug}`, label: 'Events' },
+          { href: `/teams?cause=${cause.slug}`, label: 'Teams & clubs' },
+          { href: `/volunteer?cause=${cause.slug}`, label: 'Volunteer' },
+          { href: '/success-stories', label: 'Stories' },
+          { href: '/impact', label: 'Impact reports' },
+        ].map((l) => (
+          <Link
+            key={l.href}
+            href={l.href}
+            style={{
+              display: 'inline-flex', alignItems: 'center', minHeight: '44px', padding: '0 16px',
+              borderRadius: '999px', border: '1px solid var(--b2)', background: 'var(--s1)',
+              color: 'var(--t1)', fontSize: '14px', fontWeight: 650, textDecoration: 'none',
+            }}
+          >
+            {l.label}
+          </Link>
+        ))}
+      </nav>
 
       {campaigns === null ? (
         <EmptyState

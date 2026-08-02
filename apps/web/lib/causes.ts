@@ -39,6 +39,20 @@ export interface Cause {
    * The page discloses this; it must never be silently dropped.
    */
   narrower?: boolean;
+  /** Short hero line under the title. Optional — the page omits it when absent. */
+  tagline?: string;
+  /**
+   * "How your support helps" — what a donation to this cause actually buys.
+   *
+   * Editorial copy, deliberately NOT data: it explains where money goes, which
+   * is a claim about the cause rather than a measurement of it. Fabricated
+   * *metrics* are the thing this repo refuses; explanatory copy is not that, as
+   * long as it never states a number it has not measured.
+   *
+   * Optional, and per-cause. A generic version repeated across 20 causes would
+   * be filler, so a cause with nothing specific to say shows nothing.
+   */
+  helps?: readonly { readonly title: string; readonly body: string }[];
 }
 
 /** The 8 shown under "Popular Causes" in the header dropdown. */
@@ -48,6 +62,14 @@ export const POPULAR_CAUSES: readonly Cause[] = [
     label: 'Sports & Youth',
     blurb: 'Teams, clubs, and young athletes raising for gear, travel, and season fees.',
     categories: ['Sports', 'Competition'],
+    tagline: 'Building champions. Building futures.',
+    helps: [
+      { title: 'Provide gear', body: 'Boots, kit and equipment, so cost is not the reason a kid sits out the season.' },
+      { title: 'Fund coaching', body: 'Qualified coaches and mentors who build skill and confidence together.' },
+      { title: 'Create opportunities', body: 'League fees, travel and clinics that open doors beyond the local pitch.' },
+      { title: 'Build community', body: 'Clubs where teamwork, inclusion and belonging are the point, not a by-product.' },
+      { title: 'Support beyond sport', body: 'Study support and life skills, because the season ends and the rest does not.' },
+    ],
   },
   {
     slug: 'people-in-need',

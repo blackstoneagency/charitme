@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { supabaseAdmin } from '../../../lib/supabase';
+import { boundedQuery } from '../../../lib/query-timeout';
 import { campaignColumns, applyLiveFilters } from '../../../lib/campaign-visibility';
 import { applyCampaignSearch, likeTerm } from '../../../lib/campaign-search';
 import { EmptyState } from '../../../components/ui';
@@ -102,7 +103,10 @@ async function getCampaigns(opts: {
     // so an unchecked read renders "No campaigns found" — telling a visitor the
     // platform has nothing to support, which is both false and the worst possible
     // moment to say it. `unavailable` lets the caller say "couldn't load" instead.
-    const { data, count, error } = await query.range(from, to);
+    // Bounded: the listing's own read was the remaining ~7s after the shared
+    // visibility probe was capped. `unavailable` below already distinguishes a
+    // failed read from an empty result set.
+    const { data, count, error } = await boundedQuery(query.range(from, to));
     if (error || data == null) return { campaigns: [], total: 0, unavailable: true };
     return { campaigns: data, total: count ?? 0, unavailable: false };
   } catch {

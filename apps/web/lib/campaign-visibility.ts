@@ -1,6 +1,7 @@
 import 'server-only';
 import { supabaseAdmin } from './supabase';
 import { columnPresence, shouldFilter, isCacheable } from './campaign-visibility-core';
+import { withQueryTimeout } from './query-timeout';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Schema-resilient "live public campaign" filtering.
@@ -29,12 +30,70 @@ let _campaignCols: CampaignCols | null = null;
  * NOT cached, so the next call re-probes. Verified against production, where both
  * columns exist and a bogus column really does return 42703.
  */
+/**
+ * Deadline for the probe.
+ *
+ * Measured on a production build against an unreachable database: this probe
+ * cost ~7.05s on EVERY request to EVERY campaign-backed page, because the
+ * "only cache a definitive answer" rule above means an unreachable DB is never
+ * cacheable — so it re-probed forever. Pages that then ran their own read came
+ * to ~14.1s, and 13 public routes measured exactly that.
+ *
+ * The timeout fallback is `{ visibility: true, deletedAt: true }` — both filters
+ * ON. That is deliberately the same answer the "unknown" path already gives:
+ * fail toward privacy. A timeout must never be the reason a private or
+ * soft-deleted campaign becomes publicly listed.
+ */
+const PROBE_TIMEOUT_MS = 1_500;
+
+/** Fail-safe answer: apply every filter. Matches the `unknown` branch below. */
+const FAIL_TOWARD_PRIVACY: CampaignCols = { visibility: true, deletedAt: true };
+
+/**
+ * The probe currently running, if any.
+ *
+ * Bounding the probe fixed pages that call it ONCE, and exposed a second shape
+ * on pages that call it several times: `lib/home-data.ts` calls it 4×, and the
+ * homepage runs `getHomeData` / `getCategoryStats` / `getRecentDonations`
+ * concurrently. With the degraded answer deliberately never cached, each call
+ * paid the full 1.5s deadline — 4 × 1.5s ≈ the 7.2s the homepage measured.
+ *
+ * This shares the in-flight promise so concurrent callers get ONE probe. It is
+ * not a cache: the reference is cleared as soon as the probe settles, so the
+ * next request re-probes and no guess is ever persisted. That distinction is
+ * the whole point — caching a degraded answer is exactly the trade this module
+ * refuses, because a cached "column missing" would publicly list private and
+ * soft-deleted campaigns for the life of the process.
+ */
+let _inFlight: Promise<CampaignCols> | null = null;
+
 export async function campaignColumns(): Promise<CampaignCols> {
   if (_campaignCols) return _campaignCols;
-  const [v, d] = await Promise.all([
-    supabaseAdmin.from('campaigns').select('visibility').limit(1),
-    supabaseAdmin.from('campaigns').select('deleted_at').limit(1),
-  ]);
+  if (_inFlight) return _inFlight;
+
+  _inFlight = probeCampaignColumns();
+  try {
+    return await _inFlight;
+  } finally {
+    _inFlight = null;
+  }
+}
+
+async function probeCampaignColumns(): Promise<CampaignCols> {
+  const probe = await withQueryTimeout(
+    Promise.all([
+      supabaseAdmin.from('campaigns').select('visibility').limit(1),
+      supabaseAdmin.from('campaigns').select('deleted_at').limit(1),
+    ]),
+    null,
+    PROBE_TIMEOUT_MS,
+  );
+
+  // Not cached, exactly like the unknown-error path: a slow moment must not
+  // freeze a guess in for the life of the process.
+  if (probe.degraded || !probe.data) return FAIL_TOWARD_PRIVACY;
+
+  const [v, d] = probe.data;
 
   const visibility = columnPresence(v.error);
   const deletedAt = columnPresence(d.error);

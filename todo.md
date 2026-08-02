@@ -1,5 +1,132 @@
 # CharitMe — Execution Tracker
 
+## ⏱️ PERF — 13 public pages stalled ~14.1s; shared cause fixed, per-page reads open (Claude, 2026-08-02)
+
+Timed **all 83 public routes** on a production build. Thirteen returned in
+**~14.1s** — and 14.1 ≈ **2 × 7.05**, i.e. two sequential unbounded reads.
+
+**Shared cause, fixed:** `campaignColumns()` probes whether `campaigns.visibility`
+/ `deleted_at` exist. It caches only a *definitive* answer, and an unreachable
+database is never definitive — so it **re-probed on every request, forever**,
+costing ~7.05s before each page ran its own query. Now bounded at 1.5s via the
+existing `withQueryTimeout`.
+
+The timeout fallback is **both filters ON**, matching what the existing `unknown`
+branch already returns. That direction is not optional: a slow page is a
+performance bug; a page listing private campaigns because a probe timed out is a
+privacy breach. The timeout answer is also **not cached**. Three tests pin all
+three properties.
+
+| route(s) | before | after |
+|---|---|---|
+| 12 discovery pages (`/donate`, `/causes`, `/campaigns`, `/crisis`, `/gallery`, `/give`, `/community`, `/donor-wall`, `/supporter-space`, `/teams/create`, `/impact-map`, `/ai-fundraising`) | 14.1s | **8.56s** |
+| `/leaderboard` | 9.56s | **4.02s** |
+
+### ✅ DONE — all 13 pages now ~4.0s (Claude, 2026-08-02)
+
+Every one of the 13 is bounded with `boundedQuery`, which synthesises the same
+`{ data: null, error }` supabase-js produces on failure, so a timeout takes each
+page's EXISTING error branch and nothing downstream changed. **14.1s → ~4.03s**
+(= 1.5s bounded probe + 2.5s bounded query) on `/donate`, `/gallery`, `/give`,
+`/crisis`, `/ai-fundraising`, `/community`, `/donor-wall`, `/supporter-space`,
+`/impact-map`, `/causes`, `/campaigns`; `/leaderboard` 9.56s → 4.02s.
+
+⚠️ **Twice, a patch that read correctly did not move the page** — `/ai-fundraising`
+stayed at 8.56s because it runs a SECOND `Promise.all` with two more unbounded
+reads, and the homepage stayed at 7.2s (below). Both were caught only by
+re-measuring. **The edit is not the evidence; the measurement is.**
+
+### ✅ CORRECTED — the homepage was never 7.2s to the user; I measured the wrong thing
+
+**`time_total` on a STREAMING response is not page load time.** Measured properly:
+
+| route | TTFB | total | streams? |
+|---|---|---|---|
+| `/` | **0.054s** | 7.08s | **yes** — shell paints at 54ms, the 7s is a streamed tail |
+| `/donate` | 4.03s | 4.03s | no — TTFB *is* the total |
+
+So the homepage delivers its first byte in **54ms** and was never the slow page I
+reported. The 7s figure was `curl`'s total download time for a response that
+streams a late Suspense boundary — a real but far less severe issue, and a
+different one.
+
+**Two hypotheses I published were also wrong, both disproved by measurement:**
+1. *"the cost is `resolveCampaignCover` → Unsplash."* No: `searchUnsplashCovers`
+   opens `if (!key) return []`. **Proved by removal** — stubbing `heroItems` to
+   `[]` left the page at 7.07s.
+2. *"the cost is `campaignColumns()` × 4 at 1.5s each."* No: instrumenting
+   `loadOrDegrade` showed all three loads finishing in **50ms, `degraded=false`**.
+   The database path costs ~nothing; DNS failure against the placeholder host is
+   immediate, not slow.
+
+⚠️ **The `/donate` family numbers stand** — those routes do not stream, so their
+TTFB *is* the total, and 14.1s → 4.03s is real.
+
+**Kept anyway:** the in-flight de-duplication of `campaignColumns()`. It did not
+move the homepage (that was the wrong diagnosis), but sharing one probe between
+concurrent callers is correct on its own terms, and it never persists a guess.
+
+**Standing lesson, third instance:** three plausible fixes in a row changed
+nothing, and each was only caught by re-measuring. Measure the metric the USER
+experiences — TTFB for a streaming page — not the one that is easiest to collect.
+
+### 🟡 SUPERSEDED — the homepage is ~7.2s: the BOUNDED probe, called four times
+
+⚠️ **My first suspect was wrong, and the correction is the useful part.** I
+recorded `resolveCampaignCover` → `unsplashCoverForCampaign` as the likely cost.
+It is not: `searchUnsplashCovers` opens with `if (!key) return []`, and
+`UNSPLASH_ACCESS_KEY` is absent here, so it returns immediately and costs
+nothing. Reading the function beat guessing at it.
+
+**Measured cause, matching the arithmetic:** `campaignColumns()` appears **4×** in
+`lib/home-data.ts` (lines 54, 144, 168, 244), and `getHomeData`,
+`getCategoryStats` and `getRecentDonations` each call it. It is now bounded at
+1.5s — but the degraded path **deliberately never caches** (fail toward privacy),
+so against an unreachable database *every* call pays the full 1.5s.
+**4 × 1.5s = 6.0s**, plus ~1.2s of the rest ≈ the **7.2s** measured.
+
+So bounding the probe fixed the pages that call it once and exposed a second
+shape on the page that calls it four times.
+
+**The fix is NOT to cache the degraded answer** — that is exactly the privacy
+trade the current code refuses, and caching a guess would let a slow moment
+publicly list private campaigns for the life of the process. The right fix is
+**in-flight de-duplication**: share ONE probe promise across concurrent callers
+within a single render, so four calls cost 1.5s once rather than 6s, while still
+never persisting a guess. Not yet implemented.
+
+### 🟡 SUPERSEDED — earlier note: "the homepage is ~7.2s and it is NOT the database"
+
+`loadOrDegrade` on `/` is now bounded (it caught rejections but had no deadline),
+and `ok: false` already suppresses the metrics band — so a timeout yields fewer
+numbers, never wrong ones. **The page did not get faster**, so the ~7s is
+somewhere else: the remaining suspect is
+`resolveCampaignCover` → `unsplashCoverForCampaign`, called **per hero item** in a
+`Promise.all`, i.e. a network call per campaign. Unverified — do not "fix" it
+before measuring which call actually costs the time.
+
+### 🟡 ORIGINAL NOTE — the residual ~7s is each page's own read
+
+8.56s = 1.5s (bounded probe) + ~7.05s (the page's own unbounded query).
+**13 pages, no shared helper** — each has its own `from('campaigns')` /
+`from('donations')` call, so this is 13 individual edits with `withQueryTimeout`.
+All are public discovery pages with a sensible empty state, exactly what that
+helper is for. Expected: **~8.5s → ~4s**.
+
+⚠️ **Do NOT "fix" this globally by giving the Supabase client a timeout `fetch`.**
+It looks like one clean change instead of thirteen, and it would also bound every
+**write** — including the webhook that records donations. An aborted write may
+still have committed server-side while the caller sees a failure. Some of those
+writes are idempotent (`record_donation` on `p_stripe_event_id`) and some are
+not; betting money paths on that distinction is not worth saving twelve edits.
+
+**Honest framing of every number above:** measured against an **unreachable**
+database (`placeholder.supabase.co`), so these are worst-case figures, not normal
+operation. That is precisely what the fix addresses — there was no ceiling at all,
+so any degradation degraded every page without bound. Do not quote
+"14.1s → 8.56s" as a general speed-up.
+
+
 ## 🎨 DESIGN UNIFICATION — the primary CTA now has ONE definition (wcu7oh, 2026-08-01)
 
 **Measured before touching anything:** a browser sweep of every public page found

@@ -5,6 +5,7 @@ import type { Metadata } from 'next';
 import { formatMoneyCompact } from '@shared/currencies';
 import JsonLd from '../components/JsonLd';
 import { isRotatorEligible } from '../lib/featured';
+import { withQueryTimeout } from '../lib/query-timeout';
 import { getCoverForCategory, getCoverForCampaign } from '../lib/photo-catalog';
 import { getCategoryStats, getHomeData, getRecentDonations } from '../lib/home-data';
 import { campaignTimeLabel } from '../lib/campaign-lifecycle';
@@ -81,12 +82,18 @@ const NO_HOME_DATA = {
   daysLeft: 0,
 } satisfies Awaited<ReturnType<typeof getHomeData>>;
 
+/**
+ * Degrade on failure OR on a deadline.
+ *
+ * This caught rejections but had no timeout, so a stalled database held the
+ * homepage indefinitely — measured at ~7.05s against an unreachable host, with
+ * no ceiling. `ok: false` already means "do not present this as fact"
+ * (`shouldShowPlatformMetrics` suppresses the metrics band on it), so a timeout
+ * lands on exactly the right behaviour: fewer numbers, never wrong ones.
+ */
 async function loadOrDegrade<T>(work: Promise<T>, fallback: T): Promise<{ value: T; ok: boolean }> {
-  try {
-    return { value: await work, ok: true };
-  } catch {
-    return { value: fallback, ok: false };
-  }
+  const { data, degraded } = await withQueryTimeout(work, fallback);
+  return { value: data, ok: !degraded };
 }
 
 export default async function HomePage() {

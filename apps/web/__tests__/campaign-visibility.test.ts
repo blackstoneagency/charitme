@@ -98,3 +98,45 @@ describe('the caller wires the decision correctly', () => {
     expect(src).toMatch(/if \(isCacheable\(visibility\) && isCacheable\(deletedAt\)\)/);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The probe had no deadline, and the "only cache a definitive answer" rule made
+// that expensive: an unreachable database is never a definitive answer, so it
+// re-probed on EVERY request forever. Measured on a production build against an
+// unreachable host, the probe alone cost ~7.05s per request, and 13 public
+// routes came to ~14.1s once their own read was added on top.
+//
+// Bounding it is only safe if the timeout answer fails the SAME direction the
+// unknown answer already fails: both filters ON. A page rendering slowly is a
+// performance bug; a page listing private campaigns because a probe timed out is
+// a privacy breach.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('the visibility probe is bounded, and its timeout fails toward privacy', () => {
+  const src = readFileSync(join(__dirname, '..', 'lib', 'campaign-visibility.ts'), 'utf8');
+
+  it('gives the probe an explicit deadline', () => {
+    expect(src, 'the probe can stall without bound').toMatch(/PROBE_TIMEOUT_MS/);
+    expect(src).toMatch(/withQueryTimeout\(/);
+  });
+
+  it('the timeout fallback applies BOTH filters', () => {
+    // The literal must be true/true. A `false` here would publicly list private
+    // and soft-deleted campaigns whenever the database was merely slow.
+    expect(src).toMatch(
+      /FAIL_TOWARD_PRIVACY:\s*CampaignCols\s*=\s*\{\s*visibility:\s*true,\s*deletedAt:\s*true\s*\}/,
+    );
+  });
+
+  it('does not cache the timeout answer', () => {
+    // Caching a guess would freeze it in for the life of the process — the exact
+    // defect the unknown-error path was already written to avoid.
+    const guard = src.indexOf('if (probe.degraded');
+    const ret = src.indexOf('return FAIL_TOWARD_PRIVACY', guard);
+    expect(guard).toBeGreaterThan(-1);
+    expect(ret).toBeGreaterThan(guard);
+    expect(
+      src.slice(guard, ret),
+      'the degraded path assigns the module-level cache',
+    ).not.toMatch(/_campaignCols\s*=/);
+  });
+});
