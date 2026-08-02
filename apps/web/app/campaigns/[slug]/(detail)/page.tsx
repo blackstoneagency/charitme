@@ -709,6 +709,12 @@ export default async function CampaignPage({ params, searchParams }: Props) {
                   with 20 updates advertised "Updates (4)". */}
               <a href={`/campaigns/${slug}/updates`}>Updates ({updatesCount ?? updates.length})</a>
               <a href="#donations">Donors ({campaign.backer_count ?? donations.length})</a>
+              {/* Gallery is a real route, not an anchor: campaign_media is not
+                  rendered anywhere on this page, so there is no section to jump
+                  to. Count omitted deliberately — a media count here would need
+                  a fifth query on the highest-traffic public page, and the
+                  gallery states its own counts on arrival. */}
+              <a href={`/campaigns/${slug}/gallery`}>Gallery</a>
               <a href="#impact">{t('campaign.impact')}</a>
             </nav>
 
