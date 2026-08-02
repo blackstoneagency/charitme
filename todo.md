@@ -17724,3 +17724,46 @@ The sweeps validate `--only` against the static route list — correct, but it m
 **dynamic** route against real data cannot be measured at all. This runs axe +
 overflow + touch-target checks on one arbitrary URL, both themes, 5 widths. Use it
 for any `[slug]` route.
+
+## 🎨 CAUSE LANDING PAGE — the "Hope changes everything" design (Claude, 2026-08-02)
+
+Built into **`/causes/[slug]`**, not as a new route. The reference's eyebrow reads
+"PEOPLE IN NEED", and `people-in-need` is **already a cause slug** with its own
+page, already in the header's Explore Causes dropdown and already Supabase-wired.
+A new `/people-in-need` would have been a duplicate of it, and rebuilding the
+homepage would have overwritten the mirror-home design another lane shipped in #183.
+All 20 cause pages get the design.
+
+### ⚠️ Every figure in the mock is fabricated — none of it shipped
+The design asserts multi-million "people helped", tens of thousands of "lives
+transformed", a four-figure "programs funded", a three-figure countries count, and
+a 4.9-star rating from a five-figure supporter base.
+
+**Measured reality**: `supported_countries` holds **69** rows; there is **no ratings
+table at all**; "programs" is not an entity in this schema — campaigns are. The
+countries claim is the *same* fabricated statistic already recorded in `docs/` from
+an earlier mock.
+
+Shipped instead, all measured live per cause: money raised, gifts given, live
+campaigns, and countries we can actually accept a donation in. The star rating is
+replaced by the real supporter count. `__tests__/cause-landing.test.ts` fails if any
+of the mock's literals ever appear in the source.
+
+The mock's four invented programmes ("Provide Food", "Safe Shelter"…) became the
+cause's **real campaign categories with live counts**, each linking to that filtered
+list — inventing programmes would have made every row a dead end. Verified
+internally consistent: Family 18 + Wishes 15 + Memorial 17 = the 50 live campaigns
+the stat tile reports.
+
+### 🐛 `audit-contrast` had TWO status checks, and the reachable one was the second
+Fixing the data-dependent-route exemption in the obvious place changed nothing: an
+earlier `if (!response || response.status() >= 400)` already `continue`d, making
+the later check dead code for every 4xx. **A fix applied to the wrong one looks
+correct and does nothing.** The comment above the first check now says so.
+
+With it fixed, the full sweep is green: **0 AA failures across 85 pages × 2 themes,
+15,114 text elements each.** It had been reporting 6 failures on every run.
+
+That is now the third sweep found carrying this defect (`audit-responsive` and
+`audit-contrast` both fixed this session). If you add a data-dependent route,
+check every `scripts/audit-*.mjs` for a status branch, not just one.
