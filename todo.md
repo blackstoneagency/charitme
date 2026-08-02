@@ -1098,7 +1098,7 @@ every `.from('<table>')` call site in `app/`, `lib/`, `components/` and
 **162 tables declared. 27 have no `.from()` call site at all.**
 
 ```
-admin_notes              admin_settings           analytics_snapshots
+admin_notes              admin_settings           analytics_snapshots ✅
 brands                   campaign_analytics_events campaign_payment_exports
 campaign_payment_settings coach_sessions ✅       commission_requests
 creator_tips             digital_products         direct_messages
@@ -1114,26 +1114,55 @@ a note, `rate_limit_hits` is reached through the `check_rate_limit` RPC, and
 `organizations` is code-complete but inert pending a migration the sandbox cannot
 apply. The rest are the real "wired to Supabase" gap.
 
-### 🔨 CLAIMED (Claude, github-integration lane) — analytics_snapshots
+### ✅ SHIPPED — analytics_snapshots
 
-`analytics_snapshots` is the table that gives a campaign a **past**. Every number
-the dashboard shows today is the value right now: `raised_amount`,
-`backer_count`, a percentage. Nothing on the site can answer "how did last week
-compare to this one?" — the shape of the curve, which is the only thing a
-fundraiser can act on, is not recorded anywhere.
+`lib/analytics-snapshots-core.ts` (19 tests) · writer
+`GET /api/cron/snapshot-analytics` · reader `GET /api/campaigns/[id]/snapshots`
+· surfaced as `RecordedHistory` on `/dashboard/campaigns/[id]/analytics`.
 
-Design notes before building, both of which shape it:
+**142 of 162 tables now have a reader.** The only seeded-and-unread table left is
+`trust_scores`, which is already resolved deliberately with a note.
 
-- **It needs a WRITER before a reader is worth anything.** Unlike the four tables
-  wired before it, an empty `analytics_snapshots` is not a UI problem — there is
-  genuinely no history to show. The writer is a cron route in the shape the three
-  existing ones already use (`Bearer ${CRON_SECRET}`, or an admin session for a
-  manual run; `CRON_SECRET` unset fails SAFE and locks cron out).
-- **One row per (campaign, date), and re-running the same day must not double
-  it.** A cron that fires twice — a retry, a manual run after the scheduled one —
-  is normal, so the write has to be idempotent on the day. `metrics` is `jsonb`,
-  so the same per-field parse discipline as `embedded_buttons` applies: a row
-  written by older code is missing fields and must still render.
+- **This one needed a WRITER before a reader was worth anything.** Unlike the four
+  tables wired before it, an empty `analytics_snapshots` is not a UI problem —
+  there is genuinely no history to show. The writer is a cron route in the shape
+  the three existing ones use (`Bearer ${CRON_SECRET}`, or an admin session for a
+  manual run; an unset `CRON_SECRET` falls back to demanding admin, so it locks
+  cron OUT rather than opening the endpoint).
+- **The writer must use `supabaseAdmin`, and here that is forced rather than
+  habit.** `analytics_owner_private` is the table's only policy and it is
+  `FOR SELECT`. There is no INSERT policy, so a session-client write would be
+  refused by RLS. A test asserts no INSERT policy exists — if one is ever added,
+  the test fails and the decision gets revisited instead of ossifying. The READER
+  keeps the session client, where that SELECT policy is a live backstop.
+- **Idempotent per (campaign, date), by lookup rather than upsert.** There is no
+  unique constraint to lean on, and a cron firing twice — a retry, or a manual run
+  after the scheduled one — is normal.
+
+⚠️ **The honest limit, written down so nobody oversells this later.** The daily-
+donations chart already on that page is derived live from `donations`, and for
+"money in per day" that is *strictly better* data — it needs no snapshot at all.
+So `RecordedHistory` deliberately does **not** duplicate it. What a live query
+genuinely cannot reconstruct is **what the goal was on a given day**:
+`campaigns.goal_amount` holds one value, the current one, so a campaign that
+raised its goal mid-run looks retroactively as though it always had the higher
+one, and last month's "80% of goal" silently becomes "40%". Only a snapshot taken
+that day remembers otherwise. That curve is what the section plots, and it is why
+the table earns its keep instead of being a cache of something already known.
+
+Smaller decisions, each with a reason:
+
+- `dailyRaised` **omits the first point** rather than reporting its full total as
+  one day's takings — the metric is cumulative, so point one would draw a spike
+  representing every donation the campaign ever took. A negative step is kept:
+  money really can go back out, and clamping would hide a refund.
+- `seriesDelta` is `null` for a single point. Reporting `+0` would claim the
+  campaign was flat when nothing has been measured yet.
+- A day with no goal is left **out** of the percentage curve, not plotted at 0% —
+  that would draw a crash to the axis that never happened.
+- `snapshotDate` is UTC, matching the column's `CURRENT_DATE` default. A
+  local-time date would disagree with the server for part of every day and write
+  two rows for what the database calls one day.
 
 ### ✅ SHIPPED — coach_sessions
 
