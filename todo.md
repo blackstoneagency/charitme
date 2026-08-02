@@ -16850,3 +16850,67 @@ costs ~20 minutes to re-verify and this is a warning, not a failure — but do n
 (disabled button, WCAG-exempt), 1 warning explained (this). **Genuinely
 remaining: 2**, both hardcoded light surfaces in dark mode —
 `dark /admin/countries` and `dark /admin/reports`.
+
+## ✅ DONE — Live campaign spotlight moved out of the hero (Claude, 2026-08-02)
+
+**Asked for:** move the hero's campaign card down the page to the left side,
+after "Causes That Change Lives", keeping it fully wired.
+
+Done by relocating the existing `<HeroSpotlightCarousel items={heroItems}
+variant="card" />` — same component, same props, same data — into a new
+`.mirror-spotlight` band. Nothing was re-implemented, so nothing can drift from
+what the hero was rendering: the rotator, Trust Score / Donors / Funded chips,
+ACTIVE|VERIFIED badge, organiser, raised-of-goal with progress bar, donation
+count, days left, the Donate Now link and the dot pagination all moved together.
+
+`.mirror-hero-inner` drops to a single column. Its second track was
+`minmax(280px, 340px)` for the card; leaving it would reserve up to 340px of
+dead space at the right of every hero.
+
+**The card is WIDER here (440px) than the 340px it had in the hero.** That width
+was set by what was left over beside the headline. In its own band there is no
+such constraint, and at 340px the title, the "Organized by" line and the
+"$29,450 raised $95,000 goal" row each wrapped mid-phrase with an empty half of
+the band beside them.
+
+### ⚠️ Verifying this needed the Supabase stub, and the first attempt was a lie
+
+The homepage renders the rotator's **empty state** ("Start a trusted campaign on
+CharitMe") in this sandbox, because there is no database. A screenshot of that
+proves the card moved but proves **nothing about the wiring** — every stat, the
+progress bar, the dots and the donate href are exactly what the empty state
+omits.
+
+`scripts/supabase-stub.mjs` (120 campaigns) fixes it, with one catch: the
+homepage is ISR (`export const revalidate = 120`), so `next start` serves the
+build-time prerender — captured with no database — and the stub changes nothing.
+`next dev` renders fresh and shows the real card. Verified there: live title,
+`/campaigns/<slug>` donate link, 3 chips, progress bar, 16 dots, 2 arrows.
+
+### ⚠️ Two false results, both from a build that had not actually happened
+
+A sweep reported **10 failures including `/offline` at 1:1 white-on-white**.
+That is physically impossible on a page that renders dark text, and it was the
+stale-server trap again in a new costume: the rebuild had been chained after a
+`pkill` that matched **its own shell**, so the command died with exit 144, the
+build never ran, and a server was started on top of a half-written `.next`.
+
+The tell was cheap and should be the standing habit: **curl the page and grep
+for the token you just changed.** `/changelog` was still serving `var(--green)`
+after the "rebuild". Nothing downstream of that is worth reading.
+
+Also note `npm run build … | tail -4` throws away the compiler error and leaves
+only npm's useless epilogue — capture the full log to a file instead.
+
+### Fixed in passing
+
+`/changelog` used `var(--green)` / `var(--blue)` as 11px/800 label text (and its
+border): **3.06:1 and 3.87:1**. Moved to `--green-text` / `--blue-text`, which
+clear 4.5:1 for the text and 3:1 for the border. Same accent-as-text class as
+the grants/volunteer chips and `Btn variant="primary"` before `--green-btn`.
+
+**Verified on a build confirmed fresh** (served CSS greps as `--green-text`,
+single server, no EADDRINUSE): typecheck 0 · lint 0 errors · **vitest 2399/2399
+across 219 files** · build exit 0 · contrast sweep **0 failures, 79 pages × 2
+themes, 9,437 elements per theme** (equal counts both themes) · responsive sweep
+**0 regressions, 79 pages × 3 viewports × 2 themes** · axe **4/4 projects**.

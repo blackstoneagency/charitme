@@ -173,16 +173,9 @@ export default async function HomePage() {
               <Link href="#causes">Explore Causes <Icon name="arrow" /></Link>
             </div>
           </div>
-          {/* The `card` variant, not `mirror`.
-              Both are the same live rotator over the same eligible campaigns —
-              `mirror` renders a minimal text card (label, title, one line, a
-              link), while `card` renders the approved design: the campaign
-              photo with Trust Score / Donors / Funded chips, the ACTIVE or
-              VERIFIED badge, organiser, raised-of-goal with a progress bar,
-              donation count, days left, a Donate Now button, and dot pagination.
-              Nothing new was built here — the richer variant already existed and
-              the homepage was simply asking for the plain one. */}
-          <HeroSpotlightCarousel items={heroItems} variant="card" />
+          {/* The live campaign rotator used to sit here, in the hero's right
+              column. It now has its own band below "Causes That Change Lives"
+              — see `.mirror-spotlight`. The hero is single-column as a result. */}
         </div>
       </section>
 
@@ -210,6 +203,37 @@ export default async function HomePage() {
                 </Reveal>
               );
             })}
+          </div>
+        </div>
+      </section>
+
+      {/* Live campaign spotlight — moved out of the hero's right column to its
+          own band here, on the LEFT.
+
+          It is the same component, same props, same data (`heroItems`): the
+          rotator, the Trust Score / Donors / Funded chips, the ACTIVE or
+          VERIFIED badge, organiser, raised-of-goal with its progress bar,
+          donation count, days left, the Donate Now link and the dot pagination
+          all move together. Nothing was re-implemented, so nothing can drift
+          from what the hero was rendering.
+
+          The copy sits on the right, mirroring the hero above (copy left, card
+          right) so the two bands read as a pair rather than a repeat. */}
+      <section className="mirror-band mirror-spotlight" aria-labelledby="mirror-spotlight-title">
+        <div className="mirror-wrap mirror-spotlight-inner">
+          <HeroSpotlightCarousel items={heroItems} variant="card" />
+          <div className="mirror-spotlight-copy">
+            <h2 id="mirror-spotlight-title">Live Right Now</h2>
+            <p>
+              Real campaigns, updating as donations arrive. Every one shows its
+              CharitScore trust rating, how much it has raised, and how long is
+              left — so you can see exactly what you are supporting before you give.
+            </p>
+            <div className="mirror-actions">
+              <Link href="/campaigns" className="mirror-btn mirror-btn-primary">
+                Browse All Campaigns <Icon name="arrow" />
+              </Link>
+            </div>
           </div>
         </div>
       </section>

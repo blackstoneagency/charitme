@@ -2606,10 +2606,14 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
   object-position: center 42%;
 }
 .mirror-hero-shade { position: absolute; inset: 0; z-index: -2; background: rgba(1, 6, 13, .7); }
+/* Single column since the live-campaign rotator moved to its own band below
+   "Causes That Change Lives". The second track used to be
+   `minmax(280px, 340px)` for the card; leaving it in place would reserve up to
+   340px of dead space at the right of every hero. */
 .mirror-hero-inner {
   min-height: 650px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
   gap: clamp(40px, 7vw, 110px);
   padding-block: 72px 58px;
@@ -2719,6 +2723,47 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 @keyframes mirror-story-fill { to { width: 100%; } }
 
 .mirror-causes h2 { margin: 0 0 24px; text-align: center; color: var(--mh-text); font-size: var(--fs-h2); font-weight: 850; }
+
+/* ── Live campaign spotlight ──────────────────────────────────────────────
+   The rotator relocated out of the hero's right column. Card LEFT, copy right
+   — the inverse of the hero above, so the two bands read as a pair.
+
+   The card is WIDER here than the 340px it had in the hero. That width was set
+   by what was left over beside the headline; in its own band there is no such
+   constraint, and at 340px the title, the "Organized by" line and the
+   "$29,450 raised $95,000 goal" row all wrapped mid-phrase with an empty half
+   of the band beside them.
+
+   `minmax(0, …)` on both tracks, because a grid item defaults to
+   min-width:auto and a bare `1fr` grows to its widest child's min-content,
+   dragging the sibling with it — the same trap documented on
+   `.mirror-hero-inner` below. */
+.mirror-spotlight-inner {
+  display: grid;
+  grid-template-columns: minmax(320px, 440px) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(40px, 6vw, 88px);
+}
+.mirror-spotlight-copy { max-width: 560px; }
+.mirror-spotlight-copy h2 {
+  margin: 0 0 16px;
+  color: var(--mh-text);
+  font-size: var(--fs-h2);
+  font-weight: 850;
+}
+.mirror-spotlight-copy p {
+  margin: 0;
+  color: var(--mh-muted);
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+@media (max-width: 900px) {
+  /* Card above copy rather than beside it. The stat chips overhang the card's
+     right edge by 14px, so a narrow side-by-side column clips them. */
+  .mirror-spotlight-inner { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+  .mirror-spotlight-copy { max-width: 100%; }
+}
 .mirror-cause-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
 .mirror-cause { min-width: 0; overflow: hidden; border: 1px solid var(--mh-line); border-radius: 7px; background: var(--mh-panel); }
 .mirror-cause > a { height: 100%; display: flex; flex-direction: column; color: inherit; }
