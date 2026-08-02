@@ -67,6 +67,7 @@ export const FOOTER_SECTIONS: Record<FooterSectionName, readonly FooterLink[]> =
   // nowhere in the footer.
   'Ways to Give': [
     { label: 'Browse Campaigns', href: '/campaigns', labelKey: 'footer.link.campaigns' },
+    { label: 'Current Needs', href: '/needs', labelKey: 'footer.link.needs' },
     { label: 'Give to Many Causes', href: '/give', labelKey: 'footer.link.give' },
     { label: 'Crisis Relief', href: '/crisis', labelKey: 'footer.link.crisis' },
     { label: 'Fundraisers Near You', href: '/nearby', labelKey: 'footer.link.nearby' },
