@@ -1062,6 +1062,12 @@ a note, `rate_limit_hits` is reached through the `check_rate_limit` RPC, and
 `organizations` is code-complete but inert pending a migration the sandbox cannot
 apply. The rest are the real "wired to Supabase" gap.
 
+**Claimed next by this lane: `donor_segments` + `donor_segment_members`.** Two
+orphans in one feature. `donor_crm_contacts` is already wired
+(`/api/crm/contacts`) and carries `tags`, `lifetime_value_cents`,
+`last_donated_at` and consent flags — everything a segment rule needs — so this
+is saved rules over data that already exists, not a new data model.
+
 **Claimed by this lane: `giving_days`.** A giving day is a time-boxed fundraising
 event with a slug, a window and a goal — a genuine primitive, self-contained, and
 not on the other lane's list (which is working donation_forms, documents, tasks,
