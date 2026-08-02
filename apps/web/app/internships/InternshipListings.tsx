@@ -38,6 +38,9 @@ type Row = {
 
 /** `null` means the read FAILED — never conflated with "no internships open". */
 async function loadInternships(limit = 24): Promise<Row[] | null> {
+  try {
+  // See the note in lib/sponsors-server.ts: supabaseAdmin throws on property
+  // access when the env is missing, which `if (error)` cannot catch.
   const { data, error } = await boundedQuery(
     supabaseAdmin
       .from('volunteer_opportunities')
@@ -57,6 +60,9 @@ async function loadInternships(limit = 24): Promise<Row[] | null> {
   }
   // Demo rows must never render a fabricated "Verified" badge.
   return suppressDemoTrustAll((data ?? []) as unknown as Row[]) as unknown as Row[];
+  } catch {
+    return null;
+  }
 }
 
 export default async function InternshipListings() {

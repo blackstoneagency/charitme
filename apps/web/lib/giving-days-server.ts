@@ -40,6 +40,12 @@ const COLUMNS = 'id, slug, title, starts_at, ends_at, goal_amount, nonprofit_id'
 
 /** `null` means the read FAILED — distinct from an empty list. */
 export const listGivingDays = cache(async function listGivingDays(limit = 60): Promise<GivingDay[] | null> {
+  try {
+    // `supabaseAdmin` is a Proxy whose `get` trap THROWS when the env vars are
+    // missing, so `.from(...)` throws before any query runs — which an
+    // `if (error)` check cannot see. The `null` contract below was already
+    // right; this just makes a throw take the same path instead of 500ing
+    // the page.
   const { data, error } = await supabaseAdmin
     .from('giving_days')
     .select(COLUMNS)
@@ -50,6 +56,9 @@ export const listGivingDays = cache(async function listGivingDays(limit = 60): P
     return null;
   }
   return decorate((data ?? []) as GivingDayRow[]);
+  } catch {
+    return null;
+  }
 });
 
 export const getGivingDay = cache(async function getGivingDay(slug: string): Promise<GivingDay | null> {
