@@ -894,6 +894,67 @@ constants. **The sweep found three of the four wrong pages on its first run** �
 only `/terms` was found by reading. It also asserts it can fail, and strips
 comments so a doc comment quoting a rate is not a finding.
 
+## 🖼️ COMPOSITE IMAGE #3 (Sports & Youth vertical, 11 sub-images) — tbaz3i, 2026-08-02
+
+**All eleven already existed as routes.** The landing is `/causes/[slug]` (rebuilt
+by another lane the same day); Impact, Stories, Donate, Start a Fundraiser,
+Events, Gallery, Get Involved and FAQ are live global pages. Building
+cause-scoped copies would have meant **8 causes × 11 = 88 thin routes** with no
+distinct data behind them.
+
+**The one genuine gap: "Ways to help".** The landing's existing `cl-ways` block is
+*other causes* — a different thing wearing a similar name.
+
+`lib/cause-ways-core.ts` (14 tests) · new `.cl-help` section.
+
+⚠️ **The `scoped` flag is the point of the feature.** Only `/campaigns` accepts a
+category filter — `/volunteer`, `/events`, `/partner` and `/create` take no search
+params at all — so every other link is site-wide however it is labelled. Cards
+that do not narrow say "all causes" on their face, and the disclosure appears
+only when some links are unscoped. That is the difference between a filtered view
+and one that merely looks filtered, which this page already documents for its
+campaign list.
+
+Measured on `/causes/sports-youth`: 0 overflow at 320/390, 0 axe both themes,
+0 AA contrast failures.
+
+---
+
+## 🔬 THE MEMBER DASHBOARD HAD NEVER BEEN MEASURED — 2026-08-02
+
+**Root cause was the harness, not the page.** `audit-signed-in` always ran the
+stub as an ADMIN, and `/dashboard` redirects an admin to `/admin`. Every signed-in
+sweep printed `REDIRECTED to /admin; not measured`, so the entire donor/organizer
+dashboard was exempt from contrast, overflow and tap-target checking. It read as
+a harness quirk rather than a coverage hole.
+
+**`--no-admin` added.** Clearing `ADMIN_EMAILS` is **not enough** — `isAdmin` also
+reads the profile's `roles` array and the default fixture carries
+`admin + super_admin` — so the mode switches the fixture user, its email, and the
+**bearer token the stub resolves personas by**. The build probe is mode-aware
+(`/admin` proves admin, `/dashboard` proves member), and `/admin/*` routes are
+SKIPPED rather than counted as ~104 failed redirects, which would have made the
+mode permanently red and therefore ignored.
+
+**What it found on `/dashboard`, all fixed:**
+
+| Defect | Detail |
+|---|---|
+| 5 overflows | `.dash-grid`'s fixed `368px` rail, `.dash-metrics`' `repeat(4)`, `.dash-analytics`' `1.17fr .83fr`, `.dash-main`'s implicit auto column, the donut/legend row. **578px of content on a 390px phone**, clipped and unreachable. |
+| 21 AA contrast failures | worst at **1:1** — `#0f1535` heading ink on the `#121534` dark card, i.e. genuinely invisible text. |
+| 4 tap targets under 24px | WCAG 2.2 SC 2.5.8; one of them mine. |
+
+⚠️ **A correction worth keeping.** My first donut fix pinned the centre plate's
+ink to `#0f1535` on the assumption the plate stays white in dark mode. It does
+not — an existing rule turns it dark — so that "fix" produced the very 1:1 it was
+meant to remove. Measuring caught it; the comment now records why.
+
+Verified: member mode **300 pages, 0 overflow, 0 tap failures, 0 AA contrast
+failures**. Admin mode unchanged — 199 pages × 2 themes still contrast-clean,
+0 overflows, 10 pre-existing admin-console tap findings.
+
+---
+
 ## 🖼️ COMPOSITE IMAGE #2 (sub-images 72–83) — claimed by this lane (tbaz3i), 2026-08-02
 
 **11 of 12 already existed.** Same audit method as composite #1: read every route
