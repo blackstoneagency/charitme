@@ -3,6 +3,7 @@ import { campaignColumns, applyLiveFilters } from '../../lib/campaign-visibility
 import type { Metadata } from 'next';
 import { PublicIcon } from '../../components/PublicIcon';
 import { supabaseAdmin } from '../../lib/supabase';
+import { boundedQuery } from '../../lib/query-timeout';
 import { formatHomeCents } from '../../lib/home-utils';
 
 export const dynamic = 'force-dynamic';
@@ -43,8 +44,16 @@ async function getAIPageData() {
       donationsResult,
       campaignShowcase,
     ] = await Promise.all([
-      supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-      supabaseAdmin.from('donations').select('amount_cents').eq('status', 'completed'),
+      // Bounded like the showcase below: these two ran unbounded, so the page
+      // still cost ~7s against a stalled database even after the showcase query
+      // was capped. A timeout yields `{ data: null, error }`, and the counts
+      // below already treat a missing result as unknown.
+      boundedQuery(
+        supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+      ),
+      boundedQuery(
+        supabaseAdmin.from('donations').select('amount_cents').eq('status', 'completed'),
+      ),
       fetchShowcase(aiFundraisingCols),
     ]);
 
@@ -64,14 +73,16 @@ async function getAIPageData() {
 }
 
 async function fetchShowcase(cols: Awaited<ReturnType<typeof campaignColumns>>) {
-  const { data } = await applyLiveFilters(
-    supabaseAdmin
-      .from('campaigns')
-      .select('slug,title,tagline,cover_image_url,goal_amount,raised_amount,backer_count,category'),
-    cols,
-  )
-    .order('raised_amount', { ascending: false })
-    .limit(3);
+  const { data } = await boundedQuery(
+  applyLiveFilters(
+      supabaseAdmin
+        .from('campaigns')
+        .select('slug,title,tagline,cover_image_url,goal_amount,raised_amount,backer_count,category'),
+      cols,
+    )
+      .order('raised_amount', { ascending: false })
+      .limit(3),
+    );
   return data ?? [];
 }
 
