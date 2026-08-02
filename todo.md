@@ -36,7 +36,41 @@ stayed at 8.56s because it runs a SECOND `Promise.all` with two more unbounded
 reads, and the homepage stayed at 7.2s (below). Both were caught only by
 re-measuring. **The edit is not the evidence; the measurement is.**
 
-### 🟡 STILL OPEN — the homepage is ~7.2s: the BOUNDED probe, called four times
+### ✅ CORRECTED — the homepage was never 7.2s to the user; I measured the wrong thing
+
+**`time_total` on a STREAMING response is not page load time.** Measured properly:
+
+| route | TTFB | total | streams? |
+|---|---|---|---|
+| `/` | **0.054s** | 7.08s | **yes** — shell paints at 54ms, the 7s is a streamed tail |
+| `/donate` | 4.03s | 4.03s | no — TTFB *is* the total |
+
+So the homepage delivers its first byte in **54ms** and was never the slow page I
+reported. The 7s figure was `curl`'s total download time for a response that
+streams a late Suspense boundary — a real but far less severe issue, and a
+different one.
+
+**Two hypotheses I published were also wrong, both disproved by measurement:**
+1. *"the cost is `resolveCampaignCover` → Unsplash."* No: `searchUnsplashCovers`
+   opens `if (!key) return []`. **Proved by removal** — stubbing `heroItems` to
+   `[]` left the page at 7.07s.
+2. *"the cost is `campaignColumns()` × 4 at 1.5s each."* No: instrumenting
+   `loadOrDegrade` showed all three loads finishing in **50ms, `degraded=false`**.
+   The database path costs ~nothing; DNS failure against the placeholder host is
+   immediate, not slow.
+
+⚠️ **The `/donate` family numbers stand** — those routes do not stream, so their
+TTFB *is* the total, and 14.1s → 4.03s is real.
+
+**Kept anyway:** the in-flight de-duplication of `campaignColumns()`. It did not
+move the homepage (that was the wrong diagnosis), but sharing one probe between
+concurrent callers is correct on its own terms, and it never persists a guess.
+
+**Standing lesson, third instance:** three plausible fixes in a row changed
+nothing, and each was only caught by re-measuring. Measure the metric the USER
+experiences — TTFB for a streaming page — not the one that is easiest to collect.
+
+### 🟡 SUPERSEDED — the homepage is ~7.2s: the BOUNDED probe, called four times
 
 ⚠️ **My first suspect was wrong, and the correction is the useful part.** I
 recorded `resolveCampaignCover` → `unsplashCoverForCampaign` as the likely cost.

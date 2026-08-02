@@ -49,9 +49,37 @@ const PROBE_TIMEOUT_MS = 1_500;
 /** Fail-safe answer: apply every filter. Matches the `unknown` branch below. */
 const FAIL_TOWARD_PRIVACY: CampaignCols = { visibility: true, deletedAt: true };
 
+/**
+ * The probe currently running, if any.
+ *
+ * Bounding the probe fixed pages that call it ONCE, and exposed a second shape
+ * on pages that call it several times: `lib/home-data.ts` calls it 4×, and the
+ * homepage runs `getHomeData` / `getCategoryStats` / `getRecentDonations`
+ * concurrently. With the degraded answer deliberately never cached, each call
+ * paid the full 1.5s deadline — 4 × 1.5s ≈ the 7.2s the homepage measured.
+ *
+ * This shares the in-flight promise so concurrent callers get ONE probe. It is
+ * not a cache: the reference is cleared as soon as the probe settles, so the
+ * next request re-probes and no guess is ever persisted. That distinction is
+ * the whole point — caching a degraded answer is exactly the trade this module
+ * refuses, because a cached "column missing" would publicly list private and
+ * soft-deleted campaigns for the life of the process.
+ */
+let _inFlight: Promise<CampaignCols> | null = null;
+
 export async function campaignColumns(): Promise<CampaignCols> {
   if (_campaignCols) return _campaignCols;
+  if (_inFlight) return _inFlight;
 
+  _inFlight = probeCampaignColumns();
+  try {
+    return await _inFlight;
+  } finally {
+    _inFlight = null;
+  }
+}
+
+async function probeCampaignColumns(): Promise<CampaignCols> {
   const probe = await withQueryTimeout(
     Promise.all([
       supabaseAdmin.from('campaigns').select('visibility').limit(1),
