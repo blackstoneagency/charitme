@@ -1,5 +1,6 @@
 import 'server-only';
 import { cache } from 'react';
+import { asFileList } from './campaign-media-core';
 import { supabaseAdmin } from './supabase';
 
 /**
@@ -43,7 +44,7 @@ export const uploadedCoverUrl = cache(async (slug: string): Promise<string | nul
   // `search` is a prefix/substring match, so confirm the exact name before
   // claiming this file is the campaign's — `campaign-1` would otherwise match
   // `campaign-10`, and every campaign would show its neighbour's photo.
-  if (!data?.some((f) => f.name === file)) return null;
+  if (!asFileList(data).some((f) => f.name === file)) return null;
   return supabaseAdmin.storage.from(BUCKET).getPublicUrl(`covers/${file}`).data.publicUrl;
 });
 
@@ -68,7 +69,7 @@ export const uploadedCampaignFiles = cache(async (campaignId: string): Promise<S
     console.warn('[campaign-media] file listing failed', { message: error.message });
     return null;
   }
-  return (data ?? [])
+  return asFileList(data)
     // A "folder" comes back with a null id and no metadata; only real objects
     // have one. Without this the gallery renders directory names as images.
     .filter((f) => f.id !== null)
