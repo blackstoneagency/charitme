@@ -44,15 +44,20 @@ async function getAIPageData() {
       donationsResult,
       campaignShowcase,
     ] = await Promise.all([
-      // Bounded like the showcase below: these two ran unbounded, so the page
-      // still cost ~7s against a stalled database even after the showcase query
-      // was capped. A timeout yields `{ data: null, error }`, and the counts
-      // below already treat a missing result as unknown.
+      // Bounded TWO ways, because the two sides of this merge each caught a
+      // different half of the same risk and neither subsumes the other:
+      //   · boundedQuery() bounds by TIME — it stops a query that hangs, which
+      //     is what left this page at ~7s against a stalled database.
+      //   · .limit() bounds by ROW COUNT — `.eq('status','completed')` selects
+      //     nearly the whole donations table, so without a cap the result set
+      //     grows forever even when the query is fast.
+      // A timeout does not save you from a huge fast response, and a row cap
+      // does not save you from a query that never returns.
       boundedQuery(
         supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'active'),
       ),
       boundedQuery(
-        supabaseAdmin.from('donations').select('amount_cents').eq('status', 'completed'),
+        supabaseAdmin.from('donations').select('amount_cents').eq('status', 'completed').limit(20000),
       ),
       fetchShowcase(aiFundraisingCols),
     ]);

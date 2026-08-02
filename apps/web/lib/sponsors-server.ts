@@ -15,6 +15,12 @@ import type { Sponsor } from './sponsors-core';
  * the error distinction below.
  */
 export async function getPublicSponsors(limit = 60): Promise<Sponsor[] | null> {
+  try {
+    // `supabaseAdmin` is a Proxy whose `get` trap THROWS when the env vars are
+    // missing, so `.from(...)` throws before any query runs — which an
+    // `if (error)` check cannot see. The `null` contract below was already
+    // right; this just makes a throw take the same path instead of 500ing
+    // the page.
   const { data, error } = await supabaseAdmin
     .from('sponsors')
     .select('id, name, logo_url, website')
@@ -33,4 +39,7 @@ export async function getPublicSponsors(limit = 60): Promise<Sponsor[] | null> {
     return null;
   }
   return (data ?? []) as Sponsor[];
+  } catch {
+    return null;
+  }
 }

@@ -274,7 +274,7 @@ async function getHomeDataUncached(filters: StoryFilters): Promise<{
       .order('raised_amount', { ascending: false })
       .limit(20),
     applyLiveFilters(supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true }), cols),
-    supabaseAdmin.from('donations').select('amount_cents', { count: 'exact' }).eq('status', 'completed'),
+    supabaseAdmin.from('donations').select('amount_cents', { count: 'exact' }).eq('status', 'completed').limit(20000),
     applyLiveFilters(
       supabaseAdmin.from('campaigns').select('campaign_health_score'),
       cols,

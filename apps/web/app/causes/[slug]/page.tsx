@@ -9,6 +9,8 @@ import { CAUSES, getCause, type Cause } from '../../../lib/causes';
 import { CampaignCard, CampaignGrid, type CampaignCardData } from '../../../components/CampaignCard';
 import { EmptyState } from '../../../components/ui';
 import { getTranslator } from '../../../lib/locale-server';
+import { getCauseStats } from '../../../lib/cause-landing';
+import CauseLanding, { CauseCtaBand } from './CauseLanding';
 
 const PAGE_SIZE = 24;
 
@@ -45,43 +47,17 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
  * `null` means the read failed. That renders as an em dash, never as 0 — "no
  * fundraisers yet" and "we could not count them" are opposite claims.
  */
-interface CauseStats {
-  fundraisers: number | null;
-  raisedCents: number | null;
-  supporters: number | null;
-  communities: number | null;
-}
-
-const STATS_SCAN_LIMIT = 1000;
-
-async function getCauseStats(cause: Cause): Promise<CauseStats> {
-  const empty: CauseStats = { fundraisers: null, raisedCents: null, supporters: null, communities: null };
-  try {
-    const cols = await campaignColumns();
-    const { data, error } = await boundedQuery(
-      applyLiveFilters(
-        supabaseAdmin.from('campaigns').select('raised_amount, backer_count, location'),
-        cols,
-      )
-        .in('category', cause.categories as unknown as string[])
-        .limit(STATS_SCAN_LIMIT),
-    );
-    if (error || !data) return empty;
-
-    const rows = data as { raised_amount: number | null; backer_count: number | null; location: string | null }[];
-    const communities = new Set(
-      rows.map((r) => (r.location ?? '').trim().toLowerCase()).filter(Boolean),
-    );
-    return {
-      fundraisers: rows.length,
-      raisedCents: rows.reduce((sum, r) => sum + (r.raised_amount ?? 0), 0),
-      supporters: rows.reduce((sum, r) => sum + (r.backer_count ?? 0), 0),
-      communities: communities.size,
-    };
-  } catch {
-    return empty;
-  }
-}
+// NOTE (merge takeover of #196): a local `CauseStats` + `getCauseStats` lived
+// here and duplicated `lib/cause-landing.ts`, which master added with the causes
+// landing design. Two implementations of the same statistic is how two surfaces
+// end up quoting different numbers for the same cause, so the local copy is
+// gone and the shared one is imported.
+//
+// The shared version is also the STRICTER of the two. It reports
+// `countries` from `supported_countries` — where CharitMe can actually operate
+// — whereas the local copy derived `communities` by counting distinct
+// `location` strings, which is free text ("Nashville, TN"), so "Nashville" and
+// "nashville, tn" counted twice and neither is a country.
 
 async function getCampaigns(cause: Cause): Promise<CampaignCardData[] | null> {
   try {
@@ -118,23 +94,27 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
   const cause = getCause(slug);
   if (!cause) notFound();
 
+  // Stats are fetched alongside the campaigns rather than after them: they are
+  // independent queries and this page is a common entry point from a share.
   const [campaigns, stats] = await Promise.all([getCampaigns(cause), getCauseStats(cause)]);
 
   return (
-    <div className="container" style={{ padding: '48px 0 72px' }}>
-      <nav aria-label="Breadcrumb" style={{ marginBottom: '18px' }}>
-        <Link href="/causes" style={{ display: 'inline-flex', alignItems: 'center', minHeight: '24px', fontSize: '13px', color: 'var(--t3)', fontWeight: 650 }}>
-          ← All causes
-        </Link>
-      </nav>
+    <div className="cause-landing">
+      <div className="container" style={{ padding: '20px 0 0' }}>
+        <nav aria-label="Breadcrumb" style={{ marginBottom: '18px' }}>
+          <Link href="/causes" style={{ display: 'inline-flex', alignItems: 'center', minHeight: '24px', fontSize: '13px', color: 'var(--t3)', fontWeight: 650 }}>
+            ← All causes
+          </Link>
+        </nav>
+      </div>
 
+      <CauseLanding cause={cause} stats={stats} />
+
+      <div className="container" style={{ padding: '8px 0 72px' }}>
       <header style={{ maxWidth: '760px', marginBottom: '32px' }}>
-        <h1 style={{ fontSize: 'clamp(28px, 5vw, 42px)', fontWeight: 800, color: 'var(--t1)', lineHeight: 1.15, letterSpacing: '-.02em' }}>
-          {cause.label}
-        </h1>
-        <p style={{ fontSize: '17px', color: 'var(--t3)', lineHeight: 1.6, marginTop: '12px' }}>
-          {cause.blurb}
-        </p>
+        <h2 id="cause-campaigns" style={{ fontSize: 'var(--fs-h2)', fontWeight: 800, color: 'var(--t1)', lineHeight: 1.15, letterSpacing: '-.02em' }}>
+          {cause.label} campaigns
+        </h2>
 
         {/* The disclosure. Campaigns are not tagged at this granularity, so this
             page can only show its parent categories. Saying so is the difference
@@ -183,10 +163,14 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
           conflating them before. */}
       <section aria-label={`${cause.label} at a glance`} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 170px), 1fr))', gap: '14px', margin: '0 0 34px' }}>
         {[
-          { label: 'Active fundraisers', value: stats.fundraisers === null ? '—' : stats.fundraisers.toLocaleString() },
+          { label: 'Active fundraisers', value: stats.liveCampaigns === null ? '—' : stats.liveCampaigns.toLocaleString() },
           { label: 'Raised through CharitMe', value: stats.raisedCents === null ? '—' : formatMoneyCompact(stats.raisedCents, 'usd') },
           { label: 'Supporters', value: stats.supporters === null ? '—' : stats.supporters.toLocaleString() },
-          { label: 'Communities', value: stats.communities === null ? '—' : stats.communities.toLocaleString() },
+          // "Countries", not "Communities". The shared loader counts entries in
+          // `supported_countries` — places CharitMe can operate — which is a
+          // different fact from the distinct free-text locations the removed
+          // local loader counted. Relabelled so the tile matches its number.
+          { label: 'Countries supported', value: stats.countries === null ? '—' : stats.countries.toLocaleString() },
         ].map((s) => (
           <div key={s.label} style={{ background: 'var(--s2)', border: '1px solid var(--b1)', borderRadius: 'var(--rl)', padding: '18px 16px' }}>
             <div style={{ fontSize: '26px', fontWeight: 850, color: 'var(--t1)', lineHeight: 1.1 }}>{s.value}</div>
@@ -282,6 +266,9 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
           )}
         </>
       )}
+      </div>
+
+      <CauseCtaBand cause={cause} />
     </div>
   );
 }
