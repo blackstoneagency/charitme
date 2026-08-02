@@ -1062,6 +1062,16 @@ a note, `rate_limit_hits` is reached through the `check_rate_limit` RPC, and
 `organizations` is code-complete but inert pending a migration the sandbox cannot
 apply. The rest are the real "wired to Supabase" gap.
 
+**Claimed next by this lane: `embedded_buttons`.** The persistent form of the
+widget configurator already built at `/dashboard/campaigns/[id]/widget`, which
+generates a snippet and forgets it.
+
+⚠️ **This one is different from the previous three: it HAS a public read policy**
+(`public_embedded_buttons_read` — `FOR SELECT USING (true)`) alongside
+`embedded_buttons_owner_write`. So RLS genuinely enforces on the read path here,
+and the anon client works. Worth stating because the reflex after three
+service-role tables is to reach for `supabaseAdmin` and lose the backstop.
+
 ### ✅ SHIPPED — admin_notes
 
 `lib/admin-notes-core.ts` (13 tests) · `GET/POST/PATCH/DELETE /api/admin/notes` ·
