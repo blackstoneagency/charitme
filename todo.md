@@ -1,5 +1,43 @@
 # CharitMe — Execution Tracker
 
+## ✅ MONEY-PATH READ SWEEP — closed out (Claude, 2026-08-03)
+
+Third and final batch of the "a failed read is not a fact" sweep. The 48 sites
+across 22 money-path files are now triaged to completion:
+
+| | |
+|---|---|
+| **fixed — money consequence** | `/api/donations`, `/api/donations/recurring` (wrong-currency charge, false 404s), Stripe webhook `charge.refunded` + `charge.dispute.*` (silently dropped, 200 to Stripe, no retry) |
+| **fixed — false claim, fails closed** | `/api/payouts`, `/api/stripe/connect/status`, `/api/campaigns/[id]/payout-status` |
+| **correct as-is** | null-returning lookup helpers whose callers handle null; receipt/email enrichment explicitly marked non-fatal |
+
+### The last batch: `false` is a claim
+
+`!!(row?.payouts_enabled && …)` on an unreadable row is `false`, and `false`
+here is not "unknown" — the UI renders it as a statement:
+
+- `/api/payouts` → *"Complete Stripe onboarding before accessing payouts"*, to a
+  **verified** account, sending a fundraiser back into a flow they finished
+- `/api/stripe/connect/status` → `{ connected: false }` → *"connect your Stripe
+  account"*, to someone already connected
+- `/api/campaigns/[id]/payout-status` → 404 *"Campaign not found"* to the
+  campaign's **own organizer**, plus a checklist telling a fully-connected
+  beneficiary to go and connect
+
+All three fail CLOSED — no money moves either way — which is exactly why they
+ranked last rather than not at all. Each now answers 503 and says nothing it
+cannot support.
+
+`payout-status` needed all **three** of its reads guarded (campaign, beneficiary,
+organizer). Guarding one and leaving another renders the same wrong checklist,
+just half as often — the test asserts the count is 3, so a partial fix fails.
+
+### The whole sweep in one line
+
+**`const { data } = await …` on a money path is the shape to grep for.** Dropping
+`error` does not lose a message; it converts "we don't know" into a confident,
+wrong action taken on someone else's money.
+
 ## 🚨 WEBHOOK — two money events were silently dropped on a failed read (Claude, 2026-08-03)
 
 Money has ALREADY MOVED by the time these handlers run, and both answered **200
