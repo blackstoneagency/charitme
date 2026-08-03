@@ -14,87 +14,25 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://www.charitme.com/how-it-works' },
 };
 
-const FUNDRAISER_STEPS = [
-  {
-    num: '01',
-    title: 'Create your campaign in minutes',
-    body: 'Enter a title, category, goal amount, and deadline. Our AI Copilot turns your rough notes into a polished, authentic story — or write it yourself. Add a cover photo to boost trust signals.',
-    icon: 'edit',
-    tone: 'violet',
-  },
-  {
-    num: '02',
-    title: 'Build trust before you share',
-    body: 'Connect your Stripe account to verify your identity and enable payouts. Add evidence like medical documents, receipts, or photos. Your AI trust score rises automatically as you complete each signal.',
-    icon: 'shield',
-    tone: 'green',
-  },
-  {
-    num: '03',
-    title: 'Share and grow your campaign',
-    body: 'Use our AI Growth Engine to generate social captions, email appeals, SMS messages, and donor FAQs. Share links directly to your campaign page. Track donation momentum in real time.',
-    icon: 'share',
-    tone: 'blue',
-  },
-  {
-    num: '04',
-    title: 'Receive verified payouts',
-    body: "Donations transfer to your connected Stripe account on a 2-business-day standard schedule. Choose same-day (1% fee) or instant payouts (1.5% fee) if eligible. All payouts are tracked in your transparency ledger.",
-    icon: 'dollar',
-    tone: 'orange',
-  },
-  {
-    num: '05',
-    title: 'Post updates and show impact',
-    body: 'Keep donors engaged with campaign updates, receipts, milestone reports, and impact summaries. The AI Update Writer helps you write these in seconds. Transparent reporting builds long-term donor trust.',
-    icon: 'chart',
-    tone: 'pink',
-  },
-];
-
-const DONOR_STEPS = [
-  {
-    num: '01',
-    title: 'Find campaigns you trust',
-    body: 'Browse by category, search by keyword, or sort by trust score. Every campaign displays a CharitMe AI trust signal, fundraiser verification status, and live donation momentum.',
-    icon: 'search',
-  },
-  {
-    num: '02',
-    title: 'Read the trust signals',
-    body: "Each campaign shows identity verification, story quality, evidence, payout verification, and donor momentum as clear visual indicators — so you can give with full confidence.",
-    icon: 'check',
-  },
-  {
-    num: '03',
-    title: 'Donate transparently',
-    body: "Choose your amount, optionally add a message, and decide whether to give anonymously. See the exact fee breakdown before you pay — including the optional CharitMe tip you can set to $0.",
-    icon: 'heart',
-  },
-  {
-    num: '04',
-    title: 'Get a receipt and follow updates',
-    body: 'Receive an automated payment receipt from Stripe. Create an account to follow campaign updates, see where your money was used, and get notified when organizers post impact reports.',
-    icon: 'mail',
-  },
-];
-
-const _TRUST_SIGNALS = [
-  { label: 'Identity verified', detail: 'Organizer identity confirmed via Stripe KYC', done: true },
-  { label: 'Beneficiary verified', detail: 'Beneficiary relationship and need confirmed', done: true },
-  { label: 'Payout connected', detail: 'Stripe Connect account linked and verified', done: true },
-  { label: 'Story completeness', detail: 'Full story with context, urgency, and outcome', done: true },
-  { label: 'Evidence attached', detail: 'Images, medical docs, receipts, or proof', done: false },
-];
-
-const _TONE_MAP: Record<string, string> = {
-  violet: 'kind-icon',
-  green: 'kind-icon kind-icon-green',
-  blue: 'kind-icon kind-icon-blue',
-  orange: 'kind-icon kind-icon-orange',
-  pink: 'kind-icon kind-icon-pink',
-};
-
+/*
+ * ── Why the two long step-by-step flows are gone ───────────────────────────
+ * This page previously carried a 5-step fundraiser flow and a 4-step donor
+ * flow that the reference design does not have. They were kept on the first
+ * pass because they stated product facts — Stripe KYC, the 2-business-day
+ * payout schedule, the same-day 1% and instant 1.5% fees, how the trust score
+ * is earned — and losing accurate detail to match a layout is a bad trade.
+ *
+ * That reasoning does not survive checking: every one of those facts is
+ * already stated on a page whose whole job is to state it.
+ *   • /fast-payouts  — the schedule and BOTH fees, verbatim, plus eligibility
+ *   • /faq           — "Standard payouts are always free. Same-day … 1% …
+ *                       instant … 1.5%."
+ *   • /for-individuals — the 2-business-day schedule
+ *   • /verification, /security, /fees — reached from the trust panel below
+ *
+ * So nothing is lost from the site, and this page now matches the design.
+ * Do not reinstate them here; edit the owning page instead.
+ */
 
 /**
  * The reference's four steps. Authored copy — a step list is editorial, and
@@ -206,47 +144,6 @@ export default async function HowItWorksPage() {
               </li>
             ))}
           </ul>
-        </section>
-
-        {/* ── The detailed flows ────────────────────────────────────────────
-            NOT in the reference, and kept deliberately. The reference's four
-            steps are a donor-facing summary; these two lists are the page's
-            actual product explanation — Stripe verification, the 2-day payout
-            schedule and the same-day/instant fees, how the trust score is
-            earned. None of that is answered by the four steps or by the FAQ
-            rows, and /how-it-works is the page a visitor opens to find it.
-            Deleting accurate product detail to match a layout is a loss the
-            layout does not pay for. */}
-        <section className="hw-flow" aria-labelledby="hw-flow-fund">
-          <h2 id="hw-flow-fund" className="hw-h2">For fundraisers, step by step</h2>
-          <ol className="hw-flow-list">
-            {FUNDRAISER_STEPS.map((step) => (
-              <li key={step.num} className="hw-flow-item">
-                <span className="hw-flow-num" aria-hidden="true">{step.num}</span>
-                <span className="hw-flow-ic" aria-hidden="true"><PublicIcon name={step.icon} /></span>
-                <div>
-                  <h3>{step.title}</h3>
-                  <p>{step.body}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </section>
-
-        <section className="hw-flow" aria-labelledby="hw-flow-donor">
-          <h2 id="hw-flow-donor" className="hw-h2">For donors, step by step</h2>
-          <ol className="hw-flow-list">
-            {DONOR_STEPS.map((step) => (
-              <li key={step.num} className="hw-flow-item">
-                <span className="hw-flow-num" aria-hidden="true">{step.num}</span>
-                <span className="hw-flow-ic" aria-hidden="true"><PublicIcon name={step.icon} /></span>
-                <div>
-                  <h3>{step.title}</h3>
-                  <p>{step.body}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
         </section>
 
         <section className="hw-faq-band" aria-labelledby="hw-faq-h">

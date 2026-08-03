@@ -10539,6 +10539,7 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   .hw-cta { grid-template-columns: auto minmax(0, 1fr) auto; }
 }
 
+
 /* The detailed fundraiser/donor flows on /how-it-works — kept from the previous
    page because they carry the product facts (payout schedule and fees, Stripe
    verification, how the trust score is earned) that the reference's four-step
