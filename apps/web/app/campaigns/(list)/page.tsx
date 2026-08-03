@@ -5,6 +5,7 @@ import { campaignColumns, applyLiveFilters } from '../../../lib/campaign-visibil
 import { applyCampaignSearch, likeTerm } from '../../../lib/campaign-search';
 import { EmptyState } from '../../../components/ui';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
+import { getCause } from '../../../lib/causes';
 import { getTopDonors } from '../../../lib/leaderboard';
 import { formatCents } from '../../../lib/stripe';
 import { getCoverForCategory } from '../../../lib/photo-catalog';
@@ -96,6 +97,7 @@ async function getLocations(): Promise<string[] | null> {
 interface Props {
   searchParams: Promise<{
     category?: string;
+    cause?: string;
     q?: string;
     sort?: string;
     verified?: string;
@@ -109,6 +111,15 @@ interface Props {
 
 async function getCampaigns(opts: {
   category?: string;
+  /**
+   * A cause's categories, for `?cause=`.
+   *
+   * ⚠️ Separate from `category` on purpose. A cause can span several categories
+   * (People in Need is Family + Wishes + Memorial), so it cannot be expressed as
+   * `?category=` without silently dropping the rest — which is why the cause
+   * pages exist at all. `.in()` is the whole difference.
+   */
+  causeCategories?: readonly string[];
   q?: string;
   sort?: SortOption;
   verifiedOnly?: boolean;
@@ -128,6 +139,10 @@ async function getCampaigns(opts: {
     );
 
     if (opts.category) query = query.eq('category', opts.category);
+    // `?cause=` narrows to the cause's categories. Applied alongside `category`
+    // rather than instead of it: both present is a legitimate "this cause, this
+    // category" view, and the two conditions simply intersect.
+    if (opts.causeCategories?.length) query = query.in('category', [...opts.causeCategories]);
     if (opts.verifiedOnly) query = query.eq('trust_status', 'Verified');
     if (opts.taxDeductibleOnly) query = query.eq('nonprofit_verified', true);
     // Real column, real comparison — the design's "Goal Range" control is wired
@@ -278,6 +293,15 @@ function CategoryGlyph({ category }: { category: string }) {
 export default async function CampaignsPage({ searchParams }: Props) {
   const sp = await searchParams;
   const category = sp.category;
+  // ⚠️ Every cause page's "All campaigns" tab links here with `?cause=`, and
+  // this page IGNORED it — so the tab rendered the whole unfiltered list under a
+  // label promising one cause. A link that looks filtered and is not is worse
+  // than no link, and it is exactly what the deleted `cause-ways-core` `scoped`
+  // flag existed to catch.
+  //
+  // An unknown slug resolves to `undefined` and the list stays unfiltered rather
+  // than erroring — a bad query string should not 500 the campaigns page.
+  const cause    = typeof sp.cause === 'string' ? getCause(sp.cause) : undefined;
   const q        = sp.q;
   const sort     = (sp.sort as SortOption | undefined) ?? 'raised';
   const verified = sp.verified === '1';
@@ -288,7 +312,7 @@ export default async function CampaignsPage({ searchParams }: Props) {
   const page     = Math.max(1, parseInt(sp.page ?? '1', 10) || 1);
 
   const hasFilters = Boolean(
-    q || category || verified || tax || ending || location || goal !== 'any' || sort !== 'raised',
+    q || category || cause || verified || tax || ending || location || goal !== 'any' || sort !== 'raised',
   );
   const showExtras = page === 1 && !hasFilters;
 
@@ -297,7 +321,7 @@ export default async function CampaignsPage({ searchParams }: Props) {
   // and simply renders nothing rather than throwing the page away.
   const [{ campaigns, total, unavailable }, featured, topDonors, locations] = await Promise.all([
     getCampaigns({
-      category, q, sort, verifiedOnly: verified, location,
+      category, causeCategories: cause?.categories, q, sort, verifiedOnly: verified, location,
       taxDeductibleOnly: tax, endingSoon: ending, goalRange: goal, page,
     }),
     showExtras ? getFeatured() : Promise.resolve(null),

@@ -4,7 +4,7 @@ import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { boundedQuery } from '../../../lib/query-timeout';
 import { campaignColumns, applyLiveFilters } from '../../../lib/campaign-visibility';
-import { CAUSES, getCause, causeBrowseHref, type Cause } from '../../../lib/causes';
+import { CAUSES, getCause, type Cause } from '../../../lib/causes';
 import { CampaignCard, CampaignGrid, type CampaignCardData } from '../../../components/CampaignCard';
 import { EmptyState } from '../../../components/ui';
 import { getTranslator } from '../../../lib/locale-server';
@@ -148,20 +148,35 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
         )}
       </div>
 
-      {/* The cause hub. Each link is the EXISTING page scoped by `?cause=`, not a
-          new per-cause page — twenty causes times six pages would be 120 routes
-          that drift apart. Campaigns and volunteering already accepted a cause;
-          events and teams gained it in this change. */}
+      {/* ── The cause hub ─────────────────────────────────────────────────────
+          Each link is an EXISTING page narrowed by `?cause=`, not a new per-cause
+          page — twenty causes times six pages would be 120 routes that drift.
+
+          ⚠️ `scoped` is not decoration. An earlier comment here claimed
+          "campaigns and volunteering already accepted a cause"; measured against
+          the routes, NEITHER did. /campaigns took only `?category=` and dropped
+          `?cause=` on the floor, so "All campaigns" rendered the entire
+          unfiltered list under a label naming one cause; /volunteer reads no
+          search params at all. /campaigns has since been taught the param (it
+          maps the slug to the cause's categories and uses `.in()`), and
+          /volunteer is now marked unscoped instead of pretending.
+
+          The rule this restores: a link may be site-wide, but it must SAY so.
+          That is what the deleted `cause-ways-core` `scoped` flag was for, and
+          removing it is how two false filters went unnoticed. */}
       <nav aria-label={`More in ${cause.label}`} className="cl-tabs">
         {[
-          { href: `/campaigns?cause=${cause.slug}`, label: 'All campaigns' },
-          { href: `/events?cause=${cause.slug}`, label: 'Events' },
-          { href: `/teams?cause=${cause.slug}`, label: 'Teams & clubs' },
-          { href: `/volunteer?cause=${cause.slug}`, label: 'Volunteer' },
-          { href: '/success-stories', label: 'Stories' },
-          { href: '/impact', label: 'Impact reports' },
+          { href: `/campaigns?cause=${cause.slug}`, label: 'All campaigns', scoped: true },
+          { href: `/events?cause=${cause.slug}`, label: 'Events', scoped: true },
+          { href: `/teams?cause=${cause.slug}`, label: 'Teams & clubs', scoped: true },
+          { href: '/volunteer', label: 'Volunteer', scoped: false },
+          { href: '/success-stories', label: 'Stories', scoped: false },
+          { href: '/impact', label: 'Impact reports', scoped: false },
         ].map((l) => (
-          <Link key={l.href} href={l.href} className="cl-tab">{l.label}</Link>
+          <Link key={l.href} href={l.href} className="cl-tab">
+            {l.label}
+            {!l.scoped && <span className="cl-tab-scope"> · all causes</span>}
+          </Link>
         ))}
       </nav>
 
@@ -255,7 +270,11 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
                     four identical "Help now" links is still distinguishable. */}
                 {cause.helpsCta && (
                   <Link
-                    href={causeBrowseHref(cause)}
+                    // NOT `causeBrowseHref`, which returns the CAUSE PAGE for a
+                    // multi-category cause — so on People in Need all four of
+                    // these linked back to the page they were on. Caught by a
+                    // browser probe reading the rendered hrefs, not by any test.
+                    href={`/campaigns?cause=${cause.slug}`}
                     className="cl-helps-cta"
                     aria-label={`${cause.helpsCta}: ${h.title}`}
                   >

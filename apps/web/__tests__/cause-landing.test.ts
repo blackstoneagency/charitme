@@ -136,7 +136,10 @@ describe('the landing is wired to real destinations', () => {
     // they vanished. Checked against the files that now carry them.
     expect(page).toContain('/campaigns?cause=');
     expect(page).toContain('/events?cause=');
-    expect(page).toContain('/volunteer?cause=');
+    // Unscoped, deliberately: /volunteer reads no search params, so `?cause=`
+    // there was decoration. The LINK is what this test is about; whether it
+    // narrows is pinned separately, below.
+    expect(page).toContain("href: '/volunteer'");
     expect(landing).toContain('href="/create"');
     expect(read('lib/main-nav.ts')).toContain("href: '/partner'");
   });
@@ -190,6 +193,53 @@ describe('the landing is wired to real destinations', () => {
     expect(overlap.map((p) => p.title), 'a row appears in both lists').toEqual([]);
   });
 
+  it('every `?cause=` link goes to a route that actually READS the param', () => {
+    // ⚠️ This is the check whose absence shipped two false filters. The hub
+    // strip linked "All campaigns" to `/campaigns?cause=…` and "Volunteer" to
+    // `/volunteer?cause=…`; NEITHER route read the param, so both rendered the
+    // whole unfiltered list under a label naming one cause.
+    //
+    // Measured against the route files rather than trusted from a comment — the
+    // comment on that strip asserted both routes accepted a cause, and it was
+    // wrong about both.
+    const ROUTES: Record<string, string> = {
+      '/campaigns': 'app/campaigns/(list)/page.tsx',
+      '/events': 'app/events/(list)/page.tsx',
+      '/teams': 'app/teams/page.tsx',
+    };
+    const scopedHrefs = [...page.matchAll(/href: `(\/[a-z-]+)\?cause=\$\{cause\.slug\}`/g)].map((m) => m[1]);
+    expect(scopedHrefs.length, 'no `?cause=` links found — has the strip moved?').toBeGreaterThan(0);
+    for (const href of scopedHrefs) {
+      const file = ROUTES[href];
+      expect(file, `${href} is linked with ?cause= but is not in this map`).toBeTruthy();
+      const src = read(file);
+      expect(src, `${href} is linked with ?cause= but never reads sp.cause`).toMatch(/sp\.cause/);
+      expect(src, `${href} reads sp.cause but never resolves it`).toContain('getCause(');
+    }
+  });
+
+  it('a link that does NOT narrow says so', () => {
+    // The other half. A site-wide link is fine; a site-wide link labelled as if
+    // it were filtered is not.
+    expect(page).toContain("{ href: '/volunteer', label: 'Volunteer', scoped: false }");
+    expect(page).toContain('{!l.scoped && <span className="cl-tab-scope"> · all causes</span>}');
+  });
+
+  it('the helps CTA does not link the page to itself', () => {
+    // `causeBrowseHref` returns the CAUSE PAGE for a multi-category cause, so
+    // using it here made all four "Help now" links on People in Need point at
+    // the page they were already on.
+    expect(page).toContain('href={`/campaigns?cause=${cause.slug}`}');
+    // Comments stripped first — the block carries a comment EXPLAINING why
+    // `causeBrowseHref` is wrong here, and matching the text rather than the
+    // code would punish the explanation and push the next author to delete it.
+    // Same mistake, and same fix, as the fabricated-figure guard above.
+    const code = page.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
+    const at = code.indexOf('cl-helps-cta');
+    expect(at, 'the helps CTA is not rendered').toBeGreaterThan(-1);
+    expect(code.slice(at - 400, at + 200)).not.toContain('causeBrowseHref');
+  });
+
   it('every helps CTA carries the card it belongs to in its accessible name', () => {
     // Four links reading "Help now →" are indistinguishable in a links list, so
     // the card title goes in the aria-label. They share ONE destination on
@@ -197,7 +247,7 @@ describe('the landing is wired to real destinations', () => {
     // campaign as "shelter" rather than "food", so a per-card filter would
     // promise a narrowing that is not there.
     expect(page).toContain('aria-label={`${cause.helpsCta}: ${h.title}`}');
-    expect(page).toContain('href={causeBrowseHref(cause)}');
+    expect(page).toContain('href={`/campaigns?cause=${cause.slug}`}');
   });
 
   it('treats the hero photo as decorative, since the H1 beside it names the cause', () => {

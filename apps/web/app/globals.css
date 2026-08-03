@@ -9355,6 +9355,10 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   text-decoration: none;
 }
 .cl-tab:hover { border-color: var(--b2); background: var(--s2); color: var(--t1); }
+/* "· all causes" on the links that do NOT narrow. Quieter than the label but
+   still AA — `--t3` is the faintest tier that passes on `--s1` in both themes,
+   and the whole point of this marker is that it gets read. */
+.cl-tab-scope { font-weight: 600; color: var(--t3); }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    CAMPAIGNS BROWSE — hero band, category strip, three-column body
