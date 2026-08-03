@@ -84,6 +84,12 @@ export const POPULAR_CAUSES: readonly Cause[] = [
     tagline: 'Real help. Real people. Right now.',
     intro: 'Behind every campaign is a family facing a bill, a move, or a loss they did not plan for. Your support goes directly to the person who asked for it.',
     categories: ['Family', 'Wishes', 'Memorial'],
+    helps: [
+      { title: 'Fight hunger', body: 'Groceries and meals for households choosing between food and rent this month.' },
+      { title: 'Shelter and housing', body: 'Deposits, arrears and emergency stays that keep a family off the street.' },
+      { title: 'Health and care', body: 'Treatment, medication and the travel it takes to get to an appointment.' },
+      { title: 'Hope and dignity', body: 'Funeral costs, replacement essentials and the practical help that comes after a loss.' },
+    ],
   },
   {
     slug: 'community-relief',
