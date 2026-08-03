@@ -19046,78 +19046,6 @@ A cause whose count failed to load is not the least popular cause. Those sort
 LAST rather than being ranked as empty, and their figures are omitted from the
 card rather than rendered as "0".
 
-## ✅ DONE — /donate rebuilt to the supplied design (Claude, 2026-08-02)
-
-Replaced the campaign-grid page with the split hero: copy + trust rows on the
-left, a live **Make a Donation** panel on the right, then impact tiers, a trust
-row, supporter quotes and the closing line.
-
-### Wiring — nothing about the money path is re-implemented
-
-The panel posts to the **same endpoints as the campaign-page flow**:
-`/api/donations` one-off (with an `Idempotency-Key`, so a double-click cannot
-charge twice) and `/api/donations/recurring` for monthly, then follows the
-Stripe Checkout URL they return. A second checkout implementation is how the two
-would eventually disagree about fees, minimums or idempotency.
-
-- **Campaign picker** — live campaigns via `applyLiveFilters`, 86 in the stub.
-- **Donation count** — `donations` where `status = completed`. A failed read
-  renders a neutral phrase, never a confident "0 donations" on the page that
-  asks for money.
-- **Supporter quotes** — real donations through `getRecentDonations`, reused
-  rather than re-queried so the two anonymity gates (per-donation `anonymous`
-  AND account-wide profile visibility) cannot be re-broken here. Falls back to
-  honestly-labelled platform facts when there are fewer than three.
-
-Dark mode is genuinely black: the page surface is `var(--bg)`, measured
-`rgb(0, 0, 0)`.
-
-### ⚠️ `next dev` cannot test this page's JS — the CSP forbids `eval`
-
-The form appeared completely dead under `next dev`: clicks did nothing, no
-validation, no request. Not a bug — React Refresh evaluates strings, the app's
-`script-src` has no `unsafe-eval`, so **hydration never runs**. Every
-interaction test must run against `next start`. Costly to rediscover; recorded.
-
-### ⚠️ Native constraint validation silently swallowed two error paths
-
-`required` on the select and `min` on the custom-amount input short-circuit the
-submit handler, so the browser tooltip fired while every other check reported
-through the styled `role="alert"` region — two validation surfaces on one form,
-only one of them matching the design or announced consistently. Both attributes
-removed; the floor is enforced in the handler **and** server-side by the
-donations route. `$0.50` now reports "Minimum donation is $1."
-
-### ⚠️ Three separate instances of the grid `min-width: auto` trap
-
-The whole right half of the donation panel was **clipped**. `.dn-panel`,
-`.dn-field` and `.dn-freq` are grids, and a grid item defaults to
-`min-width: auto`, so each implicit column sized to its widest child's
-MIN-CONTENT — the amount grid measured 487px inside a 370px panel, and the
-campaign `<select>` re-widened its row to the longest campaign title. All three
-pinned to `minmax(0, 1fr)`. Verified 320–1440px: no clipped children anywhere.
-
-### ⚠️ Hero text was readable only because of a stacking-context sibling
-
-The contrast sweep reported **1.54:1** on hero copy that renders fine. It was
-right to: the photo and the dark shade are negative-z-index **children**, so
-they are siblings of the copy rather than ancestors, and a sweep walking
-ancestors resolved the text against the LIGHT page background. Fixed by giving
-`.dn-hero` an opaque dark base of its own — painting order is unchanged, so it
-is invisible, but the ancestor chain now tells the truth.
-
-### Two design-system guards caught real duplication
-
-`css-single-definition.test.ts` failed on both counts and both were mine:
-a new violet→magenta gradient instead of `var(--grad-violet)`/`var(--grad-brand)`,
-and two new heading clamps instead of `var(--fs-h1)`/`var(--fs-h2)`.
-
-**Verified:** typecheck 0 · lint 0 · **vitest 2794/2794 across 247 files** ·
-build exit 0 · contrast **0 failures, 86 pages × 2 themes** · responsive **0
-regressions, 86 × 3 viewports × 2 themes** · axe **4/4** · form driven in a real
-browser: blocks an empty campaign, rejects below-minimum, sends the tile amount,
-sends a custom $137 as 13700, carries the dedication, and routes monthly to the
-recurring endpoint.
 ## 🧭 /campaigns — same design as /causes, via a SHARED hero (Claude, 2026-08-03)
 
 `/campaigns` now opens with the same photo hero and measured stats strip as
@@ -19147,27 +19075,26 @@ Everything already on the page — search, location filter, category chips, sort
 featured row, sidebar panels — is untouched and still server-rendered from real
 query params.
 
-### /donate — coverage added, and what is genuinely NOT done (Claude, 2026-08-02)
+## 💝 /donate — COLLISION, and I stood down (Claude, 2026-08-03)
 
-`__tests__/donate-page.test.ts` (14 assertions) pins the properties whose failure
-costs most on the page that asks for money: it posts to the shared endpoints
-rather than a second checkout, sends an `Idempotency-Key` on one-off gifts,
-imports the floor from `@shared/fees` instead of hardcoding one, keeps
-validation on a single announced surface, degrades honestly on a failed read,
-and **reuses `getRecentDonations` rather than joining donor identity itself** —
-naming a hidden donor is a defect this repo has already fixed four times.
+I built the shared `IndexHero` + `StatStrip` onto `/donate` and it was green
+(0 axe, 0 contrast failures site-wide, 2797 tests). While it was in flight
+another lane landed **three** commits on the same page:
 
-Mutation-tested: removing the `Idempotency-Key` fails, and planting a direct
-`donations`+`donor_id` join fails with the anonymity message. Both pass restored.
+- `c0c9a6fa` rebuild /donate to the supplied design, wired to Supabase (#221)
+- `f1a7aeff` pin the money-path and anonymity contracts on /donate (#223)
+- `d2e0d911` the design's tax-deductibility claim contradicted the product (#224)
 
-**🔴 Three things block "100% production ready", none of them in the repo:**
+**Theirs wins and mine was dropped.** Their version is a purpose-built 266-line
+rebuild against a design supplied for *that* page, with its own hero
+(`dn-hero` — photo, shade, trust rows, proof avatars, live donation panel), 287
+lines of CSS, pinned tests on the money path, and a fix for a claim in the design
+that contradicted the product. Mine was a hero swap. Overwriting it would have
+traded a specific, tested rebuild for a generic one.
 
-| # | Item | Who |
-|---|---|---|
-| 1 | **Cannot verify the page is live on Production.** `www.charitme.com` → `000` (gateway refuses CONNECT); GitHub's deployments **and** commit-status APIs both answer `Resource not accessible by integration`. Merging to `master` is the production trigger and Vercel reported **Building**, but nothing reachable from here confirms the alias flipped. | **Owner** — open the page, or check the Vercel dashboard |
-| 2 | **No real charge has ever been made.** The form's payloads, validation and endpoint routing are verified in a real browser, but the stub returns no Stripe session, so charge → transfer → payout → receipt is still unproven. Tracked as **O3**. | **Owner** — Stripe test keys |
-| 3 | ~~501(c)(3) claims~~ **RESOLVED — the design's wording was factually wrong and is fixed.** See below. | — |
-| 3 | **The 501(c)(3) and "all donations are tax-deductible" lines are regulated claims.** They come from the supplied design and are rendered as given. If CharitMe is not itself a registered 501(c)(3) — the 0%-platform-fee + tip model reads like a platform, not a charity — these two sentences are the ones to change before launch. Flagged, not altered: matching the design was the instruction. | **Owner** — legal |
+⚠️ The rebase conflict was the *only* signal this had happened — the page still
+returned 200 and looked fine locally the whole time. **Fetch before starting on a
+page, not just before pushing.**
 
 The hero photograph also differs from the design's child-holding-a-heart image:
 that asset is not in the repo and image hosts are unreachable from here, so
@@ -19288,3 +19215,9 @@ Or open the Vercel dashboard and check the deployment aliased to
 **Do not record this as "unverified work".** The work is verified; what cannot
 be observed from inside the sandbox is a DNS alias belonging to the owner.
 Those are different claims, and conflating them has now cost five rounds.
+
+### Consequence for the shared hero
+`/causes` and `/campaigns` share `components/IndexHero.tsx`; `/donate`
+deliberately does NOT, because it has a design of its own. The test iterates the
+two pages that opted in rather than asserting "every index" — which would now be
+false.
