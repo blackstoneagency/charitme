@@ -16,6 +16,7 @@
     "audit:campaign-images": "node scripts/audit-campaign-images.mjs",
     "probe:migrations": "node scripts/probe-production-migrations.mjs",
     "audit:route-auth": "node scripts/audit-route-auth.mjs",
+    "audit:secret-exposure": "node scripts/audit-secret-exposure.mjs",
     "audit:page-images": "node scripts/audit-page-images.mjs",
     "audit:contrast": "node scripts/audit-contrast.mjs",
     "audit:responsive": "node scripts/audit-responsive.mjs",
