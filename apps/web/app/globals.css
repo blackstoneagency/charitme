@@ -9110,11 +9110,15 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
     align-items: center;
     justify-content: center;
     flex: 0 0 auto;
-    width: 56px;
-    height: 56px;
+    width: 64px;
+    height: 64px;
+    /* The reference rings it. Decorative, so the ring is a tinted rule rather
+       than a token border — it must not read as an interactive boundary. */
+    border: 1px solid rgba(255, 77, 141, .38);
+    border-radius: 50%;
     color: var(--red-text, #ff4d8d);
   }
-  .cl-cta-heart svg { width: 100%; height: 100%; }
+  .cl-cta-heart svg { width: 30px; height: 30px; }
   .cl-cta-inner { grid-template-columns: auto minmax(0, 1fr) auto; }
 }
 /* Below the breakpoint the photo becomes a band above the copy rather than a

@@ -102,6 +102,16 @@ accent; the LINKS did not. Amber or orange text on the light theme's near-white
 `--s1` is exactly the light-mode AA failure this stylesheet has shipped before,
 so the links stay on the AA-verified brand token.
 
+**One section the reference has and the page does not, deliberately.** The mock
+draws TWO campaign bands: the browse grid under the tabs, and a curated
+"Featured Campaigns" trio lower down. The page renders one. Our grid is already
+the cause's campaigns ordered by amount raised, so a "featured" trio beneath it
+would be its own first three rows — the same campaigns, printed twice, on a page
+whose job is to get someone to one of them. Matching the mock's section *count*
+is not worth showing a visitor the same three cards in two places. Flagging it
+rather than burying it: if a genuinely distinct editorial pick is wanted, that
+needs a curation field, which does not exist yet.
+
 **Also:** the mock's "See All Programs" pointed nowhere. There is no per-cause
 programmes route, and inventing one would link to a 404 — it is an in-page jump
 to the section that expands on exactly those rows, and the test asserts that
