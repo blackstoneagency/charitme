@@ -100,10 +100,21 @@ describe('the page is wired to real data', () => {
 describe('the category chips filter for real', () => {
   it('every chip resolves to a cause that exists', () => {
     // A chip pointing at a slug with no cause behind it is a link to a 404.
-    const slugs = [...page.matchAll(/^\s+'([a-z-]+)',$/gm)].map((m) => m[1]);
-    const causeSlugs = slugs.filter((s) => getCause(s));
-    expect(causeSlugs.length, 'no cause slugs found — has STORY_CAUSES moved?').toBeGreaterThan(4);
-    for (const slug of causeSlugs) expect(getCause(slug), `${slug} has no cause`).toBeTruthy();
+    // Entries are `['slug', 'icon'],` since the chips gained the reference's
+    // glyphs. The `toBeGreaterThan` below is the self-check that keeps this from
+    // passing vacuously when the shape changes again — and it earned its keep:
+    // it failed loudly on the flat-list → tuple change rather than quietly
+    // asserting nothing.
+    // ⚠️ Scoped to the STORY_CAUSES block. An unanchored tuple pattern also
+    // matched `.in('status', ['active', 'completed'])` and then asserted that
+    // "active" was a cause — a guard that fails on unrelated code is a guard
+    // people learn to edit around.
+    const start = page.indexOf('const STORY_CAUSES');
+    expect(start, 'STORY_CAUSES not found').toBeGreaterThan(-1);
+    const block = page.slice(start, page.indexOf('] as const;', start));
+    const slugs = [...block.matchAll(/\['([a-z-]+)',\s*'[a-z]+'\]/g)].map((m) => m[1]);
+    expect(slugs.length, 'no cause slugs found — has STORY_CAUSES moved?').toBeGreaterThan(4);
+    for (const slug of slugs) expect(getCause(slug), `${slug} has no cause`).toBeTruthy();
   });
 
   it('labels each chip with the cause it actually filters to', () => {

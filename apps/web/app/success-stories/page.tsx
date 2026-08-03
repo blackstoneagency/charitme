@@ -4,7 +4,8 @@ import { unstable_cache } from 'next/cache';
 import { supabaseAdmin } from '../../lib/supabase';
 import { boundedQuery } from '../../lib/query-timeout';
 import { campaignColumns, applyVisibilityFilters } from '../../lib/campaign-visibility';
-import { getCause, type Cause } from '../../lib/causes';
+import { getCause, type Cause, type HelpIcon } from '../../lib/causes';
+import HelpGlyph from '../../components/HelpGlyph';
 import { getCoverForCampaign } from '../../lib/photo-catalog';
 import { optimizedCoverUrl } from '../../lib/img-optimize';
 import { formatMoneyStat, formatStat } from '../../lib/cause-landing';
@@ -54,21 +55,27 @@ export const metadata: Metadata = {
  *    black canvas from `--bg` either way.
  */
 
-/** The chips, in the reference's order, mapped to causes that really exist. */
-const STORY_CAUSES = [
-  'youth-development',
-  'education',
-  'health-wellness',
-  'people-in-need',
-  'food-hunger',
-  'environment',
-  'community-relief',
+/**
+ * The chips, in the reference's order, mapped to causes that really exist —
+ * each with the glyph the mock draws above its label.
+ */
+const STORY_CAUSES: readonly (readonly [string, HelpIcon])[] = [
+  ['youth-development', 'community'],
+  ['education', 'learn'],
+  ['health-wellness', 'health'],
+  ['people-in-need', 'home'],
+  ['food-hunger', 'food'],
+  ['environment', 'leaf'],
+  ['community-relief', 'hope'],
 ] as const;
 
-function storyCauses(): Cause[] {
+function storyCauses(): { cause: Cause; icon: HelpIcon }[] {
   // `getCause` rather than a second hand-written list: if a slug is ever
   // renamed, the chip disappears instead of linking to a 404.
-  return STORY_CAUSES.map((slug) => getCause(slug)).filter((c): c is Cause => Boolean(c));
+  return STORY_CAUSES.flatMap(([slug, icon]) => {
+    const cause = getCause(slug);
+    return cause ? [{ cause, icon }] : [];
+  });
 }
 
 type Story = {
@@ -257,15 +264,19 @@ export default async function SuccessStoriesPage({
       <section className="ss-filters" aria-label="Filter stories">
         <nav className="ss-chips" aria-label="Story categories">
           <Link href={href()} className="ss-chip" aria-current={activeCause ? undefined : 'page'}>
+            {/* aria-hidden on the wrapper, not inside HelpGlyph: the label beside
+                it already names the chip. */}
+            <span className="ss-chip-ic" aria-hidden="true"><HelpGlyph icon="all" /></span>
             All Stories
           </Link>
-          {storyCauses().map((c) => (
+          {storyCauses().map(({ cause: c, icon }) => (
             <Link
               key={c.slug}
               href={href(c.slug)}
               className="ss-chip"
               aria-current={activeCause?.slug === c.slug ? 'page' : undefined}
             >
+              <span className="ss-chip-ic" aria-hidden="true"><HelpGlyph icon={icon} /></span>
               {c.label}
             </Link>
           ))}

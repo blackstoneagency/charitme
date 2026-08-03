@@ -4,7 +4,7 @@ import CampaignImage from '../../../components/CampaignImage';
 import { causeBrowseHref, type Cause } from '../../../lib/causes';
 import { formatStat, formatMoneyStat, type CauseStats } from '../../../lib/cause-landing';
 import { getCoverForCategory } from '../../../lib/photo-catalog';
-import HelpGlyph from './HelpGlyph';
+import HelpGlyph from '../../../components/HelpGlyph';
 
 /**
  * The cause landing hero and stats sheet.

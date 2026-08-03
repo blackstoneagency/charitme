@@ -386,7 +386,9 @@ describe('the fuller Sports & Youth layout', () => {
     // Five identical hearts differing only in colour told a reader nothing about
     // which card was which, and told a reader who does not perceive the colour
     // nothing at all.
-    const glyphs = read('app/causes/[slug]/HelpGlyph.tsx');
+    // Moved to components/ when /success-stories reused it for the category
+    // chips — two callers, one glyph set.
+    const glyphs = read('components/HelpGlyph.tsx');
     const sports = CAUSES.find((c) => c.slug === 'sports-youth')!;
     expect(sports.helps!.every((h) => h.icon), 'every Sports & Youth card names an icon').toBe(true);
     const icons = new Set(sports.helps!.map((h) => h.icon));

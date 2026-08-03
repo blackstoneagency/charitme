@@ -155,7 +155,11 @@ export type HelpIcon =
   | 'food'
   | 'home'
   | 'health'
-  | 'hope';
+  | 'hope'
+  // Added for the /success-stories category strip, which needs an "everything"
+  // affordance and a nature glyph the cause helps never called for.
+  | 'all'
+  | 'leaf';
 
 /** The 8 shown under "Popular Causes" in the header dropdown. */
 export const POPULAR_CAUSES: readonly Cause[] = [

@@ -1,4 +1,4 @@
-import type { HelpIcon } from '../../../lib/causes';
+import type { HelpIcon } from '../lib/causes';
 
 /**
  * The glyph inside a "how your support helps" badge.
@@ -75,6 +75,22 @@ const PATHS: Record<HelpIcon, React.ReactNode> = {
     <>
       <path d="M12 3.2 4.6 6v6.1c0 4.3 3.1 7.6 7.4 8.7 4.3-1.1 7.4-4.4 7.4-8.7V6L12 3.2Z" />
       <path d="M12 8.6v6.2M8.9 11.7h6.2" />
+    </>
+  ),
+  // A four-up grid — "all categories".
+  all: (
+    <>
+      <rect x="3.4" y="3.4" width="7" height="7" rx="1.6" />
+      <rect x="13.6" y="3.4" width="7" height="7" rx="1.6" />
+      <rect x="3.4" y="13.6" width="7" height="7" rx="1.6" />
+      <rect x="13.6" y="13.6" width="7" height="7" rx="1.6" />
+    </>
+  ),
+  // A leaf — the planet.
+  leaf: (
+    <>
+      <path d="M20 4c0 8.3-4.6 13.4-11.6 13.4A5.4 5.4 0 0 1 3 12c0-5 4.3-8 11-8h6Z" />
+      <path d="M4.5 20.5c1.6-4.4 4.6-7.8 8.5-9.6" />
     </>
   ),
   // Hands under a heart — dignity after a loss.
