@@ -8538,7 +8538,10 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 }
 
 /* ═══ /campaigns — browse layout (design: "Campaigns That Change Lives") ═══ */
-.cb-page { width: min(100% - 40px, 1280px); margin-inline: auto; padding: 28px 0 72px; }
+/* The full-bleed hero has to escape this wrapper, so the width constraint moves
+   off the page root and onto the content below it. */
+.cb-page { display: block; padding: 0 0 72px; }
+.cb-page > *:not(.cx-hero):not(.cx-stats) { width: min(100% - 40px, 1280px); margin-inline: auto; }
 
 .cb-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; color: var(--t3); margin-bottom: 18px; }
 .cb-crumbs a { color: var(--t3); text-decoration: none; display: inline-flex; align-items: center; min-height: 24px; }
@@ -8553,7 +8556,7 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
    `overflow-x: auto` on the row itself keeps the SCROLL INSIDE this element —
    without it the widest chip pushes the page and the whole document scrolls
    sideways, which is the failure `audit:responsive` checks for. */
-.cb-chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 26px; scrollbar-width: thin; }
+.cb-chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin: 0 0 26px; scrollbar-width: thin; }
 .cb-chip {
   flex: 0 0 auto;
   display: inline-flex;

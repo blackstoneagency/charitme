@@ -19045,3 +19045,32 @@ twice (`definition-list` + `dlitem`, both serious). The icon now lives inside th
 A cause whose count failed to load is not the least popular cause. Those sort
 LAST rather than being ranked as empty, and their figures are omitted from the
 card rather than rendered as "0".
+
+## 🧭 /campaigns — same design as /causes, via a SHARED hero (Claude, 2026-08-03)
+
+`/campaigns` now opens with the same photo hero and measured stats strip as
+`/causes`: breadcrumb over the scrim, H1 + lede, two CTAs, a supporting card, and
+the four platform figures.
+
+### ⚠️ Extracted, not copied — `components/IndexHero.tsx`
+Both pages render **one** hero and **one** stats strip. A lookalike would drift in
+the two places that matter most: the **scrim** (the only thing keeping the text
+readable over an arbitrary photo) and the **em-dash rule** for a figure that
+could not be measured. Both indexes also read their figures from the **same
+loader**, so they cannot state different platform totals. Tests assert both.
+
+### 🐛 Nesting `<li>` inside `<li>` renders every crumb twice
+The first version wrapped each crumb in an `<li style="display: contents">` that
+itself contained `<li>`s. Result on screen: *"Home Home ›Causes › Causes
+›Campaigns › Campaigns"* — and invalid `<ol>` markup. The separator sits in a
+Fragment now. **`display: contents` does not make an element a valid list
+parent.**
+
+### The page root had to stop constraining width
+`.cb-page` was `width: min(100% - 40px, 1280px)`, which boxed the full-bleed hero
+inside the content measure. The constraint moved off the root and onto the
+children, excluding the two full-bleed bands.
+
+Everything already on the page — search, location filter, category chips, sort,
+featured row, sidebar panels — is untouched and still server-rendered from real
+query params.

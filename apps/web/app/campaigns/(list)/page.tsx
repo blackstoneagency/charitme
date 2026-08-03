@@ -5,6 +5,9 @@ import { campaignColumns, applyLiveFilters } from '../../../lib/campaign-visibil
 import { applyCampaignSearch, likeTerm } from '../../../lib/campaign-search';
 import { EmptyState } from '../../../components/ui';
 import { CampaignCard, CampaignGrid } from '../../../components/CampaignCard';
+import { IndexHero, StatStrip, statValue, moneyValue } from '../../../components/IndexHero';
+import { getCausesIndexData } from '../../../lib/causes-index';
+import { getCoverForCategory } from '../../../lib/photo-catalog';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 import { getTopDonors } from '../../../lib/leaderboard';
 import { formatCents } from '../../../lib/stripe';
@@ -169,12 +172,13 @@ export default async function CampaignsPage({ searchParams }: Props) {
   // The sidebar panels and the featured row are supplementary — a failure in any
   // of them must not take the campaign list with it, so each resolves to null
   // and simply renders nothing rather than throwing the page away.
-  const [{ campaigns, total, unavailable }, featured, topDonors] = await Promise.all([
+  const [{ campaigns, total, unavailable }, featured, topDonors, platform] = await Promise.all([
     getCampaigns({ category, q, sort, verifiedOnly: verified, location, taxDeductibleOnly: tax, page }),
     showExtras ? getFeatured() : Promise.resolve(null),
     showExtras
       ? getTopDonors('all', 5).catch(() => [])
       : Promise.resolve([] as Awaited<ReturnType<typeof getTopDonors>>),
+    getCausesIndexData(),
   ]);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -216,21 +220,41 @@ export default async function CampaignsPage({ searchParams }: Props) {
 
   return (
     <div className="cb-page">
-      <nav aria-label="Breadcrumb" className="cb-crumbs">
-        <Link href="/">Home</Link>
-        <span aria-hidden="true">›</span>
-        <Link href="/causes">Causes</Link>
-        <span aria-hidden="true">›</span>
-        <b aria-current="page">Campaigns</b>
-      </nav>
+      {/* Same hero and stats strip as /causes, from the SHARED component rather
+          than a second copy — a lookalike would drift exactly where it matters
+          most, in the scrim that keeps the text readable over an arbitrary
+          photo. Figures come from the same loader too, so the two browse
+          indexes cannot state different platform totals. */}
+      <IndexHero
+        crumbs={[{ label: 'Home', href: '/' }, { label: 'Causes', href: '/causes' }, { label: 'Campaigns' }]}
+        title="Campaigns that change lives"
+        lede="Every campaign here is a real fundraiser with a real goal. Search by cause, place, or keyword — or browse what people are supporting right now."
+        photo={getCoverForCategory('Community')}
+        photoCategory="Community"
+        photoKey="campaigns-index"
+        card={{
+          title: 'See exactly what you are supporting.',
+          body: 'Each card shows a CharitScore trust rating, how much has been raised, and how long is left — before you give.',
+        }}
+        actions={
+          <>
+            <Link href="/create" className="cta-primary" style={{ display: 'inline-flex' }}>
+              Start a fundraiser
+            </Link>
+            <Link href="/how-it-works" className="cx-btn-secondary">How it works</Link>
+          </>
+        }
+      />
 
-      <header className="cb-hero">
-        <h1>Campaigns That Change Lives</h1>
-        <p>
-          Every campaign here is a real fundraiser with a real goal. Search by cause, place, or
-          keyword — or browse what people are supporting right now.
-        </p>
-      </header>
+      <StatStrip
+        label="CharitMe at a glance"
+        tiles={[
+          { value: statValue(platform.activeCampaigns), label: 'Active campaigns' },
+          { value: moneyValue(platform.raisedTotalCents), label: 'Raised on CharitMe' },
+          { value: statValue(platform.gifts), label: 'Gifts given' },
+          { value: statValue(platform.countries), label: 'Countries supported' },
+        ]}
+      />
 
       {/* Category chips. Built from CAMPAIGN_CATEGORIES, the single source of
           truth in @shared/fees — three hand-maintained copies of this list had
