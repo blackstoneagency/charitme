@@ -107,6 +107,10 @@ function WeeklyLineChart({ points }: { points: WeekPoint[] }) {
       {coords.map((c, i) => (
         <circle key={i} cx={c.x} cy={c.y} r={5} fill="#6c35ff" stroke="#fff" strokeWidth={3} />
       ))}
+      {/* Axis labels are real text, so AA 4.5 applies. `#8c95b2` measured
+          2.80:1 on a white card — fine on dark, which is how it survived a
+          sweep that cannot log in to see this page. The token clears the bar
+          in both themes. */}
       {points.map((p, i) => (
         <text
           key={`lbl-${i}`}
@@ -114,7 +118,7 @@ function WeeklyLineChart({ points }: { points: WeekPoint[] }) {
           y={H - 4}
           textAnchor="middle"
           fontSize={9}
-          fill="#8c95b2"
+          fill="var(--t3)"
         >
           {p.label}
         </text>
