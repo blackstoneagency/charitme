@@ -65,7 +65,7 @@ export async function getCauseStats(cause: Cause): Promise<CauseStats> {
     // stalled connection). They solve different failures: a row cap does nothing
     // when the database never answers, and a deadline does nothing about a query
     // that answers slowly because it read the whole table.
-    boundedQuery(
+    boundedQuery(() =>
       applyLiveFilters(
         supabaseAdmin.from('campaigns').select('category, raised_amount, backer_count'),
         cols,
@@ -73,7 +73,7 @@ export async function getCauseStats(cause: Cause): Promise<CauseStats> {
         .in('category', [...cause.categories])
         .limit(CAUSE_STATS_SCAN_LIMIT),
     ),
-    boundedQuery(
+    boundedQuery(() =>
       supabaseAdmin
         .from('supported_countries')
         .select('id', { count: 'exact', head: true })

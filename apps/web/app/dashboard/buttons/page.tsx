@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../lib/query-timeout';
 import 'server-only';
 import type { Metadata } from 'next';
 import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
@@ -47,13 +48,13 @@ async function loadButtons(userId: string): Promise<ButtonRow[] | null> {
 }
 
 async function loadCampaigns(userId: string) {
-  const { data } = await supabaseAdmin
+  const { data } = await boundedQuery(() => supabaseAdmin
     .from('campaigns')
     .select('id, title, slug')
     .eq('user_id', userId)
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
-    .limit(100);
+    .limit(100));
   return (data ?? []).map((c) => ({ id: c.id as string, title: c.title as string, slug: c.slug as string }));
 }
 

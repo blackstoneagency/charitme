@@ -51,22 +51,54 @@ describe('withQueryTimeout', () => {
 describe('boundedQuery', () => {
   it('passes a successful query through untouched', async () => {
     const { boundedQuery } = await import('../lib/query-timeout');
-    const q = Promise.resolve({ data: [{ id: 1 }], error: null });
-    expect(await boundedQuery(q)).toEqual({ data: [{ id: 1 }], error: null });
+    expect(await boundedQuery(() => Promise.resolve({ data: [{ id: 1 }], error: null })))
+      .toEqual({ data: [{ id: 1 }], error: null });
   });
 
   it('synthesises the supabase failure shape on timeout so the existing error branch runs', async () => {
     const { boundedQuery } = await import('../lib/query-timeout');
-    const slow = new Promise((r) => setTimeout(() => r({ data: [1], error: null }), 500));
-    const result = await boundedQuery(slow, 10) as { data: unknown; error: { code: string } };
+    const result = await boundedQuery(
+      () => new Promise((r) => setTimeout(() => r({ data: [1], error: null }), 500)),
+      10,
+    ) as { data: unknown; error: { code: string } };
     expect(result.data).toBeNull();
     expect(result.error.code).toBe('QUERY_TIMEOUT');
   });
 
   it('also synthesises the failure shape when the query rejects', async () => {
     const { boundedQuery } = await import('../lib/query-timeout');
-    const result = await boundedQuery(Promise.reject(new Error('ECONNREFUSED')), 50) as { data: unknown; error: { code: string } };
+    const result = await boundedQuery(() => Promise.reject(new Error('ECONNREFUSED')), 50) as { data: unknown; error: { code: string } };
     expect(result.data).toBeNull();
     expect(result.error.code).toBe('QUERY_TIMEOUT');
+  });
+
+  // ── The reason boundedQuery takes a thunk at all ──────────────────────────
+  //
+  // `supabaseAdmin` is a Proxy whose `get` trap throws when the service-role env
+  // vars are missing, so `supabaseAdmin.from('x')` throws SYNCHRONOUSLY, while
+  // the argument is being evaluated. Under the old signature that happened
+  // before boundedQuery was entered: not a rejection, never `{ error }`, and a
+  // 500 on every page that read the database — even though all 69 call sites
+  // already had an error branch written and ready.
+  it('catches a synchronous throw while BUILDING the query, not just a rejection', async () => {
+    const { boundedQuery } = await import('../lib/query-timeout');
+    const proxy = new Proxy({} as Record<string, unknown>, {
+      get() { throw new Error('SUPABASE_SERVICE_ROLE_KEY is not set'); },
+    });
+    const result = await boundedQuery(
+      () => (proxy as { from: (t: string) => PromiseLike<unknown> }).from('campaigns'),
+      50,
+    ) as { data: unknown; error: { code: string; message: string } };
+    expect(result.data).toBeNull();
+    expect(result.error.code).toBe('QUERY_UNAVAILABLE');
+    expect(result.error.message).toContain('SUPABASE_SERVICE_ROLE_KEY');
+  });
+
+  it('distinguishes an unavailable client from a slow one', async () => {
+    const { boundedQuery } = await import('../lib/query-timeout');
+    const slow = await boundedQuery(() => new Promise(() => {}), 10) as { error: { code: string } };
+    const dead = await boundedQuery(() => { throw new Error('no client'); }, 10) as { error: { code: string } };
+    expect(slow.error.code).toBe('QUERY_TIMEOUT');
+    expect(dead.error.code).toBe('QUERY_UNAVAILABLE');
   });
 });

@@ -102,7 +102,7 @@ function momentumScore(campaign: Campaign, donations: Donation[]): number {
 // ─────────────────────────────────────────────
 async function getGrowthData(userId: string): Promise<GrowthData> {
   try {
-    const { data: campaigns, error: campaignsError } = await boundedQuery(
+    const { data: campaigns, error: campaignsError } = await boundedQuery(() =>
       supabaseAdmin
         .from('campaigns')
         .select('id,title,slug,status,goal_amount,raised_amount,backer_count,cover_image_url,category')
@@ -126,7 +126,7 @@ async function getGrowthData(userId: string): Promise<GrowthData> {
     let donations: Donation[] = [];
     if (cids.length > 0) {
       const thirtyDaysAgo = new Date(PAGE_TIME - 30 * 24 * 60 * 60 * 1000).toISOString();
-      const { data: donationData, error: donationsError } = await boundedQuery(
+      const { data: donationData, error: donationsError } = await boundedQuery(() =>
         supabaseAdmin
           .from('donations')
           .select('campaign_id,amount_cents,created_at')
@@ -153,13 +153,13 @@ async function getGrowthData(userId: string): Promise<GrowthData> {
     let detailsFailed = false;
     if (cids.length > 0) {
       const [updatesResult, messagesResult] = await Promise.all([
-        boundedQuery(
+        boundedQuery(() =>
           supabaseAdmin
             .from('campaign_updates')
             .select('*', { count: 'exact', head: true })
             .eq('user_id', userId),
         ),
-        boundedQuery(
+        boundedQuery(() =>
           supabaseAdmin
             .from('donor_messages')
             .select('*', { count: 'exact', head: true })

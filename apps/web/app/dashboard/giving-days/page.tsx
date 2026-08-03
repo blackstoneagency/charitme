@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../lib/query-timeout';
 import 'server-only';
 import type { Metadata } from 'next';
 import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
@@ -21,11 +22,11 @@ export const metadata: Metadata = { title: 'Giving Days | CharitMe' };
 async function ownedNonprofits(userId: string): Promise<{ id: string; name: string }[]> {
   const ids = await ownedNonprofitIds(userId);
   if (ids.length === 0) return [];
-  const { data } = await supabaseAdmin
+  const { data } = await boundedQuery(() => supabaseAdmin
     .from('nonprofit_profiles')
     .select('id, name')
     .in('id', ids)
-    .order('name', { ascending: true });
+    .order('name', { ascending: true }));
   return (data ?? []).map((r) => ({ id: r.id as string, name: r.name as string }));
 }
 

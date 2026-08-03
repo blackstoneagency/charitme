@@ -68,12 +68,12 @@ async function getTeams(categories?: readonly string[]): Promise<TeamsData | nul
     // for ~7s with no ceiling. A timeout yields `{ data: null, error }`, which
     // the `null` return below already renders as "could not load", not "none".
     const [listRes, countRes, sumRes] = await Promise.all([
-      boundedQuery(
+      boundedQuery(() =>
         (scoped ? listQuery.in('campaigns.category', categories as string[]) : listQuery)
           .order('raised_amount', { ascending: false })
           .limit(12),
       ),
-      boundedQuery(
+      boundedQuery(() =>
         supabaseAdmin
           .from('peer_fundraisers')
           .select('id', { count: 'exact', head: true })
@@ -81,7 +81,7 @@ async function getTeams(categories?: readonly string[]): Promise<TeamsData | nul
       ),
       // Bounded: the sum is over active teams only and capped. A full-table
       // scan here is what `__tests__/unbounded-reads.test.ts` exists to stop.
-      boundedQuery(
+      boundedQuery(() =>
         supabaseAdmin
         .from('peer_fundraisers')
         .select('raised_amount')

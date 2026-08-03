@@ -48,13 +48,13 @@ async function getMapData(): Promise<MapData | null> {
 
     const [locRes, countryRes] = await Promise.all([
       // Bounded read of just the two columns needed to group.
-      boundedQuery(
+      boundedQuery(() =>
         applyLiveFilters(
           supabaseAdmin.from('campaigns').select('location, category'),
           cols,
         ).limit(5000)
       ),
-      boundedQuery(
+      boundedQuery(() =>
         supabaseAdmin.from('supported_countries').select('id', { count: 'exact', head: true })
       ),
     ]);

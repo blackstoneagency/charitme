@@ -95,7 +95,7 @@ export default async function PayoutsPage({
     { data: activeCampaignData, error: activeCampaignError },
     { data: payoutData, error: payoutError },
   ] = await Promise.all([
-    boundedQuery(
+    boundedQuery(() =>
       supabaseAdmin
         .from('campaigns')
         .select('id, title, raised_amount')
@@ -105,7 +105,7 @@ export default async function PayoutsPage({
         .order('raised_amount', { ascending: false })
         .limit(20),
     ),
-    boundedQuery(
+    boundedQuery(() =>
       supabaseAdmin
         .from('payouts')
         .select('id,campaign_id,amount_cents,fee_cents,payout_speed,status,created_at')
@@ -126,7 +126,7 @@ export default async function PayoutsPage({
   let campaignTitleMap = new Map<string, string>();
   let campaignCurrencyMap = new Map<string, string | null>();
   if (campaignIds.length > 0) {
-    const { data: campaignData, error: campaignError } = await boundedQuery(
+    const { data: campaignData, error: campaignError } = await boundedQuery(() =>
       supabaseAdmin
         .from('campaigns')
         .select('id,title')

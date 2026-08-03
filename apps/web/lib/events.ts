@@ -47,7 +47,7 @@ export async function listPublishedEvents(
     .select(scoped ? `${EVENT_COLUMNS}, campaigns!inner(category)` : EVENT_COLUMNS)
     .eq('status', 'published');
 
-  const { data, error } = await boundedQuery(
+  const { data, error } = await boundedQuery(() =>
     (scoped ? base.in('campaigns.category', categories as string[]) : base)
       .order('starts_at', { ascending: true })
       .limit(Math.min(limit, 200)),
@@ -78,7 +78,7 @@ export async function getEventById(id: string): Promise<FundraisingEvent | null>
 }
 
 export async function listOrganizerEvents(userId: string): Promise<EventWithCounts[]> {
-  const { data, error } = await boundedQuery(
+  const { data, error } = await boundedQuery(() =>
   supabaseAdmin
       .from('fundraising_events')
       .select(EVENT_COLUMNS)
@@ -95,7 +95,7 @@ export interface RegistrationWithCheckin extends EventRegistration {
 }
 
 export async function listEventRegistrations(eventId: string): Promise<RegistrationWithCheckin[]> {
-  const { data, error } = await boundedQuery(
+  const { data, error } = await boundedQuery(() =>
   supabaseAdmin
       .from('event_registrations')
       .select('*')
@@ -136,7 +136,7 @@ async function withCounts(rows: FundraisingEvent[]): Promise<EventWithCounts[]> 
 export async function listEventTickets(
   eventId: string,
 ): Promise<{ tickets: EventTicket[]; failed: boolean }> {
-  const { data, error } = await boundedQuery(
+  const { data, error } = await boundedQuery(() =>
     supabaseAdmin
       .from('event_tickets')
       .select('id, event_id, title, price_cents, quantity_limit, sold_count, created_at')

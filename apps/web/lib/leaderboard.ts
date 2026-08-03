@@ -69,7 +69,7 @@ export function periodCutoff(period: LeaderboardPeriod): string | null {
 async function campaignsByIds(ids: string[]): Promise<Map<string, Record<string, unknown>>> {
   if (ids.length === 0) return new Map();
   const cols = await campaignColumns();
-  const { data, error } = await boundedQuery(
+  const { data, error } = await boundedQuery(() =>
     applyLiveFilters(
       supabaseAdmin
         .from('campaigns')
@@ -119,7 +119,7 @@ export async function getTopCampaignsForPeriod(
   const cutoff = periodCutoff(period);
   if (!cutoff) return getTopCampaigns(limit);
 
-  const { data, error } = await boundedQuery(
+  const { data, error } = await boundedQuery(() =>
     supabaseAdmin
       .from('donations')
       .select('campaign_id, amount_cents, created_at')
@@ -175,7 +175,7 @@ export async function getTopCampaigns(limit = 20): Promise<LeaderboardCampaign[]
   // stall on the whole page is not (DB-backed pages measured ~7s against an
   // unreachable Supabase). The existing `error || !data` path already renders
   // empty, so a timeout simply takes the same branch.
-  const { data, error } = await boundedQuery(
+  const { data, error } = await boundedQuery(() =>
     applyLiveFilters(
       supabaseAdmin
         .from('campaigns')
@@ -226,7 +226,7 @@ export async function getTopDonors(period: LeaderboardPeriod, limit = 20): Promi
 
   if (cutoff) query = query.gte('created_at', cutoff);
 
-  const { data, error } = await boundedQuery(query);
+  const { data, error } = await boundedQuery(() => query);
   if (error || !data) return [];
 
   const totals = new Map<string, { totalCents: number; donationCount: number }>();

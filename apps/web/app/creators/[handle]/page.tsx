@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../lib/query-timeout';
 import { notFound } from 'next/navigation';
 import { cache } from 'react';
 import Link from 'next/link';
@@ -119,10 +120,10 @@ async function getViewerContext(creatorProfileId: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const { data: tierRows } = await supabaseAdmin
+  const { data: tierRows } = await boundedQuery(() => supabaseAdmin
     .from('membership_tiers')
     .select('id, title, amount_cents')
-    .eq('creator_profile_id', creatorProfileId);
+    .eq('creator_profile_id', creatorProfileId));
 
   const tiers = (tierRows ?? []) as { id: string; title: string; amount_cents: number }[];
   const tierPrices = new Map(tiers.map((t) => [t.id, t.amount_cents]));
@@ -132,11 +133,11 @@ async function getViewerContext(creatorProfileId: string) {
     return { userId: user?.id ?? null, memberships: [] as ViewerMembership[], tierPrices, tierTitles };
   }
 
-  const { data: subs } = await supabaseAdmin
+  const { data: subs } = await boundedQuery(() => supabaseAdmin
     .from('member_subscriptions')
     .select('tier_id, status, current_period_end')
     .eq('member_id', user.id)
-    .in('tier_id', tiers.map((t) => t.id));
+    .in('tier_id', tiers.map((t) => t.id)));
 
   const memberships: ViewerMembership[] = ((subs ?? []) as {
     tier_id: string;
@@ -151,12 +152,12 @@ async function getViewerContext(creatorProfileId: string) {
 
 /** Newest first. Bodies are redacted before this leaves the server. */
 async function getPosts(creatorProfileId: string): Promise<RawPost[]> {
-  const { data } = await supabaseAdmin
+  const { data } = await boundedQuery(() => supabaseAdmin
     .from('exclusive_posts')
     .select('id, title, body, visibility, minimum_tier_id, created_at')
     .eq('creator_profile_id', creatorProfileId)
     .order('created_at', { ascending: false })
-    .limit(20);
+    .limit(20));
   return (data ?? []) as RawPost[];
 }
 

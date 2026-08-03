@@ -72,7 +72,7 @@ async function fetchDonorData(userId: string): Promise<{
 
   try {
     // Step 1: get user's campaign IDs
-    const { data: campData, error: campError } = await boundedQuery(
+    const { data: campData, error: campError } = await boundedQuery(() =>
       supabaseAdmin
         .from('campaigns')
         .select('id')
@@ -86,7 +86,7 @@ async function fetchDonorData(userId: string): Promise<{
     const campaignIds = (campData as { id: string }[]).map(c => c.id);
 
     // Step 2: get all completed donations for those campaigns
-    const { data: donData, error: donError } = await boundedQuery(
+    const { data: donData, error: donError } = await boundedQuery(() =>
       supabaseAdmin
         .from('donations')
         .select('id, donor_id, amount_cents, anonymous, created_at')
@@ -118,7 +118,7 @@ async function fetchDonorData(userId: string): Promise<{
 
     const profileMap = new Map<string, { name: string; email: string }>();
     if (knownDonorIds.length > 0) {
-      const { data: profileData } = await boundedQuery(
+      const { data: profileData } = await boundedQuery(() =>
         supabaseAdmin
           .from('profiles')
           .select('id, full_name, email')
@@ -137,7 +137,7 @@ async function fetchDonorData(userId: string): Promise<{
     }
 
     // Step 4: fetch CRM tags for this organizer's donor contacts
-    const { data: contactData } = await boundedQuery(
+    const { data: contactData } = await boundedQuery(() =>
       supabaseAdmin
         .from('donor_crm_contacts')
         .select('email, tags')

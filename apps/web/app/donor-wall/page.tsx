@@ -47,15 +47,15 @@ async function getWall(): Promise<WallData | null> {
     const select = `${SELECT_BASE}, ${campaignJoin}`;
 
     const [topRes, recentRes, countRes] = await Promise.all([
-      boundedQuery(
+      boundedQuery(() =>
         supabaseAdmin.from('donations').select(select).eq('status', 'completed')
           .order('amount_cents', { ascending: false }).limit(30)
       ),
-      boundedQuery(
+      boundedQuery(() =>
         supabaseAdmin.from('donations').select(select).eq('status', 'completed')
           .order('created_at', { ascending: false }).limit(45)
       ),
-      boundedQuery(
+      boundedQuery(() =>
         supabaseAdmin.from('donations').select('id', { count: 'exact', head: true })
           .eq('status', 'completed')
       ),

@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../lib/query-timeout';
 import { cache } from 'react';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
@@ -78,19 +79,19 @@ export default async function PublicDonorProfilePage({ params }: { params: Promi
 
   // Independent — run in parallel (donations for stats, recurring count for the badge).
   const [donationRes, recurringRes] = await Promise.all([
-    supabaseAdmin
+    boundedQuery(() => supabaseAdmin
       .from('donations')
       .select('amount_cents, campaign_id, created_at')
       .eq('donor_id', id)
       .eq('status', 'completed')
       .eq('anonymous', false)
       .order('created_at', { ascending: false })
-      .limit(200),
-    supabaseAdmin
+      .limit(200)),
+    boundedQuery(() => supabaseAdmin
       .from('recurring_donations')
       .select('id', { count: 'exact', head: true })
       .eq('donor_id', id)
-      .eq('status', 'active'),
+      .eq('status', 'active')),
   ]);
 
   // supabase-js RESOLVES on a query error, so reading only `data` turns a failure
@@ -106,12 +107,12 @@ export default async function PublicDonorProfilePage({ params }: { params: Promi
 
   const campaignMap = new Map<string, CampaignRow>();
   if (campaignIds.length > 0) {
-    const { data: camps } = await supabaseAdmin
+    const { data: camps } = await boundedQuery(() => supabaseAdmin
       .from('campaigns')
       .select('id, title, slug, cover_image_url, category')
       .in('id', campaignIds)
       .eq('visibility', 'public')
-      .is('deleted_at', null);
+      .is('deleted_at', null));
     for (const c of (camps ?? []) as CampaignRow[]) campaignMap.set(c.id, c);
   }
 

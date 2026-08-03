@@ -64,7 +64,7 @@ async function getCampaigns(cause: Cause): Promise<CampaignCardData[] | null> {
     // Bounded, like every other discovery read. A timeout returns
     // `{ data: null, error }`, which takes the `null` branch below — and the page
     // already renders that as "we could not load these", not as "none exist".
-    const { data, error } = await boundedQuery(
+    const { data, error } = await boundedQuery(() =>
       applyLiveFilters(
         supabaseAdmin
           .from('campaigns')

@@ -2,7 +2,8 @@ import 'server-only';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getCampaign } from '../get-campaign';
+import { getCampaignResult } from '../get-campaign';
+import CampaignUnavailable from '../../../../components/CampaignUnavailable';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { uploadedCoverUrl } from '../../../../lib/campaign-media-storage';
 import GalleryGrid from './GalleryGrid';
@@ -45,7 +46,10 @@ type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const campaign = await getCampaign(slug);
+  const metaResult = await getCampaignResult(slug);
+  // Metadata must never crash the page; an unreadable row falls back to
+  // the generic title rather than throwing.
+  const campaign = metaResult.ok ? metaResult.campaign : null;
   if (!campaign) return { title: 'Campaign gallery | CharitMe' };
   const title = `Media gallery — ${campaign.title} | CharitMe`;
   const description = `Photos and videos from "${campaign.title}", posted by the organiser.`;
@@ -84,8 +88,11 @@ async function loadMedia(campaignId: string): Promise<CampaignMediaRow[] | null>
 
 export default async function CampaignGalleryPage({ params }: Props) {
   const { slug } = await params;
-  const campaign = await getCampaign(slug);
-  if (!campaign) notFound();
+  const result = await getCampaignResult(slug);
+  // An unreadable database is not a missing campaign — never 404 on it.
+  if (!result.ok && result.reason === 'unavailable') return <CampaignUnavailable slug={slug} />;
+  if (!result.ok) notFound();
+  const campaign = result.campaign;
 
   const [rows, cover] = await Promise.all([
     loadMedia(campaign.id),
