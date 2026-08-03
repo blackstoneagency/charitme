@@ -194,6 +194,30 @@ right:
 committed guard is a REGRESSION check on the 35 inspected sites, not a general
 rule. A guard that fails on correct code gets switched off.
 
+### Third pass: I triaged the ~82 I had waved away, and one was real
+
+I had written "most of the 719 are brand/status colours that are fine" after
+spot-checking two. That was a hand-wave, so it got measured. Every non-`color:`
+foreground literal (`fill`, `stroke`, `borderColor`) below 3:1 in some theme —
+**31 sites** — classified individually:
+
+| verdict | n | why |
+|---|---|---|
+| **genuinely wrong** | **1** | `#8c95b2` on `<text>` axis labels — real text at **2.80:1** on a white card |
+| brand marks | 8 | Google sign-in (`#34A853`, `#FBBC05`, `#ea4335`) and the SharePanel platform chips. Each SharePanel entry carries `fill` for the brand chip **and** a separate token-driven `text`, so the brand colour is never the only carrier. |
+| paired with a hardcoded backdrop | 2 | `#101944` donut totals sit on an explicit `fill="#fff"` centre circle, so they are dark-on-white in **both** themes. My worst-case analyzer called these failures; they are not. |
+| decorative | 20 | chart gridlines and card borders — e.g. `borderColor: '#fecdd3'` on `background: var(--tint-rose)`, where the border identifies nothing. |
+
+So the hand-wave was **mostly right and hid one real bug** — which is the whole
+argument for measuring instead of asserting. Fixed; the axis labels now use
+`var(--t3)`.
+
+⚠️ **The analyzer's worst-case assumption is unreliable in both directions** and
+this pass proves it: it flagged the donut totals (correct code, on a hardcoded
+white backdrop) and it would have missed nothing only because I read each site.
+Static analysis cannot see the surface an element sits on. That is why the
+committed guards are regression checks over inspected sites, not general rules.
+
 ### Still open on C1
 
 This closed the **named** root cause. The wider count in C1 ("271 hardcoded
