@@ -78,9 +78,25 @@ supposedly lacked, the migration file A3 supposedly needed, and — for A2 —
 watching production return **404 → 401** on `POST /api/creators/tiers/subscribe`
 as the deploy rolled, which proves the route exists and gates on auth.
 
-**What is left is owner-only**: O2 staging Supabase, O3 Stripe test keys (for a
-live charge, not for code), O4 Actions runners, O5 Vercel plan, O7/O8 two pricing
-decisions, and a test login for the signed-in accessibility sweep.
+**What is left is owner-only.** Re-verified 2026-08-03 by checking the thing
+itself, not by re-reading this table — the whole point of the A-lane result above
+is that "blocked" rows lie in both directions:
+
+| row | what it needs | how I confirmed it is not mine to do |
+|---|---|---|
+| **O2** staging Supabase | a database | `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ACCESS_TOKEN`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_DB_URL`, `DATABASE_URL` all **unset**; `supabase` CLI not installed; only `.env.example` on disk. No credential exists, so there is no action — not a deferred judgement |
+| **O3** Stripe test keys | a live card charge | `STRIPE_SECRET_KEY` unset. ⚠️ This gate is **narrower than it looks** — it blocked A2 on paper and did not: writing and testing subscription checkout needs no key, only *charging* does. A2 shipped without it |
+| **O4** Actions runners | billing | `runner_id: 0`, empty `runner_name`, 0 billable ms on every run today. **The agent half is done and measured** — see the O4 section below |
+| **O5** Vercel plan | billing | — |
+| **O7** donor guarantee | underwriting fraud losses with company money | A financial commitment. The standing instruction is explicit: do not commit CharitMe to holding or paying out money beyond the intended architecture |
+| **O8** nonprofit fee | charging verified nonprofits less than 2.9% + $0.30 | A pricing decision. The standing instruction is explicit: **do not change fee behaviour without documented requirements.** The code branch is trivial (`nonprofit_verified` is already known at donation time) — what to charge is not mine to pick |
+| signed-in a11y sweep | a test login | `audit:contrast` cannot authenticate, so the admin surface stays unmeasured by the browser |
+
+O7 and O8 are worth separating from the rest: they are not *blocked* on a missing
+credential that might turn up. They are decisions the standing instructions
+**forbid me from making**, and inventing an answer to either would be exactly the
+"unsupported claim" / "fee change without requirements" failure those rules exist
+to prevent. No amount of further looping moves them.
 
 ## ✅ A2 CLOSED — paid membership checkout, and a second mis-classified gate (Claude, 2026-08-03)
 
@@ -399,6 +415,41 @@ shipped. Check the deployment result per PR, the same way CI runs have to be
 checked per run.
 
 
+## 🟠 O4 — THE AGENT HALF IS DONE, AND I MEASURED THE NEXT LEVER AS NOT WORTH PULLING (Claude, 2026-08-03)
+
+O4 ("Actions runners dead") is recorded as owner-only, which is right about the
+*cause* — the minute allowance is a billing fact — but the burn rate is
+agent-actionable, and that half is finished:
+
+| lever | state |
+|---|---|
+| `concurrency: cancel-in-progress` on `ci.yml` | ✅ in place — superseded pushes to a branch no longer each run a full matrix |
+| `paths-ignore` for narrative markdown | ✅ in place, explicit list, guarded by `__tests__/ci-paths-ignore.test.ts` |
+
+**Measured effectiveness, over the last 59 commits on `master`: 20 of them (34%)
+change only ignored docs and skip CI entirely.** That matches the ~⅓ estimate the
+workflow comment was written against, so the skip is doing what it claims.
+
+### The next candidate lever, and why I am NOT pulling it
+
+`supabase/RELEASE-RUNBOOK.md`, `supabase/README.md` and `supabase/seeds/README.md`
+are narrative markdown that no build step reads, and they are **not** in the
+ignore list — `ci-paths-ignore.test.ts` blanket-refuses any pattern starting
+`supabase/`, on top of its `.sql` rule. Relaxing that to permit `supabase/*.md`
+is easy and tempting, especially having edited the runbook three times today.
+
+**I measured it first, and the answer is no: 1 commit in 59** would have become
+skippable. That is ~1.7% of runs, in exchange for loosening a guard that protects
+the migrations directory — the one place where a wrongly-skipped CI run means an
+unverified schema change. Today's own runbook PR (#242) would *not* have been
+skipped anyway, because it also touched `__tests__/migration-ledger.test.ts`,
+which is code and correctly runs CI.
+
+Recorded so the next agent does not redo the analysis and reach a different
+conclusion by intuition. **The remaining lever on O4 is genuinely the owner's:**
+raise the Actions spending limit, or make the repository public (unlimited
+minutes for public repos).
+
 ## 🔎 THE OWNER ROWS WERE STALE TOO — O1 says 6 migrations, it is 27 (Claude, 2026-08-03)
 
 Same treatment as the A-rows, same result. Verified by running the repo's own
@@ -421,8 +472,15 @@ rehearse-rollbacks.sh    rollbacks failing: 0
 **The useful part is what O1 now says instead.** Everything an agent can do on
 that row is done: every migration replays clean, the schema it produces is
 RLS-complete, and **all 27 have a rehearsed rollback that has been run**. The
-runbook (`supabase/RELEASE-RUNBOOK.md`) has the exact commands and the
-`87 applied / 27 pending` precondition to check before starting.
+runbook (`supabase/RELEASE-RUNBOOK.md`) has the exact commands.
+
+⚠️ It used to say the runbook also has "the `87 applied / 27 pending` precondition
+to check before starting". **That precondition was wrong and is gone** — at least
+two of the 27 are already live in production, so `migration list` cannot return
+87/27, and the runbook's Step 3 told the owner to *stop the release* if it did
+not. Step 3 now measures the pending set instead of predicting it. See the
+correction at the top of this file. (This was the third copy of that figure; the
+first two were fixed in #241 and #242.)
 
 So O1 is not "27 migrations of unknown risk waiting to be written" — it is a
 prepared, reversible release **blocked on O2**, a staging project to rehearse it
@@ -794,7 +852,20 @@ for *build the page*, and this file has more of the latter than the product may
 actually need.
 
 
-## ⏱️ PERF — 13 public pages stalled ~14.1s; shared cause fixed, per-page reads open (Claude, 2026-08-02)
+## ⏱️ PERF — ~~13 public pages stalled ~14.1s; per-page reads open~~ → **CLOSED**, see below (Claude, 2026-08-02)
+
+This heading's body was removed when the work closed, but the heading itself was
+left saying "per-page reads open" — so the tracker carried an open row for
+finished work. Superseded by **"PERF — CLOSED: all 13 stalled routes are now
+sub-second in production"** further down.
+
+Re-measured on `www.charitme.com` today (2026-08-03) rather than trusting that
+entry: all 12 discovery routes return 200 in **0.46s–0.95s** wall time — `/causes`
+0.95s, `/donate` 0.95s, `/teams/create` 0.75s, `/ai-fundraising` 0.76s,
+`/donor-wall` 0.72s, `/campaigns` 0.67s, `/supporter-space` 0.56s, `/community`
+0.54s, `/gallery` 0.51s, `/impact-map` 0.51s, `/crisis` 0.47s, `/give` 0.46s.
+None is anywhere near the 14.1s this row was opened for.
+
 ## 🛑 THE ONE REMAINING ITEM, and why no further looping moves it (Claude, 2026-08-03)
 
 Applying the 27 pending migrations. **Measured, not assumed** — this environment
