@@ -415,6 +415,63 @@ shipped. Check the deployment result per PR, the same way CI runs have to be
 checked per run.
 
 
+## 💳 O3 — THE WEBHOOK HAD NEVER BEEN EXECUTED IN A TEST (Claude, 2026-08-03)
+
+O3 is "no Stripe test keys". It blocked A2 on paper and did not — building
+subscription checkout needs no key. Applying the same test to the rest of O3
+found something bigger: **the Stripe webhook has 13 tests and none of them ran
+it.**
+
+`__tests__/stripe-webhook-coverage.test.ts` is thorough and entirely
+**source-level** — it parses `route.ts` as text and asserts that a `case` exists,
+that a handler is dispatched to, that a `throw` appears in a branch. Every one of
+those assertions passes on code that never runs correctly, because none of them
+run the code.
+
+That matters more here than anywhere else in the app, because the contract with
+Stripe is:
+
+> the handler throws → the route answers **500** → Stripe **redelivers**
+
+and the inverse is the failure mode: answering 200 on a write that did not happen
+tells Stripe "processed", it never retries, and the donation is gone **with the
+donor's card already charged**. Two events were being dropped exactly that way
+earlier today — a `const { data } = await …` that discarded `error`. A
+source-level test cannot see that. It sees a `case` and a handler.
+
+### `__tests__/stripe-webhook-behaviour.test.ts` — 13 assertions that run POST()
+
+No Stripe key needed: signature verification is the mocked seam. **This is the
+part of O3 that never required credentials.**
+
+| it asserts | why it is the assertion that matters |
+|---|---|
+| `record_donation` fails → **500** | a 200 means Stripe never retries and the donation is lost for good |
+| handler threw → `processed_at` **not** written | marking it processed makes even a manual retry a no-op |
+| handler threw → `processing_error` **is** written | a 500 with no reason is undiagnosable afterwards |
+| bad signature → 400 **and zero writes** | an unauthenticated caller must not be able to make this route write |
+| already-processed → handler **not re-run** | a redelivery must not double-count |
+| `p_stripe_event_id` is passed | it is what makes the RPC idempotent at all |
+| unknown event → 200, not 500 | otherwise Stripe retries an event nobody handles, forever |
+| membership write fails → **500** | ─┐ see below |
+| membership upserts on `stripe_subscription_id` | │ |
+| membership does not fall through to the donation path | ─┘ |
+
+### A mutation exposed a hole in my own new test, which is why it has 13 and not 9
+
+Planting the donation bug (swallow the `record_donation` error) failed 3 tests —
+good. Planting the **same bug one branch over** (swallow the `member_subscriptions`
+error) **passed everything**: my new file and the old source-level one both.
+
+The donation path was covered; the branch that leaves a member paying Stripe every
+month while staying locked out of what they bought was not. Four membership
+assertions added, then re-mutated: swallowing the error now fails, and dropping
+the `onConflict: 'stripe_subscription_id'` target fails separately. `route.ts` is
+byte-identical after the exercise (`git diff --stat` empty).
+
+**What is still genuinely blocked on O3:** a real charge against a real card. The
+handler's behaviour is not.
+
 ## 🔬 O2 — THE UNKNOWN SET SHRANK FROM 25 TO 23, AND THE METHOD IS NOW A SCRIPT (Claude, 2026-08-03)
 
 O2 (staging Supabase) is credential-blocked and stays that way. But the *reason*
