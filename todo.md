@@ -1,5 +1,40 @@
 # CharitMe — Execution Tracker
 
+## ✅ THE CLAUDE LANE IS EMPTY — and three of its four rows were already done (Claude, 2026-08-03)
+
+| | recorded as | actually |
+|---|---|---|
+| **A1** peer-to-peer | gated on O1 | **done** — the gate was *designed out*: `lib/peer-attribution.ts` probes for the column and omits the RPC argument when absent |
+| **A2** creator memberships | gated on O3 | **done today** — the gate was imaginary; no Stripe key is needed to BUILD subscription checkout, only to charge a live card |
+| **A3** proximity discovery | "opens with a migration" | **done** — the migration exists, `/nearby` ships, and it degrades on `42703` when unapplied |
+| **A4** `coach_sessions` | "500 rows, no reader" | **done** — reader, API route and rendering surface all present |
+
+**Only A2 needed code.** The other three were stale rows describing work that had
+already shipped, in one case with the exact blocker engineered away.
+
+### The pattern worth keeping
+
+Two separate gates — O1 on A1, O3 on A2 — turned out not to exist, and both were
+resolved the same way: **a gate on APPLYING something is rarely a gate on
+BUILDING it.** A1 probes for its column. A3 catches `42703`. A2 needed no key
+because writing and unit-testing a Checkout session is not the same as charging
+a card. Every Stripe path in this repo is source-tested for exactly that reason.
+
+A row that names a blocker should say *which step* is blocked. "Gated on O3" was
+true of the live charge and false of everything else, and it parked a finished
+feature for days.
+
+### Verification, not assertion
+
+Each of these was checked by running something: `grep` for the reader that A4
+supposedly lacked, the migration file A3 supposedly needed, and — for A2 —
+watching production return **404 → 401** on `POST /api/creators/tiers/subscribe`
+as the deploy rolled, which proves the route exists and gates on auth.
+
+**What is left is owner-only**: O2 staging Supabase, O3 Stripe test keys (for a
+live charge, not for code), O4 Actions runners, O5 Vercel plan, O7/O8 two pricing
+decisions, and a test login for the signed-in accessibility sweep.
+
 ## ✅ A2 CLOSED — paid membership checkout, and a second mis-classified gate (Claude, 2026-08-03)
 
 `membership_tiers` and `member_subscriptions` have been applied since
@@ -3678,7 +3713,7 @@ by trusting the row. The remaining two name real gates.
 
 | A1 | ✅ **DONE — verify before believing this row.** Threaded end to end: `DonateButton` passes `peerFundraiserId` (line 251) → `/api/donations` validates it **against the campaign** before trusting it (209–213) → Stripe metadata (391) → the webhook spreads `peerRpcArg(meta.peerFundraiserId)` into `record_donation` (244, 386). `/campaigns/[slug]/team/[peerSlug]` exists. **The O1 gate was designed out, not waited on**: `lib/peer-attribution.ts` probes whether `donations.peer_fundraiser_id` exists and OMITS the argument when it does not, so the same code is correct against an unapplied *and* an applied database. 39 tests across four files. |
 | A2 | ✅ **DONE — the O3 gate was a mis-classification, like A1's.** Paid membership checkout ships: `POST /api/creators/tiers/subscribe` creates a subscription-mode Stripe Checkout with an on-demand Price, the webhook branches on `kind: 'membership'` BEFORE the donation paths and upserts `member_subscriptions` idempotently on the unique `stripe_subscription_id`, and `customer.subscription.updated/deleted` track status onto the same row so a past_due card stops granting access. `/creators/[handle]` now carries a real Join button instead of *"memberships open soon"*. **O3 was never needed to BUILD this** — only to place a live test charge, which is equally true of every Stripe path already shipped here. Gated on payout destination, not on keys: no destination, no subscription, because CharitMe never holds the money. |
-| A3 | **Proximity discovery** — needs lat/long on campaigns, so it opens with a migration → effectively O1-shaped. |
+| A3 | ✅ **DONE — the migration gate was imaginary, third stale row in this lane.** `20260817000000_campaign_geolocation.sql` already adds `campaigns.latitude`/`longitude` with range constraints (a longitude in the latitude column is the commonest geocoding bug, and the constraint catches it). `/nearby`, `NearbyClient`, `/api/campaigns/nearby` and `lib/geo.ts` all ship, and the route is registered as *Fundraisers Near You*. **It also handles the unapplied case**: PostgREST answers a select on a missing column with `42703`, which the route catches and degrades on rather than 500ing — the same probe-and-degrade pattern A1 used, so one codebase is correct against an applied and an unapplied database. |
 | A4 | ✅ **DONE — the "no reader" claim is stale.** `lib/coach-sessions-server.ts` reads and writes, `/api/coach-sessions` exposes the read, and `/dashboard/ai-coach` renders the history through `lib/coach-sessions-core`. It also follows the house rule the row was worried about: a failed read says *"that is a read failure, not an empty history"* rather than printing a confident 0. |
 
 ### ⚪ Verified-clean — do NOT re-investigate
