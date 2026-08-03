@@ -218,6 +218,29 @@ describe('the landing is wired to real destinations', () => {
     }
   });
 
+  it('/campaigns carries `?cause=` across paging, category tiles and the filters form', () => {
+    // Reading the param is only half of it. `pageHref` and `catHref` were two
+    // hand-maintained copies of the same param list, and the filters form
+    // re-emits state as hidden inputs — so a cause could be honoured on arrival
+    // and then dropped the moment the visitor paged, picked a category, or
+    // ticked any filter. That is the scope vanishing exactly when they tried to
+    // narrow further.
+    const src = read('app/campaigns/(list)/page.tsx');
+    // One builder, not two: both helpers must delegate rather than re-list.
+    expect(src).toContain('function campaignsHref(');
+    expect(src).toContain('const pageHref = (targetPage: number) => campaignsHref({ page: targetPage });');
+    expect(src).toContain('const catHref = (c: string | null) => campaignsHref({ category: c });');
+    expect(src).toContain("if (cause) params.set('cause', cause.slug);");
+    // …and the form round-trips it too.
+    expect(src).toContain('<input type="hidden" name="cause" value={cause.slug} />');
+    // The param list must exist in exactly ONE place. Two `new URLSearchParams()`
+    // in this file is how the copies came back last time.
+    expect(
+      (src.match(/new URLSearchParams\(\)/g) ?? []).length,
+      'a second URL builder has appeared — fold it into campaignsHref',
+    ).toBe(1);
+  });
+
   it('a link that does NOT narrow says so', () => {
     // The other half. A site-wide link is fine; a site-wide link labelled as if
     // it were filtered is not.

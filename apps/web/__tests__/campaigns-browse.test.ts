@@ -71,12 +71,29 @@ describe('campaigns browse page is wired to real data', () => {
   it('paging and category links carry every active filter', () => {
     // Losing a filter on page 2 is how a visitor ends up on results that do not
     // match the controls still shown as selected.
-    for (const key of ['ending', 'goal', 'verified', 'tax']) {
-      expect(
-        (code.match(new RegExp(`params\\.set\\('${key}'`, 'g')) ?? []).length,
-        `${key} must be carried by BOTH pageHref and catHref`,
-      ).toBeGreaterThanOrEqual(2);
+    //
+    // ⚠️ This used to require each `params.set('…')` to appear at least TWICE —
+    // once in `pageHref`, once in `catHref`. That was a proxy for "both links
+    // carry it", and it only worked because the two were duplicates. The
+    // duplication was itself the hazard: adding `?cause=` had to be remembered
+    // in both, and was not, so paging silently dropped the cause.
+    //
+    // There is now ONE builder that both delegate to, which makes every param
+    // carried by construction — so the property is asserted directly, and the
+    // old count would now FAIL against strictly better code.
+    expect(code).toContain('function campaignsHref(');
+    expect(code).toMatch(/const pageHref = \(targetPage: number\) => campaignsHref\(/);
+    expect(code).toMatch(/const catHref = \(c: string \| null\) => campaignsHref\(/);
+    for (const key of ['ending', 'goal', 'verified', 'tax', 'cause']) {
+      expect(code, `${key} must be carried by the shared link builder`)
+        .toMatch(new RegExp(`params\\.set\\('${key}'`));
     }
+    // Exactly one builder. A second `new URLSearchParams()` here is the
+    // duplication coming back.
+    expect(
+      (code.match(/new URLSearchParams\(\)/g) ?? []).length,
+      'a second URL builder has appeared — fold it into campaignsHref',
+    ).toBe(1);
   });
 
   it('uses the shared countdown rather than formatting its own', () => {

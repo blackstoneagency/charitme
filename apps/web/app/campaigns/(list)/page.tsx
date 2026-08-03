@@ -343,34 +343,40 @@ export default async function CampaignsPage({ searchParams }: Props) {
     }
   }
 
-  function pageHref(targetPage: number) {
+  /**
+   * Every `/campaigns` link on this page, from one place.
+   *
+   * ⚠️ `pageHref` and `catHref` were two near-identical copies of this list, and
+   * adding `?cause=` had to be remembered in BOTH — plus the hidden inputs on
+   * the filters form. It was not: paging to page 2, or picking a category tile,
+   * silently dropped the cause and dumped the visitor on the unfiltered list at
+   * the moment they tried to narrow further.
+   *
+   * One builder, so a param added here cannot be carried by some links and not
+   * others. This repo has been bitten by hand-maintained duplicates before —
+   * the category list drifted three ways for the same reason.
+   */
+  function campaignsHref(over: { page?: number; category?: string | null } = {}) {
     const params = new URLSearchParams();
     if (q) params.set('q', q);
     if (location) params.set('location', location);
-    if (category) params.set('category', category);
+    const cat = over.category === undefined ? category : over.category;
+    if (cat) params.set('category', cat);
+    if (cause) params.set('cause', cause.slug);
     if (sort !== 'raised') params.set('sort', sort);
     if (verified) params.set('verified', '1');
     if (tax) params.set('tax', '1');
     if (ending) params.set('ending', '1');
     if (goal !== 'any') params.set('goal', goal);
-    if (targetPage > 1) params.set('page', String(targetPage));
+    if (over.page && over.page > 1) params.set('page', String(over.page));
     const qs = params.toString();
     return `/campaigns${qs ? `?${qs}` : ''}`;
   }
 
-  const catHref = (c: string | null) => {
-    const params = new URLSearchParams();
-    if (q) params.set('q', q);
-    if (location) params.set('location', location);
-    if (c) params.set('category', c);
-    if (sort !== 'raised') params.set('sort', sort);
-    if (verified) params.set('verified', '1');
-    if (tax) params.set('tax', '1');
-    if (ending) params.set('ending', '1');
-    if (goal !== 'any') params.set('goal', goal);
-    const qs = params.toString();
-    return `/campaigns${qs ? `?${qs}` : ''}`;
-  };
+  const pageHref = (targetPage: number) => campaignsHref({ page: targetPage });
+  // `category: null` clears the category rather than inheriting it — that is
+  // what the "All" tile means.
+  const catHref = (c: string | null) => campaignsHref({ category: c });
 
   const money = (cents: number, id: string) => formatCents(cents, currencyMap.get(id) ?? 'usd');
   const pct = (c: CampaignRow) =>
@@ -481,6 +487,11 @@ export default async function CampaignsPage({ searchParams }: Props) {
                 category tile the visitor already chose. */}
             {q && <input type="hidden" name="q" value={q} />}
             {category && <input type="hidden" name="category" value={category} />}
+            {/* Same reason, and easy to miss when adding a param: without this,
+                arriving from a cause hub and then ticking ANY filter drops the
+                cause and lands the visitor on the unfiltered list — the scope
+                disappearing at the moment they tried to narrow further. */}
+            {cause && <input type="hidden" name="cause" value={cause.slug} />}
 
             <div className="cbx-field">
               <label htmlFor="cbx-sort">Sort by</label>
