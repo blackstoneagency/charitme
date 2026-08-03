@@ -1,5 +1,59 @@
 # CharitMe — Execution Tracker
 
+## ✅ ROLLBACKS — 6 written and REHEARSED; one is not safe to run alone (Claude, 2026-08-03)
+
+Resolves the first of the two questions left open by the classification: the
+mechanical rollbacks are written, and — more to the point — **run**.
+
+```
+✓ 20260806000000 volunteer_shifts_hours     2 tables, 0 collateral FKs
+✓ 20260807000000 organizations_multitenancy 3 tables, 15 collateral FKs (declared)
+✓ 20260820000000 incidents_and_maintenance  3 tables, 0
+✓ 20260821000000 tasks                      1 table,  0
+✓ 20260822000000 data_retention_policies    2 tables, 0
+✓ 20260823000000 custom_domains             1 table,  0
+```
+
+`scripts/rehearse-rollbacks.sh` replays all 114 migrations against a fresh
+database per case, applies one rollback, and asserts the targets are gone and
+nothing else went with them. Each case also asserts the targets **exist before**
+the rollback, so a mistyped table name fails loudly instead of passing vacuously.
+
+### 🔴 `organizations_multitenancy` cannot be rolled back on its own
+
+Dropping `organizations` cascades into **15 foreign keys on tables that survive**
+— the entire marketing subsystem is org-scoped by
+`20260814000000_marketing_org_scoping`. Every one of those tables keeps its
+`org_id` column and loses the constraint: the rows stay and nothing enforces them.
+That is worse than either applying or fully reverting — a half-reverted schema
+that still looks scoped. `20260814000000` must be rolled back **first**.
+
+### My own check missed it, which is the reusable lesson
+
+The first version counted **tables** only. Every table survived the organizations
+rollback, so it printed *"no collateral"* while fifteen constraints went. Two
+further corrections were needed before the number meant anything:
+
+1. Counting *all* FKs made every rollback look damaging, because a dropped
+   table's own FKs go with it by definition. The metric had to narrow to FKs on
+   **surviving** tables — after which five of six read 0, and the real one stood
+   out.
+2. `set -euo pipefail` plus a `grep` with no match killed the script before its
+   `:-0` default could apply, so it exited 1 with **no output at all** and looked
+   like a crash rather than a finding.
+
+### Corrected: "function-only" migrations are NOT mechanical
+
+The earlier classification put three migrations in a "function-only, drop is
+mechanical" bucket. That was wrong — all three use `create or replace`, so the
+true inverse is *restore the previous definition*, not `drop`. Two of them
+replace **`record_donation`**, the RPC the Stripe webhook calls. A drop-style
+rollback there would break the donation path. They are correctly still uncovered.
+
+**Still open (owner decision):** whether the two RLS migrations should be marked
+permanently irreversible. Remaining uncovered: 11 of 27 — 3 function-replace,
+4 column/constraint, 2 policy/RLS, 2 mixed.
+
 ## ✅ MIGRATIONS REHEARSED LOCALLY — 114/114 apply clean; 17 of 27 have NO ROLLBACK (Claude, 2026-08-03)
 
 Staging remains owner-blocked, but the part of staging's job that does **not**
