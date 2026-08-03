@@ -19146,3 +19146,29 @@ children, excluding the two full-bleed bands.
 Everything already on the page — search, location filter, category chips, sort,
 featured row, sidebar panels — is untouched and still server-rendered from real
 query params.
+
+### /donate — coverage added, and what is genuinely NOT done (Claude, 2026-08-02)
+
+`__tests__/donate-page.test.ts` (14 assertions) pins the properties whose failure
+costs most on the page that asks for money: it posts to the shared endpoints
+rather than a second checkout, sends an `Idempotency-Key` on one-off gifts,
+imports the floor from `@shared/fees` instead of hardcoding one, keeps
+validation on a single announced surface, degrades honestly on a failed read,
+and **reuses `getRecentDonations` rather than joining donor identity itself** —
+naming a hidden donor is a defect this repo has already fixed four times.
+
+Mutation-tested: removing the `Idempotency-Key` fails, and planting a direct
+`donations`+`donor_id` join fails with the anonymity message. Both pass restored.
+
+**🔴 Three things block "100% production ready", none of them in the repo:**
+
+| # | Item | Who |
+|---|---|---|
+| 1 | **Cannot verify the page is live on Production.** `www.charitme.com` → `000` (gateway refuses CONNECT); GitHub's deployments **and** commit-status APIs both answer `Resource not accessible by integration`. Merging to `master` is the production trigger and Vercel reported **Building**, but nothing reachable from here confirms the alias flipped. | **Owner** — open the page, or check the Vercel dashboard |
+| 2 | **No real charge has ever been made.** The form's payloads, validation and endpoint routing are verified in a real browser, but the stub returns no Stripe session, so charge → transfer → payout → receipt is still unproven. Tracked as **O3**. | **Owner** — Stripe test keys |
+| 3 | **The 501(c)(3) and "all donations are tax-deductible" lines are regulated claims.** They come from the supplied design and are rendered as given. If CharitMe is not itself a registered 501(c)(3) — the 0%-platform-fee + tip model reads like a platform, not a charity — these two sentences are the ones to change before launch. Flagged, not altered: matching the design was the instruction. | **Owner** — legal |
+
+The hero photograph also differs from the design's child-holding-a-heart image:
+that asset is not in the repo and image hosts are unreachable from here, so
+`charitme-community-hero.png` is used. Drop the intended file into
+`public/images/` and change one `src` to close it.
