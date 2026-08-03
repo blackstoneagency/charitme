@@ -1,5 +1,41 @@
 # CharitMe — Execution Tracker
 
+## ✅ THE ACTIONABLE QUEUE WAS STALE — A1 and A4 were already done (Claude, 2026-08-03)
+
+The working queue listed **four** Claude-lane items as "actionable now, no gate".
+Checked one at a time against the code and the test suites: **two were already
+shipped**, which is why every pass over this file kept reporting the same
+outstanding work.
+
+| | claimed | measured |
+|---|---|---|
+| **A1** peer-to-peer steps 2–3 | "gated on O1 applying the migration" | **done** — and the gate was *designed out*, not waited on |
+| **A4** `coach_sessions` consumer | "500 rows, no reader" | **done** — reader, API route and a rendering surface all exist |
+
+**A1's gate was the interesting one.** The row said building the page first
+"ships a progress bar that cannot move". Instead `lib/peer-attribution.ts`
+probes whether `donations.peer_fundraiser_id` exists and **omits the RPC argument
+when it does not** — so one codebase is correct against an unapplied *and* an
+applied database. That is the pattern for a migration-gated feature, and it
+means O1 blocks the migration, not the feature.
+
+**A4's row warned against the wrong thing.** "Do NOT add a writer alone" —
+correct in principle, and already honoured: the reader came with it, and
+`/dashboard/ai-coach` distinguishes a failed read (*"that is a read failure, not
+an empty history"*) from a genuinely empty one.
+
+Evidence: 39 tests across `peer-attribution`, `peer-fundraisers-wired`,
+`peer-page-existence-gate`, `peer-fundraiser-create` and `coach-sessions-core`.
+
+**Genuinely still gated:** A2 (creator subscription checkout → O3 Stripe test
+keys) and A3 (proximity discovery → needs lat/long, so O1-shaped). Both name a
+gate an agent cannot clear.
+
+**Standing lesson:** this file's own warning — *"three separate blockers turned
+out to be things an agent could do all along"* — applies in the other direction
+too. A row saying "outstanding" is as unreliable as a row saying "cleared".
+Verify the row, not the summary.
+
 ## 🟣 C1 CORRECTED AND PARTLY CLOSED — the muted-slate failure is LIGHT-mode only (Claude, 2026-08-03)
 
 C1 recorded **"admin fails AA in *both* themes."** Measured, that is wrong, and
@@ -3142,12 +3178,17 @@ need the owner.
 
 | C1 | **355 WCAG AA contrast failures** (line ~285). Root causes already located and handed over: 271 hardcoded literals across admin (`PayoutsClient`/`DonationsClient` hold 75), the `#94a3b8`/`#8c9ab5` muted-text pair, and the green/orange/red status-badge palette. The theme-pinning shortcut is **disproved** — admin fails AA in *both* themes. |
 
-### 🟢 CLAUDE lane — actionable now, no gate (4)
+### 🟢 CLAUDE lane — 2 done, 2 genuinely gated (was "actionable now (4)")
 
-| A1 | **Peer-to-peer steps 2–3**: thread `peer_fundraiser_id` through `DonateButton` → `/api/donations` → Stripe metadata, then the shareable `/campaigns/[slug]/team/[peerSlug]` page. **Gated on O1** applying the migration — building the page first ships a progress bar that cannot move. |
+⚠️ **This section was stale, and that is the failure mode this file exists to
+prevent.** A1 and A4 were both listed as outstanding; both were already shipped
+with tests. Re-measured 2026-08-03 by reading the code and running the suites, not
+by trusting the row. The remaining two name real gates.
+
+| A1 | ✅ **DONE — verify before believing this row.** Threaded end to end: `DonateButton` passes `peerFundraiserId` (line 251) → `/api/donations` validates it **against the campaign** before trusting it (209–213) → Stripe metadata (391) → the webhook spreads `peerRpcArg(meta.peerFundraiserId)` into `record_donation` (244, 386). `/campaigns/[slug]/team/[peerSlug]` exists. **The O1 gate was designed out, not waited on**: `lib/peer-attribution.ts` probes whether `donations.peer_fundraiser_id` exists and OMITS the argument when it does not, so the same code is correct against an unapplied *and* an applied database. 39 tests across four files. |
 | A2 | **Creator-economy module** (Patreon/Ko-fi/Buy Me a Coffee = 0/10). Public page + profile writer + tier CRUD + `/dashboard/creator` + **member-only posts with a proven paywall** all ship. Remaining: **paid subscription checkout** — which is now the ONLY thing left, and it is **gated on O3** (Stripe test keys). DMs are optional polish, not parity. |
 | A3 | **Proximity discovery** — needs lat/long on campaigns, so it opens with a migration → effectively O1-shaped. |
-| A4 | **`coach_sessions` consumer decision** — 500 rows, no reader. Do NOT add a writer alone; that satisfies the audit while producing analytics nothing consumes. |
+| A4 | ✅ **DONE — the "no reader" claim is stale.** `lib/coach-sessions-server.ts` reads and writes, `/api/coach-sessions` exposes the read, and `/dashboard/ai-coach` renders the history through `lib/coach-sessions-core`. It also follows the house rule the row was worried about: a failed read says *"that is a read failure, not an empty history"* rather than printing a confident 0. |
 
 ### ⚪ Verified-clean — do NOT re-investigate
 
