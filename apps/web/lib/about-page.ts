@@ -14,10 +14,15 @@ import { DEFAULTS } from './settings-defaults';
  * keyed by campaign_id/nonprofit_id, and says nothing about who runs CharitMe.
  * There is no company-leadership table in the schema.
  *
- * A new table was the obvious answer and is the wrong one: **27 migrations are
- * already pending against production** (supabase/RELEASE-RUNBOOK.md), so a
- * table added today would not exist on the live database and the section would
- * be exactly as empty as it is now, with migration debt added.
+ * A new table was the obvious answer and is the wrong one: migrations are
+ * merged well ahead of being applied to production (supabase/RELEASE-RUNBOOK.md),
+ * so a table added today would not exist on the live database and the section
+ * would be exactly as empty as it is now, with migration debt added.
+ *
+ * (An earlier version of this comment said "27 pending". That figure is a FILE
+ * COUNT rather than a measurement and the runbook now records it as known to be
+ * too high — at least four of the 27 are already live. The argument does not
+ * depend on the number, so the number is gone rather than restated wrongly.)
  *
  * ⚠️ The first attempt used `admin_settings`, and `superseded-tables.test.ts`
  * rejected it by name: `admin_settings` is the untyped key/value PREDECESSOR of

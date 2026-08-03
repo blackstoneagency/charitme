@@ -6,6 +6,9 @@ const read = (p: string) => readFileSync(resolve(__dirname, '..', p), 'utf8');
 const page = read('app/how-it-works/page.tsx');
 const faqUi = read('app/how-it-works/HowItWorksFaq.tsx');
 const loader = read('lib/how-it-works.ts');
+// The dedupe/top-up logic moved to the shared loader when /contact needed it
+// too; the assertions below follow it there rather than being deleted.
+const sharedFaqLoader = read('lib/route-faqs.ts');
 const icons = read('components/PublicIcon.tsx');
 
 // Comments are stripped before the fabricated-figure check: a comment that
@@ -36,15 +39,16 @@ describe('the FAQ is real Supabase content', () => {
   it('reads aeo_entries rather than JSX-authored copy', () => {
     // The same table /faq renders, so an answer edited in the admin console
     // changes both surfaces instead of the two drifting apart.
-    expect(loader).toContain('getPublishedAeoEntries');
+    expect(sharedFaqLoader).toContain('getPublishedAeoEntries');
     expect(page).toContain('getHowItWorksFaqs');
   });
 
   it('tops up from /faq because this route has too few of its own', () => {
     // The built-in fallback maps a dynamic DETAIL route to its parent
     // collection; /how-it-works is not one, so it never fires here.
-    expect(loader).toContain("getPublishedAeoEntries('/faq'");
-    expect(loader).toContain('seen.has');
+    expect(sharedFaqLoader).toContain("getPublishedAeoEntries('/faq'");
+    expect(sharedFaqLoader).toContain('seen.has');
+    expect(loader).toContain("getRouteFaqs('/how-it-works'");
   });
 
   it('renders no accordion at all when there is nothing to show', () => {

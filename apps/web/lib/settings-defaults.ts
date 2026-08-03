@@ -12,7 +12,14 @@ export const DEFAULTS: Record<SettingsCategory, Record<string, unknown>> = {
     platformName: 'CharitMe',
     tagline: 'Fundraising that thinks for you.',
     supportEmail: 'support@charitme.com',
-    supportPhone: '+1 (555) 123-4567',
+    // Ships EMPTY, not as the (555) 123-4567 reserved-fiction placeholder it
+    // used to carry. /contact renders the phone only when it is set, and a
+    // placeholder that looks like a real number is exactly what that gate
+    // exists to stop. Nothing outside the admin editors reads this.
+    supportPhone: '',
+    // Postal address for /contact. Also empty by default: the old page printed
+    // an invented San Francisco address as hard-coded JSX.
+    officeAddress: '',
     timezone: 'America/New_York',
     logoUrl: '',
     primaryColor: '#6c35ff',

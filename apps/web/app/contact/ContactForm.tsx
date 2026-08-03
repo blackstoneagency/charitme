@@ -76,15 +76,13 @@ export default function ContactForm() {
   };
 
   return (
-    <form className="contact-form-card-v2" onSubmit={handleSubmit}>
-      <div className="contact-form-glow" aria-hidden="true" />
-      <div className="contact-form-head">
-        <span className="contact-form-badge">✦ Drop us a line</span>
+    <form className="ct-form" onSubmit={handleSubmit}>
+      <div className="ct-form-head">
         <h2>Send us a message</h2>
         <p>Tell us what&apos;s going on — your message creates a real support ticket that our team tracks end to end.</p>
       </div>
 
-      <div className="contact-form-grid">
+      <div className="ct-form-row">
         <label>
           <span>Full Name</span>
           <input required value={form.name} onChange={updateField('name')} placeholder="Enter your full name" autoComplete="name" />
@@ -108,14 +106,14 @@ export default function ContactForm() {
         <textarea required value={form.message} onChange={updateField('message')} placeholder="How can we help you?" rows={5} />
       </label>
 
-      {notice && <div className={`contact-notice-v2 ${status === 'sent' ? 'success' : 'error'}`}>{notice}</div>}
+      {notice && <div className={`ct-notice ${status === 'sent' ? 'success' : 'error'}`}>{notice}</div>}
 
       <button type="submit" disabled={status === 'sending'}>
         {status === 'sending' ? 'Sending…' : 'Send Message'}
-        <SendIcon className="contact-form-btn-icon" />
+        <SendIcon className="ct-form-btn-ic" />
       </button>
 
-      <div className="contact-privacy-v2"><LockIcon /> Your message is encrypted and routed straight into our live support queue — never sold, never spammed.</div>
+      <div className="ct-privacy"><LockIcon /> Your message is encrypted and routed straight into our live support queue — never sold, never spammed.</div>
     </form>
   );
 }

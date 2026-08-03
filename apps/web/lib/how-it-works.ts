@@ -1,5 +1,6 @@
 import 'server-only';
-import { getPublishedAeoEntries, type PublicAeoEntry } from './aeo';
+import { getRouteFaqs } from './route-faqs';
+import type { PublicAeoEntry } from './aeo';
 
 /**
  * The FAQ block on /how-it-works.
@@ -8,24 +9,11 @@ import { getPublishedAeoEntries, type PublicAeoEntry } from './aeo';
  * `/faq` renders, so an answer edited in the admin console changes both surfaces
  * instead of drifting apart.
  *
- * The route itself only has ONE published entry, and the design shows five. The
- * built-in fallback in `getAeoFallbackRoute` does not help here: it maps a
- * dynamic detail route to its parent collection (`/causes/x` → `/causes`) and
- * `/how-it-works` is not one. So this tops up from `/faq`, which is the general
- * question collection and genuinely applies, and DEDUPES so an entry published
- * against both routes cannot appear twice.
- *
- * Returns whatever it has. An empty list renders no FAQ section at all rather
- * than an empty accordion — a disclosure control with nothing behind it is worse
- * than the absence of the block.
+ * The route itself only has ONE published entry and the design shows five, so
+ * the list is topped up from `/faq` and deduped. That logic now lives in
+ * `lib/route-faqs.ts`, shared with `/contact`, rather than being written out
+ * once per page — two copies of a deduping rule is two rules.
  */
 export async function getHowItWorksFaqs(limit = 5): Promise<PublicAeoEntry[]> {
-  const [own, general] = await Promise.all([
-    getPublishedAeoEntries('/how-it-works', 'FAQPage', limit),
-    getPublishedAeoEntries('/faq', 'FAQPage', limit * 4),
-  ]);
-
-  const seen = new Set(own.map((e) => e.question.trim().toLowerCase()));
-  const topUp = general.filter((e) => !seen.has(e.question.trim().toLowerCase()));
-  return [...own, ...topUp].slice(0, limit);
+  return getRouteFaqs('/how-it-works', limit);
 }
