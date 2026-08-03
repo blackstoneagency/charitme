@@ -415,6 +415,25 @@ shipped. Check the deployment result per PR, the same way CI runs have to be
 checked per run.
 
 
+## ✅ THE TWO REBUILT PAGES, VERIFIED AGAINST PRODUCTION (Claude, 2026-08-03)
+
+`/campaigns` and `/impact` were built and audited **in a sandbox with no
+database**, so every "wired to Supabase" claim about them was structural — the
+code reads the right columns — rather than observed. Checked against
+`www.charitme.com` now that both are live:
+
+| requirement | measured on production |
+|---|---|
+| `/campaigns` wired | **"Showing 1-12 of 351"** with **12 distinct campaign links** on the page — the count and the list agree, which is why `PAGE_SIZE` went 60 → 12 |
+| `/impact` wired | **18 numeric stats, 0 `—` placeholders.** `$96,850` raised, `592` gifts, `351` campaigns, `69` countries, and six ranked causes from `$17,340` down to `$11,830` |
+| the two pages agree | both report **351** campaigns. A hardcoded figure on either page would not track the other |
+| dark mode is black | the production stylesheet ships `[data-theme=dark]{…--bg:#000000…}` **and** `[data-theme=dark] body{background:#000000}` — flat black, no gradient |
+
+`—` is what `/impact` renders for a value it could not measure, so **zero of them
+is the meaningful result**: every tile resolved from a real read. In the sandbox
+every one of these rendered empty or dashed, which is the environment, not the
+code — and that is exactly why it was worth re-checking somewhere with a database.
+
 ## 🔑 SECRET EXPOSURE — MEASURED CLEAN ON BOTH SURFACES (Claude, 2026-08-03)
 
 The standing instruction says *"No secrets may be exposed in browser bundles,
