@@ -177,14 +177,21 @@ export interface CauseStory {
 }
 
 export async function getCauseStories(cause: Cause, limit = 3): Promise<CauseStory[] | null> {
-  const { data, error } = await supabaseAdmin
-    .from('campaigns')
-    .select('id, slug, title, tagline, description, category, cover_image_url, raised_amount, backer_count')
-    .in('category', [...cause.categories])
-    .eq('status', 'completed')
-    .is('deleted_at', null)
-    .order('raised_amount', { ascending: false })
-    .limit(limit);
+  // Thunk, like the two reads above it. Without one, `supabaseAdmin.from` throws
+  // on property access while the argument is evaluated — before this function is
+  // entered — so the `error` branch below could never run and `/causes/[slug]`
+  // answered HTTP 500 instead of the `null` this signature already promises.
+  // Measured: 500 on /causes/mental-health with the service-role key removed.
+  const { data, error } = await boundedQuery(() =>
+    supabaseAdmin
+      .from('campaigns')
+      .select('id, slug, title, tagline, description, category, cover_image_url, raised_amount, backer_count')
+      .in('category', [...cause.categories])
+      .eq('status', 'completed')
+      .is('deleted_at', null)
+      .order('raised_amount', { ascending: false })
+      .limit(limit),
+  );
   if (error) {
     console.warn('[cause-landing] stories read failed', { code: error.code });
     return null;

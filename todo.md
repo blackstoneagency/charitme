@@ -1,5 +1,95 @@
 # CharitMe — Execution Tracker
 
+## ✅ /campaigns REBUILT to the supplied design (Claude, 2026-08-03)
+
+Hero band, category strip, three-column body, featured cards, list rows and a
+numbered pager — the reference layout, wired to live data.
+
+| | |
+|---|---|
+| layout | `232px 704px 292px` at ≥1180px, two-column at 900px, single below — measured in-browser |
+| dark mode | body `rgb(0, 0, 0)`, no gradient — **measured**, not assumed |
+| category tiles | 19 (All + all 18 real categories) |
+| page size | 60 → **12**, so the design's "Showing 1-12 of 248" is the real count |
+
+### Three places the design could not be copied literally
+
+The art is the brief, but three parts of it describe data that does not exist.
+Copying them would have produced a page that looks right and lies.
+
+1. **Category tiles.** The design labels them "Emergency Aid", "Food & Hunger",
+   "Shelter & Housing", "Health & Care", "Children & Youth", "Women & Families".
+   **None is in `CAMPAIGN_CATEGORIES`**, which is what `campaigns.category` is
+   filtered on — every one of those tiles would land on an empty page. The strip's
+   treatment is reproduced exactly; its contents are the real categories, so every
+   tile filters.
+2. **"Campaign Type" checkboxes** (Urgent Needs / Long-Term Projects /
+   Rebuilding & Recovery) have no column behind them. The group is reproduced
+   with the three filters that are real — Verified, Tax-deductible, Ending soon.
+   A checkbox that changes nothing is worse than one fewer checkbox.
+3. **The testimonial** ("Jessica M., Donor") is still not reproduced. No
+   testimonials table, so the quote and the person would both be ours, presented
+   as a real supporter's words.
+
+Everything else in the art IS wired: **Goal Range** filters on `goal_amount`
+(in CENTS — a dollar figure against a cents column is how a money filter silently
+matches everything), **Location** is a select built from the places that actually
+have campaigns, and **Ending soon** is a real date comparison rather than a
+stored flag.
+
+### The audits found a real defect in my own work
+
+`audit:responsive` flagged `/campaigns` at **all three viewports in both themes**:
+the hero search button was absolutely positioned over the input, so a click aimed
+at the end of the field hit the button instead of focusing the text. Rebuilt as a
+flex row sharing one white surface — same look, no overlap. Six findings → zero.
+
+### And a 500 on a public route, found by the contrast sweep
+
+`audit:contrast` reported `/causes/mental-health` as **HTTP 500**, which I had not
+touched. `getCauseStories` in `lib/cause-landing.ts` read `supabaseAdmin` without
+a thunk, so the Proxy threw before its `error` branch — the same class swept in
+#202, in a `lib/` module rather than a page, which is exactly where my
+`page-supabase-guarded` test does not look.
+
+**Then measured properly rather than guessed:** a keyless production server swept
+against all **77 indexable public routes** — `no 5xx`. That is the real check;
+the source-level scan lists 40 `lib` modules with the same shape, and most are
+called from API routes where a 500 is the honest answer.
+
+### Collided with a concurrent lane, and what was kept from theirs
+
+`16e5f4ec` had just given `/campaigns` the shared `IndexHero` + `StatStrip` that
+`/causes` uses. Both lanes rewrote the same hero, so the merge conflicted on the
+page and on `globals.css`.
+
+- **CSS:** both blocks kept — they append distinct rules, neither had to lose
+  anything.
+- **The hero photo is theirs, and they were right.** I had used a gradient panel
+  on the reasoning that no campaign-agnostic photo here was ours to publish. That
+  was wrong: `getCoverForCategory` is the repo's own catalog, already used by
+  `/causes`. The reference art has a photograph, so the page now has one, from
+  the same source, with a scrim so the headline does not depend on what the
+  photo happens to contain.
+- **Their guard was narrowed, not deleted.** "Both browse indexes use the shared
+  hero" no longer holds — the reference gives `/campaigns` a different hero — but
+  its two stated reasons are now asserted directly instead of waived: the scrim
+  is checked against `.cbx-hero-art::after`, and a new conditional check says
+  that *if* `/campaigns` ever renders a platform figure again it must read the
+  shared loader. A silenced test was the easy resolution and the wrong one.
+
+`/causes` and `components/IndexHero` are untouched.
+
+### Verified
+
+contrast 86×2 clean · responsive 86×3×2 clean · focus-order 87×2 clean
+(15,297 stops) · campaign-images PASSED · 2796 tests · typecheck, lint, build clean.
+
+⚠️ **Not verifiable here:** featured cards, list rows and the pager render empty,
+because the sandbox has no database — `featured: 0, rows: 0, pager: 0` is the
+environment, not the code. `pageWindow` is unit-tested instead (11 cases,
+including that it never repeats a number and never ellipsises a non-gap).
+
 ## 🛑 THE ONE REMAINING ITEM, and why no further looping moves it (Claude, 2026-08-03)
 
 Applying the 27 pending migrations. **Measured, not assumed** — this environment
@@ -19046,6 +19136,35 @@ A cause whose count failed to load is not the least popular cause. Those sort
 LAST rather than being ranked as empty, and their figures are omitted from the
 card rather than rendered as "0".
 
+## 🧭 /campaigns — same design as /causes, via a SHARED hero (Claude, 2026-08-03)
+
+`/campaigns` now opens with the same photo hero and measured stats strip as
+`/causes`: breadcrumb over the scrim, H1 + lede, two CTAs, a supporting card, and
+the four platform figures.
+
+### ⚠️ Extracted, not copied — `components/IndexHero.tsx`
+Both pages render **one** hero and **one** stats strip. A lookalike would drift in
+the two places that matter most: the **scrim** (the only thing keeping the text
+readable over an arbitrary photo) and the **em-dash rule** for a figure that
+could not be measured. Both indexes also read their figures from the **same
+loader**, so they cannot state different platform totals. Tests assert both.
+
+### 🐛 Nesting `<li>` inside `<li>` renders every crumb twice
+The first version wrapped each crumb in an `<li style="display: contents">` that
+itself contained `<li>`s. Result on screen: *"Home Home ›Causes › Causes
+›Campaigns › Campaigns"* — and invalid `<ol>` markup. The separator sits in a
+Fragment now. **`display: contents` does not make an element a valid list
+parent.**
+
+### The page root had to stop constraining width
+`.cb-page` was `width: min(100% - 40px, 1280px)`, which boxed the full-bleed hero
+inside the content measure. The constraint moved off the root and onto the
+children, excluding the two full-bleed bands.
+
+Everything already on the page — search, location filter, category chips, sort,
+featured row, sidebar panels — is untouched and still server-rendered from real
+query params.
+
 ## ✅ DONE — /donate rebuilt to the supplied design (Claude, 2026-08-02)
 
 Replaced the campaign-grid page with the split hero: copy + trust rows on the
@@ -19118,56 +19237,27 @@ regressions, 86 × 3 viewports × 2 themes** · axe **4/4** · form driven in a 
 browser: blocks an empty campaign, rejects below-minimum, sends the tile amount,
 sends a custom $137 as 13700, carries the dedication, and routes monthly to the
 recurring endpoint.
-## 🧭 /campaigns — same design as /causes, via a SHARED hero (Claude, 2026-08-03)
 
-`/campaigns` now opens with the same photo hero and measured stats strip as
-`/causes`: breadcrumb over the scrim, H1 + lede, two CTAs, a supporting card, and
-the four platform figures.
+## 💝 /donate — COLLISION, and I stood down (Claude, 2026-08-03)
 
-### ⚠️ Extracted, not copied — `components/IndexHero.tsx`
-Both pages render **one** hero and **one** stats strip. A lookalike would drift in
-the two places that matter most: the **scrim** (the only thing keeping the text
-readable over an arbitrary photo) and the **em-dash rule** for a figure that
-could not be measured. Both indexes also read their figures from the **same
-loader**, so they cannot state different platform totals. Tests assert both.
+I built the shared `IndexHero` + `StatStrip` onto `/donate` and it was green
+(0 axe, 0 contrast failures site-wide, 2797 tests). While it was in flight
+another lane landed **three** commits on the same page:
 
-### 🐛 Nesting `<li>` inside `<li>` renders every crumb twice
-The first version wrapped each crumb in an `<li style="display: contents">` that
-itself contained `<li>`s. Result on screen: *"Home Home ›Causes › Causes
-›Campaigns › Campaigns"* — and invalid `<ol>` markup. The separator sits in a
-Fragment now. **`display: contents` does not make an element a valid list
-parent.**
+- `c0c9a6fa` rebuild /donate to the supplied design, wired to Supabase (#221)
+- `f1a7aeff` pin the money-path and anonymity contracts on /donate (#223)
+- `d2e0d911` the design's tax-deductibility claim contradicted the product (#224)
 
-### The page root had to stop constraining width
-`.cb-page` was `width: min(100% - 40px, 1280px)`, which boxed the full-bleed hero
-inside the content measure. The constraint moved off the root and onto the
-children, excluding the two full-bleed bands.
+**Theirs wins and mine was dropped.** Their version is a purpose-built 266-line
+rebuild against a design supplied for *that* page, with its own hero
+(`dn-hero` — photo, shade, trust rows, proof avatars, live donation panel), 287
+lines of CSS, pinned tests on the money path, and a fix for a claim in the design
+that contradicted the product. Mine was a hero swap. Overwriting it would have
+traded a specific, tested rebuild for a generic one.
 
-Everything already on the page — search, location filter, category chips, sort,
-featured row, sidebar panels — is untouched and still server-rendered from real
-query params.
-
-### /donate — coverage added, and what is genuinely NOT done (Claude, 2026-08-02)
-
-`__tests__/donate-page.test.ts` (14 assertions) pins the properties whose failure
-costs most on the page that asks for money: it posts to the shared endpoints
-rather than a second checkout, sends an `Idempotency-Key` on one-off gifts,
-imports the floor from `@shared/fees` instead of hardcoding one, keeps
-validation on a single announced surface, degrades honestly on a failed read,
-and **reuses `getRecentDonations` rather than joining donor identity itself** —
-naming a hidden donor is a defect this repo has already fixed four times.
-
-Mutation-tested: removing the `Idempotency-Key` fails, and planting a direct
-`donations`+`donor_id` join fails with the anonymity message. Both pass restored.
-
-**🔴 Three things block "100% production ready", none of them in the repo:**
-
-| # | Item | Who |
-|---|---|---|
-| 1 | **Cannot verify the page is live on Production.** `www.charitme.com` → `000` (gateway refuses CONNECT); GitHub's deployments **and** commit-status APIs both answer `Resource not accessible by integration`. Merging to `master` is the production trigger and Vercel reported **Building**, but nothing reachable from here confirms the alias flipped. | **Owner** — open the page, or check the Vercel dashboard |
-| 2 | **No real charge has ever been made.** The form's payloads, validation and endpoint routing are verified in a real browser, but the stub returns no Stripe session, so charge → transfer → payout → receipt is still unproven. Tracked as **O3**. | **Owner** — Stripe test keys |
-| 3 | ~~501(c)(3) claims~~ **RESOLVED — the design's wording was factually wrong and is fixed.** See below. | — |
-| 3 | **The 501(c)(3) and "all donations are tax-deductible" lines are regulated claims.** They come from the supplied design and are rendered as given. If CharitMe is not itself a registered 501(c)(3) — the 0%-platform-fee + tip model reads like a platform, not a charity — these two sentences are the ones to change before launch. Flagged, not altered: matching the design was the instruction. | **Owner** — legal |
+⚠️ The rebase conflict was the *only* signal this had happened — the page still
+returned 200 and looked fine locally the whole time. **Fetch before starting on a
+page, not just before pushing.**
 
 The hero photograph also differs from the design's child-holding-a-heart image:
 that asset is not in the repo and image hosts are unreachable from here, so
@@ -19288,3 +19378,51 @@ Or open the Vercel dashboard and check the deployment aliased to
 **Do not record this as "unverified work".** The work is verified; what cannot
 be observed from inside the sandbox is a DNS alias belonging to the owner.
 Those are different claims, and conflating them has now cost five rounds.
+<<<<<<< HEAD
+=======
+
+### Consequence for the shared hero
+`/causes` and `/campaigns` share `components/IndexHero.tsx`; `/donate`
+deliberately does NOT, because it has a design of its own. The test iterates the
+two pages that opted in rather than asserting "every index" — which would now be
+false.
+>>>>>>> origin/master
+
+## ✅ CONFIRMED LIVE ON PRODUCTION — /donate (owner-verified, 2026-08-03)
+
+The loop that ran seven rounds is closed. **The owner ran the check and it
+returned `1`:**
+
+```bash
+curl -s https://www.charitme.com/donate | grep -c "Make a Donation"   # → 1
+```
+
+`www.charitme.com/donate` is serving the rebuilt page. The production alias
+resolves to the current build — the one fact no tool inside this sandbox could
+observe, because the host is an organization egress denial.
+
+Corroborating, from `mcp__github__pull_request_read method=get_status`:
+
+| PR | Vercel |
+|---|---|
+| #221 — the `/donate` rebuild | `success` — "Deployment has completed" |
+| #226 — the latest commit | `success` — "Deployment has completed" |
+
+So: **built → tested → merged to `master` → deployed → live on the production
+domain**, each step evidenced rather than assumed.
+
+### What this settles for future sessions
+
+"Is it on Production?" is answerable, just not from in here. The **one-line
+owner check above is the whole procedure** — it costs seconds and ends the
+question. Do not spend rounds re-deriving that the host is blocked; it is, by
+policy, and the note above records why. Ask for the curl.
+
+### Still open on /donate — one item, unchanged
+
+**A real charge has never run.** The form's payloads, validation, amounts,
+dedication and endpoint routing are verified in a real browser, and the server
+route carries 16 test files, but no live Stripe session has been created:
+charge → transfer → payout → receipt remains unproven until the test keys in
+**O3** exist. That is the last gap between "production ready" and "proven in
+production" for this page.

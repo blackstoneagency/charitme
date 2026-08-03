@@ -4,13 +4,12 @@ import { boundedQuery } from '../../../lib/query-timeout';
 import { campaignColumns, applyLiveFilters } from '../../../lib/campaign-visibility';
 import { applyCampaignSearch, likeTerm } from '../../../lib/campaign-search';
 import { EmptyState } from '../../../components/ui';
-import { CampaignCard, CampaignGrid } from '../../../components/CampaignCard';
-import { IndexHero, StatStrip, statValue, moneyValue } from '../../../components/IndexHero';
-import { getCausesIndexData } from '../../../lib/causes-index';
-import { getCoverForCategory } from '../../../lib/photo-catalog';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 import { getTopDonors } from '../../../lib/leaderboard';
 import { formatCents } from '../../../lib/stripe';
+import { getCoverForCategory } from '../../../lib/photo-catalog';
+import { pageWindow } from '../../../lib/pagination';
+import { campaignDaysLeft, campaignTimeLabel } from '../../../lib/campaign-lifecycle';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -44,7 +43,55 @@ type CampaignRow = {
   campaign_health_score: number | null;
 };
 
-const PAGE_SIZE = 60;
+const PAGE_SIZE = 12;
+
+/**
+ * The design's "Goal Range" select.
+ *
+ * Bands are in CENTS because `campaigns.goal_amount` is in cents — the single
+ * most common way a money filter silently matches everything is comparing a
+ * dollar figure against a cents column.
+ */
+const GOAL_RANGES = {
+  any:    { label: 'Any Amount',        minCents: 0,          maxCents: null },
+  small:  { label: 'Under $5,000',      minCents: 0,          maxCents: 500_000 },
+  medium: { label: '$5,000 – $25,000',  minCents: 500_000,    maxCents: 2_500_000 },
+  large:  { label: '$25,000 – $100,000',minCents: 2_500_000,  maxCents: 10_000_000 },
+  xlarge: { label: '$100,000+',         minCents: 10_000_000, maxCents: null },
+} as const;
+
+type GoalRange = keyof typeof GOAL_RANGES;
+
+const isGoalRange = (v: string | undefined): v is GoalRange =>
+  v != null && Object.prototype.hasOwnProperty.call(GOAL_RANGES, v);
+
+/**
+ * Options for the design's "All Locations" select.
+ *
+ * Derived from live rows rather than a hardcoded country list, so the dropdown
+ * can only ever offer a place that actually has campaigns — picking one always
+ * returns results. `null` on failure, so the caller renders the plain text input
+ * instead of an empty select that looks like "no locations exist".
+ */
+async function getLocations(): Promise<string[] | null> {
+  try {
+    const cols = await campaignColumns();
+    const { data, error } = await boundedQuery(() =>
+      applyLiveFilters(supabaseAdmin.from('campaigns').select('location'), cols)
+        .not('location', 'is', null)
+        .limit(2000),
+    );
+    if (error || !data) return null;
+    const seen = new Set<string>();
+    for (const row of data as { location: string | null }[]) {
+      const loc = row.location?.trim();
+      if (loc) seen.add(loc);
+    }
+    return [...seen].sort((a, b) => a.localeCompare(b)).slice(0, 60);
+  } catch {
+    return null;
+  }
+}
 
 interface Props {
   searchParams: Promise<{
@@ -54,6 +101,8 @@ interface Props {
     verified?: string;
     location?: string;
     tax?: string;
+    ending?: string;
+    goal?: string;
     page?: string;
   }>;
 }
@@ -65,6 +114,8 @@ async function getCampaigns(opts: {
   verifiedOnly?: boolean;
   location?: string;
   taxDeductibleOnly?: boolean;
+  endingSoon?: boolean;
+  goalRange?: GoalRange;
   page: number;
 }) {
   try {
@@ -79,6 +130,25 @@ async function getCampaigns(opts: {
     if (opts.category) query = query.eq('category', opts.category);
     if (opts.verifiedOnly) query = query.eq('trust_status', 'Verified');
     if (opts.taxDeductibleOnly) query = query.eq('nonprofit_verified', true);
+    // Real column, real comparison — the design's "Goal Range" control is wired
+    // to `goal_amount` (cents) rather than being decorative.
+    if (opts.goalRange && opts.goalRange !== 'any') {
+      const band = GOAL_RANGES[opts.goalRange];
+      if (band) {
+        query = query.gte('goal_amount', band.minCents);
+        if (band.maxCents !== null) query = query.lt('goal_amount', band.maxCents);
+      }
+    }
+    // "Ending soon" is a date comparison, not a stored flag: a campaign with a
+    // deadline inside 30 days that has not already passed.
+    if (opts.endingSoon) {
+      const now = new Date();
+      const in30 = new Date(now.getTime() + 30 * 864e5);
+      query = query
+        .not('deadline', 'is', null)
+        .gte('deadline', now.toISOString())
+        .lte('deadline', in30.toISOString());
+    }
     if (opts.location) {
       // Strip SQL LIKE wildcards, exactly as applyCampaignSearch does one line
       // below. Without this a location of "%" matched every campaign (the filter
@@ -156,6 +226,55 @@ const SORT_LABELS: Record<SortOption, string> = {
   trust:   'Highest Trust',
 };
 
+/**
+ * One glyph per category.
+ *
+ * A `switch` rather than a lookup keyed by string so a category added to
+ * `CAMPAIGN_CATEGORIES` still renders — it falls through to the generic mark
+ * instead of producing an empty circle nobody notices.
+ */
+function CategoryGlyph({ category }: { category: string }) {
+  const p = (d: string) => (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d={d} />
+    </svg>
+  );
+  switch (category) {
+    case 'Medical':
+    case 'Emergency':
+      return p('M12 5v14M5 12h14');
+    case 'Family':
+    case 'Community':
+    case 'Volunteer':
+      return p('M17 20v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2M10 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M21 20v-2a4 4 0 0 0-3-3.9');
+    case 'Education':
+      return p('M3 8l9-4 9 4-9 4-9-4zM7 11v5c0 1.1 2.2 2 5 2s5-.9 5-2v-5');
+    case 'Animal':
+      return p('M12 21c4-2.5 7-5.6 7-9a4 4 0 0 0-7-2.6A4 4 0 0 0 5 12c0 3.4 3 6.5 7 9z');
+    case 'Environment':
+      return p('M12 21V9M12 9c0-3.3 2.7-6 6-6 0 3.3-2.7 6-6 6zM12 13c0-2.8-2.2-5-5-5 0 2.8 2.2 5 5 5z');
+    case 'Memorial':
+    case 'Faith':
+      return p('M12 3v18M7 8h10');
+    case 'Sports':
+    case 'Competition':
+      return p('M7 4h10v4a5 5 0 0 1-10 0V4zM9 20h6M12 13v7');
+    case 'Creative':
+    case 'Wishes':
+      return p('M12 3l2.4 5.6L20 9.6l-4 4 1 6-5-2.9L7 19.6l1-6-4-4 5.6-1z');
+    case 'Travel':
+      return p('M2 12l20-7-7 20-3-8-8-3z');
+    case 'Business':
+    case 'Nonprofit':
+      return p('M4 8h16v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V8zM9 8V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2');
+    case 'Event':
+      return p('M4 6h16v14H4zM4 10h16M9 3v4M15 3v4');
+    default:
+      return p('M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z');
+  }
+}
+
 export default async function CampaignsPage({ searchParams }: Props) {
   const sp = await searchParams;
   const category = sp.category;
@@ -164,21 +283,28 @@ export default async function CampaignsPage({ searchParams }: Props) {
   const verified = sp.verified === '1';
   const location = sp.location;
   const tax      = sp.tax === '1';
+  const ending   = sp.ending === '1';
+  const goal     = isGoalRange(sp.goal) ? sp.goal : 'any';
   const page     = Math.max(1, parseInt(sp.page ?? '1', 10) || 1);
 
-  const hasFilters = Boolean(q || category || verified || tax || location || sort !== 'raised');
+  const hasFilters = Boolean(
+    q || category || verified || tax || ending || location || goal !== 'any' || sort !== 'raised',
+  );
   const showExtras = page === 1 && !hasFilters;
 
   // The sidebar panels and the featured row are supplementary — a failure in any
   // of them must not take the campaign list with it, so each resolves to null
   // and simply renders nothing rather than throwing the page away.
-  const [{ campaigns, total, unavailable }, featured, topDonors, platform] = await Promise.all([
-    getCampaigns({ category, q, sort, verifiedOnly: verified, location, taxDeductibleOnly: tax, page }),
+  const [{ campaigns, total, unavailable }, featured, topDonors, locations] = await Promise.all([
+    getCampaigns({
+      category, q, sort, verifiedOnly: verified, location,
+      taxDeductibleOnly: tax, endingSoon: ending, goalRange: goal, page,
+    }),
     showExtras ? getFeatured() : Promise.resolve(null),
     showExtras
       ? getTopDonors('all', 5).catch(() => [])
       : Promise.resolve([] as Awaited<ReturnType<typeof getTopDonors>>),
-    getCausesIndexData(),
+    getLocations(),
   ]);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -201,6 +327,8 @@ export default async function CampaignsPage({ searchParams }: Props) {
     if (sort !== 'raised') params.set('sort', sort);
     if (verified) params.set('verified', '1');
     if (tax) params.set('tax', '1');
+    if (ending) params.set('ending', '1');
+    if (goal !== 'any') params.set('goal', goal);
     if (targetPage > 1) params.set('page', String(targetPage));
     const qs = params.toString();
     return `/campaigns${qs ? `?${qs}` : ''}`;
@@ -214,264 +342,388 @@ export default async function CampaignsPage({ searchParams }: Props) {
     if (sort !== 'raised') params.set('sort', sort);
     if (verified) params.set('verified', '1');
     if (tax) params.set('tax', '1');
+    if (ending) params.set('ending', '1');
+    if (goal !== 'any') params.set('goal', goal);
     const qs = params.toString();
     return `/campaigns${qs ? `?${qs}` : ''}`;
   };
 
+  const money = (cents: number, id: string) => formatCents(cents, currencyMap.get(id) ?? 'usd');
+  const pct = (c: CampaignRow) =>
+    c.goal_amount > 0 ? Math.min(100, Math.round((c.raised_amount / c.goal_amount) * 100)) : 0;
+  // The countdown comes from the shared helpers, never from arithmetic here:
+  // `__tests__/campaign-lifecycle.test.ts` refuses a surface that formats its
+  // own, which is how "3 days left" and "Ended" once appeared side by side for
+  // the same campaign.
+  //
+  // `now` is deliberately NOT passed. Reading `Date.now()` in a component body
+  // is an impure call and Next rejects it at build time; letting the helper
+  // apply its own default keeps the clock read inside the library, which is what
+  // every other surface here does.
+  const timeLabelFor = (c: CampaignRow) =>
+    campaignTimeLabel({ status: c.status ?? 'active', deadline: c.deadline });
+  const daysLeftFor = (c: CampaignRow) => campaignDaysLeft(c.deadline);
+
   return (
     <div className="cb-page">
-      {/* Same hero and stats strip as /causes, from the SHARED component rather
-          than a second copy — a lookalike would drift exactly where it matters
-          most, in the scrim that keeps the text readable over an arbitrary
-          photo. Figures come from the same loader too, so the two browse
-          indexes cannot state different platform totals. */}
-      <IndexHero
-        crumbs={[{ label: 'Home', href: '/' }, { label: 'Causes', href: '/causes' }, { label: 'Campaigns' }]}
-        title="Campaigns that change lives"
-        lede="Every campaign here is a real fundraiser with a real goal. Search by cause, place, or keyword — or browse what people are supporting right now."
-        photo={getCoverForCategory('Community')}
-        photoCategory="Community"
-        photoKey="campaigns-index"
-        card={{
-          title: 'See exactly what you are supporting.',
-          body: 'Each card shows a CharitScore trust rating, how much has been raised, and how long is left — before you give.',
-        }}
-        actions={
-          <>
-            <Link href="/create" className="cta-primary" style={{ display: 'inline-flex' }}>
-              Start a fundraiser
-            </Link>
-            <Link href="/how-it-works" className="cx-btn-secondary">How it works</Link>
-          </>
-        }
-      />
+      <nav aria-label="Breadcrumb" className="cb-crumbs">
+        <Link href="/">Home</Link>
+        <span aria-hidden="true">&rsaquo;</span>
+        <Link href="/causes">People in Need</Link>
+        <span aria-hidden="true">&rsaquo;</span>
+        <b aria-current="page">Campaigns</b>
+      </nav>
 
-      <StatStrip
-        label="CharitMe at a glance"
-        tiles={[
-          { value: statValue(platform.activeCampaigns), label: 'Active campaigns' },
-          { value: moneyValue(platform.raisedTotalCents), label: 'Raised on CharitMe' },
-          { value: statValue(platform.gifts), label: 'Gifts given' },
-          { value: statValue(platform.countries), label: 'Countries supported' },
-        ]}
-      />
+      {/* ── Hero band ─────────────────────────────────────────────────────────
+          A self-contained dark band, not a page-background change: the page base
+          is flat black in dark mode and must stay that way, so this paints its
+          own surface and never leaks a colour onto <body>. */}
+      <section className="cbx-hero">
+        <div className="cbx-hero-copy">
+          <h1>
+            Campaigns<br />That Change Lives{' '}
+            <span className="cbx-hero-heart" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 1 0-7.8 7.8l1.1 1L12 21l7.7-7.7 1.1-1a5.5 5.5 0 0 0 0-7.8z" />
+              </svg>
+            </span>
+          </h1>
+          <p>
+            Every campaign represents hope in action. Join thousands of people supporting urgent
+            needs and building a better world.
+          </p>
 
-      {/* Category chips. Built from CAMPAIGN_CATEGORIES, the single source of
-          truth in @shared/fees — three hand-maintained copies of this list had
-          already drifted apart before it was centralised, so the row cannot
-          advertise a category the rest of the app does not know about. */}
-      <nav aria-label="Browse by category" className="cb-chips">
-        <Link href={catHref(null)} className={`cb-chip${!category ? ' is-active' : ''}`}>
-          All Campaigns
+          {/* Same GET target as the filter form below, so the hero search is the
+              real search rather than a second one that disagrees with it. */}
+          <form method="GET" action="/campaigns" className="cbx-hero-search" role="search">
+            <label htmlFor="cbx-hero-q" className="sr-only">Search campaigns</label>
+            <input id="cbx-hero-q" name="q" defaultValue={q} placeholder="Search campaigns..." />
+            <button type="submit" aria-label="Search campaigns">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+                <circle cx="11" cy="11" r="7" /><path d="m20 20-3.2-3.2" />
+              </svg>
+            </button>
+          </form>
+        </div>
+        {/* The reference art carries a photograph here. It comes from the repo's
+            own `photo-catalog` — the same source /causes uses via IndexHero — so
+            this is not an unlicensed stock image dropped onto the busiest
+            marketing page. Decorative, hence empty alt and aria-hidden: the
+            heading beside it already carries the meaning. */}
+        <div className="cbx-hero-art" aria-hidden="true">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={getCoverForCategory('Community')} alt="" loading="eager" />
+        </div>
+      </section>
+
+      {/* ── Category strip ────────────────────────────────────────────────────
+          The reference art labels these tiles "Emergency Aid", "Food & Hunger",
+          "Shelter & Housing", "Children & Youth", "Women & Families". NONE of
+          those exist in `CAMPAIGN_CATEGORIES`, which is the single source of
+          truth and what `campaigns.category` is actually filtered on. Tiles with
+          those labels would each land on an empty page.
+          So the STRIP is reproduced exactly — circular tinted icon over a label —
+          and filled with the real categories, every one of which filters. */}
+      <nav aria-label="Browse by category" className="cbx-cats">
+        <Link href={catHref(null)} className={`cbx-cat${!category ? ' is-active' : ''}`}>
+          <span className="cbx-cat-icon" data-cat="All" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" />
+              <rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" />
+            </svg>
+          </span>
+          <span className="cbx-cat-label">All Campaigns</span>
         </Link>
         {CAMPAIGN_CATEGORIES.map((c) => (
-          <Link key={c} href={catHref(c)} className={`cb-chip${category === c ? ' is-active' : ''}`}>
-            {c}
+          <Link key={c} href={catHref(c)} className={`cbx-cat${category === c ? ' is-active' : ''}`}>
+            <span className="cbx-cat-icon" data-cat={c} aria-hidden="true">
+              <CategoryGlyph category={c} />
+            </span>
+            <span className="cbx-cat-label">{c}</span>
           </Link>
         ))}
       </nav>
 
-      <div className="cb-layout">
-      <div className="cb-main">
-
-      {/* ── Search + filter bar ── */}
-      <form method="GET" style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', minWidth: 0, gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-          <input
-            name="q"
-            defaultValue={q}
-            aria-label="Search campaigns"
-            placeholder="Search campaigns…"
-            className="cmp-filter-input"
-            style={{ flex: '1 1 220px', padding: '10px 14px', border: '1px solid var(--b1)', borderRadius: 'var(--r)', fontSize: '14px', outline: 'none', background: 'var(--s1, #fff)', color: 'var(--t1)' }}
-          />
-          <input
-            name="location"
-            defaultValue={location}
-            aria-label="Filter by location"
-            placeholder="Location…"
-            className="cmp-filter-input"
-            style={{ flex: '0 1 140px', padding: '10px 14px', border: '1px solid var(--b1)', borderRadius: 'var(--r)', fontSize: '14px', outline: 'none', background: 'var(--s1, #fff)', color: 'var(--t1)' }}
-          />
-          <select name="category" defaultValue={category ?? ''} aria-label="Filter by category"
-            style={{ padding: '10px 14px', border: '1px solid var(--b1)', borderRadius: 'var(--r)', fontSize: '14px', background: 'var(--s1, #fff)', color: 'var(--t1)', cursor: 'pointer' }}>
-            <option value="">All categories</option>
-            {CAMPAIGN_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <select name="sort" defaultValue={sort} aria-label="Sort campaigns"
-            style={{ padding: '10px 14px', border: '1px solid var(--b1)', borderRadius: 'var(--r)', fontSize: '14px', background: 'var(--s1, #fff)', color: 'var(--t1)', cursor: 'pointer' }}>
-            {(Object.entries(SORT_LABELS) as [SortOption, string][]).map(([k, v]) => (
-              <option key={k} value={k}>{v}</option>
-            ))}
-          </select>
-          <button type="submit" style={{ padding: '10px 20px', background: '#08763b', color: '#fff', borderRadius: 'var(--r)', fontWeight: 600, fontSize: '14px', cursor: 'pointer', border: 'none' }}>
-            Search
-          </button>
-        </div>
-
-        {/* ── Toggle filters — submitted together with the search above so typed
-             keywords/location aren't lost when toggling these checkboxes ── */}
-        <div style={{ display: 'flex', minWidth: 0, gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-          <label className="cb-filter-pill verified">
-            <input type="checkbox" name="verified" value="1" defaultChecked={verified} />
-            <span>✓ Verified only</span>
-          </label>
-          <label className="cb-filter-pill tax">
-            <input type="checkbox" name="tax" value="1" defaultChecked={tax} />
-            <span>💚 Tax-deductible</span>
-          </label>
-          {(q || category || verified || tax || location || sort !== 'raised') && (
-            <Link href="/campaigns" style={{ padding: '6px 14px', borderRadius: '20px', fontSize: '13px', fontWeight: 700, textDecoration: 'none', border: '1.5px solid var(--b2)', color: 'var(--t3)' }}>
-              ✕ Clear all
-            </Link>
-          )}
-          <span style={{ fontSize: '13px', color: 'var(--t3)', marginLeft: 4 }}>
-            {total} campaign{total !== 1 ? 's' : ''} found
-          </span>
-        </div>
-      </form>
-
-      {featured && featured.length > 0 && (
-        <section aria-labelledby="cb-featured" className="cb-featured">
-          <div className="cb-section-head">
-            <h2 id="cb-featured">Most funded right now</h2>
-            <Link href="/campaigns?sort=raised">View all <span aria-hidden="true">→</span></Link>
-          </div>
-          <CampaignGrid>
-            {featured.map((c) => (
-              <CampaignCard key={c.id} campaign={c} currency={currencyMap.get(c.id) ?? 'usd'} />
-            ))}
-          </CampaignGrid>
-        </section>
-      )}
-
-      <div className="cb-section-head">
-        <h2 id="cb-all">All campaigns</h2>
-        <span className="cb-count">
-          {unavailable ? '—' : `${total.toLocaleString()} campaign${total === 1 ? '' : 's'}`}
-        </span>
-      </div>
-
-      {unavailable ? (
-        // Distinct from "no results": one is a fact about the search, the other is
-        // a fault on our side. Telling a would-be donor there is nothing to support
-        // when the database simply failed is the wrong answer to the wrong question.
-        <EmptyState
-          icon="⚠️"
-          title="We couldn't load campaigns just now"
-          body="This is a problem on our side, not an empty catalogue. Please refresh in a moment."
-          action={<Link href="/campaigns" style={{ fontSize: '14px', color: 'var(--green-text)', fontWeight: 600 }}>Try again</Link>}
-        />
-      ) : campaigns.length === 0 ? (
-        <EmptyState
-          icon="🔍"
-          title="No campaigns found"
-          body="Try different keywords, remove filters, or browse all campaigns."
-          action={<Link href="/campaigns" style={{ fontSize: '14px', color: 'var(--green-text)', fontWeight: 600 }}>Clear filters</Link>}
-        />
-      ) : (
-        <CampaignGrid>
-          {campaigns.map((c) => (
-            <CampaignCard key={c.id} campaign={c} currency={currencyMap.get(c.id) ?? 'usd'} />
-          ))}
-        </CampaignGrid>
-      )}
-
-      {totalPages > 1 && (
-        <div style={{ display: 'flex', minWidth: 0, justifyContent: 'center', alignItems: 'center', gap: '12px', marginTop: '32px' }}>
-          {page > 1 ? (
-            <Link href={pageHref(page - 1)} style={{ padding: '10px 18px', borderRadius: 'var(--r)', border: '1px solid var(--b2)', color: 'var(--t1)', fontSize: '13px', fontWeight: 700, textDecoration: 'none' }}>
-              ← Previous
-            </Link>
-          ) : (
-            <span style={{ padding: '10px 18px', borderRadius: 'var(--r)', border: '1px solid var(--b1)', color: 'var(--t4)', fontSize: '13px', fontWeight: 700 }}>
-              ← Previous
-            </span>
-          )}
-          <span style={{ fontSize: '13px', color: 'var(--t3)', fontWeight: 700 }}>
-            Page {page} of {totalPages}
-          </span>
-          {page < totalPages ? (
-            <Link href={pageHref(page + 1)} style={{ padding: '10px 18px', borderRadius: 'var(--r)', border: '1px solid var(--b2)', color: 'var(--t1)', fontSize: '13px', fontWeight: 700, textDecoration: 'none' }}>
-              Next →
-            </Link>
-          ) : (
-            <span style={{ padding: '10px 18px', borderRadius: 'var(--r)', border: '1px solid var(--b1)', color: 'var(--t4)', fontSize: '13px', fontWeight: 700 }}>
-              Next →
-            </span>
-          )}
-        </div>
-      )}
-      </div>{/* /.cb-main */}
-
-      <aside className="cb-aside" aria-label="Ways to help">
-        <section className="cb-panel">
-          <h2>Make an impact today</h2>
-          <p className="cb-panel-lede">Small actions lead to big changes.</p>
-          <ul className="cb-actions">
-            <li>
-              <Link href="/give">
-                <strong>Give to many causes</strong>
-                <span>Split one gift across several campaigns, with a single receipt.</span>
-              </Link>
-            </li>
-            <li>
-              <Link href="/create/choose-path">
-                <strong>Start a fundraiser</strong>
-                <span>Raise for someone you know, or for a cause you care about.</span>
-              </Link>
-            </li>
-            <li>
-              <Link href="/get-involved">
-                <strong>Volunteer your time</strong>
-                <span>Ways to help that do not involve money.</span>
-              </Link>
-            </li>
-          </ul>
-          <Link href="/get-involved" className="cta-primary cb-panel-cta">Get involved</Link>
-        </section>
-
-        {/* Top DONORS, not "top fundraisers".
-            The supplied design labels this panel "Top Fundraisers" and lists
-            people with an amount. The only person-level aggregate that exists is
-            getTopDonors() — money GIVEN, not money RAISED. Rendering givers under
-            a "fundraisers" heading would misdescribe every name on the list, so
-            the heading matches the data.
-            The loader already excludes anonymous donations and respects each
-            profile's showPublicProfile flag, so nobody appears here who did not
-            choose to be visible. */}
-        {topDonors.length > 0 && (
-          <section className="cb-panel">
-            <div className="cb-section-head">
-              <h2>Top donors</h2>
-              <Link href="/leaderboard">View all <span aria-hidden="true">→</span></Link>
+      <div className="cbx-layout">
+        {/* ── Filters rail ──────────────────────────────────────────────────── */}
+        <aside className="cbx-filters" aria-label="Filter campaigns">
+          <form method="GET" action="/campaigns">
+            <div className="cbx-filters-head">
+              <h2>Filters</h2>
+              {hasFilters && <Link href="/campaigns">Clear all</Link>}
             </div>
-            <ol className="cb-donors">
-              {topDonors.map((d) => (
-                <li key={d.donorId}>
-                  <span className="cb-rank">{d.rank}</span>
-                  <span className="cb-donor-name">{d.name}</span>
-                  <span className="cb-donor-amount">{formatCents(d.totalCents, 'usd')}</span>
-                </li>
-              ))}
-            </ol>
-          </section>
-        )}
 
-        {/* The design also carries a named testimonial ("Jessica M., Donor").
-            It is not reproduced: there is no testimonials table, so the quote and
-            the person would both have to be written by us and presented as a real
-            supporter's words. That is fabricating a review, which is not a thing
-            to ship regardless of how good the panel looks. If real, consented
-            testimonials are collected later, this is where they belong. */}
-        <section className="cb-panel cb-start">
-          <h2>Start your own campaign</h2>
-          <p className="cb-panel-lede">
-            Create a campaign and rally your community. There is no platform fee.
-          </p>
-          <Link href="/create/choose-path" className="cta-primary cb-panel-cta">Start a fundraiser</Link>
-        </section>
-      </aside>
+            {/* Carried so the rail does not silently drop a hero search or a
+                category tile the visitor already chose. */}
+            {q && <input type="hidden" name="q" value={q} />}
+            {category && <input type="hidden" name="category" value={category} />}
+
+            <div className="cbx-field">
+              <label htmlFor="cbx-sort">Sort by</label>
+              <select id="cbx-sort" name="sort" defaultValue={sort}>
+                {(Object.entries(SORT_LABELS) as [SortOption, string][]).map(([k, v]) => (
+                  <option key={k} value={k}>{v}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* The design's "Campaign Type" group. Its labels (Urgent Needs,
+                Long-Term Projects, Rebuilding & Recovery) have no column behind
+                them, so the GROUP is reproduced with the three filters that are
+                real and that donors actually act on. A checkbox that changes
+                nothing is worse than one fewer checkbox. */}
+            <fieldset className="cbx-field cbx-checks">
+              <legend>Campaign type</legend>
+              <label>
+                <input type="checkbox" name="verified" value="1" defaultChecked={verified} />
+                <span>Verified only</span>
+              </label>
+              <label>
+                <input type="checkbox" name="tax" value="1" defaultChecked={tax} />
+                <span>Tax-deductible</span>
+              </label>
+              <label>
+                <input type="checkbox" name="ending" value="1" defaultChecked={ending} />
+                <span>Ending soon</span>
+              </label>
+            </fieldset>
+
+            <div className="cbx-field">
+              <label htmlFor="cbx-loc">Location</label>
+              {/* A select only when we could actually read the places that have
+                  campaigns; otherwise a text input, so a failed read degrades to
+                  a usable control rather than an empty dropdown that reads as
+                  "there are no locations". */}
+              {locations && locations.length > 0 ? (
+                <select id="cbx-loc" name="location" defaultValue={location ?? ''}>
+                  <option value="">All Locations</option>
+                  {locations.map((l) => <option key={l} value={l}>{l}</option>)}
+                </select>
+              ) : (
+                <input id="cbx-loc" name="location" defaultValue={location} placeholder="All Locations" />
+              )}
+            </div>
+
+            <div className="cbx-field">
+              <label htmlFor="cbx-goal">Goal range</label>
+              <select id="cbx-goal" name="goal" defaultValue={goal}>
+                {(Object.entries(GOAL_RANGES) as [GoalRange, { label: string }][]).map(([k, v]) => (
+                  <option key={k} value={k}>{v.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <button type="submit" className="cbx-apply">Apply Filters</button>
+          </form>
+
+          <section className="cbx-start">
+            <span className="cbx-start-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 1 0-7.8 7.8l1.1 1L12 21l7.7-7.7 1.1-1a5.5 5.5 0 0 0 0-7.8z" />
+              </svg>
+            </span>
+            <h2>Start Your Own Campaign</h2>
+            <p>Create a campaign and rally your community to make a difference.</p>
+            <Link href="/create/choose-path" className="cbx-start-cta">Start a Fundraiser &rarr;</Link>
+          </section>
+        </aside>
+
+        {/* ── Main column ───────────────────────────────────────────────────── */}
+        <div className="cbx-main">
+          {featured && featured.length > 0 && (
+            <section aria-labelledby="cbx-featured">
+              <div className="cb-section-head">
+                {/* "Featured" is MOST FUNDED RIGHT NOW, computed live. There is
+                    no editorial-pick or paid-slot concept in the schema, so the
+                    row cannot claim to be one. */}
+                <h2 id="cbx-featured">Featured Campaigns</h2>
+                <Link href="/campaigns?sort=raised">View All Featured <span aria-hidden="true">&rarr;</span></Link>
+              </div>
+              <div className="cbx-feat-grid">
+                {featured.map((c) => {
+                  const d = daysLeftFor(c);
+                  return (
+                    <article key={c.id} className="cbx-feat">
+                      <Link href={`/campaigns/${c.slug}`} className="cbx-feat-media">
+                        {c.cover_image_url
+                          // eslint-disable-next-line @next/next/no-img-element
+                          ? <img src={c.cover_image_url} alt="" loading="lazy" />
+                          : <span className="cbx-feat-ph" aria-hidden="true" />}
+                        {c.category && <span className="cbx-feat-badge">{c.category}</span>}
+                      </Link>
+                      <div className="cbx-feat-body">
+                        <h3><Link href={`/campaigns/${c.slug}`}>{c.title}</Link></h3>
+                        {c.location && (
+                          <p className="cbx-feat-loc">
+                            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                              <path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z" /><circle cx="12" cy="10" r="2.6" />
+                            </svg>
+                            {c.location}
+                          </p>
+                        )}
+                        {c.tagline && <p className="cbx-feat-lede">{c.tagline}</p>}
+                        <div className="cbx-feat-figures">
+                          <strong>{money(c.raised_amount, c.id)} raised</strong>
+                          <span>{money(c.goal_amount, c.id)} goal</span>
+                        </div>
+                        <div className="cbx-bar" role="img" aria-label={`${pct(c)}% funded`}>
+                          <span style={{ width: `${pct(c)}%` }} />
+                        </div>
+                        <div className="cbx-feat-meta">
+                          <span>{c.backer_count.toLocaleString()} supporters</span>
+                          {d !== null && <span>{timeLabelFor(c)}</span>}
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          <div className="cb-section-head">
+            <h2 id="cb-all">All Campaigns</h2>
+            <span className="cb-count">
+              {unavailable
+                ? '\u2014'
+                : total === 0
+                  ? 'No campaigns'
+                  : `Showing ${((page - 1) * PAGE_SIZE + 1).toLocaleString()}-${Math.min(page * PAGE_SIZE, total).toLocaleString()} of ${total.toLocaleString()}`}
+            </span>
+          </div>
+
+          {unavailable ? (
+            // Distinct from "no results": one is a fact about the search, the other
+            // is a fault on our side. Telling a would-be donor there is nothing to
+            // support when the database simply failed is the wrong answer to the
+            // wrong question.
+            <EmptyState
+              icon="&#9888;&#65039;"
+              title="We couldn't load campaigns just now"
+              body="This is a problem on our side, not an empty catalogue. Please refresh in a moment."
+              action={<Link href="/campaigns" style={{ fontSize: '14px', color: 'var(--green-text)', fontWeight: 600 }}>Try again</Link>}
+            />
+          ) : campaigns.length === 0 ? (
+            <EmptyState
+              icon="&#128269;"
+              title="No campaigns found"
+              body="Try different keywords, remove filters, or browse all campaigns."
+              action={<Link href="/campaigns" style={{ fontSize: '14px', color: 'var(--green-text)', fontWeight: 600 }}>Clear filters</Link>}
+            />
+          ) : (
+            <ul className="cbx-list">
+              {campaigns.map((c) => {
+                const d = daysLeftFor(c);
+                return (
+                  <li key={c.id} className="cbx-row">
+                    <Link href={`/campaigns/${c.slug}`} className="cbx-row-media" aria-hidden="true" tabIndex={-1}>
+                      {c.cover_image_url
+                        // eslint-disable-next-line @next/next/no-img-element
+                        ? <img src={c.cover_image_url} alt="" loading="lazy" />
+                        : <span className="cbx-feat-ph" />}
+                    </Link>
+                    <div className="cbx-row-body">
+                      {c.category && <span className="cbx-row-badge">{c.category}</span>}
+                      <h3><Link href={`/campaigns/${c.slug}`}>{c.title}</Link></h3>
+                      {c.location && <p className="cbx-row-loc">{c.location}</p>}
+                      {c.tagline && <p className="cbx-row-lede">{c.tagline}</p>}
+                    </div>
+                    <div className="cbx-row-figures">
+                      <strong>{money(c.raised_amount, c.id)} raised</strong>
+                      <div className="cbx-bar cbx-bar-sm" role="img" aria-label={`${pct(c)}% funded`}>
+                        <span style={{ width: `${pct(c)}%` }} />
+                      </div>
+                      <span className="cbx-row-meta">
+                        {c.backer_count.toLocaleString()} supporters{d !== null ? ` \u00b7 ${timeLabelFor(c)}` : ''}
+                      </span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          {totalPages > 1 && (
+            <nav className="cbx-pager" aria-label="Pagination">
+              {page > 1
+                ? <Link href={pageHref(page - 1)} className="cbx-pg" aria-label="Previous page">&lsaquo;</Link>
+                : <span className="cbx-pg is-off" aria-hidden="true">&lsaquo;</span>}
+              {pageWindow(page, totalPages).map((n, i) =>
+                n === null
+                  ? <span key={`gap-${i}`} className="cbx-pg-gap" aria-hidden="true">&hellip;</span>
+                  : n === page
+                    ? <span key={n} className="cbx-pg is-current" aria-current="page">{n}</span>
+                    : <Link key={n} href={pageHref(n)} className="cbx-pg">{n}</Link>,
+              )}
+              {page < totalPages
+                ? <Link href={pageHref(page + 1)} className="cbx-pg" aria-label="Next page">&rsaquo;</Link>
+                : <span className="cbx-pg is-off" aria-hidden="true">&rsaquo;</span>}
+            </nav>
+          )}
+        </div>
+
+        {/* ── Ways-to-help rail ─────────────────────────────────────────────── */}
+        <aside className="cb-aside" aria-label="Ways to help">
+          <section className="cb-panel">
+            <h2>Make an Impact Today</h2>
+            <p className="cb-panel-lede">Small actions lead to big changes.</p>
+            <ul className="cb-actions">
+              <li>
+                <Link href="/give">
+                  <strong>Donate</strong>
+                  <span>Support a campaign that matters to you.</span>
+                </Link>
+              </li>
+              <li>
+                <Link href="/create/choose-path">
+                  <strong>Share</strong>
+                  <span>Spread the word and inspire others.</span>
+                </Link>
+              </li>
+              <li>
+                <Link href="/get-involved">
+                  <strong>Volunteer</strong>
+                  <span>Give your time and skills to help.</span>
+                </Link>
+              </li>
+            </ul>
+            <Link href="/get-involved" className="cta-primary cb-panel-cta">Get Involved</Link>
+          </section>
+
+          {/* Top DONORS, not "Top Fundraisers".
+              The reference art labels this panel "Top Fundraisers" and lists
+              people with an amount. The only person-level aggregate that exists
+              is getTopDonors() — money GIVEN, not money RAISED. Rendering givers
+              under a "fundraisers" heading would misdescribe every name on it, so
+              the heading matches the data.
+              The loader already excludes anonymous donations and respects each
+              profile's showPublicProfile flag, so nobody appears who did not
+              choose to be visible. */}
+          {topDonors.length > 0 && (
+            <section className="cb-panel">
+              <div className="cb-section-head">
+                <h2>Top donors</h2>
+                <Link href="/leaderboard">View All <span aria-hidden="true">&rarr;</span></Link>
+              </div>
+              <ol className="cb-donors">
+                {topDonors.map((d) => (
+                  <li key={d.donorId}>
+                    <span className="cb-rank">{d.rank}</span>
+                    <span className="cb-donor-name">{d.name}</span>
+                    <span className="cb-donor-amount">{formatCents(d.totalCents, 'usd')}</span>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
+
+          {/* The reference art also carries a named testimonial ("Jessica M.,
+              Donor"). It is deliberately not reproduced: there is no testimonials
+              table, so the quote and the person would both have to be written by
+              us and presented as a real supporter's words. That is fabricating a
+              review. If real, consented testimonials are collected later, this is
+              where they belong. */}
+        </aside>
       </div>{/* /.cb-layout */}
     </div>
   );
