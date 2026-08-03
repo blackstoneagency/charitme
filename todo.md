@@ -52,6 +52,15 @@ in `app/`, `lib/` and `components/`, against every route that reads `sp.cause`:
 false filters were the whole population, not a sample. Nothing further to fix
 here.
 
+⚠️ **How far the verification actually goes.** The *link* side is verified
+empirically — a browser reading rendered hrefs on the running build reports
+`linksDroppingCause: []`, and the filters form's hidden input round-trips the
+slug. The *query* side is not: this sandbox points at `placeholder.supabase.co`,
+so `/campaigns?cause=…` returns `QUERY_TIMEOUT` either way, and a filtered list
+cannot be told from an unfiltered one by observation. That `.in(categories)` is
+reached with the right categories is typechecked and pinned by test — weaker
+than seeing a shorter list come back. Worth one look against production.
+
 ## ✅ /causes/people-in-need — matched to its reference (Claude, 2026-08-03)
 
 Follows the Sports & Youth pass (#220, merged). **The section ORDER was already
