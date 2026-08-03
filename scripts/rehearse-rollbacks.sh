@@ -29,6 +29,7 @@ PORT="${PGPORT:-55472}"
 # version:KIND:targets — what each rollback must remove.
 #   TABLES:  comma-separated table names
 #   COLUMNS: comma-separated table.column pairs
+#   INDEXES: comma-separated index names
 CASES=(
   "20260806000000:TABLES:volunteer_hours,volunteer_shifts"
   "20260807000000:TABLES:brands,organization_members,organizations"
@@ -39,6 +40,7 @@ CASES=(
   "20260808000000:COLUMNS:campaigns.is_demo,donations.is_demo,profiles.is_demo"
   "20260817000000:COLUMNS:campaigns.latitude,campaigns.longitude"
   "20260818000000:COLUMNS:profiles.locale"
+  "20260812000000:INDEXES:campaign_owner_transfers_processor_object_uidx,campaign_payment_refunds_processor_object_uidx,campaign_processor_fees_processor_object_uidx,marketing_suppression_email_plain_uq"
   "20260814000000:COLUMNS:marketing_audit_logs.org_id,marketing_automations.org_id,marketing_campaign_plans.org_id,marketing_campaigns.org_id,marketing_consent.org_id,marketing_contacts.org_id,marketing_email_templates.org_id,marketing_events.org_id,marketing_forms.org_id,marketing_goals.org_id,marketing_opportunities.org_id,marketing_referrals.org_id,marketing_segments.org_id,marketing_suppression_list.org_id,marketing_utm_links.org_id"
 )
 
@@ -105,11 +107,14 @@ APPLY
 
   # Every target must exist before the rollback, or the check below is vacuous.
   exists_target() {  # $1 = target (table or table.column)
-    if [ "$KIND" = "TABLES" ]; then
-      su postgres -c "psql -h $WORK/sock -p $PORT -U postgres -tAc \"select count(*) from information_schema.tables where table_schema='public' and table_name='$1';\""
-    else
-      su postgres -c "psql -h $WORK/sock -p $PORT -U postgres -tAc \"select count(*) from information_schema.columns where table_schema='public' and table_name='${1%%.*}' and column_name='${1#*.}';\""
-    fi
+    case "$KIND" in
+      TABLES)
+        su postgres -c "psql -h $WORK/sock -p $PORT -U postgres -tAc \"select count(*) from information_schema.tables where table_schema='public' and table_name='$1';\"" ;;
+      INDEXES)
+        su postgres -c "psql -h $WORK/sock -p $PORT -U postgres -tAc \"select count(*) from pg_indexes where schemaname='public' and indexname='$1';\"" ;;
+      *)
+        su postgres -c "psql -h $WORK/sock -p $PORT -U postgres -tAc \"select count(*) from information_schema.columns where table_schema='public' and table_name='${1%%.*}' and column_name='${1#*.}';\"" ;;
+    esac
   }
   MISSING_BEFORE=""
   for t in ${TARGETS//,/ }; do
