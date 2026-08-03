@@ -424,6 +424,8 @@ export const nl: Dictionary = {
   'cl.stat_live': 'Lopende acties',
   'cl.stat_countries': 'Landen die we bereiken',
   'cl.cta_title': 'Kleine daad. Groot effect.',
+  'cl.programs_card_title': 'Jouw vriendelijkheid zorgt voor echte verandering',
+  'cl.see_all_programs': "Bekijk alle programma's →",
   'cl.support_card_title': 'Jouw steun verandert alles.',
   'cl.support_card_body': 'Help mensen aan zelfvertrouwen, vaardigheden en een beter jaar.',
   'cl.see_real_stories': 'Bekijk echte verhalen →',

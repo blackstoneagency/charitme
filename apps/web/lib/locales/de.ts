@@ -424,6 +424,8 @@ export const de: Dictionary = {
   'cl.stat_live': 'Laufende Kampagnen',
   'cl.stat_countries': 'Länder, die wir erreichen',
   'cl.cta_title': 'Kleine Tat. Große Wirkung.',
+  'cl.programs_card_title': 'Ihre Güte bewirkt echten Wandel',
+  'cl.see_all_programs': 'Alle Programme ansehen →',
   'cl.support_card_title': 'Ihre Unterstützung verändert alles.',
   'cl.support_card_body': 'Helfen Sie Menschen zu Selbstvertrauen, Können und einem besseren Jahr.',
   'cl.see_real_stories': 'Echte Geschichten ansehen →',

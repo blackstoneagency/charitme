@@ -120,7 +120,13 @@ describe('the landing is wired to real destinations', () => {
     // tab strip; /create is in the hero and the closing band; /partner is in the
     // main nav's Resources group. The per-category counts counted the campaigns
     // the grid underneath already lists.
-    expect(landing).not.toContain('cl-programs');
+    // ⚠️ Named exactly, NOT by the `cl-programs` prefix. The hero's
+    // `.cl-programs-card` — the People in Need reference's "what this cause
+    // funds" list — shares that prefix and is a different thing entirely; a
+    // prefix match failed against it and would have pushed the next author to
+    // rename a legitimate component to satisfy a guard about a deleted one.
+    expect(landing).not.toContain('cl-programs-band');
+    expect(landing).not.toContain('cl-programs-list');
     expect(landing).not.toContain('cl-help-grid');
     expect(landing).not.toContain('causeWays');
   });
@@ -143,11 +149,55 @@ describe('the landing is wired to real destinations', () => {
     }
   });
 
-  it('the H1 is the cause name, not a slogan shared by all 20 pages', () => {
-    // The first draft put "Hope changes everything." in every cause's H1, which
-    // made twenty pages compete for the same heading in search results.
-    expect(landing).toContain('{cause.label}');
-    expect(landing).toContain("id=\"cl-hero-title\"");
+  it('no two pages share an H1, whether it is the name or a slogan', () => {
+    // The original rule here was "the H1 is the cause name". It was written
+    // against a draft that put "Hope changes everything." in ALL TWENTY H1s, so
+    // twenty pages competed for one heading in search — and the rule was a
+    // proxy for that, not the point itself.
+    //
+    // The two design references disagree, and each is right about its own page:
+    // Sports & Youth heads with the cause name, People in Need with a slogan
+    // over a small cause-name eyebrow. So the proxy is replaced by the property
+    // it stood for: whatever heads the page, it must be UNIQUE across causes.
+    const heads = CAUSES.map((c) => c.heroTitle ?? c.label);
+    expect(new Set(heads).size, 'two causes render the same H1').toBe(CAUSES.length);
+    expect(landing).toContain('{cause.heroTitle ?? cause.label}');
+    expect(landing).toContain('id="cl-hero-title"');
+  });
+
+  it('a cause that heads with a slogan still shows its NAME on the page', () => {
+    // Otherwise the page has no visible occurrence of the term people search
+    // for, which is the other half of what the old rule was protecting.
+    expect(landing).toContain('cause.heroTitle && <p className="cl-eyebrow">{cause.label}</p>');
+  });
+
+  it('the hero programmes card links somewhere that exists', () => {
+    // The mock's "See All Programs" pointed nowhere. There is no per-cause
+    // programmes ROUTE to send it to, and inventing one would be a link to a
+    // 404 — so it is an in-page jump to the section that expands on exactly
+    // these rows, and that section's id must therefore exist.
+    expect(landing).toContain('href="#how-support-helps"');
+    expect(page).toContain('id="how-support-helps"');
+  });
+
+  it('the hero programmes list is not a second copy of the helps list', () => {
+    // The reference draws BOTH, naming different things. If they were the same
+    // list the page would print the same four items twice.
+    const pin = CAUSES.find((c) => c.slug === 'people-in-need')!;
+    expect(pin.programs, 'people-in-need declares hero programmes').toBeTruthy();
+    expect(pin.helps, 'people-in-need declares helps').toBeTruthy();
+    const overlap = pin.programs!.filter((p) => pin.helps!.some((h) => h.title === p.title));
+    expect(overlap.map((p) => p.title), 'a row appears in both lists').toEqual([]);
+  });
+
+  it('every helps CTA carries the card it belongs to in its accessible name', () => {
+    // Four links reading "Help now →" are indistinguishable in a links list, so
+    // the card title goes in the aria-label. They share ONE destination on
+    // purpose: `helps` are editorial groupings and nothing in the schema tags a
+    // campaign as "shelter" rather than "food", so a per-card filter would
+    // promise a narrowing that is not there.
+    expect(page).toContain('aria-label={`${cause.helpsCta}: ${h.title}`}');
+    expect(page).toContain('href={causeBrowseHref(cause)}');
   });
 
   it('treats the hero photo as decorative, since the H1 beside it names the cause', () => {
@@ -236,7 +286,12 @@ describe('the fuller Sports & Youth layout', () => {
     // that they merely EXIST would have passed against the old order too.
     const grid = page.indexOf('<CampaignGrid>');
     const tabs = page.indexOf('className="cl-tabs"');
-    const helps = page.indexOf('className="cl-helps"');
+    // `cl-helps` is now built in a template literal (it gains a modifier for
+    // causes that left-align the heading), so the old `className="cl-helps"`
+    // needle no longer matches. Anchored on the section's stable id instead —
+    // the thing the heading actually labels — rather than on how the class
+    // string happens to be assembled this week.
+    const helps = page.indexOf('aria-labelledby="how-support-helps"');
     const stories = page.indexOf('className="cl-stories"');
     for (const [name, at] of Object.entries({ grid, tabs, helps, stories })) {
       expect(at, `${name} is not rendered at all`).toBeGreaterThan(-1);

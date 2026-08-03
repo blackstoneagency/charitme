@@ -4,6 +4,7 @@ import CampaignImage from '../../../components/CampaignImage';
 import { causeBrowseHref, type Cause } from '../../../lib/causes';
 import { formatStat, formatMoneyStat, type CauseStats } from '../../../lib/cause-landing';
 import { getCoverForCategory } from '../../../lib/photo-catalog';
+import HelpGlyph from './HelpGlyph';
 
 /**
  * The cause landing hero and stats sheet.
@@ -33,6 +34,18 @@ import { getCoverForCategory } from '../../../lib/photo-catalog';
  *    the same mistake: it is white text over a photographic scrim, the standard
  *    treatment for a photo hero, and the scrim guarantees the contrast rather
  *    than the theme doing it.
+ *
+ * ── Why the hero has two shapes ──────────────────────────────────────────────
+ *
+ * The two references DISAGREE about the hero, and each is right about its own
+ * page. Sports & Youth heads with the cause name over a tagline and floats a
+ * one-line support card. People in Need heads with "Hope changes everything."
+ * over a small cause-name eyebrow, and floats a list of what the cause funds.
+ *
+ * Both shapes live here, selected by `heroTitle` / `heroCard` on the cause,
+ * rather than in two components: the breadcrumb, the photo, the scrim, the
+ * actions and the whole responsive treatment are identical, and a second copy
+ * of that is how this repo's category list drifted three ways.
  */
 /** One icon per stat tile, in tile order. Inline SVG so the band ships no font
  *  or image request for four small glyphs. */
@@ -52,6 +65,9 @@ export default async function CauseLanding({
 }) {
   const t = await getTranslator();
   const heroPhoto = getCoverForCategory(cause.categories[0]);
+  // `heroCard: 'programs'` with no `programs` list falls back to the support
+  // card rather than rendering an empty aside.
+  const programs = cause.heroCard === 'programs' && cause.programs?.length ? cause.programs : null;
 
   return (
     <>
@@ -84,15 +100,21 @@ export default async function CauseLanding({
           </nav>
 
           <div className="cl-hero-copy">
+            {/* When a cause heads with a slogan, its NAME still renders — as the
+                eyebrow above. Dropping it would leave the page with no visible
+                occurrence of the term people search for. */}
+            {cause.heroTitle && <p className="cl-eyebrow">{cause.label}</p>}
             <h1 id="cl-hero-title" className="cl-hero-title">
-              {cause.label}
+              {cause.heroTitle ?? cause.label}
               <span className="cl-hero-heart" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8Z" />
                 </svg>
               </span>
             </h1>
-            <p className="cl-tagline">{cause.tagline}</p>
+            {/* A slogan followed by a second slogan reads as filler, and the
+                reference puts the lede directly under the headline. */}
+            {!cause.heroTitle && <p className="cl-tagline">{cause.tagline}</p>}
             <p className="cl-hero-lede">{cause.intro}</p>
 
             <div className="cl-hero-actions">
@@ -105,21 +127,47 @@ export default async function CauseLanding({
             </div>
           </div>
 
-          {/* The reference's floating support card. Its CTA points at
-              /success-stories, a page that exists — the mock's link had nowhere
-              to go. */}
-          <aside className="cl-support-card" aria-labelledby="cl-support-title">
-            <span className="cl-support-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8Z" />
-              </svg>
-            </span>
-            <h2 id="cl-support-title">{t('cl.support_card_title')}</h2>
-            <p>{t('cl.support_card_body')}</p>
-            <Link href="/success-stories" className="cl-support-link">
-              {t('cl.see_real_stories')}
-            </Link>
-          </aside>
+          {/* Two hero cards, because the two references draw two.
+              `programs` lists what the cause funds; `support` is the one-line
+              reassurance. Both link somewhere real — the mock's links did not.
+              The programs link is an in-page jump to the section that expands
+              on exactly these rows, which is what "see all programmes" means
+              here; there is no per-cause programmes ROUTE to send it to, and
+              inventing one would be a link to a page that does not exist. */}
+          {programs ? (
+            <aside className="cl-programs-card" aria-labelledby="cl-support-title">
+              <h2 id="cl-support-title">{t('cl.programs_card_title')}</h2>
+              <ul>
+                {programs.map((p) => (
+                  <li key={p.title}>
+                    <span className={`cl-programs-ic cl-programs-ic--${p.icon}`} aria-hidden="true">
+                      <HelpGlyph icon={p.icon} />
+                    </span>
+                    <span>
+                      <strong>{p.title}</strong>
+                      <span>{p.body}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <a href="#how-support-helps" className="cl-support-link">
+                {t('cl.see_all_programs')}
+              </a>
+            </aside>
+          ) : (
+            <aside className="cl-support-card" aria-labelledby="cl-support-title">
+              <span className="cl-support-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8Z" />
+                </svg>
+              </span>
+              <h2 id="cl-support-title">{t('cl.support_card_title')}</h2>
+              <p>{t('cl.support_card_body')}</p>
+              <Link href="/success-stories" className="cl-support-link">
+                {t('cl.see_real_stories')}
+              </Link>
+            </aside>
+          )}
         </div>
       </section>
 

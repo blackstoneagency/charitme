@@ -4,7 +4,7 @@ import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { boundedQuery } from '../../../lib/query-timeout';
 import { campaignColumns, applyLiveFilters } from '../../../lib/campaign-visibility';
-import { CAUSES, getCause, type Cause } from '../../../lib/causes';
+import { CAUSES, getCause, causeBrowseHref, type Cause } from '../../../lib/causes';
 import { CampaignCard, CampaignGrid, type CampaignCardData } from '../../../components/CampaignCard';
 import { EmptyState } from '../../../components/ui';
 import { getTranslator } from '../../../lib/locale-server';
@@ -217,8 +217,13 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
           rendering them here as well put two sets of the same numbers on one
           page. */}
       {cause.helps && cause.helps.length > 0 && (
-        <section className="cl-helps" aria-labelledby="how-support-helps">
-          <h2 id="how-support-helps" className="cl-helps-title">How your support helps</h2>
+        <section
+          className={`cl-helps${cause.helpsAlign === 'start' ? ' cl-helps--start' : ''}`}
+          aria-labelledby="how-support-helps"
+        >
+          <h2 id="how-support-helps" className="cl-helps-title">
+            {cause.helpsTitle ?? 'How your support helps'}
+          </h2>
           <ul className="cl-helps-grid">
             {cause.helps.map((h, i) => (
               <li className="cl-helps-card" key={h.title}>
@@ -234,11 +239,29 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
                 </div>
                 {/* aria-hidden here, not inside HelpGlyph: the <h3> below already
                     names the card, so announcing the icon would only repeat it. */}
-                <span className={`cl-helps-ic cl-helps-ic--${i % 5}`} aria-hidden="true">
+                <span
+                  className={`cl-helps-ic cl-helps-ic--${h.icon ?? i % 5}`}
+                  aria-hidden="true"
+                >
                   <HelpGlyph icon={h.icon} />
                 </span>
                 <h3>{h.title}</h3>
                 <p>{h.body}</p>
+                {/* One destination for all four, which is what the label means:
+                    `helps` are editorial groupings and nothing in the schema
+                    tags a campaign as "shelter" rather than "food", so a
+                    per-card filter would promise a narrowing that is not there.
+                    The accessible name carries the card's title so a list of
+                    four identical "Help now" links is still distinguishable. */}
+                {cause.helpsCta && (
+                  <Link
+                    href={causeBrowseHref(cause)}
+                    className="cl-helps-cta"
+                    aria-label={`${cause.helpsCta}: ${h.title}`}
+                  >
+                    {cause.helpsCta} →
+                  </Link>
+                )}
               </li>
             ))}
           </ul>

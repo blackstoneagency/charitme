@@ -1,5 +1,60 @@
 # CharitMe — Execution Tracker
 
+## ✅ /causes/people-in-need — matched to its reference (Claude, 2026-08-03)
+
+Follows the Sports & Youth pass (#220, merged). **The section ORDER was already
+right** — that PR moved the tabs and grid under the stats band for every cause,
+and the People in Need reference wants the same order. What was left was the
+hero, which is where the two references genuinely disagree.
+
+| | Sports & Youth reference | People in Need reference |
+|---|---|---|
+| H1 | the cause name + tagline beneath | **a slogan**, over a small cause-name eyebrow |
+| hero card | one-line "your support changes everything" | **four programme rows** + "See all programmes" |
+| helps heading | centred, accent rule under it | **left-aligned, no rule** |
+| helps cards | explanatory only | each gains a **"Help now →"** |
+
+Both shapes now live in one component, selected by `heroTitle` / `heroCard` /
+`helpsTitle` / `helpsAlign` / `helpsCta` on the cause. Not two components: the
+breadcrumb, photo, scrim, actions and the entire responsive treatment are
+identical between them, and a second copy of that is how this repo's category
+list drifted three ways.
+
+**The H1 rule was rewritten, not broken.** `cause-landing.test.ts` said "the H1
+is the cause name" — written against a draft that put *"Hope changes
+everything."* in **all twenty** H1s, so twenty pages competed for one heading in
+search. That rule was a proxy. It is now the property it stood for: every H1 is
+**unique across causes**, and a cause that heads with a slogan still renders its
+name (as the eyebrow), so the page is still findable by the term people search.
+
+**Three things in the reference were deliberately not copied:**
+
+1. **The stat figures stay measured** (2.3M+ People Helped, 68K+ Lives
+   Transformed, 1,250+ Programs Funded, 120+ Countries Reached). Same standing
+   rule as Sports & Youth; the country claim is already in `docs/` as a
+   fabricated statistic this repo retracted once.
+2. **The stats band keeps its own copy.** The mock reads *"Real Impact. Real
+   Champions. / Thanks to supporters like you, young athletes are achieving more
+   every day."* — verbatim the Sports & Youth text, pasted onto a page about
+   families in crisis. That is a mock artifact, not a spec. Ours says "Real
+   impact. Real relief."
+3. **The four "Help now" links share one destination.** `helps` are editorial
+   groupings; nothing in the schema tags a campaign as *shelter* rather than
+   *food*, so a per-card filter would promise a narrowing that is not there. The
+   card title goes in each link's `aria-label` so four identically-labelled links
+   are still distinguishable in a links list.
+
+**One accessibility call worth keeping:** the reference tints each "Help Now" to
+its card's accent (purple / pink / orange / **amber**). The badges took the
+accent; the LINKS did not. Amber or orange text on the light theme's near-white
+`--s1` is exactly the light-mode AA failure this stylesheet has shipped before,
+so the links stay on the AA-verified brand token.
+
+**Also:** the mock's "See All Programs" pointed nowhere. There is no per-cause
+programmes route, and inventing one would link to a 404 — it is an in-page jump
+to the section that expands on exactly those rows, and the test asserts that
+target id exists.
+
 ## ⛔ VERCEL CAP — resolved: it is REAL and INTERMITTENT, two hard errors (Claude, 2026-08-03 ~18:3x UTC)
 
 Settled by a second occurrence, which is what the previous entry said it was

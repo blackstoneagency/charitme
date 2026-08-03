@@ -424,6 +424,8 @@ export const pt: Dictionary = {
   'cl.stat_live': 'Campanhas ativas',
   'cl.stat_countries': 'Países que alcançamos',
   'cl.cta_title': 'Pequeno gesto. Grande impacto.',
+  'cl.programs_card_title': 'A sua bondade gera mudanças reais',
+  'cl.see_all_programs': 'Ver todos os programas →',
   'cl.support_card_title': 'O seu apoio muda tudo.',
   'cl.support_card_body': 'Ajude as pessoas a ganhar confiança, capacidade e um ano melhor.',
   'cl.see_real_stories': 'Ver histórias reais →',

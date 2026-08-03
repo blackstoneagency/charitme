@@ -39,7 +39,15 @@ export interface Cause {
    * The page discloses this; it must never be silently dropped.
    */
   narrower?: boolean;
-  /** Short hero line under the title. Optional — the page omits it when absent. */
+  /**
+   * Short hero line under the title. Optional — the page omits it when absent.
+   *
+   * Also omitted when `heroTitle` is set: that cause already leads with a
+   * slogan, and a slogan under a slogan reads as filler. It is still REQUIRED of
+   * every cause (and required to be unique) because the tests use it as the
+   * "this cause has authored copy" signal — so on People in Need it is currently
+   * carried but not rendered. Deliberate, not an oversight.
+   */
   tagline?: string;
   /**
    * The 2-3 sentence hero paragraph on the cause landing page. Longer than
@@ -73,6 +81,61 @@ export interface Cause {
    */
   ctaTitle?: string;
   ctaBlurb?: string;
+  /**
+   * A slogan to use as the H1 instead of the cause name.
+   *
+   * ⚠️ This exists because the two design references DISAGREE, and each is right
+   * about its own page: Sports & Youth heads with the cause name and a tagline
+   * beneath, People in Need heads with "Hope changes everything." over a small
+   * cause-name eyebrow.
+   *
+   * The original rule — H1 is the cause name — was written against a draft that
+   * put ONE slogan in all twenty H1s, so twenty pages competed for the same
+   * heading in search. A per-cause slogan is not that, and
+   * `cause-landing.test.ts` enforces the part that actually mattered: every
+   * `heroTitle` must be distinct, and the cause name still renders (as the
+   * eyebrow) so the page is still findable by it.
+   *
+   * When set, the tagline is not rendered — the reference puts the lede directly
+   * under the slogan, and a slogan followed by a second slogan reads as filler.
+   */
+  heroTitle?: string;
+  /**
+   * Which card floats in the hero.
+   *
+   * `support` (default) is the one-line "your support changes everything" card.
+   * `programs` is the taller list the People in Need reference draws — see
+   * `programs` below. A cause that declares none keeps the support card.
+   */
+  heroCard?: 'support' | 'programs';
+  /**
+   * Rows for the hero's `programs` card.
+   *
+   * Deliberately NOT the same list as `helps`, even though the two look alike:
+   * the reference gives the hero card four broad programme areas and the
+   * mid-page grid four ways to give, and they name different things. Collapsing
+   * them into one list would print the same four items twice on one page.
+   *
+   * Editorial, like `helps` — a claim about what the cause funds, never a count.
+   */
+  programs?: readonly { readonly title: string; readonly body: string; readonly icon: HelpIcon }[];
+  /** Heading over the helps grid. Defaults to "How your support helps". */
+  helpsTitle?: string;
+  /**
+   * `center` (default) matches the Sports & Youth reference; `start` matches
+   * People in Need, which left-aligns the heading and gives each card a link.
+   */
+  helpsAlign?: 'center' | 'start';
+  /**
+   * Link label on each helps card, e.g. "Help now". Omitted by default: a card
+   * that is purely explanatory should not grow an affordance.
+   *
+   * All four point at the same place — this cause's campaigns — which is what
+   * the reference does and what the label honestly means. It is not a per-card
+   * filter, because `helps` are editorial groupings and nothing in the schema
+   * tags a campaign as "shelter" rather than "food".
+   */
+  helpsCta?: string;
 }
 
 /**
@@ -122,13 +185,24 @@ export const POPULAR_CAUSES: readonly Cause[] = [
     impactBlurb: 'Thanks to supporters like you, families get help the week they need it.',
     blurb: 'Direct help for individuals and families facing hardship.',
     tagline: 'Real help. Real people. Right now.',
-    intro: 'Behind every campaign is a family facing a bill, a move, or a loss they did not plan for. Your support goes directly to the person who asked for it.',
+    heroTitle: 'Hope changes everything.',
+    heroCard: 'programs',
+    helpsTitle: 'Ways you can help',
+    helpsAlign: 'start',
+    helpsCta: 'Help now',
+    intro: 'Millions of people face hunger, homelessness, poverty, and crisis every day. Your support brings hope, healing, and a better tomorrow.',
     categories: ['Family', 'Wishes', 'Memorial'],
+    programs: [
+      { title: 'Provide food', icon: 'food', body: 'Help families put meals on the table.' },
+      { title: 'Safe shelter', icon: 'home', body: 'Give a safe place to sleep and rebuild.' },
+      { title: 'Emergency aid', icon: 'health', body: 'Deliver urgent help when it is needed most.' },
+      { title: 'Long-term support', icon: 'hope', body: 'Create lasting change through care and resources.' },
+    ],
     helps: [
-      { title: 'Fight hunger', icon: 'food', body: 'Groceries and meals for households choosing between food and rent this month.' },
-      { title: 'Shelter and housing', icon: 'home', body: 'Deposits, arrears and emergency stays that keep a family off the street.' },
-      { title: 'Health and care', icon: 'health', body: 'Treatment, medication and the travel it takes to get to an appointment.' },
-      { title: 'Hope and dignity', icon: 'hope', body: 'Funeral costs, replacement essentials and the practical help that comes after a loss.' },
+      { title: 'Fight hunger', icon: 'food', body: 'Provide nutritious meals to those who need it most.' },
+      { title: 'Shelter & housing', icon: 'home', body: 'Help families find safety, stability, and a place to call home.' },
+      { title: 'Health & care', icon: 'health', body: 'Support healthcare, mental health, and essential services.' },
+      { title: 'Hope & dignity', icon: 'hope', body: 'Empower people to rebuild their lives with dignity.' },
     ],
   },
   {
