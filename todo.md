@@ -1147,11 +1147,20 @@ next person does not find out the hard way.
 
 ## 🛑 SUPABASE STAGING — blocked, and the pending count is **27** (Claude, 2026-08-03)
 
-**The count is settled, and none of the four numbers previously in this file was
-right.** I had written it off as unmeasurable; that was wrong — the answer was in
-this file, in the release ledger.
+⚠️ **Superseded in part — read the correction at the top of this file first.**
+The arithmetic below is sound and the drift guard on it is worth keeping, but the
+number it produces is a **file-derived upper bound, not the applied state**. At
+least two of the 27 are demonstrably live in production, measured against the
+running site. Treat 27 as "no more than 27", and establish the real set with
+`supabase migration list --linked` before planning a release.
 
-The 2026-07-29 ledger audit compared against the **live production ledger**:
+**None of the four numbers previously in this file was right**, and the fifth —
+this one — is right about the files and wrong about production. I had written the
+count off as unmeasurable; that was wrong, but the ledger it came from is a
+snapshot from 2026-07-29, not a live reading.
+
+The 2026-07-29 ledger audit compared against the production ledger **as it stood
+that day**:
 **105 local / 87 remote / 18 pending**, verified three ways — `supabase db push
 --dry-run --include-all` selected exactly those 18, a read-only production schema
 dump confirmed the objects were absent, and a restored production clone applied

@@ -1,10 +1,22 @@
-# Applying the 27 pending migrations
+# Applying the pending migrations
 
 Everything that could be verified without a Supabase plan has been. This is the
 part that needs an account, written so it is mechanical rather than exploratory.
 
-**Current state:** 87 of 114 migrations applied to production; **27 pending**.
-Six of the 27 are privilege/RLS hardening that is merged but **not live**.
+**Repository state:** 114 migration files, of which **27 are newer than the last
+figure anyone recorded as applied**. Six of those are privilege/RLS hardening
+that is merged but not live.
+
+> ⚠️ **"27 pending" is a FILE COUNT, not a measurement, and it is known to be
+> too high.** Two of the 27 are demonstrably already applied to production:
+>
+> | migration | signal |
+> |---|---|
+> | `20260817000000_campaign_geolocation` | `/api/campaigns/nearby?lat=&lng=` returns `{"available":true}`, which is only reachable after a select on the `latitude` column succeeds — the route returns `available:false` on PostgREST's `42703` |
+> | `20260820000000_incidents_and_maintenance` | `/status` renders "No incidents reported in the last 30 days", the `length === 0` branch, which requires a successful read; it renders "Incident history could not be loaded" otherwise |
+>
+> The other 25 have no public signal, so the true pending set is **somewhere
+> between 0 and 25 — establish it in Step 3 rather than assuming it.**
 
 ---
 
@@ -50,14 +62,35 @@ supabase db dump --linked --schema public -f /tmp/prod-snapshot.sql
 psql "$STAGING_DB_URL" -f /tmp/prod-snapshot.sql
 ```
 
-## Step 3 — confirm the count before touching anything
+## Step 3 — establish what is ACTUALLY pending
+
+This step used to say "expect 87 applied, 27 pending — if it is not 87/27,
+**stop**". That instruction was wrong and actively harmful: at least two of the
+27 are already live, so following it would abort a perfectly valid release on
+the belief that something had gone wrong outside the gate.
+
+Measure instead of expecting:
 
 ```bash
-supabase migration list --linked        # expect 87 applied, 27 pending
+supabase migration list --linked
 ```
 
-If it is not 87/27, **stop**. Something was applied outside the gate and the
-arithmetic in `__tests__/migration-ledger.test.ts` needs updating first.
+Take the pending list from THAT output. Cross-check it against the files:
+
+```bash
+ls supabase/migrations/*.sql | xargs -n1 basename | sed 's/_.*//' | sort > /tmp/files.txt
+# ...and diff against the versions `migration list` reports as applied.
+```
+
+**What to do with the result:**
+
+- A migration listed as applied that you expected to be pending is **normal** —
+  see the note at the top. Skip it; do not re-run it.
+- A migration listed as *pending* that you expected to be applied is the case
+  worth stopping for. That is real drift.
+- `supabase db push` applies only what is missing, so an already-applied
+  migration is skipped rather than re-run. The danger is not the push; it is
+  planning the release against a count that is wrong.
 
 ## Step 4 — apply to staging and smoke-test
 
@@ -68,7 +101,7 @@ supabase db push --db-url "$STAGING_DB_URL" --include-all
 Then exercise, as an authenticated user — these are the six security migrations
 in effect, so a mistake here is a permissions mistake:
 
-- a donation end to end (`record_donation` is replaced by two of the 27)
+- a donation end to end (`record_donation` is replaced by two of the pending set)
 - a tax receipt send (`20260728020000` fixes an upsert that silently no-ops)
 - reading another user's `creator_tips` → **must be denied**
 - reading another user's `donor_messages` → **must be denied**
@@ -80,7 +113,7 @@ Only after step 4 passes.
 
 ```bash
 supabase db push --linked --include-all
-supabase migration list --linked        # expect 114 applied, 0 pending
+supabase migration list --linked        # expect 114 applied, 0 pending — this one IS exact
 ```
 
 ---

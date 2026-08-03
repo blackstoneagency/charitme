@@ -33,6 +33,19 @@ const TODO = join(__dirname, '..', '..', '..', 'todo.md');
  * Migrations confirmed applied to production by the 2026-07-29 ledger audit.
  * Re-confirmed at 87/105 after a Vercel deploy, proving the app never applies
  * migrations outside the staging-gated release workflow.
+ *
+ * ⚠️ This is a SNAPSHOT, not a live reading, and it is known to be stale.
+ * Production has since been measured to carry at least two migrations this audit
+ * lists as pending — `20260817000000_campaign_geolocation` (`/api/campaigns/nearby`
+ * answers `available: true`, only reachable once the `latitude` column exists)
+ * and `20260820000000_incidents_and_maintenance` (`/status` renders the
+ * `length === 0` branch, which needs a successful read).
+ *
+ * What this file guards is therefore **disk against the audit**, which catches a
+ * renamed or removed migration. It does NOT establish how many are pending, and
+ * the number it derives is an UPPER BOUND. Only
+ * `supabase migration list --linked` answers that, which is what
+ * `supabase/RELEASE-RUNBOOK.md` Step 3 now says to run.
  */
 const APPLIED_AT_AUDIT = 87;
 
@@ -74,7 +87,11 @@ describe('pending migration ledger stays true to disk', () => {
     expect(bySum, `local(${local}) - applied(${APPLIED_AT_AUDIT}) = ${byLedger}, but audited(18) + addedSince(${addedSince}) = ${bySum}`).toBe(byLedger);
   });
 
-  it('todo.md records the current number, not a stale one', () => {
+  it('todo.md records the file-derived count, not a stale one', () => {
+    // Pins the ARITHMETIC against disk, so adding a migration cannot silently
+    // leave the written number behind. It does not claim the number reflects
+    // production — see the note on APPLIED_AT_AUDIT.
+
     const pending = files().length - APPLIED_AT_AUDIT;
     const todo = readFileSync(TODO, 'utf8');
 
