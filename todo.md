@@ -1,5 +1,59 @@
 # CharitMe — Execution Tracker
 
+## 🔴 A GREEN BUILD IS NOT A RENDERING PAGE (Claude, 2026-08-03)
+
+`/success-stories` was rebuilt, committed, pushed and opened as a PR while
+**500ing on every single request**. Worth writing down because of what did *not*
+catch it:
+
+| check | result |
+|---|---|
+| `tsc --noEmit` | ✅ clean |
+| `eslint` | ✅ 0 errors |
+| `next build` | ✅ clean |
+| 2876 vitest tests | ✅ all passing |
+| **a browser fetching the built page** | ❌ **500 — `SORTS.some is not a function`** |
+
+**Cause.** `SORTS` was a named `const` exported from `SortSelect.tsx`, a
+`'use client'` module, and the server page imported it. Next replaces a client
+module with a **client-reference proxy** on the server: the component export is
+usable (as a reference to render), a plain value is not. So `SORTS` arrived as a
+proxy with no `.some`.
+
+**Why nothing caught it.** The boundary only exists at runtime, and this repo's
+tests read SOURCE TEXT. Every one of them was happy. Typecheck cannot see it
+either — the types are correct; it is the module *shape* that changes.
+
+**Fixed:** the constants live in `lib/story-sort.ts`, a non-client module, and
+both sides import from there. The guard added with it asserts the general
+property — the page may import only a DEFAULT from any `'use client'` module, so
+any named value crossing that boundary fails whatever it is called.
+
+⚠️ **The general lesson, which outlives this bug:** "typecheck + lint + tests +
+build are green" is not a claim that a page renders. Only a request to the built
+page is. The `scripts/audit-*.mjs` suite and a browser probe are the cheapest
+way to get that, and they have now caught **two** classes of defect the whole
+static suite missed today — this, and four links that promised a filter the
+route never applied.
+
+### The sweep, done — and clean
+
+Flagged as outstanding, then done. Every `'use client'` module in `app/` and
+`components/`, against every non-client file importing from it:
+
+- **type-only** named imports (`{ type AdminCampaign }`) — erased at compile
+  time, cannot have this bug. The large majority of hits.
+- **named component** imports (`{ Badge }`, `{ EmptyState }`, `{ PaymentsSubnav }`)
+  — fine. Next hands the server a reference and RENDERS it; the value is never
+  dereferenced there.
+- **named non-component values** — the actual hazard, and the sweep found
+  **zero** remaining. `SORTS` was the only one.
+
+So the fix is complete rather than a sample. The guard in
+`__tests__/success-stories.test.ts` holds the line for that page; a repo-wide
+lint rule would be the stronger version and does not exist yet.
+
+
 ## 🔴 LINKS THAT LOOKED FILTERED AND WERE NOT (Claude, 2026-08-03)
 
 Found while verifying People in Need in a real browser — by reading the

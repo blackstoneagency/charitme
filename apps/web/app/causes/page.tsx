@@ -6,7 +6,7 @@ import { getCausesIndexData } from '../../lib/causes-index';
 import { getCoverForCategory } from '../../lib/photo-catalog';
 import { IndexHero, StatStrip, statValue, moneyValue } from '../../components/IndexHero';
 import CausesBrowser, { type BrowseCause } from './CausesBrowser';
-import StayInformed from './StayInformed';
+import StayInformed from '../../components/StayInformed';
 
 export const metadata: Metadata = {
   title: 'Browse Causes',
