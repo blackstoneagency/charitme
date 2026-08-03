@@ -224,9 +224,24 @@ export default function DonateForm({
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
         </svg>
+        {/* DELIBERATE DEVIATION from the supplied design, which read "CharitMe
+            is a 501(c)(3) nonprofit organization. All donations are
+            tax-deductible."
+
+            The product contradicts that in three places a donor will actually
+            reach: the campaign FAQ ("Donations are not tax-deductible unless
+            this campaign is run by a verified 501(c)(3) nonprofit"), the
+            donation receipt ("Donations to personal fundraisers are not
+            tax-deductible") and the annual tax statement. CharitMe is the
+            PLATFORM; deductibility depends on the recipient, which is exactly
+            what /verification gates on.
+
+            Shipping the design's wording would have this page promise a
+            deduction the receipt then denies — a regulated claim, on the page
+            that takes the money. Same block, same position, true copy. */}
         <span>
-          CharitMe is a 501(c)(3) nonprofit organization.<br />
-          All donations are tax-deductible.
+          Donations to verified 501(c)(3) nonprofits are tax-deductible and receive an
+          official receipt. Gifts to personal fundraisers are not deductible.
         </span>
       </p>
     </form>

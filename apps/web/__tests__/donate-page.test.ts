@@ -131,3 +131,34 @@ describe('the page keeps its Supabase reads bounded', () => {
     expect(PAGE).toContain('applyLiveFilters');
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tax status. The supplied design read "CharitMe is a 501(c)(3) nonprofit
+// organization. All donations are tax-deductible." The product says the
+// opposite in three places a donor actually reaches — the campaign FAQ, the
+// donation receipt and the annual tax statement — because CharitMe is the
+// PLATFORM and deductibility depends on the recipient.
+//
+// This is a regulated claim on the page that takes the money, so it is pinned:
+// the donate page must not promise a deduction its own receipt then denies.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('the donate page does not overclaim tax deductibility', () => {
+  it('never states that CharitMe itself is a 501(c)(3)', () => {
+    expect(FORM).not.toMatch(/CharitMe is a 501\(c\)\(3\)/);
+  });
+
+  it('never promises that ALL donations are deductible', () => {
+    const copy = FORM.replace(/\{\/\*[\s\S]*?\*\/\}/g, ''); // ignore the rationale comment
+    expect(copy).not.toMatch(/All donations are tax-deductible/i);
+  });
+
+  it('conditions deductibility on a verified nonprofit, as the receipt does', () => {
+    expect(FORM).toMatch(/verified 501\(c\)\(3\)/);
+    expect(FORM).toMatch(/not deductible|not tax-deductible/i);
+  });
+
+  it('agrees with what the campaign FAQ tells the same donor', () => {
+    const faq = readFileSync(path.join(WEB_ROOT, 'app/api/campaigns/[id]/faqs/route.ts'), 'utf8');
+    expect(faq).toMatch(/not tax-deductible unless/i);
+  });
+});
