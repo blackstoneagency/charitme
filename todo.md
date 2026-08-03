@@ -1,5 +1,46 @@
 # CharitMe — Execution Tracker
 
+## 🔴 LINKS THAT LOOKED FILTERED AND WERE NOT (Claude, 2026-08-03)
+
+Found while verifying People in Need in a real browser — by reading the
+**rendered hrefs**, which is the part no test was doing. Three defects, all on
+the tab strip that #220 promoted to the first thing under the stats band, so
+**every one of the 20 cause pages** showed them.
+
+| link | claimed | actually did |
+|---|---|---|
+| "All campaigns" → `/campaigns?cause=…` | this cause's campaigns | **the entire unfiltered list** — the route read only `?category=` |
+| "Volunteer" → `/volunteer?cause=…` | this cause's opportunities | **everything** — that route reads no search params at all |
+| "Help now" ×4 (People in Need) | somewhere to give | **the page it was already on** — `causeBrowseHref` returns the CAUSE PAGE for a multi-category cause |
+
+Fixed: `/campaigns` now resolves the slug and filters with `.in(categories)`;
+`/volunteer` is marked "· all causes" instead of pretending; "Help now" points at
+the now-real filtered list.
+
+**Then the same bug again, one layer down.** Reading the param is half the job —
+the page re-emits its own state in three places (`pageHref`, `catHref`, the
+filters form's hidden inputs) and the cause survived **none** of them. So the
+scope vanished exactly when a visitor tried to narrow further. `pageHref` and
+`catHref` were hand-maintained duplicates of one param list; they are now one
+`campaignsHref()` both delegate to.
+
+### The lesson, because this is the second time
+
+`cause-ways-core` carried a `scoped` flag whose entire job was "say so when a
+link does not narrow". **I deleted it in #220**, arguing the tab strip carried
+every destination. The destinations, yes — the *scoping claim*, no. Two false
+filters shipped as a direct result.
+
+Worth generalising: **a comment is not evidence.** The comment on that strip
+read *"campaigns and volunteering already accepted a cause"*. Measured against
+the routes, neither did. Both are now tests — every `?cause=` link is checked
+against the route file it targets, which must read `sp.cause` and resolve it
+through `getCause`.
+
+⚠️ **Not swept:** other pages emit `?cause=` too. Only the six links in this
+strip were checked. A repo-wide sweep of `?cause=` emitters against the routes
+that read it is worth doing and has **not** been done.
+
 ## ✅ /causes/people-in-need — matched to its reference (Claude, 2026-08-03)
 
 Follows the Sports & Youth pass (#220, merged). **The section ORDER was already
