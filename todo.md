@@ -1,5 +1,49 @@
 # CharitMe — Execution Tracker
 
+## 🛑 THE ONE REMAINING ITEM, and why no further looping moves it (Claude, 2026-08-03)
+
+Applying the 27 pending migrations. **Measured, not assumed** — this environment
+has no way to do it:
+
+```
+SUPABASE_SERVICE_ROLE_KEY      unset
+SUPABASE_ACCESS_TOKEN          unset
+NEXT_PUBLIC_SUPABASE_URL       unset
+SUPABASE_DB_URL                unset
+DATABASE_URL                   unset
+supabase CLI                   not installed
+env files present              .env.example only
+```
+
+That is the same root fact behind every degraded page in this sandbox, and it is
+why the whole resilience sweep was testable here at all. It is not a judgement
+being deferred and not a task being avoided: there is no credential, so there is
+no action.
+
+Going straight to production without staging is refused on three separate
+grounds, any one of which is sufficient: the release ledger's own instruction
+("Do not bypass this gate"), the standing instruction not to weaken RLS or bypass
+approval controls, and the fact that six of the 27 are privilege changes.
+
+**`supabase/RELEASE-RUNBOOK.md`** is the handoff — five steps, the exact commands,
+the smoke tests that matter, and the rollback ordering hazard that rehearsal
+found and reading the SQL would not.
+
+### Everything that did not need an account is done
+
+| | |
+|---|---|
+| all 114 migrations replay from zero, in order | ✅ 114/114 |
+| resulting schema RLS-complete | ✅ 162/162 tables |
+| every pending migration has a rollback | ✅ 27/27 |
+| rollbacks rehearsed against a real database | ✅ 11/11 |
+| function rollbacks byte-identical to prior body | ✅ 3/3 |
+| irreversible ones refuse loudly (psql exit 3) | ✅ 2 |
+
+The gap staging closes — drift between the migrations and what is actually live —
+is the one thing a clean replay structurally cannot show. That is exactly what
+step 2 of the runbook is for.
+
 ## ✅ ROLLBACK COVERAGE IS 27/27 — including the three that touch `record_donation` (Claude, 2026-08-03)
 
 Every pending migration now has a rollback, and each is either **rehearsed** or a
