@@ -49,16 +49,25 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 /** `null` means the count FAILED — never conflated with "nobody has shared". */
 async function loadShareStats(campaignId: string): Promise<ShareStats | null> {
-  const [total, converted] = await Promise.all([
-    supabaseAdmin.from('share_events').select('id', { count: 'exact', head: true }).eq('campaign_id', campaignId),
-    supabaseAdmin.from('share_events').select('id', { count: 'exact', head: true })
-      .eq('campaign_id', campaignId).eq('converted', true),
-  ]);
-  if (total.error || converted.error) {
-    console.warn('[campaign/share] share stats failed', { code: total.error?.code ?? converted.error?.code });
+  try {    // supabaseAdmin is a Proxy that THROWS on property access when the env is
+    // missing, so `.from(...)` throws before any query runs — which the error
+    // check below cannot see. The `null` contract this function already
+    // declares is the correct degraded answer, so a throw takes the same path.
+
+    const [total, converted] = await Promise.all([
+      supabaseAdmin.from('share_events').select('id', { count: 'exact', head: true }).eq('campaign_id', campaignId),
+      supabaseAdmin.from('share_events').select('id', { count: 'exact', head: true })
+        .eq('campaign_id', campaignId).eq('converted', true),
+    ]);
+    if (total.error || converted.error) {
+      console.warn('[campaign/share] share stats failed', { code: total.error?.code ?? converted.error?.code });
+      return null;
+    }
+    return { shares: total.count ?? 0, converted: converted.count ?? 0 };
+  
+  } catch {
     return null;
   }
-  return { shares: total.count ?? 0, converted: converted.count ?? 0 };
 }
 
 export default async function CampaignSharePage({ params }: Props) {

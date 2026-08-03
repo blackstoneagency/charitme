@@ -58,13 +58,23 @@ type Creator = {
 
 /** Memoized so generateMetadata and the page body share one query per request. */
 const getCreator = cache(async (handle: string): Promise<Creator | null> => {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from('creator_profiles')
-    .select('id, user_id, handle, display_name, bio, hero_image_url, website_url, brand_color, accepts_tips, accepts_commissions')
-    .eq('handle', handle)
-    .maybeSingle();
-  return (data as Creator | null) ?? null;
+  try {
+  // supabaseAdmin is a Proxy that THROWS on property access when the env is
+  // missing, so `.from(...)` throws before any query runs — which the error
+  // check below cannot see. The `null` contract this loader already declares
+  // is the correct degraded answer, so a throw takes the same path.
+
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from('creator_profiles')
+      .select('id, user_id, handle, display_name, bio, hero_image_url, website_url, brand_color, accepts_tips, accepts_commissions')
+      .eq('handle', handle)
+      .maybeSingle();
+    return (data as Creator | null) ?? null;
+  
+  } catch {
+    return null;
+  }
 });
 
 const getCampaigns = cache(async (userId: string) => {

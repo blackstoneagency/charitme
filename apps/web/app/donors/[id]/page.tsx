@@ -24,12 +24,22 @@ type CampaignRow = { id: string; title: string; slug: string; cover_image_url: s
 // Memoized per-request so generateMetadata + the page share one profile query
 // (React cache dedupes within a single request; Supabase calls aren't otherwise).
 const getProfile = cache(async (id: string): Promise<ProfileRow | null> => {
-  const { data } = await supabaseAdmin
-    .from('profiles')
-    .select('id, full_name, avatar_url, bio, show_public_profile, created_at')
-    .eq('id', id)
-    .maybeSingle();
-  return data as ProfileRow | null;
+  try {
+  // supabaseAdmin is a Proxy that THROWS on property access when the env is
+  // missing, so `.from(...)` throws before any query runs — which the error
+  // check below cannot see. The `null` contract this loader already declares
+  // is the correct degraded answer, so a throw takes the same path.
+
+    const { data } = await supabaseAdmin
+      .from('profiles')
+      .select('id, full_name, avatar_url, bio, show_public_profile, created_at')
+      .eq('id', id)
+      .maybeSingle();
+    return data as ProfileRow | null;
+  
+  } catch {
+    return null;
+  }
 });
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {

@@ -60,17 +60,26 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 /** `null` means the read FAILED — distinct from "this campaign posted no media". */
 async function loadMedia(campaignId: string): Promise<CampaignMediaRow[] | null> {
-  const { data, error } = await supabaseAdmin
-    .from('campaign_media')
-    .select('id, media_type, public_url, storage_path, caption, alt_text, sort_order, created_at')
-    .eq('campaign_id', campaignId)
-    .order('sort_order', { ascending: true })
-    .limit(200);
-  if (error) {
-    console.warn('[campaign/gallery] read failed', { code: error.code });
+  try {    // supabaseAdmin is a Proxy that THROWS on property access when the env is
+    // missing, so `.from(...)` throws before any query runs — which the error
+    // check below cannot see. The `null` contract this function already
+    // declares is the correct degraded answer, so a throw takes the same path.
+
+    const { data, error } = await supabaseAdmin
+      .from('campaign_media')
+      .select('id, media_type, public_url, storage_path, caption, alt_text, sort_order, created_at')
+      .eq('campaign_id', campaignId)
+      .order('sort_order', { ascending: true })
+      .limit(200);
+    if (error) {
+      console.warn('[campaign/gallery] read failed', { code: error.code });
+      return null;
+    }
+    return data ?? [];
+  
+  } catch {
     return null;
   }
-  return data ?? [];
 }
 
 export default async function CampaignGalleryPage({ params }: Props) {

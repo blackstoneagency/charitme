@@ -60,18 +60,27 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
  * other is ordinary and the reader should not be alarmed by it.
  */
 async function loadUpdates(campaignId: string): Promise<CampaignUpdateRow[] | null> {
-  const { data, error } = await supabaseAdmin
-    .from('campaign_updates')
-    .select('id, title, body, created_at, published_at, scheduled_at, ai_generated')
-    .eq('campaign_id', campaignId)
-    .or(`published_at.not.is.null,scheduled_at.lte.${new Date().toISOString()}`)
-    .order('created_at', { ascending: false })
-    .limit(100);
-  if (error) {
-    console.warn('[campaign/updates] read failed', { code: error.code });
+  try {    // supabaseAdmin is a Proxy that THROWS on property access when the env is
+    // missing, so `.from(...)` throws before any query runs — which the error
+    // check below cannot see. The `null` contract this function already
+    // declares is the correct degraded answer, so a throw takes the same path.
+
+    const { data, error } = await supabaseAdmin
+      .from('campaign_updates')
+      .select('id, title, body, created_at, published_at, scheduled_at, ai_generated')
+      .eq('campaign_id', campaignId)
+      .or(`published_at.not.is.null,scheduled_at.lte.${new Date().toISOString()}`)
+      .order('created_at', { ascending: false })
+      .limit(100);
+    if (error) {
+      console.warn('[campaign/updates] read failed', { code: error.code });
+      return null;
+    }
+    return sortForFeed(visibleUpdates(data ?? []));
+  
+  } catch {
     return null;
   }
-  return sortForFeed(visibleUpdates(data ?? []));
 }
 
 export default async function CampaignUpdatesPage({ params }: Props) {
