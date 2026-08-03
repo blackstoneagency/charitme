@@ -28,10 +28,21 @@ export const metadata: Metadata = {
  * would have kept nagging them.
  */
 async function loadState(userId: string): Promise<{ state: OnboardingState; firstName: string | null }> {
-  const [profile, savedCount] = await Promise.all([
-    supabaseAdmin.from('profiles').select('full_name').eq('id', userId).maybeSingle(),
-    supabaseAdmin.from('saved_campaigns').select('id', { count: 'exact', head: true }).eq('user_id', userId),
-  ]);
+  // `supabaseAdmin` is a Proxy that THROWS on property access when the env is
+  // missing, so `.from(...)` can throw before a query runs — which the
+  // `savedCount.error` check below cannot see. The degraded answer keeps this
+  // function's existing bias: an unknown step counts as UNFINISHED, so the tour
+  // asks again rather than silently skipping a step someone never did.
+  let profile: { data: { full_name: string | null } | null };
+  let savedCount: { count: number | null; error: unknown };
+  try {
+    [profile, savedCount] = (await Promise.all([
+      supabaseAdmin.from('profiles').select('full_name').eq('id', userId).maybeSingle(),
+      supabaseAdmin.from('saved_campaigns').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+    ])) as [typeof profile, typeof savedCount];
+  } catch {
+    return { state: { hasName: false, savedCount: 0 }, firstName: null };
+  }
 
   const fullName = (profile.data?.full_name as string | null) ?? null;
   return {
@@ -49,18 +60,22 @@ async function loadState(userId: string): Promise<{ state: OnboardingState; firs
 
 /** `null` means the read FAILED — kept distinct from "no live campaigns". */
 async function loadSuggestions(): Promise<{ id: string; slug: string; title: string; category: string | null }[] | null> {
-  const { data, error } = await supabaseAdmin
-    .from('campaigns')
-    .select('id, slug, title, category')
-    .eq('status', 'active')
-    .is('deleted_at', null)
-    .order('created_at', { ascending: false })
-    .limit(6);
-  if (error) {
-    console.warn('[welcome] suggestions failed', { code: error.code });
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('campaigns')
+      .select('id, slug, title, category')
+      .eq('status', 'active')
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .limit(6);
+    if (error) {
+      console.warn('[welcome] suggestions failed', { code: error.code });
+      return null;
+    }
+    return (data ?? []) as { id: string; slug: string; title: string; category: string | null }[];
+  } catch {
     return null;
   }
-  return (data ?? []) as { id: string; slug: string; title: string; category: string | null }[];
 }
 
 export default async function WelcomePage() {
