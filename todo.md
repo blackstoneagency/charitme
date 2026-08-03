@@ -31,27 +31,63 @@ skipped workflow leaves its check pending forever and would deadlock a docs-only
 PR. Nothing is required today, which is why this is safe now — recorded so the
 next person does not find out the hard way.
 
-## 🛑 SUPABASE STAGING — still owner-blocked, and it cannot even be MEASURED here (Claude, 2026-08-03)
+## 🛑 SUPABASE STAGING — blocked, and the pending count is **27** (Claude, 2026-08-03)
 
-Re-examined rather than inherited. It is genuinely blocked, and the useful new
-fact is *why no one can narrow it from this sandbox*:
+**The count is settled, and none of the four numbers previously in this file was
+right.** I had written it off as unmeasurable; that was wrong — the answer was in
+this file, in the release ledger.
 
-**`supabase/schema.sql` is not evidence of what is live.** `scripts/regen_schema.sh`
-regenerates it by replaying `supabase/migrations/` into a throwaway Postgres. It
-therefore contains every table including the unapplied ones — `custom_domains`,
-`tasks`, `data_retention_policies`, `organizations` and `incidents` are all in
-there. It mirrors **intent, not production**. I checked it hoping to determine
-the applied set; it cannot answer that, and neither can anything else in the repo
-without database credentials.
+The 2026-07-29 ledger audit compared against the **live production ledger**:
+**105 local / 87 remote / 18 pending**, verified three ways — `supabase db push
+--dry-run --include-all` selected exactly those 18, a read-only production schema
+dump confirmed the objects were absent, and a restored production clone applied
+all 18 in order and proved rollback.
 
-⚠️ **The pending-migration count is stated four different ways in this file** — 3,
-4, 6 and 7, in entries dated between 2026-07-27 and 2026-07-29. They cannot all
-be right. Nothing here can settle it offline, so treat the number as **unknown**
-rather than picking the most recent claim. This is the same defect as the stale
-blocker table: four confident numbers are worse than one honest "unmeasured".
+Nine migrations have been added since. So the count is arithmetic:
 
-Owner action is unchanged: upgrade Supabase, free a project slot, or provision
-staging in another organization.
+```
+114 local − 87 applied           = 27
+18 audited pending + 9 added     = 27   ✓ reconciles
+```
+
+All 18 audited-pending versions are still on disk under their original names.
+
+### ⚠️ Six of the 27 are SECURITY hardening, not features
+
+This is the part that changes the priority. Written, reviewed, merged — and
+**not live**:
+
+- `20260809000000_harden_privileged_database_boundaries`
+- `20260810000000_lock_down_service_managed_writes`
+- `20260811000000_secure_schema_cache_reload`
+- `20260812010000_creator_tips_not_world_readable`
+- `20260813000000_donor_message_anonymity_contract`
+- `20260814010000_harden_role_and_team_boundaries`
+
+The staging blocker is not only holding back features; it is holding back RLS and
+privilege hardening in production. Several others (`tasks`, `custom_domains`,
+`incidents_and_maintenance`, `data_retention_policies`) back dashboard pages that
+are therefore inert live.
+
+### Why it still cannot be verified from here
+
+`supabase/schema.sql` is **not** evidence of what is live. `scripts/regen_schema.sh`
+regenerates it by replaying `supabase/migrations/` into a throwaway Postgres, so
+it contains every table including unapplied ones — it mirrors intent, not
+production. I checked it hoping to narrow the set; it cannot answer that.
+
+The one external input is `applied = 87`. Anyone with credentials re-checks it in
+one command: `supabase migration list --linked`.
+
+Guard: `__tests__/migration-ledger.test.ts` reconciles the count two ways, fails
+if an audited-pending migration is renamed or removed, and **fails if todo.md
+stops stating the current number** — because the original defect was not
+miscounting, it was adding migrations and leaving the old number in place.
+
+Owner action unchanged: upgrade Supabase, free a project slot, or provision
+staging elsewhere. Do not bypass the gate — the ledger's last line says so, and
+27 unverified migrations including six privilege changes is exactly the case the
+gate exists for.
 
 ## ⚪ `/certificate` — NOT a deferral; building it would require inventing data
 
