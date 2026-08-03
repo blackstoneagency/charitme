@@ -1,25 +1,47 @@
 # CharitMe — Execution Tracker
 
-## ⛔ VERCEL DEPLOY CAP HIT — merges no longer reach production (Claude, 2026-08-03 ~17:5x UTC)
+## ⚠️ VERCEL CAP — one hard error, then inconclusive. My own row over-claimed (Claude, 2026-08-03 ~18:1x UTC)
 
 ```
 Resource is limited - try again in 24 hours
 (more than 100, code: "api-deployments-free-per-day")
 ```
 
-**Production is not down.** `www.charitme.com/campaigns` still serves the build
-merged earlier, verified 200 with the rebuilt markup present. What has stopped is
-*new* deployments: anything merged from here sits on master until the window
-rolls.
+Vercel returned that on the **#231** deployment. That part is a fact.
 
-**This is the row that warned about itself.** Blocker 3 read "NOT currently
-blocking" an hour ago, with the note that "the 100/day cap is real and will bite
-under a busy day". It bit. The row is now corrected with the error verbatim.
+**What I wrote next was not.** I recorded the row as "NOW BLOCKING, measured" —
+then a deployment for #232 reported **Building**, which a hard 24-hour cap should
+not permit. So the state is *unresolved*, and the row now says so.
 
-**Practical effect on the queue:** nothing outstanding needs a deploy. The
-`/campaigns` rebuild, the money-path fixes and both accessibility passes are all
-already live. The remaining merges are documentation. If a code change becomes
-urgent inside the window, it will need the Vercel upgrade (O5) to ship.
+### Why I cannot settle it from here, stated plainly
+
+I set a monitor on production's CSS asset hash and it did not change in ~13
+minutes. **That proves nothing**, and the flaw is mine: every merge after the
+error was **docs-only**, so Next emits a byte-identical bundle whether a deploy
+landed or not. The signal cannot distinguish "no deploy" from "deploy produced
+the same output".
+
+Other signals checked and found unusable: App Router serves no `buildId` in the
+HTML, and the only Vercel check run on #232 is *"Vercel Preview Comments"* — the
+bot's own comment, not the deployment result.
+
+**A deploy carrying a real code change is what would settle it.** There is no
+such change outstanding.
+
+### What IS known
+
+- Production is **up and current**: `www.charitme.com/campaigns` serves 200 with
+  the rebuilt markup.
+- The cap is real as a mechanism and has fired at least once today.
+- Nothing outstanding needs a deploy — the `/campaigns` rebuild, the money-path
+  fixes and both accessibility passes are already live.
+
+**This entry is the third correction of this row today, in both directions.** It
+has read "not blocking", then "blocking", and now "one error then unknown". The
+lesson is not about Vercel: a row asserting a *transient* condition goes stale
+faster than anyone updates it, so it should record the observation and its
+timestamp, never the characterisation.
+
 
 ## 🔎 THE OWNER ROWS WERE STALE TOO — O1 says 6 migrations, it is 27 (Claude, 2026-08-03)
 
@@ -1327,7 +1349,7 @@ external release constraints after the latest production deployment.
 |---|---------|----------|------------------|
 | 1 | **GitHub Actions assigns no runner — RE-BROKEN, verified 2026-08-03.** This row said CLEARED; it is not. Eight runs today (`30778197657`, `30779419210`, `30780039522`, `30780372581`, `30782321643`, `30802456447`, `30803013774`, `30803728152`) all show `runner_id: 0`, empty `runner_name`, `billable.UBUNTU.total_ms: 0`, 2–11s duration, no steps. Master's runs match, which rules out any branch. **A red check right now is not a signal.** One run showed `queued` briefly before dropping — that is not recovery. Verify per run (`actions_get` → `get_workflow_run_usage`); do not trust this row or its predecessor. | 8 runs + master, 2026-08-03; `image-links.yml` fails identically; repo is private | **Owner** — likely the private-repo Actions minute allowance (see CLAUDE.md): raise the spending limit, make the repo public, or cut push volume |
 | 2 | **No CharitMe staging Supabase project is available.** The account exposes CharitMe production and an unrelated Auto Trading project. Preview Branch creation returns HTTP 402 because the account is not on Pro; dedicated `charitme-staging` creation is also rejected because the owner has reached the two-active-free-project limit. Database release policy correctly blocks production migration application until the same commit is verified on real staging. | Supabase project/branch inventory and both provisioning probes, 2026-07-29 | **Owner** — upgrade Supabase, pause/delete an unrelated project, or provision staging in another organization |
-| 3 | **Vercel daily deployment quota — NOW BLOCKING, measured 2026-08-03 ~17:5x UTC.** ⚠️ *The previous version of this row said "NOT currently blocking". It has since bitten.* Vercel returned `Resource is limited - try again in 24 hours (more than 100, code: "api-deployments-free-per-day")` on the #231 deployment. **Production is NOT down** — `www.charitme.com/campaigns` still serves the current build — but no NEW deploy will land until the window rolls, so anything merged from here sits on master unshipped. | Vercel deploy error on #231, plus a live 200 on production confirming the running build is intact | **External reset** (~24h) — or upgrade Vercel to remove the recurrence |
+| 3 | **Vercel daily deployment quota — ONE hard error, then inconclusive (2026-08-03 ~18:1x UTC).** Vercel returned `api-deployments-free-per-day` on #231. A later #232 deployment reported *Building*, which a hard 24h cap should not permit, so the current state is **unknown, not confirmed-blocking** — an earlier version of this row said "NOW BLOCKING" and over-claimed. It cannot be settled from here: every merge since was docs-only and produces a byte-identical bundle, so production output cannot distinguish a landed deploy from a blocked one. **Production is up and current.** | Cap error on #231; Building on #232; production 200 with current markup | **External reset**, or upgrade Vercel to remove the recurrence |
 
 **Vercel production is operational** — re-measured 2026-08-03: `/api/health`,
 `/needs` and `/campaigns` all 200 on `www.charitme.com`. New deployments are **not**
