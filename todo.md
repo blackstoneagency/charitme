@@ -19166,9 +19166,44 @@ Mutation-tested: removing the `Idempotency-Key` fails, and planting a direct
 |---|---|---|
 | 1 | **Cannot verify the page is live on Production.** `www.charitme.com` → `000` (gateway refuses CONNECT); GitHub's deployments **and** commit-status APIs both answer `Resource not accessible by integration`. Merging to `master` is the production trigger and Vercel reported **Building**, but nothing reachable from here confirms the alias flipped. | **Owner** — open the page, or check the Vercel dashboard |
 | 2 | **No real charge has ever been made.** The form's payloads, validation and endpoint routing are verified in a real browser, but the stub returns no Stripe session, so charge → transfer → payout → receipt is still unproven. Tracked as **O3**. | **Owner** — Stripe test keys |
-| 3 | **The 501(c)(3) and "all donations are tax-deductible" lines are regulated claims.** They come from the supplied design and are rendered as given. If CharitMe is not itself a registered 501(c)(3) — the 0%-platform-fee + tip model reads like a platform, not a charity — these two sentences are the ones to change before launch. Flagged, not altered: matching the design was the instruction. | **Owner** — legal |
+| 3 | ~~501(c)(3) claims~~ **RESOLVED — the design's wording was factually wrong and is fixed.** See below. | — |
 
 The hero photograph also differs from the design's child-holding-a-heart image:
 that asset is not in the repo and image hosts are unreachable from here, so
 `charitme-community-hero.png` is used. Drop the intended file into
 `public/images/` and change one `src` to close it.
+
+### ✅ RESOLVED — the design's tax-deductibility claim contradicted the product
+
+The supplied `/donate` design read **"CharitMe is a 501(c)(3) nonprofit
+organization. All donations are tax-deductible."** I shipped it as given and
+flagged it for legal review. That was too cautious: it is not a judgement call,
+because **the product already says the opposite in three places the same donor
+reaches**:
+
+| surface | what it says |
+|---|---|
+| `app/api/campaigns/[id]/faqs/route.ts` | "Donations are **not** tax-deductible unless this campaign is run by a verified 501(c)(3) nonprofit organization." |
+| `app/donor/receipt/[donationId]` | "Donations to personal fundraisers are **not** tax-deductible." |
+| `app/donor/tax-statement/[year]` | gifts to personal fundraisers are "**not** tax-deductible" |
+
+CharitMe is the **platform**; deductibility depends on the recipient, which is
+what `/verification` gates on. The design's wording would have had the donation
+page promise a deduction the receipt then denies — a regulated claim, on the
+page that takes the money.
+
+Same block, same position, true copy: *"Donations to verified 501(c)(3)
+nonprofits are tax-deductible and receive an official receipt. Gifts to personal
+fundraisers are not deductible."* A deliberate deviation from "match the design
+100%", recorded here and in the component.
+
+Pinned by 4 assertions, mutation-tested: planting the design's original sentence
+fails the suite.
+
+**Correction to my own earlier note:** I wrote that the design's child hero
+photo "is not in the repo". Wrong — `public/hero-child-crop.webp` exists. It is
+unusable for this purpose, which is a different statement: it is a composite
+marketing mock with UI baked into the image (a "VERIFIED CAMPAIGN" chip, a
+campaign title, stat cards), so as a full-bleed hero it would show fake UI
+behind the real UI. `charitme-community-hero.png` stays. A clean photograph is
+still the one asset that would close the last visual gap.
