@@ -4,6 +4,7 @@ import { z } from 'zod';
 import type Stripe from 'stripe';
 import { createCheckoutSession, RECURRING_PAYMENT_METHOD_TYPES } from '../../../../lib/stripe';
 import { supabaseAdmin } from '../../../../lib/supabase';
+import { boundedQuery } from '../../../../lib/query-timeout';
 import { createClient } from '../../../../lib/supabase-server';
 import { donorTip, MIN_DONATION_CENTS, MAX_DONATION_CENTS, DEFAULT_DONOR_TIP_PERCENT } from '@shared/fees';
 import { normalizeCurrency } from '@shared/currencies';
@@ -60,13 +61,23 @@ export async function POST(request: NextRequest) {
   const tipPercent = parsed.data.tipPercent ?? DEFAULT_DONOR_TIP_PERCENT;
   const tipCents = donorTip(amountCents, tipPercent);
 
-  // Verify campaign is active
-  const { data: campaign } = await supabaseAdmin
-    .from('campaigns')
-    .select('id, title, slug, status, user_id, beneficiary_profile_id, accept_donations, deadline')
-    .eq('id', campaignId)
-    .single();
+  // Verify campaign is active.
+  // `.maybeSingle()`, not `.single()`: `.single()` reports "no rows" AS AN ERROR,
+  // so a missing campaign and an unreadable one arrive identically.
+  const { data: campaign, error: campaignError } = await boundedQuery(() =>
+    supabaseAdmin
+      .from('campaigns')
+      .select('id, title, slug, status, user_id, beneficiary_profile_id, accept_donations, deadline')
+      .eq('id', campaignId)
+      .maybeSingle(),
+  );
 
+  // A failed read is NOT a missing campaign — this discarded `error` and answered
+  // "Campaign not found", telling a donor a live campaign does not exist because
+  // a query timed out. Matches the one-time route's 503.
+  if (campaignError) {
+    return NextResponse.json({ error: 'We could not process this donation right now. Please try again.', code: 'CAMPAIGN_LOOKUP_UNAVAILABLE' }, { status: 503 });
+  }
   if (!campaign || campaign.status !== 'active') {
     return NextResponse.json({ error: campaign ? 'Campaign is not active' : 'Campaign not found' }, { status: 400 });
   }
@@ -86,12 +97,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'This campaign has ended.', code: 'CAMPAIGN_ENDED' }, { status: 400 });
   }
 
-  // Campaign currency (defaults to USD)
-  const { data: launchSettings } = await supabaseAdmin
-    .from('campaign_launch_settings')
-    .select('currency')
-    .eq('campaign_id', campaignId)
-    .maybeSingle();
+  // Campaign currency (defaults to USD).
+  //
+  // ⚠️ The default is only safe when the row was genuinely READ. `normalizeCurrency`
+  // maps `undefined` to USD, so a discarded error charged a GBP or EUR campaign's
+  // donor in DOLLARS. Worse here than on the one-time route: this creates a
+  // SUBSCRIPTION, so the wrong currency is re-charged every period until cancelled.
+  //
+  // "No row" still legitimately means USD — that is the default-currency case.
+  // Only a genuine read failure stops the checkout.
+  const { data: launchSettings, error: launchSettingsError } = await boundedQuery(() =>
+    supabaseAdmin
+      .from('campaign_launch_settings')
+      .select('currency')
+      .eq('campaign_id', campaignId)
+      .maybeSingle(),
+  );
+  if (launchSettingsError) {
+    return NextResponse.json({ error: 'We could not process this donation right now. Please try again.', code: 'CURRENCY_LOOKUP_UNAVAILABLE' }, { status: 503 });
+  }
   const currency = normalizeCurrency(launchSettings?.currency).toLowerCase();
 
   const origin = getAppOrigin();

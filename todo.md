@@ -1,5 +1,44 @@
 # CharitMe — Execution Tracker
 
+## 🚨 PAYMENT PATH — a failed read was reported to donors as fact (Claude, 2026-08-03)
+
+Both donation routes destructured only `{ data }` from their Supabase lookups and
+threw the `error` away. Three consequences, all reaching a donor mid-checkout:
+
+| read fails | donor was told | now |
+|---|---|---|
+| campaign | **404 "Campaign not found"** — a live fundraiser declared nonexistent | 503 `CAMPAIGN_LOOKUP_UNAVAILABLE` |
+| reward (one-time) | **404 "Reward not found"** | 503 `REWARD_LOOKUP_UNAVAILABLE` |
+| `campaign_launch_settings` | nothing — **charged in USD** | 503 `CURRENCY_LOOKUP_UNAVAILABLE` |
+
+**The currency one is a money bug, not a display bug.** `normalizeCurrency` maps
+anything unrecognised — including `undefined` — to `DEFAULT_CURRENCY`, so a
+discarded error charged a GBP or EUR campaign's donor in **dollars**. It is
+invisible afterwards because the donation records the currency it charged. On
+`/api/donations/recurring` it creates a SUBSCRIPTION, so the wrong currency
+re-charges every period until someone cancels it.
+
+The reward case is subtler than it reads: the donor picked a real perk, and the
+obvious recovery from "Reward not found" is to retry WITHOUT it — completing a
+gift that silently drops the reward they chose.
+
+**The right answer was already in the file.** The organizer-suspension check
+returns 503 `ACCOUNT_STATUS_UNAVAILABLE` with "we could not process this right
+now" for exactly this situation — we could not determine a fact, so we do not
+proceed and we assert nothing false. It had been applied to one read out of four.
+
+Also `.single()` → `.maybeSingle()` on both campaign lookups. `.single()` reports
+zero rows AS AN ERROR, so under the new rule every genuinely missing campaign
+would have routed into the 503 branch — the opposite failure, equally wrong.
+Same trap as `getCampaign`, second instance.
+
+**Standing lesson:** `const { data } = await …` on the payment path is the shape
+to grep for. Dropping `error` does not lose an error message — it converts
+"we don't know" into a confident, wrong statement to someone holding a card.
+
+Guard: `__tests__/donation-read-failures.test.ts`, 10 assertions across both
+routes, mutation-tested by deleting each 503 in turn.
+
 ## ⚠️ CLS — 5 routes "fail" the web-vitals budget here, and it is a SANDBOX ARTIFACT (Claude, 2026-08-03)
 
 **Do not "fix" the list skeletons off this reading.** I nearly shipped a
@@ -2076,7 +2115,34 @@ Worth knowing before assuming a code fault next time: a page can be correct, on
 master, and green in every local check while still being absent from the site.
 Verify a claim of "shipped" against the live origin, not against the merge.
 
-## ⚠️ 42 server pages read Supabase with no `try/catch` (2026-08-02)
+## ✅ CLOSED — 42 server pages read Supabase with no `try/catch` → now 0 (Claude, 2026-08-03)
+
+**CLOSED 2026-08-03. Count is 0, and the guard this section asked for exists.**
+
+The judgement call recorded below — "bulk-editing 42 files with a script is a
+worse risk than the defect" — was right about the risk and wrong about the
+remedy. The fix was not 42 per-page decisions; it was one helper. `boundedQuery`
+already existed to route a failed read into each caller's error branch, and it
+could not, because every one of its 69 call sites passed an ALREADY-BUILT query
+and the Proxy throws while that argument is evaluated. Making it take a thunk
+fixed all of them at once, and **TypeScript now rejects the unsafe form**, which
+is a stronger guard than the test this section hoped for.
+
+The per-page judgement still had to happen where a degraded state had to be
+*invented* — and one of those was load-bearing: `/admin/countries` seeded a table
+behind `if ((count ?? 0) > 0) return;`, which was safe only because the read used
+to THROW. Making reads degrade turned a fail-closed path into a fail-open WRITE.
+Checked repo-wide; it was the only file where a wrapped read and a write coexist.
+
+Guard: `__tests__/page-supabase-guarded.test.ts` — non-admin AND admin pages,
+understands try / thunk / caller-guards-callee, mutation-tested both ways.
+Measured end-to-end with `SUPABASE_SERVICE_ROLE_KEY` removed: `/campaigns/{slug}`
+and its subpages went 500 → 200.
+
+---
+
+*Original entry, kept for the reasoning:*
+
 
 Measured, not estimated: 42 server `page.tsx` files call `supabaseAdmin` with no
 `try/catch` anywhere in the file. Worst offenders by call count: `admin/page.tsx`
