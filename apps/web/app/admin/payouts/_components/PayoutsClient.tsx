@@ -86,7 +86,7 @@ function TrendChart({ points }: { points: WeekPoint[] }) {
       <path d={areaD} fill="url(#payGrad)" />
       <path d={pathD} fill="none" stroke="#ec3fb4" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
       {xs.map((x, i) => <circle key={i} cx={x} cy={ys[i]} r="4" fill="#ec3fb4" stroke="#fff" strokeWidth="3" />)}
-      {points.map((p, i) => <text key={i} x={xs[i]} y={H - 2} textAnchor="middle" fontSize="9" fill="#8c9ab5">{p.week.slice(5)}</text>)}
+      {points.map((p, i) => <text key={i} x={xs[i]} y={H - 2} textAnchor="middle" fontSize="9" fill="var(--t3)">{p.week.slice(5)}</text>)}
     </svg>
   );
 }
@@ -113,7 +113,7 @@ function StatusDonut({ pending, completed, failed, total }: { pending: number; c
         })}
         <circle cx={cx} cy={cy} r={r - 11} fill="#fff" />
         <text x={cx} y={cy - 4} textAnchor="middle" fontSize="16" fontWeight="950" fill="#101944">{total}</text>
-        <text x={cx} y={cy + 14} textAnchor="middle" fontSize="9" fill="#8c9ab5">Total</text>
+        <text x={cx} y={cy + 14} textAnchor="middle" fontSize="9" fill="var(--t3)">Total</text>
       </svg>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
         {slices.map(s => (
@@ -469,7 +469,7 @@ export default function PayoutsClient({
           <div>
             <div style={{ display: 'flex', minWidth: 0, gap: 12, padding: '14px 20px', borderBottom: '1px solid #eef0f7', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 200, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, padding: '0 14px', background: 'var(--s1)' }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="#8c9ab5" strokeWidth={2} width={15} height={15} aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="var(--t3)" strokeWidth={2} width={15} height={15} aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
                 <input value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} placeholder="Search payouts…" aria-label="Search payouts" style={{ border: 0, outline: 0, background: 'transparent', fontSize: 13, width: '100%' }} />
               </div>
               <select aria-label="Filter payouts by status" value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(0); }} style={{ height: 42, border: '1px solid #e0e4ef', borderRadius: 9, padding: '0 14px', fontSize: 13, background: 'var(--s1)' }}>

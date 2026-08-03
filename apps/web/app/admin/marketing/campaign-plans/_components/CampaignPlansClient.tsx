@@ -8,7 +8,7 @@ const btnGhost: React.CSSProperties = { padding: '7px 14px', background: 'var(--
 const input: React.CSSProperties = { padding: '9px 12px', borderRadius: 9, border: '1px solid #d1d5db', fontSize: 13, fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' };
 
 const CHANNEL_LABEL: Record<string, string> = { web: 'Web', email: 'Email', social: 'Social', search: 'Search', sms: 'SMS', paid: 'Paid' };
-const STATUS_COLOR: Record<string, string> = { draft: '#94a3b8', in_review: '#f59e0b', approved: '#10b981', archived: '#cbd5e1' };
+const STATUS_COLOR: Record<string, string> = { draft: '#556070', in_review: '#f59e0b', approved: '#10b981', archived: '#cbd5e1' };
 
 interface Plan { id: string; goal_id: string | null; title: string; objective: string | null; summary: string | null; audience: string | null; geography: string | null; category: string | null; status: string; asset_count?: number; created_at: string }
 interface Asset { id: string; plan_id: string; asset_type: string; channel: string; title: string; body: string; status: string; sort_order: number }
@@ -191,7 +191,7 @@ function AssetCard({ a, save }: { a: Asset; save: (id: string, body: Record<stri
           <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--brand-text)', background: '#f3edff', padding: '3px 8px', borderRadius: 6, textTransform: 'uppercase', letterSpacing: '.04em' }}>{CHANNEL_LABEL[a.channel] ?? a.channel}</span>
           <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--t1)', marginLeft: 10 }}>{a.title}</span>
         </div>
-        <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: STATUS_COLOR[a.status] ?? '#94a3b8', padding: '3px 8px', borderRadius: 20, textTransform: 'uppercase', height: 'fit-content' }}>{a.status}</span>
+        <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: STATUS_COLOR[a.status] ?? '#556070', padding: '3px 8px', borderRadius: 20, textTransform: 'uppercase', height: 'fit-content' }}>{a.status}</span>
       </div>
 
       {editing ? (

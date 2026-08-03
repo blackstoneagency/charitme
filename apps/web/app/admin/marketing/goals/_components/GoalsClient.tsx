@@ -15,8 +15,8 @@ const METRIC_LABEL: Record<string, string> = {
   donor_acquisition_cost: 'Donor acquisition cost', organizer_retention: 'Organizer retention',
   aeo_visibility: 'AI / AEO visibility', organic_traffic: 'Organic traffic', custom: 'Custom metric',
 };
-const PRIORITY_COLOR: Record<string, string> = { low: '#94a3b8', medium: '#3b82f6', high: '#f59e0b', critical: '#ef4444' };
-const STATUS_COLOR: Record<string, string> = { draft: '#94a3b8', active: '#10b981', paused: '#f59e0b', achieved: '#6c35ff', missed: '#ef4444', archived: '#cbd5e1' };
+const PRIORITY_COLOR: Record<string, string> = { low: '#556070', medium: '#3b82f6', high: '#f59e0b', critical: '#ef4444' };
+const STATUS_COLOR: Record<string, string> = { draft: '#556070', active: '#10b981', paused: '#f59e0b', achieved: '#6c35ff', missed: '#ef4444', archived: '#cbd5e1' };
 const AUTONOMY: Record<number, string> = { 1: 'L1 · Recommend', 2: 'L2 · Create', 3: 'L3 · Guardrailed', 4: 'L4 · Exception-based' };
 
 interface Progress { metric: string; measurable: boolean; current: number | null; target: number | null; baseline: number | null; gained: number | null; percent: number | null; note: string }
