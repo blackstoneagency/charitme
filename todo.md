@@ -19167,6 +19167,7 @@ Mutation-tested: removing the `Idempotency-Key` fails, and planting a direct
 | 1 | **Cannot verify the page is live on Production.** `www.charitme.com` → `000` (gateway refuses CONNECT); GitHub's deployments **and** commit-status APIs both answer `Resource not accessible by integration`. Merging to `master` is the production trigger and Vercel reported **Building**, but nothing reachable from here confirms the alias flipped. | **Owner** — open the page, or check the Vercel dashboard |
 | 2 | **No real charge has ever been made.** The form's payloads, validation and endpoint routing are verified in a real browser, but the stub returns no Stripe session, so charge → transfer → payout → receipt is still unproven. Tracked as **O3**. | **Owner** — Stripe test keys |
 | 3 | ~~501(c)(3) claims~~ **RESOLVED — the design's wording was factually wrong and is fixed.** See below. | — |
+| 3 | **The 501(c)(3) and "all donations are tax-deductible" lines are regulated claims.** They come from the supplied design and are rendered as given. If CharitMe is not itself a registered 501(c)(3) — the 0%-platform-fee + tip model reads like a platform, not a charity — these two sentences are the ones to change before launch. Flagged, not altered: matching the design was the instruction. | **Owner** — legal |
 
 The hero photograph also differs from the design's child-holding-a-heart image:
 that asset is not in the repo and image hosts are unreachable from here, so
