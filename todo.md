@@ -19208,3 +19208,40 @@ marketing mock with UI baked into the image (a "VERIFIED CAMPAIGN" chip, a
 campaign title, stat cards), so as a full-bleed hero it would show fake UI
 behind the real UI. `charitme-community-hero.png` stays. A clean photograph is
 still the one asset that would close the last visual gap.
+
+### 🔑 Deploy status IS readable from here — via MCP, not curl (Claude, 2026-08-02)
+
+Recorded because "is it on Production?" has come up every session and was
+answered "unverifiable" three times, including twice by me.
+
+**`curl https://api.github.com/.../commits/<sha>/status` returns
+`Resource not accessible by integration`, and so does the deployments API.**
+That is a GitHub App permission limit, *not* the network. The **MCP** tool has
+the permission the raw call lacks:
+
+```
+mcp__github__pull_request_read  method=get_status  pullNumber=<n>
+→ { state, statuses:[{ context:"Vercel", state, description, target_url }] }
+```
+
+Measured just now:
+
+| PR | Vercel |
+|---|---|
+| #221 — the /donate rebuild | **`success` — "Deployment has completed"** |
+| #224 — the tax-copy fix | `pending` — "Vercel is deploying your app" |
+
+So the donate code **deploys cleanly on Vercel**, and the daily deploy cap that
+blocked earlier sessions is no longer biting.
+
+⚠️ **What this still does NOT prove.** The tool is PR-scoped, so it reads the
+*branch head* — a **preview** deployment. Production tracks `master`, and the
+status for a master commit hangs off a SHA with no PR, which no available tool
+reads. `mcp__github__get_commit` does not carry statuses. So:
+
+- **proven:** this exact code builds and deploys on Vercel without error;
+- **not proven:** that the production alias on `www.charitme.com` now serves it.
+
+The remaining gap is one look at the Vercel dashboard or the live URL. Do not
+record "unverifiable" again — record it as *preview verified, production alias
+unconfirmed*, which is a much smaller claim.
