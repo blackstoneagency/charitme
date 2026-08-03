@@ -8,6 +8,8 @@ const page = read('app/causes/page.tsx');
 const browser = read('app/causes/CausesBrowser.tsx');
 const stay = read('app/causes/StayInformed.tsx');
 const data = read('lib/causes-index.ts');
+const hero = read('components/IndexHero.tsx');
+const campaigns = read('app/campaigns/(list)/page.tsx');
 
 describe('no fabricated statistics on the causes index', () => {
   it('hardcodes none of the reference figures', () => {
@@ -21,8 +23,32 @@ describe('no fabricated statistics on the causes index', () => {
   });
 
   it('renders an em-dash for a figure that could not be measured, never 0', () => {
-    expect(page).toContain("if (value === null) return '—';");
-    expect(page).toContain("if (cents === null) return '—';");
+    // The formatters live in the SHARED hero component now, so /causes and
+    // /campaigns cannot disagree about how a missing figure is written.
+    expect(hero).toContain("if (value === null) return '—';");
+    expect(hero).toContain("if (cents === null) return '—';");
+  });
+
+  it('both browse indexes use the shared hero, not a lookalike copy', () => {
+    // A second hero would drift exactly where it matters most: the scrim that
+    // keeps the text readable over an arbitrary photo.
+    for (const [name, src] of [['/causes', page], ['/campaigns', campaigns]] as const) {
+      expect(src, `${name} must import the shared hero`).toContain('IndexHero');
+      expect(src, `${name} must import the shared strip`).toContain('StatStrip');
+    }
+  });
+
+  it('both indexes read their platform figures from one loader', () => {
+    // Otherwise the two pages can state different totals for the same platform.
+    expect(page).toContain('getCausesIndexData');
+    expect(campaigns).toContain('getCausesIndexData');
+  });
+
+  it('the breadcrumb renders each crumb once', () => {
+    // Nesting <li> inside <li> rendered every label twice and produced invalid
+    // <ol> markup; the separator sits in a Fragment instead.
+    expect(hero).toContain('<Fragment key={c.label}>');
+    expect(hero).not.toContain("style={{ display: 'contents' }}");
   });
 
   it('omits a per-cause figure entirely rather than showing 0 when unmeasured', () => {

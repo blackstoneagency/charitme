@@ -4,6 +4,23 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import CampaignImage from '../../components/CampaignImage';
 
+/**
+ * The icon badge each card carries in the reference. One glyph per cause,
+ * cycled by rank so neighbouring cards never repeat, and inline SVG so twenty
+ * badges cost no extra requests.
+ *
+ * `aria-hidden` throughout: the card's own heading already names the cause, so
+ * announcing a decorative glyph beside it would just repeat the name.
+ */
+const CARD_ICONS = [
+  <path key="0" d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8Z" />,
+  <path key="1" d="M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.5-7 10-7 10ZM3 11h4l2-3 3 6 2-3h5" />,
+  <path key="2" d="M22 10 12 5 2 10l10 5 10-5ZM6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5" />,
+  <path key="3" d="M12 3a6 6 0 0 1 6 6c0 4-6 12-6 12S6 13 6 9a6 6 0 0 1 6-6ZM12 7v4M10 9h4" />,
+  <path key="4" d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.9" />,
+  <path key="5" d="M4 20V10M10 20V4M16 20v-7M22 20H2" />,
+];
+
 export interface BrowseCause {
   slug: string;
   label: string;
@@ -119,6 +136,11 @@ export default function CausesBrowser({ causes }: { causes: BrowseCause[] }) {
           <li key={c.slug}>
             <Link href={`/causes/${c.slug}`} className="cx-card">
               <span className="cx-card-media">
+                <span className={`cx-card-ic cx-card-ic--${c.rank % 6}`} aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                    {CARD_ICONS[c.rank % 6]}
+                  </svg>
+                </span>
                 <CampaignImage
                   src={c.photo}
                   category={null}
