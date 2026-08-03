@@ -1,46 +1,33 @@
 # CharitMe — Execution Tracker
 
-## ⚠️ VERCEL CAP — one hard error, then inconclusive. My own row over-claimed (Claude, 2026-08-03 ~18:1x UTC)
+## ⛔ VERCEL CAP — resolved: it is REAL and INTERMITTENT, two hard errors (Claude, 2026-08-03 ~18:3x UTC)
 
-```
-Resource is limited - try again in 24 hours
-(more than 100, code: "api-deployments-free-per-day")
-```
+Settled by a second occurrence, which is what the previous entry said it was
+waiting for.
 
-Vercel returned that on the **#231** deployment. That part is a fact.
+| deployment | result |
+|---|---|
+| #231 | ❌ `api-deployments-free-per-day` |
+| #232 | ✅ Building |
+| #233 | ✅ Building |
+| #234 | ❌ `api-deployments-free-per-day` |
 
-**What I wrote next was not.** I recorded the row as "NOW BLOCKING, measured" —
-then a deployment for #232 reported **Building**, which a hard 24-hour cap should
-not permit. So the state is *unresolved*, and the row now says so.
+**Two hard rejections with successes in between.** So it is not a clean 24-hour
+stop — it is a quota sitting at its limit where individual deployments race
+against it. Both earlier characterisations were wrong: "NOT currently blocking"
+understated it, and "NOW BLOCKING" implied a hard gate that would have rejected
+#232 and #233 too.
 
-### Why I cannot settle it from here, stated plainly
+⚠️ **#234 was a CODE change** — the `#8c95b2` axis-label fix — and its deployment
+was one of the rejected ones. It is on master and **may not be live**. Anything
+merged from here has the same coin-flip until the window rolls or O5 is cleared.
 
-I set a monitor on production's CSS asset hash and it did not change in ~13
-minutes. **That proves nothing**, and the flaw is mine: every merge after the
-error was **docs-only**, so Next emits a byte-identical bundle whether a deploy
-landed or not. The signal cannot distinguish "no deploy" from "deploy produced
-the same output".
+**Production is unaffected and current**: `/campaigns` serves 200 with the
+rebuilt markup.
 
-Other signals checked and found unusable: App Router serves no `buildId` in the
-HTML, and the only Vercel check run on #232 is *"Vercel Preview Comments"* — the
-bot's own comment, not the deployment result.
-
-**A deploy carrying a real code change is what would settle it.** There is no
-such change outstanding.
-
-### What IS known
-
-- Production is **up and current**: `www.charitme.com/campaigns` serves 200 with
-  the rebuilt markup.
-- The cap is real as a mechanism and has fired at least once today.
-- Nothing outstanding needs a deploy — the `/campaigns` rebuild, the money-path
-  fixes and both accessibility passes are already live.
-
-**This entry is the third correction of this row today, in both directions.** It
-has read "not blocking", then "blocking", and now "one error then unknown". The
-lesson is not about Vercel: a row asserting a *transient* condition goes stale
-faster than anyone updates it, so it should record the observation and its
-timestamp, never the characterisation.
+**Practical rule while this lasts:** merging is safe, but do not assume a merge
+shipped. Check the deployment result per PR, the same way CI runs have to be
+checked per run.
 
 
 ## 🔎 THE OWNER ROWS WERE STALE TOO — O1 says 6 migrations, it is 27 (Claude, 2026-08-03)
@@ -1373,7 +1360,7 @@ external release constraints after the latest production deployment.
 |---|---------|----------|------------------|
 | 1 | **GitHub Actions assigns no runner — RE-BROKEN, verified 2026-08-03.** This row said CLEARED; it is not. Eight runs today (`30778197657`, `30779419210`, `30780039522`, `30780372581`, `30782321643`, `30802456447`, `30803013774`, `30803728152`) all show `runner_id: 0`, empty `runner_name`, `billable.UBUNTU.total_ms: 0`, 2–11s duration, no steps. Master's runs match, which rules out any branch. **A red check right now is not a signal.** One run showed `queued` briefly before dropping — that is not recovery. Verify per run (`actions_get` → `get_workflow_run_usage`); do not trust this row or its predecessor. | 8 runs + master, 2026-08-03; `image-links.yml` fails identically; repo is private | **Owner** — likely the private-repo Actions minute allowance (see CLAUDE.md): raise the spending limit, make the repo public, or cut push volume |
 | 2 | **No CharitMe staging Supabase project is available.** The account exposes CharitMe production and an unrelated Auto Trading project. Preview Branch creation returns HTTP 402 because the account is not on Pro; dedicated `charitme-staging` creation is also rejected because the owner has reached the two-active-free-project limit. Database release policy correctly blocks production migration application until the same commit is verified on real staging. | Supabase project/branch inventory and both provisioning probes, 2026-07-29 | **Owner** — upgrade Supabase, pause/delete an unrelated project, or provision staging in another organization |
-| 3 | **Vercel daily deployment quota — ONE hard error, then inconclusive (2026-08-03 ~18:1x UTC).** Vercel returned `api-deployments-free-per-day` on #231. A later #232 deployment reported *Building*, which a hard 24h cap should not permit, so the current state is **unknown, not confirmed-blocking** — an earlier version of this row said "NOW BLOCKING" and over-claimed. It cannot be settled from here: every merge since was docs-only and produces a byte-identical bundle, so production output cannot distinguish a landed deploy from a blocked one. **Production is up and current.** | Cap error on #231; Building on #232; production 200 with current markup | **External reset**, or upgrade Vercel to remove the recurrence |
+| 3 | **Vercel daily deployment quota — REAL and INTERMITTENT, resolved 2026-08-03 ~18:3x UTC.** Two hard `api-deployments-free-per-day` rejections (#231, #234) with two successful builds between them (#232, #233), so it is a quota at its limit rather than a clean 24h stop. **A merge no longer implies a deploy** — #234 carried a code fix and was rejected, so it sits on master possibly unshipped. Production itself is current and serving 200. | Deploy errors on #231 and #234; builds on #232 and #233; production 200 | **External reset**, or upgrade Vercel (O5) to remove the recurrence |
 
 **Vercel production is operational** — re-measured 2026-08-03: `/api/health`,
 `/needs` and `/campaigns` all 200 on `www.charitme.com`. New deployments are **not**
