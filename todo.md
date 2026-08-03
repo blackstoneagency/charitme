@@ -1,5 +1,65 @@
 # CharitMe — Execution Tracker
 
+## ✅ ROLLBACK COVERAGE IS 27/27 — including the three that touch `record_donation` (Claude, 2026-08-03)
+
+Every pending migration now has a rollback, and each is either **rehearsed** or a
+**documented refusal**. I had said the function ones needed the owner's sign-off
+because "a wrong guess breaks the donation path". The mistake was in *guess* —
+the previous body does not have to be guessed.
+
+```
+rehearse-rollbacks.sh — 11/11 pass, exit 0
+  6 table   ·  4 column  ·  1 index
+generate-function-rollback.sh — 3/3 byte-identical
+  2 declared irreversible (raise exception, psql exit 3)
+```
+
+### The function rollbacks are GENERATED and byte-proven, not transcribed
+
+`scripts/generate-function-rollback.sh` replays every migration up to the one
+before the target, asks Postgres for the exact definition via
+`pg_get_functiondef()`, and writes **that**. Then it applies the target, applies
+the generated rollback, re-reads the definition, and **only writes the file if
+the text matches the pre-target snapshot byte for byte.**
+
+That removes the risk that stopped me: the inverse of `create or replace` is not
+inferred, it is measured. All three — including both that replace
+`record_donation`, the RPC the Stripe webhook calls — verified identical.
+
+### It immediately caught something a body-only check would have shipped
+
+Dropping a function **cascades to every trigger that calls it**. The first
+generated rollback for `volunteer_hours_guard_verification` restored the function
+perfectly and left its guard trigger deleted — and the comparison passed, because
+it only compared function text. Verification now covers `pg_get_triggerdef` too.
+
+Note the subtlety in the opposite direction: `20260815000000` cascades away
+`donations_increment_peer_fundraiser`, and its rollback correctly does **not**
+restore it — that trigger is created by the migration, so it should not exist
+after a revert. Before and after are both empty, which is why the count reads 0.
+
+### The last two were a false "mixed"
+
+`20260728020000` looked like it added nothing because it swaps a **partial**
+unique index for a plain one **under the same name**. `20260812000000` adds four
+unique indexes built inside a `DO` block. Both are index-only — no data moves —
+and both rollbacks carry a warning that reverting reinstates the exact `42P10`
+upsert failure the migrations fixed, which for tax receipts means emailing a
+donor an IRS receipt and recording nothing.
+
+### Coverage
+
+| | start of day | now |
+|---|---|---|
+| pending migrations with a rollback | 10 / 27 | **27 / 27** |
+| rehearsed against a real database | 0 | **11** |
+| byte-proven function restores | 0 | **3** |
+| documented refusals | 0 | **2** |
+
+**Still owner-blocked:** applying the 27 needs a staging project. Everything that
+does not need one is now done — they replay clean, the schema is RLS-complete at
+162/162, and every migration can be backed out or says in writing why it cannot.
+
 ## ✅ ROLLBACK COVERAGE — 10 → 22 of 27; the last 5 are named, not forgotten (Claude, 2026-08-03)
 
 Second pass. I had applied an incoherent standard: willing to write `drop table`
