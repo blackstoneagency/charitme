@@ -29,19 +29,48 @@ describe('no fabricated statistics on the causes index', () => {
     expect(hero).toContain("if (cents === null) return '—';");
   });
 
-  it('both browse indexes use the shared hero, not a lookalike copy', () => {
+  it('/causes uses the shared hero, not a lookalike copy', () => {
     // A second hero would drift exactly where it matters most: the scrim that
     // keeps the text readable over an arbitrary photo.
-    for (const [name, src] of [['/causes', page], ['/campaigns', campaigns]] as const) {
-      expect(src, `${name} must import the shared hero`).toContain('IndexHero');
-      expect(src, `${name} must import the shared strip`).toContain('StatStrip');
+    expect(page, '/causes must import the shared hero').toContain('IndexHero');
+    expect(page, '/causes must import the shared strip').toContain('StatStrip');
+  });
+
+  /**
+   * ⚠️ /campaigns is deliberately NOT held to the shared-hero rule any more.
+   *
+   * It was, and the rule was right at the time. It now has its own hero because
+   * the supplied reference design gives that page a distinct one — a dark band
+   * with an inline search field — which the shared `IndexHero` does not render.
+   *
+   * The rule's two stated reasons are preserved rather than waived:
+   *
+   *   "the scrim that keeps the text readable over an arbitrary photo"
+   *      → asserted directly below. The property was the point, not the import.
+   *
+   *   "otherwise the two pages can state different totals"
+   *      → /campaigns no longer displays platform figures at all, so there is no
+   *        second number that can disagree. Asserted below too, so this stops
+   *        being true the moment someone adds one back without a shared loader.
+   */
+  it('the /campaigns hero still scrims its photo, despite not sharing the component', () => {
+    const css = read('app/globals.css');
+    const from = css.indexOf('.cbx-hero-art { display: block;');
+    expect(from, 'the campaigns hero art rule must exist').toBeGreaterThan(-1);
+    const rule = css.slice(from, from + 700);
+    expect(rule, 'an arbitrary cover photo needs a scrim or the headline can vanish into it')
+      .toMatch(/::after[\s\S]*?linear-gradient/);
+  });
+
+  it('/campaigns states no platform figure it does not share a loader for', () => {
+    if (campaigns.includes('StatStrip') || campaigns.includes('statValue') || campaigns.includes('moneyValue')) {
+      expect(campaigns, 'a platform figure on /campaigns must come from the shared loader')
+        .toContain('getCausesIndexData');
     }
   });
 
-  it('both indexes read their platform figures from one loader', () => {
-    // Otherwise the two pages can state different totals for the same platform.
+  it('/causes reads its platform figures from the shared loader', () => {
     expect(page).toContain('getCausesIndexData');
-    expect(campaigns).toContain('getCausesIndexData');
   });
 
   it('the breadcrumb renders each crumb once', () => {
