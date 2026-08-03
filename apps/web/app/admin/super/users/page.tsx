@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../../lib/query-timeout';
 import 'server-only';
 import { CharitMeShell, TopBar } from '../../../../components/CharitMeShellServer';
 import { requireSuperAdmin } from '../../../../lib/auth';
@@ -11,12 +12,12 @@ export default async function SuperAdminUsersPage() {
   await requireSuperAdmin();
 
   const [{ data, error }, { count }] = await Promise.all([
-    supabaseAdmin
+    boundedQuery(() => supabaseAdmin
       .from('profiles')
       .select('id, full_name, email, avatar_url, roles, plan, identity_verified, created_at')
       .order('created_at', { ascending: false })
-      .limit(2000),
-    supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true }),
+      .limit(2000)),
+    boundedQuery(() => supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true })),
   ]);
   if (error) console.error('[SuperAdminUsers] profiles error', error.message);
 

@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../lib/query-timeout';
 import 'server-only';
 import Link from 'next/link';
 import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
@@ -28,19 +29,19 @@ export default async function AdminDonationsPage() {
     { count: refundedCount },
     { count: failedCount },
   ] = await Promise.all([
-    supabaseAdmin
+    boundedQuery(() => supabaseAdmin
       .from('donations')
       .select('id,campaign_id,donor_id,amount_cents,status,anonymous,message,created_at', { count: 'exact' })
       .order('created_at', { ascending: false })
-      .limit(100),
-    supabaseAdmin
+      .limit(100)),
+    boundedQuery(() => supabaseAdmin
       .from('donations')
       .select('amount_cents,donor_id')
-      .eq('status', 'completed'),
-    supabaseAdmin.from('donations').select('*', { count: 'exact', head: true }).eq('status', 'completed'),
-    supabaseAdmin.from('donations').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-    supabaseAdmin.from('donations').select('*', { count: 'exact', head: true }).eq('status', 'refunded'),
-    supabaseAdmin.from('donations').select('*', { count: 'exact', head: true }).eq('status', 'failed'),
+      .eq('status', 'completed')),
+    boundedQuery(() => supabaseAdmin.from('donations').select('*', { count: 'exact', head: true }).eq('status', 'completed')),
+    boundedQuery(() => supabaseAdmin.from('donations').select('*', { count: 'exact', head: true }).eq('status', 'pending')),
+    boundedQuery(() => supabaseAdmin.from('donations').select('*', { count: 'exact', head: true }).eq('status', 'refunded')),
+    boundedQuery(() => supabaseAdmin.from('donations').select('*', { count: 'exact', head: true }).eq('status', 'failed')),
   ]);
 
   type RawDonation = {
@@ -66,8 +67,8 @@ export default async function AdminDonationsPage() {
   const campaignIds = [...new Set(donationList.map(d => d.campaign_id))];
   const campaignMap = new Map<string, string>();
   if (campaignIds.length > 0) {
-    const { data: campaigns } = await supabaseAdmin
-      .from('campaigns').select('id,title').in('id', campaignIds);
+    const { data: campaigns } = await boundedQuery(() => supabaseAdmin
+      .from('campaigns').select('id,title').in('id', campaignIds));
     for (const c of (campaigns ?? []) as { id: string; title: string }[]) {
       campaignMap.set(c.id, c.title);
     }
@@ -77,8 +78,8 @@ export default async function AdminDonationsPage() {
   const allDonorIds = [...new Set(donationList.map(d => d.donor_id).filter(Boolean))] as string[];
   const profileMap = new Map<string, { name: string; email: string }>();
   if (allDonorIds.length > 0) {
-    const { data: profiles } = await supabaseAdmin
-      .from('profiles').select('id,full_name').in('id', allDonorIds);
+    const { data: profiles } = await boundedQuery(() => supabaseAdmin
+      .from('profiles').select('id,full_name').in('id', allDonorIds));
     for (const p of (profiles ?? []) as { id: string; full_name: string | null }[]) {
       profileMap.set(p.id, { name: p.full_name ?? 'Unknown Donor', email: '' });
     }
@@ -97,11 +98,11 @@ export default async function AdminDonationsPage() {
   // ── Weekly trend (last 8 weeks) ──────────────────────────────────────
   const eightWeeksAgo = new Date();
   eightWeeksAgo.setDate(eightWeeksAgo.getDate() - 56);
-  const { data: trendData } = await supabaseAdmin
+  const { data: trendData } = await boundedQuery(() => supabaseAdmin
     .from('donations')
     .select('amount_cents,created_at,status')
     .gte('created_at', eightWeeksAgo.toISOString())
-    .order('created_at', { ascending: true });
+    .order('created_at', { ascending: true }));
 
   const weekMap = new Map<string, { total_cents: number; count: number }>();
   for (const d of (trendData ?? []) as { amount_cents: number; created_at: string; status: string }[]) {

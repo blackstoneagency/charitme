@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../lib/query-timeout';
 import 'server-only';
 import { requireAdmin } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
@@ -41,29 +42,29 @@ export default async function AuditLogPage() {
     { data: thirtyDayAudit },
     { data: thirtyDayWebhook },
   ] = await Promise.all([
-    supabaseAdmin
+    boundedQuery(() => supabaseAdmin
       .from('audit_logs')
       .select('id, actor_id, action, target_type, target_id, metadata, ip_address, created_at', { count: 'exact' })
       .order('created_at', { ascending: false })
-      .limit(150),
-    supabaseAdmin
+      .limit(150)),
+    boundedQuery(() => supabaseAdmin
       .from('webhook_events')
       .select('id, event_type, stripe_event_id, processed_at, processing_error, created_at', { count: 'exact' })
       .order('created_at', { ascending: false })
-      .limit(50),
-    supabaseAdmin
+      .limit(50)),
+    boundedQuery(() => supabaseAdmin
       .from('webhook_events')
       .select('id', { count: 'exact', head: true })
-      .not('processing_error', 'is', null),
-    supabaseAdmin
+      .not('processing_error', 'is', null)),
+    boundedQuery(() => supabaseAdmin
       .from('audit_logs')
       .select('created_at')
       .gte('created_at', thirtyDaysAgo.toISOString())
-      .order('created_at', { ascending: true }),
-    supabaseAdmin
+      .order('created_at', { ascending: true })),
+    boundedQuery(() => supabaseAdmin
       .from('webhook_events')
       .select('created_at')
-      .gte('created_at', thirtyDaysAgo.toISOString()),
+      .gte('created_at', thirtyDaysAgo.toISOString())),
   ]);
 
   type AuditRow = {
@@ -93,8 +94,8 @@ export default async function AuditLogPage() {
   const actorIds = [...new Set(auditList.map(e => e.actor_id).filter(Boolean) as string[])];
   const actorMap = new Map<string, string>();
   if (actorIds.length > 0) {
-    const { data: profiles } = await supabaseAdmin
-      .from('profiles').select('id, full_name').in('id', actorIds);
+    const { data: profiles } = await boundedQuery(() => supabaseAdmin
+      .from('profiles').select('id, full_name').in('id', actorIds));
     for (const p of (profiles ?? []) as { id: string; full_name: string | null }[]) {
       if (p.full_name) actorMap.set(p.id, p.full_name);
     }

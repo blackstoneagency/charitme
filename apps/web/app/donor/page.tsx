@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../lib/query-timeout';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '../../lib/supabase-server';
@@ -114,8 +115,8 @@ export default async function DonorPortalPage() {
   if (cids.length > 0) {
     // Both keyed off the same campaign-id set but independent of each other.
     const [campsRes, launchRes] = await Promise.all([
-      supabaseAdmin.from('campaigns').select('id, title, slug, cover_image_url').in('id', cids),
-      supabaseAdmin.from('campaign_launch_settings').select('campaign_id, currency').in('campaign_id', cids),
+      boundedQuery(() => supabaseAdmin.from('campaigns').select('id, title, slug, cover_image_url').in('id', cids)),
+      boundedQuery(() => supabaseAdmin.from('campaign_launch_settings').select('campaign_id, currency').in('campaign_id', cids)),
     ]);
     for (const c of (campsRes.data ?? []) as CampaignRow[]) campaignMap.set(c.id, c);
     for (const ls of launchRes.data ?? []) {

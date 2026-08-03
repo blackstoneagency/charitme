@@ -106,7 +106,7 @@ async function getCampaigns(opts: {
     // Bounded: the listing's own read was the remaining ~7s after the shared
     // visibility probe was capped. `unavailable` below already distinguishes a
     // failed read from an empty result set.
-    const { data, count, error } = await boundedQuery(query.range(from, to));
+    const { data, count, error } = await boundedQuery(() => query.range(from, to));
     if (error || data == null) return { campaigns: [], total: 0, unavailable: true };
     return { campaigns: data, total: count ?? 0, unavailable: false };
   } catch {
@@ -180,10 +180,10 @@ export default async function CampaignsPage({ searchParams }: Props) {
 
   const currencyMap = new Map<string, string>();
   if (campaigns.length > 0) {
-    const { data: launchSettings } = await supabaseAdmin
+    const { data: launchSettings } = await boundedQuery(() => supabaseAdmin
       .from('campaign_launch_settings')
       .select('campaign_id, currency')
-      .in('campaign_id', campaigns.map((c) => c.id));
+      .in('campaign_id', campaigns.map((c) => c.id)));
     for (const ls of launchSettings ?? []) {
       if (ls.currency) currencyMap.set(ls.campaign_id, ls.currency);
     }

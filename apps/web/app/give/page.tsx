@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 async function getCampaigns(): Promise<GiveCampaign[]> {
   try {
     const cols = await campaignColumns();
-    const { data } = await boundedQuery(
+    const { data } = await boundedQuery(() =>
   applyLiveFilters(
         supabaseAdmin
           .from('campaigns')

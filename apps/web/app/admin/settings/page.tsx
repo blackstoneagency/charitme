@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../lib/query-timeout';
 import 'server-only';
 import { requireAdmin } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
@@ -14,8 +15,8 @@ export default async function AdminSettingsPage() {
     integrationCountResult,
     adminEmailResult,
   ] = await Promise.all([
-    supabaseAdmin.from('integration_connections').select('id', { count: 'exact', head: true }).eq('status', 'connected'),
-    supabaseAdmin.from('profiles').select('email').not('roles', 'is', null).limit(1),
+    boundedQuery(() => supabaseAdmin.from('integration_connections').select('id', { count: 'exact', head: true }).eq('status', 'connected')),
+    boundedQuery(() => supabaseAdmin.from('profiles').select('email').not('roles', 'is', null).limit(1)),
   ]);
 
   // `null` is "could not read", not zero. "0 connected integrations" is the
@@ -70,11 +71,11 @@ export default async function AdminSettingsPage() {
     featuredCampaignPriceDollars: 5,
   };
 
-  const { data: savedSettings } = await supabaseAdmin
+  const { data: savedSettings } = await boundedQuery(() => supabaseAdmin
     .from('platform_settings')
     .select('config')
     .eq('id', 1)
-    .maybeSingle();
+    .maybeSingle());
 
   const savedConfig = (savedSettings?.config && typeof savedSettings.config === 'object' && !Array.isArray(savedSettings.config))
     ? (savedSettings.config as Record<string, unknown>)

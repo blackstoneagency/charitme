@@ -31,7 +31,7 @@ interface GalleryItem {
 async function getGallery(): Promise<GalleryItem[] | null> {
   try {
     const cols = await campaignColumns();
-    const { data, error } = await boundedQuery(
+    const { data, error } = await boundedQuery(() =>
   applyLiveFilters(
         supabaseAdmin.from('campaigns').select('id, slug, title, category, cover_image_url'),
         cols,

@@ -42,7 +42,7 @@ async function getCauseCounts(): Promise<Map<string, number>> {
         // Bounded per category: these run concurrently, so one stalled count
         // held the whole page. A timeout yields `error`, and the guard below
         // already refuses to publish a partial total.
-        const { count, error } = await boundedQuery(
+        const { count, error } = await boundedQuery(() =>
           applyLiveFilters(
             supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true }),
             cols,

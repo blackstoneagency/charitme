@@ -2,7 +2,8 @@ import 'server-only';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getCampaign } from '../get-campaign';
+import { getCampaignResult } from '../get-campaign';
+import CampaignUnavailable from '../../../../components/CampaignUnavailable';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { getAppOrigin } from '../../../../lib/auth-config';
 import { resolveCampaignCover } from '../../../../lib/covers';
@@ -41,7 +42,10 @@ type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const campaign = await getCampaign(slug);
+  const metaResult = await getCampaignResult(slug);
+  // Metadata must never crash the page; an unreadable row falls back to
+  // the generic title rather than throwing.
+  const campaign = metaResult.ok ? metaResult.campaign : null;
   if (!campaign) return { title: 'Campaign updates | CharitMe' };
   const title = `Updates — ${campaign.title} | CharitMe`;
   const description = `Progress reports and milestones from "${campaign.title}", written by the organiser.`;
@@ -60,24 +64,36 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
  * other is ordinary and the reader should not be alarmed by it.
  */
 async function loadUpdates(campaignId: string): Promise<CampaignUpdateRow[] | null> {
-  const { data, error } = await supabaseAdmin
-    .from('campaign_updates')
-    .select('id, title, body, created_at, published_at, scheduled_at, ai_generated')
-    .eq('campaign_id', campaignId)
-    .or(`published_at.not.is.null,scheduled_at.lte.${new Date().toISOString()}`)
-    .order('created_at', { ascending: false })
-    .limit(100);
-  if (error) {
-    console.warn('[campaign/updates] read failed', { code: error.code });
+  try {    // supabaseAdmin is a Proxy that THROWS on property access when the env is
+    // missing, so `.from(...)` throws before any query runs — which the error
+    // check below cannot see. The `null` contract this function already
+    // declares is the correct degraded answer, so a throw takes the same path.
+
+    const { data, error } = await supabaseAdmin
+      .from('campaign_updates')
+      .select('id, title, body, created_at, published_at, scheduled_at, ai_generated')
+      .eq('campaign_id', campaignId)
+      .or(`published_at.not.is.null,scheduled_at.lte.${new Date().toISOString()}`)
+      .order('created_at', { ascending: false })
+      .limit(100);
+    if (error) {
+      console.warn('[campaign/updates] read failed', { code: error.code });
+      return null;
+    }
+    return sortForFeed(visibleUpdates(data ?? []));
+  
+  } catch {
     return null;
   }
-  return sortForFeed(visibleUpdates(data ?? []));
 }
 
 export default async function CampaignUpdatesPage({ params }: Props) {
   const { slug } = await params;
-  const campaign = await getCampaign(slug);
-  if (!campaign) notFound();
+  const result = await getCampaignResult(slug);
+  // An unreadable database is not a missing campaign — never 404 on it.
+  if (!result.ok && result.reason === 'unavailable') return <CampaignUnavailable slug={slug} />;
+  if (!result.ok) notFound();
+  const campaign = result.campaign;
 
   const updates = await loadUpdates(campaign.id);
   const origin = getAppOrigin();

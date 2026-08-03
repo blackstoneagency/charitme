@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../lib/query-timeout';
 import 'server-only';
 import { requireAdmin } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
@@ -34,18 +35,18 @@ export default async function AdminReportsPage() {
     { count: totalWebhooks },
     { count: recurringDonors },
   ] = await Promise.all([
-    supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true }),
-    supabaseAdmin.from('campaigns').select('*', { count: 'exact', head: true }),
-    supabaseAdmin.from('campaigns').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-    supabaseAdmin.from('campaigns').select('*', { count: 'exact', head: true }).eq('status', 'completed'),
-    supabaseAdmin.from('donations').select('amount_cents').eq('status', 'completed'),
-    supabaseAdmin.from('donations').select('*', { count: 'exact', head: true }).eq('status', 'completed'),
-    supabaseAdmin.from('payouts').select('amount_cents').eq('status', 'paid'),
-    supabaseAdmin.from('payouts').select('*', { count: 'exact', head: true }),
-    supabaseAdmin.from('campaign_updates').select('*', { count: 'exact', head: true }),
-    supabaseAdmin.from('donor_messages').select('*', { count: 'exact', head: true }),
-    supabaseAdmin.from('webhook_events').select('*', { count: 'exact', head: true }),
-    supabaseAdmin.from('donations').select('donor_id', { count: 'exact', head: true }),
+    boundedQuery(() => supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true })),
+    boundedQuery(() => supabaseAdmin.from('campaigns').select('*', { count: 'exact', head: true })),
+    boundedQuery(() => supabaseAdmin.from('campaigns').select('*', { count: 'exact', head: true }).eq('status', 'active')),
+    boundedQuery(() => supabaseAdmin.from('campaigns').select('*', { count: 'exact', head: true }).eq('status', 'completed')),
+    boundedQuery(() => supabaseAdmin.from('donations').select('amount_cents').eq('status', 'completed')),
+    boundedQuery(() => supabaseAdmin.from('donations').select('*', { count: 'exact', head: true }).eq('status', 'completed')),
+    boundedQuery(() => supabaseAdmin.from('payouts').select('amount_cents').eq('status', 'paid')),
+    boundedQuery(() => supabaseAdmin.from('payouts').select('*', { count: 'exact', head: true })),
+    boundedQuery(() => supabaseAdmin.from('campaign_updates').select('*', { count: 'exact', head: true })),
+    boundedQuery(() => supabaseAdmin.from('donor_messages').select('*', { count: 'exact', head: true })),
+    boundedQuery(() => supabaseAdmin.from('webhook_events').select('*', { count: 'exact', head: true })),
+    boundedQuery(() => supabaseAdmin.from('donations').select('donor_id', { count: 'exact', head: true })),
   ]);
 
   const totalDonationsCents = (donationAmounts ?? []).reduce(

@@ -1,5 +1,94 @@
 # CharitMe — Execution Tracker
 
+## ✅ RESILIENCE — the helper that made reads degrade could not catch the commonest failure (Claude, 2026-08-03)
+
+`boundedQuery` exists so a degraded database takes each call site's existing
+`if (error)` branch instead of crashing the page. **It could not do that for the
+most common way the database becomes unavailable.**
+
+`supabaseAdmin` is a Proxy whose `get` trap THROWS when the service-role env vars
+are missing. So `supabaseAdmin.from('campaigns')` throws **synchronously, while
+the argument is being evaluated** — before `boundedQuery` is ever entered. It
+never becomes a rejection, never becomes `{ error }`, and no `if (error)` check
+on this site could see it. **All 69 call sites passed an already-built query, so
+all 69 were blind to it.** That was the single cause of the ~39 pages returning
+500 on a degraded database while each already had an empty state written.
+
+**`boundedQuery` now takes a THUNK** — `boundedQuery(() => supabaseAdmin.from(…))`
+— so construction happens inside its try. **TypeScript enforces it**: the old
+form is a compile error, which is stronger than a lint rule because it cannot be
+forgotten at a new call site.
+
+| | before | after |
+|---|---|---|
+| non-admin pages with an unguarded read | 22 | **0** |
+| admin pages with an unguarded read | 26 | **0** (1 allowlisted *write*) |
+| `boundedQuery` call sites in the unsafe form | 69 | **0** (compile error) |
+
+**Measured, not reasoned** — production build with `SUPABASE_SERVICE_ROLE_KEY`
+removed: `/campaigns/{slug}`, `/share`, `/updates`, `/gallery` went **500 → 200**
+and render the unavailable state. 19 routes checked, all 200.
+
+### `/campaigns/[slug]` told visitors a live campaign DOES NOT EXIST
+
+`getCampaign` returned `null` both for "no such row" and for "the read failed",
+and all eight callers turned `null` into `notFound()`. **A 404 is a factual claim**
+that browsers cache, people share and search engines index — and this is the
+donation path. A transient outage was producing it.
+
+`getCampaignResult` now reports `missing` and `unavailable` separately. Three
+details that are easy to get wrong:
+
+- The query moved `.single()` → **`.maybeSingle()`**. `.single()` reports zero
+  rows *as an error*, which under the new rule is indistinguishable from an
+  outage. `.maybeSingle()` returns `{ data: null, error: null }` for no row.
+- The layout gate deliberately does **not** throw on `unavailable` — an
+  `error.tsx` inside a segment cannot catch a throw from that segment's *own*
+  layout, so throwing there would replace the friendly state with a crash.
+- `getCampaign` now **throws** on unavailable rather than returning null, so no
+  future caller can reintroduce the false 404 by forgetting to check.
+
+### ⚠️ Making reads resilient turned one fail-CLOSED path into fail-OPEN
+
+`/admin/countries` seeds the supported-country table behind
+`if ((count ?? 0) > 0) return;`. That was safe **only because the failing read
+used to throw**. Once the read degrades, `count` is undefined, `?? 0` reads as
+"the table is empty", and it falls through to **inserting the entire country
+list** over a table that may already be populated.
+
+**This is the general hazard of this kind of change** — code that previously
+crashed now continues with a fallback, and if that fallback gates a write, a read
+outage starts causing writes. Checked repo-wide rather than spot-fixed: of every
+file touched, `/admin/countries` is the only one where a wrapped read and a write
+coexist. The seed INSERT itself is left **unwrapped on purpose** — a failed write
+must stay loud.
+
+### Guard added
+
+`__tests__/page-supabase-guarded.test.ts` fails on any unguarded `supabaseAdmin`
+read on any page. It understands three shapes: inside a `try`, inside a
+`boundedQuery` thunk, and **caller-guards-callee** — the last is how
+`/success-stories` was already safe, and my first scanner wrongly flagged it.
+
+Two self-inflicted bugs in the guard itself, both worth remembering:
+- `enclosingFnName` took the *nearest declaration*, so a local `const cols =
+  await …` counted as the enclosing function and the caller-guard rule never fired.
+- The seed assertion matched **its own comment**, which quotes the `(count ?? 0)`
+  form it forbids. Comments must be blanked before matching — but string literals
+  get blanked too, so anchors have to be checked on the raw source.
+
+Mutation-tested in both directions, including by planting a real read in a real
+page (red) and reverting (green).
+
+**Honest limit:** admin pages answer 307 to the login redirect before rendering,
+so their degraded output could not be curl-verified — no admin session in the
+sandbox. Their guards rest on the type system and the source-level test. The
+public pages *were* observed going 500 → 200.
+
+**Still open:** `/api/admin/*` route handlers. An API route that throws returns a
+500 JSON body to one internal caller rather than breaking a visitor's page, so
+they rank below everything above.
+
 ## ⏱️ PERF — 13 public pages stalled ~14.1s; shared cause fixed, per-page reads open (Claude, 2026-08-02)
 
 Timed **all 83 public routes** on a production build. Thirteen returned in

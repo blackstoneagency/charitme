@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../../lib/query-timeout';
 import 'server-only';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../../../lib/supabase';
@@ -28,14 +29,14 @@ export const metadata: Metadata = { title: 'Email Templates | CharitMe Admin' };
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default async function EmailTemplatesPage() {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await boundedQuery(() => supabaseAdmin
     .from('marketing_email_templates')
     .select(
       'id, name, category, subject, preview_text, body, variables, is_system, created_by, created_at, updated_at',
     )
     .order('category', { ascending: true })
     .order('name', { ascending: true })
-    .limit(500);
+    .limit(500));
 
   // null means the read FAILED. Rendering the empty state instead would invite
   // an admin to recreate templates that already exist — and since automations

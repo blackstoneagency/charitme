@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../lib/query-timeout';
 import 'server-only';
 import type { Metadata } from 'next';
 import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
@@ -23,7 +24,7 @@ export default async function DashboardSegmentsPage() {
   const [nonprofitRows, segments, contacts] = await Promise.all([
     owned.length === 0
       ? Promise.resolve({ data: [] as { id: string; name: string }[] })
-      : supabaseAdmin.from('nonprofit_profiles').select('id, name').in('id', owned).order('name'),
+      : boundedQuery(() => supabaseAdmin.from('nonprofit_profiles').select('id, name').in('id', owned).order('name')),
     listSegments(owned),
     loadContacts(owned),
   ]);

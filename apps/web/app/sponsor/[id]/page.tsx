@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../lib/query-timeout';
 import { cache } from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -34,12 +35,12 @@ export default async function SponsorDetailPage({ params }: PageProps) {
 
   let existingStatus: string | null = null;
   if (user && !isOrganizer) {
-    const { data } = await supabaseAdmin
+    const { data } = await boundedQuery(() => supabaseAdmin
       .from('sponsorship_requests')
       .select('status')
       .eq('opportunity_id', o.id)
       .eq('sponsor_id', user.id)
-      .maybeSingle();
+      .maybeSingle());
     existingStatus = (data?.status as string | undefined) ?? null;
   }
 

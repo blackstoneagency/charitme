@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../lib/query-timeout';
 import Link from 'next/link';
 import { CharitMeShell, TopBar, MetricGrid, KFIcon } from '../../../components/CharitMeShellServer';
 import { requireUser } from '../../../lib/auth';
@@ -56,10 +57,10 @@ export default async function UpdatesPage({
   const activeTab = (typeof params.tab === 'string' ? params.tab : 'all').toLowerCase();
 
   // Step 1: get user's campaign IDs + titles
-  const { data: campaignData } = await supabaseAdmin
+  const { data: campaignData } = await boundedQuery(() => supabaseAdmin
     .from('campaigns')
     .select('id,title')
-    .eq('user_id', userId);
+    .eq('user_id', userId));
 
   const campaigns = (campaignData ?? []) as CampaignIdTitle[];
   const cids = campaigns.map((c) => c.id);
@@ -71,12 +72,12 @@ export default async function UpdatesPage({
   // Step 2: get updates
   let updates: UpdateRow[] = [];
   if (cids.length > 0) {
-    const { data: updateData } = await supabaseAdmin
+    const { data: updateData } = await boundedQuery(() => supabaseAdmin
       .from('campaign_updates')
       .select('id,campaign_id,title,body,created_at')
       .in('campaign_id', cids)
       .order('created_at', { ascending: false })
-      .limit(100);
+      .limit(100));
     updates = (updateData ?? []) as UpdateRow[];
   }
 

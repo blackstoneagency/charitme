@@ -7,7 +7,7 @@ import { sanitizeDemoRow, sanitizeDemoRowAll } from './demo-trust';
 // Server-side grant reads for React Server Components (initial page render).
 
 export async function getPublicGrants(limit = 24): Promise<Grant[]> {
-  const { data, error } = await boundedQuery(
+  const { data, error } = await boundedQuery(() =>
   supabaseAdmin
       .from('grants')
       .select(GRANT_PUBLIC_COLUMNS)

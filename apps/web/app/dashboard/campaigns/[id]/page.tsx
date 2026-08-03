@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../../lib/query-timeout';
 import 'server-only';
 import { notFound } from 'next/navigation';
 import { CharitMeShell, TopBar } from '../../../../components/CharitMeShellServer';
@@ -131,11 +132,11 @@ export default async function CampaignDetailPage({
   if (!campaign) notFound();
 
   // Featured-campaign fee (admin-configurable in Super Admin → Settings → Payment).
-  const { data: settingsRow } = await supabaseAdmin
+  const { data: settingsRow } = await boundedQuery(() => supabaseAdmin
     .from('platform_settings')
     .select('config')
     .eq('id', 1)
-    .maybeSingle();
+    .maybeSingle());
   const paymentSettings =
     settingsRow?.config && typeof settingsRow.config === 'object' && !Array.isArray(settingsRow.config)
       ? (settingsRow.config as Record<string, unknown>).payment

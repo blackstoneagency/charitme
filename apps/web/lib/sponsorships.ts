@@ -37,7 +37,7 @@ export async function listOpenOpportunities(
   const safeSearch = filters.search ? likeTerm(filters.search) : '';
   if (safeSearch) query = query.ilike('title', `%${safeSearch}%`);
 
-  const { data, error } = await boundedQuery(query);
+  const { data, error } = await boundedQuery(() => query);
   if (error || !data) return [];
   return decorate(data as SponsorshipOpportunity[]);
 }
@@ -56,7 +56,7 @@ export async function getOpportunity(id: string): Promise<OpportunityWithOrganiz
 export async function listOrganizerOpportunities(
   organizerId: string,
 ): Promise<OpportunityWithOrganizer[]> {
-  const { data, error } = await boundedQuery(
+  const { data, error } = await boundedQuery(() =>
   supabaseAdmin
       .from('sponsorship_opportunities')
       .select(OPPORTUNITY_COLUMNS)
@@ -75,7 +75,7 @@ export interface RequestWithNames extends SponsorshipRequest {
 }
 
 export async function listSponsorRequests(sponsorId: string): Promise<RequestWithNames[]> {
-  const { data, error } = await boundedQuery(
+  const { data, error } = await boundedQuery(() =>
   supabaseAdmin
       .from('sponsorship_requests')
       .select('*')
@@ -87,7 +87,7 @@ export async function listSponsorRequests(sponsorId: string): Promise<RequestWit
 }
 
 export async function listOpportunityRequests(opportunityId: string): Promise<RequestWithNames[]> {
-  const { data, error } = await boundedQuery(
+  const { data, error } = await boundedQuery(() =>
   supabaseAdmin
       .from('sponsorship_requests')
       .select('*')

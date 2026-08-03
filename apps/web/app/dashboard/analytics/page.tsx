@@ -97,7 +97,7 @@ export default async function AnalyticsPage({
   // Step 1: get campaigns
   // supabase-js resolves on a query error, so an unchecked read turns a timeout
   // into `data: null` → an empty list → "$0 raised" stated as fact.
-  const { data: campaignData, error: campaignError } = await boundedQuery(
+  const { data: campaignData, error: campaignError } = await boundedQuery(() =>
     supabaseAdmin
       .from('campaigns')
       .select('id,title,slug,raised_amount,backer_count,goal_amount,status')
@@ -111,7 +111,7 @@ export default async function AnalyticsPage({
   // Step 2: get completed donations for these campaigns
   let donations: DonationRow[] = [];
   if (cids.length > 0) {
-    const { data: donationData, error: donationError } = await boundedQuery(
+    const { data: donationData, error: donationError } = await boundedQuery(() =>
       supabaseAdmin
         .from('donations')
         .select('amount_cents,created_at,campaign_id')

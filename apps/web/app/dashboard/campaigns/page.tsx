@@ -89,7 +89,7 @@ function pillTone(status: string): string {
  */
 async function fetchCampaigns(userId: string): Promise<{ campaigns: Campaign[]; failed: boolean }> {
   try {
-    const { data, error } = await boundedQuery(
+    const { data, error } = await boundedQuery(() =>
       supabaseAdmin
         .from('campaigns')
         .select(

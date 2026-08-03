@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../lib/query-timeout';
 import 'server-only';
 import { requireAdmin } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
@@ -17,12 +18,12 @@ export default async function NewCustomersPage() {
   // the release workflow.
   const BASE_COLUMNS = 'id, business_name, entity_type, state, filing_date, filing_status, registered_agent, owner_name, industry, address, website, email, phone, enrichment_notes, enrichment_model, enriched_at, lead_score, lead_grade, status, alerted, source, created_at';
 
-  const primary = await supabaseAdmin
+  const primary = await boundedQuery(() => supabaseAdmin
     .from('business_leads')
     .select(`${BASE_COLUMNS}, marketing_contact_id`)
     .order('lead_score', { ascending: false })
     .order('created_at', { ascending: false })
-    .limit(500);
+    .limit(500));
 
   let data = primary.data as LeadRow[] | null;
   let error = primary.error;
@@ -30,12 +31,12 @@ export default async function NewCustomersPage() {
 
   if (error && /column .*marketing_contact_id.* does not exist/i.test(error.message)) {
     marketingLinkAvailable = false;
-    const fallback = await supabaseAdmin
+    const fallback = await boundedQuery(() => supabaseAdmin
       .from('business_leads')
       .select(BASE_COLUMNS)
       .order('lead_score', { ascending: false })
       .order('created_at', { ascending: false })
-      .limit(500);
+      .limit(500));
     data = fallback.data as LeadRow[] | null;
     error = fallback.error;
   }

@@ -1,9 +1,11 @@
+import { boundedQuery } from '../../../../lib/query-timeout';
 import Link from 'next/link';
 import { cache } from 'react';
 import { safeJsonLd } from "../../../../lib/json-ld";
 import { buildCampaignJsonLd } from "../../../../lib/campaign-jsonld";
 import { notFound } from 'next/navigation';
-import { getCampaign } from '../get-campaign';
+import { getCampaignResult } from '../get-campaign';
+import CampaignUnavailable from '../../../../components/CampaignUnavailable';
 import { getTranslator } from '../../../../lib/locale-server';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../../../lib/supabase';
@@ -58,14 +60,15 @@ type Profile = { full_name?: string | null; avatar_url?: string | null; show_pub
 type CampaignWithImages = { image_urls?: string[] | null };
 
 
+
 async function getRecentDonations(campaignId: string) {
-  const { data } = await supabaseAdmin
+  const { data } = await boundedQuery(() => supabaseAdmin
     .from('donations')
     .select('id, donor_id, amount_cents, message, anonymous, created_at, offline_donor_name, profiles:donor_id(full_name, avatar_url, show_public_profile)')
     .eq('campaign_id', campaignId)
     .eq('status', 'completed')
     .order('created_at', { ascending: false })
-    .limit(6);
+    .limit(6));
   return data ?? [];
 }
 
@@ -77,24 +80,24 @@ async function getRecentDonations(campaignId: string) {
  * failure so the caller can fall back rather than render a confident 0.
  */
 async function getUpdatesCount(campaignId: string): Promise<number | null> {
-  const { count, error } = await supabaseAdmin
+  const { count, error } = await boundedQuery(() => supabaseAdmin
     .from('campaign_updates')
     .select('id', { count: 'exact', head: true })
     .eq('campaign_id', campaignId)
-    .or(`published_at.not.is.null,scheduled_at.lte.${new Date().toISOString()}`);
+    .or(`published_at.not.is.null,scheduled_at.lte.${new Date().toISOString()}`));
   return error ? null : count ?? 0;
 }
 
 async function getUpdates(campaignId: string) {
   // Exclude updates still waiting on their "schedule for later" time —
   // they become visible once published_at is set or scheduled_at has passed.
-  const { data } = await supabaseAdmin
+  const { data } = await boundedQuery(() => supabaseAdmin
     .from('campaign_updates')
     .select('id, title, body, created_at')
     .eq('campaign_id', campaignId)
     .or(`published_at.not.is.null,scheduled_at.lte.${new Date().toISOString()}`)
     .order('created_at', { ascending: false })
-    .limit(4);
+    .limit(4));
   return data ?? [];
 }
 
@@ -116,42 +119,42 @@ const getOrganizerCreatorHandle = cache(async (userId: string | null): Promise<s
 });
 
 async function getDonorMessages(campaignId: string) {
-  const { data } = await supabaseAdmin
+  const { data } = await boundedQuery(() => supabaseAdmin
     .from('donor_messages')
     .select('id, message, anonymous, visibility, created_at, profiles:donor_id(full_name, avatar_url, show_public_profile)')
     .eq('campaign_id', campaignId)
     .order('created_at', { ascending: false })
-    .limit(8);
+    .limit(8));
   return data ?? [];
 }
 
 async function getFAQs(campaignId: string) {
-  const { data } = await supabaseAdmin
+  const { data } = await boundedQuery(() => supabaseAdmin
     .from('campaign_faqs')
     .select('id, question, answer, sort_order')
     .eq('campaign_id', campaignId)
     .eq('is_public', true)
     .order('sort_order', { ascending: true })
-    .limit(10);
+    .limit(10));
   return (data ?? []) as { id: string; question: string; answer: string; sort_order: number }[];
 }
 
 async function getMilestones(campaignId: string) {
-  const { data } = await supabaseAdmin
+  const { data } = await boundedQuery(() => supabaseAdmin
     .from('campaign_milestones')
     .select('id, title, description, target_amount, reached_at, sort_order')
     .eq('campaign_id', campaignId)
-    .order('sort_order', { ascending: true });
+    .order('sort_order', { ascending: true }));
   return (data ?? []) as { id: string; title: string; description: string | null; target_amount: number | null; reached_at: string | null; sort_order: number }[];
 }
 
 async function getRewards(campaignId: string) {
-  const { data } = await supabaseAdmin
+  const { data } = await boundedQuery(() => supabaseAdmin
     .from('campaign_rewards')
     .select('id, title, description, amount_cents, estimated_delivery, item_limit, claimed_count, sort_order')
     .eq('campaign_id', campaignId)
     .order('sort_order', { ascending: true })
-    .order('amount_cents', { ascending: true });
+    .order('amount_cents', { ascending: true }));
   return (data ?? []) as { id: string; title: string; description: string | null; amount_cents: number; estimated_delivery: string | null; item_limit: number | null; claimed_count: number; sort_order: number }[];
 }
 
@@ -170,13 +173,13 @@ async function getTeamFundraisers(campaignId: string): Promise<TeamFundraiser[]>
   // `paused` is excluded deliberately: it is the supporter taking their own page
   // down, and listing it would keep soliciting for a page that is not collecting.
   // `completed` stays — a finished team member is part of the team's story.
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await boundedQuery(() => supabaseAdmin
     .from('peer_fundraisers')
     .select('id, slug, title, goal_amount, raised_amount, status, fundraiser_id, profiles:fundraiser_id(full_name, avatar_url, show_public_profile)')
     .eq('parent_campaign_id', campaignId)
     .in('status', ['active', 'completed'])
     .order('raised_amount', { ascending: false })
-    .limit(24);
+    .limit(24));
   // supabase-js RESOLVES rather than throws on a query error, so `data` would be
   // null and the section would silently vanish. Nothing to show and "we could not
   // read this" are the same rendering here (the section hides either way), but the
@@ -217,7 +220,7 @@ type SimilarCampaign = {
 
 async function getSimilarCampaigns(campaignId: string, category: string | null): Promise<SimilarCampaign[]> {
   if (!category) return [];
-  const { data } = await supabaseAdmin
+  const { data } = await boundedQuery(() => supabaseAdmin
     .from('campaigns')
     .select('id, slug, title, tagline, category, cover_image_url, goal_amount, raised_amount, backer_count')
     .eq('category', category)
@@ -226,16 +229,16 @@ async function getSimilarCampaigns(campaignId: string, category: string | null):
     .is('deleted_at', null)
     .neq('id', campaignId)
     .order('raised_amount', { ascending: false })
-    .limit(4);
+    .limit(4));
   return attachCampaignCurrencies((data ?? []) as SimilarCampaign[]);
 }
 
 async function getCampaignCurrency(campaignId: string) {
-  const { data } = await supabaseAdmin
+  const { data } = await boundedQuery(() => supabaseAdmin
     .from('campaign_launch_settings')
     .select('currency')
     .eq('campaign_id', campaignId)
-    .maybeSingle();
+    .maybeSingle());
   return normalizeCurrency(data?.currency);
 }
 
@@ -284,8 +287,15 @@ function toWallDonation(d: DonationRow): WallDonation {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const campaign = await getCampaign(slug);
-  if (!campaign) return { title: 'Campaign not found' };
+  const result = await getCampaignResult(slug);
+  // "Campaign not found" is a claim. Only make it when the row is genuinely
+  // absent — an unreadable database means we do not know, so say nothing.
+  if (!result.ok) {
+    return result.reason === 'missing'
+      ? { title: 'Campaign not found' }
+      : { title: 'Campaign', robots: { index: false } };
+  }
+  const campaign = result.campaign;
 
   const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com';
   const campaignUrl = `${ORIGIN}/campaigns/${slug}`;
@@ -323,8 +333,15 @@ export default async function CampaignPage({ params, searchParams }: Props) {
   const t = await getTranslator();
   const justDonated = sp.donated === '1';
   const donatedAmountCents = sp.amount ? Number.parseInt(sp.amount, 10) : NaN;
-  const campaign = await getCampaign(slug);
-  if (!campaign) notFound();
+  const campaignResult = await getCampaignResult(slug);
+  // A failed read is NOT a missing campaign. 404ing here would tell a donor a
+  // live fundraiser does not exist — a claim that gets shared, cached and
+  // indexed — because our database was briefly unreachable.
+  if (!campaignResult.ok && campaignResult.reason === 'unavailable') {
+    return <CampaignUnavailable slug={slug} />;
+  }
+  if (!campaignResult.ok) notFound();
+  const campaign = campaignResult.campaign;
 
   // Logged-in user (used for private-campaign visibility + referral links)
   const supabase = await createClient();
@@ -445,12 +462,12 @@ export default async function CampaignPage({ params, searchParams }: Props) {
 
   let isSaved = false;
   if (user) {
-    const { data: savedRow } = await supabaseAdmin
+    const { data: savedRow } = await boundedQuery(() => supabaseAdmin
       .from('saved_campaigns')
       .select('id')
       .eq('user_id', user.id)
       .eq('campaign_id', campaign.id)
-      .maybeSingle();
+      .maybeSingle());
     isSaved = !!savedRow;
   }
 
@@ -458,10 +475,10 @@ export default async function CampaignPage({ params, searchParams }: Props) {
   const messageLikedByUser = new Set<string>();
   const messageIds = donorMessages.map((m) => m.id);
   if (messageIds.length > 0) {
-    const { data: likes } = await supabaseAdmin
+    const { data: likes } = await boundedQuery(() => supabaseAdmin
       .from('donor_message_likes')
       .select('donor_message_id, user_id')
-      .in('donor_message_id', messageIds);
+      .in('donor_message_id', messageIds));
     for (const like of (likes ?? []) as { donor_message_id: string; user_id: string }[]) {
       messageLikeCounts.set(like.donor_message_id, (messageLikeCounts.get(like.donor_message_id) ?? 0) + 1);
       if (user && like.user_id === user.id) messageLikedByUser.add(like.donor_message_id);
@@ -470,11 +487,11 @@ export default async function CampaignPage({ params, searchParams }: Props) {
 
   const repliesByMessage = new Map<string, { id: string; message: string; created_at: string }[]>();
   if (messageIds.length > 0) {
-    const { data: replies } = await supabaseAdmin
+    const { data: replies } = await boundedQuery(() => supabaseAdmin
       .from('campaign_owner_replies')
       .select('id, donor_message_id, message, created_at')
       .in('donor_message_id', messageIds)
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: true }));
     for (const r of (replies ?? []) as { id: string; donor_message_id: string | null; message: string; created_at: string }[]) {
       if (!r.donor_message_id) continue;
       const bucket = repliesByMessage.get(r.donor_message_id) ?? [];

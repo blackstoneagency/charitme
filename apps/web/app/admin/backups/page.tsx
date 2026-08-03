@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../lib/query-timeout';
 import 'server-only';
 import Link from 'next/link';
 import type { Metadata } from 'next';
@@ -42,13 +43,13 @@ type RetentionRun = {
 export default async function BackupsPage() {
   // Deletion activity is the piece of recovery posture this app can actually
   // measure. `null` means unknown — never rendered as "nothing was deleted".
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await boundedQuery(() => supabaseAdmin
     .from('data_retention_runs')
     .select('id, category, deleted_count, dry_run, ran_at')
     .eq('dry_run', false)
     .gt('deleted_count', 0)
     .order('ran_at', { ascending: false })
-    .limit(10);
+    .limit(10));
 
   const deletions: RetentionRun[] | null = error ? null : ((data ?? []) as RetentionRun[]);
 

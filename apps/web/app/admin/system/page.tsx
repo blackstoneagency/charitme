@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../lib/query-timeout';
 import 'server-only';
 import { requireAdmin } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
@@ -119,56 +120,59 @@ export default async function SystemSettingsPage() {
     resourceUsageResult,
     settingsResult,
   ] = await Promise.all([
-    supabaseAdmin
+    boundedQuery(() => supabaseAdmin
       .from('webhook_events')
       .select('id, event_type, processing_error, created_at, processed_at')
       .order('created_at', { ascending: false })
-      .limit(20),
-    supabaseAdmin
+      .limit(20)),
+    boundedQuery(() => supabaseAdmin
       .from('webhook_events')
       .select('id', { count: 'exact', head: true })
-      .gte('created_at', healthSince),
-    supabaseAdmin
+      .gte('created_at', healthSince)),
+    boundedQuery(() => supabaseAdmin
       .from('webhook_events')
       .select('id', { count: 'exact', head: true })
       .gte('created_at', healthSince)
-      .not('processing_error', 'is', null),
-    supabaseAdmin
+      .not('processing_error', 'is', null)),
+    boundedQuery(() => supabaseAdmin
       .from('integration_connections')
       .select('id', { count: 'exact', head: true })
-      .eq('status', 'connected'),
-    supabaseAdmin
+      .eq('status', 'connected')),
+    boundedQuery(() => supabaseAdmin
       .from('integration_connections')
       .select('id', { count: 'exact', head: true })
-      .eq('status', 'error'),
-    supabaseAdmin
+      .eq('status', 'error')),
+    boundedQuery(() => supabaseAdmin
       .from('outbound_webhook_endpoints')
       .select('id', { count: 'exact', head: true })
-      .eq('active', true),
-    supabaseAdmin
+      .eq('active', true)),
+    boundedQuery(() => supabaseAdmin
       .from('campaign_updates')
       .select('id', { count: 'exact', head: true })
       .not('scheduled_at', 'is', null)
-      .is('published_at', null),
-    supabaseAdmin
+      .is('published_at', null)),
+    boundedQuery(() => supabaseAdmin
       .from('email_campaigns')
       .select('id', { count: 'exact', head: true })
-      .eq('status', 'scheduled'),
-    supabaseAdmin
+      .eq('status', 'scheduled')),
+    boundedQuery(() => supabaseAdmin
       .from('sms_campaigns')
       .select('id', { count: 'exact', head: true })
-      .eq('status', 'scheduled'),
-    supabaseAdmin
+      .eq('status', 'scheduled')),
+    boundedQuery(() => supabaseAdmin
       .from('audit_logs')
       .select('id, action, target_type, created_at')
       .order('created_at', { ascending: false })
-      .limit(20),
-    supabaseAdmin.rpc('get_admin_system_resource_usage'),
-    supabaseAdmin
+      .limit(20)),
+    // An RPC, so it has no `.select()` for the read-detector to match — but it
+    // is a read, and it sits in the same Promise.all, so an unwrapped proxy throw
+    // here would take down the whole page alongside the wrapped queries.
+    boundedQuery(() => supabaseAdmin.rpc('get_admin_system_resource_usage')),
+    boundedQuery(() => supabaseAdmin
       .from('platform_settings')
       .select('config')
       .eq('id', 1)
-      .maybeSingle(),
+      .maybeSingle()),
   ]);
 
   type WebhookEvent = {
