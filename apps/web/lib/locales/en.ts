@@ -452,6 +452,8 @@ export const en: Dictionary = {
   // neutral sense ("cambia todo", "verandert alles", "cambia tutto"); English
   // was the outlier, so this brings it back in line rather than inventing new
   // copy.
+  'cl.programs_card_title': 'Your kindness creates real change',
+  'cl.see_all_programs': 'See all programmes →',
   'cl.support_card_title': 'Your support changes everything.',
   'cl.support_card_body': 'Help people build confidence, capability, and a better year ahead.',
   'cl.see_real_stories': 'See real stories →',

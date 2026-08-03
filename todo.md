@@ -1,5 +1,131 @@
 # CharitMe — Execution Tracker
 
+## 🔴 LINKS THAT LOOKED FILTERED AND WERE NOT (Claude, 2026-08-03)
+
+Found while verifying People in Need in a real browser — by reading the
+**rendered hrefs**, which is the part no test was doing. Three defects, all on
+the tab strip that #220 promoted to the first thing under the stats band, so
+**every one of the 20 cause pages** showed them.
+
+| link | claimed | actually did |
+|---|---|---|
+| "All campaigns" → `/campaigns?cause=…` | this cause's campaigns | **the entire unfiltered list** — the route read only `?category=` |
+| "Volunteer" → `/volunteer?cause=…` | this cause's opportunities | **everything** — that route reads no search params at all |
+| "Help now" ×4 (People in Need) | somewhere to give | **the page it was already on** — `causeBrowseHref` returns the CAUSE PAGE for a multi-category cause |
+
+Fixed: `/campaigns` now resolves the slug and filters with `.in(categories)`;
+`/volunteer` is marked "· all causes" instead of pretending; "Help now" points at
+the now-real filtered list.
+
+**Then the same bug again, one layer down.** Reading the param is half the job —
+the page re-emits its own state in three places (`pageHref`, `catHref`, the
+filters form's hidden inputs) and the cause survived **none** of them. So the
+scope vanished exactly when a visitor tried to narrow further. `pageHref` and
+`catHref` were hand-maintained duplicates of one param list; they are now one
+`campaignsHref()` both delegate to.
+
+### The lesson, because this is the second time
+
+`cause-ways-core` carried a `scoped` flag whose entire job was "say so when a
+link does not narrow". **I deleted it in #220**, arguing the tab strip carried
+every destination. The destinations, yes — the *scoping claim*, no. Two false
+filters shipped as a direct result.
+
+Worth generalising: **a comment is not evidence.** The comment on that strip
+read *"campaigns and volunteering already accepted a cause"*. Measured against
+the routes, neither did. Both are now tests — every `?cause=` link is checked
+against the route file it targets, which must read `sp.cause` and resolve it
+through `getCause`.
+
+### The sweep, now done — and clean
+
+I flagged a repo-wide check as outstanding, then did it. Every `?cause=` emitter
+in `app/`, `lib/` and `components/`, against every route that reads `sp.cause`:
+
+| emitted to | emitters | route reads `sp.cause` |
+|---|---|---|
+| `/campaigns` | 2 (the hub tab + the "Help now" cards) | ✅ (this change) |
+| `/events` | 1 | ✅ |
+| `/teams` | 1 | ✅ |
+
+**Four emitters, three routes, no others anywhere in the codebase** — so the two
+false filters were the whole population, not a sample. Nothing further to fix
+here.
+
+⚠️ **How far the verification actually goes.** The *link* side is verified
+empirically — a browser reading rendered hrefs on the running build reports
+`linksDroppingCause: []`, and the filters form's hidden input round-trips the
+slug. The *query* side is not: this sandbox points at `placeholder.supabase.co`,
+so `/campaigns?cause=…` returns `QUERY_TIMEOUT` either way, and a filtered list
+cannot be told from an unfiltered one by observation. That `.in(categories)` is
+reached with the right categories is typechecked and pinned by test — weaker
+than seeing a shorter list come back. Worth one look against production.
+
+## ✅ /causes/people-in-need — matched to its reference (Claude, 2026-08-03)
+
+Follows the Sports & Youth pass (#220, merged). **The section ORDER was already
+right** — that PR moved the tabs and grid under the stats band for every cause,
+and the People in Need reference wants the same order. What was left was the
+hero, which is where the two references genuinely disagree.
+
+| | Sports & Youth reference | People in Need reference |
+|---|---|---|
+| H1 | the cause name + tagline beneath | **a slogan**, over a small cause-name eyebrow |
+| hero card | one-line "your support changes everything" | **four programme rows** + "See all programmes" |
+| helps heading | centred, accent rule under it | **left-aligned, no rule** |
+| helps cards | explanatory only | each gains a **"Help now →"** |
+
+Both shapes now live in one component, selected by `heroTitle` / `heroCard` /
+`helpsTitle` / `helpsAlign` / `helpsCta` on the cause. Not two components: the
+breadcrumb, photo, scrim, actions and the entire responsive treatment are
+identical between them, and a second copy of that is how this repo's category
+list drifted three ways.
+
+**The H1 rule was rewritten, not broken.** `cause-landing.test.ts` said "the H1
+is the cause name" — written against a draft that put *"Hope changes
+everything."* in **all twenty** H1s, so twenty pages competed for one heading in
+search. That rule was a proxy. It is now the property it stood for: every H1 is
+**unique across causes**, and a cause that heads with a slogan still renders its
+name (as the eyebrow), so the page is still findable by the term people search.
+
+**Three things in the reference were deliberately not copied:**
+
+1. **The stat figures stay measured** (2.3M+ People Helped, 68K+ Lives
+   Transformed, 1,250+ Programs Funded, 120+ Countries Reached). Same standing
+   rule as Sports & Youth; the country claim is already in `docs/` as a
+   fabricated statistic this repo retracted once.
+2. **The stats band keeps its own copy.** The mock reads *"Real Impact. Real
+   Champions. / Thanks to supporters like you, young athletes are achieving more
+   every day."* — verbatim the Sports & Youth text, pasted onto a page about
+   families in crisis. That is a mock artifact, not a spec. Ours says "Real
+   impact. Real relief."
+3. **The four "Help now" links share one destination.** `helps` are editorial
+   groupings; nothing in the schema tags a campaign as *shelter* rather than
+   *food*, so a per-card filter would promise a narrowing that is not there. The
+   card title goes in each link's `aria-label` so four identically-labelled links
+   are still distinguishable in a links list.
+
+**One accessibility call worth keeping:** the reference tints each "Help Now" to
+its card's accent (purple / pink / orange / **amber**). The badges took the
+accent; the LINKS did not. Amber or orange text on the light theme's near-white
+`--s1` is exactly the light-mode AA failure this stylesheet has shipped before,
+so the links stay on the AA-verified brand token.
+
+**One section the reference has and the page does not, deliberately.** The mock
+draws TWO campaign bands: the browse grid under the tabs, and a curated
+"Featured Campaigns" trio lower down. The page renders one. Our grid is already
+the cause's campaigns ordered by amount raised, so a "featured" trio beneath it
+would be its own first three rows — the same campaigns, printed twice, on a page
+whose job is to get someone to one of them. Matching the mock's section *count*
+is not worth showing a visitor the same three cards in two places. Flagging it
+rather than burying it: if a genuinely distinct editorial pick is wanted, that
+needs a curation field, which does not exist yet.
+
+**Also:** the mock's "See All Programs" pointed nowhere. There is no per-cause
+programmes route, and inventing one would link to a 404 — it is an in-page jump
+to the section that expands on exactly those rows, and the test asserts that
+target id exists.
+
 ## ⛔ VERCEL CAP — resolved: it is REAL and INTERMITTENT, two hard errors (Claude, 2026-08-03 ~18:3x UTC)
 
 Settled by a second occurrence, which is what the previous entry said it was

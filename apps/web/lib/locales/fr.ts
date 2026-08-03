@@ -425,6 +425,8 @@ export const fr: Dictionary = {
   'cl.stat_live': 'Collectes en cours',
   'cl.stat_countries': 'Pays que nous atteignons',
   'cl.cta_title': 'Petit geste. Grand impact.',
+  'cl.programs_card_title': 'Votre générosité change vraiment les choses',
+  'cl.see_all_programs': 'Voir tous les programmes →',
   'cl.support_card_title': 'Votre soutien change la donne.',
   'cl.support_card_body': 'Aidez chacun à gagner en confiance, en capacité et en avenir.',
   'cl.see_real_stories': 'Voir de vraies histoires →',
