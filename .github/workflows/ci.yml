@@ -1,10 +1,46 @@
 name: CI
 
+# ⚠️ `paths-ignore` here is a COST control, not a preference.
+#
+# This repository is private, so Actions minutes are a finite monthly allowance,
+# and exhausting it is the most likely cause of the runner outages recorded in
+# CLAUDE.md (jobs created, no runner assigned, 0 billable ms, no steps). Measured
+# on this repo: 5 of the last 15 commits changed only narrative markdown, and
+# each one ran the full ~9-minute matrix — typecheck, lint, 2762 tests, audit,
+# build, plus e2e — twice, once for the PR and once for the merge to master.
+# About a third of the allowance was being spent on changes that cannot alter a
+# test result.
+#
+# ⚠️ The list is EXPLICIT and must stay that way. `'**.md'` looks equivalent and
+# is not: `AI/employees/*.md` and `AI/sprints/*.md` are compiled into
+# `lib/ai-roster.generated.ts` by `prebuild`, and
+# `__tests__/ai-control-center.test.ts` fails when the committed output drifts.
+# A blanket markdown ignore would skip CI on a markdown change that genuinely
+# breaks the build. `__tests__/ci-paths-ignore.test.ts` refuses any pattern that
+# could match under `AI/`.
+#
+# ⚠️ If required status checks are ever enabled on `master`, revisit this: a
+# skipped workflow leaves its check pending forever and would deadlock a
+# docs-only PR. Nothing is required today, which is why this is safe now.
 on:
   push:
     branches: [master]
+    paths-ignore: &docs-only
+      - 'todo.md'
+      - 'CLAUDE.md'
+      - 'AGENTS.md'
+      - 'README.md'
+      - 'architecture.md'
+      - 'decisions.md'
+      - 'handoff.md'
+      - 'payment-audit.md'
+      - 'CAMPAIGN_IMAGE_AUDIT.md'
+      - 'CAMPAIGN_IMAGE_CHANGELOG.md'
+      - 'CAMPAIGN_IMAGE_SOURCES.md'
+      - 'docs/**'
   pull_request:
     branches: [master]
+    paths-ignore: *docs-only
 
 # Cancel superseded runs on the same ref (e.g. rapid pushes to a PR branch).
 concurrency:

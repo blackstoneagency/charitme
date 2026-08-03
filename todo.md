@@ -1,5 +1,72 @@
 # CharitMe — Execution Tracker
 
+## 🔻 CI MINUTES — a third of the allowance went on docs commits; fixed (Claude, 2026-08-03)
+
+Follows from the diagnosis in CLAUDE.md: this repo is **private**, so Actions
+minutes are a finite monthly allowance, and exhausting it produces exactly the
+runner outage this file keeps re-recording.
+
+**Measured: 5 of the last 15 commits changed only narrative markdown.** Each ran
+the full ~9-minute matrix — typecheck, lint, 2767 tests, audit, build, plus e2e —
+**twice**, once for the PR and once for the merge. About a third of the allowance
+was being spent on changes that cannot alter a test result.
+
+`ci.yml` now sets `paths-ignore` on both triggers.
+
+### The obvious version of this fix is wrong
+
+`'**.md'` looks equivalent and would have opened a silent hole: `AI/employees/*.md`
+and `AI/sprints/*.md` compile into `lib/ai-roster.generated.ts` via `prebuild`,
+and `ai-control-center.test.ts` fails when the committed output drifts. Ignoring
+all markdown would skip CI on a markdown change that genuinely breaks the build.
+The list is explicit, and `__tests__/ci-paths-ignore.test.ts` **refuses any
+pattern that could match under `AI/`** — mutation-tested by planting `'**.md'`
+and by planting `apps/web/lib/**`.
+
+The two triggers share one YAML **anchor** rather than two copies, so they cannot
+drift into the state where a PR skips CI but its merge runs it.
+
+⚠️ **If required status checks are ever enabled on `master`, revisit this.** A
+skipped workflow leaves its check pending forever and would deadlock a docs-only
+PR. Nothing is required today, which is why this is safe now — recorded so the
+next person does not find out the hard way.
+
+## 🛑 SUPABASE STAGING — still owner-blocked, and it cannot even be MEASURED here (Claude, 2026-08-03)
+
+Re-examined rather than inherited. It is genuinely blocked, and the useful new
+fact is *why no one can narrow it from this sandbox*:
+
+**`supabase/schema.sql` is not evidence of what is live.** `scripts/regen_schema.sh`
+regenerates it by replaying `supabase/migrations/` into a throwaway Postgres. It
+therefore contains every table including the unapplied ones — `custom_domains`,
+`tasks`, `data_retention_policies`, `organizations` and `incidents` are all in
+there. It mirrors **intent, not production**. I checked it hoping to determine
+the applied set; it cannot answer that, and neither can anything else in the repo
+without database credentials.
+
+⚠️ **The pending-migration count is stated four different ways in this file** — 3,
+4, 6 and 7, in entries dated between 2026-07-27 and 2026-07-29. They cannot all
+be right. Nothing here can settle it offline, so treat the number as **unknown**
+rather than picking the most recent claim. This is the same defect as the stale
+blocker table: four confident numbers are worse than one honest "unmeasured".
+
+Owner action is unchanged: upgrade Supabase, free a project slot, or provision
+staging in another organization.
+
+## ⚪ `/certificate` — NOT a deferral; building it would require inventing data
+
+Recorded plainly because "left to another lane" reads like a gap, and it is not.
+
+Design 64 wants a donor certificate. `/donor/receipt/[donationId]` already exists
+and renders a real donation. A standalone `/certificate` route has **no donation
+id in the URL**, so it could only be one of two things: a mock-up with invented
+figures, or a duplicate of a page another lane owns. The first is a fabricated
+financial document, which no goal justifies.
+
+The correct shape is a print/share view on the existing receipt route — that
+route currently offers "Open in a new tab to print or save as PDF" and nothing
+more. It belongs to the donor-receipt lane, and this lane is not taking it.
+
 ## ✅ MONEY-PATH READ SWEEP — closed out (Claude, 2026-08-03)
 
 Third and final batch of the "a failed read is not a fact" sweep. The 48 sites
