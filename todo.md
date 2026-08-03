@@ -1,5 +1,26 @@
 # CharitMe — Execution Tracker
 
+## ⛔ VERCEL DEPLOY CAP HIT — merges no longer reach production (Claude, 2026-08-03 ~17:5x UTC)
+
+```
+Resource is limited - try again in 24 hours
+(more than 100, code: "api-deployments-free-per-day")
+```
+
+**Production is not down.** `www.charitme.com/campaigns` still serves the build
+merged earlier, verified 200 with the rebuilt markup present. What has stopped is
+*new* deployments: anything merged from here sits on master until the window
+rolls.
+
+**This is the row that warned about itself.** Blocker 3 read "NOT currently
+blocking" an hour ago, with the note that "the 100/day cap is real and will bite
+under a busy day". It bit. The row is now corrected with the error verbatim.
+
+**Practical effect on the queue:** nothing outstanding needs a deploy. The
+`/campaigns` rebuild, the money-path fixes and both accessibility passes are all
+already live. The remaining merges are documentation. If a code change becomes
+urgent inside the window, it will need the Vercel upgrade (O5) to ship.
+
 ## 🔎 THE OWNER ROWS WERE STALE TOO — O1 says 6 migrations, it is 27 (Claude, 2026-08-03)
 
 Same treatment as the A-rows, same result. Verified by running the repo's own
@@ -1306,7 +1327,7 @@ external release constraints after the latest production deployment.
 |---|---------|----------|------------------|
 | 1 | **GitHub Actions assigns no runner — RE-BROKEN, verified 2026-08-03.** This row said CLEARED; it is not. Eight runs today (`30778197657`, `30779419210`, `30780039522`, `30780372581`, `30782321643`, `30802456447`, `30803013774`, `30803728152`) all show `runner_id: 0`, empty `runner_name`, `billable.UBUNTU.total_ms: 0`, 2–11s duration, no steps. Master's runs match, which rules out any branch. **A red check right now is not a signal.** One run showed `queued` briefly before dropping — that is not recovery. Verify per run (`actions_get` → `get_workflow_run_usage`); do not trust this row or its predecessor. | 8 runs + master, 2026-08-03; `image-links.yml` fails identically; repo is private | **Owner** — likely the private-repo Actions minute allowance (see CLAUDE.md): raise the spending limit, make the repo public, or cut push volume |
 | 2 | **No CharitMe staging Supabase project is available.** The account exposes CharitMe production and an unrelated Auto Trading project. Preview Branch creation returns HTTP 402 because the account is not on Pro; dedicated `charitme-staging` creation is also rejected because the owner has reached the two-active-free-project limit. Database release policy correctly blocks production migration application until the same commit is verified on real staging. | Supabase project/branch inventory and both provisioning probes, 2026-07-29 | **Owner** — upgrade Supabase, pause/delete an unrelated project, or provision staging in another organization |
-| 3 | **Vercel daily deployment quota — NOT currently blocking (2026-08-03).** ⚠️ *An earlier version of this row claimed the quota recurred at ~10:41 UTC. That was WRONG and is corrected here.* One deployment (the #211 merge) did return `Error` with no preview URL, and I read that as a quota rejection. **The very next deployment, six minutes later, built normally and served** — a daily cap does not clear in six minutes, so the error was transient and its cause is unknown. Nine-plus deployments went Ready across this session. The 100/day cap is real and will bite under a busy day; it had not bitten here. | ~9 Ready deploys + one transient Error, 2026-08-03 | **External reset** — or upgrade Vercel to remove the recurrence |
+| 3 | **Vercel daily deployment quota — NOW BLOCKING, measured 2026-08-03 ~17:5x UTC.** ⚠️ *The previous version of this row said "NOT currently blocking". It has since bitten.* Vercel returned `Resource is limited - try again in 24 hours (more than 100, code: "api-deployments-free-per-day")` on the #231 deployment. **Production is NOT down** — `www.charitme.com/campaigns` still serves the current build — but no NEW deploy will land until the window rolls, so anything merged from here sits on master unshipped. | Vercel deploy error on #231, plus a live 200 on production confirming the running build is intact | **External reset** (~24h) — or upgrade Vercel to remove the recurrence |
 
 **Vercel production is operational** — re-measured 2026-08-03: `/api/health`,
 `/needs` and `/campaigns` all 200 on `www.charitme.com`. New deployments are **not**
