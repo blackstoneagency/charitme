@@ -218,7 +218,7 @@ function GoalCard({ g, onPatch }: { g: Goal; onPatch: (id: string, body: Record<
         {p.measurable ? (
           <>
             <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', fontSize: 12, marginBottom: 5 }}>
-              <span style={{ color: '#475569', fontWeight: 700 }}>
+              <span style={{ color: 'var(--t2)', fontWeight: 700 }}>
                 {fmt(p.gained, g.unit)} of {fmt(p.target, g.unit)} {p.percent != null ? `(${Math.round(p.percent)}%)` : ''}
               </span>
               <span style={{ color: 'var(--t3)' }}>since goal set</span>

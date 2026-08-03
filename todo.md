@@ -39,6 +39,47 @@ and a QR poster, where a CSS custom property does not resolve at all — a
 hardcoded colour is correct there, and "fixing" it would make the text invisible
 in every mail client. The guard excludes them and asserts the exclusion.
 
+### Second pass: 36 text literals that were INVISIBLE in dark mode
+
+Measured every `color: '#hex'` in browser-rendered code against the surfaces it
+can sit on, in both themes. **36 sites** read comfortably on a white card and
+dropped below 3:1 on the dark surface the same card flips to:
+
+| literal | light | dark |
+|---|---|---|
+| `#0f0f30` ×6 | 17.45:1 | **1.04:1** |
+| `#334064` ×4 | 9.59:1 | 1.62:1 |
+| `#334155` ×3 | 9.73:1 | 1.60:1 |
+| `#475569` ×6 | 7.12:1 | 2.18:1 |
+
+1.04:1 is not "low contrast" — it is **invisible**. One of them is the count in
+`/admin/content`'s type breakdown, sitting in a card whose sibling text already
+uses `var(--t1)`: the card flips, that one number does not.
+
+35 replaced with the token carrying the same role (`--t1`, `--t2`,
+`--brand-text`, `--green-text`, `--red-text`). Re-measured: **36 → 1**, the one
+being a deliberate exemption.
+
+**Exempt, with reasons the guard asserts:** `/campaigns/[slug]/embed` renders
+inside a third-party page whose background this app does not control.
+
+### ⚠️ The obvious general guard fires on CORRECT code
+
+The natural rule — "flag any literal that passes in one theme and fails in the
+other" — was written, run, and **narrowed**, because it flagged 18 sites that are
+right:
+
+- `/success-stories` uses `#b89eff` on a hero band with a hardcoded
+  `rgba(108,53,255,.25)` over dark. Pale violet is correct there.
+- `app/global-error.tsx` replaces the whole document when the ROOT layout throws,
+  so it renders its own `<html>`/`<body>` with inline styles only — the app's CSS
+  never loaded. A token there resolves to nothing, which would make the one page
+  that exists to explain a crash unreadable.
+
+**Static analysis cannot see the background an element actually sits on.** So the
+committed guard is a REGRESSION check on the 35 inspected sites, not a general
+rule. A guard that fails on correct code gets switched off.
+
 ### Still open on C1
 
 This closed the **named** root cause. The wider count in C1 ("271 hardcoded

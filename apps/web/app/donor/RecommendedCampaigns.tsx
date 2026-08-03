@@ -64,7 +64,7 @@ export default function RecommendedCampaigns() {
     <div style={{ ...cardStyle, marginBottom: 24 }}>
       <h2 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 12px' }}>✨ Recommended for You</h2>
 
-      <div style={{ fontSize: 13.5, color: '#4338ca', background: 'rgba(108,53,255,.10)', border: '1px solid #ede9fe', borderRadius: 8, padding: '10px 14px', lineHeight: 1.5, marginBottom: 16 }}>
+      <div style={{ fontSize: 13.5, color: 'var(--brand-text)', background: 'rgba(108,53,255,.10)', border: '1px solid #ede9fe', borderRadius: 8, padding: '10px 14px', lineHeight: 1.5, marginBottom: 16 }}>
         {data.message}
       </div>
 

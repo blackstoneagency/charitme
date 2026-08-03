@@ -1301,8 +1301,8 @@ export default function DonationsClient({
                     <div style={{ fontSize: 13, fontWeight: 650, color: 'var(--t1)' }}>{d.donor_name}</div>
                   </div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--brand-text)' }}>{fmtCents(d.total_cents)}</div>
-                  <div style={{ fontSize: 13, color: '#3b4a74', fontWeight: 600 }}>{d.donation_count}×</div>
-                  <div style={{ fontSize: 13, color: '#3b4a74', fontWeight: 600 }}>{fmtCents(Math.round(d.total_cents / d.donation_count))}</div>
+                  <div style={{ fontSize: 13, color: 'var(--t1)', fontWeight: 600 }}>{d.donation_count}×</div>
+                  <div style={{ fontSize: 13, color: 'var(--t1)', fontWeight: 600 }}>{fmtCents(Math.round(d.total_cents / d.donation_count))}</div>
                 </div>
               ))}
             </div>
@@ -1350,8 +1350,8 @@ export default function DonationsClient({
                     <div key={d.donor_id} style={{ display: 'grid', gridTemplateColumns: '1.6fr 1.2fr minmax(0, 1fr) .9fr .9fr', gap: 12, padding: '14px 18px', alignItems: 'center', borderBottom: i < recurring.length - 1 ? '1px solid #f0f2f8' : 'none', background: 'var(--s1)' }}>
                       <div style={{ fontSize: 13, fontWeight: 650, color: 'var(--t1)' }}>{d.donor_name}</div>
                       <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--brand-text)' }}>{fmtCents(d.total_cents)}</div>
-                      <div style={{ fontSize: 13, color: '#3b4a74', fontWeight: 600 }}>{d.donation_count}×</div>
-                      <div style={{ fontSize: 13, color: '#3b4a74', fontWeight: 600 }}>{fmtCents(Math.round(d.total_cents / d.donation_count))}</div>
+                      <div style={{ fontSize: 13, color: 'var(--t1)', fontWeight: 600 }}>{d.donation_count}×</div>
+                      <div style={{ fontSize: 13, color: 'var(--t1)', fontWeight: 600 }}>{fmtCents(Math.round(d.total_cents / d.donation_count))}</div>
                       <span className="kf-pill green">Active</span>
                     </div>
                   ))}

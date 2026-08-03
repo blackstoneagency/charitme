@@ -56,7 +56,7 @@ export default async function NewCustomersPage() {
               {error.message}
             </p>
             {needsMigration && (
-              <div style={{ fontSize: 14, color: '#334064', lineHeight: 1.8 }}>
+              <div style={{ fontSize: 14, color: 'var(--t1)', lineHeight: 1.8 }}>
                 Run <code>supabase/migrations/20260612100000_business_leads.sql</code> in the Supabase SQL editor,
                 then reload this page.
               </div>

@@ -99,7 +99,7 @@ export default function RunFraudScanButton() {
                   </div>
                 </div>
 
-                <div style={{ fontSize: 13.5, color: '#334064', background: '#f5f3ff', border: '1px solid #ede9fe', borderRadius: 8, padding: '12px 14px', lineHeight: 1.6 }}>
+                <div style={{ fontSize: 13.5, color: 'var(--t1)', background: '#f5f3ff', border: '1px solid #ede9fe', borderRadius: 8, padding: '12px 14px', lineHeight: 1.6 }}>
                   {result.message}
                 </div>
 

@@ -121,8 +121,8 @@ export default function SeoAeoClient({ initialSeo, initialAeo, coverage, initial
       )}
 
       <div style={{ display: 'flex', minWidth: 0, gap: 8 }}>
-        <button style={{ ...btnGhost, ...(tab === 'seo' ? { borderColor: '#7035ff', color: '#7035ff' } : {}) }} onClick={() => setTab('seo')}>SEO route overrides ({initialSeo.length})</button>
-        <button style={{ ...btnGhost, ...(tab === 'aeo' ? { borderColor: '#7035ff', color: '#7035ff' } : {}) }} onClick={() => setTab('aeo')}>AEO answers ({initialAeo.length})</button>
+        <button style={{ ...btnGhost, ...(tab === 'seo' ? { borderColor: '#7035ff', color: 'var(--brand-text)' } : {}) }} onClick={() => setTab('seo')}>SEO route overrides ({initialSeo.length})</button>
+        <button style={{ ...btnGhost, ...(tab === 'aeo' ? { borderColor: '#7035ff', color: 'var(--brand-text)' } : {}) }} onClick={() => setTab('aeo')}>AEO answers ({initialAeo.length})</button>
       </div>
 
       {tab === 'seo' && (

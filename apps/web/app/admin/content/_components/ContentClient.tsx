@@ -102,7 +102,7 @@ function TypeDonut({ items }: { items: { type: string; count: number }[] }) {
           <div key={item.type} style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 700, color: 'var(--t1)' }}>
             <i style={{ width: 8, height: 8, borderRadius: '50%', background: colors[i % colors.length], flexShrink: 0, display: 'block' }} />
             <span>{item.type}</span>
-            <b style={{ marginLeft: 'auto', color: '#0f0f30' }}>{item.count}</b>
+            <b style={{ marginLeft: 'auto', color: 'var(--t1)' }}>{item.count}</b>
           </div>
         ))}
       </div>
@@ -199,7 +199,7 @@ function DeleteModal({ item, onClose, onDeleted }: { item: ContentRecord; onClos
     <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(10,15,60,.38)', display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center' }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{ width: 420, maxWidth: 'calc(100vw - 32px)', background: 'var(--s1)', borderRadius: 16, padding: 28, boxShadow: '0 24px 80px rgba(20,20,80,.18)' }}>
-        <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 800, color: '#0f0f30' }}>Delete Content?</h2>
+        <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 800, color: 'var(--t1)' }}>Delete Content?</h2>
         <p style={{ margin: '0 0 4px', color: 'var(--t1)', fontSize: 14 }}>
           <strong>&ldquo;{item.title || 'Untitled'}&rdquo;</strong>
         </p>
@@ -243,7 +243,7 @@ function ContentDetailPanel({
               <StatusPill status={item.status} />
               <span style={{ fontSize: 12, color: 'var(--t3)' }}>Updated {fmtDate(item.updated_at)}</span>
             </div>
-            <div style={{ fontSize: 17, fontWeight: 700, color: '#0f0f30', lineHeight: 1.3 }}>{item.title || 'Untitled'}</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--t1)', lineHeight: 1.3 }}>{item.title || 'Untitled'}</div>
           </div>
           <button onClick={onClose} style={{ width: 32, height: 32, border: '1px solid #e6e9f2', borderRadius: '50%', background: 'var(--s1)', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: 'var(--t3)', flexShrink: 0 }}>×</button>
         </div>
@@ -368,7 +368,7 @@ function CreateContentWizard({
       <div style={{ width: 520, maxWidth: 'calc(100vw - 32px)', background: 'var(--s1)', borderRadius: 18, boxShadow: '0 24px 80px rgba(20,20,80,.18)', overflow: 'hidden' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#0f0f30' }}>Create Campaign Update</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>Create Campaign Update</div>
             <div style={{ display: 'flex', minWidth: 0, gap: 8, marginTop: 8 }}>
               {[1, 2, 3].map(s => (
                 <div key={s} style={{ width: 28, height: 4, borderRadius: 2, background: step >= s ? '#6c35ff' : '#e6e9f2' }} />

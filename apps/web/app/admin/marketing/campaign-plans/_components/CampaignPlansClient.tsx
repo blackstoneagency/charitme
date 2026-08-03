@@ -197,7 +197,7 @@ function AssetCard({ a, save }: { a: Asset; save: (id: string, body: Record<stri
       {editing ? (
         <textarea aria-label="Asset content" value={body} onChange={(e) => setBody(e.target.value)} rows={Math.min(18, Math.max(5, body.split('\n').length + 1))} style={{ ...input, fontFamily: 'ui-monospace, monospace', fontSize: 12, lineHeight: 1.5, resize: 'vertical' }} />
       ) : (
-        <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'ui-monospace, monospace', fontSize: 12, lineHeight: 1.5, color: '#334155', margin: 0, background: '#fafbfd', border: '1px solid #f1f5f9', borderRadius: 8, padding: 12, maxHeight: 260, overflow: 'auto' }}>{a.body}</pre>
+        <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'ui-monospace, monospace', fontSize: 12, lineHeight: 1.5, color: 'var(--t1)', margin: 0, background: '#fafbfd', border: '1px solid #f1f5f9', borderRadius: 8, padding: 12, maxHeight: 260, overflow: 'auto' }}>{a.body}</pre>
       )}
 
       <div style={{ display: 'flex', minWidth: 0, gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
