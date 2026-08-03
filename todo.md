@@ -1,5 +1,72 @@
 # CharitMe — Execution Tracker
 
+## ✅ /campaigns REBUILT to the supplied design (Claude, 2026-08-03)
+
+Hero band, category strip, three-column body, featured cards, list rows and a
+numbered pager — the reference layout, wired to live data.
+
+| | |
+|---|---|
+| layout | `232px 704px 292px` at ≥1180px, two-column at 900px, single below — measured in-browser |
+| dark mode | body `rgb(0, 0, 0)`, no gradient — **measured**, not assumed |
+| category tiles | 19 (All + all 18 real categories) |
+| page size | 60 → **12**, so the design's "Showing 1-12 of 248" is the real count |
+
+### Three places the design could not be copied literally
+
+The art is the brief, but three parts of it describe data that does not exist.
+Copying them would have produced a page that looks right and lies.
+
+1. **Category tiles.** The design labels them "Emergency Aid", "Food & Hunger",
+   "Shelter & Housing", "Health & Care", "Children & Youth", "Women & Families".
+   **None is in `CAMPAIGN_CATEGORIES`**, which is what `campaigns.category` is
+   filtered on — every one of those tiles would land on an empty page. The strip's
+   treatment is reproduced exactly; its contents are the real categories, so every
+   tile filters.
+2. **"Campaign Type" checkboxes** (Urgent Needs / Long-Term Projects /
+   Rebuilding & Recovery) have no column behind them. The group is reproduced
+   with the three filters that are real — Verified, Tax-deductible, Ending soon.
+   A checkbox that changes nothing is worse than one fewer checkbox.
+3. **The testimonial** ("Jessica M., Donor") is still not reproduced. No
+   testimonials table, so the quote and the person would both be ours, presented
+   as a real supporter's words.
+
+Everything else in the art IS wired: **Goal Range** filters on `goal_amount`
+(in CENTS — a dollar figure against a cents column is how a money filter silently
+matches everything), **Location** is a select built from the places that actually
+have campaigns, and **Ending soon** is a real date comparison rather than a
+stored flag.
+
+### The audits found a real defect in my own work
+
+`audit:responsive` flagged `/campaigns` at **all three viewports in both themes**:
+the hero search button was absolutely positioned over the input, so a click aimed
+at the end of the field hit the button instead of focusing the text. Rebuilt as a
+flex row sharing one white surface — same look, no overlap. Six findings → zero.
+
+### And a 500 on a public route, found by the contrast sweep
+
+`audit:contrast` reported `/causes/mental-health` as **HTTP 500**, which I had not
+touched. `getCauseStories` in `lib/cause-landing.ts` read `supabaseAdmin` without
+a thunk, so the Proxy threw before its `error` branch — the same class swept in
+#202, in a `lib/` module rather than a page, which is exactly where my
+`page-supabase-guarded` test does not look.
+
+**Then measured properly rather than guessed:** a keyless production server swept
+against all **77 indexable public routes** — `no 5xx`. That is the real check;
+the source-level scan lists 40 `lib` modules with the same shape, and most are
+called from API routes where a 500 is the honest answer.
+
+### Verified
+
+contrast 86×2 clean · responsive 86×3×2 clean · focus-order 87×2 clean
+(15,297 stops) · campaign-images PASSED · 2796 tests · typecheck, lint, build clean.
+
+⚠️ **Not verifiable here:** featured cards, list rows and the pager render empty,
+because the sandbox has no database — `featured: 0, rows: 0, pager: 0` is the
+environment, not the code. `pageWindow` is unit-tested instead (11 cases,
+including that it never repeats a number and never ellipsises a non-gap).
+
 ## 🛑 THE ONE REMAINING ITEM, and why no further looping moves it (Claude, 2026-08-03)
 
 Applying the 27 pending migrations. **Measured, not assumed** — this environment

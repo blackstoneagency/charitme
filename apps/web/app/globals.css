@@ -9293,3 +9293,399 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   text-decoration: none;
 }
 .cl-tab:hover { border-color: var(--b2); background: var(--s2); color: var(--t1); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CAMPAIGNS BROWSE — hero band, category strip, three-column body
+   ---------------------------------------------------------------------------
+   `.cbx-*` rather than more `.cb-*`: the existing block is still used by
+   /needs and the shared panels, and the duplicate-class guard in
+   __tests__/css-single-definition.test.ts fails when two rules declare the same
+   properties for one selector. New names keep both intact.
+
+   Everything paints its own surface from tokens. Nothing here sets a page
+   background — dark mode's body is flat black by request, and a band that
+   leaked a colour onto <body> is exactly how that got broken before.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.cbx-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--rxl, 22px);
+  background: var(--grad-brand);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  margin-bottom: 22px;
+  isolation: isolate;
+}
+.cbx-hero-copy { padding: 46px 34px; max-width: 620px; }
+.cbx-hero h1 {
+  margin: 0;
+  font-size: var(--fs-hero);
+  font-weight: 900;
+  line-height: 1.04;
+  letter-spacing: -.035em;
+  color: #fff;
+}
+.cbx-hero-heart { display: inline-flex; vertical-align: -4px; color: #ff8fb1; }
+.cbx-hero p {
+  margin: 16px 0 0;
+  font-size: 16px;
+  line-height: 1.65;
+  max-width: 480px;
+  /* Not --t3: this sits on the brand gradient, where the page text tokens are
+     tuned for --s1/--bg and drop to ~2.4:1. */
+  color: rgba(255,255,255,.92);
+}
+
+/* The magnifier sits INSIDE the field visually, but the input and the button are
+   siblings in a flex row rather than the button being absolutely positioned over
+   the input. `audit:responsive` flagged the overlapping version at all three
+   viewports in both themes, and it was right: an absolutely-positioned button
+   covers part of the input's own hit area, so a click aimed at the end of the
+   field hits the button instead of focusing the text. The shared white surface
+   lives on the wrapper, which keeps the design and removes the overlap. */
+.cbx-hero-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 26px;
+  max-width: 440px;
+  padding: 6px;
+  border-radius: 12px;
+  background: #fff;
+}
+.cbx-hero-search input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 38px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #16182e;
+  font-size: 15px;
+  font-family: inherit;
+}
+.cbx-hero-search input::placeholder { color: #6b7280; }
+.cbx-hero-search input:focus-visible { outline: 2px solid var(--violet); outline-offset: -1px; }
+.cbx-hero-search button {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 9px;
+  background: var(--grad-violet);
+  color: #fff;
+  cursor: pointer;
+}
+.cbx-hero-search button:focus-visible { outline: 3px solid #16182e; outline-offset: 2px; }
+
+/* Decorative only — the design shows a photograph here. Rendered as a tinted
+   panel rather than a stock image: there is no campaign-agnostic photo in this
+   repo that is ours to publish, and shipping an unlicensed one to the busiest
+   marketing page is not a design detail. */
+.cbx-hero-art { display: none; }
+
+@media (min-width: 900px) {
+  .cbx-hero { grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); }
+  .cbx-hero-art {
+    display: block;
+    background:
+      radial-gradient(120% 90% at 30% 20%, rgba(255,255,255,.22), transparent 60%),
+      radial-gradient(90% 80% at 80% 90%, rgba(255,143,177,.35), transparent 62%);
+  }
+}
+
+/* ── Category strip ──────────────────────────────────────────────────────── */
+.cbx-cats {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 12px;
+  margin-bottom: 26px;
+  border: 1px solid var(--b1);
+  border-radius: var(--rl, 16px);
+  background: var(--s1);
+  scrollbar-width: thin;
+}
+.cbx-cat {
+  flex: none;
+  width: 96px;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 10px 6px;
+  border-radius: 12px;
+  text-decoration: none;
+  transition: background .15s;
+}
+.cbx-cat:hover { background: var(--s2); }
+.cbx-cat:focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; }
+.cbx-cat-icon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--tint-violet);
+  color: var(--brand-text);
+}
+.cbx-cat-label {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: center;
+  color: var(--t2);
+}
+.cbx-cat.is-active .cbx-cat-icon { background: var(--grad-brand); color: #fff; }
+.cbx-cat.is-active .cbx-cat-label { color: var(--t1); }
+
+/* Per-category tints. `data-cat` rather than a class per category so adding a
+   category to CAMPAIGN_CATEGORIES renders with the default violet instead of an
+   unstyled circle. */
+.cbx-cat-icon[data-cat="Emergency"],
+.cbx-cat-icon[data-cat="Medical"] { background: var(--tint-rose); color: var(--red-text); }
+.cbx-cat-icon[data-cat="Education"],
+.cbx-cat-icon[data-cat="Creative"] { background: var(--tint-amber); color: var(--orange-text); }
+.cbx-cat-icon[data-cat="Environment"],
+.cbx-cat-icon[data-cat="Animal"] { background: var(--tint-green); color: var(--green-text); }
+
+/* ── Three-column body ───────────────────────────────────────────────────── */
+.cbx-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 26px;
+  align-items: start;
+}
+@media (min-width: 900px) {
+  .cbx-layout { grid-template-columns: 232px minmax(0, 1fr); }
+}
+@media (min-width: 1180px) {
+  .cbx-layout { grid-template-columns: 232px minmax(0, 1fr) 292px; }
+}
+.cbx-main { min-width: 0; }
+
+/* ── Filters rail ────────────────────────────────────────────────────────── */
+.cbx-filters { min-width: 0; display: grid; gap: 18px; }
+.cbx-filters > form {
+  padding: 18px;
+  border: 1px solid var(--b1);
+  border-radius: var(--rl, 16px);
+  background: var(--s1);
+}
+.cbx-filters-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.cbx-filters-head h2 { margin: 0; font-size: 15px; font-weight: 800; color: var(--t1); }
+.cbx-filters-head a { font-size: 12px; font-weight: 700; color: var(--brand-text); text-decoration: none; }
+
+.cbx-field { display: grid; gap: 7px; margin-bottom: 16px; border: 0; padding: 0; }
+.cbx-field > label,
+.cbx-field > legend {
+  font-size: 12px;
+  font-weight: 750;
+  color: var(--t2);
+  padding: 0;
+}
+.cbx-field select,
+.cbx-field input[type="text"],
+.cbx-field > input {
+  width: 100%;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--b2);
+  border-radius: 9px;
+  background: var(--s2);
+  color: var(--t1);
+  font-size: 13px;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.cbx-checks { display: grid; gap: 9px; }
+.cbx-checks label { display: flex; align-items: center; gap: 9px; cursor: pointer; }
+.cbx-checks input { width: 15px; height: 15px; accent-color: var(--violet); cursor: pointer; flex: none; }
+.cbx-checks span { font-size: 13px; font-weight: 600; color: var(--t2); }
+
+.cbx-apply {
+  width: 100%;
+  height: 40px;
+  border: none;
+  border-radius: 10px;
+  background: var(--grad-violet);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.cbx-start {
+  padding: 20px 18px;
+  border: 1.5px solid var(--brand-text);
+  border-radius: var(--rl, 16px);
+  background: var(--tint-violet);
+  text-align: center;
+}
+.cbx-start-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--grad-violet);
+  color: #fff;
+  margin-bottom: 10px;
+}
+.cbx-start h2 { margin: 0; font-size: 15px; font-weight: 800; color: var(--t1); }
+.cbx-start p { margin: 8px 0 0; font-size: 13px; line-height: 1.55; color: var(--t3); }
+.cbx-start-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 14px;
+  min-height: 38px;
+  padding: 0 16px;
+  border-radius: 9px;
+  background: var(--grad-violet);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+/* ── Featured cards ──────────────────────────────────────────────────────── */
+.cbx-feat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
+  gap: 18px;
+}
+.cbx-feat {
+  min-width: 0;
+  border: 1px solid var(--b1);
+  border-radius: var(--rl, 16px);
+  background: var(--s1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.cbx-feat-media { position: relative; display: block; aspect-ratio: 16 / 10; background: var(--s3); }
+.cbx-feat-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cbx-feat-ph { display: block; width: 100%; height: 100%; background: var(--grad-brand); opacity: .5; }
+.cbx-feat-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 4px 9px;
+  border-radius: 6px;
+  background: rgba(0,0,0,.72);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.cbx-feat-body { padding: 14px; display: grid; gap: 8px; }
+.cbx-feat-body h3 { margin: 0; font-size: 15px; font-weight: 800; line-height: 1.3; }
+.cbx-feat-body h3 a { color: var(--t1); text-decoration: none; }
+.cbx-feat-body h3 a:hover { color: var(--brand-text); }
+.cbx-feat-loc { margin: 0; display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--t3); }
+.cbx-feat-lede {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--t3);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.cbx-feat-figures { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.cbx-feat-figures strong { font-size: 14px; font-weight: 850; color: var(--t1); }
+.cbx-feat-figures span { font-size: 12px; color: var(--t3); }
+.cbx-feat-meta { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--t4); }
+
+.cbx-bar { height: 6px; border-radius: 999px; background: var(--s3); overflow: hidden; }
+.cbx-bar > span { display: block; height: 100%; border-radius: 999px; background: var(--grad-brand); }
+.cbx-bar-sm { height: 5px; }
+
+/* ── All-campaigns list rows ─────────────────────────────────────────────── */
+.cbx-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.cbx-row {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--b1);
+  border-radius: var(--rl, 16px);
+  background: var(--s1);
+}
+@media (min-width: 720px) {
+  .cbx-row { grid-template-columns: 108px minmax(0, 1fr) 168px; }
+}
+.cbx-row-media {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--s3);
+}
+.cbx-row-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cbx-row-body { min-width: 0; display: grid; gap: 5px; }
+.cbx-row-badge {
+  justify-self: start;
+  padding: 3px 8px;
+  border-radius: 5px;
+  background: var(--tint-violet);
+  color: var(--brand-text);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.cbx-row-body h3 { margin: 0; font-size: 15px; font-weight: 800; line-height: 1.3; }
+.cbx-row-body h3 a { color: var(--t1); text-decoration: none; }
+.cbx-row-body h3 a:hover { color: var(--brand-text); }
+.cbx-row-loc { margin: 0; font-size: 12px; color: var(--t3); }
+.cbx-row-lede {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--t3);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.cbx-row-figures { min-width: 0; display: grid; gap: 6px; }
+.cbx-row-figures strong { font-size: 14px; font-weight: 850; color: var(--t1); }
+.cbx-row-meta { font-size: 12px; color: var(--t4); }
+
+/* ── Numbered pager ──────────────────────────────────────────────────────── */
+.cbx-pager { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 7px; margin-top: 30px; }
+.cbx-pg {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--b2);
+  border-radius: 9px;
+  background: var(--s1);
+  color: var(--t2);
+  font-size: 13px;
+  font-weight: 750;
+  text-decoration: none;
+}
+.cbx-pg:hover { border-color: var(--brand-text); color: var(--t1); }
+.cbx-pg.is-current { background: var(--grad-violet); border-color: transparent; color: #fff; }
+.cbx-pg.is-off { opacity: .4; }
+.cbx-pg-gap { padding: 0 4px; color: var(--t4); font-size: 13px; }
