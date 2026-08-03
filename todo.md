@@ -276,7 +276,45 @@ public pages *were* observed going 500 → 200.
 500 JSON body to one internal caller rather than breaking a visitor's page, so
 they rank below everything above.
 
-## ⏱️ PERF — 13 public pages stalled ~14.1s; shared cause fixed, per-page reads open (Claude, 2026-08-02)
+## ✅ PERF — CLOSED: all 13 stalled routes are now sub-second in production (Claude, 2026-08-03)
+
+**CLOSED 2026-08-03, measured against production with a real database.**
+
+Every route this section listed as stalled, re-measured on `www.charitme.com`.
+TTFB, not `time_total` — the lesson this section itself records:
+
+| route | was (total) | now TTFB | now total |
+|---|---|---|---|
+| `/causes` | 14.1s → 8.56s | **0.88s** | 0.93s |
+| `/donate` | 14.1s → 8.56s | **0.80s** | 0.85s |
+| `/community` | 14.1s → 8.56s | **0.64s** | 0.67s |
+| `/teams/create` | 14.1s → 8.56s | **0.58s** | 0.60s |
+| `/impact-map` | 14.1s → 8.56s | **0.56s** | 0.62s |
+| `/gallery` | 14.1s → 8.56s | **0.49s** | 0.53s |
+| `/ai-fundraising` | 14.1s → 8.56s | **0.46s** | 0.54s |
+| `/supporter-space` | 14.1s → 8.56s | **0.44s** | 0.49s |
+| `/donor-wall` | 14.1s → 8.56s | **0.42s** | 0.47s |
+| `/crisis` | 14.1s → 8.56s | **0.41s** | 0.47s |
+| `/give` | 14.1s → 8.56s | **0.38s** | 0.40s |
+| `/campaigns` | 14.1s → 8.56s | **0.29s** | 0.78s |
+| `/leaderboard` | 9.56s → 4.02s | **0.31s** | 0.53s |
+
+All 200. Worst TTFB across the set is **0.88s**; a wider sweep of 24 public
+routes put the worst at 0.99s (`/`).
+
+**Not a caching artifact — checked, because it would have been the obvious way to
+be wrong here.** `/causes`, `/donate` and `/campaigns` all return
+`x-vercel-cache: MISS`, `age: 0` and `cache-control: private, no-cache, no-store`.
+These are uncached, fully server-rendered responses hitting the real database, so
+the numbers are the server's actual work, not a CDN replay.
+
+The remaining "per-page reads open" item is therefore closed: whatever those
+reads cost, they now cost under a second end to end in production.
+
+---
+
+*Original entry, kept for the reasoning:*
+
 
 Timed **all 83 public routes** on a production build. Thirteen returned in
 **~14.1s** — and 14.1 ≈ **2 × 7.05**, i.e. two sequential unbounded reads.
@@ -545,14 +583,23 @@ external release constraints after the latest production deployment.
 
 | # | Blocker | Evidence | Who can clear it |
 |---|---------|----------|------------------|
-| 1 | ~~GitHub Actions assigns no runner~~ — **CLEARED 2026-08-01.** Run `30704209059` shows `runner_id: 1000001483`, a real runner name, all steps, 3m09s. Red checks are real signals again. | run 30704209059 | ✅ resolved |
+| 1 | **GitHub Actions assigns no runner — RE-BROKEN, verified 2026-08-03.** This row said CLEARED; it is not. Eight runs today (`30778197657`, `30779419210`, `30780039522`, `30780372581`, `30782321643`, `30802456447`, `30803013774`, `30803728152`) all show `runner_id: 0`, empty `runner_name`, `billable.UBUNTU.total_ms: 0`, 2–11s duration, no steps. Master's runs match, which rules out any branch. **A red check right now is not a signal.** One run showed `queued` briefly before dropping — that is not recovery. Verify per run (`actions_get` → `get_workflow_run_usage`); do not trust this row or its predecessor. | 8 runs + master, 2026-08-03 | **External** — GitHub |
 | 2 | **No CharitMe staging Supabase project is available.** The account exposes CharitMe production and an unrelated Auto Trading project. Preview Branch creation returns HTTP 402 because the account is not on Pro; dedicated `charitme-staging` creation is also rejected because the owner has reached the two-active-free-project limit. Database release policy correctly blocks production migration application until the same commit is verified on real staging. | Supabase project/branch inventory and both provisioning probes, 2026-07-29 | **Owner** — upgrade Supabase, pause/delete an unrelated project, or provision staging in another organization |
-| 3 | **Vercel's free daily deployment quota is exhausted again.** PR #163 reports `api-deployments-free-per-day` after more than 100 deployments. PR #162 is live, but the subsequent accessibility commit cannot become production in this quota window. | Vercel PR #163 check, 2026-07-29 | **External reset** — retry an exact-master deployment after the 24-hour window or upgrade Vercel |
+| 3 | ~~Vercel free daily deployment quota exhausted~~ — **NOT BLOCKING as of 2026-08-03.** Eight preview deployments built and went Ready across this session, and production answers 200 on `/api/health`, `/needs` and `/campaigns` (~1.4–1.5s, `x-vercel-cache: MISS`, `age: 0`). The 100/day cap is real and will re-exhaust under a busy day — it is a recurring condition, not a cleared one. | 8 preview builds + production probes, 2026-08-03 | **External reset** — or upgrade Vercel to remove the recurrence |
 
-**Vercel production is operational.** The current production deployment is
-Ready and aliased to both `www.charitme.com` and `charitme.com`; exact deployment
-evidence is recorded in the release sections below. New deployments are
-temporarily blocked by item 3.
+**Vercel production is operational** — re-measured 2026-08-03: `/api/health`,
+`/needs` and `/campaigns` all 200 on `www.charitme.com`. New deployments are **not**
+currently blocked.
+
+⚠️ **This table went stale in BOTH directions**, which is the failure mode it exists
+to prevent. Row 1 claimed a resolved blocker that had come back — the worse
+direction, because a reader treats a red check as a real failure and chases a
+phantom. Row 3 claimed a live blocker that had lifted. Item 2 is the only row NOT
+re-measured today; treat it as carried forward, not confirmed.
+
+The same warning is in CLAUDE.md for the CI row specifically: **run the check
+yourself, it takes one call.** `runner_id: 0` + `billable.UBUNTU.total_ms: 0` +
+no steps = dead. Real runner id + minutes of duration + a full step list = alive.
 
 ## 🚧 DESIGN SHEETS 36–83 — measured gap analysis + lane claims (Claude wcu7oh, 2026-08-01)
 
