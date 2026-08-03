@@ -191,6 +191,41 @@ async function handleEvent(event: Stripe.Event) {
 async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.Session) {
   const meta = (session.metadata ?? {}) as Record<string, string>;
 
+  // ── Creator membership ────────────────────────────────────────────────────
+  //
+  // Branches BEFORE the donation paths and returns. A membership session is
+  // subscription-mode with no `campaignId`, so falling through would run the
+  // donation handler against a campaign that does not exist.
+  //
+  // Without this the subscription would exist at Stripe, charging the member
+  // every period, with NO row in `member_subscriptions` — so the paywall would
+  // keep the posts locked for someone who is paying for them.
+  if (meta.kind === 'membership' && meta.tierId && meta.memberId) {
+    const subscriptionId =
+      typeof session.subscription === 'string' ? session.subscription : session.subscription?.id ?? null;
+
+    // Idempotent on `stripe_subscription_id`, which is UNIQUE — a Stripe retry
+    // must not create a second membership. `onConflict` updates rather than
+    // erroring so the retry is a no-op instead of a 500 that retries forever.
+    const { error } = await supabaseAdmin
+      .from('member_subscriptions')
+      .upsert(
+        {
+          tier_id: meta.tierId,
+          member_id: meta.memberId,
+          status: 'active',
+          stripe_subscription_id: subscriptionId,
+        },
+        { onConflict: 'stripe_subscription_id' },
+      );
+
+    // Throw, like every other money-critical write here: the webhook 500s,
+    // Stripe redelivers, and the upsert above makes the retry safe. Returning
+    // would answer 200 and strand a paying member outside the paywall.
+    if (error) throw new Error(`membership could not be recorded: ${error.message}`);
+    return;
+  }
+
   // ── Portfolio gift: one payment, several campaigns ────────────────────────
   //
   // Branches BEFORE every other path and returns, so a portfolio session can
@@ -1255,6 +1290,23 @@ async function handleDisputeClosed(dispute: Stripe.Dispute) {
 // customer.subscription.updated
 // ─────────────────────────────────────────────────────────────────────────────
 async function handleSubscriptionUpdated(sub: Stripe.Subscription) {
+  // A membership's status is what the paywall reads, so it has to track Stripe:
+  // a past_due card must stop granting access, and a recovered one must restore
+  // it without anyone intervening.
+  if (sub.metadata?.kind === 'membership') {
+    const status =
+      sub.status === 'active' || sub.status === 'trialing' ? 'active'
+      : sub.status === 'past_due' || sub.status === 'unpaid' ? 'past_due'
+      : sub.status === 'paused' ? 'paused'
+      : 'cancelled';
+    const { error } = await supabaseAdmin
+      .from('member_subscriptions')
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('stripe_subscription_id', sub.id);
+    if (error) throw new Error(`membership status could not be updated: ${error.message}`);
+    return;
+  }
+
   const userId = sub.metadata?.userId;
   if (userId && sub.metadata?.plan) {
     const isActive = sub.status === 'active' || sub.status === 'trialing';
@@ -1266,6 +1318,15 @@ async function handleSubscriptionUpdated(sub: Stripe.Subscription) {
 // customer.subscription.deleted
 // ─────────────────────────────────────────────────────────────────────────────
 async function handleSubscriptionDeleted(sub: Stripe.Subscription) {
+  if (sub.metadata?.kind === 'membership') {
+    const { error } = await supabaseAdmin
+      .from('member_subscriptions')
+      .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+      .eq('stripe_subscription_id', sub.id);
+    if (error) throw new Error(`membership cancellation could not be recorded: ${error.message}`);
+    return;
+  }
+
   const userId = sub.metadata?.userId;
   const customerId = typeof sub.customer === 'string' ? sub.customer : null;
 
