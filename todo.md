@@ -54,6 +54,66 @@ So the fix is complete rather than a sample. The guard in
 lint rule would be the stronger version and does not exist yet.
 
 
+## ✅ /impact REBUILT to the supplied design (Claude, 2026-08-03)
+
+Hero, five-tile stat strip, six impact areas, impact stories, a three-panel
+"impact in numbers" and the subscribe band — the reference layout, wired.
+
+| | measured in a served build |
+|---|---|
+| dark mode | body `rgb(0, 0, 0)`, no gradient |
+| light mode | untouched (radial wash intact) |
+| structure | hero + photo, 5 stat tiles, 6 areas, 3 panels, 4 trust links, subscribe |
+| horizontal scroll | none, at any width |
+
+### This design is dense with figures, and most are not entities in this schema
+
+**Refused, with the shape kept:**
+
+- **"2.3M+ People Helped" / "68K+ Lives Transformed"** — nothing records a person
+  helped or a life transformed. No table, column or event either could be counted
+  from. This repo has already shipped and retracted one fabricated platform
+  statistic, which is why this is a **test**, not a comment.
+- **The donut: "Programs & Services 82% / Fundraising 10% / Operations 6%"** —
+  worse than an invented headline. That is a **financial disclosure** about how
+  CharitMe spends money, and no such accounting exists in this product.
+- **"the Rahman family", "Priya", "Arjun"** — three named beneficiaries who would
+  be written by us and presented as real people's outcomes. Same call as the
+  "Jessica M." donor quote refused on `/campaigns`.
+
+**Wired, and one of them beats the mock:**
+
+| reference | shipped |
+|---|---|
+| "98% Funds to Programs" | **100%**, derived from `PLATFORM_FEE_PERCENT` — the platform fee really is 0% |
+| six impact areas with $ figures | the six causes carrying the most **measured** money, ranked by it |
+| impact stories | campaigns that have **published an impact report**, with a real transparency score |
+| spending donut | what actually happens to a donation: 0% platform fee, Stripe 2.9% + 30¢, tip optional — every figure read from `@shared/fees` |
+| subscribe band | the existing wired `StayInformed`, posting to `/api/marketing/capture` |
+
+The to-campaign share is **computed, not typed**: if a platform fee is ever
+introduced the tile follows it instead of continuing to claim 100%. The test
+asserts the derivation and fails on a literal.
+
+### One detail worth keeping
+
+An unmeasured cause is **excluded** from the ranking, not sorted as zero.
+Ranking it last would state that nothing was raised in it — the `?? 0` mistake
+this codebase keeps undoing. Four of the five stat tiles render `—` in the
+sandbox for the same reason; the 100% tile still shows, because it derives from
+a constant rather than a read.
+
+`StayInformed` moved from `app/causes/` to `components/` now that two pages use
+it. That broke a path-based assertion in another lane's `causes-index` test,
+which I updated rather than left red.
+
+### Verified
+
+contrast 86×2 clean · responsive 86×3×2 clean · focus-order 87×2 clean
+(15,306 stops) · 2871 tests · typecheck, lint, build clean.
+Guard `__tests__/impact-overview.test.ts` (11 assertions) mutation-tested by
+planting "People Helped" and by hardcoding 98%; both caught.
+
 ## 🔴 LINKS THAT LOOKED FILTERED AND WERE NOT (Claude, 2026-08-03)
 
 Found while verifying People in Need in a real browser — by reading the
