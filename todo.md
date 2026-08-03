@@ -1,5 +1,40 @@
 # CharitMe — Execution Tracker
 
+## 🔎 THE OWNER ROWS WERE STALE TOO — O1 says 6 migrations, it is 27 (Claude, 2026-08-03)
+
+Same treatment as the A-rows, same result. Verified by running the repo's own
+rehearsal scripts against a throwaway Postgres rather than reading the row:
+
+```
+rehearse-migrations.sh   applied=114  failed=0
+                         162 tables · 162 with RLS · 245 policies · 0 without RLS
+rehearse-rollbacks.sh    rollbacks failing: 0
+```
+
+| row | claimed | measured 2026-08-03 |
+|---|---|---|
+| **O1** | "6 pending migrations" | **27 pending**, 87 of 114 applied. Figure was 21 out of date. |
+| O2 | no staging Supabase | confirmed — no `NEXT_PUBLIC_SUPABASE_URL` in this environment at all |
+| O3 | no Stripe test keys | confirmed — `STRIPE_SECRET_KEY` unset |
+| O4 | Actions runners dead | confirmed again today — `runner_id: 0`, 0 billable ms, every run |
+| O6 | demo seed is fail-closed | confirmed — `00_test_users.sql` raises unless `charitme.allow_demo_seed` is set **in the same session** |
+
+**The useful part is what O1 now says instead.** Everything an agent can do on
+that row is done: every migration replays clean, the schema it produces is
+RLS-complete, and **all 27 have a rehearsed rollback that has been run**. The
+runbook (`supabase/RELEASE-RUNBOOK.md`) has the exact commands and the
+`87 applied / 27 pending` precondition to check before starting.
+
+So O1 is not "27 migrations of unknown risk waiting to be written" — it is a
+prepared, reversible release **blocked on O2**, a staging project to rehearse it
+against. That is a materially different thing to hand an owner.
+
+**Second instance of the same failure today.** A1 and A4 were stale in the
+"already done" direction; O1 was stale in the "much bigger than you think"
+direction. Both were found by running something, not by reading. The file's own
+warning now cuts three ways: a row may overstate a blocker, understate work, or
+be simply out of date.
+
 ## ✅ THE ACTIONABLE QUEUE WAS STALE — A1 and A4 were already done (Claude, 2026-08-03)
 
 The working queue listed **four** Claude-lane items as "actionable now, no gate".
@@ -3165,7 +3200,7 @@ need the owner.
 
 | # | Item | Why it is owner-only |
 |---|---|---|
-| O1 | Apply **6 pending migrations** (compat, receipts, donor-message anonymity, role/team boundaries, privileged DB boundaries, **peer-fundraiser attribution** — the last one written this session) | DDL; PostgREST cannot run it, and release policy wants a staging run first |
+| O1 | Apply **27 pending migrations** (not 6 — that figure is from 2026-07-29 and 21 have landed since). **87 of 114 applied to production.** Everything an agent can do IS done and re-verified 2026-08-03: all 114 replay clean against a throwaway Postgres (`applied=114 failed=0`), the resulting schema is **RLS-complete at 162/162 tables, 245 policies, 0 without RLS**, and **all 27 have a rehearsed rollback** (`rollbacks failing: 0`). Steps are written out in `supabase/RELEASE-RUNBOOK.md`. | DDL; PostgREST cannot run it, and release policy wants a staging run first — so this is really **blocked on O2**, not on the work |
 | O2 | Provision a **CharitMe staging Supabase project** | Blocks O1's staging step |
 | O3 | **Stripe test keys** → live charge→transfer→payout→reconcile, refund/dispute via test clocks | No charge should be placed against the live account |
 | O4 | **GitHub Actions billing** | `runner_id: 0` — no machine is assigned |
