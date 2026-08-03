@@ -18980,3 +18980,31 @@ id would have produced two dead nav links pointing at nothing.
 The copy column lost its 560px cap: at 1440 that left ~190px of dead space beside
 the quotes and the CTA card, which the reference fills. The reading measure is
 capped on the paragraph (62ch) instead, where it belongs.
+
+## 🏅 SPORTS & YOUTH — the fuller reference layout (Claude, 2026-08-03)
+
+`/causes/[slug]` now carries every band from the reference: photo hero, the
+**"Real impact. Real champions."** figures band, the hub pill row, the campaign
+grid, **"How your support helps"** with imagery, **"Stories from the field"**, and
+the closing CTA. All 20 causes get it, with authored per-cause copy — the impact
+heading is distinct on every page (a test enforces that).
+
+### ⚠️ Dark mode: `--bg` was never what painted the page
+Setting `--bg: #000000` alone left the page navy. `[data-theme="dark"] body` drew
+its **own three-stop radial gradient** (`#0b0d24 → #0f1128 → #090b1e`) that
+ignored the token entirely, so the token and the screen disagreed. Both now say
+black. **If a background looks wrong, check what actually paints it before
+changing the token.**
+
+### ⚠️ "Stories from the field" has NO play button, deliberately
+The reference draws these as video cards. There is nothing to start: all 50
+`campaign_media` rows of type `video` point at `storage.CharitMe.example`, a
+reserved TLD that cannot resolve. A control that opens a campaign page instead of
+starting media is a fake affordance. The cards are the cause's genuinely
+**completed** campaigns, linked and labelled as reading.
+
+### The figures, again, are measured
+The reference asserts a six-figure "youth impacted", a five-figure "athletes
+supported", a four-figure programme count and a three-figure community count.
+Measured for Sports & Youth: **38 live campaigns, $12,600 raised, 47 gifts, 69
+countries**. A test fails if any mock literal reaches the source.
