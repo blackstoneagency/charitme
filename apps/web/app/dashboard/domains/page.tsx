@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../lib/query-timeout';
 import 'server-only';
 import type { Metadata } from 'next';
 import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
@@ -30,14 +31,14 @@ export const metadata: Metadata = { title: 'Custom Domain | CharitMe' };
 export default async function DomainsPage() {
   const user = await requireUser();
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await boundedQuery(() => supabaseAdmin
     .from('custom_domains')
     .select(
       'id, owner_id, campaign_id, domain, verification_token, status, verified_at, last_checked_at, last_error, created_at',
     )
     .eq('owner_id', user.id)
     .order('created_at', { ascending: false })
-    .limit(50);
+    .limit(50));
 
   const domains: CustomDomain[] | null = error ? null : ((data ?? []) as CustomDomain[]);
 

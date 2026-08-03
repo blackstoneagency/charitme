@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../lib/supabase';
+import { boundedQuery } from '../../lib/query-timeout';
 import { campaignColumns, applyLiveFilters } from '../../lib/campaign-visibility';
 import { getCoverForCampaign } from '../../lib/photo-catalog';
 import { optimizedCoverUrl } from '../../lib/img-optimize';
@@ -30,12 +31,14 @@ interface GalleryItem {
 async function getGallery(): Promise<GalleryItem[] | null> {
   try {
     const cols = await campaignColumns();
-    const { data, error } = await applyLiveFilters(
-      supabaseAdmin.from('campaigns').select('id, slug, title, category, cover_image_url'),
-      cols,
-    )
-      .order('raised_amount', { ascending: false })
-      .limit(LIMIT);
+    const { data, error } = await boundedQuery(() =>
+  applyLiveFilters(
+        supabaseAdmin.from('campaigns').select('id, slug, title, category, cover_image_url'),
+        cols,
+      )
+        .order('raised_amount', { ascending: false })
+        .limit(LIMIT),
+    );
 
     if (error) return null;
     return (data ?? []) as GalleryItem[];

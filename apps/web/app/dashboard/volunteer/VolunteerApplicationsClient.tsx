@@ -54,7 +54,7 @@ export default function VolunteerApplicationsClient() {
   }
 
   if (apps === null) {
-    return <div style={{ display: 'flex', justifyContent: 'center', padding: 60, color: 'var(--t3)' }}><Spinner /></div>;
+    return <div style={{ display: 'flex', minWidth: 0, justifyContent: 'center', padding: 60, color: 'var(--t3)' }}><Spinner /></div>;
   }
 
   if (apps.length === 0) {
@@ -69,9 +69,9 @@ export default function VolunteerApplicationsClient() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {error && <div style={{ fontSize: 13, color: 'var(--red-text)' }}>{error}</div>}
       {apps.map((a) => (
-        <div key={a.id} style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg)', border: '1px solid var(--b1)', borderRadius: 'var(--rl)', padding: 16 }}>
+        <div key={a.id} style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg)', border: '1px solid var(--b1)', borderRadius: 'var(--rl)', padding: 16 }}>
           <div style={{ minWidth: 0, flex: '1 1 240px' }}>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', minWidth: 0, gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               <Badge color={statusColor[a.status]}>{volunteerApplicationStatusLabel(a.status)}</Badge>
               {a.volunteer_opportunities && <span style={{ fontSize: 12, color: 'var(--t3)', fontWeight: 700 }}>{a.volunteer_opportunities.org_name}</span>}
               {a.hours_verified && a.hours_logged > 0 && <span style={{ fontSize: 12, color: 'var(--green-text)', fontWeight: 700 }}>{a.hours_logged} hrs verified</span>}

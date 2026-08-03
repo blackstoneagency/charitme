@@ -2,7 +2,7 @@ import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { checkRateLimitDurable } from '../../../../lib/rate-limit-durable';
-import { resolveContact, trackEvent, refreshContactScores } from '../../../../lib/marketing-engine';
+import { resolveContact, trackEvent, refreshContactScores, resubscribeEmail } from '../../../../lib/marketing-engine';
 import { supabaseAdmin } from '../../../../lib/supabase';
 
 const CaptureSchema = z.object({
@@ -53,8 +53,25 @@ export async function POST(req: NextRequest) {
     landingPage: input.url,
     consentEmail: input.consentEmail,
     consentSource: input.formId ? 'form' : 'capture',
+    // An EXPLICIT opt-in must be able to undo an earlier unsubscribe. Without
+    // this, someone who unsubscribed and later re-subscribed from /newsletter
+    // got a fresh consent row and a cheerful confirmation while their contact
+    // stayed `status: 'unsubscribed'` — so they would never receive anything,
+    // and nothing in the UI would say so. `resolveContact` only ever UPGRADES
+    // on 'active' and never downgrades, so passing it here cannot unsubscribe
+    // anyone; omitting it is the only unsafe direction.
+    marketingStatus: input.consentEmail === true ? 'active' : undefined,
   });
   if (!contactId) return NextResponse.json({ error: 'Could not create contact' }, { status: 500 });
+
+  // Status is only HALF of what `unsubscribeEmail` wrote. It also adds the
+  // address to `marketing_suppression_list`, and every send path checks that
+  // list independently of status — so undoing only the status leaves the
+  // symptom (the subscriber receives nothing) completely unchanged. Bounces and
+  // complaints are deliberately NOT cleared; see `resubscribeEmail`.
+  if (input.consentEmail === true && input.email) {
+    await resubscribeEmail(input.email);
+  }
 
   const recorded = await trackEvent({
     contactId,

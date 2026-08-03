@@ -5,6 +5,7 @@ import { openai, OPENAI_MODEL } from '../../../../lib/openai';
 import { checkRateLimitDurable } from '../../../../lib/rate-limit-durable';
 import { createClient } from '../../../../lib/supabase-server';
 import { supabaseAdmin } from '../../../../lib/supabase';
+import { recordCoachExchange } from '../../../../lib/coach-sessions-server';
 
 const Schema = z.object({
   messages: z.array(z.object({
@@ -93,6 +94,11 @@ export async function POST(request: NextRequest) {
   if (!openai) {
     const lastMessage = messages[messages.length - 1]?.content ?? '';
     const fallback = generateFallbackResponse(lastMessage);
+    // Recorded on this path too: the fundraiser asked a question and got an
+    // answer. Counting only the OpenAI path would make the history disappear
+    // wherever the key is unset, which is the deployment most likely to be
+    // looked at.
+    await recordCoachExchange(supabase, user.id, campaignId ?? null);
     return new NextResponse(fallback, {
       headers: { 'Content-Type': 'text/plain; charset=utf-8' },
     });
@@ -108,6 +114,12 @@ export async function POST(request: NextRequest) {
       ...messages,
     ],
   });
+
+  // Recorded once the model call has been accepted and the stream exists — not
+  // inside the stream, where a client that navigates away mid-answer would
+  // cancel the bookkeeping along with the text. `recordCoachExchange` never
+  // throws, so a failure here costs one uncounted question and nothing else.
+  await recordCoachExchange(supabase, user.id, campaignId ?? null);
 
   const encoder = new TextEncoder();
   const readable = new ReadableStream({

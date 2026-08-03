@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../lib/supabase';
+import { boundedQuery } from '\.\./\.\./lib/query-timeout';
 import { campaignColumns, applyLiveFilters } from '../../lib/campaign-visibility';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 import { EmptyState } from '../../components/ui';
@@ -47,11 +48,15 @@ async function getMapData(): Promise<MapData | null> {
 
     const [locRes, countryRes] = await Promise.all([
       // Bounded read of just the two columns needed to group.
-      applyLiveFilters(
-        supabaseAdmin.from('campaigns').select('location, category'),
-        cols,
-      ).limit(5000),
-      supabaseAdmin.from('supported_countries').select('id', { count: 'exact', head: true }),
+      boundedQuery(() =>
+        applyLiveFilters(
+          supabaseAdmin.from('campaigns').select('location, category'),
+          cols,
+        ).limit(5000)
+      ),
+      boundedQuery(() =>
+        supabaseAdmin.from('supported_countries').select('id', { count: 'exact', head: true })
+      ),
     ]);
 
     if (locRes.error) return null;
@@ -122,12 +127,12 @@ export default async function ImpactMapPage() {
                 action={<Link href="/campaigns" style={{ fontSize: '14px', color: 'var(--green-text)', fontWeight: 600 }}>Browse campaigns</Link>}
               />
             ) : (
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: '8px' }}>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '8px' }}>
                 {data.places.map((p) => (
                   <li key={p.location}>
                     <Link
                       href={`/campaigns?location=${encodeURIComponent(p.location)}`}
-                      style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', border: '1px solid var(--b1)', borderRadius: 'var(--rl)', background: 'var(--s1)', textDecoration: 'none', minHeight: '24px' }}
+                      style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: '12px', padding: '10px 14px', border: '1px solid var(--b1)', borderRadius: 'var(--rl)', background: 'var(--s1)', textDecoration: 'none', minHeight: '24px' }}
                     >
                       <span style={{ flex: 1, fontSize: '14px', fontWeight: 650, color: 'var(--t1)' }}>{p.location}</span>
                       <span aria-hidden="true" style={{ width: '96px', height: '6px', borderRadius: '3px', background: 'var(--s3)', overflow: 'hidden', flexShrink: 0 }}>
@@ -142,12 +147,12 @@ export default async function ImpactMapPage() {
           </Section>
 
           <Section id="causes" heading="Campaigns by cause" intro="What the live campaigns are actually funding.">
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: '8px' }}>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '8px' }}>
               {data.categories.map((c) => (
                 <li key={c.category}>
                   <Link
                     href={`/campaigns?category=${encodeURIComponent(c.category)}`}
-                    style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', border: '1px solid var(--b1)', borderRadius: 'var(--rl)', background: 'var(--s1)', textDecoration: 'none', minHeight: '24px' }}
+                    style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: '12px', padding: '10px 14px', border: '1px solid var(--b1)', borderRadius: 'var(--rl)', background: 'var(--s1)', textDecoration: 'none', minHeight: '24px' }}
                   >
                     <span style={{ flex: 1, fontSize: '14px', fontWeight: 650, color: 'var(--t1)' }}>{c.category}</span>
                     <span aria-hidden="true" style={{ width: '96px', height: '6px', borderRadius: '3px', background: 'var(--s3)', overflow: 'hidden', flexShrink: 0 }}>

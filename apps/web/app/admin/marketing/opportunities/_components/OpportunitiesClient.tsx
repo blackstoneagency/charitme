@@ -76,7 +76,7 @@ export default function OpportunitiesClient() {
     <div style={{ padding: '0 20px 48px', maxWidth: 900 }}>
       {notice && <div style={{ ...card, padding: '12px 18px', background: notice.startsWith('❌') ? 'var(--tint-red)' : '#f0fdf4', borderColor: notice.startsWith('❌') ? '#fecdd3' : '#bbf7d0', fontWeight: 700, fontSize: 13, color: notice.startsWith('❌') ? 'var(--red-text)' : 'var(--green-text)' }}>{notice}</div>}
 
-      <div style={{ ...card, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+      <div style={{ ...card, display: 'flex', minWidth: 0, justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
         <div>
           <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--t1)' }}>Opportunity feed</div>
           <div style={{ fontSize: 13, color: 'var(--t3)', marginTop: 3 }}>Derived from real campaign category momentum over the last 60 days. Estimates are labelled — never presented as fact.</div>
@@ -104,20 +104,20 @@ function OppCard({ o, act }: { o: Opportunity; act: (id: string, body: Record<st
   const scoreColor = o.score >= 66 ? '#10b981' : o.score >= 33 ? '#f59e0b' : '#94a3b8';
   return (
     <div style={card}>
-      <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 14, alignItems: 'flex-start' }}>
         <div style={{ textAlign: 'center', minWidth: 54 }}>
           <div style={{ fontSize: 24, fontWeight: 800, color: scoreColor }}>{o.score}</div>
           <div style={{ fontSize: 9, fontWeight: 800, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.05em' }}>score</div>
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', minWidth: 0, justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
             <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--t1)' }}>{o.title}</div>
             <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: STATUS_COLOR[o.status], padding: '3px 8px', borderRadius: 20, textTransform: 'uppercase', height: 'fit-content' }}>{o.status}</span>
           </div>
           {o.description && <div style={{ fontSize: 13, color: '#475569', marginTop: 5, lineHeight: 1.5 }}>{o.description}</div>}
           {o.rationale && <div style={{ fontSize: 12, color: 'var(--brand-text)', marginTop: 6, fontWeight: 600 }}>Why: {o.rationale}</div>}
 
-          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 10, fontSize: 12, color: 'var(--t3)' }}>
+          <div style={{ display: 'flex', minWidth: 0, gap: 16, flexWrap: 'wrap', marginTop: 10, fontSize: 12, color: 'var(--t3)' }}>
             <span><b style={{ color: '#334155' }}>{METRIC_LABEL[o.target_metric]}</b></span>
             {o.category && <span>· {o.category}</span>}
             <span>· Est. impact <b style={{ color: '#334155' }}>{money(o.est_impact_cents)}</b> <span style={{ color: '#cbd5e1' }}>(estimate)</span></span>
@@ -127,7 +127,7 @@ function OppCard({ o, act }: { o: Opportunity; act: (id: string, body: Record<st
           </div>
 
           {/* actions */}
-          <div style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', minWidth: 0, gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
             {o.status !== 'converted' && !o.linked_goal_id && (
               <button onClick={() => act(o.id, { convert: true }, '')} style={btn}>Convert to goal →</button>
             )}

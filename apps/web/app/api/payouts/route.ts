@@ -1,6 +1,7 @@
 import 'server-only';
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../lib/supabase';
+import { boundedQuery } from '../../../lib/query-timeout';
 import { createClient } from '../../../lib/supabase-server';
 import { stripe } from '../../../lib/stripe';
 
@@ -24,12 +25,28 @@ export async function POST() {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   // Connected account must be fully onboarded before its dashboard exists.
-  const { data: connectedAccount } = await supabaseAdmin
-    .from('connected_accounts')
-    .select('stripe_account_id, payouts_enabled, details_submitted')
-    .eq('user_id', user.id)
-    .eq('verification_status', 'verified')
-    .maybeSingle();
+  const { data: connectedAccount, error: connectedAccountError } = await boundedQuery(() =>
+    supabaseAdmin
+      .from('connected_accounts')
+      .select('stripe_account_id, payouts_enabled, details_submitted')
+      .eq('user_id', user.id)
+      .eq('verification_status', 'verified')
+      .maybeSingle(),
+  );
+
+  // An unreadable row is not an unfinished onboarding. This fell through to
+  // "Complete Stripe onboarding before accessing payouts" — telling a fully
+  // verified fundraiser their setup is incomplete, and sending them back into a
+  // flow they already finished, because a query failed.
+  //
+  // It fails CLOSED, so no money moves either way; the fix is about not making a
+  // false statement about someone's account.
+  if (connectedAccountError) {
+    return NextResponse.json({
+      error: 'We could not check your payout account right now. Please try again.',
+      code: 'CONNECT_STATUS_UNAVAILABLE',
+    }, { status: 503 });
+  }
 
   if (!connectedAccount?.stripe_account_id || !connectedAccount.payouts_enabled || !connectedAccount.details_submitted) {
     return NextResponse.json({

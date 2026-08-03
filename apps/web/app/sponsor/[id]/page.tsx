@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../lib/query-timeout';
 import { cache } from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -34,12 +35,12 @@ export default async function SponsorDetailPage({ params }: PageProps) {
 
   let existingStatus: string | null = null;
   if (user && !isOrganizer) {
-    const { data } = await supabaseAdmin
+    const { data } = await boundedQuery(() => supabaseAdmin
       .from('sponsorship_requests')
       .select('status')
       .eq('opportunity_id', o.id)
       .eq('sponsor_id', user.id)
-      .maybeSingle();
+      .maybeSingle());
     existingStatus = (data?.status as string | undefined) ?? null;
   }
 
@@ -52,7 +53,7 @@ export default async function SponsorDetailPage({ params }: PageProps) {
         ← All opportunities
       </Link>
 
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '18px 0 12px' }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap', margin: '18px 0 12px' }}>
         <Badge color="blue">{o.category}</Badge>
         {o.min_amount_cents > 0 && <Badge color="gray">From {formatMoneyShort(o.min_amount_cents, o.currency)}</Badge>}
         {!accepting && <Badge color="red">Closed</Badge>}

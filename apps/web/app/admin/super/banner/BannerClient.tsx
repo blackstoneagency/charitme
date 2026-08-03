@@ -88,7 +88,7 @@ export default function BannerClient({
             <div style={{ background: s.useLevelColors ? 'linear-gradient(90deg,#0f9d58,#19b86a)' : s.backgroundColor, color: s.textColor }}>
               <div style={{
                 maxWidth: 1200, margin: '0 auto', padding: `${s.paddingYPx}px 16px`,
-                display: 'flex', alignItems: 'center', gap: 12,
+                display: 'flex', minWidth: 0, alignItems: 'center', gap: 12,
                 justifyContent: s.textAlign === 'center' ? 'center' : s.textAlign === 'right' ? 'flex-end' : 'flex-start',
                 fontSize: s.fontSizePx, fontFamily: s.fontFamily, fontWeight: s.fontWeight,
                 letterSpacing: s.letterSpacingEm ? `${s.letterSpacingEm}em` : undefined,
@@ -122,7 +122,7 @@ export default function BannerClient({
         <div style={{ fontSize: 12.5, color: 'var(--t3)', marginBottom: 14 }}>
           Saved copy appears site-wide immediately. Leave the title blank to use the newest active announcement instead.
         </div>
-        <div style={{ display: 'grid', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14 }}>
           <div>
             <label htmlFor="banner-title" style={label}>Title</label>
             <input
@@ -252,7 +252,7 @@ export default function BannerClient({
       </div>
 
       {/* ── Save ── */}
-      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', position: 'sticky', bottom: 0, background: 'var(--s1)', padding: '14px 0', borderTop: '1px solid #eef0f7' }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 10, alignItems: 'center', flexWrap: 'wrap', position: 'sticky', bottom: 0, background: 'var(--s1)', padding: '14px 0', borderTop: '1px solid #eef0f7' }}>
         <button onClick={save} disabled={busy || !dirty} style={{ ...btn, opacity: busy || !dirty ? 0.5 : 1 }}>
           {busy ? 'Saving…' : 'Save changes'}
         </button>
@@ -269,7 +269,7 @@ export default function BannerClient({
 
 function Toggle({ checked, onChange, title, hint }: { checked: boolean; onChange: (v: boolean) => void; title: string; hint: string }) {
   return (
-    <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '9px 0', cursor: 'pointer' }}>
+    <label style={{ display: 'flex', minWidth: 0, gap: 10, alignItems: 'flex-start', padding: '9px 0', cursor: 'pointer' }}>
       {/* aria-label mirrors the visible {title}: the label wraps the input, but the
           text is nested/dynamic so it isn't statically detectable as the name. */}
       <input type="checkbox" aria-label={title} checked={checked} onChange={(e) => onChange(e.target.checked)} style={{ marginTop: 3, width: 16, height: 16, cursor: 'pointer' }} />
@@ -285,7 +285,7 @@ function ColorField({ id, label: text, value, onChange, disabled }: { id: string
   return (
     <div style={{ opacity: disabled ? 0.5 : 1 }}>
       <label htmlFor={id} style={label}>{text}</label>
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 8, alignItems: 'center' }}>
         <input id={id} type="color" value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}
           style={{ width: 44, height: 38, padding: 2, border: '1px solid #d1d5db', borderRadius: 8, cursor: disabled ? 'not-allowed' : 'pointer', background: 'var(--s1)' }} />
         <input type="text" value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}

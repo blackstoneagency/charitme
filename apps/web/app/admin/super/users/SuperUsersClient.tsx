@@ -61,7 +61,7 @@ export default function SuperUsersClient({ users: initial, total }: { users: Dir
       </div>
 
       <div className="kf-card" style={{ padding: 16 }}>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 10, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
           <input aria-label="Search users by name or email" placeholder="Search name or email…" value={query} onChange={(e) => setQuery(e.target.value)}
             style={{ flex: 1, minWidth: 200, padding: '10px 14px', borderRadius: 10, border: '1px solid var(--b2)', background: 'var(--s1)', color: 'var(--t1)' }} />
           <div className="kf-tabs">
@@ -80,7 +80,7 @@ export default function SuperUsersClient({ users: initial, total }: { users: Dir
               {filtered.map((u) => (
                 <tr key={u.id} style={{ borderTop: '1px solid var(--b1)', opacity: busyId === u.id ? 0.5 : 1 }}>
                   <td style={{ padding: '10px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10 }}>
                       <span className="kf-avatar" style={{ width: 34, height: 34, fontSize: 12 }}>{initials(u.name)}</span>
                       <div><strong style={{ display: 'block', fontSize: 13 }}>{u.name} {u.verified && <span title="Identity verified" style={{ color: 'var(--green-text)' }}>✓</span>}{u.suspended && <span className="kf-pill red" style={{ marginLeft: 6 }}>Suspended</span>}</strong><small style={{ color: 'var(--t3)', fontSize: 11 }}>{u.email}</small></div>
                     </div>

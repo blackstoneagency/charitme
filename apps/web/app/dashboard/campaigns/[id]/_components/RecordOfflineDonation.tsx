@@ -87,7 +87,7 @@ export default function RecordOfflineDonation({ campaignId }: { campaignId: stri
 
   return (
     <section style={{ background: 'var(--s1)', border: '1px solid var(--b2)', borderRadius: 14, padding: '18px 22px', marginBottom: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div>
           <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--t1)' }}>Offline donation</h3>
           <p style={{ margin: '3px 0 0', fontSize: 13, color: 'var(--t3)' }}>
@@ -104,7 +104,7 @@ export default function RecordOfflineDonation({ campaignId }: { campaignId: stri
       )}
 
       {open && (
-        <form onSubmit={submit} style={{ marginTop: 16, display: 'grid', gap: 12 }}>
+        <form onSubmit={submit} style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
             <div>
               <label style={label} htmlFor="od-amount">Amount</label>

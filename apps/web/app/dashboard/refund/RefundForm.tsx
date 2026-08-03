@@ -105,7 +105,7 @@ export default function RefundForm({
           Our team will review your request and respond within 3–5 business days.
           You&apos;ll receive an email when there&apos;s an update.
         </p>
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
           <Link
             href="/dashboard/donations"
             style={{
@@ -178,13 +178,13 @@ export default function RefundForm({
 
   // ── Main form ─────────────────────────────────────────────────────────────
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 22, maxWidth: 560 }}>
+    <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 22, maxWidth: 560 }}>
       {/* Donation selector */}
       <section className="kf-card" style={{ padding: 20 }}>
         <h2 style={{ fontSize: 14, fontWeight: 650, margin: '0 0 14px', color: 'var(--t1)' }}>
           Select a donation
         </h2>
-        <div style={{ display: 'grid', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
           {donations.map((d) => {
             const isSelected = d.id === selectedId;
             const hasPending = d.existing_request;
@@ -195,7 +195,7 @@ export default function RefundForm({
               <label
                 key={d.id}
                 style={{
-                  display: 'flex',
+                  display: 'flex', minWidth: 0,
                   alignItems: 'center',
                   gap: 14,
                   padding: '14px 16px',
@@ -221,7 +221,7 @@ export default function RefundForm({
                   style={{ accentColor: 'var(--green)', width: 16, height: 16, flexShrink: 0 }}
                 />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', gap: 8 }}>
                     <strong
                       style={{
                         fontSize: 14,
@@ -242,7 +242,7 @@ export default function RefundForm({
                       fontSize: 12,
                       color: 'var(--t3)',
                       marginTop: 3,
-                      display: 'flex',
+                      display: 'flex', minWidth: 0,
                       gap: 10,
                       flexWrap: 'wrap',
                     }}
@@ -291,7 +291,7 @@ export default function RefundForm({
       {/* Reason */}
       <section className="kf-card" style={{ padding: 20 }}>
         <label
-          style={{ display: 'grid', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}
+          style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}
         >
           Reason for refund request *
           <textarea
@@ -366,7 +366,7 @@ export default function RefundForm({
       </p>
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 12, flexWrap: 'wrap' }}>
         <button
           type="submit"
           disabled={submitting || !eligible || !reason.trim() || overLimit}

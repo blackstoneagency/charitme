@@ -37,7 +37,7 @@ function RoleCard({ role }: { role: (typeof ROLE_ORDER)[number] }) {
       className="kf-card"
       style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 12 }}
     >
-      <header style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+      <header style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <h3 style={{ fontSize: 17, fontWeight: 700, margin: 0 }}>{def.label}</h3>
         {def.isDefault && (
           <span
@@ -66,7 +66,7 @@ function RoleCard({ role }: { role: (typeof ROLE_ORDER)[number] }) {
         {def.description}
       </p>
 
-      <ul style={{ margin: 0, paddingLeft: 18, display: 'grid', gap: 6 }}>
+      <ul style={{ margin: 0, paddingLeft: 18, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6 }}>
         {def.capabilities.map((cap) => (
           <li key={cap.label} style={{ fontSize: 14, color: 'var(--t2)', lineHeight: 1.55 }}>
             {cap.label}

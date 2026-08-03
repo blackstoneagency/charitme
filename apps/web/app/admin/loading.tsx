@@ -23,7 +23,7 @@ export default function AdminLoading() {
         <div style={{ background: 'var(--s1)', border: '1px solid var(--b1)', borderRadius: 16, padding: 24 }}>
           <div className="pc-skeleton-block" style={{ width: 200, height: 18, marginBottom: 18 }} />
           {Array.from({ length: 6 }, (_, i) => (
-            <div key={i} style={{ display: 'flex', gap: 14, alignItems: 'center', padding: '12px 0', borderTop: i ? '1px solid var(--b1)' : 'none' }}>
+            <div key={i} style={{ display: 'flex', minWidth: 0, gap: 14, alignItems: 'center', padding: '12px 0', borderTop: i ? '1px solid var(--b1)' : 'none' }}>
               <div className="pc-skeleton-block" style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0 }} />
               <div style={{ flex: 1 }}>
                 <div className="pc-skeleton-block" style={{ width: '35%', height: 14, marginBottom: 8 }} />

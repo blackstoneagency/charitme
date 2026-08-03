@@ -127,8 +127,8 @@ export default function UpdatesPanel({ campaignId }: { campaignId: string }) {
           <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 4, textAlign: 'right' }}>{body.length}/10000</div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
+        <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+          <label style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
             <input
               type="checkbox"
               checked={notifyDonors}
@@ -170,7 +170,7 @@ export default function UpdatesPanel({ campaignId }: { campaignId: string }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {updates.map(u => (
             <div key={u.id} style={{ background: 'var(--s1)', border: '1px solid var(--b1)', borderRadius: 14, padding: '18px 22px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                 <div>
                   {u.title && <div style={{ fontWeight: 650, fontSize: 15, color: 'var(--t1)', marginBottom: 2 }}>{u.title}</div>}
                   <div style={{ fontSize: 12, color: 'var(--t3)' }}>{timeAgo(u.created_at)}</div>

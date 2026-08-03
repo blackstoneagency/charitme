@@ -31,7 +31,7 @@ export default async function GrantsPage() {
   return (
     <div className="container" style={{ padding: '40px 24px', maxWidth: 1200 }}>
       <div style={{ marginBottom: 24 }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <h1 style={{ fontSize: 'clamp(24px, 5vw, 32px)', fontWeight: 900, margin: 0, color: 'var(--t1)' }}>
               Grant Discovery

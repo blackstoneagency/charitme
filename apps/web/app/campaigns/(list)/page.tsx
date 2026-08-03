@@ -1,10 +1,13 @@
 import Link from 'next/link';
 import { supabaseAdmin } from '../../../lib/supabase';
+import { boundedQuery } from '../../../lib/query-timeout';
 import { campaignColumns, applyLiveFilters } from '../../../lib/campaign-visibility';
 import { applyCampaignSearch, likeTerm } from '../../../lib/campaign-search';
 import { EmptyState } from '../../../components/ui';
 import { CampaignCard, CampaignGrid } from '../../../components/CampaignCard';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
+import { getTopDonors } from '../../../lib/leaderboard';
+import { formatCents } from '../../../lib/stripe';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -15,6 +18,28 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 type SortOption = 'raised' | 'latest' | 'donors' | 'ending' | 'trust';
+
+/** One list of columns, so the featured row and the main list cannot drift. */
+const CAMPAIGN_SELECT =
+  'id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, status, trust_status, nonprofit_verified, location, campaign_health_score';
+
+type CampaignRow = {
+  id: string;
+  slug: string;
+  title: string;
+  tagline: string | null;
+  cover_image_url: string | null;
+  goal_amount: number;
+  raised_amount: number;
+  backer_count: number;
+  deadline: string | null;
+  category: string | null;
+  status: string | null;
+  trust_status: string | null;
+  nonprofit_verified: boolean | null;
+  location: string | null;
+  campaign_health_score: number | null;
+};
 
 const PAGE_SIZE = 60;
 
@@ -44,7 +69,7 @@ async function getCampaigns(opts: {
     let query = applyLiveFilters(
       supabaseAdmin
         .from('campaigns')
-        .select('id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, status, trust_status, nonprofit_verified, location, campaign_health_score', { count: 'exact' }),
+        .select(CAMPAIGN_SELECT, { count: 'exact' }),
       cols,
     );
 
@@ -78,11 +103,45 @@ async function getCampaigns(opts: {
     // so an unchecked read renders "No campaigns found" — telling a visitor the
     // platform has nothing to support, which is both false and the worst possible
     // moment to say it. `unavailable` lets the caller say "couldn't load" instead.
-    const { data, count, error } = await query.range(from, to);
+    // Bounded: the listing's own read was the remaining ~7s after the shared
+    // visibility probe was capped. `unavailable` below already distinguishes a
+    // failed read from an empty result set.
+    const { data, count, error } = await boundedQuery(() => query.range(from, to));
     if (error || data == null) return { campaigns: [], total: 0, unavailable: true };
     return { campaigns: data, total: count ?? 0, unavailable: false };
   } catch {
     return { campaigns: [], total: 0, unavailable: true };
+  }
+}
+
+/**
+ * The three campaigns shown in the "Featured" row.
+ *
+ * "Featured" here means MOST FUNDED RIGHT NOW, computed from live data — not an
+ * editorial pick and not a paid slot, because neither of those exists as a
+ * concept the database can answer. The heading says so; a row labelled
+ * "Featured" that quietly meant "whatever we chose" would be the kind of claim
+ * this codebase keeps having to walk back.
+ *
+ * Shown only on an unfiltered first page. Once someone has typed a query or
+ * picked a category, a fixed row of three unrelated campaigns above their
+ * results is noise competing with the thing they asked for.
+ */
+async function getFeatured(): Promise<CampaignRow[] | null> {
+  try {
+    const cols = await campaignColumns();
+    const { data, error } = await applyLiveFilters(
+      supabaseAdmin
+        .from('campaigns')
+        .select(CAMPAIGN_SELECT),
+      cols,
+    )
+      .order('raised_amount', { ascending: false })
+      .limit(3);
+    if (error) return null;
+    return (data ?? []) as CampaignRow[];
+  } catch {
+    return null;
   }
 }
 
@@ -104,17 +163,27 @@ export default async function CampaignsPage({ searchParams }: Props) {
   const tax      = sp.tax === '1';
   const page     = Math.max(1, parseInt(sp.page ?? '1', 10) || 1);
 
-  const { campaigns, total, unavailable } = await getCampaigns({
-    category, q, sort, verifiedOnly: verified, location, taxDeductibleOnly: tax, page,
-  });
+  const hasFilters = Boolean(q || category || verified || tax || location || sort !== 'raised');
+  const showExtras = page === 1 && !hasFilters;
+
+  // The sidebar panels and the featured row are supplementary — a failure in any
+  // of them must not take the campaign list with it, so each resolves to null
+  // and simply renders nothing rather than throwing the page away.
+  const [{ campaigns, total, unavailable }, featured, topDonors] = await Promise.all([
+    getCampaigns({ category, q, sort, verifiedOnly: verified, location, taxDeductibleOnly: tax, page }),
+    showExtras ? getFeatured() : Promise.resolve(null),
+    showExtras
+      ? getTopDonors('all', 5).catch(() => [])
+      : Promise.resolve([] as Awaited<ReturnType<typeof getTopDonors>>),
+  ]);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const currencyMap = new Map<string, string>();
   if (campaigns.length > 0) {
-    const { data: launchSettings } = await supabaseAdmin
+    const { data: launchSettings } = await boundedQuery(() => supabaseAdmin
       .from('campaign_launch_settings')
       .select('campaign_id, currency')
-      .in('campaign_id', campaigns.map((c) => c.id));
+      .in('campaign_id', campaigns.map((c) => c.id)));
     for (const ls of launchSettings ?? []) {
       if (ls.currency) currencyMap.set(ls.campaign_id, ls.currency);
     }
@@ -133,30 +202,57 @@ export default async function CampaignsPage({ searchParams }: Props) {
     return `/campaigns${qs ? `?${qs}` : ''}`;
   }
 
+  const catHref = (c: string | null) => {
+    const params = new URLSearchParams();
+    if (q) params.set('q', q);
+    if (location) params.set('location', location);
+    if (c) params.set('category', c);
+    if (sort !== 'raised') params.set('sort', sort);
+    if (verified) params.set('verified', '1');
+    if (tax) params.set('tax', '1');
+    const qs = params.toString();
+    return `/campaigns${qs ? `?${qs}` : ''}`;
+  };
+
   return (
-    <div className="container" style={{ padding: '40px 24px' }}>
-      <div style={{ marginBottom: '28px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <h1 style={{ fontSize: '28px', fontWeight: 650, marginBottom: '8px' }}>Browse trusted campaigns</h1>
-          <p style={{ color: 'var(--t3)', fontSize: '15px' }}>
-            Support causes with AI trust scores, transparent goals, and real-time verification.
-          </p>
-        </div>
-        <Link
-          href="/leaderboard"
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '10px 18px',
-            borderRadius: '999px', border: '1px solid var(--b2)', background: 'var(--s1)',
-            color: 'var(--t1)', fontSize: '13px', fontWeight: 800, textDecoration: 'none', flexShrink: 0,
-          }}
-        >
-          🏆 Leaderboard
+    <div className="cb-page">
+      <nav aria-label="Breadcrumb" className="cb-crumbs">
+        <Link href="/">Home</Link>
+        <span aria-hidden="true">›</span>
+        <Link href="/causes">Causes</Link>
+        <span aria-hidden="true">›</span>
+        <b aria-current="page">Campaigns</b>
+      </nav>
+
+      <header className="cb-hero">
+        <h1>Campaigns That Change Lives</h1>
+        <p>
+          Every campaign here is a real fundraiser with a real goal. Search by cause, place, or
+          keyword — or browse what people are supporting right now.
+        </p>
+      </header>
+
+      {/* Category chips. Built from CAMPAIGN_CATEGORIES, the single source of
+          truth in @shared/fees — three hand-maintained copies of this list had
+          already drifted apart before it was centralised, so the row cannot
+          advertise a category the rest of the app does not know about. */}
+      <nav aria-label="Browse by category" className="cb-chips">
+        <Link href={catHref(null)} className={`cb-chip${!category ? ' is-active' : ''}`}>
+          All Campaigns
         </Link>
-      </div>
+        {CAMPAIGN_CATEGORIES.map((c) => (
+          <Link key={c} href={catHref(c)} className={`cb-chip${category === c ? ' is-active' : ''}`}>
+            {c}
+          </Link>
+        ))}
+      </nav>
+
+      <div className="cb-layout">
+      <div className="cb-main">
 
       {/* ── Search + filter bar ── */}
       <form method="GET" style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
           <input
             name="q"
             defaultValue={q}
@@ -191,7 +287,7 @@ export default async function CampaignsPage({ searchParams }: Props) {
 
         {/* ── Toggle filters — submitted together with the search above so typed
              keywords/location aren't lost when toggling these checkboxes ── */}
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
           <label className="cb-filter-pill verified">
             <input type="checkbox" name="verified" value="1" defaultChecked={verified} />
             <span>✓ Verified only</span>
@@ -210,6 +306,27 @@ export default async function CampaignsPage({ searchParams }: Props) {
           </span>
         </div>
       </form>
+
+      {featured && featured.length > 0 && (
+        <section aria-labelledby="cb-featured" className="cb-featured">
+          <div className="cb-section-head">
+            <h2 id="cb-featured">Most funded right now</h2>
+            <Link href="/campaigns?sort=raised">View all <span aria-hidden="true">→</span></Link>
+          </div>
+          <CampaignGrid>
+            {featured.map((c) => (
+              <CampaignCard key={c.id} campaign={c} currency={currencyMap.get(c.id) ?? 'usd'} />
+            ))}
+          </CampaignGrid>
+        </section>
+      )}
+
+      <div className="cb-section-head">
+        <h2 id="cb-all">All campaigns</h2>
+        <span className="cb-count">
+          {unavailable ? '—' : `${total.toLocaleString()} campaign${total === 1 ? '' : 's'}`}
+        </span>
+      </div>
 
       {unavailable ? (
         // Distinct from "no results": one is a fact about the search, the other is
@@ -237,7 +354,7 @@ export default async function CampaignsPage({ searchParams }: Props) {
       )}
 
       {totalPages > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', marginTop: '32px' }}>
+        <div style={{ display: 'flex', minWidth: 0, justifyContent: 'center', alignItems: 'center', gap: '12px', marginTop: '32px' }}>
           {page > 1 ? (
             <Link href={pageHref(page - 1)} style={{ padding: '10px 18px', borderRadius: 'var(--r)', border: '1px solid var(--b2)', color: 'var(--t1)', fontSize: '13px', fontWeight: 700, textDecoration: 'none' }}>
               ← Previous
@@ -261,6 +378,77 @@ export default async function CampaignsPage({ searchParams }: Props) {
           )}
         </div>
       )}
+      </div>{/* /.cb-main */}
+
+      <aside className="cb-aside" aria-label="Ways to help">
+        <section className="cb-panel">
+          <h2>Make an impact today</h2>
+          <p className="cb-panel-lede">Small actions lead to big changes.</p>
+          <ul className="cb-actions">
+            <li>
+              <Link href="/give">
+                <strong>Give to many causes</strong>
+                <span>Split one gift across several campaigns, with a single receipt.</span>
+              </Link>
+            </li>
+            <li>
+              <Link href="/create/choose-path">
+                <strong>Start a fundraiser</strong>
+                <span>Raise for someone you know, or for a cause you care about.</span>
+              </Link>
+            </li>
+            <li>
+              <Link href="/get-involved">
+                <strong>Volunteer your time</strong>
+                <span>Ways to help that do not involve money.</span>
+              </Link>
+            </li>
+          </ul>
+          <Link href="/get-involved" className="cta-primary cb-panel-cta">Get involved</Link>
+        </section>
+
+        {/* Top DONORS, not "top fundraisers".
+            The supplied design labels this panel "Top Fundraisers" and lists
+            people with an amount. The only person-level aggregate that exists is
+            getTopDonors() — money GIVEN, not money RAISED. Rendering givers under
+            a "fundraisers" heading would misdescribe every name on the list, so
+            the heading matches the data.
+            The loader already excludes anonymous donations and respects each
+            profile's showPublicProfile flag, so nobody appears here who did not
+            choose to be visible. */}
+        {topDonors.length > 0 && (
+          <section className="cb-panel">
+            <div className="cb-section-head">
+              <h2>Top donors</h2>
+              <Link href="/leaderboard">View all <span aria-hidden="true">→</span></Link>
+            </div>
+            <ol className="cb-donors">
+              {topDonors.map((d) => (
+                <li key={d.donorId}>
+                  <span className="cb-rank">{d.rank}</span>
+                  <span className="cb-donor-name">{d.name}</span>
+                  <span className="cb-donor-amount">{formatCents(d.totalCents, 'usd')}</span>
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
+
+        {/* The design also carries a named testimonial ("Jessica M., Donor").
+            It is not reproduced: there is no testimonials table, so the quote and
+            the person would both have to be written by us and presented as a real
+            supporter's words. That is fabricating a review, which is not a thing
+            to ship regardless of how good the panel looks. If real, consented
+            testimonials are collected later, this is where they belong. */}
+        <section className="cb-panel cb-start">
+          <h2>Start your own campaign</h2>
+          <p className="cb-panel-lede">
+            Create a campaign and rally your community. There is no platform fee.
+          </p>
+          <Link href="/create/choose-path" className="cta-primary cb-panel-cta">Start a fundraiser</Link>
+        </section>
+      </aside>
+      </div>{/* /.cb-layout */}
     </div>
   );
 }

@@ -66,7 +66,7 @@ function ListView() {
       <div style={card}>
         <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--t1)', marginBottom: 6 }}>Generate a campaign from a goal</div>
         <div style={{ fontSize: 13, color: 'var(--t3)', marginBottom: 12 }}>Pick a goal — the OS assembles a connected set of draft assets across every channel, linked to that goal.</div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap' }}>
           <select aria-label="Goal to generate a campaign plan from" value={selGoal} onChange={(e) => setSelGoal(e.target.value)} style={{ ...input, maxWidth: 460 }}>
             <option value="">Select a goal…</option>
             {goals.map((g) => <option key={g.id} value={g.id}>{g.title}</option>)}
@@ -88,7 +88,7 @@ function ListView() {
       ) : (
         plans.map((p) => (
           <a key={p.id} href={`/admin/marketing/campaign-plans?id=${p.id}`} style={{ ...card, display: 'block', textDecoration: 'none' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', minWidth: 0, justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
               <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--t1)' }}>{p.title}</div>
               <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: STATUS_COLOR[p.status], padding: '3px 8px', borderRadius: 20, textTransform: 'uppercase', height: 'fit-content' }}>{p.status.replace('_', ' ')}</span>
             </div>
@@ -159,12 +159,12 @@ function Detail({ planId }: { planId: string }) {
       <a href="/admin/marketing/campaign-plans" style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand-text)', textDecoration: 'none' }}>← All plans</a>
 
       <div style={{ ...card, marginTop: 10 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', minWidth: 0, justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
           <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--t1)' }}>{plan.title}</div>
           <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: STATUS_COLOR[plan.status], padding: '4px 10px', borderRadius: 20, textTransform: 'uppercase', height: 'fit-content' }}>{plan.status.replace('_', ' ')}</span>
         </div>
         {plan.summary && <div style={{ fontSize: 13, color: 'var(--t3)', marginTop: 6, lineHeight: 1.5 }}>{plan.summary}</div>}
-        <div style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 6, marginTop: 12, flexWrap: 'wrap', alignItems: 'center' }}>
           {plan.status === 'draft' && <button onClick={() => setPlanStatus('in_review')} style={btnGhost}>Send to review</button>}
           {plan.status === 'in_review' && <button onClick={() => setPlanStatus('approved')} style={btn}>Approve plan</button>}
           {plan.status === 'approved' && <span style={{ fontSize: 12, color: '#10b981', fontWeight: 700 }}>Approved · {approvedCount}/{assets.length} assets approved</span>}
@@ -186,7 +186,7 @@ function AssetCard({ a, save }: { a: Asset; save: (id: string, body: Record<stri
   const dirty = body !== a.body;
   return (
     <div style={card}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+      <div style={{ display: 'flex', minWidth: 0, justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
         <div>
           <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--brand-text)', background: '#f3edff', padding: '3px 8px', borderRadius: 6, textTransform: 'uppercase', letterSpacing: '.04em' }}>{CHANNEL_LABEL[a.channel] ?? a.channel}</span>
           <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--t1)', marginLeft: 10 }}>{a.title}</span>
@@ -200,7 +200,7 @@ function AssetCard({ a, save }: { a: Asset; save: (id: string, body: Record<stri
         <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'ui-monospace, monospace', fontSize: 12, lineHeight: 1.5, color: '#334155', margin: 0, background: '#fafbfd', border: '1px solid #f1f5f9', borderRadius: 8, padding: 12, maxHeight: 260, overflow: 'auto' }}>{a.body}</pre>
       )}
 
-      <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
         {!editing && <button onClick={() => setEditing(true)} style={btnGhost}>Edit</button>}
         {editing && <button onClick={() => { save(a.id, { body }, '✅ Saved.'); setEditing(false); }} disabled={!dirty} style={{ ...btn, opacity: dirty ? 1 : 0.5 }}>Save</button>}
         {editing && <button onClick={() => { setBody(a.body); setEditing(false); }} style={btnGhost}>Cancel</button>}

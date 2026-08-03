@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../lib/query-timeout';
 import 'server-only';
 import { requireAdmin } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
@@ -16,18 +17,18 @@ export default async function FinancePage() {
   await requireAdmin();
 
   const [donRes, tipRes, feeRes, payoutRes, refundRes, failedRes, pendingPayRes, recentDonRes] = await Promise.all([
-    supabaseAdmin.from('donations').select('amount_cents').eq('status', 'completed'),
-    supabaseAdmin.from('donations').select('tip_cents').eq('status', 'completed'),
-    supabaseAdmin.from('donations').select('processing_fee_cents').eq('status', 'completed'),
-    supabaseAdmin.from('payouts').select('amount_cents').eq('status', 'paid'),
-    supabaseAdmin.from('donations').select('amount_cents').eq('status', 'refunded'),
-    supabaseAdmin.from('donations').select('id', { count: 'exact', head: true }).eq('status', 'failed'),
-    supabaseAdmin.from('payouts').select('id', { count: 'exact', head: true }).in('status', ['requested', 'approved']),
-    supabaseAdmin
+    boundedQuery(() => supabaseAdmin.from('donations').select('amount_cents').eq('status', 'completed')),
+    boundedQuery(() => supabaseAdmin.from('donations').select('tip_cents').eq('status', 'completed')),
+    boundedQuery(() => supabaseAdmin.from('donations').select('processing_fee_cents').eq('status', 'completed')),
+    boundedQuery(() => supabaseAdmin.from('payouts').select('amount_cents').eq('status', 'paid')),
+    boundedQuery(() => supabaseAdmin.from('donations').select('amount_cents').eq('status', 'refunded')),
+    boundedQuery(() => supabaseAdmin.from('donations').select('id', { count: 'exact', head: true }).eq('status', 'failed')),
+    boundedQuery(() => supabaseAdmin.from('payouts').select('id', { count: 'exact', head: true }).in('status', ['requested', 'approved'])),
+    boundedQuery(() => supabaseAdmin
       .from('donations')
       .select('id, amount_cents, tip_cents, processing_fee_cents, status, created_at, stripe_payment_intent_id, campaigns:campaign_id(title)')
       .order('created_at', { ascending: false })
-      .limit(30),
+      .limit(30)),
   ]);
 
   type D = { amount_cents: number };
@@ -98,7 +99,7 @@ export default async function FinancePage() {
 
         {/* Recent donations ledger */}
         <div style={{ background: 'var(--s1)', border: '1px solid #e8ecf4', borderRadius: 16, overflow: 'hidden' }}>
-          <div style={{ padding: '20px 24px', borderBottom: '1px solid #f0f4f8', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ padding: '20px 24px', borderBottom: '1px solid #f0f4f8', display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'center' }}>
             <h2 style={{ margin: 0, fontSize: 16, fontWeight: 650 }}>Recent Transactions</h2>
             <a href="/api/admin/payments/export" style={{ fontSize: 13, color: 'var(--brand-text)', fontWeight: 700, textDecoration: 'none' }}>
               Export CSV ↓

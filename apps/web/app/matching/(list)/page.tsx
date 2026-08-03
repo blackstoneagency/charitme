@@ -52,7 +52,7 @@ export default async function MatchingPage() {
                 color: 'inherit',
               }}
             >
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+              <div style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
                 <Badge color="green">{p.match_ratio}:1 match</Badge>
                 {p.annual_cap_cents > 0 && (
                   <Badge color="gray">Up to {formatMoneyShort(p.annual_cap_cents, p.currency)}/yr</Badge>

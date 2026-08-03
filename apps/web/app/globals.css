@@ -1463,7 +1463,7 @@ input, select, textarea, button { max-width: 100%; }
 }
 
 /* Admin users end-to-end flow */
-.admin-users { padding: 0 32px 34px; display: grid; gap: 20px; }
+.admin-users { padding: 0 32px 34px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
 .admin-user-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
 .admin-user-shell { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 18px; align-items: start; }
 .admin-user-rail { position: sticky; top: 18px; display: grid; gap: 9px; border: 1px solid #e8ebf4; border-radius: 16px; background: #fff; padding: 12px; box-shadow: 0 14px 36px rgba(40,30,110,.06); }
@@ -1727,12 +1727,22 @@ input, select, textarea, button { max-width: 100%; }
 }
 .kf-topbar h1 { margin: 0; color: #090d35; font-size: 32px; line-height: 1; letter-spacing: -.04em; font-weight: 800; }
 .kf-topbar p { margin: 14px 0 0; color: #2c3760; font-size: 17px; }
-.kf-top-actions { display: flex; align-items: center; gap: 14px; }
+/* `min-width: 0` so this flex item may shrink below its content. Without it the
+   row keeps its children's intrinsic width and pushes the top bar past the
+   viewport, where the root clips instead of scrolling. */
+.kf-top-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; min-width: 0; }
 .kf-shell-account-controls {
   margin-left: 0;
   display: flex;
   align-items: center;
   gap: 14px;
+  /* Wraps rather than pushing the top bar past the viewport. Four 44px controls
+     plus a 154px button measure 401px, which is wider than a 390px phone — and
+     because the root clips instead of scrolling, the last control was simply cut
+     off and unreachable. */
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0;
 }
 .kf-shell-account-controls .theme-toggle-btn,
 .kf-shell-account-controls .kind-search-btn,
@@ -1780,9 +1790,9 @@ input, select, textarea, button { max-width: 100%; }
 }
 .kf-icon-btn span { position: absolute; right: 6px; top: -4px; min-width: 20px; height: 20px; display: grid; place-items: center; border-radius: 999px; background: #4e16f5; color: #fff; font-size: 11px; font-weight: 700; }
 .kf-content-grid { display: grid; grid-template-columns: minmax(0, 1fr) 356px; gap: 24px; padding: 0 32px 32px; }
-.kf-content-main { min-width: 0; display: grid; gap: 22px; }
-.kf-admin-dash { display: grid; gap: 22px; padding: 0 32px 32px; }
-.kf-side-panels { display: grid; align-content: start; gap: 20px; }
+.kf-content-main { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; }
+.kf-admin-dash { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; padding: 0 32px 32px; }
+.kf-side-panels { display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 20px; }
 .kf-card {
   border: 1px solid #e6e9f2;
   border-radius: 13px;
@@ -1798,7 +1808,11 @@ input, select, textarea, button { max-width: 100%; }
 }
 .kf-card-head h2 { margin: 0; font-size: var(--fs-h3); letter-spacing: -.02em; font-weight: 700; }
 .kf-card-head p { margin: 6px 0 0; color: var(--t2); font-size: 13px; }
+/* `.kf-link` is a standalone action link (a "Back to …" or "View all"), not
+   prose, so it needs a 44px target — measured 168x20, failing WCAG 2.2 SC
+   2.5.8. `.kf-card-head a` keeps its own box; only .kf-link is padded. */
 .kf-card-head a, .kf-link { color: var(--brand-text); font-size: 13px; font-weight: 700; }
+.kf-link { display: inline-flex; align-items: center; min-height: 44px; }
 .kf-card-head button, .kf-card-tools button {
   height: 40px;
   border: 1px solid #e0e4ef;
@@ -1835,7 +1849,7 @@ input, select, textarea, button { max-width: 100%; }
 .kf-tabs.compact button { height: 40px; padding: 0 20px; border-bottom: 0; border-right: 1px solid #e8ddff; }
 .kf-tabs.compact button.active { background: #f7f2ff; }
 .kf-table-card { overflow: hidden; }
-.kf-rows { display: grid; }
+.kf-rows { display: grid; grid-template-columns: minmax(0, 1fr); }
 .kf-row {
   min-height: 84px;
   display: grid;
@@ -2454,11 +2468,17 @@ input, select, textarea, button { max-width: 100%; }
 .dash-account-signout { color: #ff3158; }
 .dash-account-signout:hover { background: rgba(255,49,88,.08); color: #ff3158; }
 .dash-account-signout:disabled { opacity: .6; cursor: default; }
-.dash-grid { display: grid; grid-template-columns: minmax(0, 1fr) 368px; gap: 24px; }
-.dash-main { min-width: 0; display: grid; gap: 20px; }
-.dash-side { display: grid; align-content: start; gap: 16px; }
+/* The 368px rail is a MAXIMUM, not a fixed width: as a bare `368px` track it
+   could not shrink, and on a phone it forced the whole dashboard to ~578px of
+   content that the root then clipped. */
+.dash-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 368px); gap: 24px; }
+.dash-main { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+.dash-side { display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 16px; }
 .dash-card { border: 1px solid #e9ecf4; border-radius: 12px; background: #fff; box-shadow: 0 1px 2px rgba(16,24,64,.04), 0 4px 16px rgba(16,24,64,.03); }
-.dash-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+/* auto-fit rather than a fixed 4, so this needs no breakpoint: four across on
+   a desktop, two on a tablet, one on a narrow phone. As `repeat(4, ...)` it
+   kept four 118px columns at 390px and overflowed to 520px. */
+.dash-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 16px; }
 .dash-metric { min-height: 104px; display: flex; align-items: center; gap: 16px; padding: 20px 22px; }
 .dash-icon { width: 44px; height: 44px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 11px; }
 .dash-icon.violet { color: var(--brand-text); background: #f1ecff; }
@@ -2532,7 +2552,10 @@ input, select, textarea, button { max-width: 100%; }
   .campaign-detail { grid-column: 1 / -1; width: 100%; }
 }
 
-.dash-analytics { display: grid; grid-template-columns: 1.17fr .83fr; gap: 20px; }
+/* `1.17fr .83fr` is the same auto-minimum trap as a bare `1fr`: both tracks
+   grew to their widest child and the pair overflowed a 358px container to
+   536px. minmax(0, …) lets them shrink; below a tablet they stack. */
+.dash-analytics { display: grid; grid-template-columns: minmax(0, 1.17fr) minmax(0, .83fr); gap: 20px; }
 .performance-card { min-height: 350px; }
 .performance-body { display: grid; grid-template-columns: minmax(0, 1fr) 150px; gap: 16px; padding: 0 20px 22px; }
 .perf-chart { position: relative; min-height: 250px; padding-left: 42px; }
@@ -2555,7 +2578,11 @@ input, select, textarea, button { max-width: 100%; }
 .perf-summary span { margin-top: 4px; color: #5b6584; font-size: 13px; font-weight: 500; }
 .perf-summary small { margin-top: 5px; color: #16a34a; font-size: 12px; font-weight: 600; }
 .source-card { padding: 22px 22px 24px; }
-.source-body { display: flex; align-items: center; justify-content: center; gap: 38px; min-height: 240px; }
+/* Wraps and shrinks: the donut plus its legend measured 190px+ side by side
+   inside a 236px card, which pushed the whole dashboard to 536px on a phone.
+   `min-width: 0` lets the legend text shrink; `flex-wrap` puts it under the
+   donut when it cannot. */
+.source-body { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 38px; min-height: 240px; min-width: 0; }
 .source-donut { width: 176px; height: 176px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 44px; background: conic-gradient(#6c35ff 0 32%, #ec3fb4 32% 56%, #2f80ed 56% 74%, #19b86a 74% 86%, #f59e0b 86% 93%, #a9afc2 93% 100%); box-shadow: 0 18px 42px rgba(108,53,255,.12); transform: rotate(-8deg); }
 .source-donut span { width: 108px; height: 108px; display: grid; place-items: center; align-content: center; border-radius: 30px; background: #fff; transform: rotate(8deg); }
 .source-donut b, .source-donut small { display: block; text-align: center; }
@@ -2777,7 +2804,26 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
   align-items: center;
   gap: clamp(40px, 6vw, 88px);
 }
-.mirror-spotlight-copy { max-width: 560px; }
+/* The merged band: carousel left, and one column on the right holding the
+   "Live Right Now" copy, the supporter quotes and the impact CTA. These were
+   three stacked sections before; the reference reads them as one. */
+/* No max-width on the COLUMN: the reference has the quotes and the CTA card
+   filling it, and a 560px cap left ~190px of dead space beside them at 1440.
+   The reading measure is capped on the paragraph instead, where it belongs. */
+.mirror-spotlight-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.mirror-spotlight-copy > .mirror-actions { margin-bottom: 2px; }
+.mirror-spotlight-copy > p { max-width: 62ch; }
+/* The quotes sit two-up beside the carousel, and stack once the column is too
+   narrow for two readable cards rather than at a fixed breakpoint. */
+.mirror-spotlight-copy .mirror-testimonials {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+}
+.mirror-spotlight-copy .mirror-testimonials article { min-height: 0; }
+.mirror-spotlight-copy .mirror-proof-cta { flex: 0 0 auto; }
 .mirror-spotlight-copy h2 {
   margin: 0 0 16px;
   color: var(--mh-text);
@@ -4515,7 +4561,7 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 .sys-textarea { border: 1px solid var(--b1); border-radius: 9px; background: var(--s1); color: var(--t1); padding: 10px 14px; font-size: 13px; font-weight: 650; width: 100%; box-sizing: border-box; resize: vertical; min-height: 90px; }
 
 /* ── Users E2E enhancements ──────────────────────────────── */
-.users-layout { display: grid; gap: 24px; padding: 0 32px 40px; }
+.users-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; padding: 0 32px 40px; }
 .users-overview-grid { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; }
 .users-kpi-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 20px; }
 .users-kpi-card { padding: 20px; border: 1px solid #eef0f7; border-radius: 16px; background: #fff; }
@@ -4830,7 +4876,9 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 .ac-stab.accent { color: var(--orange-text); }
 .ac-stab.accent.active { color: var(--orange-text); border-bottom-color: var(--orange-text); }
 .ac-stab.accent:hover { color: var(--orange-text); }
-.ac-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+/* Wraps: `.ac-count` is `white-space: nowrap` by design ("Showing 1–20 of 340"
+   reads badly broken across lines), so the ROW has to give instead. */
+.ac-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; min-width: 0; }
 .ac-search { display: flex; align-items: center; gap: 8px; flex: 1; background: #fff; border: 1px solid #dfe3f0; border-radius: 10px; padding: 0 12px; }
 .ac-search input { flex: 1; border: none; outline: none; height: 40px; font-size: 13px; background: none; }
 .ac-count { font-size: 12px; color: var(--t3); font-weight: 700; white-space: nowrap; }
@@ -4848,7 +4896,7 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 .ac-cell-campaign small { font-size: 11px; color: var(--t3); }
 .ac-empty { padding: 40px 20px; text-align: center; color: var(--t3); font-size: 14px; }
 .ac-pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; font-size: 12px; color: var(--t3); }
-.ac-pages { display: flex; gap: 4px; align-items: center; }
+.ac-pages { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; min-width: 0; }
 .ac-pages button { width: 32px; height: 32px; border: 1px solid #eef0f7; border-radius: 7px; background: #fff; font-size: 13px; font-weight: 600; color: #3a4166; cursor: pointer; }
 .ac-pages button.active { background: #551cf2; color: #fff; border-color: var(--brand-text); }
 .ac-pages button:disabled { opacity: .4; cursor: default; }
@@ -5485,7 +5533,8 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 .cr2-proof-line span { font-size: 20px; flex-shrink: 0; }
 
 /* Location step */
-.cr2-countries-link { font-size: 12px; color: var(--brand-text); text-decoration: none; font-weight: 700; margin-top: 4px; }
+/* 44px target: measured 286x18, failing WCAG 2.2 SC 2.5.8 (24x24 minimum). */
+.cr2-countries-link { display: inline-flex; align-items: center; min-height: 44px; font-size: 12px; color: var(--brand-text); text-decoration: none; font-weight: 700; margin-top: 4px; }
 .cr2-countries-link:hover { text-decoration: underline; }
 .cr2-loc-banner { display: flex; align-items: center; gap: 12px; padding: 18px 20px; background: linear-gradient(135deg, #f0fdf4, #ecfdf5); border: 1.5px solid #86efac; border-radius: 16px; }
 .cr2-loc-banner span:first-child { font-size: 24px; flex-shrink: 0; }
@@ -5881,7 +5930,13 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
   --muted: #8e99b8;
   --line: #252948;
   --soft: #0e1030;
-  --bg: #0b0d24; /* dark page base — pairs with light token text for readability */
+  /* Pure black page base. Was #0b0d24 (dark navy). Black only INCREASES the
+     contrast of every token-driven text colour that sits on the page background,
+     so this cannot introduce an AA failure there — verified by a full two-theme
+     sweep. The elevated surfaces below stay navy so the elevation ramp still
+     reads: a card has to be visibly lifted off the page, and #121530 on #000 is
+     a clearer step than it was on #0b0d24. */
+  --bg: #000000;
   --shadow: 0 22px 70px rgba(0,0,0,.5);
   --shadow-sm: 0 10px 32px rgba(0,0,0,.35);
   --shadow-lg: 0 24px 80px rgba(0,0,0,.55);
@@ -5928,15 +5983,16 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 
 /* ── Body ── */
 [data-theme="dark"] body {
-  /* The top stop was #1a1040 — a purple wash centred at 50% 0%, i.e. directly
-     behind the header. The header is transparent (see `.kind-header` below), so
-     that purple WAS the navigation bar: dark mode read as a purple banner over
-     a black page.
-     Starting the ramp at --bg (#0b0d24) makes the region behind the nav the
-     same black as the rest of dark mode, which is the whole point. The
-     remaining stops move by ±4 per channel, so the wash still has depth without
-     being a different colour. */
-  background: radial-gradient(circle at 50% 0%, #0b0d24 0, #0f1128 42%, #090b1e 100%);
+  /* Flat black, requested.
+     Two things had to change together. `--bg` was NOT what painted this: the
+     body drew its own three-stop navy wash, so setting the token alone left the
+     page navy while everything that read the token disagreed with what was on
+     screen. Both now say black.
+     History worth keeping: the wash used to start at #1a1040, a purple centred
+     at 50% 0% — directly behind a transparent header — so dark mode read as a
+     purple banner over a dark page. Flat black removes that failure mode
+     entirely rather than tuning it. */
+  background: #000000;
   color: var(--ink);
 }
 
@@ -8423,4 +8479,999 @@ summary:focus-visible,
   display: inline-flex;
   align-items: center;
   min-height: 24px;
+}
+
+/* Public campaign share page (`/campaigns/[slug]/share`). The cover is a fixed
+   ratio on desktop and goes full-width on a phone rather than leaving a 160px
+   thumbnail stranded beside wrapped text. */
+.share-cover {
+  width: 160px;
+  height: 110px;
+  object-fit: cover;
+  border-radius: var(--r);
+  flex: 0 0 auto;
+}
+@media (max-width: 560px) {
+  .share-cover { width: 100%; height: 170px; }
+}
+
+/* Partner roster (`/partner`) — real organisations from `sponsors`. Wraps rather
+   than scrolling, so every partner is reachable without a horizontal gesture. */
+.partner-roster {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-width: 0;
+}
+.partner-roster-item { min-width: 0; }
+.partner-roster-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  min-width: 0;
+  padding: 8px 14px;
+  border: 1px solid var(--b1);
+  border-radius: var(--rl);
+  background: var(--s1);
+  text-decoration: none;
+}
+a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
+
+/* ── Campaign updates feed (/campaigns/[slug]/updates) ───────────────────────
+   The desktop layout is a 300px campaign sidebar beside the feed. Left to
+   shrink, that grid resolved to `288px 0px` at 320px — the feed column
+   collapsed to ZERO and the entire page content was invisible on a phone. No
+   horizontal overflow was produced, so the responsive sweep passed the whole
+   time; "no overflow" is not the same as "readable".
+
+   Below 900px it becomes one column with the FEED FIRST: someone who followed
+   a link to read an update wants the update, not a summary of the campaign they
+   just came from. */
+@media (max-width: 900px) {
+  .cu-layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 24px !important;
+  }
+  .cu-layout > main { order: 1; }
+  .cu-layout > aside { order: 2; }
+}
+
+/* ═══ /campaigns — browse layout (design: "Campaigns That Change Lives") ═══ */
+.cb-page { width: min(100% - 40px, 1280px); margin-inline: auto; padding: 28px 0 72px; }
+
+.cb-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; color: var(--t3); margin-bottom: 18px; }
+.cb-crumbs a { color: var(--t3); text-decoration: none; display: inline-flex; align-items: center; min-height: 24px; }
+.cb-crumbs a:hover { color: var(--t1); }
+.cb-crumbs b { color: var(--t1); font-weight: 700; }
+
+.cb-hero { max-width: 720px; margin-bottom: 26px; }
+.cb-hero h1 { font-size: var(--fs-h1); font-weight: 850; line-height: 1.1; letter-spacing: -.03em; color: var(--t1); }
+.cb-hero p { margin-top: 12px; font-size: 16px; line-height: 1.6; color: var(--t3); }
+
+/* Chips scroll horizontally on small screens rather than wrapping into a wall.
+   `overflow-x: auto` on the row itself keeps the SCROLL INSIDE this element —
+   without it the widest chip pushes the page and the whole document scrolls
+   sideways, which is the failure `audit:responsive` checks for. */
+.cb-chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 26px; scrollbar-width: thin; }
+.cb-chip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 16px;
+  border: 1px solid var(--b1);
+  border-radius: 999px;
+  background: var(--s1);
+  color: var(--t2);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.cb-chip:hover { border-color: var(--b2); color: var(--t1); }
+.cb-chip.is-active { background: var(--grad-brand); border-color: transparent; color: #fff; }
+
+/* Mobile-first: one column. The sidebar only becomes a column where there is
+   room for it AND the main list beside it — below that it stacks underneath,
+   which is the right reading order anyway (results before ways-to-help). */
+.cb-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 32px; align-items: start; }
+@media (min-width: 1060px) {
+  .cb-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 320px); gap: 40px; }
+}
+.cb-main { min-width: 0; }
+.cb-aside { min-width: 0; display: grid; gap: 20px; }
+
+.cb-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; margin: 30px 0 16px; }
+.cb-section-head h2 { font-size: var(--fs-h3); font-weight: 800; color: var(--t1); margin: 0; }
+.cb-section-head a { font-size: 13px; font-weight: 700; color: var(--green-text); text-decoration: none; display: inline-flex; align-items: center; gap: 5px; min-height: 24px; }
+.cb-count { font-size: 13px; color: var(--t3); font-weight: 650; }
+.cb-featured { margin-bottom: 8px; }
+
+.cb-panel { padding: 22px; border: 1px solid var(--b1); border-radius: var(--rl); background: var(--s1); }
+.cb-panel h2 { font-size: var(--fs-h3); font-weight: 800; color: var(--t1); margin: 0; }
+.cb-panel .cb-section-head { margin: 0 0 14px; }
+.cb-panel-lede { margin: 8px 0 0; font-size: 14px; line-height: 1.6; color: var(--t3); }
+.cb-panel-cta { display: inline-flex; margin-top: 18px; width: 100%; justify-content: center; }
+
+.cb-actions { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 12px; }
+.cb-actions a { display: grid; gap: 3px; padding: 12px 14px; border: 1px solid var(--b1); border-radius: var(--r); text-decoration: none; background: var(--s2); }
+.cb-actions a:hover { border-color: var(--b2); }
+.cb-actions strong { font-size: 14px; font-weight: 750; color: var(--t1); }
+.cb-actions span { font-size: 13px; line-height: 1.5; color: var(--t3); }
+
+.cb-donors { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.cb-donors li { display: flex; align-items: center; gap: 11px; min-width: 0; }
+.cb-rank { flex: none; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; background: var(--s3); color: var(--t2); font-size: 11px; font-weight: 800; }
+/* `min-width: 0` + ellipsis: a long display name would otherwise widen the grid
+   track and push the amount out of the panel. */
+.cb-donor-name { flex: 1; min-width: 0; font-size: 14px; font-weight: 650; color: var(--t1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cb-donor-amount { flex: none; font-size: 13px; font-weight: 750; color: var(--green-text); }
+/* ── Cause landing (/causes/[slug]) ──────────────────────────────────────────
+   Photo hero with a scrim, a floating support card, and a stats sheet that
+   lifts over the hero.
+
+   The hero is committed to a DARK treatment in both themes on purpose: it is
+   white text over a photograph, and the scrim guarantees the contrast rather
+   than the theme doing it. That is different from the mock's white stats card,
+   which is NOT reproduced — a literal white surface renders as a white slab in
+   dark mode, the defect theme-tokens.test.ts exists to block. The sheet uses
+   surface tokens and follows the visitor's theme instead. */
+.cause-landing { display: block; }
+
+.cl-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: 28px 0 96px;
+  background: #0d0a1f;
+}
+.cl-hero-photo {
+  position: absolute;
+  inset: 0 0 0 38%;
+  z-index: -2;
+}
+.cl-hero-img { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* Two scrims: a horizontal one so the copy column is always dark enough for
+   white text whatever the photo does, and a soft bottom fade into the sheet. */
+.cl-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(90deg, #0d0a1f 0%, #0d0a1f 42%, rgba(13, 10, 31, .82) 56%, rgba(13, 10, 31, .35) 78%, rgba(13, 10, 31, .15) 100%),
+    linear-gradient(0deg, #0d0a1f 0%, rgba(13, 10, 31, 0) 42%);
+}
+
+.cl-hero-inner {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 26px;
+  max-width: var(--container, 1200px);
+  margin: 0 auto;
+  padding: 0 var(--gutter, 20px);
+}
+
+.cl-crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  list-style: none;
+  margin: 0 0 26px;
+  padding: 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, .72);
+}
+.cl-crumbs a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  color: rgba(255, 255, 255, .72);
+  text-decoration: none;
+}
+.cl-crumbs a:hover { color: #fff; text-decoration: underline; }
+.cl-crumbs li[aria-current='page'] { color: #fff; font-weight: 650; }
+
+.cl-hero-copy { grid-column: 1; max-width: 44rem; }
+.cl-hero-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 0;
+  /* The shared token, not a fourth bespoke clamp — css-single-definition.test.ts
+     holds the heading scale to three sizes. */
+  font-size: var(--fs-hero);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -.03em;
+  color: #fff;
+}
+.cl-hero-heart { display: inline-flex; width: .62em; height: .62em; color: #ff4d8d; }
+.cl-hero-heart svg { width: 100%; height: 100%; }
+
+.cl-tagline {
+  margin: 14px 0 0;
+  font-size: clamp(17px, 2.1vw, 21px);
+  font-weight: 750;
+  letter-spacing: -.01em;
+  /* Gradient text needs a colour underneath it: if background-clip is
+     unsupported the text would otherwise be transparent and vanish entirely. */
+  color: #ff7ea8;
+  background: linear-gradient(90deg, #a78bfa 0%, #ff7ea8 55%, #ff9d6b 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.cl-hero-lede {
+  margin: 18px 0 0;
+  max-width: 42ch;
+  font-size: 16px;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, .84);
+}
+.cl-hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+.cl-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 22px;
+  border: 1px solid rgba(255, 255, 255, .34);
+  border-radius: var(--r);
+  background: rgba(255, 255, 255, .06);
+  color: #fff;
+  font-size: 14.5px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.cl-btn-secondary:hover { border-color: rgba(255, 255, 255, .7); background: rgba(255, 255, 255, .12); }
+
+.cl-support-card {
+  align-self: end;
+  padding: 22px;
+  border: 1px solid rgba(255, 255, 255, .16);
+  border-radius: var(--rl);
+  background: rgba(18, 14, 40, .82);
+  backdrop-filter: blur(8px);
+}
+.cl-support-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  margin-bottom: 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, .2);
+  color: #c4b5fd;
+}
+.cl-support-icon svg { width: 20px; height: 20px; }
+.cl-support-card h2 { margin: 0; font-size: 17px; font-weight: 780; line-height: 1.35; color: #fff; }
+.cl-support-card p { margin: 10px 0 0; font-size: 14px; line-height: 1.6; color: rgba(255, 255, 255, .8); }
+.cl-support-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  margin-top: 14px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #c4b5fd;
+  text-decoration: none;
+}
+.cl-support-link:hover { text-decoration: underline; }
+
+/* The sheet lifts over the hero, as in the reference. Negative margin rather
+   than absolute positioning so it cannot overlap the content below it at any
+   width. */
+.cl-sheet {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 22px;
+  align-items: center;
+  max-width: var(--container, 1200px);
+  margin: -64px auto 44px;
+  padding: 26px;
+  border: 1px solid var(--b1);
+  border-radius: var(--rxl);
+  background: var(--s1);
+  box-shadow: var(--shadow-lg, 0 24px 60px rgba(0, 0, 0, .5));
+}
+.cl-sheet-intro { min-width: 0; }
+.cl-sheet-heart {
+  display: inline-flex;
+  width: 26px;
+  height: 26px;
+  margin-bottom: 8px;
+  color: var(--h-accent-text, var(--brand-text));
+}
+.cl-sheet-heart svg { width: 100%; height: 100%; }
+.cl-sheet-intro h2 {
+  margin: 0;
+  font-size: var(--fs-h2);
+  font-weight: 800;
+  letter-spacing: -.02em;
+  line-height: 1.15;
+  color: var(--t1);
+}
+.cl-sheet-intro p { margin: 8px 0 0; font-size: 14px; line-height: 1.6; color: var(--t3); max-width: 40ch; }
+.cl-visually-hidden {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.cl-stat-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  gap: 16px;
+  margin: 0;
+}
+.cl-stat { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px; text-align: center; }
+.cl-stat-ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  margin-bottom: 4px;
+  border-radius: 999px;
+  border: 1px solid var(--b1);
+  background: var(--s2);
+}
+.cl-stat-ic svg { width: 19px; height: 19px; }
+/* Four accents, each a *-text token: those are the tier tuned to sit on a
+   surface, so they stay legible in both themes. A raw brand fill would not. */
+.cl-stat-ic--0 { color: var(--brand-text); }
+.cl-stat-ic--1 { color: var(--green-text); }
+.cl-stat-ic--2 { color: var(--blue-text, var(--brand-text)); }
+.cl-stat-ic--3 { color: var(--orange-text); }
+.cl-stat dd { margin: 0; font-size: 26px; font-weight: 850; letter-spacing: -.02em; line-height: 1.1; color: var(--t1); }
+.cl-stat dt { font-size: 12.5px; color: var(--t3); }
+.cl-stats-note {
+  grid-column: 1 / -1;
+  margin: 4px auto 0;
+  max-width: 74ch;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--t3);
+  text-align: center;
+}
+
+/* ── How your support helps ─────────────────────────────────────────────── */
+.cl-helps { margin: 0 0 44px; }
+.cl-helps-title {
+  margin: 0 0 22px;
+  font-size: var(--fs-h2);
+  font-weight: 800;
+  letter-spacing: -.02em;
+  color: var(--t1);
+  text-align: center;
+}
+.cl-helps-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
+  gap: 18px;
+}
+.cl-helps-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--b1);
+  border-radius: var(--rl);
+  background: var(--s1);
+  overflow: hidden;
+}
+.cl-helps-media { position: relative; aspect-ratio: 16 / 10; background: var(--s3); }
+.cl-helps-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cl-helps-ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 18px;
+  border-radius: 999px;
+  border: 1px solid var(--b1);
+  background: var(--s2);
+  position: relative;
+}
+.cl-helps-ic svg { width: 21px; height: 21px; }
+.cl-helps-ic--0 { color: var(--brand-text); }
+.cl-helps-ic--1 { color: var(--red-text); }
+.cl-helps-ic--2 { color: var(--orange-text); }
+.cl-helps-ic--3 { color: var(--green-text); }
+.cl-helps-ic--4 { color: var(--blue-text, var(--brand-text)); }
+.cl-helps-card h3 { margin: 12px 18px 0; font-size: 15.5px; font-weight: 780; color: var(--t1); line-height: 1.3; }
+.cl-helps-card p { margin: 8px 18px 18px; font-size: 13.5px; line-height: 1.55; color: var(--t3); }
+
+/* ── Stories from the field ─────────────────────────────────────────────── */
+.cl-stories { margin: 0 0 44px; }
+.cl-stories-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.cl-stories-head h2 { margin: 0; font-size: var(--fs-h2); font-weight: 800; letter-spacing: -.02em; color: var(--t1); }
+.cl-stories-all {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--brand-text);
+  text-decoration: none;
+}
+.cl-stories-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 18px;
+}
+.cl-story {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+  border: 1px solid var(--b1);
+  border-radius: var(--rl);
+  overflow: hidden;
+  background: var(--s1);
+  text-decoration: none;
+}
+.cl-story:hover { border-color: var(--b2); }
+.cl-story-media { position: relative; display: block; aspect-ratio: 16 / 10; background: var(--s3); }
+.cl-story-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cl-story-chip {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(10, 6, 28, .78);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.cl-story-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 7px; padding: 16px 18px 18px; }
+.cl-story-body strong { font-size: 15.5px; font-weight: 780; color: var(--t1); line-height: 1.35; }
+.cl-story-blurb {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--t3);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.cl-story-meta { font-size: 12.5px; font-weight: 700; color: var(--green-text); }
+.cl-story-cta { font-size: 13.5px; font-weight: 700; color: var(--brand-text); }
+
+.cl-programs-band {
+  max-width: var(--container, 1200px);
+  margin: 0 auto 40px;
+  padding: 0 var(--gutter, 20px);
+}
+.cl-programs-title { margin: 0 0 16px; font-size: var(--fs-h2); font-weight: 780; color: var(--t1); }
+.cl-programs-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 10px;
+}
+.cl-program {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--b1);
+  border-radius: var(--r);
+  background: var(--s1);
+  text-decoration: none;
+}
+.cl-program:hover { background: var(--s2); border-color: var(--b2); }
+.cl-program-name { font-size: 14px; font-weight: 700; color: var(--t1); }
+.cl-program-count { font-size: 12.5px; font-weight: 700; color: var(--t3); white-space: nowrap; }
+
+.cl-cta { padding: 0 var(--gutter, 20px) 64px; }
+.cl-cta-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  align-items: center;
+  max-width: var(--container, 1200px);
+  margin: 0 auto;
+  padding: 32px 28px;
+  border: 1px solid var(--b1);
+  border-radius: var(--rxl);
+  background: var(--s2);
+}
+.cl-cta-inner h2 { margin: 0; font-size: var(--fs-h2); font-weight: 780; color: var(--t1); }
+.cl-cta-inner p { margin: 8px 0 0; font-size: 14.5px; line-height: 1.6; color: var(--t3); max-width: 52ch; }
+.cl-cta-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+/* Inside the light CTA band the secondary button must follow the THEME, not the
+   hero's white-on-dark treatment. */
+.cl-cta .cl-btn-secondary {
+  border-color: var(--b2);
+  background: var(--s1);
+  color: var(--t1);
+}
+.cl-cta .cl-btn-secondary:hover { border-color: var(--t3); background: var(--s2); }
+
+@media (min-width: 980px) {
+  .cl-sheet { grid-template-columns: minmax(0, 320px) minmax(0, 1fr); gap: 32px; padding: 28px 32px; }
+  .cl-sheet .cl-stats-note { grid-column: 2; text-align: left; margin-inline: 0; }
+  .cl-hero { padding: 32px 0 120px; }
+  .cl-hero-inner { grid-template-columns: minmax(0, 1.35fr) minmax(0, 320px); }
+  .cl-crumbs { grid-column: 1 / -1; }
+  .cl-cta-inner { grid-template-columns: minmax(0, 1fr) auto; }
+}
+/* Below the breakpoint the photo becomes a band above the copy rather than a
+   side panel, so the text never sits on the busiest part of the image. */
+@media (max-width: 979px) {
+  .cl-hero { padding-bottom: 92px; }
+  .cl-hero-photo { inset: 0 0 auto 0; height: 240px; }
+  .cl-hero-inner { padding-top: 210px; }
+  .cl-hero::before {
+    background:
+      linear-gradient(180deg, rgba(13, 10, 31, .25) 0%, rgba(13, 10, 31, .8) 46%, #0d0a1f 62%),
+      linear-gradient(0deg, #0d0a1f 0%, rgba(13, 10, 31, 0) 30%);
+  }
+  .cl-stat + .cl-stat { border-inline-start: none; border-block-start: 1px solid var(--b1); padding-top: 16px; }
+}
+
+/* Desktop: hero becomes copy | photo | programme panel, matching the reference.
+   Below this the three stack, with the PHOTO first — a visitor arriving on a
+   phone from a share should see the cause before a category list. */
+@media (min-width: 960px) {
+  .cl-hero {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr) minmax(0, 300px);
+    gap: 28px;
+  }
+  .cl-cta-inner { grid-template-columns: minmax(0, 1fr) auto; }
+}
+@media (max-width: 959px) {
+  .cl-hero-media { order: -1; }
+}
+/* Member dashboard on a phone: the rail stacks under the main column rather than
+   competing with it for a 390px viewport. Below this width a two-column
+   dashboard has nothing useful to say in either column. */
+@media (max-width: 900px) {
+  .dash-grid { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+}
+
+/* The donut is decorative sizing, not information: below a phone width it shrinks
+   so the legend beside it keeps a readable column instead of being pushed out of
+   the card. */
+@media (max-width: 560px) {
+  .source-body { gap: 18px; }
+  .source-donut { width: 140px; height: 140px; border-radius: 36px; }
+  .source-donut span { width: 88px; height: 88px; border-radius: 24px; }
+}
+
+@media (max-width: 760px) {
+  .dash-analytics { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Share-page breadcrumbs: each link is its own tap target, so it is padded to
+   44px rather than left at its 15px line box. */
+.share-crumbs a { display: inline-flex; align-items: center; min-height: 44px; padding: 11px 0; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MEMBER DASHBOARD — AA CONTRAST
+   ═══════════════════════════════════════════════════════════════════════════
+   These 21 failures survived every previous sweep because the signed-in audit
+   always ran as an ADMIN, and /dashboard redirects an admin to /admin. The page
+   was therefore never measured by anything. The worst was 1:1 — #0f1535 heading
+   text on the #121534 dark card, i.e. genuinely invisible.
+
+   Fixed by pointing the offenders at theme tokens rather than by nudging hex
+   values, so they follow the theme instead of needing this block again. */
+
+/* Light mode: muted greys and status colours below 4.5:1 at 12px. */
+.dash-metric small,
+.perf-summary small,
+.growth-metric small { color: var(--green-text); }
+.perf-chart > span,
+.perf-tip small,
+.perf-days,
+.source-donut small { color: var(--t2); }
+.dash-search kbd { color: var(--t2); }
+.dash-account-signout,
+.dash-account-signout:hover { color: var(--red-text); }
+
+/* Dark mode: hardcoded near-black ink that never got an override. */
+[data-theme="dark"] .dash-metric strong,
+[data-theme="dark"] .perf-summary strong,
+[data-theme="dark"] .source-donut b,
+[data-theme="dark"] .ai-assistant h3,
+[data-theme="dark"] .growth-brand h2 { color: var(--t1); }
+
+[data-theme="dark"] .campaign-copy p,
+[data-theme="dark"] .perf-summary span,
+[data-theme="dark"] .ai-assistant > p,
+[data-theme="dark"] .ai-builder-sub { color: var(--t2); }
+
+/* The donut's centre plate stays white in both themes (it sits on a coloured
+   conic gradient), so its text must stay dark there rather than follow --t1. */
+/* ⚠️ The centre plate does NOT stay white in dark mode — an existing rule
+   (`[data-theme="dark"] .source-donut span { background: var(--s1) }`) turns it
+   dark. An earlier version of this block assumed otherwise and pinned the ink to
+   #0f1535, which produced 1:1 dark-on-dark: exactly the failure it was meant to
+   fix. The ink follows the theme. */
+[data-theme="dark"] .source-donut > span b,
+[data-theme="dark"] .source-donut > span small { color: var(--t1); }
+
+/* Remaining dashboard AA failures, each measured rather than guessed. */
+/* "Get started" / "Step 3" chips: 3.6:1 and 3.83:1 on white at 12px. */
+.task-row em { color: var(--t2); }
+.task-row em.today { color: var(--red-text); }
+/* The "Beta" chip keeps a light violet plate in BOTH themes, so its ink must
+   stay dark there — in dark mode the text had gone light against a plate that
+   had not, giving 1.9:1. */
+[data-theme="dark"] .assistant-title em { color: #4c1d95; background: #f5f0ff; border-color: #e4dbff; }
+/* Donut legend labels: #0f1535 on the dark card was 1:1 — invisible. */
+[data-theme="dark"] .source-list p,
+[data-theme="dark"] .source-list b,
+[data-theme="dark"] .source-list small { color: var(--t1); }
+
+/* `.growth-brand h2 em` ("New") keeps a light violet plate in both themes, so
+   like the "Beta" chip its ink must stay dark there — it measured 1.84:1. */
+[data-theme="dark"] .growth-brand h2 em { color: #4c1d95; background: #f1ecff; }
+
+/* ── Cause landing: "Ways to help" ─────────────────────────────────────────
+   Distinct from `.cl-ways`, which lists other CAUSES. Each card states whether
+   it narrows to this cause: only /campaigns accepts a category filter, so the
+   rest are marked "all causes" rather than implying a filter that is not there. */
+.cl-help { max-width: 1180px; margin: 0 auto; padding: 8px 24px 8px; min-width: 0; }
+.cl-help-title { margin: 0 0 6px; font-size: var(--fs-h2); font-weight: 800; color: var(--t1); letter-spacing: -.02em; }
+.cl-help-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+  gap: 12px;
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  min-width: 0;
+}
+.cl-help-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  align-content: start;
+  min-height: 44px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--b1);
+  border-radius: var(--rl);
+  background: var(--s1);
+  text-decoration: none;
+}
+.cl-help-card:hover { border-color: var(--b2); background: var(--s2); }
+.cl-help-label { font-size: 15px; font-weight: 750; color: var(--t1); }
+.cl-help-scope { font-size: 12px; font-weight: 600; color: var(--t3); }
+.cl-help-blurb { font-size: 13.5px; line-height: 1.55; color: var(--t2); }
+.cl-help-note { margin: 14px 0 0; max-width: 640px; font-size: 12.5px; line-height: 1.6; color: var(--t3); }
+
+/* ═══ /needs — current needs list ═══ */
+.needs-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+/* Mobile-first: the amount column drops beneath the copy until there is room for
+   it alongside. `minmax(0, 1fr)` on the copy track stops a long campaign title
+   widening the row past the viewport. */
+.needs-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid var(--b1);
+  border-radius: var(--rl);
+  background: var(--s1);
+}
+@media (min-width: 720px) {
+  .needs-row { grid-template-columns: minmax(0, 1fr) minmax(0, 180px); align-items: center; }
+}
+.needs-copy { min-width: 0; }
+.needs-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.needs-title { font-size: 16px; font-weight: 750; color: var(--t1); text-decoration: none; display: inline-flex; align-items: center; min-height: 24px; }
+.needs-title:hover { color: var(--green-text); }
+.needs-meta { margin: 6px 0 0; font-size: 13px; color: var(--t3); }
+.needs-bar { margin-top: 12px; height: 6px; border-radius: 999px; background: var(--s3); overflow: hidden; }
+.needs-bar > span { display: block; height: 100%; border-radius: inherit; background: var(--grad-brand); }
+.needs-progress { margin: 8px 0 0; font-size: 13px; color: var(--t3); }
+.needs-amount { min-width: 0; display: grid; gap: 2px; align-content: start; }
+.needs-amount strong { font-size: 20px; font-weight: 850; color: var(--t1); letter-spacing: -.02em; }
+.needs-amount span { font-size: 12px; color: var(--t3); }
+.needs-cta { display: inline-flex; justify-content: center; margin-top: 10px; }
+
+/* ── Campaign card, `feature` variant ────────────────────────────────────────
+   The quieter card from the cause-landing reference: cover, title, one line of
+   description, raised-of-goal and a bar. Used on /causes/[slug]; the dense
+   listing card is unchanged everywhere else.
+
+   Surface tokens throughout — the reference draws these on a white sheet, and a
+   literal white card is a white slab in dark mode. */
+.cc-feature {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+  min-width: 0;
+  border: 1px solid var(--b1);
+  border-radius: var(--rl);
+  overflow: hidden;
+  background: var(--s1);
+  text-decoration: none;
+  transition: border-color .16s, box-shadow .16s, transform .16s;
+}
+.cc-feature:hover {
+  border-color: var(--b2);
+  box-shadow: var(--shadow-md, 0 14px 34px rgba(16, 10, 44, .14));
+  transform: translateY(-2px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .cc-feature, .cc-feature:hover { transition: none; transform: none; }
+}
+.cc-feature-media { position: relative; aspect-ratio: 16 / 10; background: var(--s3); }
+.cc-feature-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cc-feature-badges {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+.cc-feature-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px 18px;
+}
+.cc-feature-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 750;
+  line-height: 1.35;
+  color: var(--t1);
+}
+.cc-feature-blurb {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--t3);
+  /* Two lines, clamped in CSS rather than truncated in JS: a character count
+     cuts at a different place at every width, and mid-word on some of them. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.cc-feature-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 4px;
+}
+.cc-feature-money { margin: 0; font-size: 13px; color: var(--t3); min-width: 0; }
+.cc-feature-money strong { font-size: 15px; font-weight: 800; color: var(--t1); }
+.cc-feature-pct { font-size: 13px; font-weight: 700; color: var(--t2); white-space: nowrap; }
+
+/* ── Cause hub tabs ──────────────────────────────────────────────────────────
+   The reference's pill row above the campaign grid. These are LINKS, not tabs:
+   each navigates to a different page, so `role="tab"` would promise in-page
+   panel switching that never happens. */
+.cl-tabs { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 28px; }
+.cl-tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid var(--b1);
+  background: var(--s1);
+  color: var(--t2);
+  font-size: 14px;
+  font-weight: 650;
+  text-decoration: none;
+}
+.cl-tab:hover { border-color: var(--b2); background: var(--s2); color: var(--t1); }
+
+/* ── /causes index ───────────────────────────────────────────────────────────
+   Photo hero with a scrim, a measured stats strip, the browse controls, and the
+   two closing bands. Surfaces are tokens throughout: the reference draws the
+   cards on white, and a literal white card is a white slab in dark mode. Only
+   the hero commits to a dark treatment in both themes — white text over a
+   photograph, where the scrim guarantees the contrast rather than the theme. */
+.cx-page { display: block; }
+
+.cx-hero { position: relative; isolation: isolate; overflow: hidden; padding: 26px 0 92px; background: #0d0a1f; }
+.cx-hero-photo { position: absolute; inset: 0 0 0 42%; z-index: -2; }
+.cx-hero-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.cx-hero::before {
+  content: '';
+  position: absolute; inset: 0; z-index: -1;
+  background:
+    linear-gradient(90deg, #0d0a1f 0%, #0d0a1f 40%, rgba(13,10,31,.84) 56%, rgba(13,10,31,.34) 80%, rgba(13,10,31,.12) 100%),
+    linear-gradient(0deg, #0d0a1f 0%, rgba(13,10,31,0) 44%);
+}
+.cx-hero-inner {
+  position: relative;
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px;
+  max-width: var(--container, 1200px); margin: 0 auto; padding: 0 var(--gutter, 20px);
+}
+.cx-crumbs ol {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  list-style: none; margin: 0 0 24px; padding: 0; font-size: 13px; color: rgba(255,255,255,.72);
+}
+.cx-crumbs a { display: inline-flex; align-items: center; min-height: 24px; color: rgba(255,255,255,.72); text-decoration: none; }
+.cx-crumbs a:hover { color: #fff; text-decoration: underline; }
+.cx-crumbs li[aria-current='page'] { color: #fff; font-weight: 650; }
+.cx-hero-copy h1 {
+  margin: 0; font-size: var(--fs-hero); font-weight: 800; line-height: 1.06;
+  letter-spacing: -.03em; color: #fff;
+}
+.cx-hero-copy > p { margin: 16px 0 0; max-width: 44ch; font-size: 16px; line-height: 1.68; color: rgba(255,255,255,.84); }
+.cx-hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; }
+.cx-btn-secondary {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 22px;
+  border: 1px solid rgba(255,255,255,.34); border-radius: var(--r);
+  background: rgba(255,255,255,.06); color: #fff; font-size: 14.5px; font-weight: 700; text-decoration: none;
+}
+.cx-btn-secondary:hover { border-color: rgba(255,255,255,.7); background: rgba(255,255,255,.12); }
+.cx-hero-card {
+  align-self: end; padding: 20px;
+  border: 1px solid rgba(255,255,255,.16); border-radius: var(--rl);
+  background: rgba(18,14,40,.82); backdrop-filter: blur(8px);
+}
+.cx-hero-card h2 { margin: 0; font-size: 16.5px; font-weight: 780; line-height: 1.35; color: #fff; }
+.cx-hero-card p { margin: 10px 0 0; font-size: 13.5px; line-height: 1.6; color: rgba(255,255,255,.8); }
+
+.cx-stats {
+  position: relative; z-index: 1;
+  max-width: var(--container, 1200px); margin: -56px auto 44px;
+  padding: 22px 24px;
+  border: 1px solid var(--b1); border-radius: var(--rxl);
+  background: var(--s1); box-shadow: var(--shadow-lg, 0 24px 60px rgba(0,0,0,.5));
+}
+.cx-stats dl {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+  gap: 18px; margin: 0;
+}
+.cx-stat { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; padding: 4px; }
+.cx-stat dd { display: flex; align-items: center; gap: 13px; }
+.cx-stat-ic {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 42px; height: 42px; flex: 0 0 auto;
+  border-radius: 999px; border: 1px solid var(--b1); background: var(--s2);
+}
+.cx-stat-ic svg { width: 20px; height: 20px; }
+/* `*-text` tokens: the tier tuned to sit ON a surface, legible in both themes. */
+.cx-stat-ic--0 { color: var(--red-text); }
+.cx-stat-ic--1 { color: var(--green-text); }
+.cx-stat-ic--2 { color: var(--brand-text); }
+.cx-stat-ic--3 { color: var(--orange-text); }
+.cx-stat dd { margin: 0; }
+.cx-stat-value { font-size: 24px; font-weight: 850; letter-spacing: -.02em; line-height: 1.12; color: var(--t1); }
+/* Indented to clear the icon so the label lines up under the number. */
+.cx-stat dt { font-size: 12.5px; color: var(--t3); margin: 3px 0 0 55px; }
+
+.cx-main { padding-bottom: 72px; }
+.cx-browse-title { margin: 0 0 20px; font-size: var(--fs-h2); font-weight: 800; letter-spacing: -.02em; color: var(--t1); }
+
+.cx-controls { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.cx-pills { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.cx-pill {
+  min-height: 40px; padding: 0 16px; border-radius: 999px;
+  border: 1px solid var(--b1); background: var(--s1); color: var(--t2);
+  font: inherit; font-size: 13.5px; font-weight: 650; cursor: pointer;
+}
+.cx-pill:hover { border-color: var(--b2); color: var(--t1); }
+.cx-pill.is-on { background: var(--fill-brand); border-color: transparent; color: #fff; }
+.cx-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.cx-sort { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--t3); }
+.cx-sort select {
+  min-height: 40px; padding: 0 10px; border-radius: var(--r);
+  border: 1px solid var(--b2); background: var(--s1); color: var(--t1); font: inherit; font-size: 13.5px;
+}
+.cx-view { display: inline-flex; gap: 4px; padding: 3px; border: 1px solid var(--b1); border-radius: 999px; background: var(--s1); }
+.cx-view-btn {
+  min-height: 34px; padding: 0 14px; border-radius: 999px; border: none;
+  background: none; color: var(--t3); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.cx-view-btn.is-on { background: var(--fill-brand); color: #fff; }
+.cx-count { margin: 0 0 18px; font-size: 13px; color: var(--t3); }
+
+.cx-grid {
+  list-style: none; margin: 0; padding: 0; display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap: 18px;
+}
+.cx-card {
+  display: grid; grid-template-rows: auto minmax(0, 1fr); height: 100%; min-width: 0;
+  border: 1px solid var(--b1); border-radius: var(--rl); overflow: hidden;
+  background: var(--s1); text-decoration: none;
+}
+.cx-card:hover { border-color: var(--b2); }
+.cx-card-media { position: relative; display: block; aspect-ratio: 16 / 10; background: var(--s3); }
+.cx-card-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cx-card-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 7px; padding: 16px 18px 18px; }
+.cx-card-body strong { font-size: 15.5px; font-weight: 780; color: var(--t1); line-height: 1.3; }
+.cx-card-blurb {
+  font-size: 13.5px; line-height: 1.5; color: var(--t3);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.cx-card-meta { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12.5px; font-weight: 700; margin-top: 2px; }
+.cx-card-count { color: var(--t2); }
+.cx-card-raised { color: var(--green-text); }
+/* List view: the photo becomes a thumbnail beside the copy rather than a banner
+   above it, which is the point of offering the toggle at all. */
+.cx-grid.is-list { grid-template-columns: minmax(0, 1fr); }
+.cx-grid.is-list .cx-card { grid-template-rows: none; grid-template-columns: minmax(0, 190px) minmax(0, 1fr); }
+.cx-grid.is-list .cx-card-media { aspect-ratio: 4 / 3; height: 100%; }
+.cx-empty { margin: 18px 0 0; font-size: 14px; color: var(--t3); }
+
+.cx-missing {
+  margin: 44px 0 0; padding: 28px; text-align: center;
+  border: 1px solid var(--b1); border-radius: var(--rxl); background: var(--s2);
+}
+.cx-missing h2 { margin: 0; font-size: 19px; font-weight: 780; color: var(--t1); }
+.cx-missing p { margin: 8px auto 18px; max-width: 520px; font-size: 14px; line-height: 1.55; color: var(--t3); }
+
+.cx-stay {
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: center;
+  margin: 22px 0 0; padding: 26px 28px;
+  border: 1px solid var(--b1); border-radius: var(--rxl); background: var(--s1);
+}
+.cx-stay-copy h2 { margin: 0; font-size: 19px; font-weight: 780; color: var(--t1); }
+.cx-stay-copy p { margin: 6px 0 0; font-size: 13.5px; line-height: 1.55; color: var(--t3); }
+.cx-stay-form { display: flex; flex-wrap: wrap; gap: 10px; min-width: 0; }
+.cx-stay-form input {
+  flex: 1 1 220px; min-width: 0; min-height: 44px; padding: 0 14px;
+  border: 1px solid var(--b2); border-radius: var(--r);
+  background: var(--bg); color: var(--t1); font: inherit; font-size: 14px;
+}
+.cx-stay-form button {
+  min-height: 44px; padding: 0 22px; border: none; border-radius: var(--r);
+  background: var(--fill-brand); color: #fff; font: inherit; font-size: 14px; font-weight: 750; cursor: pointer;
+}
+.cx-stay-form button:disabled { opacity: .65; cursor: default; }
+.cx-stay-note { grid-column: 1 / -1; margin: 0; font-size: 13px; color: var(--green-text); }
+.cx-stay-note.is-error { color: var(--red-text); }
+.cx-visually-hidden {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+@media (min-width: 980px) {
+  .cx-hero { padding: 30px 0 116px; }
+  .cx-hero-inner { grid-template-columns: minmax(0, 1.4fr) minmax(0, 320px); }
+  .cx-crumbs { grid-column: 1 / -1; }
+  .cx-stay { grid-template-columns: minmax(0, 1fr) minmax(0, 460px); }
+}
+@media (max-width: 979px) {
+  .cx-hero-photo { inset: 0 0 auto 0; height: 220px; }
+  .cx-hero-inner { padding-top: 196px; }
+  .cx-hero::before {
+    background:
+      linear-gradient(180deg, rgba(13,10,31,.25) 0%, rgba(13,10,31,.8) 44%, #0d0a1f 60%),
+      linear-gradient(0deg, #0d0a1f 0%, rgba(13,10,31,0) 30%);
+  }
+  .cx-grid.is-list .cx-card { grid-template-columns: minmax(0, 120px) minmax(0, 1fr); }
 }

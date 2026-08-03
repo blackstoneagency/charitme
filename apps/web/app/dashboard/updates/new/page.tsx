@@ -109,8 +109,8 @@ export default function NewUpdatePage() {
                   <a href="/create/choose-path" style={{ color: 'var(--green-text)', textDecoration: 'none', fontWeight: 700 }}>Create one →</a>
                 </div>
               ) : (
-                <div style={{ display: 'grid', gap: 16 }}>
-                  <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16 }}>
+                  <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
                     Campaign *
                     <select
                       value={campaignId}
@@ -124,7 +124,7 @@ export default function NewUpdatePage() {
                     </select>
                   </label>
 
-                  <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
+                  <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
                     Title <span style={{ color: 'var(--t3)', fontWeight: 400 }}>(optional)</span>
                     <input
                       type="text"
@@ -136,7 +136,7 @@ export default function NewUpdatePage() {
                     />
                   </label>
 
-                  <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
+                  <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
                     Update *
                     <textarea
                       value={body}
@@ -151,8 +151,8 @@ export default function NewUpdatePage() {
                   </label>
 
                   {/* Schedule option */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 4 }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                  <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12, paddingTop: 4 }}>
+                    <label style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
                       <input type="checkbox" checked={scheduleMode} onChange={e => setScheduleMode(e.target.checked)} style={{ width: 16, height: 16 }} />
                       Schedule for later
                     </label>
@@ -168,7 +168,7 @@ export default function NewUpdatePage() {
                     )}
                   </div>
 
-                  <div style={{ display: 'flex', gap: 12, paddingTop: 8 }}>
+                  <div style={{ display: 'flex', minWidth: 0, gap: 12, paddingTop: 8 }}>
                     <button
                       type="submit"
                       disabled={saving || !body.trim() || (scheduleMode && !scheduledAt)}

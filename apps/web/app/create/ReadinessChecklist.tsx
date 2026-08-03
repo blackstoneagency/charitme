@@ -18,7 +18,7 @@ export default function ReadinessChecklist({
 
   return (
     <div style={{ padding: '18px 18px 14px', borderRadius: 16, border: '1.5px solid var(--b1, #e8ecf4)', background: 'var(--s1, #fff)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
         <span style={{ fontWeight: 800, fontSize: 15, color: 'var(--t1, #1a1a2e)' }}>Publish readiness</span>
         <span style={{ fontWeight: 800, fontSize: 15, color: barColor }}>{score}%</span>
       </div>
@@ -40,7 +40,7 @@ export default function ReadinessChecklist({
               type="button"
               onClick={() => onGoToStep(item.step)}
               style={{
-                width: '100%', display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
+                width: '100%', display: 'flex', minWidth: 0, alignItems: 'center', gap: 10, textAlign: 'left',
                 padding: '9px 12px', borderRadius: 10, cursor: 'pointer',
                 border: `1px solid ${item.done ? 'transparent' : 'var(--b1, #e8ecf4)'}`,
                 background: item.done ? 'transparent' : 'var(--s2, #f8fafc)',

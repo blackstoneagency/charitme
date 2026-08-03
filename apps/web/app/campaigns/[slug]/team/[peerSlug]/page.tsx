@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../../../lib/query-timeout';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
@@ -47,7 +48,7 @@ export const dynamic = 'force-dynamic';
  * `lib/campaign-visibility.ts` uses for optional campaign columns.
  */
 const attributionColumnExists = cache(async (): Promise<boolean> => {
-  const { error } = await supabaseAdmin.from('donations').select('peer_fundraiser_id').limit(1);
+  const { error } = await boundedQuery(() => supabaseAdmin.from('donations').select('peer_fundraiser_id').limit(1));
   return !error;
 });
 
@@ -121,7 +122,7 @@ export default async function PeerFundraiserPage({
       </header>
 
       <Card>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
+        <div style={{ display: 'flex', minWidth: 0, alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
           <strong style={{ fontSize: 26, fontWeight: 900, color: 'var(--t1)' }}>
             {formatMoneyShort(peer.raised_amount, DEFAULT_CURRENCY)}
           </strong>

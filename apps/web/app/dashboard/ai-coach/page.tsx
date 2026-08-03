@@ -4,9 +4,11 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { TopBar } from '../../../components/CharitMeApp';
 import { CharitMeShell } from '../../../components/ShellSessionProvider';
 import { createClient } from '../../../lib/supabase-browser';
+import { describeSummary } from '../../../lib/coach-sessions-core';
 
 type Message = { role: 'user' | 'assistant'; content: string };
 type Campaign = { id: string; title: string };
+type CoachHistory = { sessions: number; messages: number; lastActiveAt: string | null };
 
 const STARTERS = [
   'How do I get my first 10 donors?',
@@ -23,6 +25,9 @@ export default function AiCoachPage() {
   const [loading, setLoading] = useState(false);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [selectedCampaign, setSelectedCampaign] = useState('');
+  // `undefined` = not loaded yet, `null` = the read FAILED. Neither is "you have
+  // never asked a question", which is a claim this page must not invent.
+  const [history, setHistory] = useState<CoachHistory | null | undefined>(undefined);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -42,6 +47,21 @@ export default function AiCoachPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  const loadHistory = useCallback(async () => {
+    try {
+      const res = await fetch('/api/coach-sessions');
+      if (!res.ok) { setHistory(null); return; }
+      const body = await res.json();
+      setHistory(body.summary as CoachHistory);
+    } catch {
+      setHistory(null);
+    }
+  }, []);
+
+  // Async IIFE rather than a bare `loadHistory()` — the effect body itself must
+  // not set state synchronously.
+  useEffect(() => { void (async () => { await loadHistory(); })(); }, [loadHistory]);
 
   const send = useCallback(async (text: string) => {
     const trimmed = text.trim();
@@ -103,8 +123,11 @@ export default function AiCoachPage() {
       setLoading(false);
       abortRef.current = null;
       inputRef.current?.focus();
+      // The exchange was recorded server-side; re-read rather than guessing the
+      // new numbers, so the line on screen is the row in the database.
+      void loadHistory();
     }
-  }, [messages, loading, selectedCampaign]);
+  }, [messages, loading, selectedCampaign, loadHistory]);
 
   const handleKey = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
@@ -114,6 +137,9 @@ export default function AiCoachPage() {
   };
 
   const selectedTitle = campaigns.find(c => c.id === selectedCampaign)?.title;
+  // Phrased by the same pure function the tests cover, so the line on screen and
+  // the line under test cannot drift apart.
+  const historyLine = history ? describeSummary({ ...history, campaignScoped: 0 }) : null;
 
   return (
     <CharitMeShell active="AI Coach">
@@ -126,26 +152,41 @@ export default function AiCoachPage() {
 
         {/* Campaign selector */}
         {campaigns.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, padding: '12px 0', borderBottom: '1px solid var(--b1)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, padding: '12px 0', borderBottom: '1px solid var(--b1)', flexWrap: 'wrap', minWidth: 0 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--t3)', whiteSpace: 'nowrap' }}>Campaign context:</span>
             <select aria-label="Campaign to coach on" value={selectedCampaign} onChange={e => setSelectedCampaign(e.target.value)}
-              style={{ height: 36, border: '1px solid var(--b2)', borderRadius: 8, padding: '0 12px', fontSize: 13, maxWidth: 280, background: 'var(--s1, #fff)', color: 'var(--t1)' }}>
+              style={{ height: 36, border: '1px solid var(--b2)', borderRadius: 8, padding: '0 12px', fontSize: 13, maxWidth: 280, minWidth: 0, background: 'var(--s1, #fff)', color: 'var(--t1)' }}>
               <option value="">No campaign selected</option>
               {campaigns.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
             </select>
             {selectedTitle && (
-              <span style={{ fontSize: 12, color: 'var(--t3)' }}>Coach will personalise advice for this campaign.</span>
+              <span style={{ fontSize: 12, color: 'var(--t3)', minWidth: 0 }}>Coach will personalise advice for this campaign.</span>
             )}
           </div>
         )}
+
+        {/* Coaching history — counts and times, because `coach_sessions` stores a
+            session and not a transcript. Rendered only when there is something
+            to say: "0 conversations" reads as a scold on a page whose job is to
+            invite the first question. */}
+        {history === null ? (
+          <p style={{ fontSize: 12, color: 'var(--t3)', margin: '0 0 12px' }}>
+            Your coaching history is unavailable right now — that is a read failure, not an empty history.
+          </p>
+        ) : historyLine ? (
+          <p style={{ fontSize: 12, color: 'var(--t3)', margin: '0 0 12px' }}>
+            {historyLine}
+            {history?.lastActiveAt ? ` · last on ${new Date(history.lastActiveAt).toLocaleDateString()}` : ''}
+          </p>
+        ) : null}
 
         {/* Messages */}
         <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 16 }}>
 
           {messages.length === 0 && (
             <div style={{ padding: '24px 0' }}>
-              <div style={{ display: 'flex', gap: 14, marginBottom: 24, alignItems: 'flex-start' }}>
-                <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg,var(--violet),#ec3fb4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
+              <div style={{ display: 'flex', minWidth: 0, gap: 14, marginBottom: 24, alignItems: 'flex-start' }}>
+                <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg,var(--violet),#ec3fb4)', display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
                   🤖
                 </div>
                 <div style={{ background: 'var(--s2)', border: '1px solid var(--b2)', borderRadius: '4px 14px 14px 14px', padding: '14px 18px', maxWidth: 480, fontSize: 14, lineHeight: 1.6, color: 'var(--t1)' }}>
@@ -155,7 +196,7 @@ export default function AiCoachPage() {
               <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 12 }}>
                 Quick starters
               </p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <div style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 8 }}>
                 {STARTERS.map(s => (
                   <button key={s} type="button" onClick={() => void send(s)}
                     style={{ padding: '8px 16px', borderRadius: 20, border: '1px solid var(--b2)', background: 'var(--s1, #fff)', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: 'var(--t1)', transition: 'border-color .15s' }}>
@@ -167,11 +208,11 @@ export default function AiCoachPage() {
           )}
 
           {messages.map((msg, i) => (
-            <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flexDirection: msg.role === 'user' ? 'row-reverse' : 'row' }}>
+            <div key={i} style={{ display: 'flex', minWidth: 0, gap: 12, alignItems: 'flex-start', flexDirection: msg.role === 'user' ? 'row-reverse' : 'row' }}>
               <div style={{
                 width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
                 background: msg.role === 'user' ? 'var(--violet)' : 'linear-gradient(135deg,var(--violet),#ec3fb4)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center',
                 fontSize: 14, color: '#fff', fontWeight: 700,
               }}>
                 {msg.role === 'user' ? 'U' : '🤖'}
@@ -195,7 +236,7 @@ export default function AiCoachPage() {
 
         {/* Input */}
         <div style={{ borderTop: '1px solid var(--b1)', paddingTop: 16, paddingBottom: 24, background: 'var(--s1, #fff)' }}>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
+          <div style={{ display: 'flex', minWidth: 0, gap: 10, alignItems: 'flex-end' }}>
             <textarea
               ref={inputRef}
               aria-label="Ask the AI fundraising coach"
@@ -217,7 +258,7 @@ export default function AiCoachPage() {
                 height: 48, width: 48, border: 0, borderRadius: 12, flexShrink: 0,
                 background: loading || !input.trim() ? 'var(--b2)' : 'linear-gradient(135deg,var(--violet),#4d1ee0)',
                 color: '#fff', cursor: loading || !input.trim() ? 'not-allowed' : 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
+                display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', fontSize: 20,
               }}>
               {loading ? '…' : '↑'}
             </button>

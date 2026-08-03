@@ -2,6 +2,7 @@ import 'server-only';
 import { NextResponse } from 'next/server';
 import { stripe } from '../../../../../lib/stripe';
 import { supabaseAdmin } from '../../../../../lib/supabase';
+import { boundedQuery } from '../../../../../lib/query-timeout';
 import { createClient } from '../../../../../lib/supabase-server';
 import { getAppOrigin } from '../../../../../lib/auth-config';
 
@@ -16,11 +17,23 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { data: connectedAccount } = await supabaseAdmin
-    .from('connected_accounts')
-    .select('id, stripe_account_id, charges_enabled, payouts_enabled, details_submitted, verification_status')
-    .eq('user_id', user.id)
-    .maybeSingle();
+  const { data: connectedAccount, error: connectedAccountError } = await boundedQuery(() =>
+    supabaseAdmin
+      .from('connected_accounts')
+      .select('id, stripe_account_id, charges_enabled, payouts_enabled, details_submitted, verification_status')
+      .eq('user_id', user.id)
+      .maybeSingle(),
+  );
+
+  // `{ connected: false }` is a CLAIM, and the UI renders it as "connect your
+  // Stripe account". An unreadable row made that claim about accounts that are
+  // fully connected. `connected: false` must mean we looked and found nothing.
+  if (connectedAccountError) {
+    return NextResponse.json({
+      error: 'We could not check your Stripe connection right now. Please try again.',
+      code: 'CONNECT_STATUS_UNAVAILABLE',
+    }, { status: 503 });
+  }
 
   if (!connectedAccount) {
     return NextResponse.json({ connected: false, onboarded: false });

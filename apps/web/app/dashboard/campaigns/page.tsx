@@ -89,7 +89,7 @@ function pillTone(status: string): string {
  */
 async function fetchCampaigns(userId: string): Promise<{ campaigns: Campaign[]; failed: boolean }> {
   try {
-    const { data, error } = await boundedQuery(
+    const { data, error } = await boundedQuery(() =>
       supabaseAdmin
         .from('campaigns')
         .select(
@@ -252,7 +252,7 @@ export default async function MyCampaignsPage({
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: '56px minmax(0, 1fr) 120px 140px 80px 90px 110px',
+                gridTemplateColumns: '56px minmax(0, 1fr) minmax(0, 120px) minmax(0, 140px) 80px 90px minmax(0, 110px)',
                 gap: 12,
                 padding: '8px 20px',
                 fontSize: 11,
@@ -290,7 +290,7 @@ export default async function MyCampaignsPage({
                       className="kf-row"
                       style={{
                         display: 'grid',
-                        gridTemplateColumns: '56px minmax(0, 1fr) 120px 140px 80px 90px 110px',
+                        gridTemplateColumns: '56px minmax(0, 1fr) minmax(0, 120px) minmax(0, 140px) 80px 90px minmax(0, 110px)',
                         gap: 12,
                         alignItems: 'center',
                       }}
@@ -309,7 +309,7 @@ export default async function MyCampaignsPage({
 
                       {/* Copy */}
                       <div className="kf-row-main" style={{ minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                           <span className={`kf-pill ${pillTone(c.status)}`} style={{ fontSize: 10 }}>
                             {c.status.charAt(0).toUpperCase() + c.status.slice(1)}
                           </span>
@@ -383,7 +383,7 @@ export default async function MyCampaignsPage({
                       </div>
 
                       {/* Actions */}
-                      <div className="kf-row-action" style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                      <div className="kf-row-action" style={{ display: 'flex', minWidth: 0, gap: 8, justifyContent: 'flex-end' }}>
                         <Link
                           href={`/dashboard/campaigns/${c.id}`}
                           style={{

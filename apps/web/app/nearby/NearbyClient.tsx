@@ -103,7 +103,7 @@ export default function NearbyClient() {
   return (
     <div>
       <Card>
-        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 14, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div style={{ minWidth: 160 }}>
             <Select
               label="Within"
@@ -147,7 +147,7 @@ export default function NearbyClient() {
       </Card>
 
       {loading && (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
+        <div style={{ display: 'flex', minWidth: 0, justifyContent: 'center', padding: 40 }}>
           <Spinner />
         </div>
       )}
@@ -192,7 +192,7 @@ export default function NearbyClient() {
                       />
                     )}
                     <div style={{ padding: 16 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
                         <span style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--violet-ink)' }}>
                           {formatDistance(c.distanceMiles)} away
                         </span>

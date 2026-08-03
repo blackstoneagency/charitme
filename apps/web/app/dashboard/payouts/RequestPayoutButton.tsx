@@ -62,7 +62,7 @@ export default function ManagePayoutsButton({ campaigns }: Props) {
         // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center',
           zIndex: 9999, padding: 16,
         }} onClick={e => { if (e.target === e.currentTarget) setOpen(false); }}>
           <div style={{
@@ -89,7 +89,7 @@ export default function ManagePayoutsButton({ campaigns }: Props) {
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ display: 'flex', minWidth: 0, gap: 10 }}>
               <button
                 type="button"
                 onClick={() => setOpen(false)}

@@ -154,7 +154,7 @@ export default async function PaymentMethodsPage() {
     <CharitMeShell active="settings">
       <TopBar title="Payment Methods" subtitle="Manage your saved payment methods." />
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '22px' }}>
+      <div style={{ display: 'flex', minWidth: 0, justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '22px' }}>
         <p style={{ fontSize: '14px', color: 'var(--t3)', margin: 0 }}>
           Cards are stored by Stripe, our payment processor — CharitMe never sees or keeps your card number.
         </p>
@@ -198,7 +198,7 @@ export default async function PaymentMethodsPage() {
                 gap: '10px',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
                 <strong style={{ fontSize: '15px', color: 'var(--t1)' }}>{card.brand}</strong>
                 {card.isDefault ? (
                   <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '.04em', color: 'var(--green-text)', textTransform: 'uppercase' }}>
@@ -216,7 +216,7 @@ export default async function PaymentMethodsPage() {
                 {String(card.expMonth).padStart(2, '0')}/{String(card.expYear).slice(-2)}
               </div>
 
-              <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+              <div style={{ display: 'flex', minWidth: 0, gap: '10px', marginTop: '4px' }}>
                 <RemoveMethodButton id={card.id} label={`${card.brand} ending ${card.last4}`} />
               </div>
             </div>
@@ -224,7 +224,7 @@ export default async function PaymentMethodsPage() {
         </div>
       )}
 
-      <p style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '26px', fontSize: '13px', color: 'var(--t3)' }}>
+      <p style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: '8px', marginTop: '26px', fontSize: '13px', color: 'var(--t3)' }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <rect x="4" y="10" width="16" height="11" rx="2" />
           <path d="M8 10V7a4 4 0 0 1 8 0v3" />

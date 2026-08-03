@@ -33,7 +33,7 @@ function toDateTimeLocal(value: string | undefined): string {
 
 function Toggle({ label, k, on, warn, onSet }: { label: string; k: keyof PlatformConfig; on: boolean; warn?: boolean; onSet: (k: keyof PlatformConfig, v: unknown) => void }) {
   return (
-    <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--t2)', padding: '8px 0' }}>
+    <label style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--t2)', padding: '8px 0' }}>
       <button type="button" onClick={() => onSet(k, !on)} aria-pressed={on}
         style={{ width: 46, height: 26, borderRadius: 999, border: 'none', cursor: 'pointer', background: on ? (warn ? 'var(--red)' : 'var(--green)') : 'var(--b3)', position: 'relative', flexShrink: 0 }}>
         <span style={{ position: 'absolute', top: 3, left: on ? 23 : 3, width: 20, height: 20, borderRadius: 999, background: 'var(--s1)', transition: 'left .15s' }} />
@@ -89,7 +89,7 @@ export default function SettingsClient({ config: initial }: { config: PlatformCo
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 18 }}>
         <section className="kf-card" style={{ padding: 18 }}>
           <h3 style={{ margin: '0 0 12px', fontSize: 15 }}>Branding</h3>
-          <div style={{ display: 'grid', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
             <Field label="Platform name" k="platformName" value={c.platformName} ph="CharitMe" onSet={set} />
             <Field label="Tagline" k="tagline" value={c.tagline} onSet={set} />
             <Field label="Support email" k="supportEmail" value={c.supportEmail} ph="hello@charitme.com" onSet={set} />
@@ -98,7 +98,7 @@ export default function SettingsClient({ config: initial }: { config: PlatformCo
         </section>
         <section className="kf-card" style={{ padding: 18 }}>
           <h3 style={{ margin: '0 0 12px', fontSize: 15 }}>Fees &amp; currency</h3>
-          <div style={{ display: 'grid', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
             <Field label="Default currency (ISO)" k="currency" value={c.currency} ph="USD" onSet={set} />
             <Field label="Platform fee %" k="platformFeePercent" value={c.platformFeePercent} type="number" onSet={set} />
             <Field label="Processing fee %" k="donationFeePercent" value={c.donationFeePercent} type="number" onSet={set} />
@@ -144,7 +144,7 @@ export default function SettingsClient({ config: initial }: { config: PlatformCo
         )}
       </section>
 
-      <div style={{ marginTop: 20, display: 'flex', gap: 12, alignItems: 'center' }}>
+      <div style={{ marginTop: 20, display: 'flex', minWidth: 0, gap: 12, alignItems: 'center' }}>
         <button style={btn} onClick={save} disabled={busy}>{busy ? 'Saving…' : 'Save settings'}</button>
         <span style={{ color: 'var(--t3)', fontSize: 12 }}>Applies platform-wide immediately.</span>
       </div>

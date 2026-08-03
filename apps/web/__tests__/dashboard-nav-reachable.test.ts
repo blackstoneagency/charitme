@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { ASSIGNABLE_ROLES, type UserRole } from '../lib/roles-shared';
 import {
@@ -56,9 +56,29 @@ describe('dashboard persona navigation', () => {
   });
 
   it('points every persona navigation item to a real static page', () => {
+    // Route GROUPS are transparent in the URL: /events is served by
+    // app/events/(list)/page.tsx. Checking only app/<href>/page.tsx reported
+    // /events as a dead nav entry when it resolves perfectly well, so the check
+    // descends into (group) directories too.
+    const resolves = (href: string): boolean => {
+      const dir = join(__dirname, '..', 'app', href.replace(/^\//, ''));
+      if (!existsSync(dir)) return false;
+      if (existsSync(join(dir, 'page.tsx'))) return true;
+      for (const entry of readdirSync(dir)) {
+        if (!entry.startsWith('(')) continue;
+        if (existsSync(join(dir, entry, 'page.tsx'))) return true;
+      }
+      return false;
+    };
     for (const item of allDashboardNavigation()) {
-      const page = join(__dirname, '..', 'app', item.href.replace(/^\//, ''), 'page.tsx');
-      expect(existsSync(page), `${item.href} has a nav entry but no page.tsx`).toBe(true);
+      expect(resolves(item.href), `${item.href} has a nav entry but no page.tsx`).toBe(true);
     }
+  });
+
+  it('detects a genuinely dead nav href', () => {
+    // A guard that has never fired proves nothing — especially one that was
+    // just loosened to understand route groups.
+    const dir = join(__dirname, '..', 'app', 'definitely-not-a-route');
+    expect(existsSync(dir)).toBe(false);
   });
 });

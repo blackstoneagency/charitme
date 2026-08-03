@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import type Stripe from 'stripe';
 import { z } from 'zod';
 import { supabaseAdmin } from '../../../lib/supabase';
+import { boundedQuery } from '../../../lib/query-timeout';
 import { createClient } from '../../../lib/supabase-server';
 import { createCheckoutSession, ONE_TIME_PAYMENT_METHOD_TYPES } from '../../../lib/stripe';
 import {
@@ -139,12 +140,24 @@ export async function POST(request: NextRequest) {
   const processingFeeCents = coverProcessingFee ? methodProcessingFee(subTotalCents, paymentMethod) : 0;
 
   // ── Fetch campaign ──────────────────────────────────────────────────────────
-  const { data: campaign } = await supabaseAdmin
-    .from('campaigns')
-    .select('id, title, slug, status, user_id, beneficiary_profile_id, accept_donations, deadline')
-    .eq('id', campaignId)
-    .single();
+  // `.maybeSingle()`, not `.single()`: `.single()` reports "no rows" AS AN ERROR,
+  // which makes a missing campaign indistinguishable from an unreadable one. The
+  // difference decides whether a donor is told their campaign does not exist.
+  const { data: campaign, error: campaignError } = await boundedQuery(() =>
+    supabaseAdmin
+      .from('campaigns')
+      .select('id, title, slug, status, user_id, beneficiary_profile_id, accept_donations, deadline')
+      .eq('id', campaignId)
+      .maybeSingle(),
+  );
 
+  // A failed read is NOT a missing campaign. This discarded `error` and answered
+  // 404 "Campaign not found" — telling a donor mid-checkout that a live campaign
+  // does not exist, because a query timed out or `supabaseAdmin`'s Proxy threw.
+  // 503 is the honest answer and matches ACCOUNT_STATUS_UNAVAILABLE below: we
+  // could not check, so we do not proceed and we ask them to retry.
+  if (campaignError)
+    return NextResponse.json({ error: 'We could not process this donation right now. Please try again.', code: 'CAMPAIGN_LOOKUP_UNAVAILABLE' }, { status: 503 });
   if (!campaign)
     return NextResponse.json({ error: 'Campaign not found', code: 'NOT_FOUND' }, { status: 404 });
   if (campaign.status !== 'active')
@@ -205,21 +218,42 @@ export async function POST(request: NextRequest) {
   }
 
   // ── Campaign currency (defaults to USD) ─────────────────────────────────────
-  const { data: launchSettings } = await supabaseAdmin
-    .from('campaign_launch_settings')
-    .select('currency')
-    .eq('campaign_id', campaignId)
-    .maybeSingle();
+  //
+  // ⚠️ The default is only safe when the row was genuinely READ. `normalizeCurrency`
+  // maps anything unrecognised — including `undefined` — to USD, so a discarded
+  // error here silently charged a GBP or EUR campaign's donor in DOLLARS. That is
+  // a wrong amount taken from a real card, not a display glitch, and it is
+  // invisible afterwards because the donation records the currency it charged.
+  //
+  // "No row" still legitimately means USD: campaigns without launch settings are
+  // the default-currency case. Only a genuine read FAILURE stops the checkout.
+  const { data: launchSettings, error: launchSettingsError } = await boundedQuery(() =>
+    supabaseAdmin
+      .from('campaign_launch_settings')
+      .select('currency')
+      .eq('campaign_id', campaignId)
+      .maybeSingle(),
+  );
+  if (launchSettingsError)
+    return NextResponse.json({ error: 'We could not process this donation right now. Please try again.', code: 'CURRENCY_LOOKUP_UNAVAILABLE' }, { status: 503 });
   const currency = normalizeCurrency(launchSettings?.currency).toLowerCase();
 
   // ── Reward / perk tier validation ───────────────────────────────────────────
   if (rewardId) {
-    const { data: reward } = await supabaseAdmin
-      .from('campaign_rewards')
-      .select('id, campaign_id, amount_cents, item_limit, claimed_count')
-      .eq('id', rewardId)
-      .single();
+    const { data: reward, error: rewardError } = await boundedQuery(() =>
+      supabaseAdmin
+        .from('campaign_rewards')
+        .select('id, campaign_id, amount_cents, item_limit, claimed_count')
+        .eq('id', rewardId)
+        .maybeSingle(),
+    );
 
+    // Same distinction as the campaign lookup. Answering "Reward not found" on an
+    // unreadable row is worse than it looks: the donor picked a real perk, and the
+    // obvious recovery is to retry WITHOUT it — completing a donation that quietly
+    // drops the reward they chose.
+    if (rewardError)
+      return NextResponse.json({ error: 'We could not process this donation right now. Please try again.', code: 'REWARD_LOOKUP_UNAVAILABLE' }, { status: 503 });
     if (!reward || reward.campaign_id !== campaignId)
       return NextResponse.json({ error: 'Reward not found', code: 'REWARD_NOT_FOUND' }, { status: 404 });
     if (amountCents < reward.amount_cents)

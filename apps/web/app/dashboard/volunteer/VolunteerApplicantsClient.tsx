@@ -178,10 +178,10 @@ export default function VolunteerApplicantsClient() {
       key={a.id}
       style={{
         border: '1px solid var(--b2)', borderRadius: 12, padding: '14px 16px',
-        background: 'var(--s1)', display: 'grid', gap: 10,
+        background: 'var(--s1)', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', minWidth: 0, alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div style={{ minWidth: 0 }}>
           <strong style={{ fontSize: 15, color: 'var(--t1)' }}>{a.name}</strong>
           {a.profile?.headline && (
@@ -195,7 +195,7 @@ export default function VolunteerApplicantsClient() {
       </div>
 
       {a.profile && (
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 6, flexWrap: 'wrap' }}>
           {a.profile.skills.slice(0, 8).map((s) => (
             <span key={s} style={{ fontSize: 11.5, fontWeight: 600, padding: '2px 8px', borderRadius: 6, background: 'var(--s2)', color: 'var(--t2)' }}>
               {s}
@@ -219,7 +219,7 @@ export default function VolunteerApplicantsClient() {
       )}
 
       {a.status === 'applied' && (
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap' }}>
           <button
             type="button"
             className="kf-primary"
@@ -255,7 +255,7 @@ export default function VolunteerApplicantsClient() {
   );
 
   return (
-    <div style={{ display: 'grid', gap: 20 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 20 }}>
       {error && (
         <p role="alert" style={{ color: 'var(--red-text)', fontSize: 13.5, margin: 0 }}>{error}</p>
       )}
@@ -267,7 +267,7 @@ export default function VolunteerApplicantsClient() {
         {pending.length === 0 ? (
           <p style={{ color: 'var(--t3)', fontSize: 13.5, margin: 0 }}>Nothing waiting on you.</p>
         ) : (
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 12 }}>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
             {pending.map(card)}
           </ul>
         )}
@@ -276,7 +276,7 @@ export default function VolunteerApplicantsClient() {
       {decided.length > 0 && (
         <section>
           <h3 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 10px' }}>Decided ({decided.length})</h3>
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 12 }}>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
             {decided.map(card)}
           </ul>
         </section>

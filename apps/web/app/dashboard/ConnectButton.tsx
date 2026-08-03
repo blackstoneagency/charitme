@@ -52,7 +52,7 @@ export default function ConnectButton() {
   // Fully onboarded and enabled
   if (status?.connected && status.onboarded && status.chargesEnabled && status.payoutsEnabled) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8 }}>
         <span style={{ fontSize: 12, color: 'var(--green-text)', fontWeight: 700 }}>✓ Stripe connected</span>
         <Btn onClick={handleConnect} loading={loading} variant="ghost" style={{ fontSize: 12, padding: '6px 12px' }}>
           Manage

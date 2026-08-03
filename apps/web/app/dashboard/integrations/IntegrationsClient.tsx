@@ -86,13 +86,13 @@ function ConnectModal({
     // Escape and the visible close button provide the keyboard path.
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div
-      style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
+      style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="kf-modal-responsive" style={{ width: 440, background: 'var(--s1, #fff)', borderRadius: 16, boxShadow: '0 20px 60px rgba(20,20,80,.18)', overflow: 'hidden' }}>
-        <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid var(--b1, var(--b1))', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid var(--b1, var(--b1))', display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10 }}>
               <span style={{ fontSize: 24 }}>{item.icon}</span>
               <strong style={{ fontSize: 16, fontWeight: 650 }}>Connect {item.name}</strong>
             </div>
@@ -101,13 +101,13 @@ function ConnectModal({
           <button type="button" onClick={onClose} style={{ width: 30, height: 30, border: '1px solid var(--b1, var(--b1))', borderRadius: '50%', background: 'var(--s1, #fff)', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: 'var(--t3, var(--t3))' }}>×</button>
         </div>
 
-        <div style={{ padding: 24, display: 'grid', gap: 14 }}>
+        <div style={{ padding: 24, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14 }}>
           {error && (
             <div style={{ padding: '10px 14px', background: 'rgba(190,18,60,.08)', borderRadius: 9, color: 'var(--red, var(--red))', fontSize: 13, fontWeight: 700 }}>{error}</div>
           )}
 
           {needsWebhook ? (
-            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
+            <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
               Webhook URL
               <input
                 type="url"
@@ -121,7 +121,7 @@ function ConnectModal({
               </span>
             </label>
           ) : (
-            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
+            <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
               {item.name === 'Google Analytics' ? 'Tracking ID / Measurement ID' : item.name === 'Facebook Pixel' ? 'Pixel ID' : 'API Key'}
               <input
                 type="text"
@@ -141,7 +141,7 @@ function ConnectModal({
           )}
         </div>
 
-        <div style={{ padding: '14px 24px', borderTop: '1px solid var(--b1)', display: 'flex', gap: 10 }}>
+        <div style={{ padding: '14px 24px', borderTop: '1px solid var(--b1)', display: 'flex', minWidth: 0, gap: 10 }}>
           <button type="button" onClick={onClose} style={{ flex: 1, height: 42, border: '1px solid var(--b1)', borderRadius: 9, background: 'var(--s1)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
             Cancel
           </button>
@@ -182,8 +182,8 @@ function IntegrationCard({
       flexDirection: 'column',
       gap: 10,
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <span style={{ fontSize: 28, lineHeight: 1, width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--s3)', borderRadius: 10 }}>
+      <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12 }}>
+        <span style={{ fontSize: 28, lineHeight: 1, width: 44, height: 44, display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', background: 'var(--s3)', borderRadius: 10 }}>
           {item.icon}
         </span>
         <div>
@@ -194,7 +194,7 @@ function IntegrationCard({
         </div>
       </div>
       <p style={{ fontSize: 13, color: 'var(--t2)', margin: 0, lineHeight: 1.5 }}>{item.desc}</p>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
         {connected ? (
           <span className="kf-pill green" style={{ fontSize: 11 }}>Connected</span>
         ) : (

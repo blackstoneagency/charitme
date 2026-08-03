@@ -255,12 +255,12 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
   ];
 
   return (
-    <div style={{ padding: '24px 32px', display: 'grid', gap: 20 }}>
+    <div style={{ padding: '24px 32px', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 20 }}>
 
       {/* Pipeline flow */}
       <div style={card}>
         <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--t3)', marginBottom: 12 }}>LEAD PIPELINE</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
           {PIPELINE_STEPS.map((step, i) => (
             <React.Fragment key={step.label}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 78 }}>
@@ -295,8 +295,8 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
       </div>
 
       {/* Toolbar */}
-      <div style={{ ...card, display: 'grid', gap: 12 }}>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+      <div style={{ ...card, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
           <button
             type="button"
             onClick={() => void ingest('sample')}
@@ -306,14 +306,14 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
             {ingesting ? 'Working…' : '＋ Add sample filings'}
           </button>
 
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <div style={{ display: 'flex', minWidth: 0, gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
             <input
               type="date"
               value={ocDateFrom}
               max={ocDateTo}
               onChange={(e) => setOcDateFrom(e.target.value)}
               aria-label="Filed from"
-              style={{ padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 10, fontSize: 13 }}
+              style={{ padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 10, fontSize: 13, minWidth: 0, maxWidth: '100%' }}
             />
             <span style={{ color: 'var(--t3)', fontSize: 12 }}>to</span>
             <input
@@ -322,7 +322,7 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
               min={ocDateFrom}
               onChange={(e) => setOcDateTo(e.target.value)}
               aria-label="Filed to"
-              style={{ padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 10, fontSize: 13 }}
+              style={{ padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 10, fontSize: 13, minWidth: 0, maxWidth: '100%' }}
             />
           </div>
 
@@ -337,7 +337,7 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
           </button>
         </div>
 
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', whiteSpace: 'nowrap' }}>🏛️ Free state registry:</span>
           <select aria-label="State business registry" value={stateFeed} onChange={(e) => setStateFeed(e.target.value as StateFeedCode)} style={selectStyle}>
             {stateFeedOptions.map(([code, src]) => <option key={code} value={code}>{src.label}</option>)}
@@ -377,9 +377,9 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
           <div style={{ fontSize: 14, fontWeight: 900, color: '#1d4ed8', marginBottom: 10 }}>
             ⚡ Auto-pull (last 24h): {autoPullResult.inserted} new · {autoPullResult.enriched} enriched · {autoPullResult.alerted} alerted
           </div>
-          <div style={{ display: 'grid', gap: 6 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6 }}>
             {Object.entries(autoPullResult.sources).map(([src, r]) => (
-              <div key={src} style={{ display: 'flex', gap: 8, fontSize: 12.5, fontFamily: 'monospace' }}>
+              <div key={src} style={{ display: 'flex', minWidth: 0, gap: 8, fontSize: 12.5, fontFamily: 'monospace' }}>
                 <strong style={{ minWidth: 140 }}>{src}</strong>
                 <span style={{ color: 'var(--t3)' }}>
                   {r.error ? `error: ${r.error}` : `${r.inserted} inserted, ${r.skipped} skipped`}
@@ -396,9 +396,9 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
           <div style={{ fontSize: 14, fontWeight: 900, color: testResult.ok ? 'var(--green-text)' : 'var(--red-text)', marginBottom: 10 }}>
             {testResult.ok ? '✅ All API checks passed' : '❌ Some API checks failed'}
           </div>
-          <div style={{ display: 'grid', gap: 6 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6 }}>
             {testResult.checks.map((c) => (
-              <div key={c.name} style={{ display: 'flex', gap: 8, fontSize: 12.5, fontFamily: 'monospace' }}>
+              <div key={c.name} style={{ display: 'flex', minWidth: 0, gap: 8, fontSize: 12.5, fontFamily: 'monospace' }}>
                 <span>{c.ok ? '✓' : '✗'}</span>
                 <strong style={{ minWidth: 180 }}>{c.name}</strong>
                 <span style={{ color: 'var(--t3)' }}>{c.detail}</span>
@@ -409,7 +409,7 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
       )}
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
         <input
           aria-label="Search leads" value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -456,7 +456,7 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
                   <tr key={l.id} style={{ borderTop: i > 0 ? '1px solid #f0f4f8' : undefined, verticalAlign: 'top' }}>
                     {/* Business */}
                     <td style={{ padding: '12px 16px' }}>
-                      <div style={{ fontWeight: 700, color: 'var(--t1)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ fontWeight: 700, color: 'var(--t1)', display: 'flex', minWidth: 0, alignItems: 'center', gap: 6 }}>
                         {l.business_name}
                         {l.alerted && <span title="Admin alerted">🔔</span>}
                       </div>
@@ -485,7 +485,7 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
                     {/* Contact */}
                     <td style={{ padding: '12px 16px', minWidth: 190 }}>
                       {l.enriched_at ? (
-                        <div style={{ display: 'grid', gap: 2, fontSize: 12.5 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 2, fontSize: 12.5 }}>
                           {l.website ? <a href={l.website} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--blue-text)', textDecoration: 'none' }}>🌐 {l.website.replace(/^https?:\/\//, '')}</a> : <span style={{ color: 'var(--t3)' }}>🌐 —</span>}
                           {l.email ? <a href={`mailto:${l.email}`} style={{ color: 'var(--brand-text)', textDecoration: 'none' }}>✉️ {l.email}</a> : <span style={{ color: 'var(--t3)' }}>✉️ —</span>}
                           {l.phone ? <span style={{ color: 'var(--t2)' }}>📞 {l.phone}</span> : <span style={{ color: 'var(--t3)' }}>📞 —</span>}

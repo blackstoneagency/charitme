@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../lib/supabase';
+import { boundedQuery } from '../../lib/query-timeout';
 import { campaignColumns, applyLiveFilters } from '../../lib/campaign-visibility';
 import { ProgressBar, Card, EmptyState } from '../../components/ui';
 import { formatCents } from '../../lib/stripe';
@@ -56,17 +57,23 @@ interface CrisisCampaign {
 async function getCrisisCampaigns(): Promise<{ rows: CrisisCampaign[]; loadFailed: boolean }> {
   try {
     const cols = await campaignColumns();
-    const { data, error } = await applyLiveFilters(
-      supabaseAdmin
-        .from('campaigns')
-        .select(
-          'id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, location, created_at',
-        ),
-      cols,
-    )
-      .eq('category', 'Emergency')
-      .order('created_at', { ascending: false })
-      .limit(24);
+    // Bounded: a stalled database used to hold this page for ~7s with no
+    // ceiling. A timeout synthesises `{ data: null, error }`, so it takes the
+    // `loadFailed` branch below — which already says "we could not load these"
+    // rather than "there are no appeals".
+    const { data, error } = await boundedQuery(() =>
+      applyLiveFilters(
+        supabaseAdmin
+          .from('campaigns')
+          .select(
+            'id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, location, created_at',
+          ),
+        cols,
+      )
+        .eq('category', 'Emergency')
+        .order('created_at', { ascending: false })
+        .limit(24),
+    );
 
     if (error) return { rows: [], loadFailed: true };
     return { rows: (data ?? []) as CrisisCampaign[], loadFailed: false };

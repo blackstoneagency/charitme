@@ -42,7 +42,7 @@ export default function DocumentsClient({
   }, [documents]);
 
   return (
-    <div className="kf-admin-dash" style={{ display: 'grid', gap: 20, maxWidth: 900 }}>
+    <div className="kf-admin-dash" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 20, maxWidth: 900 }}>
       {failedSources.length > 0 && (
         <div
           role="alert"
@@ -62,8 +62,8 @@ export default function DocumentsClient({
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }} role="group" aria-label="Filter by type">
+      <div style={{ display: 'flex', minWidth: 0, gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap' }} role="group" aria-label="Filter by type">
           {CATEGORIES.map((c) => (
             <button
               key={c}
@@ -119,12 +119,12 @@ export default function DocumentsClient({
         />
       ) : (
         <Card>
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 8 }}>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8 }}>
             {visible.map((d) => (
               <li
                 key={d.id}
                 style={{
-                  display: 'flex',
+                  display: 'flex', minWidth: 0,
                   gap: 12,
                   alignItems: 'center',
                   flexWrap: 'wrap',

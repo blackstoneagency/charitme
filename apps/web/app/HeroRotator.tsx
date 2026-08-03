@@ -212,7 +212,7 @@ export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero
         <div style={{
           position: 'absolute', inset: 0, zIndex: 20,
           background: 'linear-gradient(135deg,rgba(108,53,255,.08),rgba(180,59,239,.08))',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center',
         }}>
           <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid rgba(108,53,255,.2)', borderTopColor: '#6c35ff', animation: 'spin 0.8s linear infinite' }} />
         </div>
@@ -291,7 +291,7 @@ export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero
           borderBottom: count > 1 ? '1px solid rgba(108,53,255,.16)' : undefined,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+        <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, marginBottom: 4 }}>
           <div className="kind-verified">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width={14} height={14}><path d="M20 6L9 17l-5-5"/></svg>
             {campaign?.trust_status === 'Verified' ? 'VERIFIED CAMPAIGN' : 'ACTIVE CAMPAIGN'}
@@ -354,12 +354,12 @@ export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero
           </div>
           {/* Label row */}
           <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', justifyContent: 'space-between',
             padding: '6px 14px 7px',
             fontSize: 11, color: 'rgba(108,53,255,.8)', fontWeight: 700,
           }}>
             <span>Campaign {active + 1} of {count}</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 4 }}>
               {paused ? (
                 <>⏸ Paused</>
               ) : (
@@ -403,7 +403,7 @@ export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero
           {/* Prev / Next arrows */}
           <div style={{
             position: 'absolute', right: 0, top: 432,
-            display: 'flex', gap: 8, zIndex: 12,
+            display: 'flex', minWidth: 0, gap: 8, zIndex: 12,
           }}>
             {[{ label: '‹', fn: retreat, aria: 'Previous campaign' }, { label: '›', fn: advance, aria: 'Next campaign' }].map(btn => (
               <button
@@ -416,7 +416,7 @@ export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero
                   background: 'rgba(255,255,255,.92)',
                   border: '1px solid rgba(108,53,255,.3)',
                   cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center',
                   boxShadow: '0 2px 8px rgba(0,0,0,.10)',
                   fontSize: 16, color: 'var(--brand-text)', fontWeight: 700,
                   transition: 'background .15s',

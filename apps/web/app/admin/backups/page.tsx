@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../lib/query-timeout';
 import 'server-only';
 import Link from 'next/link';
 import type { Metadata } from 'next';
@@ -42,13 +43,13 @@ type RetentionRun = {
 export default async function BackupsPage() {
   // Deletion activity is the piece of recovery posture this app can actually
   // measure. `null` means unknown — never rendered as "nothing was deleted".
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await boundedQuery(() => supabaseAdmin
     .from('data_retention_runs')
     .select('id, category, deleted_count, dry_run, ran_at')
     .eq('dry_run', false)
     .gt('deleted_count', 0)
     .order('ran_at', { ascending: false })
-    .limit(10);
+    .limit(10));
 
   const deletions: RetentionRun[] | null = error ? null : ((data ?? []) as RetentionRun[]);
 
@@ -60,7 +61,7 @@ export default async function BackupsPage() {
   };
 
   return (
-    <div className="kf-admin-dash" style={{ display: 'grid', gap: 20, maxWidth: 880 }}>
+    <div className="kf-admin-dash" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 20, maxWidth: 880 }}>
       <header>
         <h1 style={{ margin: 0, fontSize: 22 }}>Backups &amp; Recovery</h1>
         <p style={{ margin: '4px 0 0', color: 'var(--t3)', fontSize: 14 }}>
@@ -89,7 +90,7 @@ export default async function BackupsPage() {
 
       <section style={card}>
         <h2 style={{ margin: '0 0 12px', fontSize: 16 }}>Where the data is</h2>
-        <dl style={{ margin: 0, display: 'grid', gap: 10, fontSize: 14 }}>
+        <dl style={{ margin: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10, fontSize: 14 }}>
           <div>
             <dt style={{ color: 'var(--t3)', fontSize: 12 }}>Primary database</dt>
             <dd style={{ margin: 0 }}>Supabase-managed PostgreSQL. Backups, retention window and
@@ -155,7 +156,7 @@ export default async function BackupsPage() {
             is the expected state unless someone enabled it deliberately.
           </p>
         ) : (
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 8 }}>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8 }}>
             {deletions.map((r) => (
               <li key={r.id} style={{ fontSize: 13, color: 'var(--t2)' }}>
                 <strong style={{ color: 'var(--t1)' }}>{r.category}</strong> — {r.deleted_count}{' '}

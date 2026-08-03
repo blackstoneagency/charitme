@@ -36,7 +36,7 @@ export default function ChangelogPage() {
           What we have shipped, most recent first. Every entry here is live on CharitMe today.
         </p>
 
-        <ol style={{ listStyle: 'none', margin: '32px 0 0', padding: 0, display: 'grid', gap: 32 }}>
+        <ol style={{ listStyle: 'none', margin: '32px 0 0', padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 32 }}>
           {CHANGELOG.map((release) => (
             <li key={release.date}>
               <article>
@@ -49,9 +49,9 @@ export default function ChangelogPage() {
                   </time>
                   <h2 style={{ margin: '4px 0 0', fontSize: 20 }}>{release.title}</h2>
                 </header>
-                <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 10 }}>
+                <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
                   {release.changes.map((change, i) => (
-                    <li key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                    <li key={i} style={{ display: 'flex', minWidth: 0, gap: 10, alignItems: 'flex-start' }}>
                       <span
                         style={{
                           flex: '0 0 auto',

@@ -43,10 +43,10 @@ export default async function GrantDetailPage({ params }: { params: Promise<{ sl
       <Link href="/grants" style={{ fontSize: 13, fontWeight: 700, color: 'var(--t3)' }}>← All grants</Link>
 
       <div style={{ marginTop: 16 }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'flex-start' }}>
+        <div style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 24, alignItems: 'flex-start' }}>
           {/* Main */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flex: '1 1 440px', minWidth: 0 }}>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+            <div style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--t3)', textTransform: 'capitalize' }}>
                 {grant.funder_type} · {grant.funder_name}
               </span>
@@ -59,7 +59,7 @@ export default async function GrantDetailPage({ params }: { params: Promise<{ sl
             {grant.summary && <p style={{ fontSize: 16, color: 'var(--t2)', margin: 0, lineHeight: 1.5 }}>{grant.summary}</p>}
 
             {grant.focus_areas.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <div style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 6 }}>
                 {grant.focus_areas.map((f) => <Badge key={f} color="gray">{f}</Badge>)}
               </div>
             )}
@@ -76,7 +76,7 @@ export default async function GrantDetailPage({ params }: { params: Promise<{ sl
                 <h2 style={{ fontSize: 16, fontWeight: 800, color: 'var(--t1)', margin: '8px 0' }}>Eligibility</h2>
                 <p style={{ fontSize: 15, color: 'var(--t2)', lineHeight: 1.65, whiteSpace: 'pre-wrap', margin: 0 }}>{grant.eligibility}</p>
                 {grant.eligible_entity_types.length > 0 && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
+                  <div style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
                     {grant.eligible_entity_types.map((t) => <Badge key={t} color="gray">{t}</Badge>)}
                   </div>
                 )}
@@ -118,7 +118,7 @@ export default async function GrantDetailPage({ params }: { params: Promise<{ sl
                 <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 6 }}>Key dates</div>
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {deadlines.map((d) => (
-                    <li key={d.id} style={{ fontSize: 13, color: 'var(--t2)', display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                    <li key={d.id} style={{ fontSize: 13, color: 'var(--t2)', display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', gap: 8 }}>
                       <span style={{ textTransform: 'capitalize' }}>{d.label}</span>
                       <span style={{ fontWeight: 700, whiteSpace: 'nowrap' }}>{new Date(d.due_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                     </li>

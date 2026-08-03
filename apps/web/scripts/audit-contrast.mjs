@@ -31,6 +31,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
+import dataDependent from '../e2e/data-dependent-routes.json' with { type: 'json' };
 import { resolveBase } from './lib/audit-base.mjs';
 import { resolveChromium } from './lib/audit-browser.mjs';
 
@@ -77,6 +78,8 @@ const ROUTE_DATA = JSON.parse(
 // and the run fails loudly on the redirect guard below rather than quietly
 // measuring the login page 97 times.
 const WITH_AUTH = argv.includes('--auth');
+// Set by audit-signed-in.mjs --no-admin: /admin/* is out of scope for a member.
+const SKIP_ADMIN = process.env.AUDIT_SKIP_ADMIN === '1';
 const SESSION_COOKIE = process.env.STUB_SESSION_COOKIE ?? '';
 
 // The campaign-embed fixture needs seeded data; the e2e sweep covers it.
@@ -300,6 +303,14 @@ for (const theme of THEMES) {
 
   if (WITH_AUTH && theme === THEMES[0]) {
     for (const expected of ROUTE_DATA.authGated.redirects) {
+      // A member session cannot reach /admin/*, so these compatibility aliases
+      // land on /dashboard instead of their admin destination. That is CORRECT
+      // for a member, and counting it as a failure kept the member-mode run
+      // permanently red — the same reason audit-mobile skips them.
+      if (SKIP_ADMIN && expected.from.startsWith('/admin')) {
+        console.log(`\u00b7 redirect ${expected.from} - SKIPPED (admin route, member session)`);
+        continue;
+      }
       try {
         const response = await page.goto(BASE + expected.from, {
           waitUntil: 'domcontentloaded',
@@ -344,6 +355,22 @@ for (const theme of THEMES) {
         waitUntil: 'domcontentloaded',
         timeout: 45000,
       });
+      // ⚠️ There are TWO status checks in this function — this one, and a second
+      // further down that is unreachable for any 4xx because this one already
+      // continues. A fix applied to the wrong one looks correct and changes
+      // nothing; that happened once. Change THIS one.
+      //
+      // A data-dependent route is SKIPPED rather than counted as a contrast
+      // failure: it 404s on any database without the stub fixtures.
+      // audit-a11y, audit-mobile, audit-page-images, e2e/data-routes and
+      // audit-responsive all already share this list. This sweep did not, so it
+      // reported 6 failures on every run — and a permanently-red audit is an
+      // ignored audit, which is precisely how a real light-mode contrast bug
+      // reached production here once already.
+      if (response?.status() === 404 && dataDependent.includes(path)) {
+        if (!AS_JSON) console.log(`\u00b7 ${theme} ${path} - SKIPPED (needs seeded data, HTTP 404)`);
+        continue;
+      }
       if (!response || response.status() >= 400) {
         failures++;
         const status = response?.status() ?? 'NO_RESPONSE';

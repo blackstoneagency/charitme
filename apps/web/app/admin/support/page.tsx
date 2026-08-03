@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../lib/query-timeout';
 import 'server-only';
 import { requireAdmin } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
@@ -93,27 +94,27 @@ export default async function AdminSupportPage() {
   await requireAdmin();
 
   const [openResult, inProgResult, resolvedResult, urgentResult] = await Promise.all([
-    supabaseAdmin
+    boundedQuery(() => supabaseAdmin
       .from('support_cases')
       .select('id, subject, status, priority, created_at, submitter_id, profiles:submitter_id(full_name, email)')
       .eq('status', 'open')
       .order('created_at', { ascending: false })
-      .limit(50),
-    supabaseAdmin
+      .limit(50)),
+    boundedQuery(() => supabaseAdmin
       .from('support_cases')
       .select('id, subject, status, priority, created_at, submitter_id, profiles:submitter_id(full_name, email)')
       .eq('status', 'in_progress')
       .order('created_at', { ascending: false })
-      .limit(20),
-    supabaseAdmin
+      .limit(20)),
+    boundedQuery(() => supabaseAdmin
       .from('support_cases')
       .select('id', { count: 'exact', head: true })
-      .eq('status', 'resolved'),
-    supabaseAdmin
+      .eq('status', 'resolved')),
+    boundedQuery(() => supabaseAdmin
       .from('support_cases')
       .select('id', { count: 'exact', head: true })
       .eq('priority', 'urgent')
-      .in('status', ['open', 'in_progress']),
+      .in('status', ['open', 'in_progress'])),
   ]);
 
   // `count` is null and `data` is null whenever a query errors, so `?? 0` / `?? []`

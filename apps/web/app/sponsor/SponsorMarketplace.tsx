@@ -22,7 +22,7 @@ function OpportunityCard({ o }: { o: OpportunityWithOrganizer }) {
         color: 'inherit',
       }}
     >
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
         <Badge color="blue">{o.category}</Badge>
         {o.min_amount_cents > 0 && (
           <Badge color="gray">From {formatMoneyShort(o.min_amount_cents, o.currency)}</Badge>
@@ -97,7 +97,7 @@ export default function SponsorMarketplace({
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', marginBottom: 24 }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 12, flexWrap: 'wrap', alignItems: 'center', marginBottom: 24 }}>
         <input
           type="search"
           placeholder="Search opportunities…"
@@ -121,7 +121,7 @@ export default function SponsorMarketplace({
       </div>
 
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}>
+        <div style={{ display: 'flex', minWidth: 0, justifyContent: 'center', padding: 60 }}>
           <Spinner />
         </div>
       ) : opportunities.length === 0 ? (

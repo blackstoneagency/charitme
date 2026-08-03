@@ -47,7 +47,7 @@ export default async function GiveThanksPage({
           Donations appear on each campaign within a few moments of the payment clearing. If you do not
           see yours, it is still processing — nothing is lost.
         </p>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 12, flexWrap: 'wrap' }}>
           <Link
             href="/donor"
             style={{ fontSize: 14, fontWeight: 700, color: 'var(--violet-ink)', textDecoration: 'none' }}

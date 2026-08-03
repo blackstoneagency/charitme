@@ -84,7 +84,7 @@ export default function SharePanel({ campaignId }: { campaignId: string }) {
   }
 
   return (
-    <div style={{ display: 'grid', gap: 24, maxWidth: 900 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 24, maxWidth: 900 }}>
       <div>
         <h2 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 700, color: 'var(--t1)' }}>Share &amp; Grow</h2>
         <p style={{ margin: 0, fontSize: 14, color: 'var(--t3)' }}>
@@ -96,7 +96,7 @@ export default function SharePanel({ campaignId }: { campaignId: string }) {
       <section className="kf-card" style={{ padding: 24 }}>
         <h2 style={{ fontSize: 15, fontWeight: 650, margin: '0 0 6px' }}>Share Links</h2>
         <p style={{ fontSize: 13, color: 'var(--t3)', margin: '0 0 16px' }}>UTM-tagged links so you can track which channel drives the most donations.</p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+        <div style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 10 }}>
           {Object.entries(shareLinks).map(([channel, url]) => {
             const ch = CHANNELS.find(c => c.type === channel);
             if (!ch) return null;
@@ -125,7 +125,7 @@ export default function SharePanel({ campaignId }: { campaignId: string }) {
         <p style={{ fontSize: 13, color: 'var(--t3)', margin: '0 0 16px' }}>Generate ready-to-use posts, emails, and updates for any channel in one click.</p>
 
         {/* Channel selector */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+        <div style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
           {CHANNELS.map(ch => (
             <button key={ch.type} type="button" onClick={() => { setActiveChannel(ch.type); setContent(''); }}
               style={{ padding: '7px 16px', borderRadius: 20, border: '1.5px solid', borderColor: activeChannel === ch.type ? ch.text : 'var(--b2)', background: activeChannel === ch.type ? ch.tint : 'var(--s1)', color: activeChannel === ch.type ? ch.text : 'var(--t2)', fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'all .1s' }}>
@@ -135,7 +135,7 @@ export default function SharePanel({ campaignId }: { campaignId: string }) {
         </div>
 
         {/* Context input */}
-        <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t1)', marginBottom: 14 }}>
+        <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t1)', marginBottom: 14 }}>
           Extra context <span style={{ fontWeight: 400, color: 'var(--t3)' }}>optional — e.g. &ldquo;we just hit 50% of our goal&rdquo;</span>
           <input value={context} onChange={e => setContext(e.target.value)} maxLength={200} placeholder="Any specific message or milestone to include..."
             style={{ height: 42, border: '1.5px solid var(--b2)', borderRadius: 10, padding: '0 14px', fontSize: 14, outline: 'none', background: 'var(--s1)', color: 'var(--t1)' }} />
@@ -150,7 +150,7 @@ export default function SharePanel({ campaignId }: { campaignId: string }) {
 
         {content && (
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--t2)', margin: 0 }}>Generated content:</p>
               <button type="button" onClick={() => void copy()}
                 style={{ padding: '6px 16px', border: '1px solid var(--b2)', borderRadius: 8, background: copied ? 'var(--green-btn)' : 'var(--s1)', color: copied ? '#fff' : 'var(--t1)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>

@@ -41,15 +41,15 @@ export default function AnnouncementsClient({ rows: initial }: { rows: Announcem
   async function del(id: string) { await fetch(`/api/admin/super/announcements?id=${id}`, { method: 'DELETE' }); setRows((p) => p.filter((r) => r.id !== id)); flash('Deleted'); }
 
   return (
-    <div style={{ padding: '0 4px 48px', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 360px', gap: 18, alignItems: 'start' }}>
+    <div style={{ padding: '0 4px 48px', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0, 360px)', gap: 18, alignItems: 'start' }}>
       <div className="kf-card" style={{ padding: 16 }}>
         <h3 style={{ margin: '0 0 12px', fontSize: 15 }}>Announcements ({rows.length})</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {rows.map((r) => (
             <div key={r.id} style={{ border: `1px solid var(--b1)`, borderLeft: `4px solid ${LEVEL_COLOR[r.level]}`, borderRadius: 10, padding: 12, opacity: r.active ? 1 : 0.6 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', gap: 8 }}>
                 <strong style={{ fontSize: 13 }}>{r.title}</strong>
-                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                <div style={{ display: 'flex', minWidth: 0, gap: 6, flexShrink: 0 }}>
                   <span className={`kf-pill ${r.active ? 'green' : 'red'}`}>{r.active ? 'Live' : 'Off'}</span>
                   <button style={{ ...btnGhost, padding: '3px 10px' }} onClick={() => toggle(r)}>{r.active ? 'Disable' : 'Activate'}</button>
                   <button style={{ ...btnGhost, padding: '3px 10px' }} onClick={() => setDraft(r)}>Edit</button>
@@ -72,8 +72,10 @@ export default function AnnouncementsClient({ rows: initial }: { rows: Announcem
           <label style={{ fontSize: 12, color: 'var(--t3)' }}>Level<select style={input} value={draft.level} onChange={(e) => setDraft({ ...draft, level: e.target.value as Announcement['level'] })}><option value="info">Info</option><option value="success">Success</option><option value="warning">Warning</option><option value="critical">Critical</option></select></label>
           <label style={{ fontSize: 12, color: 'var(--t3)' }}>Link URL<input style={input} value={draft.link_url ?? ''} onChange={(e) => setDraft({ ...draft, link_url: e.target.value })} placeholder="/pricing" /></label>
           <label style={{ fontSize: 12, color: 'var(--t3)' }}>Link label<input style={input} value={draft.link_label ?? ''} onChange={(e) => setDraft({ ...draft, link_label: e.target.value })} /></label>
-          <label style={{ fontSize: 12, display: 'flex', gap: 8, alignItems: 'center', color: 'var(--t2)' }}><input type="checkbox" checked={draft.active} onChange={(e) => setDraft({ ...draft, active: e.target.checked })} /> Active now</label>
-          <div style={{ display: 'flex', gap: 8 }}>
+          {/* The LABEL is the effective target for a checkbox, so it carries the
+              44px minimum — measured 260x18, under WCAG 2.2 SC 2.5.8. */}
+          <label style={{ fontSize: 12, display: 'flex', minWidth: 0, gap: 8, alignItems: 'center', minHeight: 44, color: 'var(--t2)' }}><input type="checkbox" checked={draft.active} onChange={(e) => setDraft({ ...draft, active: e.target.checked })} /> Active now</label>
+          <div style={{ display: 'flex', minWidth: 0, gap: 8 }}>
             <button style={btn} onClick={save} disabled={busy}>{draft.id ? 'Update' : 'Create'}</button>
             {draft.id !== '' && <button style={btnGhost} onClick={() => setDraft(blank)}>Cancel</button>}
           </div>

@@ -64,7 +64,7 @@ export default function DonorTagEditor({ email, fullName, initialTags, lifetimeV
   }
 
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
+    <div style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
       {tags.map((tag) => {
         const color = tagColor(tag);
         return (
@@ -76,7 +76,7 @@ export default function DonorTagEditor({ email, fullName, initialTags, lifetimeV
             // is invalid CSS, so the chip lost its tint entirely and rendered as
             // bare text. color-mix accepts hex and custom properties alike.
             background: `color-mix(in srgb, ${color} 10%, transparent)`,
-            color, display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap',
+            color, display: 'flex', minWidth: 0, alignItems: 'center', gap: 4, whiteSpace: 'nowrap',
           }}>
             {tag}
             <button type="button" onClick={() => removeTag(tag)} aria-label={`Remove ${tag}`}

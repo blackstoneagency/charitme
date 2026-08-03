@@ -16,6 +16,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
+import dataDependent from '../e2e/data-dependent-routes.json' with { type: 'json' };
 import { resolveBase } from './lib/audit-base.mjs';
 import { chromiumLaunchOptions } from './lib/audit-browser.mjs';
 
@@ -97,6 +98,17 @@ for (const vp of VIEWPORTS) {
         // below and gets measured as a swept route. See the longer note in
         // audit-contrast.mjs.
         const status = response?.status() ?? 0;
+        // A data-dependent route 404s on any database without the fixture it
+        // needs. audit-a11y, audit-mobile, audit-page-images and e2e/data-routes
+        // ALL already treat these as skipped rather than failed; this sweep was
+        // the only one that did not, so it went red on every run against a
+        // database without the stub fixtures — and a permanently-red audit is an
+        // ignored audit, which is exactly how a real light-mode contrast bug
+        // once reached production under a passing-by-default spec.
+        if (status === 404 && dataDependent.includes(path)) {
+          console.log(`· ${vp.name}/${theme} ${path} — SKIPPED (needs seeded data, HTTP 404)`);
+          continue;
+        }
         if (status !== 200) {
           console.log(`\u2717 ${vp.name}/${theme} ${path} — HTTP ${status}; not measured`);
           findings++;

@@ -42,7 +42,7 @@ export function PaymentFiltersBar({ campaigns }: { campaigns: Array<{ id: string
       <Select name="paymentStatus" label="Payment" values={['', 'pending', 'processing', 'succeeded', 'failed', 'canceled', 'refunded', 'partially_refunded', 'disputed']} />
       <Select name="payoutStatus" label="Payout" values={['', 'not_applicable', 'requested', 'approved', 'pending', 'paid', 'failed', 'frozen', 'released']} />
       <Select name="reconciliationStatus" label="Reconciliation" values={['', 'reconciled', 'pending_data', 'mismatch', 'failed', 'needs_review', 'ignored']} />
-      <label style={{ display: 'grid', gap: 5, color: 'var(--t3)', fontSize: 11, fontWeight: 700 }}>
+      <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 5, color: 'var(--t3)', fontSize: 11, fontWeight: 700 }}>
         Campaign
         <select name="campaignId" style={inputStyle}>
           <option value="">All</option>
@@ -56,7 +56,7 @@ export function PaymentFiltersBar({ campaigns }: { campaigns: Array<{ id: string
 
 function Select({ name, label, values }: { name: string; label: string; values: string[] }) {
   return (
-    <label style={{ display: 'grid', gap: 5, color: 'var(--t3)', fontSize: 11, fontWeight: 700 }}>
+    <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 5, color: 'var(--t3)', fontSize: 11, fontWeight: 700 }}>
       {label}
       <select name={name} style={inputStyle}>
         {values.map(v => <option key={v || 'all'} value={v}>{v || 'All'}</option>)}
@@ -79,9 +79,9 @@ const inputStyle = {
 export function PaymentTable({ rows, baseHref = '/admin/payments/campaign-flows' }: { rows: AdminPaymentRow[]; baseHref?: string }) {
   return (
     <div style={{ background: 'var(--s1)', border: '1px solid var(--line)', borderRadius: 16, overflow: 'hidden' }}>
-      <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between' }}>
+      <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--line)', display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between' }}>
         <strong>Campaign Payment Ledger</strong>
-        <Link href="/api/admin/payments/export?type=campaign-ledger" style={{ color: 'var(--brand-text)', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>Export CSV</Link>
+        <Link href="/api/admin/payments/export?type=campaign-ledger" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, color: 'var(--brand-text)', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>Export CSV</Link>
       </div>
       <div className="kf-table-scroll" style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>

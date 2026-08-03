@@ -43,7 +43,7 @@ export default async function TransactionDetailPage({ params }: PageProps): Prom
 
         <section style={panel}>
           <h2 style={h2}>Status</h2>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', minWidth: 0, gap: 10, flexWrap: 'wrap' }}>
             <Pill value={payment.payment_status} />
             <Pill value={payment.transfer_status} />
             <Pill value={payment.payout_status} />
@@ -56,7 +56,7 @@ export default async function TransactionDetailPage({ params }: PageProps): Prom
 
         <section style={panel}>
           <h2 style={h2}>Money Movement</h2>
-          <div style={{ display: 'grid', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
             {timeline.map(([label, complete], index) => (
               <div key={label} style={{ display: 'grid', gridTemplateColumns: '30px minmax(0, 1fr)', gap: 10, alignItems: 'center' }}>
                 <span style={{ width: 24, height: 24, borderRadius: 999, display: 'grid', placeItems: 'center', background: complete ? 'var(--tint-green)' : 'var(--tint-red)', color: complete ? 'var(--green-text)' : '#b91c1c', fontWeight: 700 }}>{index + 1}</span>

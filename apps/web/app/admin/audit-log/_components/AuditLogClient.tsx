@@ -87,7 +87,7 @@ function MiniLineChart({ points }: { points: DayPoint[] }) {
 function CategoryDonut({ categories }: { categories: CategoryCount[] }) {
   const total = categories.reduce((s, c) => s + c.count, 0) || 1;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 24, padding: '10px 20px 20px' }}>
+    <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 24, padding: '10px 20px 20px' }}>
       <div style={{ position: 'relative', width: 110, height: 110, flexShrink: 0 }}>
         <svg viewBox="0 0 42 42" style={{ width: 110, height: 110, transform: 'rotate(-90deg)' }}>
           {categories.map((c, i) => {
@@ -107,7 +107,7 @@ function CategoryDonut({ categories }: { categories: CategoryCount[] }) {
       </div>
       <div style={{ flex: 1 }}>
         {categories.map(c => (
-          <div key={c.label} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          <div key={c.label} style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, marginBottom: 6 }}>
             <i style={{ width: 8, height: 8, borderRadius: '50%', background: c.color, flexShrink: 0 }} />
             <span style={{ flex: 1, fontSize: 12, fontWeight: 600 }}>{c.label}</span>
             <b style={{ fontSize: 12, fontWeight: 700 }}>{c.count}</b>
@@ -164,7 +164,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
   });
 
   return (
-    <div style={{ padding: '0 32px 32px', display: 'grid', gap: 22 }}>
+    <div style={{ padding: '0 32px 32px', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 22 }}>
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 18 }}>
         {[
@@ -184,7 +184,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
       </div>
 
       {/* Charts row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 320px', gap: 18 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 320px)', gap: 18 }}>
         <section className="kf-card" style={{ overflow: 'hidden' }}>
           <div className="kf-card-head"><h2>Activity Over Time</h2><span style={{ color: 'var(--t3)', fontSize: 13 }}>Last 30 days</span></div>
           <div style={{ padding: '0 10px 8px' }}>
@@ -198,7 +198,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
       </div>
 
       {/* Recent feed + main table layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '280px minmax(0, 1fr)', gap: 18, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 280px) minmax(0, 1fr)', gap: 18, alignItems: 'start' }}>
         {/* Recent activity feed */}
         <section className="kf-card" style={{ overflow: 'hidden' }}>
           <div className="kf-card-head"><h2>Recent Activity</h2></div>
@@ -216,7 +216,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
               tabIndex={0}
               style={{ padding: '10px 16px', borderBottom: '1px solid #eef0f7', cursor: 'pointer' }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'center', gap: 6, marginBottom: 2 }}>
                 <span style={{ fontSize: 11, fontWeight: 650, color: CATEGORY_COLORS[e.category] ?? 'var(--brand-text)' }}>{e.category}</span>
                 <StatusPill>{e.status}</StatusPill>
               </div>
@@ -240,7 +240,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
           </div>
 
           {/* Filters */}
-          <div style={{ padding: '0 20px 14px', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ padding: '0 20px 14px', display: 'flex', minWidth: 0, gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
             <label className="kf-search" style={{ width: 240, height: 40 }}>
               <KFIcon name="search" />
               <input
@@ -274,7 +274,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
               would scroll independently and the columns would drift apart. */}
           <div className="kf-table-scroll">
           {/* Table header */}
-          <div style={{ display: 'grid', gridTemplateColumns: '130px minmax(0, 1fr) 110px 90px 80px', gap: 12, padding: '8px 20px', background: 'var(--s2)', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 130px) minmax(0, 1fr) minmax(0, 110px) 90px 80px', gap: 12, padding: '8px 20px', background: 'var(--s2)', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase' }}>
             <span>Date & Time</span>
             <span>Action</span>
             <span>Category</span>
@@ -283,7 +283,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
           </div>
 
           {filtered.slice(0, 15).map(e => (
-            <div key={e.id} style={{ display: 'grid', gridTemplateColumns: '130px minmax(0, 1fr) 110px 90px 80px', gap: 12, padding: '12px 20px', borderBottom: '1px solid #eef0f7', alignItems: 'center' }}>
+            <div key={e.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 130px) minmax(0, 1fr) minmax(0, 110px) 90px 80px', gap: 12, padding: '12px 20px', borderBottom: '1px solid #eef0f7', alignItems: 'center' }}>
               <span style={{ fontSize: 11, color: 'var(--t3)' }}>{e.dateTime}</span>
               <div>
                 <strong style={{ display: 'block', fontSize: 12, fontWeight: 650 }}>{e.action}</strong>
@@ -317,13 +317,13 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
         // Backdrop dismissal is supplementary; Escape and the close button remain available.
         // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
         <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 9999, display: 'flex', alignItems: 'stretch', justifyContent: 'flex-end' }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 9999, display: 'flex', minWidth: 0, alignItems: 'stretch', justifyContent: 'flex-end' }}
           onClick={event => { if (event.target === event.currentTarget) setSelectedEvent(null); }}
         >
           <div
-            style={{ width: 420, background: 'var(--s1)', overflowY: 'auto', padding: 28, display: 'grid', alignContent: 'start', gap: 18 }}
+            style={{ width: 420, background: 'var(--s1)', overflowY: 'auto', padding: 28, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', alignContent: 'start', gap: 18 }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>Event Details</h2>
               <button onClick={() => setSelectedEvent(null)} style={{ border: 'none', background: 'transparent', fontSize: 20, cursor: 'pointer', color: 'var(--t3)' }}>×</button>
             </div>
@@ -336,7 +336,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
                 ['Category', selectedEvent.category],
                 ['Performed By', selectedEvent.user],
               ].map(([label, val]) => (
-                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
+                <div key={label} style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
                   <span style={{ color: 'var(--t3)', fontWeight: 600 }}>{label}</span>
                   <strong style={{ fontWeight: 650 }}>{val}</strong>
                 </div>
@@ -380,7 +380,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
               ))}
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', minWidth: 0, justifyContent: 'flex-end' }}>
               <StatusPill>{selectedEvent.status}</StatusPill>
             </div>
           </div>
@@ -395,9 +395,9 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
           <div style={{ width: 380, padding: 28, borderRadius: 16, background: 'var(--s1)', boxShadow: '0 24px 80px rgba(55,42,130,.18)' }}>
             <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 800 }}>Export Audit Logs</h2>
             <p style={{ margin: '0 0 20px', color: 'var(--t3)', fontSize: 13 }}>Choose the format to export {totalEvents.toLocaleString()} events.</p>
-            <div style={{ display: 'grid', gap: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
               {(['CSV', 'Excel', 'PDF'] as const).map(fmt => (
-                <label key={fmt} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', border: `1px solid ${exportFmt === fmt ? '#6c35ff' : '#e0e4ef'}`, borderRadius: 9, cursor: 'pointer', fontSize: 14, fontWeight: 650 }}>
+                <label key={fmt} style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12, padding: '14px 16px', border: `1px solid ${exportFmt === fmt ? '#6c35ff' : '#e0e4ef'}`, borderRadius: 9, cursor: 'pointer', fontSize: 14, fontWeight: 650 }}>
                   <input type="radio" name="export-fmt" value={fmt} checked={exportFmt === fmt} onChange={() => setExportFmt(fmt)} />
                   Export as {fmt}
                 </label>
@@ -406,7 +406,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
             <p style={{ margin: '8px 0 0', color: 'var(--t3)', fontSize: 12 }}>
               {filtered.length.toLocaleString()} filtered events will be exported
             </p>
-            <div style={{ display: 'flex', gap: 10, marginTop: 16, justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', minWidth: 0, gap: 10, marginTop: 16, justifyContent: 'flex-end' }}>
               <button onClick={() => setShowExportModal(false)} style={{ height: 42, padding: '0 20px', border: '1px solid #e0e4ef', borderRadius: 8, background: 'var(--s1)', fontWeight: 650, cursor: 'pointer' }}>Cancel</button>
               <button className="kf-primary" style={{ height: 42, padding: '0 22px' }} onClick={() => { exportEventsCsv(filtered); setShowExportModal(false); }}>Download</button>
             </div>

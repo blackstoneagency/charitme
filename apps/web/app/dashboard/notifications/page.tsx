@@ -103,9 +103,9 @@ export default function NotificationsPage() {
   return (
     <div style={{ padding: '32px 24px', maxWidth: 720, margin: '0 auto' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12 }}>
             <Link href="/dashboard" style={{ color: 'var(--t3, var(--t3))', fontSize: 13, textDecoration: 'none' }}>← Dashboard</Link>
           </div>
           <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--t1)', margin: '8px 0 0' }}>
@@ -136,7 +136,7 @@ export default function NotificationsPage() {
       </div>
 
       {/* Filter tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1.5px solid var(--b1, var(--s2))', paddingBottom: 0 }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 4, marginBottom: 20, borderBottom: '1.5px solid var(--b1, var(--s2))', paddingBottom: 0 }}>
         {(['all', 'unread'] as const).map(tab => (
           <button
             key={tab}
@@ -185,7 +185,7 @@ export default function NotificationsPage() {
               onClick={() => { void markRead(n.id); if (n.link) window.location.href = n.link; }}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); void markRead(n.id); if (n.link) window.location.href = n.link; } }}
               style={{
-                display: 'flex', gap: 14, alignItems: 'flex-start',
+                display: 'flex', minWidth: 0, gap: 14, alignItems: 'flex-start',
                 padding: '16px 18px', borderRadius: 12, cursor: n.link ? 'pointer' : 'default',
                 background: n.read_at ? 'var(--s1, #fff)' : 'var(--s2, rgba(109,53,255,.08))',
                 border: '1px solid',
@@ -196,7 +196,7 @@ export default function NotificationsPage() {
               {/* Icon */}
               <div style={{
                 width: 40, height: 40, borderRadius: 12, background: 'var(--s3, rgba(109,53,255,.08))',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center',
                 fontSize: 18, flexShrink: 0,
               }}>
                 {KIND_ICON[n.kind] ?? '🔔'}
@@ -204,7 +204,7 @@ export default function NotificationsPage() {
 
               {/* Content */}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, marginBottom: 2 }}>
                   <span style={{
                     fontSize: 10, fontWeight: 700, color: 'var(--brand-text)',
                     background: 'var(--s3)', padding: '2px 7px', borderRadius: 5, flexShrink: 0,
@@ -233,6 +233,13 @@ export default function NotificationsPage() {
                   onClick={e => void deleteNotif(n.id, e)}
                   aria-label="Dismiss"
                   style={{
+                    // 44x44 target. As a bare glyph this measured 13x16 — the
+                    // smallest control in the product, repeated once per row, and
+                    // failing WCAG 2.2 SC 2.5.8 (24x24 minimum) eighteen times on
+                    // one screen. The visual weight is unchanged; only the
+                    // hit area grew.
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    minWidth: 44, minHeight: 44,
                     background: 'none', border: 'none', cursor: 'pointer',
                     color: 'var(--t4, var(--b1))', fontSize: 16, padding: 0, lineHeight: 1,
                   }}

@@ -451,13 +451,13 @@ export default function AdminUsersClient({
             <h3>Recent Users</h3>
             <button onClick={() => setView('list')}>View all users →</button>
           </div>
-          <div style={{ display: 'grid' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)' }}>
             <div className="users-recent-row" style={{ fontWeight: 700, fontSize: 11, color: 'var(--t3)', textTransform: 'uppercase' }}>
               <span>User</span><span>Role</span><span>Joined</span>
             </div>
             {recentUsers.map((u) => (
               <div className="users-recent-row" key={u.id} role="button" tabIndex={0} aria-label={`View user ${u.name}`} style={{ cursor: 'pointer' }} onClick={() => goDetail(u)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); goDetail(u); } }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8 }}>
                   <Avatar name={u.name} imageUrl={u.avatarUrl} />
                   <span>
                     <b style={{ display: 'block', fontSize: 13, color: 'var(--t1)', fontWeight: 650 }}>{u.name}</b>
@@ -471,7 +471,7 @@ export default function AdminUsersClient({
           </div>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', minWidth: 0, justifyContent: 'center' }}>
           <button className="kf-outline" onClick={() => setView('list')}>View all users →</button>
         </div>
       </div>
@@ -487,7 +487,7 @@ export default function AdminUsersClient({
         {/* List header */}
         <div className="users-list-header">
           <h3>All Users</h3>
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ display: 'flex', minWidth: 0, gap: 10 }}>
             <button className="kf-outline" onClick={() => setShowExport(true)}>Export</button>
             <button className="kf-primary" onClick={() => setView('add')}>+ Add User</button>
           </div>
@@ -1143,7 +1143,7 @@ function SettingsTab({
 
   return (
     <div className="users-tab-content">
-      <div style={{ maxWidth: 480, display: 'grid', gap: 18 }}>
+      <div style={{ maxWidth: 480, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 18 }}>
 
         <div className="users-add-field">
           <label htmlFor="au-fullname">Full Name</label>
@@ -1160,7 +1160,7 @@ function SettingsTab({
             New Password
             <span style={{ fontWeight: 600, color: 'var(--t3)', marginLeft: 6, fontSize: 11 }}>(leave blank to keep current)</span>
           </label>
-          <div style={{ display: 'flex', gap: 8, position: 'relative' }}>
+          <div style={{ display: 'flex', minWidth: 0, gap: 8, position: 'relative' }}>
             <input
               id="au-password"
               className="users-add-input"
@@ -1236,14 +1236,14 @@ function SettingsTab({
           </select>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10 }}>
           <label className="users-add-check" style={{ margin: 0 }}>
             <input type="checkbox" checked={verified} onChange={(e) => setVerified(e.target.checked)} />
             Identity Verified
           </label>
         </div>
 
-        <div style={{ display: 'flex', gap: 12, paddingTop: 8, borderTop: '1px solid var(--b1, #f0f2f8)' }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 12, paddingTop: 8, borderTop: '1px solid var(--b1, #f0f2f8)' }}>
           <button className="kf-primary" disabled={pending || !pwValid} onClick={handleSave}>
             {pending ? 'Saving…' : 'Save Changes'}
           </button>
@@ -1332,7 +1332,7 @@ function AddUserView({
           Password
           <span style={{ fontWeight: 600, color: 'var(--t3)', marginLeft: 6, fontSize: 11 }}>(leave blank to auto-generate)</span>
         </label>
-        <div style={{ position: 'relative', display: 'flex', gap: 8 }}>
+        <div style={{ position: 'relative', display: 'flex', minWidth: 0, gap: 8 }}>
           <input
             id="addPassword"
             className="users-add-input"

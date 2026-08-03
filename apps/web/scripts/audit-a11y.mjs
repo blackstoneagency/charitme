@@ -17,6 +17,7 @@
 import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import routes from '../e2e/public-routes.json' with { type: 'json' };
+import dataDependent from '../e2e/data-dependent-routes.json' with { type: 'json' };
 import { resolveBase } from './lib/audit-base.mjs';
 import { chromiumLaunchOptions } from './lib/audit-browser.mjs';
 
@@ -50,6 +51,20 @@ for (const theme of ['light', 'dark']) {
     try {
       const response = await page.goto(BASE + path, { waitUntil: 'domcontentloaded', timeout: 25000 });
       if (!response) throw new Error('Navigation completed without an HTTP response');
+      // A data-dependent route 404s on any database without the fixture it
+      // needs. `e2e/data-routes.ts` and audit-mobile.mjs already treat these as
+      // SKIPPED rather than failed; sharing the list means this audit agrees
+      // with them instead of aborting on every run for a route the suite
+      // deliberately tolerates.
+      //
+      // This was not hypothetical: `/campaigns/security-header-fixture/embed`
+      // failed both themes on every run here, so the audit refused to report at
+      // all — correct of it, but the effect was that a11y went unmeasured
+      // indefinitely. A permanently-red audit is an ignored audit.
+      if (response.status() === 404 && dataDependent.includes(path)) {
+        console.log(`· ${theme} ${path} — SKIPPED (needs seeded data, HTTP 404)`);
+        continue;
+      }
       if (response.status() >= 400) throw new Error(`HTTP ${response.status()}`);
       const expectedPath = new URL(BASE + path).pathname;
       const actualPath = new URL(page.url()).pathname;

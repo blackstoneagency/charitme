@@ -76,8 +76,8 @@ export default function TemplatesClient({
   }
 
   return (
-    <div className="kf-admin-dash" style={{ display: 'grid', gap: 20 }}>
-      <header style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+    <div className="kf-admin-dash" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 20 }}>
+      <header style={{ display: 'flex', minWidth: 0, gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
         <div style={{ flex: '1 1 240px' }}>
           <h1 style={{ margin: 0, fontSize: 22 }}>Email Templates</h1>
           <p style={{ margin: '4px 0 0', color: 'var(--t3)', fontSize: 14 }}>
@@ -102,7 +102,7 @@ export default function TemplatesClient({
         />
       ) : (
         <div style={{ display: 'grid', gap: 20, gridTemplateColumns: 'minmax(0, 300px) minmax(0, 1fr)' }}>
-          <nav aria-label="Email templates" style={{ display: 'grid', gap: 16, alignContent: 'start' }}>
+          <nav aria-label="Email templates" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16, alignContent: 'start' }}>
             {byCategory.map(([category, list]) => (
               <div key={category}>
                 <h2
@@ -121,7 +121,7 @@ export default function TemplatesClient({
                     </span>
                   )}
                 </h2>
-                <div style={{ display: 'grid', gap: 6 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6 }}>
                   {list.map((t) => (
                     <button
                       key={t.id}
@@ -228,12 +228,12 @@ function TemplateEditor({
 
   return (
     <Card>
-      <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 10, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
         <h2 style={{ margin: 0, fontSize: 16, flex: '1 1 auto' }}>Edit template</h2>
         {template.is_system && <Badge>Built-in</Badge>}
       </div>
 
-      <div style={{ display: 'grid', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14 }}>
         <div>
           <label htmlFor="t-name" style={{ display: 'block', fontSize: 13, marginBottom: 6 }}>
             Name
@@ -306,7 +306,7 @@ function TemplateEditor({
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 10, flexWrap: 'wrap' }}>
           <Btn type="button" onClick={save} disabled={saving}>
             {saving ? 'Saving…' : 'Save changes'}
           </Btn>

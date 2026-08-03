@@ -67,6 +67,7 @@ export const FOOTER_SECTIONS: Record<FooterSectionName, readonly FooterLink[]> =
   // nowhere in the footer.
   'Ways to Give': [
     { label: 'Browse Campaigns', href: '/campaigns', labelKey: 'footer.link.campaigns' },
+    { label: 'Current Needs', href: '/needs', labelKey: 'footer.link.needs' },
     { label: 'Give to Many Causes', href: '/give', labelKey: 'footer.link.give' },
     { label: 'Crisis Relief', href: '/crisis', labelKey: 'footer.link.crisis' },
     { label: 'Fundraisers Near You', href: '/nearby', labelKey: 'footer.link.nearby' },
@@ -75,6 +76,7 @@ export const FOOTER_SECTIONS: Record<FooterSectionName, readonly FooterLink[]> =
     { label: 'Matching Gifts', href: '/matching', labelKey: 'footer.link.matching' },
     { label: 'Grants', href: '/grants', labelKey: 'footer.link.grants' },
     { label: 'Events', href: '/events', labelKey: 'footer.link.events' },
+    { label: 'Giving Days', href: '/giving-days', labelKey: 'footer.link.giving_days' },
     { label: 'Webinars', href: '/webinars', labelKey: 'footer.link.webinars' },
     { label: 'Impact Map', href: '/impact-map', labelKey: 'footer.link.impact_map' },
     { label: 'Donor Wall', href: '/donor-wall', labelKey: 'footer.link.donor_wall' },
@@ -95,6 +97,10 @@ export const FOOTER_SECTIONS: Record<FooterSectionName, readonly FooterLink[]> =
     { label: 'Community', href: '/community', labelKey: 'footer.link.community' },
     { label: 'Glossary', href: '/glossary', labelKey: 'footer.link.glossary' },
     { label: 'Careers', href: '/careers', labelKey: 'footer.link.careers' },
+    // The footer is the only global surface that can carry /newsletter — it is
+    // not a header destination — and `nav-orphans` refuses a sitemap route that
+    // nothing links, which is how /signup got here too.
+    { label: 'Newsletter', href: '/newsletter', labelKey: 'footer.link.newsletter' },
   ],
   Legal: [
     { label: 'Trust & Safety', href: '/trust-safety', labelKey: 'footer.link.trust_safety' },

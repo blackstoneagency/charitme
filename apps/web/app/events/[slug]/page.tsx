@@ -60,7 +60,7 @@ export default async function EventDetailPage({ params }: PageProps) {
     <div className="container" style={{ padding: '40px 24px', maxWidth: 780 }}>
       <Link href="/events" style={{ fontSize: 14, color: 'var(--t3)', textDecoration: 'none' }}>← All events</Link>
 
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '18px 0 12px' }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap', margin: '18px 0 12px' }}>
         <Badge color="blue">{e.event_type.replace('_', ' ')}</Badge>
         {e.virtual_url ? <Badge color="green">Virtual</Badge> : e.location ? <Badge color="gray">{e.location}</Badge> : null}
         {Number.isFinite(remaining) && (remaining > 0 ? <Badge color="green">{remaining} spots left</Badge> : <Badge color="red">Full</Badge>)}
@@ -106,7 +106,7 @@ export default async function EventDetailPage({ params }: PageProps) {
       {tickets.length > 0 && (
         <section style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--b2)' }}>
           <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>Tickets</h2>
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 10 }}>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
             {tickets.map((t) => {
               const left = ticketsRemaining(t);
               const soldOut = isTicketSoldOut(t);
@@ -114,7 +114,7 @@ export default async function EventDetailPage({ params }: PageProps) {
                 <li
                   key={t.id}
                   style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'space-between',
                     gap: 12, flexWrap: 'wrap',
                     padding: '12px 14px', border: '1px solid var(--b2)', borderRadius: 10,
                     background: 'var(--s1)', opacity: soldOut ? 0.6 : 1,

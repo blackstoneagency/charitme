@@ -55,7 +55,7 @@ export default async function ImpactIndexPage() {
     <>
       <JsonLd json={safeJsonLd(itemListJsonLd)} />
       <div className="container" style={{ padding: '40px 24px', maxWidth: 1180 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap', marginBottom: 28 }}>
+        <div style={{ display: 'flex', minWidth: 0, justifyContent: 'space-between', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap', marginBottom: 28 }}>
           <div style={{ maxWidth: 720 }}>
             <h1 style={{ fontSize: 'clamp(26px, 5vw, 36px)', fontWeight: 900, margin: 0, color: 'var(--t1)' }}>
               Impact Reports
@@ -109,7 +109,7 @@ export default async function ImpactIndexPage() {
                   minHeight: 280,
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
                   <Badge color={RATING_COLOR[summary.transparency.rating] ?? 'gray'}>{summary.transparency.rating}</Badge>
                   <span style={{ color: 'var(--green-dark)', fontWeight: 900, fontSize: 22 }}>
                     {summary.transparency.score}
@@ -129,14 +129,14 @@ export default async function ImpactIndexPage() {
                 </div>
 
                 <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 13, color: 'var(--t3)' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', gap: 8, fontSize: 13, color: 'var(--t3)' }}>
                     <span>Raised</span>
                     <strong style={{ color: 'var(--t1)' }}>
                       {formatMoneyShort(summary.campaign.raised_amount, summary.campaign.currency)}
                     </strong>
                   </div>
                   <ProgressBar value={summary.transparency.score} max={100} />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 12, color: 'var(--t4)' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', gap: 8, fontSize: 12, color: 'var(--t4)' }}>
                     <span>{summary.publishedUpdateCount} updates</span>
                     <span>{summary.metricCount} metrics</span>
                     <span>{formatMoneyShort(summary.plan.total_budget_cents, summary.campaign.currency)} planned</span>

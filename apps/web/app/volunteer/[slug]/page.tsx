@@ -30,9 +30,9 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
     <div className="container" style={{ padding: '32px 24px', maxWidth: 980 }}>
       <Link href="/volunteer" style={{ fontSize: 13, fontWeight: 700, color: 'var(--t3)' }}>← All opportunities</Link>
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'flex-start', marginTop: 16 }}>
+      <div style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 24, alignItems: 'flex-start', marginTop: 16 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flex: '1 1 440px', minWidth: 0 }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+          <div style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--t3)' }}>{opp.org_name}</span>
             {opp.verified && <Badge color="green">Verified</Badge>}
             {opp.is_remote && <Badge color="blue">Remote</Badge>}
@@ -42,7 +42,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
           {opp.summary && <p style={{ fontSize: 16, color: 'var(--t2)', margin: 0, lineHeight: 1.5 }}>{opp.summary}</p>}
 
           {opp.skills.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            <div style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 6 }}>
               {opp.skills.map((s) => <Badge key={s} color="gray">{s}</Badge>)}
             </div>
           )}

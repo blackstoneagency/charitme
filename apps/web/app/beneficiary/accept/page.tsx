@@ -142,8 +142,8 @@ function AcceptForm() {
             'Connect your bank via Stripe (2–3 minutes)',
             'Receive payouts as donations come in',
           ].map((step, i) => (
-            <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 8, fontSize: 13, color: 'var(--t2)' }}>
-              <span style={{ width: 20, height: 20, borderRadius: '50%', background: 'var(--violet)', color: '#fff', fontSize: 11, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div key={i} style={{ display: 'flex', minWidth: 0, gap: 10, alignItems: 'flex-start', marginBottom: 8, fontSize: 13, color: 'var(--t2)' }}>
+              <span style={{ width: 20, height: 20, borderRadius: '50%', background: 'var(--violet)', color: '#fff', fontSize: 11, fontWeight: 900, display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 {i + 1}
               </span>
               {step}

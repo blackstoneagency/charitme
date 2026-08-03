@@ -108,7 +108,7 @@ export default function MatchClaimPanel({
           <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 10 }}>Your claims</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {initialClaims.map((c) => (
-              <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 14, padding: '8px 12px', border: '1px solid var(--b2)', borderRadius: 'var(--r)' }}>
+              <div key={c.id} style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', gap: 10, fontSize: 14, padding: '8px 12px', border: '1px solid var(--b2)', borderRadius: 'var(--r)' }}>
                 <span>
                   Donated {formatMoneyShort(c.donation_amount_cents, currency)} · match {formatMoneyShort(c.match_amount_cents, currency)}
                 </span>

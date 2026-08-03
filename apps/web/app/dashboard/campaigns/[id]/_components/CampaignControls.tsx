@@ -77,7 +77,7 @@ export default function CampaignControls({
     <section className="kf-card" style={{ padding: 24 }}>
       <h2 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 650 }}>Campaign Status</h2>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: error ? 12 : 16, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12, marginBottom: error ? 12 : 16, flexWrap: 'wrap' }}>
         <span style={{ padding: '4px 14px', borderRadius: 20, fontSize: 13, fontWeight: 650, ...badge }}>
           {badge.label}
         </span>
@@ -97,7 +97,7 @@ export default function CampaignControls({
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 10, flexWrap: 'wrap' }}>
         {actions.map(action => (
           <button
             key={action.next}
@@ -135,7 +135,7 @@ export default function CampaignControls({
           <p style={{ fontSize: 13, color: 'var(--t3)', margin: '0 0 14px', lineHeight: 1.6 }}>
             All campaign data, updates, and media will be permanently removed. Donation records are retained for compliance.
           </p>
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ display: 'flex', minWidth: 0, gap: 10 }}>
             <button type="button" onClick={() => void deleteCampaign()} disabled={loading}
               style={{ padding: '8px 20px', border: 0, borderRadius: 8, background: 'var(--red-btn)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
               {loading ? 'Deleting…' : 'Yes, permanently delete'}

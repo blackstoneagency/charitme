@@ -140,7 +140,7 @@ export default function PayoutSetupPage({ params }: { params: Promise<{ id: stri
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ display: 'flex', minWidth: 0, gap: 10 }}>
             <input
               type="email"
               aria-label="Email address to invite as beneficiary"

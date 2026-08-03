@@ -92,7 +92,7 @@ export default function FormsClient({
   }
 
   return (
-    <div className="kf-admin-dash" style={{ display: 'grid', gap: 20 }}>
+    <div className="kf-admin-dash" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 20 }}>
       {err && (
         <div role="alert" style={{ color: 'var(--red)', fontSize: 14 }}>
           {err}
@@ -108,7 +108,7 @@ export default function FormsClient({
         />
       ) : (
         <div style={{ display: 'grid', gap: 20, gridTemplateColumns: 'minmax(0, 280px) minmax(0, 1fr)' }}>
-          <nav aria-label="Your donation forms" style={{ display: 'grid', gap: 8, alignContent: 'start' }}>
+          <nav aria-label="Your donation forms" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8, alignContent: 'start' }}>
             {forms.map((f) => (
               <button
                 key={f.id}
@@ -170,7 +170,7 @@ function NewFormCard({
           e.preventDefault();
           if (title.trim().length >= 2 && campaignId) onCreate(campaignId, title.trim());
         }}
-        style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}
+        style={{ display: 'flex', minWidth: 0, gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}
       >
         <div style={{ flex: '1 1 220px', minWidth: 0 }}>
           <label htmlFor="df-title" style={{ display: 'block', fontSize: 13, marginBottom: 6 }}>
@@ -272,10 +272,10 @@ function FormEditor({
   const embedSnippet = `<iframe src="${typeof window !== 'undefined' ? window.location.origin : ''}/f/${slug}" width="100%" height="620" style="border:0" title="${title}"></iframe>`;
 
   return (
-    <div style={{ display: 'grid', gap: 16 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16 }}>
       <Card>
         <h2 style={{ margin: '0 0 14px', fontSize: 16 }}>Form settings</h2>
-        <div style={{ display: 'grid', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14 }}>
           <div>
             <label htmlFor="ed-title" style={{ display: 'block', fontSize: 13, marginBottom: 6 }}>
               Title
@@ -294,7 +294,7 @@ function FormEditor({
 
           <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
             <legend style={{ fontSize: 13, marginBottom: 6, padding: 0 }}>Suggested amounts</legend>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap' }}>
               {amounts.map((cents, i) => (
                 <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                   <label className="kf-sr-only" htmlFor={`amt-${i}`}>
@@ -347,16 +347,16 @@ function FormEditor({
             </div>
           </fieldset>
 
-          <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 14, minHeight: 44 }}>
+          <label style={{ display: 'flex', minWidth: 0, gap: 8, alignItems: 'center', fontSize: 14, minHeight: 44 }}>
             <input type="checkbox" checked={recurring} onChange={(e) => setRecurring(e.target.checked)} />
             Offer a monthly option
           </label>
-          <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 14, minHeight: 44 }}>
+          <label style={{ display: 'flex', minWidth: 0, gap: 8, alignItems: 'center', fontSize: 14, minHeight: 44 }}>
             <input type="checkbox" checked={embed} onChange={(e) => setEmbed(e.target.checked)} />
             Allow embedding on other sites
           </label>
 
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', minWidth: 0, gap: 10, flexWrap: 'wrap' }}>
             <Btn type="button" onClick={save} disabled={saving || amounts.length === 0}>
               {saving ? 'Saving…' : 'Save changes'}
             </Btn>
@@ -389,7 +389,7 @@ function FormEditor({
           }}
         >
           <p style={{ margin: '0 0 12px', fontWeight: 700 }}>{title || 'Your donation form'}</p>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+          <div style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
             {amounts.map((c, i) => (
               <span
                 key={i}

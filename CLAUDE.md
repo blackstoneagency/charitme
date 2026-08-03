@@ -200,18 +200,67 @@ Phase 1 of the AI Context Manager: an agent roster plus one-click context packs.
 - Health check: `GET /api/health` → `{"status":"ok","ts":...}`
 
 
-## ✅ CI IS ALIVE AGAIN (2026-08-01) — a red check is now REAL
+## 🔁 CI FLIPS BETWEEN REAL AND DEAD — run the test, don't trust the last verdict
 
-**The Actions outage is over.** Verified on run `30704209059`:
-`runner_id: 1000001483`, `runner_name: "GitHub Actions 1000001483"`, all steps
-present (checkout → setup-node → install → typecheck → lint → unit tests →
-audit → build), 3m09s duration. Compare the outage signature, which was
-`runner_id: 0`, empty `runner_name`, created and failed in the SAME second, and
-no steps at all.
+This section has now been rewritten **three times**, in both directions, because
+the runners keep going away and coming back. So it no longer states a verdict.
+**Run the check yourself — it takes one call.**
 
-**So treat a red check as a real failure and fix it.** Everything previously
-written here and in `todo.md` telling you to ignore red checks is superseded.
-It was correct for the ~2 weeks the runners were unassigned; it is wrong now.
+```
+mcp__github__actions_get  method=get_workflow_run_usage  resource_id=<run_id>
+mcp__github__actions_get  method=get_workflow_job        resource_id=<job_id>
+```
+
+| | runners DEAD (ignore the red check) | runners ALIVE (fix the red check) |
+|---|---|---|
+| `billable.UBUNTU.total_ms` | **0** | thousands |
+| `runner_id` | **0** | e.g. `1000001483` |
+| `runner_name` | **empty** | e.g. `"GitHub Actions 1000001483"` |
+| duration | ~10s, start≈finish | minutes (~3m09s for a full run) |
+| steps | **none** | checkout → setup-node → install → typecheck → lint → tests → audit → build |
+| logs | 404 | present |
+
+**Also check `master`.** If master's recent runs fail identically, the failure is
+not your branch. Both facts together are conclusive.
+
+**Timeline so far:** dead for ~2 weeks → alive 2026-08-01 (run `30704209059`,
+`runner_id: 1000001483`, 3m09s) → **dead again 2026-08-02**, verified on run
+`30751833105` (`runner_id: 0`, empty `runner_name`, 10s, 0 billable ms) *and* on
+master run `30750918547` (same signature; master's last 6 runs all failed).
+
+### 🔎 LIKELY CAUSE, and it is not random: the private-repo Actions minutes quota
+
+The flip-flopping this section keeps recording is what an **exhausted monthly
+Actions allowance** looks like. Evidence, all checkable:
+
+- **This repository is private** (`"private": true` from the API). Private repos
+  on a free personal account get a fixed monthly minute allowance; public repos
+  get unlimited. Exhausting it creates the job, assigns no runner, and fails in
+  seconds with `0` billable ms and no steps — **exactly the signature above**.
+- **It is not `ci.yml`.** `image-links.yml` has run once ever (`30259517312`,
+  2026-07-27) and failed the same way in 3s. Every workflow is affected, which
+  rules out anything in a single workflow file. The `ci.yml` config is plain
+  `ubuntu-latest` + `actions/checkout@v4` and is fine.
+- **The timeline matches a billing cycle.** Dead ~2 weeks → alive **2026-08-01,
+  the first day of a month** → dead again 2026-08-02. A quota resetting on the
+  1st and being re-burned within a day by heavy agent traffic explains the one
+  "good" day that has otherwise looked inexplicable.
+
+**Falsifiable prediction:** runners return on **1 September** and die again
+shortly after, unless the plan changes or push volume drops. If that does not
+happen, this diagnosis is wrong and should be struck.
+
+⚠️ **This does not replace the check.** It is a hypothesis that fits the
+evidence, not something read off a billing page — the API does not expose the
+allowance to this token. Keep verifying per run; the table above is still the
+authority on *whether* a given red check is real.
+
+**Owner-actionable, if it holds:** raise/enable the Actions spending limit, or
+make the repository public (unlimited minutes), or cut the number of pushes that
+trigger a full run.
+
+**Whichever state it is in, verify locally — that is the only signal that never
+lies:**
 
 ⚠️ **CI can fail where your local run passes, and usually for one reason:**
 master has gained tests your branch has not merged. A local run of 2251 against

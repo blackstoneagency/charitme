@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../lib/query-timeout';
 import 'server-only';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../../lib/supabase';
@@ -23,16 +24,16 @@ export const metadata: Metadata = { title: 'Incidents & Maintenance | CharitMe A
 
 export default async function AdminIncidentsPage() {
   const [incidentsRes, windowsRes] = await Promise.all([
-    supabaseAdmin
+    boundedQuery(() => supabaseAdmin
       .from('incidents')
       .select('id, title, component, status, impact, started_at, resolved_at, created_at, updated_at')
       .order('started_at', { ascending: false })
-      .limit(100),
-    supabaseAdmin
+      .limit(100)),
+    boundedQuery(() => supabaseAdmin
       .from('maintenance_windows')
       .select('id, title, description, component, starts_at, ends_at, status, created_at, updated_at')
       .order('starts_at', { ascending: false })
-      .limit(100),
+      .limit(100)),
   ]);
 
   const incidents: Incident[] | null = incidentsRes.error

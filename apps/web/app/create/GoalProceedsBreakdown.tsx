@@ -23,7 +23,7 @@ export default function GoalProceedsBreakdown({ goalCents }: { goalCents: number
         background: 'var(--s1, #fff)',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+      <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, marginBottom: 12 }}>
         <span style={{ fontWeight: 800, fontSize: 15, color: 'var(--t1, #1a1a2e)' }}>
           Where your {fmt(p.goalCents)} goes
         </span>
@@ -48,7 +48,7 @@ export default function GoalProceedsBreakdown({ goalCents }: { goalCents: number
           marginTop: 10,
           paddingTop: 12,
           borderTop: '1.5px dashed var(--b1, #e8ecf4)',
-          display: 'flex',
+          display: 'flex', flexWrap: 'wrap', minWidth: 0,
           justifyContent: 'space-between',
           alignItems: 'baseline',
           gap: 10,
@@ -81,7 +81,7 @@ function Row({
   valueColor?: string;
 }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, padding: '5px 0' }}>
+    <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, padding: '5px 0' }}>
       <span style={{ minWidth: 0 }}>
         <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--t1, #1a1a2e)' }}>{label}</span>
         {sub && <span style={{ display: 'block', fontSize: 12, color: 'var(--t3)', marginTop: 1, lineHeight: 1.4 }}>{sub}</span>}

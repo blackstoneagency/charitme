@@ -85,7 +85,7 @@ export default function AdminMarketingClient({ initialTab = 'overview', overview
   return (
     <div style={{ padding: '0 32px 48px', maxWidth: 1100 }}>
       {/* Tab bar */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 24, background: 'var(--s2)', borderRadius: 12, padding: 4, border: '1px solid var(--line)', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 4, marginBottom: 24, background: 'var(--s2)', borderRadius: 12, padding: 4, border: '1px solid var(--line)', flexWrap: 'wrap' }}>
         {TABS.map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
             style={{ padding: '9px 18px', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 650, cursor: 'pointer',
@@ -158,7 +158,7 @@ function OverviewTab({ overview, go }: { overview: React.ComponentProps<typeof A
           <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: 'var(--t1)' }}>Contacts by type</div>
           {Object.keys(overview.byType).length === 0 && <p style={{ fontSize: 13, color: 'var(--t3)' }}>No contacts yet. Use Audience → “Sync platform users” to import donors and organizers, or capture leads from site forms.</p>}
           {Object.entries(overview.byType).sort((a, b) => b[1] - a[1]).map(([type, count]) => (
-            <div key={type} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid #f5f6fa', fontSize: 13 }}>
+            <div key={type} style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid #f5f6fa', fontSize: 13 }}>
               <span style={{ color: 'var(--t3)', fontWeight: 600 }}>{type.replaceAll('_', ' ')}</span>
               <b style={{ color: 'var(--t1)' }}>{count}</b>
             </div>
@@ -167,7 +167,7 @@ function OverviewTab({ overview, go }: { overview: React.ComponentProps<typeof A
         <div style={card}>
           <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: 'var(--t1)' }}>Top segments</div>
           {overview.topSegments.map(s => (
-            <div key={s.name} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid #f5f6fa', fontSize: 13 }}>
+            <div key={s.name} style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid #f5f6fa', fontSize: 13 }}>
               <span style={{ color: 'var(--t3)', fontWeight: 600 }}>{s.name}</span>
               <b style={{ color: 'var(--brand-text)' }}>{s.member_count}</b>
             </div>
@@ -238,7 +238,7 @@ function AudienceTab({ flash }: { flash: (m: string) => void }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
         <input aria-label="Search contacts by email or name" value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => e.key === 'Enter' && void load(q)} placeholder="Search email or name…" style={{ ...input, flex: '1 1 220px' }} />
         <button onClick={() => void load(q)} style={btnGhost}>Search</button>
         <button onClick={() => void sync()} disabled={syncing} style={btn}>{syncing ? 'Syncing…' : '⟳ Sync platform users'}</button>
@@ -287,9 +287,9 @@ function ProfileDrawer({ profile, onClose }: { profile: ContactProfile; onClose:
   return (
     // Backdrop dismissal is supplementary; Escape and the close button remain available.
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
-    <div onClick={event => { if (event.target === event.currentTarget) onClose(); }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', zIndex: 1000, display: 'flex', justifyContent: 'flex-end' }}>
+    <div onClick={event => { if (event.target === event.currentTarget) onClose(); }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', zIndex: 1000, display: 'flex', minWidth: 0, justifyContent: 'flex-end' }}>
       <div style={{ width: 'min(480px, 92vw)', background: 'var(--s1)', height: '100%', overflowY: 'auto', padding: '28px 28px 48px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
           <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--t1)' }}>{[c.first_name, c.last_name].filter(Boolean).join(' ') || c.email}</h3>
           <button onClick={onClose} style={{ ...btnGhost, padding: '4px 12px' }}>✕</button>
         </div>
@@ -332,7 +332,7 @@ function ProfileDrawer({ profile, onClose }: { profile: ContactProfile; onClose:
 
         <Section title={`Event timeline (${profile.events.length})`}>
           {profile.events.map(e => (
-            <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '5px 0', borderBottom: '1px solid #f5f6fa' }}>
+            <div key={e.id} style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', fontSize: 12.5, padding: '5px 0', borderBottom: '1px solid #f5f6fa' }}>
               <span style={{ fontWeight: 700, color: 'var(--t1)' }}>{e.event_type}{e.amount_cents ? ` · ${money(e.amount_cents)}` : ''}</span>
               <span style={{ color: 'var(--t3)' }}>{dt(e.created_at)}</span>
             </div>
@@ -390,7 +390,7 @@ function SegmentsTab({ flash }: { flash: (m: string) => void }) {
     <div>
       <div style={card}>
         <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: 'var(--t1)' }}>Create segment</div>
-        <div style={{ display: 'flex', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
           <input aria-label="Segment name" value={name} onChange={e => setName(e.target.value)} placeholder="Segment name" style={{ ...input, flex: '1 1 220px' }} />
           <select aria-label="Segment match logic" value={logic} onChange={e => setLogic(e.target.value as 'and' | 'or')} style={input}>
             <option value="and">Match ALL conditions</option>
@@ -398,7 +398,7 @@ function SegmentsTab({ flash }: { flash: (m: string) => void }) {
           </select>
         </div>
         {conditions.map((c, i) => (
-          <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+          <div key={i} style={{ display: 'flex', minWidth: 0, gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
             <select aria-label="Condition field" value={c.field} onChange={e => setConditions(cs => cs.map((x, j) => j === i ? { ...x, field: e.target.value } : x))} style={input}>
               {FIELD_OPTIONS.map(f => <option key={f} value={f}>{f}</option>)}
             </select>
@@ -409,7 +409,7 @@ function SegmentsTab({ flash }: { flash: (m: string) => void }) {
             {conditions.length > 1 && <button onClick={() => setConditions(cs => cs.filter((_, j) => j !== i))} style={{ ...btnGhost, padding: '6px 12px' }}>✕</button>}
           </div>
         ))}
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 10 }}>
           <button onClick={() => setConditions(cs => [...cs, { field: 'lead_score', op: 'gte', value: '50' }])} style={btnGhost}>+ Condition</button>
           <button onClick={() => void create()} disabled={busy || !name.trim()} style={btn}>{busy ? 'Creating…' : 'Create & evaluate'}</button>
         </div>
@@ -501,7 +501,7 @@ function CampaignsTab({ flash }: { flash: (m: string) => void }) {
         <button onClick={() => void create()} disabled={busy} style={btn}>{busy ? 'Creating…' : 'Create draft'}</button>
       </div>
 
-      <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 12 }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 10, alignItems: 'center', marginBottom: 12 }}>
         <input aria-label="Send test to email address" value={testEmail} onChange={e => setTestEmail(e.target.value)} placeholder="test@you.com (for Send test)" style={{ ...input, width: 260 }} />
       </div>
 
@@ -586,7 +586,7 @@ function AutomationsTab({ flash }: { flash: (m: string) => void }) {
         <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: 'var(--t1)' }}>Recent runs</div>
         {runs.length === 0 && <p style={{ fontSize: 13, color: 'var(--t3)', margin: 0 }}>No runs yet — click “Run now” on an automation.</p>}
         {runs.map(r => (
-          <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '6px 0', borderBottom: '1px solid #f5f6fa' }}>
+          <div key={r.id} style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', fontSize: 12.5, padding: '6px 0', borderBottom: '1px solid #f5f6fa' }}>
             <span><b style={{ color: 'var(--t1)' }}>{r.marketing_automations?.name ?? '—'}</b> · <span style={{ color: r.status === 'success' ? 'var(--green-text)' : r.status === 'failed' ? 'var(--red-text)' : 'var(--t3)' }}>{r.status}</span>{r.detail ? ` · ${r.detail}` : ''}</span>
             <span style={{ color: 'var(--t3)' }}>{dt(r.created_at)}</span>
           </div>
@@ -629,7 +629,7 @@ function CopilotTab({ flash }: { flash: (m: string) => void }) {
       <div style={card}>
         <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: 'var(--t1)' }}>AI Marketing Copilot</div>
         <p style={{ fontSize: 13, color: 'var(--t3)', margin: '0 0 14px' }}>Grounded in your live contact, event, and campaign data.</p>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
           {COPILOT_TASKS.map(t => (
             <button key={t.key} onClick={() => setTask(t.key)}
               style={{ ...btnGhost, background: task === t.key ? 'var(--tint-violet)' : '#f8f9fc', color: task === t.key ? 'var(--brand-text)' : '#374151', borderColor: task === t.key ? '#c4b0ff' : '#e2e8f0' }}>
@@ -742,7 +742,7 @@ function OutreachTab({ flash }: { flash: (m: string) => void }) {
         ))}
       </div>
 
-      <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 10, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
         <input aria-label="Search businesses by name, owner, or email" value={q} onChange={e => setQ(e.target.value)} placeholder="Search business, owner, or email…" style={{ ...input, flex: '1 1 240px' }} />
         <select aria-label="Filter leads by status" value={filter} onChange={e => setFilter(e.target.value as typeof filter)} style={input}>
           <option value="all">All leads</option>
@@ -857,9 +857,9 @@ function OutreachComposer({ lead, onClose, onUpdate, flash }: {
   return (
     // Backdrop dismissal is supplementary; Escape and the close button remain available.
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
-    <div onClick={event => { if (event.target === event.currentTarget) onClose(); }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', zIndex: 1000, display: 'flex', justifyContent: 'flex-end' }}>
+    <div onClick={event => { if (event.target === event.currentTarget) onClose(); }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', zIndex: 1000, display: 'flex', minWidth: 0, justifyContent: 'flex-end' }}>
       <div style={{ width: 'min(560px, 96vw)', background: 'var(--s1)', height: '100%', overflowY: 'auto', padding: '26px 28px 56px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
           <div>
             <h3 style={{ margin: 0, fontSize: 19, fontWeight: 800, color: 'var(--t1)' }}>{lead.business_name}</h3>
             <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--t3)' }}>{[lead.owner_name, lead.industry, lead.state].filter(Boolean).join(' · ') || '—'}</p>
@@ -871,7 +871,7 @@ function OutreachComposer({ lead, onClose, onUpdate, flash }: {
         {/* 1 — Email validation */}
         <Section title="① Validate email">
           <div style={{ background: 'var(--s2)', borderRadius: 10, padding: '14px 16px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
               <code style={{ fontSize: 13, color: 'var(--t1)' }}>{lead.email}</code>
               <button onClick={() => void validate()} disabled={busy === 'validate'} style={{ ...btnGhost, padding: '6px 12px', fontSize: 12 }}>
                 {busy === 'validate' ? 'Checking…' : 'Validate'}
@@ -879,7 +879,7 @@ function OutreachComposer({ lead, onClose, onUpdate, flash }: {
             </div>
             {o?.email_valid != null && (
               <div style={{ marginTop: 12 }}>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', minWidth: 0, gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                   <Pill text={o.email_valid ? '✓ deliverable' : '⚠ risky'} color={o.email_valid ? '#059669' : '#dc2626'} />
                   {typeof val?.score === 'number' && <span style={{ fontSize: 12, color: 'var(--t3)' }}>score {val.score}/100</span>}
                   {val?.mx === true && <Pill text="MX ok" color="#059669" />}
@@ -903,11 +903,11 @@ function OutreachComposer({ lead, onClose, onUpdate, flash }: {
         <Section title="② Unique tracking link">
           {o?.invite_url ? (
             <div style={{ background: 'var(--s2)', borderRadius: 10, padding: '14px 16px' }}>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <div style={{ display: 'flex', minWidth: 0, gap: 8, alignItems: 'center' }}>
                 <code style={{ flex: 1, fontSize: 12, color: 'var(--brand-text)', wordBreak: 'break-all' }}>{o.invite_url}</code>
                 <button onClick={() => void copy()} style={{ ...btnGhost, padding: '6px 12px', fontSize: 12, whiteSpace: 'nowrap' }}>{copied ? '✓ Copied' : 'Copy'}</button>
               </div>
-              <div style={{ display: 'flex', gap: 16, marginTop: 12, fontSize: 12.5, color: 'var(--t3)', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', minWidth: 0, gap: 16, marginTop: 12, fontSize: 12.5, color: 'var(--t3)', flexWrap: 'wrap' }}>
                 <span>Clicks: <b style={{ color: o.click_count > 0 ? 'var(--brand-text)' : 'var(--t3)' }}>{o.click_count}</b></span>
                 <span>First click: <b>{dt(o.first_click_at)}</b></span>
                 <span>Last click: <b>{dt(o.last_click_at)}</b></span>
@@ -928,7 +928,7 @@ function OutreachComposer({ lead, onClose, onUpdate, flash }: {
           <p style={{ fontSize: 11.5, color: 'var(--t3)', margin: '6px 0 12px' }}>
             Variables: <code>{'{{first_name}}'}</code> <code>{'{{business_name}}'}</code> <code>{'{{tracking_url}}'}</code> (inserts the unique link above).
           </p>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', minWidth: 0, gap: 10, flexWrap: 'wrap' }}>
             <button onClick={() => void send()} disabled={busy === 'send' || !o?.short_code} style={btn} title={!o?.short_code ? 'Generate the tracking link first' : ''}>
               {busy === 'send' ? 'Sending…' : '✉️ Send outreach'}
             </button>
@@ -951,7 +951,7 @@ function Pill({ text, color }: { text: string; color: string }) {
 function ScoreBar({ value }: { value: number }) {
   const color = value >= 70 ? '#059669' : value >= 40 ? '#d97706' : '#94a3b8';
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+    <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8 }}>
       <div style={{ width: 56, height: 6, background: 'var(--s2)', borderRadius: 999, overflow: 'hidden' }}>
         <div style={{ width: `${value}%`, height: '100%', background: color, borderRadius: 999 }} />
       </div>

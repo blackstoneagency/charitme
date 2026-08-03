@@ -3,6 +3,7 @@ import { campaignColumns, applyLiveFilters } from '../../lib/campaign-visibility
 import type { Metadata } from 'next';
 import { PublicIcon } from '../../components/PublicIcon';
 import { supabaseAdmin } from '../../lib/supabase';
+import { boundedQuery } from '../../lib/query-timeout';
 import { formatHomeCents } from '../../lib/home-utils';
 
 export const dynamic = 'force-dynamic';
@@ -43,8 +44,21 @@ async function getAIPageData() {
       donationsResult,
       campaignShowcase,
     ] = await Promise.all([
-      supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-      supabaseAdmin.from('donations').select('amount_cents').eq('status', 'completed'),
+      // Bounded TWO ways, because the two sides of this merge each caught a
+      // different half of the same risk and neither subsumes the other:
+      //   · boundedQuery(() => ) bounds by TIME — it stops a query that hangs, which
+      //     is what left this page at ~7s against a stalled database.
+      //   · .limit() bounds by ROW COUNT — `.eq('status','completed')` selects
+      //     nearly the whole donations table, so without a cap the result set
+      //     grows forever even when the query is fast.
+      // A timeout does not save you from a huge fast response, and a row cap
+      // does not save you from a query that never returns.
+      boundedQuery(() =>
+        supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+      ),
+      boundedQuery(() =>
+        supabaseAdmin.from('donations').select('amount_cents').eq('status', 'completed').limit(20000),
+      ),
       fetchShowcase(aiFundraisingCols),
     ]);
 
@@ -64,14 +78,16 @@ async function getAIPageData() {
 }
 
 async function fetchShowcase(cols: Awaited<ReturnType<typeof campaignColumns>>) {
-  const { data } = await applyLiveFilters(
-    supabaseAdmin
-      .from('campaigns')
-      .select('slug,title,tagline,cover_image_url,goal_amount,raised_amount,backer_count,category'),
-    cols,
-  )
-    .order('raised_amount', { ascending: false })
-    .limit(3);
+  const { data } = await boundedQuery(() =>
+  applyLiveFilters(
+      supabaseAdmin
+        .from('campaigns')
+        .select('slug,title,tagline,cover_image_url,goal_amount,raised_amount,backer_count,category'),
+      cols,
+    )
+      .order('raised_amount', { ascending: false })
+      .limit(3),
+    );
   return data ?? [];
 }
 

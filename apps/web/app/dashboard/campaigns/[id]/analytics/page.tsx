@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import AnalyticsPanel from '../_components/AnalyticsPanel';
+import RecordedHistory from '../_components/RecordedHistory';
 
 export default function CampaignAnalyticsPage({ params }: { params: Promise<{ id: string }> }) {
   const [campaignId, setCampaignId] = useState('');
@@ -16,7 +17,14 @@ export default function CampaignAnalyticsPage({ params }: { params: Promise<{ id
           ← Back to campaign
         </Link>
       </div>
-      {campaignId && <AnalyticsPanel campaignId={campaignId} />}
+      {campaignId && (
+        <>
+          <AnalyticsPanel campaignId={campaignId} />
+          <div style={{ maxWidth: 900 }}>
+            <RecordedHistory campaignId={campaignId} />
+          </div>
+        </>
+      )}
     </div>
   );
 }

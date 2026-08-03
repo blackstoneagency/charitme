@@ -151,8 +151,8 @@ export default function EditCampaignPanel({ campaignId }: { campaignId: string }
   }
 
   return (
-    <div style={{ maxWidth: 720, display: 'grid', gap: 20 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+    <div style={{ maxWidth: 720, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 20 }}>
+      <div style={{ display: 'flex', minWidth: 0, justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
         <div>
           <h2 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 700, color: 'var(--t1)' }}>Edit Campaign</h2>
           <p style={{ margin: 0, fontSize: 14, color: 'var(--t3)' }}>Update your campaign details. Changes are live immediately.</p>
@@ -179,7 +179,7 @@ export default function EditCampaignPanel({ campaignId }: { campaignId: string }
       {/* Basic info */}
       <section className="kf-card" style={{ padding: 24 }}>
         <h2 style={{ fontSize: 15, fontWeight: 650, margin: '0 0 18px' }}>Campaign Details</h2>
-        <div style={{ display: 'grid', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16 }}>
           <Field label="Campaign Title *">
             <input value={form.title} onChange={e => upd('title', e.target.value)} maxLength={100} placeholder="Help Sarah cover emergency medical bills" />
           </Field>
@@ -209,7 +209,7 @@ export default function EditCampaignPanel({ campaignId }: { campaignId: string }
 
       {/* Beneficiary */}
       <section className="kf-card" style={{ padding: 24, position: 'relative' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>
           <h2 style={{ fontSize: 15, fontWeight: 650, margin: 0 }}>Beneficiary</h2>
           <BeneficiaryInviteButton campaignId={campaignId} />
         </div>
@@ -236,9 +236,9 @@ export default function EditCampaignPanel({ campaignId }: { campaignId: string }
       {/* Media */}
       <section className="kf-card" style={{ padding: 24 }}>
         <h2 style={{ fontSize: 15, fontWeight: 650, margin: '0 0 18px' }}>Media</h2>
-        <div style={{ display: 'grid', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16 }}>
           <Field label="Cover Photo">
-            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', minWidth: 0, gap: 10, alignItems: 'flex-start', flexWrap: 'wrap' }}>
               {form.coverImageUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={form.coverImageUrl} alt="Cover" style={{ width: 120, height: 80, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--b2)' }} />
@@ -266,7 +266,7 @@ export default function EditCampaignPanel({ campaignId }: { campaignId: string }
       </section>
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: 12 }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 12 }}>
         <button type="button" onClick={handleSave} disabled={saving}
           style={{
             height: 48, padding: '0 32px', border: 0, borderRadius: 10,
@@ -282,7 +282,7 @@ export default function EditCampaignPanel({ campaignId }: { campaignId: string }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="kf-edit-field" style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
+    <label className="kf-edit-field" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
       {label}
       {children}
     </label>
@@ -319,22 +319,22 @@ function BeneficiaryInviteButton({ campaignId }: { campaignId: string }) {
     <div style={{ position: 'absolute', right: 0, top: 0, zIndex: 50, background: 'var(--s1)', border: '1.5px solid var(--b2)', borderRadius: 12, padding: 18, boxShadow: '0 8px 32px rgba(108,53,255,.15)', width: 320 }}>
       <p style={{ fontWeight: 650, fontSize: 14, margin: '0 0 12px', color: 'var(--t1)' }}>Invite Beneficiary</p>
       {err && <p style={{ fontSize: 12, color: 'var(--red)', margin: '0 0 8px' }}>{err}</p>}
-      <label style={{ display: 'grid', gap: 4, fontSize: 12, fontWeight: 700, marginBottom: 10 }}>
+      <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 4, fontSize: 12, fontWeight: 700, marginBottom: 10 }}>
         Name *
         <input value={name} onChange={e => setName(e.target.value)} placeholder="Jane Smith"
           style={{ height: 38, border: '1px solid var(--b1)', borderRadius: 8, padding: '0 10px', fontSize: 13 }} />
       </label>
-      <label style={{ display: 'grid', gap: 4, fontSize: 12, fontWeight: 700, marginBottom: 10 }}>
+      <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 4, fontSize: 12, fontWeight: 700, marginBottom: 10 }}>
         Email *
         <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="jane@example.com"
           style={{ height: 38, border: '1px solid var(--b1)', borderRadius: 8, padding: '0 10px', fontSize: 13 }} />
       </label>
-      <label style={{ display: 'grid', gap: 4, fontSize: 12, fontWeight: 700, marginBottom: 12 }}>
+      <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 4, fontSize: 12, fontWeight: 700, marginBottom: 12 }}>
         Personal message (optional)
         <textarea value={msg} onChange={e => setMsg(e.target.value)} rows={2} maxLength={500}
           style={{ border: '1px solid var(--b1)', borderRadius: 8, padding: '8px 10px', fontSize: 13, resize: 'none' }} />
       </label>
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 8 }}>
         <button type="button" disabled={sending || !email || !name}
           onClick={async () => {
             if (!email || !name) return;

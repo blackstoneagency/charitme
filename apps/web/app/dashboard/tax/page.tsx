@@ -126,7 +126,7 @@ export default async function TaxDocumentsPage({
       />
 
       <div className="kf-content-grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)', maxWidth: 1160 }}>
-        <div style={{ display: 'grid', gap: 18 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 18 }}>
           {(inputs.donorFailed || inputs.fundraiserFailed) && (
             <DegradedReadNotice title="Some tax records are temporarily unavailable">
               The available documents remain visible. Refresh before filing to make sure your records are complete.
@@ -134,8 +134,8 @@ export default async function TaxDocumentsPage({
           )}
 
           <section style={{ ...card, padding: 18 }} aria-label="Tax document filters">
-            <form method="get" style={{ display: 'flex', gap: 12, alignItems: 'end', flexWrap: 'wrap' }}>
-              <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 800, color: 'var(--t2)' }}>
+            <form method="get" style={{ display: 'flex', minWidth: 0, gap: 12, alignItems: 'end', flexWrap: 'wrap' }}>
+              <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 12, fontWeight: 800, color: 'var(--t2)' }}>
                 Tax year
                 <select
                   name="year"
@@ -146,7 +146,7 @@ export default async function TaxDocumentsPage({
                 </select>
               </label>
               {currencies.length > 1 && (
-                <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 800, color: 'var(--t2)' }}>
+                <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 12, fontWeight: 800, color: 'var(--t2)' }}>
                   Currency
                   <select
                     name="currency"
@@ -165,7 +165,7 @@ export default async function TaxDocumentsPage({
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: 18 }}>
             <section style={card}>
-              <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 18 }}>
+              <div style={{ display: 'flex', minWidth: 0, gap: 12, alignItems: 'center', marginBottom: 18 }}>
                 <span className="kf-metric-icon violet"><KFIcon name="gift" /></span>
                 <div>
                   <h2 style={{ margin: 0, fontSize: 18 }}>Donor documents</h2>
@@ -182,7 +182,7 @@ export default async function TaxDocumentsPage({
                   <strong style={{ display: 'block', marginTop: 5, fontSize: 22, color: 'var(--green-text)' }}>{formatCents(statement.totals.deductibleCents, currency)}</strong>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', minWidth: 0, gap: 10, flexWrap: 'wrap' }}>
                 <Link className="kf-primary" href={withCurrency(`/donor/tax-statement/${year}`, currency)} style={{ textDecoration: 'none' }}>
                   <KFIcon name="doc" /> View / save PDF
                 </Link>
@@ -193,7 +193,7 @@ export default async function TaxDocumentsPage({
             </section>
 
             <section style={card}>
-              <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 18 }}>
+              <div style={{ display: 'flex', minWidth: 0, gap: 12, alignItems: 'center', marginBottom: 18 }}>
                 <span className="kf-metric-icon green"><KFIcon name="chart" /></span>
                 <div>
                   <h2 style={{ margin: 0, fontSize: 18 }}>Campaign records</h2>
@@ -210,7 +210,7 @@ export default async function TaxDocumentsPage({
                   <strong style={{ display: 'block', marginTop: 5, fontSize: 22 }}>{fundraiser.totals.donationCount.toLocaleString()}</strong>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', minWidth: 0, gap: 10, flexWrap: 'wrap' }}>
                 <Link className="kf-primary" href={`/dashboard/tax/fundraiser/${year}?currency=${encodeURIComponent(currency)}`} style={{ textDecoration: 'none' }}>
                   <KFIcon name="doc" /> View / save PDF
                 </Link>
@@ -222,7 +222,7 @@ export default async function TaxDocumentsPage({
           </div>
 
           <section style={card}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+            <div style={{ display: 'flex', minWidth: 0, justifyContent: 'space-between', alignItems: 'start', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
               <div>
                 <h2 style={{ margin: 0, fontSize: 18 }}>Receipts for {year}</h2>
                 <p style={{ margin: '5px 0 0', color: 'var(--t3)', fontSize: 13 }}>
@@ -236,7 +236,7 @@ export default async function TaxDocumentsPage({
                 No completed donations are recorded for this year and currency.
               </div>
             ) : (
-              <div style={{ display: 'grid' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)' }}>
                 {statement.lines.map((line) => (
                   <div key={line.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto auto', gap: 16, alignItems: 'center', minHeight: 58, borderTop: '1px solid var(--b1)' }}>
                     <div style={{ minWidth: 0 }}>

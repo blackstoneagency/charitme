@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../lib/query-timeout';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { supabaseAdmin } from '../../lib/supabase';
@@ -83,11 +84,11 @@ async function collect(): Promise<Subsystem[]> {
     probe(async () => {
       // Liveness, not analytics: `count: 'exact', head: true` made Postgres
       // COUNT the whole table to answer "does the database respond?".
-      const { error } = await supabaseAdmin.from('campaigns').select('id').limit(1);
+      const { error } = await boundedQuery(() => supabaseAdmin.from('campaigns').select('id').limit(1));
       if (error) throw new Error(error.code ?? 'query failed');
     }),
     probe(async () => {
-      const { error } = await supabaseAdmin.from('profiles').select('id').limit(1);
+      const { error } = await boundedQuery(() => supabaseAdmin.from('profiles').select('id').limit(1));
       if (error) throw new Error(error.code ?? 'query failed');
     }),
   ]);
@@ -255,7 +256,7 @@ export default async function StatusPage() {
       <div
         role="status"
         style={{
-          display: 'flex',
+          display: 'flex', minWidth: 0,
           alignItems: 'center',
           gap: 12,
           border: '1px solid var(--b1)',
@@ -279,7 +280,7 @@ export default async function StatusPage() {
         </div>
       </div>
 
-      <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 12 }}>
+      <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
         {subsystems.map((s) => {
           const t = TONE[s.state];
           return (
@@ -290,7 +291,7 @@ export default async function StatusPage() {
                 background: 'var(--s1)',
                 borderRadius: 'var(--rl)',
                 padding: '14px 16px',
-                display: 'flex',
+                display: 'flex', minWidth: 0,
                 gap: 14,
                 alignItems: 'flex-start',
                 justifyContent: 'space-between',
@@ -337,7 +338,7 @@ export default async function StatusPage() {
           <h2 style={{ fontSize: 18, fontWeight: 800, margin: '0 0 12px', color: 'var(--t1)' }}>
             Scheduled maintenance
           </h2>
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 12 }}>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
             {maintenance.map((m) => (
               <li key={m.id} style={{ border: '1px solid var(--b2)', borderRadius: 10, padding: '12px 14px' }}>
                 <strong style={{ color: 'var(--t1)', fontSize: 15 }}>{m.title}</strong>
@@ -369,10 +370,10 @@ export default async function StatusPage() {
             No incidents reported in the last 30 days.
           </p>
         ) : (
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 12 }}>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
             {incidents.map((inc) => (
               <li key={inc.id} style={{ border: '1px solid var(--b2)', borderRadius: 10, padding: '12px 14px' }}>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', minWidth: 0, gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
                   <strong style={{ color: 'var(--t1)', fontSize: 15 }}>{inc.title}</strong>
                   <span
                     style={{

@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../lib/query-timeout';
 import { notFound } from 'next/navigation';
 import { cache } from 'react';
 import Link from 'next/link';
@@ -58,13 +59,23 @@ type Creator = {
 
 /** Memoized so generateMetadata and the page body share one query per request. */
 const getCreator = cache(async (handle: string): Promise<Creator | null> => {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from('creator_profiles')
-    .select('id, user_id, handle, display_name, bio, hero_image_url, website_url, brand_color, accepts_tips, accepts_commissions')
-    .eq('handle', handle)
-    .maybeSingle();
-  return (data as Creator | null) ?? null;
+  try {
+  // supabaseAdmin is a Proxy that THROWS on property access when the env is
+  // missing, so `.from(...)` throws before any query runs — which the error
+  // check below cannot see. The `null` contract this loader already declares
+  // is the correct degraded answer, so a throw takes the same path.
+
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from('creator_profiles')
+      .select('id, user_id, handle, display_name, bio, hero_image_url, website_url, brand_color, accepts_tips, accepts_commissions')
+      .eq('handle', handle)
+      .maybeSingle();
+    return (data as Creator | null) ?? null;
+  
+  } catch {
+    return null;
+  }
 });
 
 const getCampaigns = cache(async (userId: string) => {
@@ -109,10 +120,10 @@ async function getViewerContext(creatorProfileId: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const { data: tierRows } = await supabaseAdmin
+  const { data: tierRows } = await boundedQuery(() => supabaseAdmin
     .from('membership_tiers')
     .select('id, title, amount_cents')
-    .eq('creator_profile_id', creatorProfileId);
+    .eq('creator_profile_id', creatorProfileId));
 
   const tiers = (tierRows ?? []) as { id: string; title: string; amount_cents: number }[];
   const tierPrices = new Map(tiers.map((t) => [t.id, t.amount_cents]));
@@ -122,11 +133,11 @@ async function getViewerContext(creatorProfileId: string) {
     return { userId: user?.id ?? null, memberships: [] as ViewerMembership[], tierPrices, tierTitles };
   }
 
-  const { data: subs } = await supabaseAdmin
+  const { data: subs } = await boundedQuery(() => supabaseAdmin
     .from('member_subscriptions')
     .select('tier_id, status, current_period_end')
     .eq('member_id', user.id)
-    .in('tier_id', tiers.map((t) => t.id));
+    .in('tier_id', tiers.map((t) => t.id)));
 
   const memberships: ViewerMembership[] = ((subs ?? []) as {
     tier_id: string;
@@ -141,12 +152,12 @@ async function getViewerContext(creatorProfileId: string) {
 
 /** Newest first. Bodies are redacted before this leaves the server. */
 async function getPosts(creatorProfileId: string): Promise<RawPost[]> {
-  const { data } = await supabaseAdmin
+  const { data } = await boundedQuery(() => supabaseAdmin
     .from('exclusive_posts')
     .select('id, title, body, visibility, minimum_tier_id, created_at')
     .eq('creator_profile_id', creatorProfileId)
     .order('created_at', { ascending: false })
-    .limit(20);
+    .limit(20));
   return (data ?? []) as RawPost[];
 }
 
@@ -217,7 +228,7 @@ export default async function CreatorPage({ params }: { params: Promise<{ handle
           </p>
         )}
 
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 16 }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 16 }}>
           {creator.website_url && (
             <a
               href={creator.website_url}
@@ -275,7 +286,7 @@ export default async function CreatorPage({ params }: { params: Promise<{ handle
       {posts.length > 0 && (
         <section style={{ marginTop: 32 }}>
           <h2 style={{ fontSize: 19, fontWeight: 800, color: 'var(--t1)', margin: '0 0 18px' }}>Posts</h2>
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 14 }}>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14 }}>
             {posts.map((p) => (
               <li
                 key={p.id}
@@ -286,7 +297,7 @@ export default async function CreatorPage({ params }: { params: Promise<{ handle
                   padding: 16,
                 }}
               >
-                <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', minWidth: 0, gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
                   <h3 style={{ margin: 0, fontSize: 15.5, fontWeight: 800, color: 'var(--t1)' }}>{p.title}</h3>
                   <time
                     dateTime={p.created_at}
@@ -301,7 +312,7 @@ export default async function CreatorPage({ params }: { params: Promise<{ handle
                       margin: '10px 0 0',
                       fontSize: 13,
                       color: 'var(--t3)',
-                      display: 'flex',
+                      display: 'flex', minWidth: 0,
                       alignItems: 'center',
                       gap: 8,
                     }}

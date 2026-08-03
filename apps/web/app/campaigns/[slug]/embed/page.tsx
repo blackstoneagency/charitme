@@ -18,8 +18,14 @@ interface Props {
 
 export async function generateMetadata({ params }: Pick<Props, 'params'>): Promise<Metadata> {
   const { slug } = await params;
-  const { data } = await supabaseAdmin.from('campaigns').select('title').eq('slug', slug).single();
-  return { title: data?.title ?? 'Donate', robots: { index: false } };
+  // Never throws. This runs for a widget embedded in SOMEONE ELSE'S page, so a
+  // thrown error here renders a Next error document inside their site.
+  try {
+    const { data } = await supabaseAdmin.from('campaigns').select('title').eq('slug', slug).single();
+    return { title: data?.title ?? 'Donate', robots: { index: false } };
+  } catch {
+    return { title: 'Donate', robots: { index: false } };
+  }
 }
 
 export default async function CampaignEmbedPage({ params, searchParams }: Props) {
@@ -28,22 +34,51 @@ export default async function CampaignEmbedPage({ params, searchParams }: Props)
   // it hands out are the same URL. Never throws: a malformed query renders the
   // default widget rather than an error page inside someone else's iframe.
   const options = parseWidgetOptions(await searchParams);
-  const { data: campaign } = await supabaseAdmin
-    .from('campaigns')
-    .select('id, slug, title, tagline, cover_image_url, raised_amount, goal_amount, backer_count, status, accept_donations, visibility')
-    .eq('slug', slug)
-    .eq('status', 'active')
-    .is('deleted_at', null)
-    .single();
 
-  if (!campaign || (campaign as { visibility?: string }).visibility === 'private') notFound();
+  // ⚠️ Three outcomes, and they must stay distinct because this renders inside a
+  // PARTNER'S PAGE:
+  //   · no row / private  → notFound(), the campaign genuinely is not embeddable
+  //   · read threw        → a quiet "unavailable" widget
+  //   · ok                → the widget
+  // A throw previously produced a Next error document in the partner's iframe,
+  // and routing it to notFound() instead would be worse: it would tell their
+  // visitors the campaign does not exist every time our database hiccups.
+  type EmbedCampaign = {
+    id: string; slug: string; title: string; tagline: string | null;
+    cover_image_url: string | null; raised_amount: number | null; goal_amount: number | null;
+    backer_count: number | null; status: string | null; accept_donations: boolean | null;
+    visibility?: string;
+  };
+  let campaign: EmbedCampaign | null = null;
+  let currency = 'usd';
+  try {
+    const { data } = await supabaseAdmin
+      .from('campaigns')
+      .select('id, slug, title, tagline, cover_image_url, raised_amount, goal_amount, backer_count, status, accept_donations, visibility')
+      .eq('slug', slug)
+      .eq('status', 'active')
+      .is('deleted_at', null)
+      .single();
+    campaign = (data ?? null) as EmbedCampaign | null;
 
-  const { data: launchSettings } = await supabaseAdmin
-    .from('campaign_launch_settings')
-    .select('currency')
-    .eq('campaign_id', campaign.id)
-    .maybeSingle();
-  const currency = launchSettings?.currency ?? 'usd';
+    if (!campaign || (campaign as { visibility?: string }).visibility === 'private') notFound();
+
+    const { data: launchSettings } = await supabaseAdmin
+      .from('campaign_launch_settings')
+      .select('currency')
+      .eq('campaign_id', campaign.id)
+      .maybeSingle();
+    currency = (launchSettings?.currency as string | null) ?? 'usd';
+  } catch (e) {
+    // `notFound()` signals by throwing — rethrow it rather than swallowing the
+    // 404 into the "unavailable" branch.
+    if (e && typeof e === 'object' && 'digest' in e && String((e as { digest?: unknown }).digest).startsWith('NEXT_')) throw e;
+    return (
+      <main style={{ padding: '20px', fontFamily: 'var(--font, system-ui)', fontSize: '14px', color: '#475069' }}>
+        This donation widget is temporarily unavailable. Please try again shortly.
+      </main>
+    );
+  }
 
   const raised = campaign.raised_amount ?? 0;
   const goal   = campaign.goal_amount || 1;
@@ -78,7 +113,7 @@ export default async function CampaignEmbedPage({ params, searchParams }: Props)
         {/* Progress */}
         {options.showProgress && (
         <div style={{ marginBottom: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', marginBottom: 6 }}>
             <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--brand-text)' }}>{fmt(raised)}</span>
             <span style={{ fontSize: 13, color: 'var(--t3)' }}>of {fmt(goal)}</span>
           </div>
@@ -87,7 +122,7 @@ export default async function CampaignEmbedPage({ params, searchParams }: Props)
           </div>
           {options.showDonorCount && (
             <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 5 }}>
-              {pct}% · {campaign.backer_count.toLocaleString()} donors
+              {pct}% · {(campaign.backer_count ?? 0).toLocaleString()} donors
             </div>
           )}
         </div>

@@ -141,10 +141,10 @@ export default function VolunteerHoursClient({ scope }: { scope: 'mine' | 'to-ve
       key={h.id}
       style={{
         border: '1px solid var(--b2)', borderRadius: 12, padding: '12px 14px',
-        background: 'var(--s1)', display: 'grid', gap: 8,
+        background: 'var(--s1)', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', minWidth: 0, alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div style={{ minWidth: 0 }}>
           <strong style={{ fontSize: 14.5, color: 'var(--t1)' }}>
             {scope === 'to-verify' ? (h.volunteerName ?? 'Volunteer') : h.opportunityTitle}
@@ -155,7 +155,7 @@ export default function VolunteerHoursClient({ scope }: { scope: 'mine' | 'to-ve
             {h.source === 'check_in' ? ' · checked in' : ' · entered manually'}
           </span>
         </div>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8 }}>
           <strong style={{ fontSize: 14, fontVariantNumeric: 'tabular-nums' }}>
             {h.open ? 'running…' : fmtHours(h.hours)}
           </strong>
@@ -180,7 +180,7 @@ export default function VolunteerHoursClient({ scope }: { scope: 'mine' | 'to-ve
       )}
 
       {scope === 'to-verify' && h.status === 'pending' && !h.open && (
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap' }}>
           <button
             type="button"
             className="kf-primary"
@@ -203,11 +203,11 @@ export default function VolunteerHoursClient({ scope }: { scope: 'mine' | 'to-ve
   );
 
   return (
-    <div style={{ display: 'grid', gap: 16 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16 }}>
       {error && <p role="alert" style={{ color: 'var(--red-text)', fontSize: 13.5, margin: 0 }}>{error}</p>}
 
       {/* Never summed into one number — see the note at the top of this file. */}
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 10, flexWrap: 'wrap' }}>
         {([
           ['Verified', totals.verified, 'Only these may be reported to an employer'],
           ['Awaiting verification', totals.pending, 'Recorded, not yet certified'],
@@ -226,14 +226,14 @@ export default function VolunteerHoursClient({ scope }: { scope: 'mine' | 'to-ve
           <h3 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 10px' }}>
             {scope === 'to-verify' ? `Awaiting your verification (${pendingRows.length})` : `Awaiting verification (${pendingRows.length})`}
           </h3>
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 10 }}>{pendingRows.map(row)}</ul>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>{pendingRows.map(row)}</ul>
         </section>
       )}
 
       {rest.length > 0 && (
         <section>
           <h3 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 10px' }}>Settled ({rest.length})</h3>
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 10 }}>{rest.map(row)}</ul>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>{rest.map(row)}</ul>
         </section>
       )}
     </div>

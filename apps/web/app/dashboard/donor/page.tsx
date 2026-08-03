@@ -72,7 +72,7 @@ async function fetchDonorData(userId: string): Promise<{
 
   try {
     // Step 1: get user's campaign IDs
-    const { data: campData, error: campError } = await boundedQuery(
+    const { data: campData, error: campError } = await boundedQuery(() =>
       supabaseAdmin
         .from('campaigns')
         .select('id')
@@ -86,7 +86,7 @@ async function fetchDonorData(userId: string): Promise<{
     const campaignIds = (campData as { id: string }[]).map(c => c.id);
 
     // Step 2: get all completed donations for those campaigns
-    const { data: donData, error: donError } = await boundedQuery(
+    const { data: donData, error: donError } = await boundedQuery(() =>
       supabaseAdmin
         .from('donations')
         .select('id, donor_id, amount_cents, anonymous, created_at')
@@ -118,7 +118,7 @@ async function fetchDonorData(userId: string): Promise<{
 
     const profileMap = new Map<string, { name: string; email: string }>();
     if (knownDonorIds.length > 0) {
-      const { data: profileData } = await boundedQuery(
+      const { data: profileData } = await boundedQuery(() =>
         supabaseAdmin
           .from('profiles')
           .select('id, full_name, email')
@@ -137,7 +137,7 @@ async function fetchDonorData(userId: string): Promise<{
     }
 
     // Step 4: fetch CRM tags for this organizer's donor contacts
-    const { data: contactData } = await boundedQuery(
+    const { data: contactData } = await boundedQuery(() =>
       supabaseAdmin
         .from('donor_crm_contacts')
         .select('email, tags')
@@ -290,7 +290,7 @@ export default async function DonorsPage({
             {/* Card header + tab strip */}
             <div className="kf-card-head">
               <h2>All Donors</h2>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12 }}>
                 <span style={{ fontSize: 13, color: 'var(--t3)' }}>
                   {totalUnique.toLocaleString()} donor{totalUnique !== 1 ? 's' : ''}
                 </span>
@@ -299,7 +299,7 @@ export default async function DonorsPage({
                   style={{
                     fontSize: 12, fontWeight: 700, color: 'var(--t2)', textDecoration: 'none',
                     border: '1px solid var(--b2)', borderRadius: 8, padding: '4px 10px',
-                    display: 'flex', alignItems: 'center', gap: 6,
+                    display: 'flex', minWidth: 0, alignItems: 'center', gap: 6,
                   }}
                 >
                   ⬇ Export CSV
@@ -323,7 +323,7 @@ export default async function DonorsPage({
             </div>
 
             {allTags.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, padding: '10px 20px', borderBottom: '1px solid var(--b1)' }}>
+              <div style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', alignItems: 'center', gap: 6, padding: '10px 20px', borderBottom: '1px solid var(--b1)' }}>
                 <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginRight: 4 }}>
                   Tags:
                 </span>
@@ -359,7 +359,7 @@ export default async function DonorsPage({
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'minmax(0, 1fr) 180px 90px 110px 100px',
+                gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 180px) 90px minmax(0, 110px) minmax(0, 100px)',
                 gap: 12,
                 padding: '8px 20px',
                 fontSize: 11,
@@ -386,13 +386,13 @@ export default async function DonorsPage({
                     className="kf-row"
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: 'minmax(0, 1fr) 180px 90px 110px 100px',
+                      gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 180px) 90px minmax(0, 110px) minmax(0, 100px)',
                       gap: 12,
                       alignItems: 'center',
                     }}
                   >
                     {/* Donor identity */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10 }}>
                       <div
                         style={{
                           width: 36,
@@ -400,7 +400,7 @@ export default async function DonorsPage({
                           borderRadius: '50%',
                           background: AVATAR_COLORS[i % AVATAR_COLORS.length],
                           color: '#fff',
-                          display: 'flex',
+                          display: 'flex', minWidth: 0,
                           alignItems: 'center',
                           justifyContent: 'center',
                           fontSize: 13,

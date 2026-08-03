@@ -14,7 +14,7 @@ export default function NotFound() {
         title="404 — Page not found"
         body="The page you're looking for doesn't exist, may have been moved, or the campaign may have ended. Let's get you back on track."
         action={
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', minWidth: 0, gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             <BtnLink href="/" variant="primary">Back to home</BtnLink>
             <BtnLink href="/campaigns" variant="secondary">Browse campaigns</BtnLink>
           </div>

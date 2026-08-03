@@ -1,6 +1,6 @@
-import Link from 'next/link';
 import type { Metadata } from 'next';
 import { PageBody, PageHero, Section, CardGrid, InfoCard } from '../../components/PageShell';
+import InternshipListings from './InternshipListings';
 
 export const metadata: Metadata = {
   title: 'Internships',
@@ -30,7 +30,7 @@ const WHAT_WE_LOOK_FOR = [
   { title: 'Care about the details', body: 'A number on a fundraising page is a claim about someone else’s money. We take that seriously and expect the same.' },
 ];
 
-export default function InternshipsPage() {
+export default async function InternshipsPage() {
   return (
     <PageBody>
       <PageHero
@@ -51,27 +51,16 @@ export default function InternshipsPage() {
         </CardGrid>
       </Section>
 
-      <Section id="open" heading="Open internships">
-        {/* No positions are listed because none are open. The design shows an
-            "Explore Internship Opportunities" button against a populated list;
-            inventing plausible openings would waste applicants' time, which is
-            the same reason /careers lists none. */}
-        <div style={{ padding: '26px', background: 'var(--s2)', border: '1px solid var(--b1)', borderRadius: 'var(--rl)', maxWidth: '680px' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: 750, color: 'var(--t1)' }}>
-            No internships are currently open
-          </h3>
-          <p style={{ fontSize: '14px', color: 'var(--t3)', lineHeight: 1.6, marginTop: '8px' }}>
-            We would rather say so than list positions we are not actively filling. Write to us
-            anyway — describe something you have built and why this problem interests you. Those
-            messages get read, and they have led to offers before a posting existed.
-          </p>
-          <p style={{ marginTop: '16px' }}>
-            <Link href="/contact" style={{ fontSize: '14px', color: 'var(--green-text)', fontWeight: 700 }}>
-              Get in touch →
-            </Link>
-          </p>
-        </div>
-      </Section>
+      {/* Live listings from `volunteer_opportunities`, filtered to the
+          internship categories. Previously this section was hardcoded to "none
+          open" — the right ANSWER, but not a measured one, so a real posting
+          entered through the volunteer admin would never have appeared here. */}
+      {/* Not wrapped in <Section>: InternshipListings supplies its own
+          landmark and <h2>. A Section with an empty heading would render an
+          empty <h2> and an aria-labelledby pointing at nothing. */}
+      <div style={{ marginBottom: 52 }}>
+        <InternshipListings />
+      </div>
 
       <Section id="more" heading="Also worth reading">
         <CardGrid min={250}>

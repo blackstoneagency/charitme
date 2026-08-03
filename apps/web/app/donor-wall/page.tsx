@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../lib/supabase';
+import { boundedQuery } from '\.\./\.\./lib/query-timeout';
 import { campaignColumns } from '../../lib/campaign-visibility';
 import { mapRecentDonations, type RawDonationRow, type RecentDonation } from '../../lib/home-data';
 import { formatCents } from '../../lib/stripe';
@@ -46,12 +47,18 @@ async function getWall(): Promise<WallData | null> {
     const select = `${SELECT_BASE}, ${campaignJoin}`;
 
     const [topRes, recentRes, countRes] = await Promise.all([
-      supabaseAdmin.from('donations').select(select).eq('status', 'completed')
-        .order('amount_cents', { ascending: false }).limit(30),
-      supabaseAdmin.from('donations').select(select).eq('status', 'completed')
-        .order('created_at', { ascending: false }).limit(45),
-      supabaseAdmin.from('donations').select('id', { count: 'exact', head: true })
-        .eq('status', 'completed'),
+      boundedQuery(() =>
+        supabaseAdmin.from('donations').select(select).eq('status', 'completed')
+          .order('amount_cents', { ascending: false }).limit(30)
+      ),
+      boundedQuery(() =>
+        supabaseAdmin.from('donations').select(select).eq('status', 'completed')
+          .order('created_at', { ascending: false }).limit(45)
+      ),
+      boundedQuery(() =>
+        supabaseAdmin.from('donations').select('id', { count: 'exact', head: true })
+          .eq('status', 'completed')
+      ),
     ]);
 
     if (topRes.error || recentRes.error) return null;
@@ -76,7 +83,7 @@ function DonorRow({ d, rank }: { d: RecentDonation; rank?: number }) {
   return (
     <li
       style={{
-        display: 'flex',
+        display: 'flex', minWidth: 0,
         alignItems: 'center',
         gap: '12px',
         padding: '12px 14px',
@@ -145,7 +152,7 @@ export default async function DonorWallPage() {
                 action={<Link href="/campaigns" style={{ fontSize: '14px', color: 'var(--green-text)', fontWeight: 600 }}>Browse campaigns</Link>}
               />
             ) : (
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: '8px' }}>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '8px' }}>
                 {data.top.map((d, i) => <DonorRow key={d.id} d={d} rank={i + 1} />)}
               </ul>
             )}
@@ -160,7 +167,7 @@ export default async function DonorWallPage() {
                 action={<Link href="/campaigns" style={{ fontSize: '14px', color: 'var(--green-text)', fontWeight: 600 }}>Browse campaigns</Link>}
               />
             ) : (
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: '8px' }}>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '8px' }}>
                 {data.recent.map((d) => <DonorRow key={d.id} d={d} />)}
               </ul>
             )}

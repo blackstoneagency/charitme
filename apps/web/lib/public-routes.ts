@@ -33,6 +33,13 @@ export const INDEXABLE_PUBLIC_ROUTES: PublicRoute[] = [
     changeFrequency: 'daily',
   },
   {
+    path: '/newsletter',
+    title: 'Newsletter',
+    description: 'One email a month — what got funded, what changed on CharitMe, and what we got wrong.',
+    priority: 0.5,
+    changeFrequency: 'monthly',
+  },
+  {
     path: '/press',
     title: 'Press',
     description: 'Press and media enquiries — who to contact and the facts you can quote.',
@@ -219,6 +226,14 @@ export const INDEXABLE_PUBLIC_ROUTES: PublicRoute[] = [
     title: 'CharitMe | AI Fundraising Platform',
     description: 'Launch trusted fundraising campaigns, accept donations, and grow with AI fundraising tools.',
     priority: 1,
+    changeFrequency: 'daily',
+  },
+  {
+    path: '/needs',
+    title: 'Current Needs',
+    description:
+      'What communities still need funding for right now — measured from live campaign shortfalls, ordered by urgency.',
+    priority: 0.68,
     changeFrequency: 'daily',
   },
   {
@@ -509,6 +524,13 @@ export const INDEXABLE_PUBLIC_ROUTES: PublicRoute[] = [
     description: 'Understand CharitMe donation refund policy, eligibility, and support process.',
     priority: 0.4,
     changeFrequency: 'yearly',
+  },
+  {
+    path: '/giving-days',
+    title: 'Giving Days',
+    description: 'Time-boxed fundraising events on CharitMe — what is live now, what is coming, and how much each has raised.',
+    priority: 0.55,
+    changeFrequency: 'daily',
   },
   {
     path: '/ambassadors',

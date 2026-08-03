@@ -117,7 +117,7 @@ export default function CampaignSortableList({
         <div style={{ padding: '12px 20px 4px' }}>
           <div
             style={{
-              display: 'flex',
+              display: 'flex', minWidth: 0,
               alignItems: 'center',
               gap: '10px',
               padding: '10px 14px',
@@ -126,7 +126,10 @@ export default function CampaignSortableList({
               border: '1px solid rgba(108,53,255,0.15)',
               fontSize: '13px',
               fontWeight: 700,
-              color: 'var(--violet, #4e16f5)',
+              // `--violet` is a BRAND fill, not an ink: on the dark card it
+              // measured 2.9:1. `--brand-text` is the readable counterpart and
+              // flips with the theme.
+              color: 'var(--brand-text)',
             }}
           >
             <KFIcon name="send" />

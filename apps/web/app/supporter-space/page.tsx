@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../lib/supabase';
+import { boundedQuery } from '\.\./\.\./lib/query-timeout';
 import { campaignColumns, applyLiveFilters } from '../../lib/campaign-visibility';
 import { campaignDaysLeft } from '../../lib/campaign-lifecycle';
 import { CampaignCard, CampaignGrid, type CampaignCardData } from '../../components/CampaignCard';
@@ -42,21 +43,27 @@ async function getBuckets(): Promise<Buckets | null> {
     const cols = await campaignColumns();
 
     const [closing, verified, needing] = await Promise.all([
-      applyLiveFilters(supabaseAdmin.from('campaigns').select(SELECT), cols)
-        .not('deadline', 'is', null)
-        .gte('deadline', new Date().toISOString())
-        .order('deadline', { ascending: true })
-        .limit(6),
-      applyLiveFilters(supabaseAdmin.from('campaigns').select(SELECT), cols)
-        .eq('trust_status', 'Verified')
-        .order('raised_amount', { ascending: false })
-        .limit(6),
+      boundedQuery(() =>
+        applyLiveFilters(supabaseAdmin.from('campaigns').select(SELECT), cols)
+          .not('deadline', 'is', null)
+          .gte('deadline', new Date().toISOString())
+          .order('deadline', { ascending: true })
+          .limit(6)
+      ),
+      boundedQuery(() =>
+        applyLiveFilters(supabaseAdmin.from('campaigns').select(SELECT), cols)
+          .eq('trust_status', 'Verified')
+          .order('raised_amount', { ascending: false })
+          .limit(6)
+      ),
       // "Furthest from its goal" is the honest read of most-needed: sorted by
       // least raised, so the campaigns nobody has found yet surface instead of
       // the ones already succeeding.
-      applyLiveFilters(supabaseAdmin.from('campaigns').select(SELECT), cols)
-        .order('raised_amount', { ascending: true })
-        .limit(6),
+      boundedQuery(() =>
+        applyLiveFilters(supabaseAdmin.from('campaigns').select(SELECT), cols)
+          .order('raised_amount', { ascending: true })
+          .limit(6)
+      ),
     ]);
 
     if (closing.error || verified.error || needing.error) return null;

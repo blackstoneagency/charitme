@@ -79,7 +79,7 @@ export default function MoneyCalculator() {
       </label>
       <div
         style={{
-          display: 'flex',
+          display: 'flex', minWidth: 0,
           alignItems: 'center',
           gap: 8,
           border: `1.5px solid ${BD}`,
@@ -117,7 +117,7 @@ export default function MoneyCalculator() {
       <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: MU, marginBottom: 8 }} id="mc-support-label">
         CharitMe support (optional — always reducible to 0%)
       </span>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 18 }} role="group" aria-labelledby="mc-support-label">
+      <div style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 6, marginBottom: 18 }} role="group" aria-labelledby="mc-support-label">
         {SUPPORT_TIER_PERCENTS.map((p) => {
           const active = supportPercent === p;
           return (
@@ -149,8 +149,8 @@ export default function MoneyCalculator() {
       </div>
 
       {/* Method + cover toggle */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 22, alignItems: 'center' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+      <div style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 12, marginBottom: 22, alignItems: 'center' }}>
+        <div style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 6 }}>
           {METHODS.map((m) => {
             const active = method === m.id;
             return (
@@ -181,7 +181,7 @@ export default function MoneyCalculator() {
             label activates its control, so the LABEL is the thumb target — the
             16x16 checkbox inside it is not what a user has to hit. It measured
             227x20: wide enough, 4px short. */}
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 24, fontSize: 13, fontWeight: 600, color: INK, cursor: 'pointer' }}>
+        <label style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, minHeight: 24, fontSize: 13, fontWeight: 600, color: INK, cursor: 'pointer' }}>
           <input
             type="checkbox"
             checked={coverProcessing}
@@ -195,7 +195,7 @@ export default function MoneyCalculator() {
       {/* Animated stacked bar */}
       <div
         style={{
-          display: 'flex',
+          display: 'flex', minWidth: 0,
           height: 22,
           borderRadius: 999,
           overflow: 'hidden',
@@ -209,7 +209,7 @@ export default function MoneyCalculator() {
         <div style={{ width: `${supportPct}%`, background: V, transition: 'width .35s ease' }} />
         <div style={{ width: `${processingPct}%`, background: 'var(--t4, #94a3b8)', transition: 'width .35s ease' }} />
       </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 22, fontSize: 12, color: MU }}>
+      <div style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 14, marginBottom: 22, fontSize: 12, color: MU }}>
         <Legend color={GR} label="Recipient" />
         <Legend color={V} label="CharitMe support" />
         <Legend color="var(--t4, #94a3b8)" label="Processing (Stripe)" />
@@ -221,11 +221,11 @@ export default function MoneyCalculator() {
         <Row label={`CharitMe support (${supportPercent}%)`} value={supportPercent === 0 ? '$0.00' : money(b.supportCents)} muted={supportPercent === 0} />
         <Row label={`Processing fee (${METHOD_FEES[method].label})`} value={money(b.processingCents)} />
         <div style={{ borderTop: `1px solid ${BD}`, marginTop: 4, paddingTop: 12 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 16, fontWeight: 800, color: GRT }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', fontSize: 16, fontWeight: 800, color: GRT }}>
             <span>Recipient receives</span>
             <span>{money(b.netToRecipientCents)}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 18, fontWeight: 800, color: INK, marginTop: 8 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', fontSize: 18, fontWeight: 800, color: INK, marginTop: 8 }}>
             <span>You pay</span>
             <span>{money(b.totalChargedCents)}</span>
           </div>
@@ -261,7 +261,7 @@ function Legend({ color, label }: { color: string; label: string }) {
 
 function Row({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: muted ? 'var(--t4, #94a3b8)' : 'var(--t2, #334155)' }}>
+    <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', fontSize: 14, color: muted ? 'var(--t4, #94a3b8)' : 'var(--t2, #334155)' }}>
       <span>{label}</span>
       <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{value}</span>
     </div>

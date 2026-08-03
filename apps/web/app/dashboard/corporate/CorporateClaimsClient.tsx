@@ -65,7 +65,7 @@ export default function CorporateClaimsClient({ claims, currency }: { claims: Cl
         {rows.map((r) => {
           const tone = STATUS_TONE[r.status];
           return (
-            <div key={r.id} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, padding: '12px 14px', border: '1px solid var(--b1, var(--b1))', borderRadius: 12, background: 'var(--s1, #fff)' }}>
+            <div key={r.id} style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', alignItems: 'center', gap: 12, padding: '12px 14px', border: '1px solid var(--b1, var(--b1))', borderRadius: 12, background: 'var(--s1, #fff)' }}>
               <div style={{ flex: '1 1 180px', minWidth: 0 }}>
                 <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--t1, var(--t1))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {r.employee_name || r.employee_email || 'Employee'}
@@ -81,7 +81,7 @@ export default function CorporateClaimsClient({ claims, currency }: { claims: Cl
               <span style={{ fontSize: 12, fontWeight: 800, padding: '3px 10px', borderRadius: 999, background: tone.bg, color: tone.fg }}>
                 {tone.label}
               </span>
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ display: 'flex', minWidth: 0, gap: 8 }}>
                 {r.status === 'pending' && (
                   <>
                     <button type="button" disabled={busy === r.id} onClick={() => act(r.id, 'approved')}

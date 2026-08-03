@@ -65,8 +65,8 @@ export default function CommentForm({
           background: 'var(--s1, #fff)', color: 'var(--t1)',
         }}
       />
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, gap: 12, flexWrap: 'wrap' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, fontWeight: 600, color: 'var(--t2)', cursor: 'pointer' }}>
+      <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', marginTop: 8, gap: 12, flexWrap: 'wrap' }}>
+        <label style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, fontSize: 12.5, fontWeight: 600, color: 'var(--t2)', cursor: 'pointer' }}>
           <input
             type="checkbox"
             checked={anonymous}

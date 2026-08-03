@@ -17,7 +17,7 @@ export function PaymentsSubnav() {
     <nav
       aria-label="Payments console"
       style={{
-        display: 'flex', gap: 8, flexWrap: 'wrap',
+        display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap',
         marginBottom: 18, paddingBottom: 14,
         borderBottom: '1px solid var(--b1)',
       }}

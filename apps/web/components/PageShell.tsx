@@ -58,7 +58,7 @@ export function PageHero({
       </h1>
       <p style={{ fontSize: '17px', color: 'var(--t3)', lineHeight: 1.65, marginTop: '16px' }}>{lede}</p>
       {actions && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '26px' }}>{actions}</div>
+        <div style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: '12px', marginTop: '26px' }}>{actions}</div>
       )}
     </header>
   );
@@ -198,7 +198,7 @@ export function CtaBand({
       <p style={{ fontSize: '15px', color: 'var(--t3)', margin: '10px auto 20px', maxWidth: '560px', lineHeight: 1.6 }}>
         {body}
       </p>
-      <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
         <Link href={primary.href} className="cta-primary" style={{ display: 'inline-flex' }}>
           {primary.label}
         </Link>

@@ -80,7 +80,7 @@ export default function AnalyticsPanel({ campaignId }: { campaignId: string }) {
     <div style={{ maxWidth: 900 }}>
       {/* Header */}
       <div style={{ marginBottom: 28 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', justifyContent: 'space-between' }}>
           <h2 style={{ fontSize: 24, fontWeight: 700, color: 'var(--t1)', margin: 0 }}>Analytics <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--t3)' }}>last 30 days</span></h2>
           <a href={`/campaigns/${campaign.slug}`} target="_blank" rel="noopener noreferrer"
             style={{ fontSize: 13, color: 'var(--brand-text)', fontWeight: 700, textDecoration: 'none' }}>
@@ -91,7 +91,7 @@ export default function AnalyticsPanel({ campaignId }: { campaignId: string }) {
 
       {/* Campaign progress */}
       <div style={{ background: 'rgba(109,53,255,.08)', border: '1px solid var(--b2)', borderRadius: 14, padding: '16px 22px', marginBottom: 24 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <span style={{ fontWeight: 650, fontSize: 15, color: 'var(--t1)' }}>{fmt(campaign.raised_amount)} raised</span>
           <span style={{ fontSize: 13, color: 'var(--brand-text)', fontWeight: 700 }}>{goalPct}% of {fmt(campaign.goal_amount)} goal</span>
         </div>
@@ -114,14 +114,14 @@ export default function AnalyticsPanel({ campaignId }: { campaignId: string }) {
       {dailyTrend.length > 0 && (
         <div style={{ background: 'var(--s1)', border: '1px solid var(--b1)', borderRadius: 14, padding: '20px 22px', marginBottom: 20 }}>
           <h2 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 650, color: 'var(--t1)' }}>Daily donations (last 30 days)</h2>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 80, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', minWidth: 0, alignItems: 'flex-end', gap: 3, height: 80, overflow: 'hidden' }}>
             {dailyTrend.map(d => (
               <div key={d.date} title={`${d.date}: ${fmt(d.amount)} (${d.count} donors)`}
                 style={{ flex: 1, minWidth: 6, background: 'var(--violet)', borderRadius: '3px 3px 0 0', opacity: 0.8,
                   height: `${Math.max(4, Math.round((d.amount / maxDay) * 80))}px`, transition: 'height .3s' }} />
             ))}
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 11, color: 'var(--t3)' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', marginTop: 6, fontSize: 11, color: 'var(--t3)' }}>
             <span>{dailyTrend[0]?.date}</span>
             <span>{dailyTrend[dailyTrend.length - 1]?.date}</span>
           </div>
@@ -137,7 +137,7 @@ export default function AnalyticsPanel({ campaignId }: { campaignId: string }) {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {topSources.map(s => (
-                <div key={s.source} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div key={s.source} style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: 13, color: 'var(--t2)', fontWeight: 600, textTransform: 'capitalize' }}>{s.source}</span>
                   <div style={{ textAlign: 'right' }}>
                     <span style={{ fontSize: 13, fontWeight: 650, color: 'var(--t1)' }}>{fmt(s.amount)}</span>
@@ -157,7 +157,7 @@ export default function AnalyticsPanel({ campaignId }: { campaignId: string }) {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {sharesByChannel.map(ch => (
-                <div key={ch.channel} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div key={ch.channel} style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: 13 }}>
                     {CHANNEL_ICON[ch.channel] ?? '🌐'} <span style={{ fontWeight: 600, color: 'var(--t2)', textTransform: 'capitalize' }}>{ch.channel}</span>
                   </span>

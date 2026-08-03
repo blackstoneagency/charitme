@@ -68,7 +68,7 @@ function avatarStyle(index: number): React.CSSProperties {
     borderRadius: '50%',
     background: AVATAR_COLORS[index % AVATAR_COLORS.length],
     color: '#fff',
-    display: 'flex',
+    display: 'flex', minWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
     fontSize: 13,
@@ -99,7 +99,7 @@ async function fetchDonationsData(userId: string): Promise<{
 }> {
   try {
     // Step 1: get user's campaigns
-    const { data: campData, error: campError } = await boundedQuery(
+    const { data: campData, error: campError } = await boundedQuery(() =>
       supabaseAdmin
         .from('campaigns')
         .select('id,title')
@@ -121,7 +121,7 @@ async function fetchDonationsData(userId: string): Promise<{
     const campaignIds = campaigns.map((c) => c.id);
 
     // Step 2: get completed donations
-    const { data: donData, error: donError } = await boundedQuery(
+    const { data: donData, error: donError } = await boundedQuery(() =>
       supabaseAdmin
         .from('donations')
         .select('id,amount_cents,currency,status,created_at,anonymous,donor_id,campaign_id')
@@ -149,7 +149,7 @@ async function fetchDonationsData(userId: string): Promise<{
     const profileMap = new Map<string, string>();
 
     if (uniqueDonorIds.length > 0) {
-      const { data: profileData } = await boundedQuery(
+      const { data: profileData } = await boundedQuery(() =>
         supabaseAdmin
           .from('profiles')
           .select('id,full_name')
@@ -277,11 +277,14 @@ export default async function DonationsPage({
         title="Donations"
         subtitle="Track every donation across all your campaigns."
         actions={
-          <div style={{ display: 'flex', gap: 10 }}>
+          // Wraps: two 154px buttons in a nowrap row measure 401px, wider than any
+          // phone, and the root clips rather than scrolls — so "Export" was cut
+          // off and unreachable.
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', minWidth: 0 }}>
             <Link
               href="/dashboard/refund"
               className="kf-outline"
-              style={{ display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+              style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 6, textDecoration: 'none' }}
             >
               Request Refund
             </Link>
@@ -289,14 +292,14 @@ export default async function DonationsPage({
               href="/api/exports/donations"
               download
               className="kf-outline"
-              style={{ display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+              style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 6, textDecoration: 'none' }}
             >
               <KFIcon name="upload" /> Export CSV
             </a>
             <Link
               href="/dashboard/tax"
               className="kf-outline"
-              style={{ display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+              style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 6, textDecoration: 'none' }}
             >
               <KFIcon name="doc" /> Tax Documents
             </Link>
@@ -368,7 +371,7 @@ export default async function DonationsPage({
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) 120px 100px 90px',
+                gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 120px) minmax(0, 100px) 90px',
                 gap: 12,
                 padding: '8px 20px',
                 fontSize: 11,
@@ -395,7 +398,7 @@ export default async function DonationsPage({
                     className="kf-row"
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) 120px 100px 90px',
+                      gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 120px) minmax(0, 100px) 90px',
                       gap: 12,
                       alignItems: 'center',
                     }}
@@ -403,7 +406,7 @@ export default async function DonationsPage({
                     {/* Donor */}
                     <div
                       className="kf-row-main"
-                      style={{ display: 'flex', alignItems: 'center', gap: 10 }}
+                      style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10 }}
                     >
                       <div style={avatarStyle(i)}>
                         {initials(d.donorName)}

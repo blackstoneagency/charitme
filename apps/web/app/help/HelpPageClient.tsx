@@ -109,7 +109,7 @@ export default function HelpPage() {
       </section>
 
       {/* Category pills */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 28 }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap', marginBottom: 28 }}>
         <button onClick={() => setActiveCategory('all')}
           style={{
             padding: '7px 16px', borderRadius: 20, border: '1.5px solid',
@@ -142,7 +142,7 @@ export default function HelpPage() {
           <p style={{ fontSize: 13, marginTop: 6 }}>Try different keywords or <a href="/contact" style={{ color: 'var(--violet-ink)', fontWeight: 700 }}>contact support</a>.</p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gap: 4 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 4 }}>
           {filtered.map(article => (
             <div key={article.id}
               style={{ border: '1px solid var(--b2)', borderRadius: 12, overflow: 'hidden' }}>
@@ -150,7 +150,7 @@ export default function HelpPage() {
                 type="button"
                 onClick={() => setOpenId(openId === article.id ? null : article.id)}
                 style={{
-                  width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  width: '100%', display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'center',
                   padding: '16px 20px', background: openId === article.id ? 'var(--s2)' : 'var(--s1)',
                   border: 0, cursor: 'pointer', fontSize: 15, fontWeight: 700, textAlign: 'left', color: 'var(--t1)',
                   gap: 16,

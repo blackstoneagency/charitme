@@ -77,7 +77,7 @@ export default async function ReceiptPreviewPage({
       </section>
 
       <section>
-        <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', marginBottom: 16 }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 14, alignItems: 'center', flexWrap: 'wrap', marginBottom: 16 }}>
           <ReceiptButton donationId={donation.id} />
           <a
             href={`/api/donations/receipt?donationId=${encodeURIComponent(donation.id)}`}

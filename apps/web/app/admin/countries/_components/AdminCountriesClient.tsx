@@ -97,7 +97,7 @@ function CountryRow({
             style={{ ...iStyle, width: 200 }} placeholder="Optional notes" />
         </td>
         <td style={{ padding: '10px 14px' }}>
-          <div style={{ display: 'flex', gap: 6 }}>
+          <div style={{ display: 'flex', minWidth: 0, gap: 6 }}>
             <button onClick={() => void save()} disabled={saving} style={btnSave}>{saving ? '…' : 'Save'}</button>
             <button onClick={() => { setEditing(false); setForm(country); }} style={btnCancel}>Cancel</button>
           </div>
@@ -134,7 +134,7 @@ function CountryRow({
         {country.notes || '—'}
       </td>
       <td style={{ padding: '11px 14px' }}>
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 6 }}>
           <button onClick={() => setEditing(true)} style={btnEdit}>Edit</button>
           <button onClick={() => { if (confirm(`Delete ${country.name}?`)) onDelete(country.id); }} style={btnDel}>Delete</button>
         </div>
@@ -233,12 +233,12 @@ export default function AdminCountriesClient() {
       </div>
 
       {/* Public page link */}
-      <div style={{ padding: '12px 18px', background: 'var(--s2)', borderRadius: 12, border: '1px solid var(--b2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+      <div style={{ padding: '12px 18px', background: 'var(--s2)', borderRadius: 12, border: '1px solid var(--b2)', display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-text)' }}>
           🌍 Public page:{' '}
           <code style={{ background: 'rgba(0,0,0,.06)', padding: '2px 6px', borderRadius: 4 }}>/supported-countries</code>
         </span>
-        <Link href="/supported-countries" target="_blank" style={{ fontSize: 12, fontWeight: 650, color: 'var(--brand-text)', textDecoration: 'none' }}>
+        <Link href="/supported-countries" target="_blank" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, fontSize: 12, fontWeight: 650, color: 'var(--brand-text)', textDecoration: 'none' }}>
           View Page →
         </Link>
       </div>
@@ -246,7 +246,7 @@ export default function AdminCountriesClient() {
       {/* Add form */}
       <div style={{ background: 'var(--s1)', border: '1px solid #e8ecf4', borderRadius: 16, padding: '20px 24px', marginBottom: 24 }}>
         <div style={{ fontWeight: 650, fontSize: 14, color: 'var(--t1)', marginBottom: 14 }}>+ Add Country</div>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <label style={lStyle} htmlFor="ctry-flag">Flag</label>
             <input id="ctry-flag" value={newForm.flag_emoji} onChange={e => updNew('flag_emoji', e.target.value)} style={{ ...iStyle, width: 64 }} placeholder="🇺🇸" maxLength={4} />
@@ -265,14 +265,14 @@ export default function AdminCountriesClient() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <span style={lStyle}>Fundraise?</span>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, height: 40, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: newForm.can_fundraise ? 'var(--green-text)' : 'var(--t3)' }}>
+            <label style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 6, height: 40, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: newForm.can_fundraise ? 'var(--green-text)' : 'var(--t3)' }}>
               <input type="checkbox" checked={newForm.can_fundraise} onChange={e => updNew('can_fundraise', e.target.checked)} style={{ accentColor: '#6c35ff', width: 16, height: 16 }} />
               {newForm.can_fundraise ? 'Yes' : 'No'}
             </label>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <span style={lStyle}>Donate?</span>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, height: 40, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: newForm.can_donate ? 'var(--blue-text)' : 'var(--t3)' }}>
+            <label style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 6, height: 40, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: newForm.can_donate ? 'var(--blue-text)' : 'var(--t3)' }}>
               <input type="checkbox" checked={newForm.can_donate} onChange={e => updNew('can_donate', e.target.checked)} style={{ accentColor: '#6c35ff', width: 16, height: 16 }} />
               {newForm.can_donate ? 'Yes' : 'No'}
             </label>
@@ -292,7 +292,7 @@ export default function AdminCountriesClient() {
       </div>
 
       {/* Filter + search */}
-      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
         {(['all','fundraise','donate'] as const).map(f => (
           <button
             key={f}

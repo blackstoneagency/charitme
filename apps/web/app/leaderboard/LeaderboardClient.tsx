@@ -145,7 +145,7 @@ export default function LeaderboardClient({
                       by {c.organizerName}
                       {c.location ? ` · ${c.location}` : ''}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8 }}>
                       <div style={{ flex: 1, maxWidth: 220 }}>
                         <ProgressBar value={c.raisedAmount} max={c.goalAmount} />
                       </div>

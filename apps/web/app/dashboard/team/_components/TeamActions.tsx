@@ -121,7 +121,7 @@ export function InviteMemberButton({ campaigns, onAdded }: { campaigns: Campaign
         type="button"
         className="kf-primary"
         onClick={() => { setOpen(true); setError(''); setSuccess(''); }}
-        style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+        style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 6 }}
       >
         + Invite Member
       </button>
@@ -130,20 +130,20 @@ export function InviteMemberButton({ campaigns, onAdded }: { campaigns: Campaign
         // Backdrop dismissal is supplementary; Escape and the close button remain available.
         // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
         <div
-          style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
+          style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
           onClick={e => { if (e.target === e.currentTarget) setOpen(false); }}
         >
           <div className="kf-modal-responsive" style={{ width: 460, background: 'var(--s1)', borderRadius: 16, boxShadow: '0 20px 60px rgba(20,20,80,.18)', overflow: 'hidden' }}>
-            <div style={{ padding: '22px 24px 18px', borderBottom: '1px solid var(--b1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ padding: '22px 24px 18px', borderBottom: '1px solid var(--b1)', display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--t1)' }}>Invite Team Member</div>
               <button type="button" onClick={() => setOpen(false)} style={{ width: 32, height: 32, border: '1px solid var(--b1)', borderRadius: '50%', background: 'var(--s1)', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: 'var(--t3)' }}>×</button>
             </div>
-            <div style={{ padding: '24px', display: 'grid', gap: 16 }}>
+            <div style={{ padding: '24px', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16 }}>
               {error && <div style={{ padding: '10px 14px', background: 'rgba(190,18,60,.08)', borderRadius: 9, color: 'var(--red, var(--red))', fontSize: 13, fontWeight: 700 }}>{error}</div>}
               {success && <div style={{ padding: '10px 14px', background: 'rgba(25,184,106,.08)', borderRadius: 9, color: 'var(--green-dark, var(--green-dark))', fontSize: 13, fontWeight: 700 }}>{success}</div>}
 
               {campaigns.length > 1 && (
-                <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
+                <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
                   Campaign
                   <select value={campaignId} onChange={e => setCampaignId(e.target.value)} style={{ height: 44, border: '1px solid var(--b2, var(--b1))', borderRadius: 9, padding: '0 14px', fontSize: 14, background: 'var(--s1)', color: 'var(--t1)' }}>
                     {campaigns.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
@@ -151,7 +151,7 @@ export function InviteMemberButton({ campaigns, onAdded }: { campaigns: Campaign
                 </label>
               )}
 
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
+              <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
                 Email Address
                 <input
                   type="email"
@@ -163,7 +163,7 @@ export function InviteMemberButton({ campaigns, onAdded }: { campaigns: Campaign
                 <span style={{ fontSize: 11, color: 'var(--t3, var(--t3))', fontWeight: 400 }}>The user must already have a CharitMe account.</span>
               </label>
 
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
+              <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
                 Role
                 <select value={role} onChange={e => setRole(e.target.value as 'admin' | 'member' | 'viewer')} style={{ height: 44, border: '1px solid var(--b2, var(--b1))', borderRadius: 9, padding: '0 14px', fontSize: 14, background: 'var(--s1)', color: 'var(--t1)' }}>
                   <option value="admin">Admin</option>
@@ -177,7 +177,7 @@ export function InviteMemberButton({ campaigns, onAdded }: { campaigns: Campaign
                 </span>
               </label>
             </div>
-            <div style={{ padding: '16px 24px', borderTop: '1px solid var(--b1)', display: 'flex', gap: 12 }}>
+            <div style={{ padding: '16px 24px', borderTop: '1px solid var(--b1)', display: 'flex', minWidth: 0, gap: 12 }}>
               <button type="button" onClick={() => setOpen(false)} style={{ flex: 1, height: 44, border: '1px solid var(--b1)', borderRadius: 9, background: 'var(--s1)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
               <button type="button" onClick={handleInvite} disabled={saving} style={{ flex: 1, height: 44, border: 0, borderRadius: 9, background: 'var(--violet)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
                 {saving ? 'Adding…' : 'Add Member'}

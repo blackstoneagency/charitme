@@ -140,7 +140,7 @@ export default async function SuccessStoriesPage() {
         <div style={{ position: 'absolute', bottom: -80, right: '4%', width: 380, height: 380, borderRadius: '50%', background: 'radial-gradient(circle, rgba(180,59,239,.22) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
         <div className="container" style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+          <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10, marginBottom: 20 }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(108,53,255,.25)', border: '1px solid rgba(108,53,255,.4)', borderRadius: 999, padding: '5px 14px', fontSize: 12, fontWeight: 800, color: '#b89eff', letterSpacing: '.1em', textTransform: 'uppercase' }}>
               ✦ Real Impact
             </span>
@@ -155,7 +155,7 @@ export default async function SuccessStoriesPage() {
               <p style={{ color: 'rgba(255,255,255,.92)', fontSize: 18, lineHeight: 1.7, maxWidth: 540, margin: '0 0 40px' }}>
                 See how individuals, nonprofits, and communities achieved their goals with CharitMe — powered by AI and zero mandatory fees.
               </p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 56 }}>
+              <div style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 12, marginBottom: 56 }}>
                 <Link href="/create/choose-path" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 52, padding: '0 28px', borderRadius: 14, background: 'linear-gradient(135deg, var(--cta-from, #6736ff), var(--cta-to, #bd33cd))', color: '#fff', fontWeight: 900, fontSize: 15, textDecoration: 'none', boxShadow: '0 16px 32px rgba(103,54,255,.4)' }}>
                   Start Your Fundraiser &#8594;
                 </Link>
@@ -165,7 +165,7 @@ export default async function SuccessStoriesPage() {
               </div>
 
               {statsAvailable && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+              <div style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 16 }}>
                 {[
                   { value: shortCount(campaignCount), label: 'Campaigns' },
                   { value: formatCents(totalRaised), label: 'Total Raised' },
@@ -271,7 +271,7 @@ export default async function SuccessStoriesPage() {
                         <div style={{ background: 'var(--s2, #f1eefe)', borderRadius: 999, height: 6, overflow: 'hidden', marginBottom: 14 }}>
                           <div style={{ width: `${progress}%`, height: '100%', background: 'linear-gradient(90deg, #6736ff, #d63ae7)', borderRadius: 999 }} />
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'center' }}>
                           <div>
                             <div style={{ fontSize: 18, fontWeight: 950, color: 'var(--violet-ink)' }}>{formatCents(story.raised_amount, story.currency ?? 'usd')}</div>
                             <div style={{ fontSize: 11, color: 'var(--t3)', fontWeight: 600 }}>of {formatCents(story.goal_amount, story.currency ?? 'usd')} goal</div>
@@ -320,7 +320,7 @@ export default async function SuccessStoriesPage() {
                   <p style={{ fontSize: 15, color: 'var(--t2, #475569)', lineHeight: 1.7, margin: '0 0 24px', fontStyle: 'italic', position: 'relative', zIndex: 1 }}>
                     &ldquo;{story.description ?? `${story.title} has brought our community together in ways we never imagined possible.`}&rdquo;
                   </p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 14 }}>
                     <div style={{ width: 44, height: 44, borderRadius: '50%', backgroundImage: `url(${COMMUNITY_PHOTOS[i % COMMUNITY_PHOTOS.length]})`, backgroundSize: 'cover', backgroundPosition: 'center', flexShrink: 0, border: '2px solid var(--b1, #ede9fe)' }} />
                     <div>
                       <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--t1, #0e0520)' }}>{story.title.split(' ').slice(0, 3).join(' ')}</div>
@@ -376,7 +376,7 @@ export default async function SuccessStoriesPage() {
           <p style={{ color: 'rgba(255,255,255,.92)', fontSize: 17, margin: '0 auto 36px', maxWidth: 480 }}>
             Join thousands of fundraisers who trust CharitMe&apos;s AI-powered platform to amplify their impact.
           </p>
-          <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 14 }}>
+          <div style={{ display: 'flex', minWidth: 0, justifyContent: 'center', flexWrap: 'wrap', gap: 14 }}>
             <Link href="/create/choose-path" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 54, padding: '0 32px', borderRadius: 15, background: 'linear-gradient(135deg, var(--cta-from, #6736ff), var(--cta-to, #bd33cd))', color: '#fff', fontWeight: 900, fontSize: 16, textDecoration: 'none', boxShadow: '0 16px 40px rgba(103,54,255,.45)' }}>
               Start Your Fundraiser Free &#8594;
             </Link>

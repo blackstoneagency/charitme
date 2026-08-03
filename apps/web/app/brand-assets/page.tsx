@@ -48,7 +48,7 @@ export default function BrandAssetsPage() {
         <CardGrid min={280}>
           {LOGOS.map((l) => (
             <div key={l.file} style={{ padding: '20px', border: '1px solid var(--b1)', borderRadius: 'var(--rl)', background: 'var(--s1)' }}>
-              <div style={{ padding: '18px', background: 'var(--s2)', borderRadius: 'var(--r)', display: 'flex', justifyContent: 'center', marginBottom: '14px' }}>
+              <div style={{ padding: '18px', background: 'var(--s2)', borderRadius: 'var(--r)', display: 'flex', minWidth: 0, justifyContent: 'center', marginBottom: '14px' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={l.file} alt={`CharitMe ${l.name.toLowerCase()}`} style={{ maxHeight: '56px', width: 'auto' }} />
               </div>

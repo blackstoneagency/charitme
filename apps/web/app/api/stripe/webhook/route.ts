@@ -961,11 +961,24 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
   const newStatus = isFullRefund ? 'refunded' : 'completed'; // partial keeps completed
 
   // Update donation status
-  const { data: donation } = await supabaseAdmin.from('donations')
+  const { data: donation, error: donationError } = await supabaseAdmin.from('donations')
     .select('id, amount_cents, tip_cents, campaign_id, donor_id, campaigns:campaign_id(title, slug)')
     .eq('stripe_payment_intent_id', piId)
     .maybeSingle();
 
+  // A failed READ is not "no such donation", and the difference is permanent.
+  // Falling through to `return` answers 200 to Stripe — so there is NO RETRY —
+  // while the money has already gone back to the donor. The donation would stay
+  // `completed` and the campaign's raised_amount would keep counting a refunded
+  // gift, with nothing left to reconcile against.
+  //
+  // Throw instead, which is this file's established contract everywhere else
+  // (see the recurring handlers): the webhook 500s, Stripe redelivers, and the
+  // handler is idempotent so the retry is safe.
+  if (donationError) throw new Error('Refunded donation could not be read; letting Stripe retry.');
+
+  // Genuinely no row is different and NOT an error: a refund for a payment we
+  // never recorded has nothing to update.
   if (!donation) return;
 
   type DonationWithCampaign = { id: string; amount_cents: number; tip_cents: number; campaign_id: string; donor_id: string | null; campaigns: { title: string; slug: string } | null };
@@ -1086,10 +1099,16 @@ async function handleDisputeCreated(dispute: Stripe.Dispute) {
     .eq('stripe_payment_intent_id', piId);
 
   // Insert a refund record representing the chargeback
-  const { data: donation } = await supabaseAdmin.from('donations')
+  const { data: donation, error: donationError } = await supabaseAdmin.from('donations')
     .select('id')
     .eq('stripe_payment_intent_id', piId)
     .maybeSingle();
+
+  // Same reasoning as the refund handler above: an unreadable row silently
+  // skipped the chargeback record and still answered 200, so Stripe never
+  // retried and the dispute existed at Stripe with no trace here. Throw and let
+  // the redelivery land it.
+  if (donationError) throw new Error('Disputed donation could not be read; letting Stripe retry.');
 
   if (donation) {
     await supabaseAdmin.from('refunds').insert({

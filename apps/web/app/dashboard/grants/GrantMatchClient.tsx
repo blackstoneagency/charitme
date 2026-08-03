@@ -81,9 +81,9 @@ export default function GrantMatchClient() {
         rule-based, so you can see exactly why each one scored.
       </p>
 
-      <form onSubmit={findMatches} style={{ display: 'grid', gap: 12 }}>
+      <form onSubmit={findMatches} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
-          <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
+          <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
             Category
             <select
               value={category}
@@ -95,7 +95,7 @@ export default function GrantMatchClient() {
             </select>
           </label>
 
-          <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
+          <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
             Amount needed (USD)
             <input
               type="number" min="0" step="any" inputMode="decimal" placeholder="25,000"
@@ -105,7 +105,7 @@ export default function GrantMatchClient() {
           </label>
         </div>
 
-        <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
+        <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
           What is the funding for?
           <input
             type="text" maxLength={500} placeholder="After-school tutoring for 120 students"
@@ -131,10 +131,10 @@ export default function GrantMatchClient() {
       )}
 
       {matches && matches.length > 0 && (
-        <div style={{ display: 'grid', gap: 10, marginTop: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10, marginTop: 16 }}>
           {matches.map((m) => m.grant && (
             <div key={m.grantId} style={{ padding: 12, borderRadius: 12, border: '1px solid var(--b1)', background: 'var(--s1)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+              <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
                 <Link href={`/grants/${m.grant.slug}`} style={{ fontWeight: 800, color: 'var(--t1)', textDecoration: 'none', fontSize: 14.5 }}>
                   {m.grant.title}
                 </Link>

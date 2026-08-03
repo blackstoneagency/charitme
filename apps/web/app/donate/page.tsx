@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../lib/supabase';
+import { boundedQuery } from '../../lib/query-timeout';
 import { campaignColumns, applyLiveFilters } from '../../lib/campaign-visibility';
 import { CampaignCard, CampaignGrid, type CampaignCardData } from '../../components/CampaignCard';
 import { POPULAR_CAUSES, causeBrowseHref } from '../../lib/causes';
@@ -38,16 +39,18 @@ const HOW = [
 async function getFeatured(): Promise<CampaignCardData[] | null> {
   try {
     const cols = await campaignColumns();
-    const { data, error } = await applyLiveFilters(
-      supabaseAdmin
-        .from('campaigns')
-        .select(
-          'id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, status, trust_status, nonprofit_verified, location, campaign_health_score',
-        ),
-      cols,
-    )
-      .order('raised_amount', { ascending: false })
-      .limit(6);
+    const { data, error } = await boundedQuery(() =>
+  applyLiveFilters(
+        supabaseAdmin
+          .from('campaigns')
+          .select(
+            'id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, status, trust_status, nonprofit_verified, location, campaign_health_score',
+          ),
+        cols,
+      )
+        .order('raised_amount', { ascending: false })
+        .limit(6),
+    );
 
     if (error) return null;
     return (data ?? []) as CampaignCardData[];

@@ -147,7 +147,7 @@ export default function SupportersPanel({
           Pick a template, personalize it, send. CharitMe delivers the email, honors unsubscribes automatically, and never shares donor email addresses with you.
         </p>
 
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
           {data.templates.map(t => (
             <button key={t.key} onClick={() => pickTemplate(t.key)}
               style={{ padding: '10px 16px', borderRadius: 10, fontSize: 13, fontWeight: 650, cursor: 'pointer',
@@ -164,7 +164,7 @@ export default function SupportersPanel({
         )}
 
         <span id="sp-sendto-label" style={{ display: 'block', fontSize: 12, fontWeight: 650, color: 'var(--t2)', marginBottom: 6 }}>Send to</span>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }} role="group" aria-labelledby="sp-sendto-label">
+        <div style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap', marginBottom: 14 }} role="group" aria-labelledby="sp-sendto-label">
           {data.targetGroups.map(g => (
             <button key={g.key} onClick={() => setTargetGroup(g.key)} title={g.description}
               style={{ padding: '8px 14px', borderRadius: 999, fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
@@ -232,7 +232,7 @@ export default function SupportersPanel({
             <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>Where donations come from</h3>
             {data.attribution.length === 0 && <p style={{ margin: 0, fontSize: 12.5, color: 'var(--t3)' }}>No share-link data yet. Use the Share page to create tracked links — results show here.</p>}
             {data.attribution.map(a => (
-              <div key={a.channel} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--b1)', fontSize: 13 }}>
+              <div key={a.channel} style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--b1)', fontSize: 13 }}>
                 <span style={{ fontWeight: 700, color: 'var(--t2)', textTransform: 'capitalize' }}>{a.channel}</span>
                 <span style={{ color: 'var(--t3)' }}>{a.clicks} clicks · <b style={{ color: 'var(--green-text)' }}>{a.conversions} gifts</b></span>
               </div>

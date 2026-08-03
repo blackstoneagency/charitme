@@ -90,19 +90,23 @@ describe('feature status honesty', () => {
     expect(wired.has('profiles')).toBe(true);
     // And a table with no reader must not.
     //
-    // This fixture has now gone stale TWICE, which is the test working: it names
-    // a table nothing reads, and the moment someone builds that feature the
+    // This fixture has now gone stale THREE times, which is the test working: it
+    // names a table nothing reads, and the moment someone builds that feature the
     // assertion correctly fails. `auction_bids` was the first (auctions shipped);
     // `membership_tiers` was the second — Codex built the creator/membership
-    // surface (`app/api/creators/tiers/route.ts`, `app/creators/[handle]/page.tsx`),
-    // so it is genuinely wired now.
+    // surface (`app/api/creators/tiers/route.ts`, `app/creators/[handle]/page.tsx`);
+    // `giving_days` was the third, wired by lib/giving-days-server.ts,
+    // /giving-days, /giving-days/[slug], /dashboard/giving-days and
+    // /api/giving-days.
     //
     // If this fails again, do NOT weaken it — check whether the table just
     // acquired a reader, and if so move the fixture to one that still has none.
-    // Verified reader-less at the time of writing: giving_days, livestreams,
-    // reward_tiers, donor_segments, member_subscriptions, exclusive_posts,
-    // creator_tips, digital_products, product_orders.
-    expect(wired.has('giving_days')).toBe(false);
+    // Verified reader-less by crossing every CREATE TABLE in the schema mirror
+    // against every `.from()` call site (2026-08-02): livestreams, brands,
+    // donor_segments, donor_segment_members, admin_notes, admin_settings,
+    // analytics_snapshots, giving_days→WIRED, creator_tips, digital_products,
+    // product_orders, organizations, platform_fees, processor_accounts.
+    expect(wired.has('livestreams')).toBe(false);
   });
 
   it('the two known-unbuilt modules are marked Planned', () => {

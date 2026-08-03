@@ -97,7 +97,7 @@ export default async function AnalyticsPage({
   // Step 1: get campaigns
   // supabase-js resolves on a query error, so an unchecked read turns a timeout
   // into `data: null` → an empty list → "$0 raised" stated as fact.
-  const { data: campaignData, error: campaignError } = await boundedQuery(
+  const { data: campaignData, error: campaignError } = await boundedQuery(() =>
     supabaseAdmin
       .from('campaigns')
       .select('id,title,slug,raised_amount,backer_count,goal_amount,status')
@@ -111,7 +111,7 @@ export default async function AnalyticsPage({
   // Step 2: get completed donations for these campaigns
   let donations: DonationRow[] = [];
   if (cids.length > 0) {
-    const { data: donationData, error: donationError } = await boundedQuery(
+    const { data: donationData, error: donationError } = await boundedQuery(() =>
       supabaseAdmin
         .from('donations')
         .select('amount_cents,created_at,campaign_id')
@@ -394,7 +394,7 @@ export default async function AnalyticsPage({
                     const barPct = (c.total / maxTotal) * 100;
                     return (
                       <div key={c.id} style={{ marginBottom: 12 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
                           <span style={{ color: 'var(--t2)', fontWeight: 600, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title}</span>
                           <span style={{ color: 'var(--green-text)', fontWeight: 700 }}>{formatMoneyCompact(c.total, c.currency ?? 'usd')}</span>
                         </div>
@@ -425,7 +425,7 @@ export default async function AnalyticsPage({
                   return (
                     <div
                       key={b.day}
-                      style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}
+                      style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12, marginBottom: 12 }}
                     >
                       <span style={{ width: 64, fontSize: 12, color: 'var(--t3)', flexShrink: 0 }}>
                         {b.label}

@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../lib/query-timeout';
 import 'server-only';
 import type { Metadata } from 'next';
 import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
@@ -27,14 +28,14 @@ export default async function DonationFormsPage() {
   const user = await requireUser();
 
   const [{ data: campaigns }, { data: nonprofits }] = await Promise.all([
-    supabaseAdmin
+    boundedQuery(() => supabaseAdmin
       .from('campaigns')
       .select('id, title, slug')
       .eq('user_id', user.id)
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
-      .limit(100),
-    supabaseAdmin.from('nonprofit_profiles').select('id').eq('owner_id', user.id),
+      .limit(100)),
+    boundedQuery(() => supabaseAdmin.from('nonprofit_profiles').select('id').eq('owner_id', user.id)),
   ]);
 
   const campaignList = (campaigns ?? []) as CampaignOption[];
@@ -50,14 +51,14 @@ export default async function DonationFormsPage() {
     if (campaignIds.length) clauses.push(`campaign_id.in.(${campaignIds.join(',')})`);
     if (nonprofitIds.length) clauses.push(`nonprofit_id.in.(${nonprofitIds.join(',')})`);
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await boundedQuery(() => supabaseAdmin
       .from('donation_forms')
       .select(
         'id, nonprofit_id, campaign_id, title, slug, default_amounts_cents, recurring_enabled, currencies, embed_enabled, created_at, updated_at',
       )
       .or(clauses.join(','))
       .order('created_at', { ascending: false })
-      .limit(200);
+      .limit(200));
 
     forms = error ? null : ((data ?? []) as DonationForm[]);
   }

@@ -61,7 +61,7 @@ function Endpoint({
 }) {
   return (
     <div style={{ border: '1px solid var(--b1)', borderRadius: 'var(--rl)', padding: 18, background: 'var(--s1)' }}>
-      <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
         <span
           style={{
             fontFamily: 'var(--mono)',
@@ -143,7 +143,7 @@ export default function DevelopersDocsPage() {
 
       <section style={{ marginBottom: 32 }}>
         <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--t1)', margin: '0 0 14px' }}>Endpoints</h2>
-        <div style={{ display: 'grid', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14 }}>
           <Endpoint method="GET" path="/api/v1/me" scope="profile:read">
             The account a key belongs to, and the scopes it holds. Use it to verify a credential.
           </Endpoint>

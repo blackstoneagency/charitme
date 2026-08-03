@@ -96,7 +96,7 @@ export default async function AdminSetupPage() {
         title="Setup Diagnostic"
         subtitle="Check environment variables, database connectivity, and table status."
         actions={
-          <Link href="/admin" style={{ textDecoration: 'none', fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
+          <Link href="/admin" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, textDecoration: 'none', fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
             ← Dashboard
           </Link>
         }
@@ -129,7 +129,7 @@ export default async function AdminSetupPage() {
             <p style={{ fontSize: 14, color: 'var(--red-text)', margin: '0 0 18px', lineHeight: 1.6 }}>
               <strong>If tables do not exist yet:</strong> apply reviewed migrations through the staging-gated release workflow.
             </p>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
+            <div style={{ display: 'flex', minWidth: 0, gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
               <ReloadCacheButton />
             </div>
             <p style={{ fontSize: 12, color: 'var(--red-text)', margin: 0, lineHeight: 1.5 }}>
@@ -170,7 +170,7 @@ export default async function AdminSetupPage() {
         </section>
 
         {/* Quick actions */}
-        <div style={{ marginTop: 22, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ marginTop: 22, display: 'flex', minWidth: 0, gap: 12, flexWrap: 'wrap' }}>
           <a href="/api/health?details=1" target="_blank" style={{ padding: '9px 20px', background: '#6c35ff', color: '#fff', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
             /api/health →
           </a>

@@ -46,7 +46,7 @@ export default async function TaxStatementPage({ params, searchParams }: { param
           <p style={{ color: 'var(--t2, #334155)', lineHeight: 1.6, margin: 0 }}>
             This year includes donations in more than one currency. CharitMe keeps those totals separate so your records stay accurate. Choose a currency to view its statement.
           </p>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 20 }}>
+          <div style={{ display: 'flex', minWidth: 0, gap: 10, flexWrap: 'wrap', marginTop: 20 }}>
             {error.currencies.map((code) => (
               <Link key={code} href={`/donor/tax-statement/${year}?currency=${encodeURIComponent(code)}`} style={{ color: 'var(--brand-text)', fontWeight: 700, textDecoration: 'none' }}>
                 View {code.toUpperCase()} statement
@@ -68,9 +68,9 @@ export default async function TaxStatementPage({ params, searchParams }: { param
   return (
     <div style={{ maxWidth: 760, margin: '0 auto', padding: '32px 24px' }}>
       {/* Toolbar (not printed) */}
-      <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
-        <Link href={`/dashboard/tax?year=${year}&currency=${encodeURIComponent(currency)}`} style={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-text)', textDecoration: 'none' }}>Back to tax documents</Link>
-        <div style={{ display: 'flex', gap: 10 }}>
+      <div className="no-print" style={{ display: 'flex', minWidth: 0, justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+        <Link href={`/dashboard/tax?year=${year}&currency=${encodeURIComponent(currency)}`} style={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-text)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '11px 0' }}>Back to tax documents</Link>
+        <div style={{ display: 'flex', minWidth: 0, gap: 10 }}>
           <a
             href={`/api/donor/tax-statement?year=${year}&currency=${encodeURIComponent(currency)}&format=csv`}
             style={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-text)', textDecoration: 'none', border: '1px solid var(--b2, #d7ddea)', borderRadius: 'var(--r, 10px)', padding: '8px 16px' }}
@@ -83,7 +83,7 @@ export default async function TaxStatementPage({ params, searchParams }: { param
 
       {/* Statement */}
       <div style={{ background: 'var(--s1, #fff)', border: '1px solid var(--b1, #e8ecf4)', borderRadius: 16, padding: 32 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', minWidth: 0, justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
           <div>
             <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--t1, #0e0520)' }}>CharitMe</div>
             <div style={{ fontSize: 13, color: 'var(--t3)' }}>Annual Giving Statement</div>
@@ -123,7 +123,7 @@ export default async function TaxStatementPage({ params, searchParams }: { param
               <div style={{ marginBottom: 24 }}>
                 <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 8 }}>Tax-deductible gifts by organization</div>
                 {organizations.map((o) => (
-                  <div key={`${o.name}-${o.ein ?? ''}`} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', ...line }}>
+                  <div key={`${o.name}-${o.ein ?? ''}`} style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', padding: '8px 0', ...line }}>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1, #0e0520)' }}>{o.name}</div>
                       {o.ein && <div style={{ fontSize: 11, color: 'var(--t3)' }}>EIN {o.ein}</div>}

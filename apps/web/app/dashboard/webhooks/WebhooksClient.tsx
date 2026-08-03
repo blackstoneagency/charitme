@@ -95,7 +95,7 @@ export default function WebhooksClient({
   }
 
   return (
-    <div className="kf-admin-dash" style={{ display: 'grid', gap: 20, maxWidth: 860 }}>
+    <div className="kf-admin-dash" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 20, maxWidth: 860 }}>
       {/* Stated up front rather than implied by an empty "Last triggered"
           column. Nothing dispatches these yet, and the stored `secret_hash`
           cannot be used to sign a payload — see the page comment. */}
@@ -149,7 +149,7 @@ export default function WebhooksClient({
 
       <Card>
         <h2 style={{ margin: '0 0 12px', fontSize: 16 }}>Add an endpoint</h2>
-        <form onSubmit={create} style={{ display: 'grid', gap: 14 }}>
+        <form onSubmit={create} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14 }}>
           <div>
             <label htmlFor="wh-url" style={{ display: 'block', fontSize: 13, marginBottom: 6 }}>
               Endpoint URL
@@ -170,9 +170,9 @@ export default function WebhooksClient({
 
           <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
             <legend style={{ fontSize: 13, marginBottom: 6, padding: 0 }}>Events</legend>
-            <div style={{ display: 'grid', gap: 4 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 4 }}>
               {EVENTS.map((ev) => (
-                <label key={ev} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 14, minHeight: 44 }}>
+                <label key={ev} style={{ display: 'flex', minWidth: 0, gap: 8, alignItems: 'center', fontSize: 14, minHeight: 44 }}>
                   <input
                     type="checkbox"
                     checked={selected.includes(ev)}
@@ -199,7 +199,7 @@ export default function WebhooksClient({
       ) : (
         <Card>
           <h2 style={{ margin: '0 0 12px', fontSize: 16 }}>Your endpoints</h2>
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 12 }}>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
             {endpoints.map((ep) => (
               <li
                 key={ep.id}
@@ -207,7 +207,7 @@ export default function WebhooksClient({
                   border: '1px solid var(--b2)',
                   borderRadius: 'var(--r)',
                   padding: 12,
-                  display: 'flex',
+                  display: 'flex', minWidth: 0,
                   gap: 12,
                   flexWrap: 'wrap',
                   alignItems: 'center',

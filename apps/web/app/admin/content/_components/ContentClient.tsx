@@ -80,7 +80,7 @@ function TypeDonut({ items }: { items: { type: string; count: number }[] }) {
   const r = 56; const cx = 72; const cy = 72;
   const circumference = 2 * Math.PI * r;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+    <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 20 }}>
       <svg viewBox="0 0 144 144" style={{ width: 110, height: 110, flexShrink: 0 }}>
         {items.map((item, i) => {
           const frac = item.count / total;
@@ -97,9 +97,9 @@ function TypeDonut({ items }: { items: { type: string; count: number }[] }) {
         <text x={cx} y={cy - 4} textAnchor="middle" fontSize="16" fontWeight="950" fill="#101944">{total}</text>
         <text x={cx} y={cy + 14} textAnchor="middle" fontSize="9" fill="#8c9ab5">Total</text>
       </svg>
-      <div style={{ display: 'grid', gap: 7 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 7 }}>
         {items.map((item, i) => (
-          <div key={item.type} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 700, color: 'var(--t1)' }}>
+          <div key={item.type} style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 700, color: 'var(--t1)' }}>
             <i style={{ width: 8, height: 8, borderRadius: '50%', background: colors[i % colors.length], flexShrink: 0, display: 'block' }} />
             <span>{item.type}</span>
             <b style={{ marginLeft: 'auto', color: '#0f0f30' }}>{item.count}</b>
@@ -142,25 +142,25 @@ function EditModal({ item, onClose, onSaved }: { item: ContentRecord; onClose: (
   return (
     // Backdrop dismissal is supplementary; Escape and the close button remain available.
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(10,15,60,.38)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(10,15,60,.38)', display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center' }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{ width: 560, maxWidth: 'calc(100vw - 32px)', background: 'var(--s1)', borderRadius: 16, boxShadow: '0 24px 80px rgba(20,20,80,.18)', overflow: 'hidden' }}>
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', justifyContent: 'space-between' }}>
           <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>Edit Content</h2>
           <button onClick={onClose} style={{ width: 32, height: 32, border: '1px solid #e6e9f2', borderRadius: '50%', background: 'var(--s1)', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: 'var(--t3)' }}>×</button>
         </div>
-        <div style={{ padding: '24px', display: 'grid', gap: 16 }}>
-          <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
+        <div style={{ padding: '24px', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16 }}>
+          <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
             Title (optional)
             <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Update title…" style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }} />
           </label>
-          <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
+          <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
             Content <span style={{ color: 'var(--red-text)' }}>*</span>
             <textarea value={body} onChange={e => setBody(e.target.value)} style={{ border: '1px solid #dfe3ee', borderRadius: 9, padding: '10px 14px', fontSize: 14, minHeight: 160, resize: 'vertical' }} />
           </label>
           {error && <p style={{ margin: 0, color: 'var(--red-text)', fontSize: 13 }}>{error}</p>}
         </div>
-        <div style={{ padding: '16px 24px', borderTop: '1px solid #eef0f7', display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+        <div style={{ padding: '16px 24px', borderTop: '1px solid #eef0f7', display: 'flex', minWidth: 0, gap: 12, justifyContent: 'flex-end' }}>
           <button onClick={onClose} style={{ height: 42, padding: '0 20px', border: '1px solid #e0e4ef', borderRadius: 9, background: 'var(--s1)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
           <button onClick={handleSave} disabled={saving} style={{ height: 42, padding: '0 22px', border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 700, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.65 : 1 }}>
             {saving ? 'Saving…' : 'Save Changes'}
@@ -196,7 +196,7 @@ function DeleteModal({ item, onClose, onDeleted }: { item: ContentRecord; onClos
   return (
     // Backdrop dismissal is supplementary; Escape and the visible buttons remain available.
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(10,15,60,.38)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(10,15,60,.38)', display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center' }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{ width: 420, maxWidth: 'calc(100vw - 32px)', background: 'var(--s1)', borderRadius: 16, padding: 28, boxShadow: '0 24px 80px rgba(20,20,80,.18)' }}>
         <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 800, color: '#0f0f30' }}>Delete Content?</h2>
@@ -205,7 +205,7 @@ function DeleteModal({ item, onClose, onDeleted }: { item: ContentRecord; onClos
         </p>
         <p style={{ margin: '0 0 20px', color: 'var(--t3)', fontSize: 13 }}>This will permanently remove the update from the campaign. This action cannot be undone.</p>
         {error && <p style={{ margin: '0 0 12px', color: 'var(--red-text)', fontSize: 13 }}>{error}</p>}
-        <div style={{ display: 'flex', gap: 12 }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 12 }}>
           <button onClick={onClose} style={{ flex: 1, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, background: 'var(--s1)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
           <button onClick={handleDelete} disabled={deleting} style={{ flex: 1, height: 42, border: 0, borderRadius: 9, background: '#e11d48', color: '#fff', fontSize: 13, fontWeight: 700, cursor: deleting ? 'default' : 'pointer', opacity: deleting ? 0.65 : 1 }}>
             {deleting ? 'Deleting…' : 'Delete'}
@@ -234,12 +234,12 @@ function ContentDetailPanel({
   return (
     // Backdrop dismissal is supplementary; Escape and the close button remain available.
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', minWidth: 0, background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{ marginLeft: 'auto', width: 520, maxWidth: '100vw', background: 'var(--s1)', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, marginBottom: 6 }}>
               <StatusPill status={item.status} />
               <span style={{ fontSize: 12, color: 'var(--t3)' }}>Updated {fmtDate(item.updated_at)}</span>
             </div>
@@ -248,7 +248,7 @@ function ContentDetailPanel({
           <button onClick={onClose} style={{ width: 32, height: 32, border: '1px solid #e6e9f2', borderRadius: '50%', background: 'var(--s1)', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: 'var(--t3)', flexShrink: 0 }}>×</button>
         </div>
 
-        <div style={{ display: 'flex', borderBottom: '1px solid #eef0f7', padding: '0 24px' }}>
+        <div style={{ display: 'flex', minWidth: 0, borderBottom: '1px solid #eef0f7', padding: '0 24px' }}>
           {tabs.map(t => (
             <button key={t} type="button" onClick={() => setActiveTab(t)}
               style={{ height: 44, border: 0, borderBottom: `2px solid ${activeTab === t ? 'var(--brand-text)' : 'transparent'}`, background: 'none', fontWeight: activeTab === t ? 950 : 750, fontSize: 13, color: activeTab === t ? 'var(--brand-text)' : 'var(--t3)', marginRight: 20, cursor: 'pointer' }}>
@@ -259,7 +259,7 @@ function ContentDetailPanel({
 
         <div style={{ padding: '20px 24px', flex: 1 }}>
           {activeTab === 'overview' && (
-            <div style={{ display: 'grid', gap: 2 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 2 }}>
               {[
                 ['Type', item.type],
                 ['Author', item.author],
@@ -269,7 +269,7 @@ function ContentDetailPanel({
                 ['Updated', fmtDate(item.updated_at)],
                 ['Content ID', item.id.slice(0, 18) + '…'],
               ].map(([label, val]) => (
-                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #f0f2f8', fontSize: 13 }}>
+                <div key={label} style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #f0f2f8', fontSize: 13 }}>
                   <span style={{ color: 'var(--t3)', fontWeight: 700 }}>{label}</span>
                   <span style={{ color: 'var(--t1)', fontWeight: 600, textAlign: 'right', maxWidth: '55%', wordBreak: 'break-word' }}>{val}</span>
                 </div>
@@ -282,12 +282,12 @@ function ContentDetailPanel({
             </div>
           )}
           {activeTab === 'history' && (
-            <div style={{ display: 'grid', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
               {[
                 { event: 'Content created', date: item.created_at, color: 'var(--green-text)' },
                 { event: 'Content last updated', date: item.updated_at, color: 'var(--brand-text)' },
               ].map((ev, i) => (
-                <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <div key={i} style={{ display: 'flex', minWidth: 0, gap: 12, alignItems: 'flex-start' }}>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: ev.color, marginTop: 5, flexShrink: 0 }} />
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>{ev.event}</div>
@@ -299,7 +299,7 @@ function ContentDetailPanel({
           )}
         </div>
 
-        <div style={{ padding: '16px 24px', borderTop: '1px solid #eef0f7', display: 'grid', gap: 8 }}>
+        <div style={{ padding: '16px 24px', borderTop: '1px solid #eef0f7', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 8 }}>
             <button type="button" onClick={onEdit} style={{ height: 40, border: '1px solid #6c35ff', borderRadius: 9, background: '#f3ecff', color: 'var(--brand-text)', fontSize: 13, fontWeight: 650, cursor: 'pointer' }}>Edit Content</button>
             <button type="button" onClick={onDelete} style={{ height: 40, border: '1px solid #ff3b5f30', borderRadius: 9, background: 'var(--tint-rose)', color: 'var(--red-text)', fontSize: 13, fontWeight: 650, cursor: 'pointer' }}>Delete Content</button>
@@ -363,13 +363,13 @@ function CreateContentWizard({
   return (
     // Backdrop dismissal is supplementary; Escape and the close button remain available.
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{ width: 520, maxWidth: 'calc(100vw - 32px)', background: 'var(--s1)', borderRadius: 18, boxShadow: '0 24px 80px rgba(20,20,80,.18)', overflow: 'hidden' }}>
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700, color: '#0f0f30' }}>Create Campaign Update</div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            <div style={{ display: 'flex', minWidth: 0, gap: 8, marginTop: 8 }}>
               {[1, 2, 3].map(s => (
                 <div key={s} style={{ width: 28, height: 4, borderRadius: 2, background: step >= s ? '#6c35ff' : '#e6e9f2' }} />
               ))}
@@ -380,10 +380,10 @@ function CreateContentWizard({
 
         <div style={{ padding: '24px' }}>
           {step === 1 && (
-            <div style={{ display: 'grid', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16 }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 4 }}>Campaign Target</div>
               <p style={{ margin: 0, fontSize: 13, color: 'var(--t3)' }}>Enter the Campaign ID this update belongs to. You can find campaign IDs in Admin → Campaigns.</p>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
+              <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
                 Campaign ID <span style={{ color: 'var(--red-text)' }}>*</span>
                 <input
                   value={campaignId}
@@ -395,20 +395,20 @@ function CreateContentWizard({
             </div>
           )}
           {step === 2 && (
-            <div style={{ display: 'grid', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16 }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 4 }}>Content Details</div>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
+              <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
                 Title (optional)
                 <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Update title…" style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }} />
               </label>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
+              <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
                 Content <span style={{ color: 'var(--red-text)' }}>*</span>
                 <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Write the campaign update…" style={{ border: '1px solid #dfe3ee', borderRadius: 9, padding: '10px 14px', fontSize: 14, minHeight: 140, resize: 'vertical' }} />
               </label>
             </div>
           )}
           {step === 3 && (
-            <div style={{ display: 'grid', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16 }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 4 }}>Review & Publish</div>
               <div style={{ padding: '14px', background: 'var(--s2)', borderRadius: 10, border: '1px solid #e6e9f2', fontSize: 13, lineHeight: 1.8 }}>
                 <div><b>Campaign ID:</b> {campaignId}</div>
@@ -420,7 +420,7 @@ function CreateContentWizard({
           )}
         </div>
 
-        <div style={{ padding: '16px 24px', borderTop: '1px solid #eef0f7', display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+        <div style={{ padding: '16px 24px', borderTop: '1px solid #eef0f7', display: 'flex', minWidth: 0, gap: 12, justifyContent: 'flex-end' }}>
           {step > 1 && (
             <button onClick={() => { setStep(s => s - 1); setError(''); }} style={{ height: 42, padding: '0 20px', border: '1px solid #e0e4ef', borderRadius: 9, background: 'var(--s1)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>← Back</button>
           )}
@@ -542,7 +542,7 @@ export default function ContentClient({
           <div className="kf-card-head"><h2>Recent Activity</h2></div>
           <div>
             {recentActivity.map((a, i) => (
-              <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '12px 20px', borderBottom: '1px solid #f0f2f8' }}>
+              <div key={i} style={{ display: 'flex', minWidth: 0, gap: 12, alignItems: 'flex-start', padding: '12px 20px', borderBottom: '1px solid #f0f2f8' }}>
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#6c35ff', marginTop: 5, flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 650, color: 'var(--t1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title}</div>
@@ -558,8 +558,8 @@ export default function ContentClient({
 
       {/* Main table */}
       <section className="kf-card">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', borderBottom: '1px solid #eef0f7' }}>
-          <div style={{ display: 'flex', gap: 0 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', borderBottom: '1px solid #eef0f7' }}>
+          <div style={{ display: 'flex', minWidth: 0, gap: 0 }}>
             {panelTabs.map(t => (
               <button key={t} type="button" onClick={() => setActiveTab(t)}
                 style={{ height: 50, padding: '0 16px', border: 0, borderBottom: `2px solid ${activeTab === t ? 'var(--brand-text)' : 'transparent'}`, background: 'none', fontWeight: activeTab === t ? 950 : 750, fontSize: 13, color: activeTab === t ? 'var(--brand-text)' : 'var(--t2)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
@@ -574,7 +574,7 @@ export default function ContentClient({
 
         {activeTab === 'content' && (
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', borderBottom: '1px solid #eef0f7', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12, padding: '14px 20px', borderBottom: '1px solid #eef0f7', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 200, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, padding: '0 14px', background: 'var(--s1)' }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="#8c9ab5" strokeWidth={2} width={15} height={15} aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
                 <input value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} placeholder="Search content…" aria-label="Search content" style={{ border: 0, outline: 0, background: 'transparent', fontSize: 13, width: '100%' }} />
@@ -585,13 +585,13 @@ export default function ContentClient({
               </select>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 130px 120px 130px', gap: 12, padding: '10px 20px', background: 'var(--s2)', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 130px) minmax(0, 120px) minmax(0, 130px)', gap: 12, padding: '10px 20px', background: 'var(--s2)', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
               <span>Title</span><span>Type</span><span>Campaign</span><span>Updated</span>
             </div>
 
             {currentPage.map(c => (
               <div key={c.id}
-                style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 130px 120px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
+                style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 130px) minmax(0, 120px) minmax(0, 130px)', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
                 onClick={() => setSelected(c)}
                 onKeyDown={event => {
                   if (event.key === 'Enter' || event.key === ' ') {
@@ -615,9 +615,9 @@ export default function ContentClient({
 
             {currentPage.length === 0 && <div style={{ padding: '32px', textAlign: 'center', color: 'var(--t3)', fontSize: 14 }}>No content found</div>}
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderTop: '1px solid #eef0f7' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderTop: '1px solid #eef0f7' }}>
               <span style={{ fontSize: 13, color: 'var(--t3)' }}>Showing {filtered.length === 0 ? 0 : page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filtered.length)} of {filtered.length}</span>
-              <div style={{ display: 'flex', gap: 6 }}>
+              <div style={{ display: 'flex', minWidth: 0, gap: 6 }}>
                 <button type="button" disabled={page === 0} onClick={() => setPage(p => p - 1)} style={{ height: 34, padding: '0 14px', border: '1px solid #e0e4ef', borderRadius: 8, background: 'var(--s1)', cursor: page === 0 ? 'default' : 'pointer', opacity: page === 0 ? 0.4 : 1, fontSize: 13 }}>← Prev</button>
                 <button type="button" disabled={page >= pages - 1} onClick={() => setPage(p => p + 1)} style={{ height: 34, padding: '0 14px', border: '1px solid #e0e4ef', borderRadius: 8, background: 'var(--s1)', cursor: page >= pages - 1 ? 'default' : 'pointer', opacity: page >= pages - 1 ? 0.4 : 1, fontSize: 13 }}>Next →</button>
               </div>
@@ -629,7 +629,7 @@ export default function ContentClient({
           <div style={{ padding: '20px' }}>
             <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700 }}>Content Activity</h3>
             {content.slice(0, 10).map((c, i) => (
-              <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '12px 0', borderBottom: '1px solid #f0f2f8', fontSize: 13 }}>
+              <div key={i} style={{ display: 'flex', minWidth: 0, gap: 12, alignItems: 'flex-start', padding: '12px 0', borderBottom: '1px solid #f0f2f8', fontSize: 13 }}>
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#6c35ff', marginTop: 4, flexShrink: 0 }} />
                 <div style={{ flex: 1 }}>
                   <span style={{ fontWeight: 650, color: 'var(--t1)' }}>{c.title || 'Untitled'}</span>

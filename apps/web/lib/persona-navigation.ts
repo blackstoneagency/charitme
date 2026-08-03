@@ -73,6 +73,15 @@ const ORGANIZER_NAV: readonly DashboardNavItem[] = [
   // shipped since 20260525002000, read only by a row count on /admin/system.
   { label: 'Webhooks', href: '/dashboard/webhooks', icon: 'doc' },
   { label: 'Custom Domain', href: '/dashboard/domains', icon: 'globe' },
+  // `giving_days` shipped with RLS, a unique slug and a foreign key, and nothing
+  // that read or wrote it. This is the writer.
+  { label: 'Giving Days', href: '/dashboard/giving-days', icon: 'stack' },
+  // `donor_segments` + `donor_segment_members`: two more tables that shipped
+  // with RLS and no code on either side of them.
+  { label: 'Donor Segments', href: '/dashboard/segments', icon: 'users' },
+  // `embedded_buttons`: the persistent form of the per-campaign widget
+  // configurator, which built a snippet and forgot it.
+  { label: 'Embed Buttons', href: '/dashboard/buttons', icon: 'link' },
   SETTINGS,
 ];
 
@@ -101,11 +110,40 @@ const STAFF_NAV: readonly DashboardNavItem[] = [
   SETTINGS,
 ];
 
+/**
+ * Resource pages, reachable from INSIDE the app.
+ *
+ * ⚠️ These twelve pages (blog, volunteer, guides, verification, reports,
+ * partnerships …) are all live public routes, but none of them appeared in the
+ * signed-in navigation. A member had no in-app path to any of them: the only way
+ * in was the public marketing header, which the app shell replaces once you sign
+ * in. So the pages existed and were, from inside the product, unreachable.
+ *
+ * Appended to every persona rather than duplicated per role — a fundraising
+ * guide is equally useful to a donor, an organizer and a nonprofit, and three
+ * copies of one list is how this repo's category list drifted three ways.
+ *
+ * `RESOURCE_NAV` is deliberately SHORT. Putting all twelve in the sidebar would
+ * bury the persona's actual tools; these four are the ones that answer "how do I
+ * do this?", and each is a hub that links onward to the rest.
+ */
+const RESOURCE_NAV: readonly DashboardNavItem[] = [
+  { label: 'Fundraising Guide', href: '/fundraising-guide', icon: 'doc' },
+  { label: 'Resources', href: '/resources', icon: 'stack' },
+  { label: 'Events', href: '/events', icon: 'calendar' },
+  { label: 'Help Centre', href: '/help', icon: 'chat' },
+];
+
+/** Every persona gets the resource block, appended after its own tools. */
+function withResources(items: readonly DashboardNavItem[]): readonly DashboardNavItem[] {
+  return [...items, ...RESOURCE_NAV];
+}
+
 const PERSONA_NAVIGATION: Readonly<Record<UserRole, readonly DashboardNavItem[]>> = {
-  donor: DONOR_NAV,
-  organizer: ORGANIZER_NAV,
-  beneficiary: BENEFICIARY_NAV,
-  nonprofit: NONPROFIT_NAV,
+  donor: withResources(DONOR_NAV),
+  organizer: withResources(ORGANIZER_NAV),
+  beneficiary: withResources(BENEFICIARY_NAV),
+  nonprofit: withResources(NONPROFIT_NAV),
   admin: STAFF_NAV,
   super_admin: STAFF_NAV,
 };

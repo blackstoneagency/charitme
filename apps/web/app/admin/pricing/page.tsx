@@ -48,7 +48,7 @@ export default async function AdminPricingPage() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {a.buckets.map((b) => (
-                <div key={b.label} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div key={b.label} style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12 }}>
                   <div style={{ width: 90, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>{b.label}</div>
                   <div style={{ flex: 1, background: 'var(--s2)', borderRadius: 999, height: 16, overflow: 'hidden' }}>
                     <div style={{ width: `${b.share}%`, height: '100%', background: 'var(--violet, #6c35ff)', transition: 'width .3s' }} />

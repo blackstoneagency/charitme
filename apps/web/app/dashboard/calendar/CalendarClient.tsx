@@ -70,7 +70,7 @@ export default function CalendarClient({
   }, [showPast, upcoming, past]);
 
   return (
-    <div className="kf-admin-dash" style={{ display: 'grid', gap: 20, maxWidth: 860 }}>
+    <div className="kf-admin-dash" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 20, maxWidth: 860 }}>
       {/* Naming the specific source that failed, rather than blanking the page
           or — worse — showing the remaining entries as if they were all of
           them. An incomplete calendar that looks complete is the failure mode
@@ -94,7 +94,7 @@ export default function CalendarClient({
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 8 }} role="group" aria-label="Which dates to show">
+      <div style={{ display: 'flex', minWidth: 0, gap: 8 }} role="group" aria-label="Which dates to show">
         {([['Upcoming', false], ['Past', true]] as const).map(([label, val]) => (
           <button
             key={label}
@@ -130,14 +130,14 @@ export default function CalendarClient({
         grouped.map(([key, list]) => (
           <Card key={key}>
             <h2 style={{ margin: '0 0 12px', fontSize: 16 }}>{monthLabel(key)}</h2>
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 10 }}>
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
               {list.map((e) => {
                 const d = new Date(e.date);
                 return (
                   <li
                     key={e.id}
                     style={{
-                      display: 'flex',
+                      display: 'flex', minWidth: 0,
                       gap: 12,
                       alignItems: 'center',
                       padding: '10px 0',

@@ -253,6 +253,31 @@ export async function isSuppressed(email: string): Promise<boolean> {
   return Boolean(data);
 }
 
+/**
+ * Re-subscribe: the exact inverse of `unsubscribeEmail`, for an EXPLICIT opt-in.
+ *
+ * Flipping `marketing_contacts.status` back to 'active' is not enough on its own.
+ * `unsubscribeEmail` writes to TWO places, and every send path
+ * (campaigns, automations, outreach) checks `isSuppressed()` as well as status —
+ * so a re-subscriber whose address is still on the suppression list receives
+ * nothing, exactly as if the status had never been fixed. Undoing one half of a
+ * two-half operation leaves the visible symptom completely unchanged.
+ *
+ * ⚠️ Only a `reason = 'unsubscribed'` row is cleared. A 'bounced' or 'complaint'
+ * suppression must SURVIVE someone typing their address into a form: those record
+ * that the address is undeliverable or that its owner reported us as spam, and
+ * re-enabling sends on that basis damages domain reputation for every other
+ * recipient. A form submission is not evidence that a hard bounce was resolved.
+ */
+export async function resubscribeEmail(email: string): Promise<void> {
+  const normalized = email.trim().toLowerCase();
+  await supabaseAdmin
+    .from('marketing_suppression_list')
+    .delete()
+    .ilike('email', normalized)
+    .eq('reason', 'unsubscribed');
+}
+
 /** Unsubscribe: suppress + mark contact + consent audit. */
 export async function unsubscribeEmail(email: string): Promise<void> {
   const normalized = email.trim().toLowerCase();

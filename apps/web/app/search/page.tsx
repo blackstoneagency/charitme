@@ -130,22 +130,22 @@ export default async function SearchPage({ searchParams }: Props) {
       {/* GET form: the query lives in the URL, so a result page is shareable and
           the back button behaves. */}
       <form method="get" action="/search" style={{ display: 'grid', gap: '10px', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', margin: '24px 0 8px', alignItems: 'end' }}>
-        <label style={{ display: 'grid', gap: '6px', gridColumn: '1 / -1' }}>
+        <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '6px', gridColumn: '1 / -1' }}>
           <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--t3)' }}>Search keywords</span>
           <input name="q" defaultValue={q} placeholder="Search causes, campaigns, topics…" style={inputStyle} />
         </label>
-        <label style={{ display: 'grid', gap: '6px' }}>
+        <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '6px' }}>
           <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--t3)' }}>Cause category</span>
           <select name="category" defaultValue={category ?? ''} style={inputStyle}>
             <option value="">All categories</option>
             {CAMPAIGN_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         </label>
-        <label style={{ display: 'grid', gap: '6px' }}>
+        <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '6px' }}>
           <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--t3)' }}>Location</span>
           <input name="location" defaultValue={location ?? ''} placeholder="All locations" style={inputStyle} />
         </label>
-        <label style={{ display: 'grid', gap: '6px' }}>
+        <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '6px' }}>
           <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--t3)' }}>Sort by</span>
           <select name="sort" defaultValue={sort} style={inputStyle}>
             <option value="relevance">Most relevant</option>
@@ -159,7 +159,7 @@ export default async function SearchPage({ searchParams }: Props) {
         </button>
       </form>
 
-      <nav aria-label="Result types" style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', margin: '18px 0 26px', borderBottom: '1px solid var(--b1)', paddingBottom: '10px' }}>
+      <nav aria-label="Result types" style={{ display: 'flex', minWidth: 0, gap: '6px', flexWrap: 'wrap', margin: '18px 0 26px', borderBottom: '1px solid var(--b1)', paddingBottom: '10px' }}>
         {SEARCH_SCOPES.map((s) => {
           const n = counts[s.value];
           const active = scope === s.value;
@@ -248,7 +248,7 @@ export default async function SearchPage({ searchParams }: Props) {
               <h2 id="r-resources" style={{ fontSize: '18px', fontWeight: 750, color: 'var(--t1)', marginBottom: '14px' }}>
                 Resources ({resources.length})
               </h2>
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: '10px' }}>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '10px' }}>
                 {resources.map((r) => (
                   <li key={r.path}>
                     <Link href={r.path} style={{ textDecoration: 'none', display: 'block', padding: '14px 16px', border: '1px solid var(--b1)', borderRadius: 'var(--rl)', background: 'var(--s1)' }}>

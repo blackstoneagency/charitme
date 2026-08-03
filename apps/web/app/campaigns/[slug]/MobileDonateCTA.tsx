@@ -50,7 +50,7 @@ export default function MobileDonateCTA({ campaignTitle, raised, pct, isActive, 
         borderTop: '1px solid var(--b1, #e2e8f0)',
         padding: '12px 16px 16px',
         boxShadow: '0 -4px 20px rgba(0,0,0,.10)',
-        display: 'flex',
+        display: 'flex', minWidth: 0,
         alignItems: 'center',
         gap: 12,
         transition: 'transform .25s ease',
@@ -63,7 +63,7 @@ export default function MobileDonateCTA({ campaignTitle, raised, pct, isActive, 
         <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {campaignTitle}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8 }}>
           <div style={{ flex: 1, height: 5, background: 'var(--b1, #e2e8f0)', borderRadius: 3, overflow: 'hidden' }}>
             <div style={{ width: `${pct}%`, height: '100%', background: 'linear-gradient(90deg,#6c35ff,#ec3fb4)', borderRadius: 3 }} />
           </div>

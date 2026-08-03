@@ -102,7 +102,7 @@ function momentumScore(campaign: Campaign, donations: Donation[]): number {
 // ─────────────────────────────────────────────
 async function getGrowthData(userId: string): Promise<GrowthData> {
   try {
-    const { data: campaigns, error: campaignsError } = await boundedQuery(
+    const { data: campaigns, error: campaignsError } = await boundedQuery(() =>
       supabaseAdmin
         .from('campaigns')
         .select('id,title,slug,status,goal_amount,raised_amount,backer_count,cover_image_url,category')
@@ -126,7 +126,7 @@ async function getGrowthData(userId: string): Promise<GrowthData> {
     let donations: Donation[] = [];
     if (cids.length > 0) {
       const thirtyDaysAgo = new Date(PAGE_TIME - 30 * 24 * 60 * 60 * 1000).toISOString();
-      const { data: donationData, error: donationsError } = await boundedQuery(
+      const { data: donationData, error: donationsError } = await boundedQuery(() =>
         supabaseAdmin
           .from('donations')
           .select('campaign_id,amount_cents,created_at')
@@ -153,13 +153,13 @@ async function getGrowthData(userId: string): Promise<GrowthData> {
     let detailsFailed = false;
     if (cids.length > 0) {
       const [updatesResult, messagesResult] = await Promise.all([
-        boundedQuery(
+        boundedQuery(() =>
           supabaseAdmin
             .from('campaign_updates')
             .select('*', { count: 'exact', head: true })
             .eq('user_id', userId),
         ),
-        boundedQuery(
+        boundedQuery(() =>
           supabaseAdmin
             .from('donor_messages')
             .select('*', { count: 'exact', head: true })
@@ -331,7 +331,7 @@ function StepCircle({ index, status }: { index: number; status: RoadmapStep['sta
           height: '36px',
           borderRadius: '50%',
           background: 'var(--green, var(--green))',
-          display: 'flex',
+          display: 'flex', minWidth: 0,
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
@@ -352,7 +352,7 @@ function StepCircle({ index, status }: { index: number; status: RoadmapStep['sta
           height: '36px',
           borderRadius: '50%',
           border: '2.5px solid var(--violet, var(--violet))',
-          display: 'flex',
+          display: 'flex', minWidth: 0,
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
@@ -372,7 +372,7 @@ function StepCircle({ index, status }: { index: number; status: RoadmapStep['sta
         height: '36px',
         borderRadius: '50%',
         border: '2.5px solid var(--b2, var(--b1))',
-        display: 'flex',
+        display: 'flex', minWidth: 0,
         alignItems: 'center',
         justifyContent: 'center',
         flexShrink: 0,
@@ -661,7 +661,7 @@ export default async function AiGrowthPlanPage({
             href="/api/exports/full"
             download
             className="kf-outline"
-            style={{ display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+            style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 6, textDecoration: 'none' }}
           >
             <KFIcon name="upload" /> Export Plan
           </a>
@@ -689,7 +689,7 @@ export default async function AiGrowthPlanPage({
                 height: '64px',
                 borderRadius: '16px',
                 background: 'rgba(108,53,255,0.10)',
-                display: 'flex',
+                display: 'flex', minWidth: 0,
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: 'var(--brand-text)',
@@ -729,7 +729,7 @@ export default async function AiGrowthPlanPage({
           <section
             className="kf-card"
             style={{
-              display: 'flex',
+              display: 'flex', minWidth: 0,
               gap: '24px',
               padding: '24px',
               alignItems: 'center',
@@ -739,7 +739,7 @@ export default async function AiGrowthPlanPage({
             <CampaignThumb url={topCampaign.cover_image_url} />
 
             <div style={{ flex: 1, minWidth: '220px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+              <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
                 <StatusPill status={topCampaign.status} />
                 {topCampaign.category && (
                   <span
@@ -780,7 +780,7 @@ export default async function AiGrowthPlanPage({
               </p>
 
               {/* Inline metrics row */}
-              <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' as const }}>
+              <div style={{ display: 'flex', minWidth: 0, gap: '20px', flexWrap: 'wrap' as const }}>
                 {[
                   { label: 'Donated', value: fmtCents(topCampaign.raised_amount) },
                   { label: 'Goal', value: fmtCents(topCampaign.goal_amount) },
@@ -849,7 +849,7 @@ export default async function AiGrowthPlanPage({
               <article
                 key={step.title}
                 style={{
-                  display: 'flex',
+                  display: 'flex', minWidth: 0,
                   alignItems: 'flex-start',
                   gap: '16px',
                   padding: '18px 24px',
@@ -860,7 +860,7 @@ export default async function AiGrowthPlanPage({
                 <StepCircle index={i} status={step.status} />
 
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                     <span style={{ fontSize: '18px', lineHeight: 1 }}>{step.emoji}</span>
                     <strong
                       style={{
@@ -887,7 +887,7 @@ export default async function AiGrowthPlanPage({
 
                 <div
                   style={{
-                    display: 'flex',
+                    display: 'flex', minWidth: 0,
                     alignItems: 'center',
                     gap: '10px',
                     flexShrink: 0,
@@ -934,7 +934,7 @@ export default async function AiGrowthPlanPage({
                 <li
                   key={insight}
                   style={{
-                    display: 'flex',
+                    display: 'flex', minWidth: 0,
                     gap: '10px',
                     fontSize: '13.5px',
                     lineHeight: 1.55,
@@ -947,7 +947,7 @@ export default async function AiGrowthPlanPage({
                       height: '20px',
                       borderRadius: '50%',
                       background: 'rgba(25,184,106,0.12)',
-                      display: 'flex',
+                      display: 'flex', minWidth: 0,
                       alignItems: 'center',
                       justifyContent: 'center',
                       flexShrink: 0,
@@ -980,7 +980,7 @@ export default async function AiGrowthPlanPage({
                 <div
                   key={action.title}
                   style={{
-                    display: 'flex',
+                    display: 'flex', minWidth: 0,
                     gap: '14px',
                     alignItems: 'flex-start',
                     padding: '14px',
@@ -995,7 +995,7 @@ export default async function AiGrowthPlanPage({
                       height: '28px',
                       borderRadius: '8px',
                       background: i === 0 ? 'var(--violet, var(--violet))' : i === 1 ? 'var(--green, var(--green))' : '#f59e0b',
-                      display: 'flex',
+                      display: 'flex', minWidth: 0,
                       alignItems: 'center',
                       justifyContent: 'center',
                       flexShrink: 0,
@@ -1023,7 +1023,7 @@ export default async function AiGrowthPlanPage({
               <Link
                 href="/create/choose-path"
                 style={{
-                  display: 'flex',
+                  display: 'flex', minWidth: 0,
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '6px',

@@ -73,7 +73,7 @@ function capitalize(s: string): string {
 // SVG line chart
 // ─────────────────────────────────────────────
 function TrendChart({ points }: { points: WeekPoint[] }) {
-  if (points.length < 2) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200, color: 'var(--t3)', fontSize: 14 }}>Not enough data</div>;
+  if (points.length < 2) return <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', height: 200, color: 'var(--t3)', fontSize: 14 }}>Not enough data</div>;
   const W = 480; const H = 180; const pad = 16;
   const max = Math.max(...points.map(p => p.total_cents), 1);
   const xs = points.map((_, i) => pad + (i / (points.length - 1)) * (W - pad * 2));
@@ -103,7 +103,7 @@ function StatusDonut({ pending, completed, failed, total }: { pending: number; c
   const t = Math.max(slices.reduce((s, x) => s + x.value, 0), 1);
   const r = 56; const cx = 72; const cy = 72; const circ = 2 * Math.PI * r;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+    <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 20 }}>
       <svg viewBox="0 0 144 144" style={{ width: 110, height: 110, flexShrink: 0 }}>
         {slices.map((s, index) => {
           const frac = s.value / t;
@@ -115,9 +115,9 @@ function StatusDonut({ pending, completed, failed, total }: { pending: number; c
         <text x={cx} y={cy - 4} textAnchor="middle" fontSize="16" fontWeight="950" fill="#101944">{total}</text>
         <text x={cx} y={cy + 14} textAnchor="middle" fontSize="9" fill="#8c9ab5">Total</text>
       </svg>
-      <div style={{ display: 'grid', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
         {slices.map(s => (
-          <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>
+          <div key={s.label} style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>
             <i style={{ width: 8, height: 8, borderRadius: '50%', background: s.color, flexShrink: 0, display: 'block' }} />
             <span>{s.label}</span>
             <b style={{ marginLeft: 'auto', color: '#0f0f30' }}>{s.value}</b>
@@ -170,14 +170,14 @@ function PayoutDetailPanel({ payout, onClose }: { payout: PayoutRecord; onClose:
   return (
     // Backdrop dismissal is supplementary; Escape and the close button remain available.
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', minWidth: 0, background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{ marginLeft: 'auto', width: 500, maxWidth: '100vw', background: 'var(--s1)', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{ fontSize: 17, fontWeight: 700, color: '#0f0f30' }}>{payout.recipient_name}</div>
             <div style={{ fontSize: 13, color: 'var(--t3)', marginTop: 2 }}>{payout.recipient_email || 'No email'}</div>
-            <div style={{ marginTop: 6, display: 'flex', gap: 6 }}>
+            <div style={{ marginTop: 6, display: 'flex', minWidth: 0, gap: 6 }}>
               <StatusPill status={payout.status} />
               <span style={{ fontSize: 11, color: 'var(--t3)', display: 'inline-flex', alignItems: 'center' }}>ID: {payout.id.slice(0, 12)}…</span>
             </div>
@@ -190,7 +190,7 @@ function PayoutDetailPanel({ payout, onClose }: { payout: PayoutRecord; onClose:
           <div style={{ fontSize: 13, color: 'var(--t3)', marginTop: 4 }}>Requested {fmtDate(payout.created_at)}</div>
         </div>
 
-        <div style={{ display: 'flex', borderBottom: '1px solid #eef0f7', padding: '0 24px' }}>
+        <div style={{ display: 'flex', minWidth: 0, borderBottom: '1px solid #eef0f7', padding: '0 24px' }}>
           {['info', 'history', 'action'].map(t => (
             <button key={t} type="button" onClick={() => setActiveTab(t)}
               style={{ height: 44, border: 0, borderBottom: `2px solid ${activeTab === t ? 'var(--brand-text)' : 'transparent'}`, background: 'none', fontWeight: activeTab === t ? 950 : 750, fontSize: 13, color: activeTab === t ? 'var(--brand-text)' : 'var(--t3)', marginRight: 20, cursor: 'pointer' }}>
@@ -201,7 +201,7 @@ function PayoutDetailPanel({ payout, onClose }: { payout: PayoutRecord; onClose:
 
         <div style={{ padding: '20px 24px', flex: 1 }}>
           {activeTab === 'info' && (
-            <div style={{ display: 'grid', gap: 2 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 2 }}>
               {[
                 ['Campaign', payout.campaign_title],
                 ['Amount', fmtCents(payout.amount_cents)],
@@ -213,7 +213,7 @@ function PayoutDetailPanel({ payout, onClose }: { payout: PayoutRecord; onClose:
                 ['Transaction Fee', fmtCents(Math.round(payout.amount_cents * 0.025))],
                 ['Net Amount', fmtCents(Math.round(payout.amount_cents * 0.975))],
               ].map(([label, val]) => (
-                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #f0f2f8', fontSize: 13 }}>
+                <div key={label} style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #f0f2f8', fontSize: 13 }}>
                   <span style={{ color: 'var(--t3)', fontWeight: 700 }}>{label}</span>
                   <span style={{ color: 'var(--t1)', fontWeight: 600 }}>{val}</span>
                 </div>
@@ -222,12 +222,12 @@ function PayoutDetailPanel({ payout, onClose }: { payout: PayoutRecord; onClose:
           )}
 
           {activeTab === 'history' && (
-            <div style={{ display: 'grid', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
               {[
                 { event: 'Payout requested', date: payout.created_at, color: 'var(--brand-text)' },
                 payout.paid_at ? { event: 'Payout completed', date: payout.paid_at, color: 'var(--green-text)' } : null,
               ].filter(Boolean).map((ev, i) => (
-                <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <div key={i} style={{ display: 'flex', minWidth: 0, gap: 12, alignItems: 'flex-start' }}>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: (ev as { color: string }).color, marginTop: 5, flexShrink: 0 }} />
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>{(ev as { event: string }).event}</div>
@@ -239,8 +239,8 @@ function PayoutDetailPanel({ payout, onClose }: { payout: PayoutRecord; onClose:
           )}
 
           {activeTab === 'action' && (
-            <div style={{ display: 'grid', gap: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16 }}>
+              <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 13, color: 'var(--t3)', fontWeight: 700 }}>Current Status:</span>
                 <StatusPill status={payout.status} />
               </div>
@@ -251,7 +251,7 @@ function PayoutDetailPanel({ payout, onClose }: { payout: PayoutRecord; onClose:
                 { value: 'reject', label: 'Reject Payout', desc: 'Reject this payout request' },
                 { value: 'cancel', label: 'Cancel Payout', desc: 'Cancel without processing' },
               ].map(a => (
-                <label key={a.value} style={{ display: 'flex', gap: 10, cursor: 'pointer', padding: '12px', border: `1px solid ${actionMode === a.value ? '#6c35ff' : '#e6e9f2'}`, borderRadius: 10, background: actionMode === a.value ? '#f3ecff' : '#fff' }}>
+                <label key={a.value} style={{ display: 'flex', minWidth: 0, gap: 10, cursor: 'pointer', padding: '12px', border: `1px solid ${actionMode === a.value ? '#6c35ff' : '#e6e9f2'}`, borderRadius: 10, background: actionMode === a.value ? '#f3ecff' : '#fff' }}>
                   <input type="radio" name="action" value={a.value} checked={actionMode === a.value} onChange={e => setActionMode(e.target.value)} aria-label={a.label} style={{ flexShrink: 0 }} />
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 650, color: 'var(--t1)' }}>{a.label}</div>
@@ -259,11 +259,11 @@ function PayoutDetailPanel({ payout, onClose }: { payout: PayoutRecord; onClose:
                   </div>
                 </label>
               ))}
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
+              <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
                 Add Note
                 <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Optional note…" style={{ border: '1px solid #dfe3ee', borderRadius: 9, padding: '10px 14px', fontSize: 14, minHeight: 80, resize: 'vertical' }} />
               </label>
-              <div style={{ display: 'flex', gap: 12 }}>
+              <div style={{ display: 'flex', minWidth: 0, gap: 12 }}>
                 <button type="button" onClick={onClose} style={{ flex: 1, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, background: 'var(--s1)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
                 <button type="button" onClick={handleAction} disabled={saving} style={{ flex: 1, height: 42, border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
                   {saving ? 'Saving…' : 'Confirm Action'}
@@ -419,7 +419,7 @@ export default function PayoutsClient({
           <div style={{ padding: '0 20px 20px', borderTop: '1px solid #f0f2f8', paddingTop: 16 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)', marginBottom: 12 }}>Top Recipients</div>
             {topRecipients.slice(0, 3).map((r, i) => (
-              <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid #f0f2f8' }}>
+              <div key={r.id} style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid #f0f2f8' }}>
                 <span style={{ width: 22, textAlign: 'center', fontSize: 13, fontWeight: 700, color: 'var(--brand-text)' }}>#{i + 1}</span>
                 <div style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--t1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</div>
                 <strong style={{ fontSize: 13, color: 'var(--t1)' }}>{fmtCents(r.total_cents)}</strong>
@@ -433,7 +433,7 @@ export default function PayoutsClient({
       <section className="kf-card" style={{ marginBottom: 24 }}>
         <div className="kf-card-head"><h2>Recent Payouts</h2></div>
         {payouts.slice(0, 5).map(p => (
-          <div key={p.id} role="button" tabIndex={0} aria-label={`View payout for ${p.recipient_name}`} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer' }}
+          <div key={p.id} role="button" tabIndex={0} aria-label={`View payout for ${p.recipient_name}`} style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 14, padding: '12px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer' }}
             onClick={() => setSelected(p)}
             onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelected(p); } }}
             onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
@@ -456,7 +456,7 @@ export default function PayoutsClient({
 
       {/* Main table */}
       <section className="kf-card">
-        <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid #eef0f7', padding: '0 20px', overflowX: 'auto' }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 0, borderBottom: '1px solid #eef0f7', padding: '0 20px', overflowX: 'auto' }}>
           {panelTabs.map(t => (
             <button key={t} type="button" onClick={() => handleTabChange(t)}
               style={{ height: 50, padding: '0 14px', border: 0, borderBottom: `2px solid ${activeTab === t ? 'var(--brand-text)' : 'transparent'}`, background: 'none', fontWeight: activeTab === t ? 950 : 750, fontSize: 13, color: activeTab === t ? 'var(--brand-text)' : 'var(--t2)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
@@ -467,7 +467,7 @@ export default function PayoutsClient({
 
         {activeTab === 'payouts' && (
           <div>
-            <div style={{ display: 'flex', gap: 12, padding: '14px 20px', borderBottom: '1px solid #eef0f7', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', minWidth: 0, gap: 12, padding: '14px 20px', borderBottom: '1px solid #eef0f7', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 200, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, padding: '0 14px', background: 'var(--s1)' }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="#8c9ab5" strokeWidth={2} width={15} height={15} aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
                 <input value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} placeholder="Search payouts…" aria-label="Search payouts" style={{ border: 0, outline: 0, background: 'transparent', fontSize: 13, width: '100%' }} />
@@ -484,7 +484,7 @@ export default function PayoutsClient({
 
             {/* Header and rows in ONE scroll box, so their columns stay aligned. */}
             <div className="kf-table-scroll">
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) 120px 120px 130px', gap: 12, padding: '10px 20px', background: 'var(--s2)', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 120px) minmax(0, 120px) minmax(0, 130px)', gap: 12, padding: '10px 20px', background: 'var(--s2)', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
               <span>Recipient</span>
               <span>Campaign</span>
               <span>Amount</span>
@@ -494,12 +494,12 @@ export default function PayoutsClient({
 
             {currentPage.map(p => (
               <div key={p.id}
-                role="button" tabIndex={0} aria-label={`View payout for ${p.recipient_name}`} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) 120px 120px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
+                role="button" tabIndex={0} aria-label={`View payout for ${p.recipient_name}`} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 120px) minmax(0, 120px) minmax(0, 130px)', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
                 onClick={() => setSelected(p)}
                 onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelected(p); } }}
                 onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10 }}>
                   <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,#fdeaf6,#ec3fb4)', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
                     {p.recipient_name.charAt(0).toUpperCase()}
                   </div>
@@ -518,9 +518,9 @@ export default function PayoutsClient({
 
             {currentPage.length === 0 && <div style={{ padding: '32px', textAlign: 'center', color: 'var(--t3)', fontSize: 14 }}>No payouts found</div>}
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderTop: '1px solid #eef0f7' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderTop: '1px solid #eef0f7' }}>
               <span style={{ fontSize: 13, color: 'var(--t3)' }}>Showing {filtered.length === 0 ? 0 : page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filtered.length)} of {filtered.length}</span>
-              <div style={{ display: 'flex', gap: 6 }}>
+              <div style={{ display: 'flex', minWidth: 0, gap: 6 }}>
                 <button type="button" disabled={page === 0} onClick={() => setPage(p => p - 1)} style={{ height: 34, padding: '0 14px', border: '1px solid #e0e4ef', borderRadius: 8, background: 'var(--s1)', cursor: page === 0 ? 'default' : 'pointer', opacity: page === 0 ? 0.4 : 1, fontSize: 13 }}>← Prev</button>
                 <button type="button" disabled={page >= pages - 1} onClick={() => setPage(p => p + 1)} style={{ height: 34, padding: '0 14px', border: '1px solid #e0e4ef', borderRadius: 8, background: 'var(--s1)', cursor: page >= pages - 1 ? 'default' : 'pointer', opacity: page >= pages - 1 ? 0.4 : 1, fontSize: 13 }}>Next →</button>
               </div>
@@ -551,20 +551,20 @@ export default function PayoutsClient({
                 ✓ Payout created successfully. Reload the page to see it in the list.
               </div>
             )}
-            <div style={{ maxWidth: 460, display: 'grid', gap: 16 }}>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
+            <div style={{ maxWidth: 460, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16 }}>
+              <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
                 Recipient User ID <span style={{ color: 'var(--red-text)' }}>*</span>
                 <input type="text" value={addUserId} onChange={e => setAddUserId(e.target.value)} placeholder="e.g. 12a3bc45-6d7e-..." style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }} />
               </label>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
+              <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
                 Campaign ID (optional)
                 <input type="text" value={addCampaignId} onChange={e => setAddCampaignId(e.target.value)} placeholder="Leave blank for unattached payout" style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }} />
               </label>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
+              <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
                 Amount (USD) <span style={{ color: 'var(--red-text)' }}>*</span>
                 <input type="number" min="0.01" step="0.01" value={addAmount} onChange={e => setAddAmount(e.target.value)} placeholder="0.00" style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }} />
               </label>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
+              <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
                 Payout Method
                 <select value={addMethod} onChange={e => setAddMethod(e.target.value)} style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }}>
                   <option>Bank Transfer</option>
@@ -574,12 +574,12 @@ export default function PayoutsClient({
                   <option>Check</option>
                 </select>
               </label>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
+              <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
                 Internal Note
                 <textarea value={addNote} onChange={e => setAddNote(e.target.value)} placeholder="Reason for manual payout…" style={{ border: '1px solid #dfe3ee', borderRadius: 9, padding: '10px 14px', fontSize: 14, minHeight: 80, resize: 'vertical' }} />
               </label>
               {addError && <p style={{ margin: 0, color: 'var(--red-text)', fontSize: 13, fontWeight: 600 }}>{addError}</p>}
-              <div style={{ display: 'flex', gap: 12 }}>
+              <div style={{ display: 'flex', minWidth: 0, gap: 12 }}>
                 <button type="button" onClick={() => { setAddUserId(''); setAddCampaignId(''); setAddAmount(''); setAddNote(''); setAddError(''); setAddSuccess(false); }} style={{ flex: 1, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, background: 'var(--s1)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Clear</button>
                 <button type="button" onClick={handleCreatePayout} disabled={addSaving} style={{ flex: 1, height: 42, border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 700, cursor: addSaving ? 'default' : 'pointer', opacity: addSaving ? 0.65 : 1 }}>
                   {addSaving ? 'Creating…' : 'Create Payout'}
@@ -592,14 +592,14 @@ export default function PayoutsClient({
         {activeTab === 'methods' && (
           <div style={{ padding: '20px' }}>
             <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700 }}>Payout Methods</h3>
-            <div style={{ display: 'grid', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
               {[
                 { name: 'Bank Transfer', isDefault: true },
                 { name: 'PayPal', isDefault: false },
                 { name: 'Wise', isDefault: false },
                 { name: 'Stripe Connect', isDefault: false },
               ].map(m => (
-                <div key={m.name} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', border: '1px solid #e6e9f2', borderRadius: 12 }}>
+                <div key={m.name} style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 14, padding: '14px 18px', border: '1px solid #e6e9f2', borderRadius: 12 }}>
                   <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: 'var(--t1)' }}>{m.name}</div>
                   {m.isDefault && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--brand-text)', background: '#efe8ff', padding: '3px 10px', borderRadius: 999 }}>Default</span>}
                   <button type="button" disabled title="Payout-method configuration is not built yet" style={{ height: 34, padding: '0 14px', border: '1px solid #e0e4ef', borderRadius: 8, background: 'var(--s1)', fontSize: 12, fontWeight: 600, cursor: 'not-allowed', opacity: 0.5 }}>Configure</button>
@@ -616,7 +616,7 @@ export default function PayoutsClient({
         {activeTab === 'reports' && (
           <div style={{ padding: '20px' }}>
             <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 700 }}>Payout Reports</h3>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+            <div style={{ display: 'flex', minWidth: 0, gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
               <select aria-label="Report type" disabled title="Report generation is not built yet" style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 13 }}><option>Payout Summary</option><option>Recipient Report</option><option>Fee Report</option></select>
               <select aria-label="Date range" disabled title="Report generation is not built yet" style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 13 }}><option>Last 30 Days</option><option>Last 90 Days</option><option>This Year</option></select>
               <select aria-label="Grouping" disabled title="Report generation is not built yet" style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 13 }}><option>By Week</option><option>By Month</option></select>
@@ -629,7 +629,7 @@ export default function PayoutsClient({
           <div style={{ padding: '20px' }}>
             <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 700 }}>Export Payouts</h3>
             <p style={{ margin: '0 0 20px', fontSize: 13, color: 'var(--t3)' }}>{payouts.length.toLocaleString()} total payouts available for export.</p>
-            <div style={{ maxWidth: 420, display: 'grid', gap: 16 }}>
+            <div style={{ maxWidth: 420, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16 }}>
               <div style={{ padding: '14px 16px', border: '1px solid #e6e9f2', borderRadius: 10, background: 'var(--s2)', fontSize: 13 }}>
                 <div style={{ fontWeight: 650, marginBottom: 4, color: 'var(--t1)' }}>Columns included:</div>
                 <div style={{ color: 'var(--t3)' }}>Recipient, Email, Campaign, Amount (USD), Status, Method, Date</div>
@@ -654,7 +654,7 @@ export default function PayoutsClient({
 
         {activeTab === 'audit' && (
           <div style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Payout Audit Log</h3>
               {!auditLoading && auditEntries === null && (
                 <button type="button" onClick={loadAuditLog} style={{ height: 36, padding: '0 16px', border: '1px solid #e0e4ef', borderRadius: 8, background: 'var(--s1)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Load Log</button>
@@ -670,7 +670,7 @@ export default function PayoutsClient({
               const color = isGood ? '#19b86a' : isBad ? '#ff3b5f' : '#6c35ff';
               const amtCents = (e.metadata as { amount_cents?: number }).amount_cents;
               return (
-                <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid #f0f2f8', fontSize: 13 }}>
+                <div key={e.id} style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid #f0f2f8', fontSize: 13 }}>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
                   <div style={{ flex: 1 }}>
                     <span style={{ fontWeight: 600, color: 'var(--t1)' }}>{e.action.replace('payout.', '').replace(/_/g, ' ')}</span>

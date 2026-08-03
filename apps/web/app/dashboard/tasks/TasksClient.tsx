@@ -142,7 +142,7 @@ export default function TasksClient({
   }
 
   return (
-    <div className="kf-admin-dash" style={{ display: 'grid', gap: 20, maxWidth: 880 }}>
+    <div className="kf-admin-dash" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 20, maxWidth: 880 }}>
       {err && (
         <p role="alert" style={{ color: 'var(--red)', fontSize: 14, margin: 0 }}>
           {err}
@@ -151,7 +151,7 @@ export default function TasksClient({
 
       <Card>
         <h2 style={{ margin: '0 0 12px', fontSize: 16 }}>Add a task</h2>
-        <form onSubmit={create} style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <form onSubmit={create} style={{ display: 'flex', minWidth: 0, gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div style={{ flex: '2 1 240px', minWidth: 0 }}>
             <label htmlFor="t-title" style={{ display: 'block', fontSize: 13, marginBottom: 6 }}>
               Task
@@ -206,7 +206,7 @@ export default function TasksClient({
         </form>
       </Card>
 
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }} role="group" aria-label="Filter tasks">
+      <div style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap' }} role="group" aria-label="Filter tasks">
         {FILTERS.map((f) => (
           <button
             key={f.id}
@@ -236,7 +236,7 @@ export default function TasksClient({
         />
       ) : (
         <Card>
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 8 }}>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8 }}>
             {visible.map((t) => {
               const overdue = t.status !== 'done' && t.due_at && new Date(t.due_at).getTime() < new Date(nowIso).getTime();
               const canEdit = t.owner_id === currentUserId;
@@ -244,7 +244,7 @@ export default function TasksClient({
                 <li
                   key={t.id}
                   style={{
-                    display: 'flex',
+                    display: 'flex', minWidth: 0,
                     gap: 12,
                     alignItems: 'center',
                     flexWrap: 'wrap',
@@ -253,7 +253,7 @@ export default function TasksClient({
                     padding: 12,
                   }}
                 >
-                  <label style={{ display: 'flex', alignItems: 'center', minHeight: 44, gap: 8 }}>
+                  <label style={{ display: 'flex', minWidth: 0, alignItems: 'center', minHeight: 44, gap: 8 }}>
                     <input
                       type="checkbox"
                       checked={t.status === 'done'}

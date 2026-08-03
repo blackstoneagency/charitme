@@ -70,8 +70,8 @@ export default function FaqsPanel({ campaignId }: { campaignId: string }) {
   }
 
   return (
-    <div style={{ display: 'grid', gap: 20, maxWidth: 720 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 20, maxWidth: 720 }}>
+      <div style={{ display: 'flex', minWidth: 0, justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
         <div>
           <h2 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 700, color: 'var(--t1)' }}>Campaign FAQs</h2>
           <p style={{ margin: 0, fontSize: 14, color: 'var(--t3)' }}>
@@ -90,15 +90,15 @@ export default function FaqsPanel({ campaignId }: { campaignId: string }) {
       {faqs.length > 0 && (
         <section className="kf-card" style={{ padding: 24 }}>
           <h2 style={{ fontSize: 14, fontWeight: 650, margin: '0 0 16px' }}>Current FAQs ({faqs.length})</h2>
-          <div style={{ display: 'grid', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
             {faqs.map((faq, i) => (
               <div key={faq.id} style={{ padding: '14px 16px', border: '1px solid var(--b2)', borderRadius: 10, background: 'var(--s1)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                   <div style={{ flex: 1 }}>
                     <strong style={{ fontSize: 13, color: 'var(--t1)', display: 'block', marginBottom: 4 }}>Q: {faq.question}</strong>
                     <span style={{ fontSize: 13, color: 'var(--t2)', lineHeight: 1.5 }}>A: {faq.answer}</span>
                   </div>
-                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                  <div style={{ display: 'flex', minWidth: 0, gap: 6, flexShrink: 0 }}>
                     <span style={{ fontSize: 11, color: 'var(--t3)', padding: '2px 8px', background: 'var(--s2)', borderRadius: 6 }}>#{i + 1}</span>
                     <button type="button" onClick={() => void deleteFAQ(faq.id)}
                       title="Delete FAQ"
@@ -116,13 +116,13 @@ export default function FaqsPanel({ campaignId }: { campaignId: string }) {
       {/* Add FAQ form */}
       <section className="kf-card" style={{ padding: 24 }}>
         <h2 style={{ fontSize: 14, fontWeight: 650, margin: '0 0 16px' }}>Add a Question</h2>
-        <div style={{ display: 'grid', gap: 14 }}>
-          <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14 }}>
+          <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
             Question
             <input value={newQ} onChange={e => setNewQ(e.target.value)} maxLength={300}
               placeholder="e.g. How will the funds be used?" style={{ height: 42, border: '1px solid var(--b2)', borderRadius: 9, padding: '0 12px', fontSize: 14 }} />
           </label>
-          <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
+          <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
             Answer
             <textarea value={newA} onChange={e => setNewA(e.target.value)} rows={4} maxLength={2000}
               placeholder="Provide a clear, honest answer…" style={{ border: '1px solid var(--b2)', borderRadius: 9, padding: '10px 12px', fontSize: 14, resize: 'vertical', lineHeight: 1.6 }} />

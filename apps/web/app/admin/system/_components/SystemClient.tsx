@@ -330,7 +330,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
 
               <div style={{ marginTop: 8, padding: '20px 28px', border: '1px solid var(--b1)', borderRadius: 14, background: 'var(--s2)', minWidth: 340 }}>
                 <p style={{ margin: '0 0 14px', fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>What&apos;s Next?</p>
-                <div style={{ display: 'grid', gap: 10 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
                   <button
                     type="button"
                     style={{ height: 40, border: '1px solid #d8d2ff', borderRadius: 9, background: 'var(--s1)', color: 'var(--brand-text)', fontSize: 13, fontWeight: 650, cursor: 'pointer', textAlign: 'left', padding: '0 14px' }}
@@ -507,7 +507,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
         </div>
         <div className="sys-form-section">
           <h3>Email Verification</h3>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 13, color: '#4b5676', fontWeight: 600 }}>Last verified: today</span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 10px', background: '#f0fdf5', border: '1px solid #bbf7d0', borderRadius: 99, color: 'var(--green-text)', fontSize: 12, fontWeight: 650 }}>Verified ✓</span>
             {/* No re-verification endpoint exists; this did nothing when clicked. */}
@@ -524,10 +524,10 @@ export default function SystemClient({ categories, overview, recentActivity, res
       <div className="sys-form">
         <div className="sys-form-section">
           <h3>Payment Gateways</h3>
-          <div style={{ display: 'grid', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
             {/* Stripe */}
             <div className={`sys-toggle-card${Boolean(s.stripeLive) ? ' active' : ''}`}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12 }}>
                 <span style={{ fontSize: 22 }}>💳</span>
                 <div>
                   <strong style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>Stripe</strong>
@@ -543,7 +543,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
             </div>
             {/* PayPal */}
             <div className={`sys-toggle-card${Boolean(s.paypalEnabled) ? ' active' : ''}`}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12 }}>
                 <span style={{ fontSize: 22 }}>🅿</span>
                 <div>
                   <strong style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>PayPal</strong>
@@ -557,7 +557,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
             </div>
             {/* Bank Transfer */}
             <div className={`sys-toggle-card${Boolean(s.bankTransferEnabled) ? ' active' : ''}`}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12 }}>
                 <span style={{ fontSize: 22 }}>🏦</span>
                 <div>
                   <strong style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>Bank Transfer</strong>
@@ -595,7 +595,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
       <div className="sys-form">
         <div className="sys-form-section">
           <h3>Third-Party Integrations</h3>
-          <div style={{ display: 'grid', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
             {/* Google Analytics */}
             <div className={`sys-toggle-card${Boolean(s.googleAnalyticsEnabled) ? ' active' : ''}`}>
               <div>
@@ -657,7 +657,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
       <div className="sys-form">
         <div className="sys-form-section">
           <h3>Notification Channels</h3>
-          <div style={{ display: 'grid', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
             {[
               { key: 'inAppEnabled', label: 'In-App Notifications', icon: '🔔', desc: 'Show notifications inside the platform' },
               { key: 'emailEnabled', label: 'Email Notifications', icon: '✉', desc: 'Send email digests and alerts' },
@@ -665,7 +665,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
               { key: 'smsEnabled', label: 'SMS Notifications', icon: '💬', desc: 'Text message alerts (carrier rates may apply)' },
             ].map(({ key, label, icon, desc }) => (
               <div key={key} className={`sys-toggle-card${Boolean(s[key]) ? ' active' : ''}`}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12 }}>
                   <span style={{ fontSize: 20 }}>{icon}</span>
                   <div>
                     <strong style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>{label}</strong>
@@ -797,7 +797,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
               return (
                 <div key={key} className={`sys-toggle-card${enabled ? ' active' : ''}`}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10 }}>
                       <strong style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>{label}</strong>
                       <span style={{ padding: '2px 8px', borderRadius: 99, fontSize: 11, fontWeight: 700, background: enabled ? '#f0fdf5' : '#f5f5f5', color: enabled ? 'var(--green-text)' : '#6b7280', border: `1px solid ${enabled ? '#bbf7d0' : '#e5e7eb'}` }}>
                         {enabled ? 'Active' : 'Disabled'}
@@ -842,7 +842,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
         </div>
         <div className="sys-form-section">
           <h3>Debugging &amp; Registrations</h3>
-          <div style={{ display: 'grid', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
             <div className={`sys-toggle-card${debugOn ? ' active' : ''}`}>
               <div>
                 <strong style={{ fontSize: 14, fontWeight: 700, color: debugOn ? 'var(--orange-text)' : 'var(--t1)' }}>Debug Mode</strong>
@@ -915,7 +915,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
         <div className="sys-overview-grid">
           {/* Recent activity */}
           <div style={{ border: '1px solid var(--b1)', borderRadius: 14, background: 'var(--s1)', overflow: 'hidden' }}>
-            <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--b1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--b1)', display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'center' }}>
               <strong style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>Recent System Activity</strong>
               <Link href="/admin/audit-log" style={{ border: 0, background: 'transparent', color: 'var(--brand-text)', fontSize: 12, fontWeight: 650, cursor: 'pointer', textDecoration: 'none' }}>View all activity →</Link>
             </div>
@@ -941,7 +941,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
 
           {/* Resource usage */}
           <div style={{ border: '1px solid var(--b1)', borderRadius: 14, background: 'var(--s1)', overflow: 'hidden' }}>
-            <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--b1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--b1)', display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'center' }}>
               <strong style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>Resource Usage</strong>
               <button
                 type="button"
@@ -1069,12 +1069,12 @@ export default function SystemClient({ categories, overview, recentActivity, res
             <div className="sys-review-header">
               <button
                 type="button"
-                style={{ border: 0, background: 'transparent', color: 'var(--brand-text)', fontSize: 13, fontWeight: 650, cursor: 'pointer', padding: 0, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}
+                style={{ border: 0, background: 'transparent', color: 'var(--brand-text)', fontSize: 13, fontWeight: 650, cursor: 'pointer', padding: 0, marginBottom: 10, display: 'flex', minWidth: 0, alignItems: 'center', gap: 6 }}
                 onClick={() => setShowReview(false)}
               >
                 ← Back to {activeCat?.label}
               </button>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12 }}>
                 <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: 'var(--t1)' }}>Review Changes</h2>
                 <span className="sys-unsaved-badge">Unsaved Changes</span>
               </div>
@@ -1087,7 +1087,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
                 {changes.length === 0 ? (
                   <p style={{ color: 'var(--t3)', fontSize: 13 }}>No changes detected.</p>
                 ) : (
-                  <div style={{ display: 'grid', gap: 8 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8 }}>
                     {/* Header row */}
                     <div className="sys-diff-row" style={{ background: 'var(--s2)', fontWeight: 700, fontSize: 11, color: 'var(--t3)', textTransform: 'uppercase' }}>
                       <span>Field</span>
@@ -1120,7 +1120,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
                   width: '100%', height: 48, fontSize: 15, fontWeight: 700, border: 0, borderRadius: 11,
                   background: 'linear-gradient(135deg, #6c35ff, #551cf2)', color: '#fff', cursor: saveState === 'saving' ? 'wait' : 'pointer',
                   boxShadow: '0 8px 20px rgba(85,28,242,.2)', opacity: (saveState === 'saving' || changes.length === 0) ? 0.6 : 1,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                  display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', gap: 10,
                 }}
                 onClick={handleSave}
               >

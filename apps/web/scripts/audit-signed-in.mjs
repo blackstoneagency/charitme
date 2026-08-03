@@ -64,7 +64,21 @@ const ONLY = argOf('--only', null);
 const AS_JSON = argv.includes('--json');
 const STUB_URL = `http://127.0.0.1:${STUB_PORT}`;
 const BASE = `http://127.0.0.1:${APP_PORT}`;
-const USER_ID = '00000000-0000-4000-8000-000000000001';
+// `--no-admin` swaps the fixture user, and it has to: clearing ADMIN_EMAILS is
+// NOT enough, because `isAdmin` also consults the profile's `roles` array and the
+// default fixture (…0001) carries ['donor','admin','super_admin']. Switching the
+// env var alone left the sweep an admin and `/dashboard` still redirecting —
+// which is exactly how this hole stayed invisible.
+const AS_MEMBER = process.argv.slice(2).includes('--no-admin');
+const USER_ID = AS_MEMBER
+  ? '00000000-0000-4000-8000-000000000012'   // organizer fixture: donor + organizer
+  : '00000000-0000-4000-8000-000000000001';  // default fixture: admin + super_admin
+const USER_EMAIL = AS_MEMBER ? 'organizer-persona@charitme.local' : 'audit-stub@charitme.local';
+const USER_NAME = AS_MEMBER ? 'Owen Organizer' : 'Audit Stub';
+// The stub resolves the persona from the BEARER TOKEN (PERSONA_BY_TOKEN), so the
+// token has to match too — an id and email alone would still resolve to the
+// default admin persona and silently undo the switch.
+const USER_TOKEN = AS_MEMBER ? 'stub-organizer-access-token' : 'stub-access-token';
 
 /**
  * supabase-js derives the storage key from the first dot-separated label of the
@@ -84,8 +98,8 @@ function cookieNameFor(url) {
 function sessionCookieValue() {
   const now = Math.floor(Date.now() / 1000);
   const session = {
-    access_token: 'stub-access-token',
-    refresh_token: 'stub-refresh-token',
+    access_token: USER_TOKEN,
+    refresh_token: `${USER_TOKEN}-refresh`,
     token_type: 'bearer',
     expires_in: 31_536_000,
     expires_at: now + 31_536_000,
@@ -93,9 +107,9 @@ function sessionCookieValue() {
       id: USER_ID,
       aud: 'authenticated',
       role: 'authenticated',
-      email: 'audit-stub@charitme.local',
+      email: USER_EMAIL,
       app_metadata: { provider: 'email', providers: ['email'] },
-      user_metadata: { full_name: 'Audit Stub' },
+      user_metadata: { full_name: USER_NAME },
     },
   };
   return `base64-${Buffer.from(JSON.stringify(session)).toString('base64url')}`;
@@ -142,6 +156,19 @@ await waitForHttp(`${STUB_URL}/auth/v1/user`, 'supabase-stub');
 if (!AS_JSON) console.log(`· supabase-stub up on ${STUB_URL}`);
 
 // ─── 2. app ─────────────────────────────────────────────────────────────────
+//
+// `--no-admin` runs the fixture user as an ORDINARY member.
+//
+// ⚠️ This exists because the admin grant below silently hid a whole surface.
+// `/dashboard` redirects an admin to `/admin`, so with the grant always on, every
+// signed-in sweep reported `/dashboard — REDIRECTED to /admin; not measured` and
+// the entire donor/organizer dashboard was never measured by anything: not
+// contrast, not overflow, not tap targets. Three routes were quietly exempt from
+// every audit in the repo, and the exemption looked like a harness quirk rather
+// than a coverage hole.
+//
+// Both modes are needed. The admin console is only reachable WITH the grant, and
+// the member dashboard only WITHOUT it — no single run can cover both.
 const env = {
   ...process.env,
   NEXT_PUBLIC_SUPABASE_URL: STUB_URL,
@@ -149,7 +176,9 @@ const env = {
   SUPABASE_SERVICE_ROLE_KEY: 'stub-service-key',
   // Grants the fixture user the admin console. Without it /admin/* 302s to
   // /admin and the rest of the admin console drop out of the sweep.
-  ADMIN_EMAILS: 'audit-stub@charitme.local',
+  ADMIN_EMAILS: AS_MEMBER ? '' : 'audit-stub@charitme.local',
+  // The stub serves the session token verbatim, so it must match the fixture the
+  // cookie claims to be.
 };
 if (argv.includes('--build')) {
   if (!AS_JSON) console.log('Â· building the app against the signed-in Supabase stub');
@@ -176,24 +205,38 @@ if (!AS_JSON) console.log(`· app up on ${BASE}`);
 const cookieName = cookieNameFor(STUB_URL);
 const cookieValue = sessionCookieValue();
 const sessionHeader = `${cookieName}=${cookieValue}`;
-const probe = await fetch(`${BASE}/admin`, {
+// The probe route differs by mode, and each one proves BOTH halves of what we
+// need: that the session works, and that the role is the one we asked for.
+// `/admin` renders only for an admin; `/dashboard` renders 200 only for a
+// non-admin (an admin is redirected to /admin). Probing /admin in member mode
+// would fail on a correct build, and probing /dashboard in admin mode would
+// pass on a build with no admin grant at all.
+const probePath = AS_MEMBER ? '/dashboard' : '/admin';
+const probe = await fetch(`${BASE}${probePath}`, {
   headers: { cookie: sessionHeader },
   redirect: 'manual',
 });
 if (probe.status !== 200) {
   console.error(
-    `\n✗ /admin answered ${probe.status} with the admin stub session.\n` +
+    `\n✗ ${probePath} answered ${probe.status} with the ${AS_MEMBER ? 'member' : 'admin'} stub session.\n` +
     '  The build is almost certainly pointed at the real Supabase URL. Rebuild with:\n' +
     `    NEXT_PUBLIC_SUPABASE_URL=${STUB_URL} NEXT_PUBLIC_SUPABASE_ANON_KEY=stub-anon-key \\\n` +
     '    SUPABASE_SERVICE_ROLE_KEY=stub-service-key npm run build --workspace=apps/web\n',
   );
   process.exit(2);
 }
-if (!AS_JSON) console.log('· signed-in probe: /admin renders (200)');
+if (!AS_JSON) console.log(`· signed-in probe: ${probePath} renders (200) as ${AS_MEMBER ? 'member' : 'admin'}`);
 
 // ─── 4. sweep ───────────────────────────────────────────────────────────────
 const MOBILE = argv.includes('--mobile');
-const sweepArgs = MOBILE
+// `--probe <path> [width]` explains ONE route instead of sweeping all of them:
+// the ancestor chain of the widest offender, with the properties that decide
+// whether each box can shrink. Reuses this harness because the interesting
+// overflows are all behind a session.
+const PROBE = argv.includes('--probe') ? argv[argv.indexOf('--probe') + 1] : null;
+const sweepArgs = PROBE
+  ? ['scripts/probe-overflow.mjs', BASE, PROBE, ...(argv.includes('--width') ? [argv[argv.indexOf('--width') + 1]] : [])]
+  : MOBILE
   ? [
     'scripts/audit-mobile.mjs',
     BASE,
@@ -212,6 +255,12 @@ const sweep = spawnChild(process.execPath, sweepArgs, {
   env: {
     ...env,
     STUB_SESSION_COOKIE: JSON.stringify({ name: cookieName, value: cookieValue }),
+    // In member mode the /admin/* routes are legitimately unreachable, so the
+    // sweep must SKIP them rather than count ~104 correct redirects as failures.
+    // Left as failures the member run could never go green, and an audit that is
+    // permanently red is an audit nobody reads — the same lesson this repo has
+    // already learned twice.
+    AUDIT_SKIP_ADMIN: AS_MEMBER ? '1' : '',
   },
 });
 

@@ -42,7 +42,7 @@ export default async function FundraiserTaxSummaryPage({
           <p style={{ color: 'var(--t2)', lineHeight: 1.6 }}>
             CharitMe keeps currencies separate so your campaign records are not combined incorrectly.
           </p>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', minWidth: 0, gap: 12, flexWrap: 'wrap' }}>
             {error.currencies.map((currency) => (
               <Link key={currency} href={`/dashboard/tax/fundraiser/${year}?currency=${encodeURIComponent(currency)}`}>
                 View {currency.toUpperCase()}
@@ -57,11 +57,11 @@ export default async function FundraiserTaxSummaryPage({
 
   return (
     <main style={{ maxWidth: 820, margin: '0 auto', padding: '32px 24px' }}>
-      <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+      <div className="no-print" style={{ display: 'flex', minWidth: 0, justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
         <Link href={`/dashboard/tax?year=${year}&currency=${encodeURIComponent(summary.currency)}`} className="kf-link">
           Back to tax documents
         </Link>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 10, flexWrap: 'wrap' }}>
           <a className="kf-outline" download href={`/api/fundraiser/tax-summary?year=${year}&currency=${encodeURIComponent(summary.currency)}&format=csv`}>
             Download CSV
           </a>
@@ -70,7 +70,7 @@ export default async function FundraiserTaxSummaryPage({
       </div>
 
       <article style={{ background: 'var(--s1)', border: '1px solid var(--b1)', borderRadius: 8, padding: 32 }}>
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: 16, flexWrap: 'wrap', marginBottom: 28 }}>
+        <header style={{ display: 'flex', minWidth: 0, justifyContent: 'space-between', alignItems: 'start', gap: 16, flexWrap: 'wrap', marginBottom: 28 }}>
           <div>
             <div style={{ fontSize: 21, fontWeight: 900 }}>CharitMe</div>
             <div style={{ marginTop: 3, color: 'var(--t3)', fontSize: 13 }}>Campaign activity summary</div>

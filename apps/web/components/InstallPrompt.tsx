@@ -59,7 +59,7 @@ export default function InstallPrompt() {
         zIndex: 1000,
         maxWidth: 480,
         margin: '0 auto',
-        display: 'flex',
+        display: 'flex', minWidth: 0,
         alignItems: 'center',
         gap: 12,
         padding: '14px 16px',

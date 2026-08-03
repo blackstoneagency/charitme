@@ -121,7 +121,7 @@ export default function RolesClient({ users: initial }: { users: RoleUser[] }) {
       </div>
 
       <div className="kf-card" style={{ padding: 16 }}>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: 12, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
           <input
             aria-label="Search users by name or email"
             placeholder="Search by name or email…"
@@ -146,7 +146,7 @@ export default function RolesClient({ users: initial }: { users: RoleUser[] }) {
               {filtered.map((u) => (
                 <tr key={u.id} style={{ borderTop: '1px solid var(--b1)', opacity: savingId === u.id ? 0.55 : 1 }}>
                   <td style={{ padding: '10px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10 }}>
                       <span className="kf-avatar" style={{ width: 34, height: 34, fontSize: 12 }}>{initials(u.name)}</span>
                       <div style={{ minWidth: 0 }}>
                         <strong style={{ display: 'block', fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 200 }}>{u.name}</strong>

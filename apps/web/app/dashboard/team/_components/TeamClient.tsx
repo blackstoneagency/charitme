@@ -153,7 +153,7 @@ export function TeamClient({ campaigns, initialMembers, profiles, currentUserId 
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '40px minmax(0, 1fr) 160px 110px 110px 110px',
+            gridTemplateColumns: '40px minmax(0, 1fr) minmax(0, 160px) minmax(0, 110px) minmax(0, 110px) minmax(0, 110px)',
             gap: 12,
             padding: '8px 20px',
             fontSize: 11,
@@ -188,7 +188,7 @@ export function TeamClient({ campaigns, initialMembers, profiles, currentUserId 
                   className="kf-row"
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: '40px minmax(0, 1fr) 160px 110px 110px 110px',
+                    gridTemplateColumns: '40px minmax(0, 1fr) minmax(0, 160px) minmax(0, 110px) minmax(0, 110px) minmax(0, 110px)',
                     gap: 12,
                     alignItems: 'center',
                   }}
@@ -244,7 +244,7 @@ export function TeamClient({ campaigns, initialMembers, profiles, currentUserId 
                   <div style={{ fontSize: 12, color: 'var(--t3)' }}>{fmtDate(m.created_at)}</div>
 
                   {/* Action */}
-                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <div style={{ display: 'flex', minWidth: 0, justifyContent: 'flex-end' }}>
                     {canRemove ? (
                       <RemoveMemberButton
                         memberId={m.id}

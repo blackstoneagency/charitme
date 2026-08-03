@@ -1,9 +1,11 @@
+import { boundedQuery } from '../../../../lib/query-timeout';
 import Link from 'next/link';
 import { cache } from 'react';
 import { safeJsonLd } from "../../../../lib/json-ld";
 import { buildCampaignJsonLd } from "../../../../lib/campaign-jsonld";
 import { notFound } from 'next/navigation';
-import { getCampaign } from '../get-campaign';
+import { getCampaignResult } from '../get-campaign';
+import CampaignUnavailable from '../../../../components/CampaignUnavailable';
 import { getTranslator } from '../../../../lib/locale-server';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../../../lib/supabase';
@@ -58,27 +60,44 @@ type Profile = { full_name?: string | null; avatar_url?: string | null; show_pub
 type CampaignWithImages = { image_urls?: string[] | null };
 
 
+
 async function getRecentDonations(campaignId: string) {
-  const { data } = await supabaseAdmin
+  const { data } = await boundedQuery(() => supabaseAdmin
     .from('donations')
     .select('id, donor_id, amount_cents, message, anonymous, created_at, offline_donor_name, profiles:donor_id(full_name, avatar_url, show_public_profile)')
     .eq('campaign_id', campaignId)
     .eq('status', 'completed')
     .order('created_at', { ascending: false })
-    .limit(6);
+    .limit(6));
   return data ?? [];
+}
+
+/**
+ * Exact number of PUBLIC updates, for the story tab.
+ *
+ * `getUpdates` caps at 4 for the sidebar timeline, so using its length as the tab
+ * count under-reported every campaign with more than four updates. `null` on
+ * failure so the caller can fall back rather than render a confident 0.
+ */
+async function getUpdatesCount(campaignId: string): Promise<number | null> {
+  const { count, error } = await boundedQuery(() => supabaseAdmin
+    .from('campaign_updates')
+    .select('id', { count: 'exact', head: true })
+    .eq('campaign_id', campaignId)
+    .or(`published_at.not.is.null,scheduled_at.lte.${new Date().toISOString()}`));
+  return error ? null : count ?? 0;
 }
 
 async function getUpdates(campaignId: string) {
   // Exclude updates still waiting on their "schedule for later" time —
   // they become visible once published_at is set or scheduled_at has passed.
-  const { data } = await supabaseAdmin
+  const { data } = await boundedQuery(() => supabaseAdmin
     .from('campaign_updates')
     .select('id, title, body, created_at')
     .eq('campaign_id', campaignId)
     .or(`published_at.not.is.null,scheduled_at.lte.${new Date().toISOString()}`)
     .order('created_at', { ascending: false })
-    .limit(4);
+    .limit(4));
   return data ?? [];
 }
 
@@ -100,42 +119,42 @@ const getOrganizerCreatorHandle = cache(async (userId: string | null): Promise<s
 });
 
 async function getDonorMessages(campaignId: string) {
-  const { data } = await supabaseAdmin
+  const { data } = await boundedQuery(() => supabaseAdmin
     .from('donor_messages')
     .select('id, message, anonymous, visibility, created_at, profiles:donor_id(full_name, avatar_url, show_public_profile)')
     .eq('campaign_id', campaignId)
     .order('created_at', { ascending: false })
-    .limit(8);
+    .limit(8));
   return data ?? [];
 }
 
 async function getFAQs(campaignId: string) {
-  const { data } = await supabaseAdmin
+  const { data } = await boundedQuery(() => supabaseAdmin
     .from('campaign_faqs')
     .select('id, question, answer, sort_order')
     .eq('campaign_id', campaignId)
     .eq('is_public', true)
     .order('sort_order', { ascending: true })
-    .limit(10);
+    .limit(10));
   return (data ?? []) as { id: string; question: string; answer: string; sort_order: number }[];
 }
 
 async function getMilestones(campaignId: string) {
-  const { data } = await supabaseAdmin
+  const { data } = await boundedQuery(() => supabaseAdmin
     .from('campaign_milestones')
     .select('id, title, description, target_amount, reached_at, sort_order')
     .eq('campaign_id', campaignId)
-    .order('sort_order', { ascending: true });
+    .order('sort_order', { ascending: true }));
   return (data ?? []) as { id: string; title: string; description: string | null; target_amount: number | null; reached_at: string | null; sort_order: number }[];
 }
 
 async function getRewards(campaignId: string) {
-  const { data } = await supabaseAdmin
+  const { data } = await boundedQuery(() => supabaseAdmin
     .from('campaign_rewards')
     .select('id, title, description, amount_cents, estimated_delivery, item_limit, claimed_count, sort_order')
     .eq('campaign_id', campaignId)
     .order('sort_order', { ascending: true })
-    .order('amount_cents', { ascending: true });
+    .order('amount_cents', { ascending: true }));
   return (data ?? []) as { id: string; title: string; description: string | null; amount_cents: number; estimated_delivery: string | null; item_limit: number | null; claimed_count: number; sort_order: number }[];
 }
 
@@ -154,13 +173,13 @@ async function getTeamFundraisers(campaignId: string): Promise<TeamFundraiser[]>
   // `paused` is excluded deliberately: it is the supporter taking their own page
   // down, and listing it would keep soliciting for a page that is not collecting.
   // `completed` stays — a finished team member is part of the team's story.
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await boundedQuery(() => supabaseAdmin
     .from('peer_fundraisers')
     .select('id, slug, title, goal_amount, raised_amount, status, fundraiser_id, profiles:fundraiser_id(full_name, avatar_url, show_public_profile)')
     .eq('parent_campaign_id', campaignId)
     .in('status', ['active', 'completed'])
     .order('raised_amount', { ascending: false })
-    .limit(24);
+    .limit(24));
   // supabase-js RESOLVES rather than throws on a query error, so `data` would be
   // null and the section would silently vanish. Nothing to show and "we could not
   // read this" are the same rendering here (the section hides either way), but the
@@ -201,7 +220,7 @@ type SimilarCampaign = {
 
 async function getSimilarCampaigns(campaignId: string, category: string | null): Promise<SimilarCampaign[]> {
   if (!category) return [];
-  const { data } = await supabaseAdmin
+  const { data } = await boundedQuery(() => supabaseAdmin
     .from('campaigns')
     .select('id, slug, title, tagline, category, cover_image_url, goal_amount, raised_amount, backer_count')
     .eq('category', category)
@@ -210,16 +229,16 @@ async function getSimilarCampaigns(campaignId: string, category: string | null):
     .is('deleted_at', null)
     .neq('id', campaignId)
     .order('raised_amount', { ascending: false })
-    .limit(4);
+    .limit(4));
   return attachCampaignCurrencies((data ?? []) as SimilarCampaign[]);
 }
 
 async function getCampaignCurrency(campaignId: string) {
-  const { data } = await supabaseAdmin
+  const { data } = await boundedQuery(() => supabaseAdmin
     .from('campaign_launch_settings')
     .select('currency')
     .eq('campaign_id', campaignId)
-    .maybeSingle();
+    .maybeSingle());
   return normalizeCurrency(data?.currency);
 }
 
@@ -268,8 +287,15 @@ function toWallDonation(d: DonationRow): WallDonation {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const campaign = await getCampaign(slug);
-  if (!campaign) return { title: 'Campaign not found' };
+  const result = await getCampaignResult(slug);
+  // "Campaign not found" is a claim. Only make it when the row is genuinely
+  // absent — an unreadable database means we do not know, so say nothing.
+  if (!result.ok) {
+    return result.reason === 'missing'
+      ? { title: 'Campaign not found' }
+      : { title: 'Campaign', robots: { index: false } };
+  }
+  const campaign = result.campaign;
 
   const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com';
   const campaignUrl = `${ORIGIN}/campaigns/${slug}`;
@@ -307,8 +333,15 @@ export default async function CampaignPage({ params, searchParams }: Props) {
   const t = await getTranslator();
   const justDonated = sp.donated === '1';
   const donatedAmountCents = sp.amount ? Number.parseInt(sp.amount, 10) : NaN;
-  const campaign = await getCampaign(slug);
-  if (!campaign) notFound();
+  const campaignResult = await getCampaignResult(slug);
+  // A failed read is NOT a missing campaign. 404ing here would tell a donor a
+  // live fundraiser does not exist — a claim that gets shared, cached and
+  // indexed — because our database was briefly unreachable.
+  if (!campaignResult.ok && campaignResult.reason === 'unavailable') {
+    return <CampaignUnavailable slug={slug} />;
+  }
+  if (!campaignResult.ok) notFound();
+  const campaign = campaignResult.campaign;
 
   // Logged-in user (used for private-campaign visibility + referral links)
   const supabase = await createClient();
@@ -346,9 +379,10 @@ export default async function CampaignPage({ params, searchParams }: Props) {
     referrerId,
   };
 
-  const [donations, updates, faqs, donorMessages, milestones, teamFundraisers, rewards, currency, payoutDestination, trustInput, similarCampaigns] = await Promise.all([
+  const [donations, updates, updatesCount, faqs, donorMessages, milestones, teamFundraisers, rewards, currency, payoutDestination, trustInput, similarCampaigns] = await Promise.all([
     getRecentDonations(campaign.id),
     getUpdates(campaign.id),
+    getUpdatesCount(campaign.id),
     getFAQs(campaign.id),
     getDonorMessages(campaign.id),
     getMilestones(campaign.id),
@@ -428,12 +462,12 @@ export default async function CampaignPage({ params, searchParams }: Props) {
 
   let isSaved = false;
   if (user) {
-    const { data: savedRow } = await supabaseAdmin
+    const { data: savedRow } = await boundedQuery(() => supabaseAdmin
       .from('saved_campaigns')
       .select('id')
       .eq('user_id', user.id)
       .eq('campaign_id', campaign.id)
-      .maybeSingle();
+      .maybeSingle());
     isSaved = !!savedRow;
   }
 
@@ -441,10 +475,10 @@ export default async function CampaignPage({ params, searchParams }: Props) {
   const messageLikedByUser = new Set<string>();
   const messageIds = donorMessages.map((m) => m.id);
   if (messageIds.length > 0) {
-    const { data: likes } = await supabaseAdmin
+    const { data: likes } = await boundedQuery(() => supabaseAdmin
       .from('donor_message_likes')
       .select('donor_message_id, user_id')
-      .in('donor_message_id', messageIds);
+      .in('donor_message_id', messageIds));
     for (const like of (likes ?? []) as { donor_message_id: string; user_id: string }[]) {
       messageLikeCounts.set(like.donor_message_id, (messageLikeCounts.get(like.donor_message_id) ?? 0) + 1);
       if (user && like.user_id === user.id) messageLikedByUser.add(like.donor_message_id);
@@ -453,11 +487,11 @@ export default async function CampaignPage({ params, searchParams }: Props) {
 
   const repliesByMessage = new Map<string, { id: string; message: string; created_at: string }[]>();
   if (messageIds.length > 0) {
-    const { data: replies } = await supabaseAdmin
+    const { data: replies } = await boundedQuery(() => supabaseAdmin
       .from('campaign_owner_replies')
       .select('id, donor_message_id, message, created_at')
       .in('donor_message_id', messageIds)
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: true }));
     for (const r of (replies ?? []) as { id: string; donor_message_id: string | null; message: string; created_at: string }[]) {
       if (!r.donor_message_id) continue;
       const bucket = repliesByMessage.get(r.donor_message_id) ?? [];
@@ -550,7 +584,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
         </nav>
 
         {/* Verified + category pills */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <span className="pc-verified">✓ Verified Campaign</span>
           {campaign.category && (
             <span style={{ display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 12px', borderRadius: 999, background: 'rgba(108,53,255,.12)', color: 'var(--brand-text)', fontSize: 12, fontWeight: 650, letterSpacing: '.04em' }}>
@@ -565,14 +599,14 @@ export default async function CampaignPage({ params, searchParams }: Props) {
         </div>
 
         {/* Title */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', minWidth: 0, alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
           <h1 className="pc-title-h1" style={{ margin: 0 }}>{campaign.title}</h1>
           <SaveCampaignButton campaignId={campaign.id} initialSaved={isSaved} isAuthenticated={!!user} loginNext={`/campaigns/${slug}`} />
         </div>
 
         {/* Organizer row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,var(--violet),var(--violet-2))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 15, flexShrink: 0 }}>
+        <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,var(--violet),var(--violet-2))', display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 15, flexShrink: 0 }}>
             {(organizer.full_name ?? 'C')[0]}
           </div>
           <p className="pc-organizer" style={{ margin: 0 }}>
@@ -634,7 +668,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             const icon   = isVerified ? '✓' : isWatch ? '⚠' : '○';
             return (
               <div key={signal.label} className="pc-trust-signal" title={signal.detail}>
-                <span style={{ width: 28, height: 28, borderRadius: '50%', background: bg, color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
+                <span style={{ width: 28, height: 28, borderRadius: '50%', background: bg, color, display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
                   {icon}
                 </span>
                 <div>
@@ -685,8 +719,19 @@ export default async function CampaignPage({ params, searchParams }: Props) {
           <article className="pc-story">
             <nav>
               <a href="#story" className="active">{t('campaign.story')}</a>
-              <a href="#updates">Updates ({updates.length})</a>
+              {/* Points at the real updates FEED, not at `#updates` — that id sits
+                  on the co-organisers block below, so this tab used to scroll to
+                  the wrong section entirely. The count is an exact head count, not
+                  `updates.length`: the sidebar query is capped at 4, so a campaign
+                  with 20 updates advertised "Updates (4)". */}
+              <a href={`/campaigns/${slug}/updates`}>Updates ({updatesCount ?? updates.length})</a>
               <a href="#donations">Donors ({campaign.backer_count ?? donations.length})</a>
+              {/* Gallery is a real route, not an anchor: campaign_media is not
+                  rendered anywhere on this page, so there is no section to jump
+                  to. Count omitted deliberately — a media count here would need
+                  a fifth query on the highest-traffic public page, and the
+                  gallery states its own counts on arrival. */}
+              <a href={`/campaigns/${slug}/gallery`}>Gallery</a>
               <a href="#impact">{t('campaign.impact')}</a>
             </nav>
 
@@ -719,7 +764,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
           </article>
 
           {/* Co-organizers */}
-          <div className="pc-organizers" id="updates">
+          <div className="pc-organizers" id="organizers">
             <h3 className="pc-section-h3">
               {t('campaign.co_organizers')}
               <span className="pc-section-count">{1}</span>
@@ -764,6 +809,15 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             qrPosterId={campaign.id}
           />
 
+          {/* The share page is the linkable version of the block above — a
+              supporter can send THAT url to someone rather than re-explaining
+              the campaign themselves. Linked here so it is not an orphan route. */}
+          <p style={{ margin: '10px 0 0', fontSize: 13 }}>
+            <Link href={`/campaigns/${campaign.slug}/share`} style={{ color: 'var(--brand-text)', fontWeight: 650 }}>
+              More ways to share, and messages you can copy →
+            </Link>
+          </p>
+
         </div>{/* end pc-left */}
 
         {/* RIGHT column: sticky donation form */}
@@ -771,7 +825,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
           <div className="pc-donate" id="donate-section">
 
             {/* "Boost by giving monthly" nudge */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
               <span style={{ fontSize: 13, fontWeight: 650, color: 'var(--t2)' }}>{t('campaign.monthly_boost')}</span>
             </div>
 
@@ -844,20 +898,20 @@ export default async function CampaignPage({ params, searchParams }: Props) {
 
           {/* AI Impact Engine — momentum + projection */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, margin: '12px 0 0', padding: '12px 14px', background: 'rgba(108,53,255,.05)', border: '1px solid rgba(108,53,255,.12)', borderRadius: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--t2)' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', fontSize: 12.5, color: 'var(--t2)' }}>
               <span style={{ fontWeight: 700 }}>{t('campaign.momentum')}</span>
               <span style={{ fontWeight: 700, color: impact.momentum === 'surging' ? 'var(--green-text)' : impact.momentum === 'steady' ? 'var(--brand-text)' : 'var(--t3)' }}>
                 {impact.momentum === 'surging' ? '🔥 Surging' : impact.momentum === 'steady' ? '📈 Steady' : '🌱 Just started'}
               </span>
             </div>
             {impact.dailyVelocityCents >= 100 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--t2)' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', fontSize: 12.5, color: 'var(--t2)' }}>
                 <span style={{ fontWeight: 700 }}>{t('campaign.raising_per_day')}</span>
                 <span style={{ fontWeight: 700, color: 'var(--t1)' }}>~{formatMoneyShort(impact.dailyVelocityCents, currency)}</span>
               </div>
             )}
             {impact.projectedDaysToGoal !== null && impact.projectedDaysToGoal > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--t2)' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', fontSize: 12.5, color: 'var(--t2)' }}>
                 <span style={{ fontWeight: 700 }}>{t('campaign.on_pace')}</span>
                 <span style={{ fontWeight: 700, color: 'var(--green-text)' }}>~{impact.projectedDaysToGoal} day{impact.projectedDaysToGoal === 1 ? '' : 's'}</span>
               </div>
@@ -867,7 +921,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             )}
           </div>
           {updates.length > 0 ? (
-            <div style={{ display: 'grid', gap: 14, marginTop: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14, marginTop: 8 }}>
               {updates.slice(0, 3).map((update) => (
                 <article key={update.id} style={{ display: 'grid', gridTemplateColumns: '18px minmax(0, 1fr)', gap: 12, alignItems: 'start' }}>
                   <span style={{ width: 14, height: 14, borderRadius: '50%', background: 'var(--violet)', boxShadow: '0 0 0 5px var(--s2, #eee8ff)', display: 'block', marginTop: 3 }} />
@@ -879,6 +933,16 @@ export default async function CampaignPage({ params, searchParams }: Props) {
                   </div>
                 </article>
               ))}
+              {/* The timeline shows titles and dates only — the BODY of every
+                  update was fetched and discarded here, so a detailed progress
+                  report had no readable surface anywhere on the site until
+                  /campaigns/[slug]/updates existed. */}
+              <Link
+                href={`/campaigns/${slug}/updates`}
+                style={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-text)', textDecoration: 'none' }}
+              >
+                Read all {updatesCount ?? updates.length} update{(updatesCount ?? updates.length) === 1 ? '' : 's'} →
+              </Link>
             </div>
           ) : (
             <p style={{ fontSize: 13, color: 'var(--t3)', padding: '12px 0 0', margin: 0 }}>
@@ -935,7 +999,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
                         <div style={{ background: 'var(--s3, #f1f5f9)', borderRadius: 99, height: 6, overflow: 'hidden', marginBottom: 6 }}>
                           <div style={{ height: '100%', width: `${sPct}%`, background: 'var(--green, #19b86a)', borderRadius: 99 }} />
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', fontSize: 12 }}>
                           <strong style={{ color: 'var(--t1, #1a1a2e)' }}>{formatMoneyShort(c.raised_amount, c.currency ?? 'usd')}</strong>
                           <span style={{ color: 'var(--t3)' }}>{sPct}% funded</span>
                         </div>
@@ -956,10 +1020,10 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 16, color: 'var(--t1, #1a1a2e)' }}>
               {t('campaign.faq')}
             </h2>
-            <div style={{ display: 'grid', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 8 }}>
               {faqs.map(faq => (
                 <details key={faq.id} style={{ background: 'var(--s1, #fff)', border: '1px solid var(--b1, #e8ecf4)', borderRadius: 12, overflow: 'hidden' }}>
-                  <summary style={{ padding: '16px 20px', fontSize: 15, fontWeight: 700, cursor: 'pointer', color: 'var(--t1, #1a1a2e)', listStyle: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <summary style={{ padding: '16px 20px', fontSize: 15, fontWeight: 700, cursor: 'pointer', color: 'var(--t1, #1a1a2e)', listStyle: 'none', display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'center' }}>
                     {faq.question}
                     <span style={{ fontSize: 20, color: 'var(--violet, #6c35ff)', flexShrink: 0, marginLeft: 12 }}>+</span>
                   </summary>

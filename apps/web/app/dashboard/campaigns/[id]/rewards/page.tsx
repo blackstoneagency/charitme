@@ -109,16 +109,16 @@ export default function CampaignRewardsPage({ params }: { params: Promise<{ id: 
         {rewards.length > 0 && (
           <section className="kf-card" style={{ padding: 24 }}>
             <h2 style={{ fontSize: 14, fontWeight: 800, margin: '0 0 16px' }}>Current Reward Tiers ({rewards.length})</h2>
-            <div style={{ display: 'grid', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
               {rewards.map((r) => (
                 <div key={r.id} style={{ padding: '14px 16px', border: '1px solid var(--b2)', borderRadius: 10, background: 'var(--s1)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                     <div style={{ flex: 1 }}>
                       <strong style={{ fontSize: 13, color: 'var(--t1)', display: 'block', marginBottom: 4 }}>
                         {money(r.amount_cents)} or more — {r.title}
                       </strong>
                       {r.description && <span style={{ fontSize: 13, color: 'var(--t2)', lineHeight: 1.5, display: 'block', marginBottom: 4 }}>{r.description}</span>}
-                      <div style={{ display: 'flex', gap: 12, fontSize: 12, color: 'var(--t3)', fontWeight: 600 }}>
+                      <div style={{ display: 'flex', minWidth: 0, gap: 12, fontSize: 12, color: 'var(--t3)', fontWeight: 600 }}>
                         {r.estimated_delivery && <span>📦 Est. delivery: {r.estimated_delivery}</span>}
                         {r.item_limit != null
                           ? <span>{r.claimed_count} of {r.item_limit} claimed</span>
@@ -140,32 +140,32 @@ export default function CampaignRewardsPage({ params }: { params: Promise<{ id: 
         {/* Add reward form */}
         <section className="kf-card" style={{ padding: 24 }}>
           <h2 style={{ fontSize: 14, fontWeight: 800, margin: '0 0 16px' }}>Add a Reward Tier</h2>
-          <div style={{ display: 'grid', gap: 14 }}>
-            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 14 }}>
+            <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
               Title
               <input value={newTitle} onChange={e => setNewTitle(e.target.value)} maxLength={200}
                 placeholder="e.g. Hand-written thank-you card" style={{ height: 42, border: '1px solid var(--b2)', borderRadius: 9, padding: '0 12px', fontSize: 14 }} />
             </label>
-            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
+            <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
               Minimum pledge amount
               <div style={{ position: 'relative' }}>
-                <span style={{ position: 'absolute', left: 12, top: 0, bottom: 0, display: 'flex', alignItems: 'center', color: 'var(--t3)', fontWeight: 800 }}>{currencySymbol(currency)}</span>
+                <span style={{ position: 'absolute', left: 12, top: 0, bottom: 0, display: 'flex', minWidth: 0, alignItems: 'center', color: 'var(--t3)', fontWeight: 800 }}>{currencySymbol(currency)}</span>
                 <input value={newAmount} onChange={e => setNewAmount(e.target.value)} type="number" min="1" step="1"
                   placeholder="25" style={{ width: '100%', boxSizing: 'border-box', height: 42, border: '1px solid var(--b2)', borderRadius: 9, padding: '0 12px 0 26px', fontSize: 14 }} />
               </div>
             </label>
-            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
+            <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
               Description (optional)
               <textarea value={newDescription} onChange={e => setNewDescription(e.target.value)} rows={3} maxLength={1000}
                 placeholder="What does the donor get for this pledge?" style={{ border: '1px solid var(--b2)', borderRadius: 9, padding: '10px 12px', fontSize: 14, resize: 'vertical', lineHeight: 1.6 }} />
             </label>
             <div className="kf-two-col" style={{ gap: 14 }}>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
+              <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
                 Estimated delivery (optional)
                 <input value={newDelivery} onChange={e => setNewDelivery(e.target.value)} maxLength={100}
                   placeholder="e.g. August 2026" style={{ height: 42, border: '1px solid var(--b2)', borderRadius: 9, padding: '0 12px', fontSize: 14 }} />
               </label>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
+              <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
                 Quantity available (optional)
                 <input value={newLimit} onChange={e => setNewLimit(e.target.value)} type="number" min="1" step="1"
                   placeholder="Unlimited" style={{ height: 42, border: '1px solid var(--b2)', borderRadius: 9, padding: '0 12px', fontSize: 14 }} />

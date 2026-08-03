@@ -116,11 +116,11 @@ export default function CreateTeamWizard({ campaigns }: { campaigns: CampaignOpt
           each person creates their own page, and everything they raise counts toward the same
           total.
         </p>
-        <label style={{ display: 'grid', gap: '6px', marginTop: '18px' }}>
+        <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '6px', marginTop: '18px' }}>
           <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--t2)' }}>Share this link</span>
           <input readOnly value={shareUrl} style={field} onFocus={(e) => e.currentTarget.select()} />
         </label>
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '18px' }}>
+        <div style={{ display: 'flex', minWidth: 0, gap: '10px', flexWrap: 'wrap', marginTop: '18px' }}>
           <Link href={`/campaigns/${created.campaignSlug}`} className="kind-start-pill" style={{ display: 'inline-flex' }}>
             View the campaign
           </Link>
@@ -136,9 +136,9 @@ export default function CreateTeamWizard({ campaigns }: { campaigns: CampaignOpt
     <div style={{ maxWidth: '620px' }}>
       {/* Step indicator. aria-current marks the active step so it is announced,
           not just coloured. */}
-      <ol style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', listStyle: 'none', padding: 0, margin: '0 0 24px' }}>
+      <ol style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: '8px', listStyle: 'none', padding: 0, margin: '0 0 24px' }}>
         {STEPS.map((label, i) => (
-          <li key={label} aria-current={i === step ? 'step' : undefined} style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+          <li key={label} aria-current={i === step ? 'step' : undefined} style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: '7px' }}>
             <span
               style={{
                 width: '24px',
@@ -162,9 +162,9 @@ export default function CreateTeamWizard({ campaigns }: { campaigns: CampaignOpt
         ))}
       </ol>
 
-      <div style={{ display: 'grid', gap: '14px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '14px' }}>
         {step === 0 && (
-          <label style={{ display: 'grid', gap: '6px' }}>
+          <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '6px' }}>
             <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--t2)' }}>Which campaign are you raising for?</span>
             <select value={campaignId} onChange={(e) => setCampaignId(e.target.value)} style={field}>
               {campaigns.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
@@ -176,7 +176,7 @@ export default function CreateTeamWizard({ campaigns }: { campaigns: CampaignOpt
         )}
 
         {step === 1 && (
-          <label style={{ display: 'grid', gap: '6px' }}>
+          <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '6px' }}>
             <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--t2)' }}>Team name</span>
             <input
               value={title}
@@ -193,7 +193,7 @@ export default function CreateTeamWizard({ campaigns }: { campaigns: CampaignOpt
         )}
 
         {step === 2 && (
-          <label style={{ display: 'grid', gap: '6px' }}>
+          <label style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '6px' }}>
             <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--t2)' }}>Team goal (USD)</span>
             <input
               type="number"
@@ -212,13 +212,13 @@ export default function CreateTeamWizard({ campaigns }: { campaigns: CampaignOpt
 
         {step === 3 && (
           <div style={{ padding: '18px', border: '1px solid var(--b1)', borderRadius: 'var(--rl)', background: 'var(--s2)' }}>
-            <dl style={{ display: 'grid', gap: '10px', margin: 0 }}>
+            <dl style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '10px', margin: 0 }}>
               {[
                 ['Campaign', campaign?.title ?? '—'],
                 ['Team name', title.trim() || '—'],
                 ['Goal', goalValid ? `$${(goalCents / 100).toLocaleString()}` : '—'],
               ].map(([k, v]) => (
-                <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
+                <div key={k} style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', gap: '12px' }}>
                   <dt style={{ fontSize: '13px', color: 'var(--t3)' }}>{k}</dt>
                   <dd style={{ fontSize: '13px', fontWeight: 700, color: 'var(--t1)', margin: 0, textAlign: 'right' }}>{v}</dd>
                 </div>
@@ -228,7 +228,7 @@ export default function CreateTeamWizard({ campaigns }: { campaigns: CampaignOpt
         )}
       </div>
 
-      <div style={{ display: 'flex', gap: '10px', marginTop: '22px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: '10px', marginTop: '22px', flexWrap: 'wrap' }}>
         {step > 0 && (
           <button
             type="button"

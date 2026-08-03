@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../lib/query-timeout';
 import { cache } from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -35,12 +36,12 @@ export default async function MatchingDetailPage({ params }: PageProps) {
   let myClaims: { id: string; status: string; donation_amount_cents: number; match_amount_cents: number }[] = [];
   let remainingCapCents: number | null = null;
   if (user && !isSponsor) {
-    const { data } = await supabaseAdmin
+    const { data } = await boundedQuery(() => supabaseAdmin
       .from('matching_claims')
       .select('id, status, donation_amount_cents, match_amount_cents')
       .eq('program_id', p.id)
       .eq('employee_id', user.id)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false }));
     myClaims = (data ?? []) as typeof myClaims;
     const used = await reservedMatchForEmployee(p.id, user.id);
     const rem = remainingCap(p.annual_cap_cents, used);
@@ -53,7 +54,7 @@ export default async function MatchingDetailPage({ params }: PageProps) {
         ← All matching programs
       </Link>
 
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '18px 0 12px' }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap', margin: '18px 0 12px' }}>
         <Badge color="green">{p.match_ratio}:1 match</Badge>
         {p.annual_cap_cents > 0 && <Badge color="gray">Up to {formatMoneyShort(p.annual_cap_cents, p.currency)}/yr</Badge>}
         {p.min_donation_cents > 0 && <Badge color="gray">Min {formatMoneyShort(p.min_donation_cents, p.currency)}</Badge>}

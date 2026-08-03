@@ -115,7 +115,7 @@ export default function AnnouncementBanner({ initial, appearance }: { initial?: 
       <div style={{
         maxWidth: 1200, margin: '0 auto',
         padding: `${a ? a.paddingYPx : 9}px 16px`,
-        display: 'flex', alignItems: 'center', gap: 12,
+        display: 'flex', minWidth: 0, alignItems: 'center', gap: 12,
         justifyContent: a?.textAlign === 'center' ? 'center' : a?.textAlign === 'right' ? 'flex-end' : 'flex-start',
         fontSize: a ? a.fontSizePx : 14,
         fontFamily: a ? a.fontFamily : 'inherit',

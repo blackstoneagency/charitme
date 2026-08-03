@@ -48,7 +48,7 @@ function PathCard({
 }) {
   return (
     <Link href={href} style={CARD} className="cm-choose-card">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 48, height: 48, borderRadius: 14, background: iconBg, color: '#fff' }}>
           <PublicIcon name={icon} />
         </span>
@@ -66,7 +66,7 @@ function PathCard({
 
       <ul style={{ margin: '2px 0 4px', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {bullets.map((b) => (
-          <li key={b} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13.5, color: 'var(--t2, #334064)' }}>
+          <li key={b} style={{ display: 'flex', minWidth: 0, alignItems: 'flex-start', gap: 8, fontSize: 13.5, color: 'var(--t2, #334064)' }}>
             <span style={{ color: 'var(--green, #059669)', flexShrink: 0, marginTop: 1, width: 16, height: 16, display: 'inline-flex' }}>
               <PublicIcon name="check" />
             </span>
@@ -109,7 +109,7 @@ export default function ChoosePathPage() {
           </p>
         </div>
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18, alignItems: 'stretch' }}>
+        <div style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 18, alignItems: 'stretch' }}>
           <PathCard
             href="/ai-campaign"
             badge="FASTEST"
@@ -148,7 +148,7 @@ export default function ChoosePathPage() {
           />
         </div>
 
-        <p style={{ marginTop: 22, textAlign: 'center', fontSize: 13.5, color: 'var(--t3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+        <p style={{ marginTop: 22, textAlign: 'center', fontSize: 13.5, color: 'var(--t3)', display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', gap: 7 }}>
           <span style={{ width: 15, height: 15, display: 'inline-flex', color: 'var(--t3)' }}><PublicIcon name="refresh" /></span>
           Your progress saves automatically — pause and resume anytime.
         </p>

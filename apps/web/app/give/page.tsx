@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../lib/supabase';
+import { boundedQuery } from '../../lib/query-timeout';
 import { campaignColumns, applyLiveFilters } from '../../lib/campaign-visibility';
 import GiveClient, { type GiveCampaign } from './GiveClient';
 
@@ -22,14 +23,16 @@ export const metadata: Metadata = {
 async function getCampaigns(): Promise<GiveCampaign[]> {
   try {
     const cols = await campaignColumns();
-    const { data } = await applyLiveFilters(
-      supabaseAdmin
-        .from('campaigns')
-        .select('id, slug, title, tagline, category, cover_image_url, raised_amount, goal_amount, campaign_health_score'),
-      cols,
-    )
-      .order('campaign_health_score', { ascending: false, nullsFirst: false })
-      .limit(24);
+    const { data } = await boundedQuery(() =>
+  applyLiveFilters(
+        supabaseAdmin
+          .from('campaigns')
+          .select('id, slug, title, tagline, category, cover_image_url, raised_amount, goal_amount, campaign_health_score'),
+        cols,
+      )
+        .order('campaign_health_score', { ascending: false, nullsFirst: false })
+        .limit(24),
+    );
     return (data ?? []) as GiveCampaign[];
   } catch {
     return [];

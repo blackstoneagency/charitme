@@ -133,7 +133,7 @@ export default async function ThankYouPage({
         </section>
       )}
 
-      <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', minWidth: 0, gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
         <Link
           href={backHref}
           style={{
