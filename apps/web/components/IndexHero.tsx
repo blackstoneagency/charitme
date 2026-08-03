@@ -34,6 +34,7 @@ export function IndexHero({
   photo,
   photoCategory,
   photoKey,
+  heart = false,
 }: {
   crumbs: Crumb[];
   title: string;
@@ -43,6 +44,8 @@ export function IndexHero({
   photo: string;
   photoCategory: string | null;
   photoKey: string;
+  /** Renders the reference's heart glyph beside the title. Decorative. */
+  heart?: boolean;
 }) {
   return (
     <section className="cx-hero" aria-labelledby="cx-hero-title">
@@ -76,7 +79,16 @@ export function IndexHero({
           </ol>
         </nav>
         <div className="cx-hero-copy">
-          <h1 id="cx-hero-title">{title}</h1>
+          <h1 id="cx-hero-title">
+            {title}
+            {heart && (
+              <span className="cx-hero-heart" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8Z" />
+                </svg>
+              </span>
+            )}
+          </h1>
           <p>{lede}</p>
           {actions && <div className="cx-hero-actions">{actions}</div>}
         </div>

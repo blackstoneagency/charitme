@@ -19725,3 +19725,34 @@ Those are different claims, and conflating them has now cost five rounds.
 deliberately does NOT, because it has a design of its own. The test iterates the
 two pages that opted in rather than asserting "every index" — which would now be
 false.
+
+## 📘 /how-it-works — rebuilt to the reference (Claude, 2026-08-03)
+
+Hero (shared `IndexHero`, with the reference's heart glyph) → four numbered steps
+with a dashed connector → measured impact figures → "every action creates a
+ripple" → **FAQ accordion wired to `aeo_entries`** → trust panel → closing CTA.
+Black page background in dark mode.
+
+### The FAQ is real Supabase content
+`aeo_entries` — the same table `/faq` renders, so an answer edited in the admin
+console changes both surfaces. ⚠️ `/how-it-works` has only **1** published entry
+and the design shows five, and the built-in fallback does NOT help: it maps a
+dynamic *detail* route to its parent collection, which `/how-it-works` is not.
+`lib/how-it-works.ts` tops up from `/faq` and dedupes.
+
+Built on native `<details>/<summary>` — keyboard operation, screen-reader
+semantics and toggling for **zero client JS**.
+
+### 🐛 `PublicIcon` silently ships the wrong glyph for an unknown name
+`paths[name] ?? paths.ai`. My first pass used `community` and `gift`, neither of
+which exists, and both rendered a sparkle **without erroring**. A test now
+extracts every name used on the page and asserts it is in the icon map.
+
+### ⚠️ I deviated from the reference, deliberately
+The old page carried **5 fundraiser steps and 4 donor steps** with the real
+product facts: Stripe verification, the 2-business-day payout schedule, the
+same-day (1%) and instant (1.5%) fees, how the trust score is earned. The
+reference's four steps are a donor-facing summary that answers none of that, and
+the FAQ rows do not either. Deleting accurate product detail to match a layout is
+a loss the layout does not pay for, so both lists are kept below the ripple row
+and pinned by tests naming the specific fees. **Say the word and they go.**
