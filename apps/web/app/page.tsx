@@ -226,6 +226,18 @@ export default async function HomePage() {
 
           The copy sits on the right, mirroring the hero above (copy left, card
           right) so the two bands read as a pair rather than a repeat. */}
+      {metricsAvailable && (
+        <section className="mirror-band mirror-metrics" aria-label="Our community impact">
+          <div className="mirror-wrap mirror-metric-grid">
+            <div className="mirror-metric-intro"><Icon name="heart" /><p><strong>Our Community.<br />Our Impact.</strong><span>Because together, we can do amazing things.</span></p></div>
+            <dl><div><dt>Raised for causes</dt><dd><CountUp value={metrics.raisedCents} kind="money" /></dd></div></dl>
+            <dl><div><dt>Lives impacted</dt><dd><CountUp value={metrics.donations} kind="int" /></dd></div></dl>
+            <dl><div><dt>Active causes</dt><dd><CountUp value={metrics.campaigns} kind="int" /></dd></div></dl>
+            <dl><div><dt>Average trust score</dt><dd><CountUp value={metrics.trustAvg} kind="percent" /></dd></div></dl>
+          </div>
+        </section>
+      )}
+
       {/* Merged band. "Live Right Now", the supporter quotes and the impact CTA
           were three separate sections stacked down the page; the reference puts the
           carousel on the left with all three in one column beside it. Keeps the
@@ -275,17 +287,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {metricsAvailable && (
-        <section className="mirror-band mirror-metrics" aria-label="Our community impact">
-          <div className="mirror-wrap mirror-metric-grid">
-            <div className="mirror-metric-intro"><Icon name="heart" /><p><strong>Our Community.<br />Our Impact.</strong><span>Because together, we can do amazing things.</span></p></div>
-            <dl><div><dt>Raised for causes</dt><dd><CountUp value={metrics.raisedCents} kind="money" /></dd></div></dl>
-            <dl><div><dt>Lives impacted</dt><dd><CountUp value={metrics.donations} kind="int" /></dd></div></dl>
-            <dl><div><dt>Active causes</dt><dd><CountUp value={metrics.campaigns} kind="int" /></dd></div></dl>
-            <dl><div><dt>Average trust score</dt><dd><CountUp value={metrics.trustAvg} kind="percent" /></dd></div></dl>
-          </div>
-        </section>
-      )}
 
       <section className="mirror-trust" aria-label="Why people trust CharitMe">
         <div className="mirror-wrap mirror-trust-grid">
