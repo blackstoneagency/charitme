@@ -104,15 +104,35 @@ describe('the page keeps what already worked', () => {
 });
 
 describe('the landing is wired to real destinations', () => {
-  it('links programme rows to a real filtered campaign list', () => {
-    expect(landing).toContain('/campaigns?category=');
-  });
-
   it('does not render a cross-sell row of other causes', () => {
     // Removed on request. Asserted rather than merely deleted so a later
     // copy-paste cannot quietly bring the section back.
     expect(landing).not.toContain('cl-ways');
     expect(landing).not.toContain('otherCauses');
+  });
+
+  it('renders neither the per-category count row nor the "Ways to help" grid', () => {
+    // Both sat between the stats band and the campaigns, and neither appears in
+    // the reference for any cause. Same reasoning as the cross-sell row above:
+    // asserted so a copy-paste cannot bring them back.
+    //
+    // No destination was lost. /campaigns, /events and /volunteer are in the hub
+    // tab strip; /create is in the hero and the closing band; /partner is in the
+    // main nav's Resources group. The per-category counts counted the campaigns
+    // the grid underneath already lists.
+    expect(landing).not.toContain('cl-programs');
+    expect(landing).not.toContain('cl-help-grid');
+    expect(landing).not.toContain('causeWays');
+  });
+
+  it('still reaches every destination the removed grid carried', () => {
+    // The point of the previous assertion is that the links moved, not that
+    // they vanished. Checked against the files that now carry them.
+    expect(page).toContain('/campaigns?cause=');
+    expect(page).toContain('/events?cause=');
+    expect(page).toContain('/volunteer?cause=');
+    expect(landing).toContain('href="/create"');
+    expect(read('lib/main-nav.ts')).toContain("href: '/partner'");
   });
 
   it('leaves no orphaned translation keys behind', () => {
@@ -206,6 +226,46 @@ describe('the fuller Sports & Youth layout', () => {
     const page = read('app/causes/[slug]/page.tsx');
     expect(page).toContain('className="cl-tabs"');
     expect(page).not.toContain('role="tab"');
+  });
+
+  it('puts the campaigns above the editorial blocks, as the reference does', () => {
+    // The grid used to sit BELOW "how your support helps" and "stories from the
+    // field", which put roughly a screen and a half of copy between a visitor
+    // and the thing they came to do. Order is asserted by position rather than
+    // presence: every one of these strings survived the reshuffle, so a check
+    // that they merely EXIST would have passed against the old order too.
+    const grid = page.indexOf('<CampaignGrid>');
+    const tabs = page.indexOf('className="cl-tabs"');
+    const helps = page.indexOf('className="cl-helps"');
+    const stories = page.indexOf('className="cl-stories"');
+    for (const [name, at] of Object.entries({ grid, tabs, helps, stories })) {
+      expect(at, `${name} is not rendered at all`).toBeGreaterThan(-1);
+    }
+    expect(tabs, 'the hub tabs come before the grid').toBeLessThan(grid);
+    expect(grid, 'the grid comes before "how your support helps"').toBeLessThan(helps);
+    expect(helps, '"how your support helps" comes before the stories').toBeLessThan(stories);
+  });
+
+  it('keeps an accessible name for the campaign grid after dropping its visible title', () => {
+    // The reference runs the tabs straight into the cards with no heading. The
+    // <h2> is hidden rather than deleted — a section labelled by an id that
+    // points at nothing is worse than the heading it replaced.
+    expect(page).toContain('id="cause-campaigns"');
+    expect(page).toContain('cl-visually-hidden');
+  });
+
+  it('gives each "how your support helps" card its own glyph', () => {
+    // Five identical hearts differing only in colour told a reader nothing about
+    // which card was which, and told a reader who does not perceive the colour
+    // nothing at all.
+    const glyphs = read('app/causes/[slug]/HelpGlyph.tsx');
+    const sports = CAUSES.find((c) => c.slug === 'sports-youth')!;
+    expect(sports.helps!.every((h) => h.icon), 'every Sports & Youth card names an icon').toBe(true);
+    const icons = new Set(sports.helps!.map((h) => h.icon));
+    expect(icons.size, 'the five cards must not share one glyph').toBe(sports.helps!.length);
+    for (const icon of icons) expect(glyphs, `HelpGlyph is missing "${icon}"`).toContain(`${icon}:`);
+    // The badge, not the glyph, carries aria-hidden — one place makes the call.
+    expect(page).toContain('<HelpGlyph icon={h.icon} />');
   });
 
   it('dark mode paints a black page background', () => {

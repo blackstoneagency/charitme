@@ -311,6 +311,121 @@ because the sandbox has no database — `featured: 0, rows: 0, pager: 0` is the
 environment, not the code. `pageWindow` is unit-tested instead (11 cases,
 including that it never repeats a number and never ellipsises a non-gap).
 
+
+## ✅ /causes/sports-youth — matched to the reference (Claude, 2026-08-03)
+
+The brief was two side-by-side screenshots: LEFT the target, RIGHT the page as
+shipped. Most of the gap had already been closed on master (`da7f5014`) — the
+photo cards, the stats band icons and the stories block were all there. **The
+branch was 27 commits behind, so the first useful act was merging master**, not
+building; three of the five "missing" sections in the brief were missing only
+from this branch.
+
+What actually changed:
+
+| | before | after |
+|---|---|---|
+| section order | stats → *your support goes to* → *ways to help* → helps → stories → tabs → grid | stats → tabs → **grid** → helps → stories |
+| "your support goes to" | a per-category count row | **removed** — counted the campaigns the grid below already lists |
+| "ways to help" | a five-link grid | **removed** — every destination is in the tab strip, the hero, or the main nav |
+| helps icons | the same heart ×5, varying only in colour | **five distinct glyphs** (`HelpGlyph.tsx`) |
+| closing band | the shared "Small act. Big impact." | per-cause **"Be part of their journey"** + outline heart |
+
+Ordering matters more than it looks: the grid used to sit below ~1.5 screens of
+editorial copy, so a visitor met the explanation before the thing they came to
+do. Both reference images (Sports & Youth and People in Need) put the tabs and
+the grid directly under the stats band.
+
+**Two things were deliberately NOT copied from the reference, both restatements
+of standing decisions rather than new calls:**
+
+1. **The stat figures stay measured.** The mock asserts 125K+ Youth Impacted /
+   68K+ Athletes Supported / 1,250+ Programs Funded / 250+ Communities Reached.
+   None is an entity in this schema, the country claim is already recorded in
+   `docs/` as a fabricated statistic this repo shipped once and retracted, and
+   `cause-landing.test.ts` fails if any of those literals reaches the source.
+2. **The story cards carry no play button.** Every `campaign_media` row of type
+   `video` points at a reserved `.example` host that cannot resolve, so a
+   control that opens a campaign page instead would be a fake affordance.
+
+**Fixed while in there:** `getCauseStories` was the one read on this page with
+no time bound, no visibility filter and no try/catch — so a stalled database
+held the whole page open, a completed-then-made-private campaign could resurface
+as a public "story", and a missing service-role env 500'd the route before any
+query ran. All three now match `getCauseStats`.
+
+**Removed:** `lib/cause-ways-core.ts` and its test, dead once the block they
+rendered was gone. Dead CSS (`.cl-programs-*`, `.cl-help-*`) went with them.
+
+**Verified:** 2776 tests, typecheck, 0 lint errors, production build. In a real
+browser at 1280 and 320/390/768: dark `rgb(0, 0, 0)` with no background image,
+light mode untouched (`--s1: #fbfaff`), one `h1`, no missing `alt`, zero
+horizontal overflow at every width, and the reference's section order.
+
+⚠️ **Not verifiable here:** the campaign grid and the stories row. This sandbox
+points at `placeholder.supabase.co`, so both reads return `QUERY_TIMEOUT` and
+the page renders its honest degraded state (an EmptyState for the grid, nothing
+for stories). Their POSITION is pinned by source order in the test instead —
+a weaker signal than a rendered one, and worth re-checking against production.
+
+## 🗂️ ORPHAN TABLES — 8 with no reader and no writer (Claude, 2026-08-02)
+
+Static sweep of all **162** tables in `supabase/schema.sql` against every
+`.from('…')` in `app/`, `lib/` and `scripts/`. **142 are referenced; 20 are not.**
+
+20 is a candidate list, not a defect list — several are reached by SQL rather
+than PostgREST (`rate_limit_hits` is written by the `check_rate_limit` RPC, so it
+is correctly absent from `.from()`). Filtering to tables with **zero references
+of any kind** anywhere in app code leaves **8**:
+
+| table | created by | note |
+|---|---|---|
+| `admin_settings` | `20260528114000_runtime_config_dependencies` | has an RLS policy and a catch-up supplement; nothing reads it |
+| `campaign_payment_exports` | `20260608020000_campaign_payment_observability` | ─┐ three of the four payment-observability |
+| `campaign_payment_settings` | same | │ tables have no code on either side |
+| `processor_accounts` | same | ─┘ |
+| `donor_tips` | (not in migrations — schema-only) | ⚠️ also absent from `supabase/migrations/` |
+| `livestreams` | (not in migrations — schema-only) | ⚠️ same |
+| `organization_members` | (not in migrations — schema-only) | ⚠️ same; part of the inert multi-tenancy work |
+| `marketing_referrals` | `20260610010000_marketing_engine` | |
+
+**This is the thread that has paid best all session.** `donation_forms`,
+`outbound_webhook_endpoints`, `giving_days`, `donor_segments` and
+`embedded_buttons` all had exactly this signature — a table with RLS, indexes and
+foreign keys, and nothing on either side of it — and each became a real feature.
+
+⚠️ **CORRECTION — I claimed three of these existed in no migration. That was
+wrong, and the mistake is the fourth of its kind this session.**
+
+I reported `donor_tips`, `livestreams` and `organization_members` as present in
+`schema.sql` with no `CREATE TABLE` in `supabase/migrations/`. **All three have
+one:**
+
+| table | migration |
+|---|---|
+| `donor_tips` | `20260525000000_initial_schema.sql` |
+| `livestreams` | `20260525002000_competitor_parity_features.sql` |
+| `organization_members` | `20260807000000_organizations_multitenancy.sql` |
+
+My detection grep required a `public.` prefix (`create table if not exists
+public.x`). These migrations write `create table if not exists donor_tips (` —
+no prefix — so the pattern missed them. Re-checked with a pattern accepting both
+forms: **0 of 162 tables lack a migration.** The mirror is sound and there is
+nothing to resolve.
+
+**Fourth instance of the same error**, after invented table names, grepping the
+wrong file for `fetch`, and guessing route paths that live behind route groups.
+Every one was a *pattern I constructed* rather than a match against what exists.
+The rule was already written down after the third; this is what it looks like
+when it is not followed.
+
+**Not claimed.** Whoever takes one: check whether the feature is wanted before
+wiring it — an orphan table is equally good evidence for *delete the table* as
+for *build the page*, and this file has more of the latter than the product may
+actually need.
+
+
+## ⏱️ PERF — 13 public pages stalled ~14.1s; shared cause fixed, per-page reads open (Claude, 2026-08-02)
 ## 🛑 THE ONE REMAINING ITEM, and why no further looping moves it (Claude, 2026-08-03)
 
 Applying the 27 pending migrations. **Measured, not assumed** — this environment

@@ -1,7 +1,7 @@
 import 'server-only';
 import { supabaseAdmin } from './supabase';
 import { boundedQuery } from './query-timeout';
-import { campaignColumns, applyLiveFilters } from './campaign-visibility';
+import { campaignColumns, applyLiveFilters, applyVisibilityFilters } from './campaign-visibility';
 import type { Cause } from './causes';
 
 /**
@@ -35,8 +35,6 @@ export interface CauseStats {
   supporters: number | null;
   /** Countries CharitMe can actually operate in — from `supported_countries`. */
   countries: number | null;
-  /** Live campaign count per category, for the "programs" panel. */
-  perCategory: Record<string, number>;
 }
 
 /** Every field null — what an unreadable database honestly looks like here. */
@@ -45,7 +43,6 @@ const UNMEASURED: CauseStats = {
   raisedCents: null,
   supporters: null,
   countries: null,
-  perCategory: {},
 };
 
 const CAUSE_STATS_SCAN_LIMIT = 2000;
@@ -82,7 +79,6 @@ export async function getCauseStats(cause: Cause): Promise<CauseStats> {
     ),
   ]);
 
-  const perCategory: Record<string, number> = {};
   let liveCampaigns: number | null = null;
   let raisedCents: number | null = null;
   let supporters: number | null = null;
@@ -94,11 +90,6 @@ export async function getCauseStats(cause: Cause): Promise<CauseStats> {
     liveCampaigns = data.length;
     raisedCents = data.reduce((sum, r) => sum + Number(r.raised_amount ?? 0), 0);
     supporters = data.reduce((sum, r) => sum + Number(r.backer_count ?? 0), 0);
-    for (const c of cause.categories) perCategory[c] = 0;
-    for (const r of data) {
-      const key = r.category as string | null;
-      if (key && key in perCategory) perCategory[key] += 1;
-    }
   }
 
   if (countries.error) {
@@ -110,7 +101,6 @@ export async function getCauseStats(cause: Cause): Promise<CauseStats> {
     raisedCents,
     supporters,
     countries: countries.error ? null : countries.count ?? 0,
-    perCategory,
   };
   } catch {
     // `supabaseAdmin` throws on property access when the env is missing, before
@@ -177,15 +167,22 @@ export interface CauseStory {
 }
 
 export async function getCauseStories(cause: Cause, limit = 3): Promise<CauseStory[] | null> {
-  // Thunk, like the two reads above it. Without one, `supabaseAdmin.from` throws
-  // on property access while the argument is evaluated — before this function is
-  // entered — so the `error` branch below could never run and `/causes/[slug]`
-  // answered HTTP 500 instead of the `null` this signature already promises.
-  // Measured: 500 on /causes/mental-health with the service-role key removed.
+  try {
+  // `status` is set here rather than by `applyLiveFilters`, which pins
+  // `status = 'active'` — the opposite of what this reads. Visibility is still
+  // applied, so a completed campaign the owner has since made private does not
+  // reappear as a public "story".
+  const cols = await campaignColumns();
+  // Bounded like every other read on this page. Unbounded, a stalled database
+  // held the whole cause page open; the `error` branch below already renders
+  // "we could not load these" rather than "none yet".
   const { data, error } = await boundedQuery(() =>
-    supabaseAdmin
-      .from('campaigns')
-      .select('id, slug, title, tagline, description, category, cover_image_url, raised_amount, backer_count')
+    applyVisibilityFilters(
+      supabaseAdmin
+        .from('campaigns')
+        .select('id, slug, title, tagline, description, category, cover_image_url, raised_amount, backer_count'),
+      cols,
+    )
       .in('category', [...cause.categories])
       .eq('status', 'completed')
       .is('deleted_at', null)
@@ -206,4 +203,10 @@ export async function getCauseStories(cause: Cause, limit = 3): Promise<CauseSto
     raisedCents: Number(c.raised_amount ?? 0),
     backers: Number(c.backer_count ?? 0),
   }));
+  } catch {
+    // Same guard as `getCauseStats`: `supabaseAdmin` throws on property access
+    // when the env is missing, before any query runs, which no `error` check can
+    // see. Without it this 500'd the whole cause page.
+    return null;
+  }
 }

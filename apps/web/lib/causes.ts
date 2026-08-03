@@ -57,11 +57,42 @@ export interface Cause {
    * Optional, and per-cause. A generic version repeated across 20 causes would
    * be filler, so a cause with nothing specific to say shows nothing.
    */
-  helps?: readonly { readonly title: string; readonly body: string }[];
+  helps?: readonly { readonly title: string; readonly body: string; readonly icon?: HelpIcon }[];
   /** Heading and subline for the "real impact" band above the campaign list. */
   impactTitle?: string;
   impactBlurb?: string;
+  /**
+   * The closing band's heading and body.
+   *
+   * Optional: a cause with nothing specific to say falls back to the shared
+   * `cl.cta_*` strings, which are translated. Overriding is therefore an
+   * ENGLISH-ONLY choice, and deliberately reserved for the causes whose design
+   * names a specific line ("Be part of their journey") rather than applied
+   * everywhere — twenty untranslated headings would be a regression, not a
+   * feature.
+   */
+  ctaTitle?: string;
+  ctaBlurb?: string;
 }
+
+/**
+ * The glyph beside a "how your support helps" card.
+ *
+ * A closed set rather than free-form SVG in the data: the icons are drawn once
+ * in `HelpGlyph.tsx`, so a cause cannot introduce a one-off that then has to be
+ * restyled separately when the card design changes. A card with no `icon` falls
+ * back to the heart, which is why the field is optional.
+ */
+export type HelpIcon =
+  | 'gear'
+  | 'coach'
+  | 'run'
+  | 'community'
+  | 'learn'
+  | 'food'
+  | 'home'
+  | 'health'
+  | 'hope';
 
 /** The 8 shown under "Popular Causes" in the header dropdown. */
 export const POPULAR_CAUSES: readonly Cause[] = [
@@ -74,12 +105,14 @@ export const POPULAR_CAUSES: readonly Cause[] = [
     intro: 'Every kid deserves the chance to play, grow, and dream big. Your support provides gear, coaching, mentorship, and safe spaces for young athletes to thrive on and off the field.',
     categories: ['Sports', 'Competition'],
     tagline: 'Building champions. Building futures.',
+    ctaTitle: 'Be part of their journey',
+    ctaBlurb: 'Your donation today helps young athletes dream bigger, work harder, and go further.',
     helps: [
-      { title: 'Provide gear', body: 'Boots, kit and equipment, so cost is not the reason a kid sits out the season.' },
-      { title: 'Fund coaching', body: 'Qualified coaches and mentors who build skill and confidence together.' },
-      { title: 'Create opportunities', body: 'League fees, travel and clinics that open doors beyond the local pitch.' },
-      { title: 'Build community', body: 'Clubs where teamwork, inclusion and belonging are the point, not a by-product.' },
-      { title: 'Support beyond sport', body: 'Study support and life skills, because the season ends and the rest does not.' },
+      { title: 'Provide gear', icon: 'gear', body: 'Boots, kit and equipment, so cost is not the reason a kid sits out the season.' },
+      { title: 'Fund coaching', icon: 'coach', body: 'Qualified coaches and mentors who build skill and confidence together.' },
+      { title: 'Create opportunities', icon: 'run', body: 'League fees, travel and clinics that open doors beyond the local pitch.' },
+      { title: 'Build community', icon: 'community', body: 'Clubs where teamwork, inclusion and belonging are the point, not a by-product.' },
+      { title: 'Support beyond sport', icon: 'learn', body: 'Study support and life skills, because the season ends and the rest does not.' },
     ],
   },
   {
@@ -91,6 +124,12 @@ export const POPULAR_CAUSES: readonly Cause[] = [
     tagline: 'Real help. Real people. Right now.',
     intro: 'Behind every campaign is a family facing a bill, a move, or a loss they did not plan for. Your support goes directly to the person who asked for it.',
     categories: ['Family', 'Wishes', 'Memorial'],
+    helps: [
+      { title: 'Fight hunger', icon: 'food', body: 'Groceries and meals for households choosing between food and rent this month.' },
+      { title: 'Shelter and housing', icon: 'home', body: 'Deposits, arrears and emergency stays that keep a family off the street.' },
+      { title: 'Health and care', icon: 'health', body: 'Treatment, medication and the travel it takes to get to an appointment.' },
+      { title: 'Hope and dignity', icon: 'hope', body: 'Funeral costs, replacement essentials and the practical help that comes after a loss.' },
+    ],
   },
   {
     slug: 'community-relief',
