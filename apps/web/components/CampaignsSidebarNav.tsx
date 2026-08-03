@@ -5,13 +5,17 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { KFIcon, type SidebarCampaign } from './CharitMeApp';
 
+// The dot is the ONLY thing carrying status here — there is no text label beside
+// it — so WCAG 1.4.11 applies and it needs 3:1 against the nav surface.
+// `#94a3b8` gave 2.56:1 on a white nav (it was fine on dark, which is how it
+// survived). `var(--t3)` is token-driven and clears the bar in both themes.
 const STATUS_DOT: Record<string, string> = {
   active: '#19b86a',
   paused: '#f97316',
   completed: '#8b5cf6',
-  draft: '#94a3b8',
+  draft: 'var(--t3)',
   frozen: '#ef4444',
-  archived: '#94a3b8',
+  archived: 'var(--t3)',
 };
 
 export default function CampaignsSidebarNav({

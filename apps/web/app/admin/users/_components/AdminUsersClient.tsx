@@ -173,11 +173,11 @@ function rolePillColor(role: string): React.CSSProperties {
   // through to the same grey as an unknown one. Super Admin and Admin now read as
   // visibly different, because they are.
   const map: Record<string, { bg: string; color: string }> = {
-    'super admin': { bg: 'rgba(190,24,93,.10)',  color: '#9d174d' },
+    'super admin': { bg: 'rgba(190,24,93,.10)',  color: 'var(--red-text)' },
     admin:         { bg: 'rgba(108,53,255,.10)', color: 'var(--violet, #6c35ff)' },
     organizer:     { bg: 'rgba(37,99,235,.08)',  color: 'var(--blue, #0369a1)' },
     nonprofit:     { bg: 'rgba(22,163,74,.10)',  color: 'var(--green-dark, #166534)' },
-    beneficiary:   { bg: 'rgba(14,116,144,.10)', color: '#155e75' },
+    beneficiary:   { bg: 'rgba(14,116,144,.10)', color: 'var(--t2)' },
     donor:         { bg: 'rgba(217,119,6,.08)',  color: 'var(--orange-text)' },
   };
   const c = map[role.trim().toLowerCase()] ?? { bg: 'var(--s3)', color: 'var(--t2)' };

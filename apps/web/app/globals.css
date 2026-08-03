@@ -8538,7 +8538,10 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 }
 
 /* ═══ /campaigns — browse layout (design: "Campaigns That Change Lives") ═══ */
-.cb-page { width: min(100% - 40px, 1280px); margin-inline: auto; padding: 28px 0 72px; }
+/* The full-bleed hero has to escape this wrapper, so the width constraint moves
+   off the page root and onto the content below it. */
+.cb-page { display: block; padding: 0 0 72px; }
+.cb-page > *:not(.cx-hero):not(.cx-stats) { width: min(100% - 40px, 1280px); margin-inline: auto; }
 
 .cb-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; color: var(--t3); margin-bottom: 18px; }
 .cb-crumbs a { color: var(--t3); text-decoration: none; display: inline-flex; align-items: center; min-height: 24px; }
@@ -8553,7 +8556,7 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
    `overflow-x: auto` on the row itself keeps the SCROLL INSIDE this element —
    without it the widest chip pushes the page and the whole document scrolls
    sideways, which is the failure `audit:responsive` checks for. */
-.cb-chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 26px; scrollbar-width: thin; }
+.cb-chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin: 0 0 26px; scrollbar-width: thin; }
 .cb-chip {
   flex: 0 0 auto;
   display: inline-flex;
@@ -9261,3 +9264,901 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   text-decoration: none;
 }
 .cl-tab:hover { border-color: var(--b2); background: var(--s2); color: var(--t1); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CAMPAIGNS BROWSE — hero band, category strip, three-column body
+   ---------------------------------------------------------------------------
+   `.cbx-*` rather than more `.cb-*`: the existing block is still used by
+   /needs and the shared panels, and the duplicate-class guard in
+   __tests__/css-single-definition.test.ts fails when two rules declare the same
+   properties for one selector. New names keep both intact.
+
+   Everything paints its own surface from tokens. Nothing here sets a page
+   background — dark mode's body is flat black by request, and a band that
+   leaked a colour onto <body> is exactly how that got broken before.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.cbx-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--rxl, 22px);
+  background: var(--grad-brand);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  margin-bottom: 22px;
+  isolation: isolate;
+}
+.cbx-hero-copy { padding: 46px 34px; max-width: 620px; }
+.cbx-hero h1 {
+  margin: 0;
+  font-size: var(--fs-hero);
+  font-weight: 900;
+  line-height: 1.04;
+  letter-spacing: -.035em;
+  color: #fff;
+}
+.cbx-hero-heart { display: inline-flex; vertical-align: -4px; color: #ff8fb1; }
+.cbx-hero p {
+  margin: 16px 0 0;
+  font-size: 16px;
+  line-height: 1.65;
+  max-width: 480px;
+  /* Not --t3: this sits on the brand gradient, where the page text tokens are
+     tuned for --s1/--bg and drop to ~2.4:1. */
+  color: rgba(255,255,255,.92);
+}
+
+/* The magnifier sits INSIDE the field visually, but the input and the button are
+   siblings in a flex row rather than the button being absolutely positioned over
+   the input. `audit:responsive` flagged the overlapping version at all three
+   viewports in both themes, and it was right: an absolutely-positioned button
+   covers part of the input's own hit area, so a click aimed at the end of the
+   field hits the button instead of focusing the text. The shared white surface
+   lives on the wrapper, which keeps the design and removes the overlap. */
+.cbx-hero-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 26px;
+  max-width: 440px;
+  padding: 6px;
+  border-radius: 12px;
+  background: #fff;
+}
+.cbx-hero-search input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 38px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #16182e;
+  font-size: 15px;
+  font-family: inherit;
+}
+.cbx-hero-search input::placeholder { color: #6b7280; }
+.cbx-hero-search input:focus-visible { outline: 2px solid var(--violet); outline-offset: -1px; }
+.cbx-hero-search button {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 9px;
+  background: var(--grad-violet);
+  color: #fff;
+  cursor: pointer;
+}
+.cbx-hero-search button:focus-visible { outline: 3px solid #16182e; outline-offset: 2px; }
+
+/* Decorative only — the design shows a photograph here. Rendered as a tinted
+   panel rather than a stock image: there is no campaign-agnostic photo in this
+   repo that is ours to publish, and shipping an unlicensed one to the busiest
+   marketing page is not a design detail. */
+.cbx-hero-art { display: none; }
+
+@media (min-width: 900px) {
+  .cbx-hero { grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); }
+  .cbx-hero-art { display: block; position: relative; }
+  .cbx-hero-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  /* Scrim on the copy side only. The photo is arbitrary, so the headline must
+     not depend on what happens to be in it — this keeps the gradient reading
+     under the text no matter which cover the catalog returns. */
+  .cbx-hero-art::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(109,40,217,.92) 0%, rgba(109,40,217,.35) 45%, transparent 100%);
+  }
+}
+
+/* ── Category strip ──────────────────────────────────────────────────────── */
+.cbx-cats {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 12px;
+  margin-bottom: 26px;
+  border: 1px solid var(--b1);
+  border-radius: var(--rl, 16px);
+  background: var(--s1);
+  scrollbar-width: thin;
+}
+.cbx-cat {
+  flex: none;
+  width: 96px;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 10px 6px;
+  border-radius: 12px;
+  text-decoration: none;
+  transition: background .15s;
+}
+.cbx-cat:hover { background: var(--s2); }
+.cbx-cat:focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; }
+.cbx-cat-icon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--tint-violet);
+  color: var(--brand-text);
+}
+.cbx-cat-label {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: center;
+  color: var(--t2);
+}
+.cbx-cat.is-active .cbx-cat-icon { background: var(--grad-brand); color: #fff; }
+.cbx-cat.is-active .cbx-cat-label { color: var(--t1); }
+
+/* Per-category tints. `data-cat` rather than a class per category so adding a
+   category to CAMPAIGN_CATEGORIES renders with the default violet instead of an
+   unstyled circle. */
+.cbx-cat-icon[data-cat="Emergency"],
+.cbx-cat-icon[data-cat="Medical"] { background: var(--tint-rose); color: var(--red-text); }
+.cbx-cat-icon[data-cat="Education"],
+.cbx-cat-icon[data-cat="Creative"] { background: var(--tint-amber); color: var(--orange-text); }
+.cbx-cat-icon[data-cat="Environment"],
+.cbx-cat-icon[data-cat="Animal"] { background: var(--tint-green); color: var(--green-text); }
+
+/* ── Three-column body ───────────────────────────────────────────────────── */
+.cbx-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 26px;
+  align-items: start;
+}
+@media (min-width: 900px) {
+  .cbx-layout { grid-template-columns: 232px minmax(0, 1fr); }
+}
+@media (min-width: 1180px) {
+  .cbx-layout { grid-template-columns: 232px minmax(0, 1fr) 292px; }
+}
+.cbx-main { min-width: 0; }
+
+/* ── Filters rail ────────────────────────────────────────────────────────── */
+.cbx-filters { min-width: 0; display: grid; gap: 18px; }
+.cbx-filters > form {
+  padding: 18px;
+  border: 1px solid var(--b1);
+  border-radius: var(--rl, 16px);
+  background: var(--s1);
+}
+.cbx-filters-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.cbx-filters-head h2 { margin: 0; font-size: 15px; font-weight: 800; color: var(--t1); }
+.cbx-filters-head a { font-size: 12px; font-weight: 700; color: var(--brand-text); text-decoration: none; }
+
+.cbx-field { display: grid; gap: 7px; margin-bottom: 16px; border: 0; padding: 0; }
+.cbx-field > label,
+.cbx-field > legend {
+  font-size: 12px;
+  font-weight: 750;
+  color: var(--t2);
+  padding: 0;
+}
+.cbx-field select,
+.cbx-field input[type="text"],
+.cbx-field > input {
+  width: 100%;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--b2);
+  border-radius: 9px;
+  background: var(--s2);
+  color: var(--t1);
+  font-size: 13px;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.cbx-checks { display: grid; gap: 9px; }
+.cbx-checks label { display: flex; align-items: center; gap: 9px; cursor: pointer; }
+.cbx-checks input { width: 15px; height: 15px; accent-color: var(--violet); cursor: pointer; flex: none; }
+.cbx-checks span { font-size: 13px; font-weight: 600; color: var(--t2); }
+
+.cbx-apply {
+  width: 100%;
+  height: 40px;
+  border: none;
+  border-radius: 10px;
+  background: var(--grad-violet);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.cbx-start {
+  padding: 20px 18px;
+  border: 1.5px solid var(--brand-text);
+  border-radius: var(--rl, 16px);
+  background: var(--tint-violet);
+  text-align: center;
+}
+.cbx-start-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--grad-violet);
+  color: #fff;
+  margin-bottom: 10px;
+}
+.cbx-start h2 { margin: 0; font-size: 15px; font-weight: 800; color: var(--t1); }
+.cbx-start p { margin: 8px 0 0; font-size: 13px; line-height: 1.55; color: var(--t3); }
+.cbx-start-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 14px;
+  min-height: 38px;
+  padding: 0 16px;
+  border-radius: 9px;
+  background: var(--grad-violet);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+/* ── Featured cards ──────────────────────────────────────────────────────── */
+.cbx-feat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
+  gap: 18px;
+}
+.cbx-feat {
+  min-width: 0;
+  border: 1px solid var(--b1);
+  border-radius: var(--rl, 16px);
+  background: var(--s1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.cbx-feat-media { position: relative; display: block; aspect-ratio: 16 / 10; background: var(--s3); }
+.cbx-feat-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cbx-feat-ph { display: block; width: 100%; height: 100%; background: var(--grad-brand); opacity: .5; }
+.cbx-feat-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 4px 9px;
+  border-radius: 6px;
+  background: rgba(0,0,0,.72);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.cbx-feat-body { padding: 14px; display: grid; gap: 8px; }
+.cbx-feat-body h3 { margin: 0; font-size: 15px; font-weight: 800; line-height: 1.3; }
+.cbx-feat-body h3 a { color: var(--t1); text-decoration: none; }
+.cbx-feat-body h3 a:hover { color: var(--brand-text); }
+.cbx-feat-loc { margin: 0; display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--t3); }
+.cbx-feat-lede {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--t3);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.cbx-feat-figures { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.cbx-feat-figures strong { font-size: 14px; font-weight: 850; color: var(--t1); }
+.cbx-feat-figures span { font-size: 12px; color: var(--t3); }
+.cbx-feat-meta { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--t4); }
+
+.cbx-bar { height: 6px; border-radius: 999px; background: var(--s3); overflow: hidden; }
+.cbx-bar > span { display: block; height: 100%; border-radius: 999px; background: var(--grad-brand); }
+.cbx-bar-sm { height: 5px; }
+
+/* ── All-campaigns list rows ─────────────────────────────────────────────── */
+.cbx-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.cbx-row {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--b1);
+  border-radius: var(--rl, 16px);
+  background: var(--s1);
+}
+@media (min-width: 720px) {
+  .cbx-row { grid-template-columns: 108px minmax(0, 1fr) 168px; }
+}
+.cbx-row-media {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--s3);
+}
+.cbx-row-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cbx-row-body { min-width: 0; display: grid; gap: 5px; }
+.cbx-row-badge {
+  justify-self: start;
+  padding: 3px 8px;
+  border-radius: 5px;
+  background: var(--tint-violet);
+  color: var(--brand-text);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.cbx-row-body h3 { margin: 0; font-size: 15px; font-weight: 800; line-height: 1.3; }
+.cbx-row-body h3 a { color: var(--t1); text-decoration: none; }
+.cbx-row-body h3 a:hover { color: var(--brand-text); }
+.cbx-row-loc { margin: 0; font-size: 12px; color: var(--t3); }
+.cbx-row-lede {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--t3);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.cbx-row-figures { min-width: 0; display: grid; gap: 6px; }
+.cbx-row-figures strong { font-size: 14px; font-weight: 850; color: var(--t1); }
+.cbx-row-meta { font-size: 12px; color: var(--t4); }
+
+/* ── Numbered pager ──────────────────────────────────────────────────────── */
+.cbx-pager { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 7px; margin-top: 30px; }
+.cbx-pg {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--b2);
+  border-radius: 9px;
+  background: var(--s1);
+  color: var(--t2);
+  font-size: 13px;
+  font-weight: 750;
+  text-decoration: none;
+}
+.cbx-pg:hover { border-color: var(--brand-text); color: var(--t1); }
+.cbx-pg.is-current { background: var(--grad-violet); border-color: transparent; color: #fff; }
+.cbx-pg.is-off { opacity: .4; }
+.cbx-pg-gap { padding: 0 4px; color: var(--t4); font-size: 13px; }
+
+/* ── /causes index ───────────────────────────────────────────────────────────
+   Photo hero with a scrim, a measured stats strip, the browse controls, and the
+   two closing bands. Surfaces are tokens throughout: the reference draws the
+   cards on white, and a literal white card is a white slab in dark mode. Only
+   the hero commits to a dark treatment in both themes — white text over a
+   photograph, where the scrim guarantees the contrast rather than the theme. */
+.cx-page { display: block; }
+
+.cx-hero { position: relative; isolation: isolate; overflow: hidden; padding: 26px 0 92px; background: #0d0a1f; }
+.cx-hero-photo { position: absolute; inset: 0 0 0 42%; z-index: -2; }
+.cx-hero-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.cx-hero::before {
+  content: '';
+  position: absolute; inset: 0; z-index: -1;
+  background:
+    linear-gradient(90deg, #0d0a1f 0%, #0d0a1f 40%, rgba(13,10,31,.84) 56%, rgba(13,10,31,.34) 80%, rgba(13,10,31,.12) 100%),
+    linear-gradient(0deg, #0d0a1f 0%, rgba(13,10,31,0) 44%);
+}
+.cx-hero-inner {
+  position: relative;
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px;
+  max-width: var(--container, 1200px); margin: 0 auto; padding: 0 var(--gutter, 20px);
+}
+.cx-crumbs ol {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  list-style: none; margin: 0 0 24px; padding: 0; font-size: 13px; color: rgba(255,255,255,.72);
+}
+.cx-crumbs a { display: inline-flex; align-items: center; min-height: 24px; color: rgba(255,255,255,.72); text-decoration: none; }
+.cx-crumbs a:hover { color: #fff; text-decoration: underline; }
+.cx-crumbs li[aria-current='page'] { color: #fff; font-weight: 650; }
+.cx-hero-copy h1 {
+  margin: 0; font-size: var(--fs-hero); font-weight: 800; line-height: 1.06;
+  letter-spacing: -.03em; color: #fff;
+}
+.cx-hero-copy > p { margin: 16px 0 0; max-width: 44ch; font-size: 16px; line-height: 1.68; color: rgba(255,255,255,.84); }
+.cx-hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; }
+.cx-btn-secondary {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 22px;
+  border: 1px solid rgba(255,255,255,.34); border-radius: var(--r);
+  background: rgba(255,255,255,.06); color: #fff; font-size: 14.5px; font-weight: 700; text-decoration: none;
+}
+.cx-btn-secondary:hover { border-color: rgba(255,255,255,.7); background: rgba(255,255,255,.12); }
+.cx-hero-card {
+  align-self: end; padding: 20px;
+  border: 1px solid rgba(255,255,255,.16); border-radius: var(--rl);
+  background: rgba(18,14,40,.82); backdrop-filter: blur(8px);
+}
+.cx-hero-card h2 { margin: 0; font-size: 16.5px; font-weight: 780; line-height: 1.35; color: #fff; }
+.cx-hero-card p { margin: 10px 0 0; font-size: 13.5px; line-height: 1.6; color: rgba(255,255,255,.8); }
+
+.cx-stats {
+  position: relative; z-index: 1;
+  max-width: var(--container, 1200px); margin: -56px auto 44px;
+  padding: 22px 24px;
+  border: 1px solid var(--b1); border-radius: var(--rxl);
+  background: var(--s1); box-shadow: var(--shadow-lg, 0 24px 60px rgba(0,0,0,.5));
+}
+.cx-stats dl {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+  gap: 18px; margin: 0;
+}
+.cx-stat { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; padding: 4px; }
+.cx-stat dd { display: flex; align-items: center; gap: 13px; }
+.cx-stat-ic {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 42px; height: 42px; flex: 0 0 auto;
+  border-radius: 999px; border: 1px solid var(--b1); background: var(--s2);
+}
+.cx-stat-ic svg { width: 20px; height: 20px; }
+/* `*-text` tokens: the tier tuned to sit ON a surface, legible in both themes. */
+.cx-stat-ic--0 { color: var(--red-text); }
+.cx-stat-ic--1 { color: var(--green-text); }
+.cx-stat-ic--2 { color: var(--brand-text); }
+.cx-stat-ic--3 { color: var(--orange-text); }
+.cx-stat dd { margin: 0; }
+.cx-stat-value { font-size: 24px; font-weight: 850; letter-spacing: -.02em; line-height: 1.12; color: var(--t1); }
+/* Indented to clear the icon so the label lines up under the number. */
+.cx-stat dt { font-size: 12.5px; color: var(--t3); margin: 3px 0 0 55px; }
+
+.cx-main { padding-bottom: 72px; }
+.cx-browse-title { margin: 0 0 20px; font-size: var(--fs-h2); font-weight: 800; letter-spacing: -.02em; color: var(--t1); }
+
+.cx-controls { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.cx-pills { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.cx-pill {
+  min-height: 40px; padding: 0 16px; border-radius: 999px;
+  border: 1px solid var(--b1); background: var(--s1); color: var(--t2);
+  font: inherit; font-size: 13.5px; font-weight: 650; cursor: pointer;
+}
+.cx-pill:hover { border-color: var(--b2); color: var(--t1); }
+.cx-pill.is-on { background: var(--fill-brand); border-color: transparent; color: #fff; }
+.cx-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.cx-sort { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--t3); }
+.cx-sort select {
+  min-height: 40px; padding: 0 10px; border-radius: var(--r);
+  border: 1px solid var(--b2); background: var(--s1); color: var(--t1); font: inherit; font-size: 13.5px;
+}
+.cx-view { display: inline-flex; gap: 4px; padding: 3px; border: 1px solid var(--b1); border-radius: 999px; background: var(--s1); }
+.cx-view-btn {
+  min-height: 34px; padding: 0 14px; border-radius: 999px; border: none;
+  background: none; color: var(--t3); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.cx-view-btn.is-on { background: var(--fill-brand); color: #fff; }
+.cx-count { margin: 0 0 18px; font-size: 13px; color: var(--t3); }
+
+.cx-grid {
+  list-style: none; margin: 0; padding: 0; display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap: 18px;
+}
+.cx-card {
+  display: grid; grid-template-rows: auto minmax(0, 1fr); height: 100%; min-width: 0;
+  border: 1px solid var(--b1); border-radius: var(--rl); overflow: hidden;
+  background: var(--s1); text-decoration: none;
+}
+.cx-card:hover { border-color: var(--b2); }
+.cx-card-media { position: relative; display: block; aspect-ratio: 16 / 10; background: var(--s3); }
+.cx-card-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cx-card-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 7px; padding: 16px 18px 18px; }
+.cx-card-body strong { font-size: 15.5px; font-weight: 780; color: var(--t1); line-height: 1.3; }
+.cx-card-blurb {
+  font-size: 13.5px; line-height: 1.5; color: var(--t3);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.cx-card-meta { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12.5px; font-weight: 700; margin-top: 2px; }
+.cx-card-count { color: var(--t2); }
+.cx-card-raised { color: var(--green-text); }
+/* List view: the photo becomes a thumbnail beside the copy rather than a banner
+   above it, which is the point of offering the toggle at all. */
+.cx-grid.is-list { grid-template-columns: minmax(0, 1fr); }
+.cx-grid.is-list .cx-card { grid-template-rows: none; grid-template-columns: minmax(0, 190px) minmax(0, 1fr); }
+.cx-grid.is-list .cx-card-media { aspect-ratio: 4 / 3; height: 100%; }
+.cx-empty { margin: 18px 0 0; font-size: 14px; color: var(--t3); }
+
+.cx-missing {
+  margin: 44px 0 0; padding: 28px; text-align: center;
+  border: 1px solid var(--b1); border-radius: var(--rxl); background: var(--s2);
+}
+.cx-missing h2 { margin: 0; font-size: 19px; font-weight: 780; color: var(--t1); }
+.cx-missing p { margin: 8px auto 18px; max-width: 520px; font-size: 14px; line-height: 1.55; color: var(--t3); }
+
+.cx-stay {
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: center;
+  margin: 22px 0 0; padding: 26px 28px;
+  border: 1px solid var(--b1); border-radius: var(--rxl); background: var(--s1);
+}
+.cx-stay-copy h2 { margin: 0; font-size: 19px; font-weight: 780; color: var(--t1); }
+.cx-stay-copy p { margin: 6px 0 0; font-size: 13.5px; line-height: 1.55; color: var(--t3); }
+.cx-stay-form { display: flex; flex-wrap: wrap; gap: 10px; min-width: 0; }
+.cx-stay-form input {
+  flex: 1 1 220px; min-width: 0; min-height: 44px; padding: 0 14px;
+  border: 1px solid var(--b2); border-radius: var(--r);
+  background: var(--bg); color: var(--t1); font: inherit; font-size: 14px;
+}
+.cx-stay-form button {
+  min-height: 44px; padding: 0 22px; border: none; border-radius: var(--r);
+  background: var(--fill-brand); color: #fff; font: inherit; font-size: 14px; font-weight: 750; cursor: pointer;
+}
+.cx-stay-form button:disabled { opacity: .65; cursor: default; }
+.cx-stay-note { grid-column: 1 / -1; margin: 0; font-size: 13px; color: var(--green-text); }
+.cx-stay-note.is-error { color: var(--red-text); }
+.cx-visually-hidden {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+@media (min-width: 980px) {
+  .cx-hero { padding: 30px 0 116px; }
+  .cx-hero-inner { grid-template-columns: minmax(0, 1.4fr) minmax(0, 320px); }
+  .cx-crumbs { grid-column: 1 / -1; }
+  .cx-stay { grid-template-columns: minmax(0, 1fr) minmax(0, 460px); }
+}
+@media (max-width: 979px) {
+  .cx-hero-photo { inset: 0 0 auto 0; height: 220px; }
+  .cx-hero-inner { padding-top: 196px; }
+  .cx-hero::before {
+    background:
+      linear-gradient(180deg, rgba(13,10,31,.25) 0%, rgba(13,10,31,.8) 44%, #0d0a1f 60%),
+      linear-gradient(0deg, #0d0a1f 0%, rgba(13,10,31,0) 30%);
+  }
+  .cx-grid.is-list .cx-card { grid-template-columns: minmax(0, 120px) minmax(0, 1fr); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   /donate — split hero with a live donation panel, impact, trust, supporters.
+
+   The page surface is `var(--bg)`, which is #000000 in dark mode, so the
+   background is genuinely black rather than the navy the section shells use.
+   The hero BAND stays dark in both themes because it is a photograph: white
+   copy over a light overlay would be unreadable in light mode, and a
+   theme-reactive ink there would go dark-on-dark. Same reasoning already
+   recorded on `.mirror-hero-aside`.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.dn {
+  background: var(--bg);
+  color: var(--t1);
+  padding-bottom: 8px;
+}
+.dn-wrapish, .dn-crumb, .dn-section, .dn-thanks { width: min(100% - 32px, 1180px); margin-inline: auto; }
+
+.dn-crumb {
+  display: flex; align-items: center; gap: 8px;
+  padding: 18px 0 14px;
+  font-size: 13px; color: var(--t3);
+}
+.dn-crumb a { color: var(--t3); text-decoration: none; }
+.dn-crumb a:hover { color: var(--t1); text-decoration: underline; }
+.dn-crumb [aria-current] { color: var(--t1); font-weight: 700; }
+
+/* ── Hero ─────────────────────────────────────────────────────────────── */
+
+.dn-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  /* An opaque dark base ON THE HERO ITSELF, not only the -1 overlay span.
+     The photo and the shade are negative-z-index children, so they are siblings
+     of the copy rather than ancestors of it: a contrast sweep walking ancestors
+     resolved this text against the LIGHT page background and read 1.54:1. It
+     rendered fine — but "readable only because of a stacking-context sibling"
+     is exactly the fragility worth removing. Painting order is unchanged
+     (element background, then negative-z children, then content), so this is
+     invisible while making the ancestor chain honest. */
+  background: #050716;
+  border-radius: 20px;
+  width: min(100% - 32px, 1180px);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 372px);
+  gap: clamp(24px, 4vw, 56px);
+  align-items: center;
+  padding: clamp(28px, 4vw, 52px);
+}
+.dn-hero-media { position: absolute; inset: 0; z-index: -2; }
+.dn-hero-media img { object-fit: cover; object-position: center 38%; }
+/* Opaque enough at the copy end that white text is measured against a near-black
+   stop rather than against the photograph, which cannot be scored. */
+.dn-hero-shade {
+  position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(96deg, rgba(3,5,16,.96) 0%, rgba(3,5,16,.93) 42%, rgba(3,5,16,.72) 100%);
+}
+
+.dn-hero-copy { max-width: 560px; }
+.dn-hero-copy h1 {
+  margin: 0;
+  color: #fff;
+  font-size: var(--fs-h1);
+  line-height: 1.1;
+  font-weight: 850;
+  letter-spacing: -.02em;
+}
+.dn-title-heart { display: inline-flex; margin-left: 10px; color: #ff5b8a; vertical-align: -6px; }
+.dn-title-heart svg { width: 30px; height: 30px; }
+.dn-lede { margin: 18px 0 0; color: #d7dcec; font-size: 16px; line-height: 1.6; }
+
+.dn-trust { list-style: none; margin: 26px 0 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.dn-trust li { display: flex; align-items: flex-start; gap: 13px; }
+.dn-trust-ic {
+  flex: none; width: 40px; height: 40px; border-radius: 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,.12); color: #ffb0c8;
+}
+.dn-trust-ic svg { width: 19px; height: 19px; }
+.dn-trust-txt { display: flex; flex-direction: column; gap: 2px; }
+.dn-trust-txt b { color: #fff; font-size: 15px; font-weight: 800; }
+.dn-trust-txt small { color: #c3cadd; font-size: 13.5px; line-height: 1.5; }
+
+.dn-proof { display: flex; align-items: center; gap: 14px; margin-top: 28px; }
+.dn-avatars { display: inline-flex; }
+.dn-avatars i {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 2px solid rgba(3,5,16,.9);
+  margin-left: -10px;
+  background: var(--grad-violet);
+}
+.dn-avatars i:first-child { margin-left: 0; }
+.dn-proof-copy { display: flex; flex-direction: column; gap: 2px; }
+.dn-proof-copy small { color: #c3cadd; font-size: 13px; }
+.dn-stars { display: inline-flex; gap: 2px; color: #ffb020; }
+
+/* ── Donation panel ───────────────────────────────────────────────────── */
+
+.dn-panel {
+  background: var(--s1, #fff);
+  border: 1px solid var(--b1, #e7e3f2);
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: 0 24px 60px rgba(2, 4, 18, .4);
+  display: grid;
+  /* minmax(0, 1fr), not the implicit `auto`. A grid item defaults to
+     min-width:auto, so the single implicit column sized itself to the widest
+     child's MIN-CONTENT: the amount grid measured 487px inside a 370px panel
+     and the whole right-hand half of the form was clipped by the hero's
+     overflow:hidden. Same trap already recorded on .mirror-hero-inner. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+.dn-panel-title { margin: 0; font-size: 20px; font-weight: 850; color: var(--t1); }
+.dn-panel-sub { margin: -8px 0 0; font-size: 13px; color: var(--t3); }
+
+.dn-freq { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.dn-freq-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  min-height: 42px; padding: 0 14px; border-radius: 11px;
+  border: 1px solid var(--b2, #ddd7ee);
+  background: var(--s2, #f7f5fd);
+  color: var(--t2); font: inherit; font-size: 14px; font-weight: 750; cursor: pointer;
+}
+@media (max-width: 360px) {
+  .dn-freq-btn { padding: 0 8px; font-size: 13px; }
+}
+.dn-freq-btn.is-on { background: var(--grad-brand); border-color: transparent; color: #fff; }
+
+.dn-amounts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.dn-amt {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  min-height: 62px; padding: 8px 6px; border-radius: 12px;
+  border: 1px solid var(--b2, #ddd7ee); background: var(--s1, #fff);
+  color: var(--t1); font: inherit; cursor: pointer; text-align: center;
+}
+.dn-amt b { font-size: 15px; font-weight: 850; }
+.dn-amt span { font-size: 10.5px; color: var(--t3); line-height: 1.25; }
+.dn-amt.is-on { border-color: var(--h-accent, #6d35ff); box-shadow: 0 0 0 2px rgba(109,53,255,.22); }
+.dn-amt.is-on span { color: var(--t2); }
+
+/* minmax(0, 1fr) for the same reason as .dn-panel above: this label is a grid,
+   and its implicit column sized to the <select>'s MIN-CONTENT — the longest
+   campaign title in the picker — measuring 487px inside a 326px field. The
+   select then has to be told it may shrink, or it re-widens the row itself. */
+.dn-field { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.dn-label { font-size: 12.5px; font-weight: 750; color: var(--t2); }
+.dn-money {
+  min-width: 0;
+  display: flex; align-items: center; gap: 8px;
+  min-height: 44px; padding: 0 12px; border-radius: 11px;
+  border: 1px solid var(--b2, #ddd7ee); background: var(--s1, #fff); color: var(--t3);
+  font-size: 13px;
+}
+.dn-money input {
+  flex: 1; min-width: 0; border: 0; background: none; color: var(--t1);
+  font: inherit; font-size: 15px; font-weight: 700;
+}
+.dn-money input:focus { outline: none; }
+.dn-select {
+  min-width: 0; max-width: 100%;
+  min-height: 44px; padding: 0 12px; border-radius: 11px;
+  border: 1px solid var(--b2, #ddd7ee); background: var(--s1, #fff);
+  color: var(--t1); font: inherit; font-size: 14px;
+}
+.dn-load-error { font-size: 13px; color: var(--red-text); line-height: 1.5; }
+
+.dn-check { display: flex; align-items: flex-start; gap: 9px; font-size: 13px; color: var(--t2); cursor: pointer; }
+.dn-check input { margin-top: 2px; flex: none; }
+.dn-dedicate {
+  min-height: 42px; padding: 0 12px; border-radius: 11px;
+  border: 1px solid var(--b2, #ddd7ee); background: var(--s1, #fff);
+  color: var(--t1); font: inherit; font-size: 14px;
+}
+.dn-error { margin: 0; font-size: 13px; font-weight: 650; color: var(--red-text); }
+
+.dn-submit {
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  min-height: 50px; border: 0; border-radius: 13px;
+  background: var(--grad-brand);
+  color: #fff; font: inherit; font-size: 15.5px; font-weight: 850; cursor: pointer;
+}
+.dn-submit:disabled { opacity: .6; cursor: not-allowed; }
+.dn-secure { margin: -6px 0 0; text-align: center; font-size: 12px; color: var(--t3); }
+
+.dn-methods {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 6px;
+  margin: 0; padding: 0; list-style: none;
+}
+.dn-methods li {
+  padding: 5px 9px; border-radius: 6px;
+  border: 1px solid var(--b1, #e7e3f2); background: var(--s2, #f7f5fd);
+  font-size: 10px; font-weight: 800; color: var(--t2); letter-spacing: .02em;
+}
+
+.dn-legal {
+  display: flex; align-items: flex-start; gap: 9px;
+  margin: 0; padding: 11px 12px; border-radius: 11px;
+  background: var(--s2, #f7f5fd);
+  font-size: 11.5px; line-height: 1.45; color: var(--t3);
+}
+.dn-legal svg { flex: none; margin-top: 1px; color: var(--green-text); }
+
+/* ── Sections below the fold ──────────────────────────────────────────── */
+
+.dn-section { padding: clamp(40px, 6vw, 68px) 0 0; }
+.dn-h2 {
+  margin: 0 0 26px; text-align: center;
+  color: var(--t1); font-size: var(--fs-h2); font-weight: 850; letter-spacing: -.01em;
+}
+
+.dn-impact { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
+.dn-impact-card {
+  min-width: 0; display: flex; flex-direction: column; align-items: flex-start;
+  border: 1px solid var(--b1, #e7e3f2); border-radius: 14px;
+  background: var(--s1, #fff); overflow: hidden;
+}
+.dn-impact-media { display: block; width: 100%; height: 128px; overflow: hidden; background: var(--s2); }
+.dn-impact-media img { width: 100%; height: 100%; object-fit: cover; }
+.dn-impact-ic {
+  width: 40px; height: 40px; margin: -20px 0 0 14px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--grad-brand); color: #fff;
+  border: 3px solid var(--s1, #fff);
+}
+.dn-impact-ic svg { width: 17px; height: 17px; }
+.dn-impact-card h3 { margin: 10px 14px 0; font-size: 15px; font-weight: 800; color: var(--t1); }
+.dn-impact-card p { margin: 6px 14px 0; font-size: 12.5px; line-height: 1.5; color: var(--t3); }
+.dn-impact-pill {
+  margin: 12px 14px 14px; padding: 5px 10px; border-radius: 999px;
+  background: var(--s2, #f4f2fb); color: var(--violet-ink);
+  font-size: 11px; font-weight: 800;
+}
+
+.dn-trustgrid {
+  list-style: none; margin: 0; padding: clamp(18px, 3vw, 28px);
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(16px, 3vw, 34px);
+  border: 1px solid var(--b1, #e7e3f2); border-radius: 16px; background: var(--s1, #fff);
+}
+.dn-trustgrid li { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.dn-trustgrid-ic {
+  width: 40px; height: 40px; border-radius: 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--s2, #f4f2fb); color: var(--violet-ink);
+}
+.dn-trustgrid-ic svg { width: 19px; height: 19px; }
+.dn-trustgrid b { font-size: 14.5px; font-weight: 800; color: var(--t1); }
+.dn-trustgrid small { font-size: 12.5px; line-height: 1.5; color: var(--t3); }
+
+.dn-quotes { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.dn-quotes li {
+  min-width: 0; display: flex; gap: 12px; align-items: flex-start;
+  padding: 18px; border: 1px solid var(--b1, #e7e3f2); border-radius: 14px; background: var(--s1, #fff);
+}
+.dn-quote-avatar {
+  flex: none; width: 42px; height: 42px; border-radius: 50%;
+  background: var(--grad-violet);
+}
+.dn-quotes p { margin: 0 0 8px; font-size: 13px; line-height: 1.55; color: var(--t2); }
+.dn-quotes b { display: block; font-size: 13px; font-weight: 800; color: var(--t1); }
+
+.dn-thanks {
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+  margin: clamp(34px, 5vw, 56px) auto 0;
+  font-size: 14.5px; font-weight: 700; color: var(--t2);
+}
+.dn-thanks svg { width: 18px; height: 18px; color: #e0397f; }
+
+/* ── Responsive ───────────────────────────────────────────────────────── */
+
+@media (max-width: 1020px) {
+  .dn-hero { grid-template-columns: minmax(0, 1fr); }
+  .dn-hero-copy { max-width: 100%; }
+  .dn-impact { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .dn-trustgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dn-quotes { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 720px) {
+  .dn-impact { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .dn-impact, .dn-trustgrid { grid-template-columns: minmax(0, 1fr); }
+  .dn-amounts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dn-hero { padding: 22px 18px; border-radius: 16px; }
+}
+/* Cause-card icon badge (the reference puts one over each photo). Sits on the
+   image, so it needs its own opaque plate rather than a themed surface — the
+   photo behind it is arbitrary and a translucent chip would fail contrast over
+   a light one. */
+.cx-card-ic {
+  position: absolute;
+  z-index: 1;
+  top: 12px;
+  left: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  background: rgba(10, 6, 28, .82);
+  border: 1px solid rgba(255, 255, 255, .18);
+}
+.cx-card-ic svg { width: 19px; height: 19px; }
+/* Light accents only: these sit on a fixed dark plate in BOTH themes, so the
+   accessible direction is lighter regardless of the visitor's theme. */
+.cx-card-ic--0 { color: #ff9db4; }
+.cx-card-ic--1 { color: #7ee2a8; }
+.cx-card-ic--2 { color: #b9a5ff; }
+.cx-card-ic--3 { color: #ffc978; }
+.cx-card-ic--4 { color: #8fd0ff; }
+.cx-card-ic--5 { color: #f5a3ff; }

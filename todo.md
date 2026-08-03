@@ -1,5 +1,317 @@
 # CharitMe — Execution Tracker
 
+## ⛔ VERCEL CAP — resolved: it is REAL and INTERMITTENT, two hard errors (Claude, 2026-08-03 ~18:3x UTC)
+
+Settled by a second occurrence, which is what the previous entry said it was
+waiting for.
+
+| deployment | result |
+|---|---|
+| #231 | ❌ `api-deployments-free-per-day` |
+| #232 | ✅ Building |
+| #233 | ✅ Building |
+| #234 | ❌ `api-deployments-free-per-day` |
+
+**Two hard rejections with successes in between.** So it is not a clean 24-hour
+stop — it is a quota sitting at its limit where individual deployments race
+against it. Both earlier characterisations were wrong: "NOT currently blocking"
+understated it, and "NOW BLOCKING" implied a hard gate that would have rejected
+#232 and #233 too.
+
+⚠️ **#234 was a CODE change** — the `#8c95b2` axis-label fix — and its deployment
+was one of the rejected ones. It is on master and **may not be live**. Anything
+merged from here has the same coin-flip until the window rolls or O5 is cleared.
+
+**Production is unaffected and current**: `/campaigns` serves 200 with the
+rebuilt markup.
+
+**Practical rule while this lasts:** merging is safe, but do not assume a merge
+shipped. Check the deployment result per PR, the same way CI runs have to be
+checked per run.
+
+
+## 🔎 THE OWNER ROWS WERE STALE TOO — O1 says 6 migrations, it is 27 (Claude, 2026-08-03)
+
+Same treatment as the A-rows, same result. Verified by running the repo's own
+rehearsal scripts against a throwaway Postgres rather than reading the row:
+
+```
+rehearse-migrations.sh   applied=114  failed=0
+                         162 tables · 162 with RLS · 245 policies · 0 without RLS
+rehearse-rollbacks.sh    rollbacks failing: 0
+```
+
+| row | claimed | measured 2026-08-03 |
+|---|---|---|
+| **O1** | "6 pending migrations" | **27 pending**, 87 of 114 applied. Figure was 21 out of date. |
+| O2 | no staging Supabase | confirmed — no `NEXT_PUBLIC_SUPABASE_URL` in this environment at all |
+| O3 | no Stripe test keys | confirmed — `STRIPE_SECRET_KEY` unset |
+| O4 | Actions runners dead | confirmed again today — `runner_id: 0`, 0 billable ms, every run |
+| O6 | demo seed is fail-closed | confirmed — `00_test_users.sql` raises unless `charitme.allow_demo_seed` is set **in the same session** |
+
+**The useful part is what O1 now says instead.** Everything an agent can do on
+that row is done: every migration replays clean, the schema it produces is
+RLS-complete, and **all 27 have a rehearsed rollback that has been run**. The
+runbook (`supabase/RELEASE-RUNBOOK.md`) has the exact commands and the
+`87 applied / 27 pending` precondition to check before starting.
+
+So O1 is not "27 migrations of unknown risk waiting to be written" — it is a
+prepared, reversible release **blocked on O2**, a staging project to rehearse it
+against. That is a materially different thing to hand an owner.
+
+**Second instance of the same failure today.** A1 and A4 were stale in the
+"already done" direction; O1 was stale in the "much bigger than you think"
+direction. Both were found by running something, not by reading. The file's own
+warning now cuts three ways: a row may overstate a blocker, understate work, or
+be simply out of date.
+
+## ✅ THE ACTIONABLE QUEUE WAS STALE — A1 and A4 were already done (Claude, 2026-08-03)
+
+The working queue listed **four** Claude-lane items as "actionable now, no gate".
+Checked one at a time against the code and the test suites: **two were already
+shipped**, which is why every pass over this file kept reporting the same
+outstanding work.
+
+| | claimed | measured |
+|---|---|---|
+| **A1** peer-to-peer steps 2–3 | "gated on O1 applying the migration" | **done** — and the gate was *designed out*, not waited on |
+| **A4** `coach_sessions` consumer | "500 rows, no reader" | **done** — reader, API route and a rendering surface all exist |
+
+**A1's gate was the interesting one.** The row said building the page first
+"ships a progress bar that cannot move". Instead `lib/peer-attribution.ts`
+probes whether `donations.peer_fundraiser_id` exists and **omits the RPC argument
+when it does not** — so one codebase is correct against an unapplied *and* an
+applied database. That is the pattern for a migration-gated feature, and it
+means O1 blocks the migration, not the feature.
+
+**A4's row warned against the wrong thing.** "Do NOT add a writer alone" —
+correct in principle, and already honoured: the reader came with it, and
+`/dashboard/ai-coach` distinguishes a failed read (*"that is a read failure, not
+an empty history"*) from a genuinely empty one.
+
+Evidence: 39 tests across `peer-attribution`, `peer-fundraisers-wired`,
+`peer-page-existence-gate`, `peer-fundraiser-create` and `coach-sessions-core`.
+
+**Genuinely still gated:** A2 (creator subscription checkout → O3 Stripe test
+keys) and A3 (proximity discovery → needs lat/long, so O1-shaped). Both name a
+gate an agent cannot clear.
+
+**Standing lesson:** this file's own warning — *"three separate blockers turned
+out to be things an agent could do all along"* — applies in the other direction
+too. A row saying "outstanding" is as unreliable as a row saying "cleared".
+Verify the row, not the summary.
+
+## 🟣 C1 CORRECTED AND PARTLY CLOSED — the muted-slate failure is LIGHT-mode only (Claude, 2026-08-03)
+
+C1 recorded **"admin fails AA in *both* themes."** Measured, that is wrong, and
+the correction changes what a fix has to do:
+
+| | on dark `--s1` #121530 | on light `--s1` #ffffff |
+|---|---|---|
+| `#94a3b8` | **6.97:1 PASS** | **2.56:1 FAIL** |
+| `#8c9ab5` | **6.30:1 PASS** | **2.84:1 FAIL** |
+
+It is a **light-mode-only** failure — precisely the kind a sweep that measures
+dark twice reports as clean. CLAUDE.md already records "a 2.56:1 light-mode
+failure survived" as a known trap: **2.56:1 is this exact pair.**
+
+The theme-pinning shortcut C1 called "disproved" was disproved for the wrong
+reason. These do not fail in both themes; they fail in the one nobody was
+measuring.
+
+### Fixed, by usage rather than by find-and-replace
+
+Each occurrence needed classifying, because the same literal was doing four
+different jobs:
+
+- **`Pill`** used one value for text *and* `background: ${color}18`. That alpha
+  suffix is why every caller had to pass a hex — `var(--t3)18` is not valid CSS —
+  which is what pinned the muted state to one theme. The tint now uses
+  `color-mix`, so a token works and the pill flips.
+- **SVG `<text fill>`** on chart axes → `var(--t3)` (real text, was 2.84:1).
+- **SVG icon `stroke`** on search fields → `var(--t3)` (UI component, needs 3:1).
+- **Badge backgrounds carrying WHITE text** → `#556070` (white on it is 6.38:1;
+  on `#94a3b8` it was 2.56:1).
+- **A status dot that is the sole carrier of state** (`CampaignsSidebarNav`, no
+  text label beside it, so 1.4.11 applies) → `var(--t3)`.
+
+**`app/api/**` was deliberately left alone.** Those routes generate EMAIL bodies
+and a QR poster, where a CSS custom property does not resolve at all — a
+hardcoded colour is correct there, and "fixing" it would make the text invisible
+in every mail client. The guard excludes them and asserts the exclusion.
+
+### Second pass: 36 text literals that were INVISIBLE in dark mode
+
+Measured every `color: '#hex'` in browser-rendered code against the surfaces it
+can sit on, in both themes. **36 sites** read comfortably on a white card and
+dropped below 3:1 on the dark surface the same card flips to:
+
+| literal | light | dark |
+|---|---|---|
+| `#0f0f30` ×6 | 17.45:1 | **1.04:1** |
+| `#334064` ×4 | 9.59:1 | 1.62:1 |
+| `#334155` ×3 | 9.73:1 | 1.60:1 |
+| `#475569` ×6 | 7.12:1 | 2.18:1 |
+
+1.04:1 is not "low contrast" — it is **invisible**. One of them is the count in
+`/admin/content`'s type breakdown, sitting in a card whose sibling text already
+uses `var(--t1)`: the card flips, that one number does not.
+
+35 replaced with the token carrying the same role (`--t1`, `--t2`,
+`--brand-text`, `--green-text`, `--red-text`). Re-measured: **36 → 1**, the one
+being a deliberate exemption.
+
+**Exempt, with reasons the guard asserts:** `/campaigns/[slug]/embed` renders
+inside a third-party page whose background this app does not control.
+
+### ⚠️ The obvious general guard fires on CORRECT code
+
+The natural rule — "flag any literal that passes in one theme and fails in the
+other" — was written, run, and **narrowed**, because it flagged 18 sites that are
+right:
+
+- `/success-stories` uses `#b89eff` on a hero band with a hardcoded
+  `rgba(108,53,255,.25)` over dark. Pale violet is correct there.
+- `app/global-error.tsx` replaces the whole document when the ROOT layout throws,
+  so it renders its own `<html>`/`<body>` with inline styles only — the app's CSS
+  never loaded. A token there resolves to nothing, which would make the one page
+  that exists to explain a crash unreadable.
+
+**Static analysis cannot see the background an element actually sits on.** So the
+committed guard is a REGRESSION check on the 35 inspected sites, not a general
+rule. A guard that fails on correct code gets switched off.
+
+### Third pass: I triaged the ~82 I had waved away, and one was real
+
+I had written "most of the 719 are brand/status colours that are fine" after
+spot-checking two. That was a hand-wave, so it got measured. Every non-`color:`
+foreground literal (`fill`, `stroke`, `borderColor`) below 3:1 in some theme —
+**31 sites** — classified individually:
+
+| verdict | n | why |
+|---|---|---|
+| **genuinely wrong** | **1** | `#8c95b2` on `<text>` axis labels — real text at **2.80:1** on a white card |
+| brand marks | 8 | Google sign-in (`#34A853`, `#FBBC05`, `#ea4335`) and the SharePanel platform chips. Each SharePanel entry carries `fill` for the brand chip **and** a separate token-driven `text`, so the brand colour is never the only carrier. |
+| paired with a hardcoded backdrop | 2 | `#101944` donut totals sit on an explicit `fill="#fff"` centre circle, so they are dark-on-white in **both** themes. My worst-case analyzer called these failures; they are not. |
+| decorative | 20 | chart gridlines and card borders — e.g. `borderColor: '#fecdd3'` on `background: var(--tint-rose)`, where the border identifies nothing. |
+
+So the hand-wave was **mostly right and hid one real bug** — which is the whole
+argument for measuring instead of asserting. Fixed; the axis labels now use
+`var(--t3)`.
+
+⚠️ **The analyzer's worst-case assumption is unreliable in both directions** and
+this pass proves it: it flagged the donut totals (correct code, on a hardcoded
+white backdrop) and it would have missed nothing only because I read each site.
+Static analysis cannot see the surface an element sits on. That is why the
+committed guards are regression checks over inspected sites, not general rules.
+
+### Still open on C1
+
+This closed the **named** root cause. The wider count in C1 ("271 hardcoded
+literals across admin") is not closed: **719 hex literals remain in
+`app/admin` + `components`**. Most are brand/status colours that are fine; they
+were not swept, because a mass replacement is how a mechanical change ships a
+bug (see the `/admin/countries` fail-open write in the resilience sweep).
+
+⚠️ **None of this is verifiable end-to-end here.** `audit:contrast` cannot log
+in, so the admin surface is unmeasured by the browser sweep — the ratios above
+are computed from the literals and the token values, which is arithmetic, not a
+render. A signed-in sweep still needs the owner-blocked test login.
+
+Guard: `__tests__/admin-muted-contrast.test.ts`, mutation-tested by
+reintroducing the literal in `PayoutsClient`.
+
+## ✅ /campaigns REBUILT to the supplied design (Claude, 2026-08-03)
+
+Hero band, category strip, three-column body, featured cards, list rows and a
+numbered pager — the reference layout, wired to live data.
+
+| | |
+|---|---|
+| layout | `232px 704px 292px` at ≥1180px, two-column at 900px, single below — measured in-browser |
+| dark mode | body `rgb(0, 0, 0)`, no gradient — **measured**, not assumed |
+| category tiles | 19 (All + all 18 real categories) |
+| page size | 60 → **12**, so the design's "Showing 1-12 of 248" is the real count |
+
+### Three places the design could not be copied literally
+
+The art is the brief, but three parts of it describe data that does not exist.
+Copying them would have produced a page that looks right and lies.
+
+1. **Category tiles.** The design labels them "Emergency Aid", "Food & Hunger",
+   "Shelter & Housing", "Health & Care", "Children & Youth", "Women & Families".
+   **None is in `CAMPAIGN_CATEGORIES`**, which is what `campaigns.category` is
+   filtered on — every one of those tiles would land on an empty page. The strip's
+   treatment is reproduced exactly; its contents are the real categories, so every
+   tile filters.
+2. **"Campaign Type" checkboxes** (Urgent Needs / Long-Term Projects /
+   Rebuilding & Recovery) have no column behind them. The group is reproduced
+   with the three filters that are real — Verified, Tax-deductible, Ending soon.
+   A checkbox that changes nothing is worse than one fewer checkbox.
+3. **The testimonial** ("Jessica M., Donor") is still not reproduced. No
+   testimonials table, so the quote and the person would both be ours, presented
+   as a real supporter's words.
+
+Everything else in the art IS wired: **Goal Range** filters on `goal_amount`
+(in CENTS — a dollar figure against a cents column is how a money filter silently
+matches everything), **Location** is a select built from the places that actually
+have campaigns, and **Ending soon** is a real date comparison rather than a
+stored flag.
+
+### The audits found a real defect in my own work
+
+`audit:responsive` flagged `/campaigns` at **all three viewports in both themes**:
+the hero search button was absolutely positioned over the input, so a click aimed
+at the end of the field hit the button instead of focusing the text. Rebuilt as a
+flex row sharing one white surface — same look, no overlap. Six findings → zero.
+
+### And a 500 on a public route, found by the contrast sweep
+
+`audit:contrast` reported `/causes/mental-health` as **HTTP 500**, which I had not
+touched. `getCauseStories` in `lib/cause-landing.ts` read `supabaseAdmin` without
+a thunk, so the Proxy threw before its `error` branch — the same class swept in
+#202, in a `lib/` module rather than a page, which is exactly where my
+`page-supabase-guarded` test does not look.
+
+**Then measured properly rather than guessed:** a keyless production server swept
+against all **77 indexable public routes** — `no 5xx`. That is the real check;
+the source-level scan lists 40 `lib` modules with the same shape, and most are
+called from API routes where a 500 is the honest answer.
+
+### Collided with a concurrent lane, and what was kept from theirs
+
+`16e5f4ec` had just given `/campaigns` the shared `IndexHero` + `StatStrip` that
+`/causes` uses. Both lanes rewrote the same hero, so the merge conflicted on the
+page and on `globals.css`.
+
+- **CSS:** both blocks kept — they append distinct rules, neither had to lose
+  anything.
+- **The hero photo is theirs, and they were right.** I had used a gradient panel
+  on the reasoning that no campaign-agnostic photo here was ours to publish. That
+  was wrong: `getCoverForCategory` is the repo's own catalog, already used by
+  `/causes`. The reference art has a photograph, so the page now has one, from
+  the same source, with a scrim so the headline does not depend on what the
+  photo happens to contain.
+- **Their guard was narrowed, not deleted.** "Both browse indexes use the shared
+  hero" no longer holds — the reference gives `/campaigns` a different hero — but
+  its two stated reasons are now asserted directly instead of waived: the scrim
+  is checked against `.cbx-hero-art::after`, and a new conditional check says
+  that *if* `/campaigns` ever renders a platform figure again it must read the
+  shared loader. A silenced test was the easy resolution and the wrong one.
+
+`/causes` and `components/IndexHero` are untouched.
+
+### Verified
+
+contrast 86×2 clean · responsive 86×3×2 clean · focus-order 87×2 clean
+(15,297 stops) · campaign-images PASSED · 2796 tests · typecheck, lint, build clean.
+
+⚠️ **Not verifiable here:** featured cards, list rows and the pager render empty,
+because the sandbox has no database — `featured: 0, rows: 0, pager: 0` is the
+environment, not the code. `pageWindow` is unit-tested instead (11 cases,
+including that it never repeats a number and never ellipsises a non-gap).
+
+
 ## ✅ /causes/sports-youth — matched to the reference (Claude, 2026-08-03)
 
 The brief was two side-by-side screenshots: LEFT the target, RIGHT the page as
@@ -1163,7 +1475,7 @@ external release constraints after the latest production deployment.
 |---|---------|----------|------------------|
 | 1 | **GitHub Actions assigns no runner — RE-BROKEN, verified 2026-08-03.** This row said CLEARED; it is not. Eight runs today (`30778197657`, `30779419210`, `30780039522`, `30780372581`, `30782321643`, `30802456447`, `30803013774`, `30803728152`) all show `runner_id: 0`, empty `runner_name`, `billable.UBUNTU.total_ms: 0`, 2–11s duration, no steps. Master's runs match, which rules out any branch. **A red check right now is not a signal.** One run showed `queued` briefly before dropping — that is not recovery. Verify per run (`actions_get` → `get_workflow_run_usage`); do not trust this row or its predecessor. | 8 runs + master, 2026-08-03; `image-links.yml` fails identically; repo is private | **Owner** — likely the private-repo Actions minute allowance (see CLAUDE.md): raise the spending limit, make the repo public, or cut push volume |
 | 2 | **No CharitMe staging Supabase project is available.** The account exposes CharitMe production and an unrelated Auto Trading project. Preview Branch creation returns HTTP 402 because the account is not on Pro; dedicated `charitme-staging` creation is also rejected because the owner has reached the two-active-free-project limit. Database release policy correctly blocks production migration application until the same commit is verified on real staging. | Supabase project/branch inventory and both provisioning probes, 2026-07-29 | **Owner** — upgrade Supabase, pause/delete an unrelated project, or provision staging in another organization |
-| 3 | **Vercel daily deployment quota — NOT currently blocking (2026-08-03).** ⚠️ *An earlier version of this row claimed the quota recurred at ~10:41 UTC. That was WRONG and is corrected here.* One deployment (the #211 merge) did return `Error` with no preview URL, and I read that as a quota rejection. **The very next deployment, six minutes later, built normally and served** — a daily cap does not clear in six minutes, so the error was transient and its cause is unknown. Nine-plus deployments went Ready across this session. The 100/day cap is real and will bite under a busy day; it had not bitten here. | ~9 Ready deploys + one transient Error, 2026-08-03 | **External reset** — or upgrade Vercel to remove the recurrence |
+| 3 | **Vercel daily deployment quota — REAL and INTERMITTENT, resolved 2026-08-03 ~18:3x UTC.** Two hard `api-deployments-free-per-day` rejections (#231, #234) with two successful builds between them (#232, #233), so it is a quota at its limit rather than a clean 24h stop. **A merge no longer implies a deploy** — #234 carried a code fix and was rejected, so it sits on master possibly unshipped. Production itself is current and serving 200. | Deploy errors on #231 and #234; builds on #232 and #233; production 200 | **External reset**, or upgrade Vercel (O5) to remove the recurrence |
 
 **Vercel production is operational** — re-measured 2026-08-03: `/api/health`,
 `/needs` and `/campaigns` all 200 on `www.charitme.com`. New deployments are **not**
@@ -3057,7 +3369,7 @@ need the owner.
 
 | # | Item | Why it is owner-only |
 |---|---|---|
-| O1 | Apply **6 pending migrations** (compat, receipts, donor-message anonymity, role/team boundaries, privileged DB boundaries, **peer-fundraiser attribution** — the last one written this session) | DDL; PostgREST cannot run it, and release policy wants a staging run first |
+| O1 | Apply **27 pending migrations** (not 6 — that figure is from 2026-07-29 and 21 have landed since). **87 of 114 applied to production.** Everything an agent can do IS done and re-verified 2026-08-03: all 114 replay clean against a throwaway Postgres (`applied=114 failed=0`), the resulting schema is **RLS-complete at 162/162 tables, 245 policies, 0 without RLS**, and **all 27 have a rehearsed rollback** (`rollbacks failing: 0`). Steps are written out in `supabase/RELEASE-RUNBOOK.md`. | DDL; PostgREST cannot run it, and release policy wants a staging run first — so this is really **blocked on O2**, not on the work |
 | O2 | Provision a **CharitMe staging Supabase project** | Blocks O1's staging step |
 | O3 | **Stripe test keys** → live charge→transfer→payout→reconcile, refund/dispute via test clocks | No charge should be placed against the live account |
 | O4 | **GitHub Actions billing** | `runner_id: 0` — no machine is assigned |
@@ -3070,12 +3382,17 @@ need the owner.
 
 | C1 | **355 WCAG AA contrast failures** (line ~285). Root causes already located and handed over: 271 hardcoded literals across admin (`PayoutsClient`/`DonationsClient` hold 75), the `#94a3b8`/`#8c9ab5` muted-text pair, and the green/orange/red status-badge palette. The theme-pinning shortcut is **disproved** — admin fails AA in *both* themes. |
 
-### 🟢 CLAUDE lane — actionable now, no gate (4)
+### 🟢 CLAUDE lane — 2 done, 2 genuinely gated (was "actionable now (4)")
 
-| A1 | **Peer-to-peer steps 2–3**: thread `peer_fundraiser_id` through `DonateButton` → `/api/donations` → Stripe metadata, then the shareable `/campaigns/[slug]/team/[peerSlug]` page. **Gated on O1** applying the migration — building the page first ships a progress bar that cannot move. |
+⚠️ **This section was stale, and that is the failure mode this file exists to
+prevent.** A1 and A4 were both listed as outstanding; both were already shipped
+with tests. Re-measured 2026-08-03 by reading the code and running the suites, not
+by trusting the row. The remaining two name real gates.
+
+| A1 | ✅ **DONE — verify before believing this row.** Threaded end to end: `DonateButton` passes `peerFundraiserId` (line 251) → `/api/donations` validates it **against the campaign** before trusting it (209–213) → Stripe metadata (391) → the webhook spreads `peerRpcArg(meta.peerFundraiserId)` into `record_donation` (244, 386). `/campaigns/[slug]/team/[peerSlug]` exists. **The O1 gate was designed out, not waited on**: `lib/peer-attribution.ts` probes whether `donations.peer_fundraiser_id` exists and OMITS the argument when it does not, so the same code is correct against an unapplied *and* an applied database. 39 tests across four files. |
 | A2 | **Creator-economy module** (Patreon/Ko-fi/Buy Me a Coffee = 0/10). Public page + profile writer + tier CRUD + `/dashboard/creator` + **member-only posts with a proven paywall** all ship. Remaining: **paid subscription checkout** — which is now the ONLY thing left, and it is **gated on O3** (Stripe test keys). DMs are optional polish, not parity. |
 | A3 | **Proximity discovery** — needs lat/long on campaigns, so it opens with a migration → effectively O1-shaped. |
-| A4 | **`coach_sessions` consumer decision** — 500 rows, no reader. Do NOT add a writer alone; that satisfies the audit while producing analytics nothing consumes. |
+| A4 | ✅ **DONE — the "no reader" claim is stale.** `lib/coach-sessions-server.ts` reads and writes, `/api/coach-sessions` exposes the read, and `/dashboard/ai-coach` renders the history through `lib/coach-sessions-core`. It also follows the house rule the row was worried about: a failed read says *"that is a read failure, not an empty history"* rather than printing a confident 0. |
 
 ### ⚪ Verified-clean — do NOT re-investigate
 
@@ -19122,3 +19439,289 @@ The reference asserts a six-figure "youth impacted", a five-figure "athletes
 supported", a four-figure programme count and a three-figure community count.
 Measured for Sports & Youth: **38 live campaigns, $12,600 raised, 47 gifts, 69
 countries**. A test fails if any mock literal reaches the source.
+
+## 🗂 /causes INDEX — rebuilt to the reference (Claude, 2026-08-03)
+
+Photo hero with breadcrumb and a "Together, we can make a difference" card, a
+measured stats strip, **Browse by cause** with working filter pills / sort /
+grid-list toggle, 20 cause cards carrying a photo and real figures, the
+"can't find your cause" band, and a **Stay informed** subscribe box.
+
+### Every figure measured, and the reads bounded
+The reference asserts a five-figure campaign count, an eight-figure raised
+total, a seven-figure "people helped" and a three-figure country count. "People
+helped" is not an entity in this schema — donations are. Actual: **351 active
+campaigns, $96,850 raised, 592 gifts, 69 countries**.
+
+Sums cannot use a head-only count, so `lib/causes-index.ts` takes **ONE bounded
+read** and tallies in JS. If that read comes back saturated at the limit the
+total is **refused** rather than published short — a quietly understated total is
+worse than a missing one, because nothing on screen says it is wrong. The
+platform total is derived from the same tally as the cards, so the headline and
+the grid cannot disagree.
+
+### ⚠️ "Raised this month" was genuinely $0 — the tile was relabelled
+No donation carries a timestamp in the current calendar month. A $0 hero tile on
+a page asking people to give is true but counterproductive, so the tile shows the
+all-time total and says "Raised on CharitMe". Relabelling so a tile matches its
+number is the same call already made when a "Communities" tile turned out to be
+counting `supported_countries` and became "Countries".
+
+### 🐛 A `<dl>` may group with a `<div>` — but only if the div holds dt/dd DIRECTLY
+The stats strip wrapped its `<dt>`/`<dd>` in an extra div, which axe flagged
+twice (`definition-list` + `dlitem`, both serious). The icon now lives inside the
+`<dd>` and is placed with CSS instead of adding a level.
+
+### Sorting never treats an unmeasured figure as zero
+A cause whose count failed to load is not the least popular cause. Those sort
+LAST rather than being ranked as empty, and their figures are omitted from the
+card rather than rendered as "0".
+
+## 🧭 /campaigns — same design as /causes, via a SHARED hero (Claude, 2026-08-03)
+
+`/campaigns` now opens with the same photo hero and measured stats strip as
+`/causes`: breadcrumb over the scrim, H1 + lede, two CTAs, a supporting card, and
+the four platform figures.
+
+### ⚠️ Extracted, not copied — `components/IndexHero.tsx`
+Both pages render **one** hero and **one** stats strip. A lookalike would drift in
+the two places that matter most: the **scrim** (the only thing keeping the text
+readable over an arbitrary photo) and the **em-dash rule** for a figure that
+could not be measured. Both indexes also read their figures from the **same
+loader**, so they cannot state different platform totals. Tests assert both.
+
+### 🐛 Nesting `<li>` inside `<li>` renders every crumb twice
+The first version wrapped each crumb in an `<li style="display: contents">` that
+itself contained `<li>`s. Result on screen: *"Home Home ›Causes › Causes
+›Campaigns › Campaigns"* — and invalid `<ol>` markup. The separator sits in a
+Fragment now. **`display: contents` does not make an element a valid list
+parent.**
+
+### The page root had to stop constraining width
+`.cb-page` was `width: min(100% - 40px, 1280px)`, which boxed the full-bleed hero
+inside the content measure. The constraint moved off the root and onto the
+children, excluding the two full-bleed bands.
+
+Everything already on the page — search, location filter, category chips, sort,
+featured row, sidebar panels — is untouched and still server-rendered from real
+query params.
+
+## ✅ DONE — /donate rebuilt to the supplied design (Claude, 2026-08-02)
+
+Replaced the campaign-grid page with the split hero: copy + trust rows on the
+left, a live **Make a Donation** panel on the right, then impact tiers, a trust
+row, supporter quotes and the closing line.
+
+### Wiring — nothing about the money path is re-implemented
+
+The panel posts to the **same endpoints as the campaign-page flow**:
+`/api/donations` one-off (with an `Idempotency-Key`, so a double-click cannot
+charge twice) and `/api/donations/recurring` for monthly, then follows the
+Stripe Checkout URL they return. A second checkout implementation is how the two
+would eventually disagree about fees, minimums or idempotency.
+
+- **Campaign picker** — live campaigns via `applyLiveFilters`, 86 in the stub.
+- **Donation count** — `donations` where `status = completed`. A failed read
+  renders a neutral phrase, never a confident "0 donations" on the page that
+  asks for money.
+- **Supporter quotes** — real donations through `getRecentDonations`, reused
+  rather than re-queried so the two anonymity gates (per-donation `anonymous`
+  AND account-wide profile visibility) cannot be re-broken here. Falls back to
+  honestly-labelled platform facts when there are fewer than three.
+
+Dark mode is genuinely black: the page surface is `var(--bg)`, measured
+`rgb(0, 0, 0)`.
+
+### ⚠️ `next dev` cannot test this page's JS — the CSP forbids `eval`
+
+The form appeared completely dead under `next dev`: clicks did nothing, no
+validation, no request. Not a bug — React Refresh evaluates strings, the app's
+`script-src` has no `unsafe-eval`, so **hydration never runs**. Every
+interaction test must run against `next start`. Costly to rediscover; recorded.
+
+### ⚠️ Native constraint validation silently swallowed two error paths
+
+`required` on the select and `min` on the custom-amount input short-circuit the
+submit handler, so the browser tooltip fired while every other check reported
+through the styled `role="alert"` region — two validation surfaces on one form,
+only one of them matching the design or announced consistently. Both attributes
+removed; the floor is enforced in the handler **and** server-side by the
+donations route. `$0.50` now reports "Minimum donation is $1."
+
+### ⚠️ Three separate instances of the grid `min-width: auto` trap
+
+The whole right half of the donation panel was **clipped**. `.dn-panel`,
+`.dn-field` and `.dn-freq` are grids, and a grid item defaults to
+`min-width: auto`, so each implicit column sized to its widest child's
+MIN-CONTENT — the amount grid measured 487px inside a 370px panel, and the
+campaign `<select>` re-widened its row to the longest campaign title. All three
+pinned to `minmax(0, 1fr)`. Verified 320–1440px: no clipped children anywhere.
+
+### ⚠️ Hero text was readable only because of a stacking-context sibling
+
+The contrast sweep reported **1.54:1** on hero copy that renders fine. It was
+right to: the photo and the dark shade are negative-z-index **children**, so
+they are siblings of the copy rather than ancestors, and a sweep walking
+ancestors resolved the text against the LIGHT page background. Fixed by giving
+`.dn-hero` an opaque dark base of its own — painting order is unchanged, so it
+is invisible, but the ancestor chain now tells the truth.
+
+### Two design-system guards caught real duplication
+
+`css-single-definition.test.ts` failed on both counts and both were mine:
+a new violet→magenta gradient instead of `var(--grad-violet)`/`var(--grad-brand)`,
+and two new heading clamps instead of `var(--fs-h1)`/`var(--fs-h2)`.
+
+**Verified:** typecheck 0 · lint 0 · **vitest 2794/2794 across 247 files** ·
+build exit 0 · contrast **0 failures, 86 pages × 2 themes** · responsive **0
+regressions, 86 × 3 viewports × 2 themes** · axe **4/4** · form driven in a real
+browser: blocks an empty campaign, rejects below-minimum, sends the tile amount,
+sends a custom $137 as 13700, carries the dedication, and routes monthly to the
+recurring endpoint.
+
+## 💝 /donate — COLLISION, and I stood down (Claude, 2026-08-03)
+
+I built the shared `IndexHero` + `StatStrip` onto `/donate` and it was green
+(0 axe, 0 contrast failures site-wide, 2797 tests). While it was in flight
+another lane landed **three** commits on the same page:
+
+- `c0c9a6fa` rebuild /donate to the supplied design, wired to Supabase (#221)
+- `f1a7aeff` pin the money-path and anonymity contracts on /donate (#223)
+- `d2e0d911` the design's tax-deductibility claim contradicted the product (#224)
+
+**Theirs wins and mine was dropped.** Their version is a purpose-built 266-line
+rebuild against a design supplied for *that* page, with its own hero
+(`dn-hero` — photo, shade, trust rows, proof avatars, live donation panel), 287
+lines of CSS, pinned tests on the money path, and a fix for a claim in the design
+that contradicted the product. Mine was a hero swap. Overwriting it would have
+traded a specific, tested rebuild for a generic one.
+
+⚠️ The rebase conflict was the *only* signal this had happened — the page still
+returned 200 and looked fine locally the whole time. **Fetch before starting on a
+page, not just before pushing.**
+
+The hero photograph also differs from the design's child-holding-a-heart image:
+that asset is not in the repo and image hosts are unreachable from here, so
+`charitme-community-hero.png` is used. Drop the intended file into
+`public/images/` and change one `src` to close it.
+
+### ✅ RESOLVED — the design's tax-deductibility claim contradicted the product
+
+The supplied `/donate` design read **"CharitMe is a 501(c)(3) nonprofit
+organization. All donations are tax-deductible."** I shipped it as given and
+flagged it for legal review. That was too cautious: it is not a judgement call,
+because **the product already says the opposite in three places the same donor
+reaches**:
+
+| surface | what it says |
+|---|---|
+| `app/api/campaigns/[id]/faqs/route.ts` | "Donations are **not** tax-deductible unless this campaign is run by a verified 501(c)(3) nonprofit organization." |
+| `app/donor/receipt/[donationId]` | "Donations to personal fundraisers are **not** tax-deductible." |
+| `app/donor/tax-statement/[year]` | gifts to personal fundraisers are "**not** tax-deductible" |
+
+CharitMe is the **platform**; deductibility depends on the recipient, which is
+what `/verification` gates on. The design's wording would have had the donation
+page promise a deduction the receipt then denies — a regulated claim, on the
+page that takes the money.
+
+Same block, same position, true copy: *"Donations to verified 501(c)(3)
+nonprofits are tax-deductible and receive an official receipt. Gifts to personal
+fundraisers are not deductible."* A deliberate deviation from "match the design
+100%", recorded here and in the component.
+
+Pinned by 4 assertions, mutation-tested: planting the design's original sentence
+fails the suite.
+
+**Correction to my own earlier note:** I wrote that the design's child hero
+photo "is not in the repo". Wrong — `public/hero-child-crop.webp` exists. It is
+unusable for this purpose, which is a different statement: it is a composite
+marketing mock with UI baked into the image (a "VERIFIED CAMPAIGN" chip, a
+campaign title, stat cards), so as a full-bleed hero it would show fake UI
+behind the real UI. `charitme-community-hero.png` stays. A clean photograph is
+still the one asset that would close the last visual gap.
+
+### 🔑 Deploy status IS readable from here — via MCP, not curl (Claude, 2026-08-02)
+
+Recorded because "is it on Production?" has come up every session and was
+answered "unverifiable" three times, including twice by me.
+
+**`curl https://api.github.com/.../commits/<sha>/status` returns
+`Resource not accessible by integration`, and so does the deployments API.**
+That is a GitHub App permission limit, *not* the network. The **MCP** tool has
+the permission the raw call lacks:
+
+```
+mcp__github__pull_request_read  method=get_status  pullNumber=<n>
+→ { state, statuses:[{ context:"Vercel", state, description, target_url }] }
+```
+
+Measured just now:
+
+| PR | Vercel |
+|---|---|
+| #221 — the /donate rebuild | **`success` — "Deployment has completed"** |
+| #224 — the tax-copy fix | `pending` — "Vercel is deploying your app" |
+
+So the donate code **deploys cleanly on Vercel**, and the daily deploy cap that
+blocked earlier sessions is no longer biting.
+
+⚠️ **What this still does NOT prove.** The tool is PR-scoped, so it reads the
+*branch head* — a **preview** deployment. Production tracks `master`, and the
+status for a master commit hangs off a SHA with no PR, which no available tool
+reads. `mcp__github__get_commit` does not carry statuses. So:
+
+- **proven:** this exact code builds and deploys on Vercel without error;
+- **not proven:** that the production alias on `www.charitme.com` now serves it.
+
+The remaining gap is one look at the Vercel dashboard or the live URL. Do not
+record "unverifiable" again — record it as *preview verified, production alias
+unconfirmed*, which is a much smaller claim.
+
+### 🔒 DEFINITIVE — "is it live on Production?" cannot be answered from this session, by policy
+
+This has been asked in five consecutive rounds. Closing it with the authority
+that settles it, so nobody spends another hour on it.
+
+`/root/.ccr/README.md` — the agent-proxy documentation for this environment —
+says, twice:
+
+> **403 / 407 from the proxy.** The destination host is not allowed by your
+> organization's egress policy for this session. **Do not retry or route around
+> it — report the blocked host.**
+
+> Never disable TLS verification, never unset `HTTPS_PROXY`, and **do not retry
+> organization policy denials (403/407) — report them instead.**
+
+`www.charitme.com` answers **403 to CONNECT**. That is an organization egress
+policy denial, not a transient failure and not a missing credential. The correct
+behaviour is to **report the blocked host**, which is what this entry does.
+
+**So the split is:**
+
+| question | answerable here? |
+|---|---|
+| Does the code build? | ✅ yes — `next build` exit 0 |
+| Does it pass every sweep? | ✅ yes — contrast / responsive / axe / 2815 tests |
+| Does it deploy on Vercel without error? | ✅ yes — PR #221 status `success`, "Deployment has completed" |
+| Is the **production alias** serving it? | ❌ **no — policy denial. Owner only.** |
+| Has a **real charge** completed? | ❌ no — needs Stripe test keys (O3) |
+
+**Owner: the whole confirmation is one of these.**
+
+```
+curl -s https://www.charitme.com/api/health          # → {"status":"ok","ts":…}
+curl -s https://www.charitme.com/donate | grep -c "Make a Donation"   # → 1
+```
+
+Or open the Vercel dashboard and check the deployment aliased to
+`www.charitme.com` is the one built from the latest `master`.
+
+**Do not record this as "unverified work".** The work is verified; what cannot
+be observed from inside the sandbox is a DNS alias belonging to the owner.
+Those are different claims, and conflating them has now cost five rounds.
+
+### Consequence for the shared hero
+`/causes` and `/campaigns` share `components/IndexHero.tsx`; `/donate`
+deliberately does NOT, because it has a design of its own. The test iterates the
+two pages that opted in rather than asserting "every index" — which would now be
+false.
