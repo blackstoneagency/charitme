@@ -1,5 +1,60 @@
 # CharitMe — Execution Tracker
 
+## 🟣 C1 CORRECTED AND PARTLY CLOSED — the muted-slate failure is LIGHT-mode only (Claude, 2026-08-03)
+
+C1 recorded **"admin fails AA in *both* themes."** Measured, that is wrong, and
+the correction changes what a fix has to do:
+
+| | on dark `--s1` #121530 | on light `--s1` #ffffff |
+|---|---|---|
+| `#94a3b8` | **6.97:1 PASS** | **2.56:1 FAIL** |
+| `#8c9ab5` | **6.30:1 PASS** | **2.84:1 FAIL** |
+
+It is a **light-mode-only** failure — precisely the kind a sweep that measures
+dark twice reports as clean. CLAUDE.md already records "a 2.56:1 light-mode
+failure survived" as a known trap: **2.56:1 is this exact pair.**
+
+The theme-pinning shortcut C1 called "disproved" was disproved for the wrong
+reason. These do not fail in both themes; they fail in the one nobody was
+measuring.
+
+### Fixed, by usage rather than by find-and-replace
+
+Each occurrence needed classifying, because the same literal was doing four
+different jobs:
+
+- **`Pill`** used one value for text *and* `background: ${color}18`. That alpha
+  suffix is why every caller had to pass a hex — `var(--t3)18` is not valid CSS —
+  which is what pinned the muted state to one theme. The tint now uses
+  `color-mix`, so a token works and the pill flips.
+- **SVG `<text fill>`** on chart axes → `var(--t3)` (real text, was 2.84:1).
+- **SVG icon `stroke`** on search fields → `var(--t3)` (UI component, needs 3:1).
+- **Badge backgrounds carrying WHITE text** → `#556070` (white on it is 6.38:1;
+  on `#94a3b8` it was 2.56:1).
+- **A status dot that is the sole carrier of state** (`CampaignsSidebarNav`, no
+  text label beside it, so 1.4.11 applies) → `var(--t3)`.
+
+**`app/api/**` was deliberately left alone.** Those routes generate EMAIL bodies
+and a QR poster, where a CSS custom property does not resolve at all — a
+hardcoded colour is correct there, and "fixing" it would make the text invisible
+in every mail client. The guard excludes them and asserts the exclusion.
+
+### Still open on C1
+
+This closed the **named** root cause. The wider count in C1 ("271 hardcoded
+literals across admin") is not closed: **719 hex literals remain in
+`app/admin` + `components`**. Most are brand/status colours that are fine; they
+were not swept, because a mass replacement is how a mechanical change ships a
+bug (see the `/admin/countries` fail-open write in the resilience sweep).
+
+⚠️ **None of this is verifiable end-to-end here.** `audit:contrast` cannot log
+in, so the admin surface is unmeasured by the browser sweep — the ratios above
+are computed from the literals and the token values, which is arithmetic, not a
+render. A signed-in sweep still needs the owner-blocked test login.
+
+Guard: `__tests__/admin-muted-contrast.test.ts`, mutation-tested by
+reintroducing the literal in `PayoutsClient`.
+
 ## ✅ /campaigns REBUILT to the supplied design (Claude, 2026-08-03)
 
 Hero band, category strip, three-column body, featured cards, list rows and a

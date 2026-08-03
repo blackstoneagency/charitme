@@ -48,7 +48,7 @@ const STATUS_COLOR: Record<string, string> = {
   contacted: '#f59e0b',
   qualified: '#8b5cf6',
   converted: '#19b86a',
-  rejected: '#94a3b8',
+  rejected: '#556070',
 };
 
 function gradeColor(grade: string | null): string {
@@ -56,7 +56,7 @@ function gradeColor(grade: string | null): string {
     case 'A': return '#19b86a';
     case 'B': return '#0ea5e9';
     case 'C': return '#f59e0b';
-    default: return '#94a3b8';
+    default: return '#556070';
   }
 }
 
@@ -509,7 +509,7 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
                         style={{
                           padding: '5px 10px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
                           border: `1px solid ${STATUS_COLOR[l.status] ?? '#cbd5e1'}40`,
-                          background: (STATUS_COLOR[l.status] ?? '#94a3b8') + '14',
+                          background: (STATUS_COLOR[l.status] ?? '#556070') + '14',
                           color: STATUS_COLOR[l.status] ?? 'var(--t3)',
                         }}
                       >

@@ -101,7 +101,7 @@ export default function OpportunitiesClient() {
 }
 
 function OppCard({ o, act }: { o: Opportunity; act: (id: string, body: Record<string, unknown>, msg: string) => void }) {
-  const scoreColor = o.score >= 66 ? '#10b981' : o.score >= 33 ? '#f59e0b' : '#94a3b8';
+  const scoreColor = o.score >= 66 ? '#10b981' : o.score >= 33 ? '#f59e0b' : '#556070';
   return (
     <div style={card}>
       <div style={{ display: 'flex', minWidth: 0, gap: 14, alignItems: 'flex-start' }}>

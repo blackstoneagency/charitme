@@ -180,7 +180,7 @@ function TrendLine({ points }: { points: WeekPoint[] }) {
         <circle key={i} cx={x} cy={ys[i]} r="5" fill="#6c35ff" stroke="#fff" strokeWidth="3" />
       ))}
       {points.map((p, i) => (
-        <text key={i} x={xs[i]} y={H - 2} textAnchor="middle" fontSize="10" fill="#8c9ab5">
+        <text key={i} x={xs[i]} y={H - 2} textAnchor="middle" fontSize="10" fill="var(--t3)">
           {p.week.slice(5)}
         </text>
       ))}
@@ -1177,7 +1177,7 @@ export default function DonationsClient({
           <div>
             <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12, padding: '16px 20px', borderBottom: '1px solid #eef0f7', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 200, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, padding: '0 14px', background: 'var(--s1)' }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="#8c9ab5" strokeWidth={2} width={16} height={16} aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="var(--t3)" strokeWidth={2} width={16} height={16} aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
                 <input
                   value={search}
                   onChange={e => { setSearch(e.target.value); setPage(0); }}
