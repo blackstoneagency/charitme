@@ -22,6 +22,39 @@ never been rehearsed anywhere — apply cleanly.**
 
 ### 🔴 The finding: 17 of the 27 pending migrations have NO rollback script
 
+**Classified, because "write the 17 missing rollbacks" is not a mechanical task:**
+
+| kind | n | what a rollback would mean |
+|---|---|---|
+| creates new tables (12 tables across 6 migrations) | 6 | mechanical `drop table` |
+| function-only | 3 | mechanical drop/restore |
+| adds columns or constraints | 4 | **`drop column` destroys the data in it** |
+| policy / RLS change | 2 | **re-exposes data that was deliberately closed** |
+| mixed | 2 | needs reading, not a template |
+
+⚠️ **Two of them should probably stay irreversible, and that is a decision, not
+an omission.**
+
+`20260812010000_creator_tips_not_world_readable` replaced
+`using (true)` on a table carrying `supporter_id`, `amount_cents`, `message` and
+`stripe_payment_intent_id`. Its rollback restores anonymous read of all four. The
+rollback for *"we stopped leaking data"* is *"leak it again"* — writing that
+script puts a loaded gun in the repo, and it conflicts with the standing
+instruction not to weaken RLS. `20260819000000_donation_forms_slug_and_campaign_owner`
+is the same shape.
+
+**Not auto-generated deliberately.** Nine of the seventeen (new tables +
+functions) could be written and proven with `scripts/rehearse-migrations.sh` —
+apply, roll back, diff the schema. The other eight are judgement calls with
+data-loss or data-exposure consequences, and generating them speculatively at the
+end of a long session, with no production access to validate against, is how a
+rollback that quietly drops a populated column gets written.
+
+**Owner decision needed:** should the nine mechanical rollbacks be written and
+rehearsed, and should the two RLS ones be marked permanently irreversible in the
+release procedure?
+
+
 The ledger audit proved rollback for the 18 it covered. It is not true of the set
 as it now stands:
 
