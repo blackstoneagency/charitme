@@ -415,6 +415,67 @@ shipped. Check the deployment result per PR, the same way CI runs have to be
 checked per run.
 
 
+## 🔬 O2 — THE UNKNOWN SET SHRANK FROM 25 TO 23, AND THE METHOD IS NOW A SCRIPT (Claude, 2026-08-03)
+
+O2 (staging Supabase) is credential-blocked and stays that way. But the *reason*
+it matters is that nobody knows which of the 27 migrations are already live — and
+that question turns out to be partly answerable **with no credentials at all**,
+by asking production over unauthenticated HTTP.
+
+That is how two migrations were disproved as "pending" earlier today. It was a
+one-off poke; it is now `apps/web/scripts/probe-production-migrations.mjs`:
+
+```bash
+npm run probe:migrations --workspace=apps/web
+```
+
+**Result, measured against `www.charitme.com`: 4 of the 27 are already applied.**
+
+| migration | proven by |
+|---|---|
+| `20260805000000_reconcile_runtime_tables` | `GET /api/campaigns/<nil-uuid>/milestones` → `200 {"milestones":[]}`, and again via `/faqs` → `200 {"faqs":[]}` |
+| `20260806000000_volunteer_shifts_hours` | `GET /api/volunteers/shifts?opportunity_id=<nil-uuid>` → `200 {"shifts":[]}` |
+| `20260817000000_campaign_geolocation` | `/api/campaigns/nearby` → `available:true` |
+| `20260820000000_incidents_and_maintenance` | `/status` renders the `length === 0` branch |
+
+The other 23 are listed **individually, with the reason each is unprobeable** —
+six are RLS changes invisible to any successful read, and
+`creator_tips_not_world_readable` could only be probed by performing the leak it
+closes.
+
+### ⚠️ APPLIED is proof. "No proof" is NOT evidence of pending.
+
+A successful select cannot happen unless the migration ran, so ✅ is conclusive.
+❔ only means no unauthenticated route reads that table. The script says this in
+its header and the runbook repeats it, because reading ❔ as "pending" would
+rebuild the same false-precision that started this.
+
+### Three ways this could have produced a confident wrong answer
+
+1. **`create table if not exists`.** `reconcile_runtime_tables` uses it, so if a
+   table it names had been created earlier, a real HTTP 200 would prove the
+   *earlier* migration. Every probe records where its table is **first** created,
+   and the test re-derives that from the SQL rather than trusting the field.
+2. **A control that never reached the handler.** My first control was
+   `GET /api/campaigns//milestones` expecting 404. Next answers **308** to an
+   empty path segment — so it proved nothing, and the script *correctly refused
+   to report APPLIED*. Replaced with `POST` on the same route, which 401s before
+   touching the database. The guard caught this on its first run.
+3. **A route that answers before querying.** `/api/locale` looks like a
+   `profiles.locale` probe. It returns `{"locale":null}` to anonymous callers
+   **without running a query** — a phantom proof. Excluded, and a test forbids
+   probing it or the other two auth-first routes.
+
+Guard: `__tests__/migration-probes.test.ts`, 6 assertions, offline. Mutation-tested
+both ways — dropping a migration from the catalogue is caught as uncovered, and
+re-pointing a probe at a migration older than the table's creator is caught as a
+false origin. Restored green after each.
+
+**What this does and does not do for O2.** It does not replace staging: drift
+between the migrations and what is live is still only visible with a real
+connection. It shrinks the unknown set the owner must reason about, and gives
+them a credential-free command to re-run at release time.
+
 ## 🟠 O4 — THE AGENT HALF IS DONE, AND I MEASURED THE NEXT LEVER AS NOT WORTH PULLING (Claude, 2026-08-03)
 
 O4 ("Actions runners dead") is recorded as owner-only, which is right about the
