@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { getTranslator } from '../../../lib/locale-server';
-import { causeWays, scopeDisclosure } from '../../../lib/cause-ways-core';
 import CampaignImage from '../../../components/CampaignImage';
 import { causeBrowseHref, type Cause } from '../../../lib/causes';
 import { formatStat, formatMoneyStat, type CauseStats } from '../../../lib/cause-landing';
@@ -52,8 +51,6 @@ export default async function CauseLanding({
   stats: CauseStats;
 }) {
   const t = await getTranslator();
-  const ways = causeWays(cause);
-  const disclosure = scopeDisclosure(ways, cause.label);
   const heroPhoto = getCoverForCategory(cause.categories[0]);
 
   return (
@@ -162,46 +159,21 @@ export default async function CauseLanding({
         <p className="cl-stats-note">{t('cl.stats_note', { categories: cause.categories.join(', ') })}</p>
       </section>
 
-      {/* ── What this cause's money actually goes to ──────────────────────── */}
-      <section className="cl-programs-band" aria-labelledby="cl-programs-title">
-        <h2 id="cl-programs-title" className="cl-programs-title">{t('cl.support_goes_to')}</h2>
-        <ul className="cl-programs-list">
-          {cause.categories.map((category) => {
-            const n = stats.perCategory[category];
-            return (
-              <li key={category}>
-                <Link href={`/campaigns?category=${encodeURIComponent(category)}`} className="cl-program">
-                  <span className="cl-program-name">{category}</span>
-                  <span className="cl-program-count">
-                    {n === undefined ? '—' : `${n} ${t('cl.live_suffix')}`}
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
+      {/* ── Two blocks that used to sit here are deliberately gone ────────────
+          "Your support goes to" (a per-category count row) and "Ways to help"
+          (a five-link grid) both sat between the stats band and the campaigns,
+          and neither appears in the reference for any cause.
 
-      {/* ── Ways to help THIS cause. Each link carries an explicit "all causes"
-          marker unless it genuinely narrows — only /campaigns takes a category
-          filter. (Owned by the cause-ways lane; left intact.) */}
-      <section className="cl-help" aria-labelledby="cl-help-title">
-        <h2 id="cl-help-title" className="cl-help-title">Ways to help</h2>
-        <ul className="cl-help-grid">
-          {ways.map((way) => (
-            <li key={way.id}>
-              <Link href={way.href} className="cl-help-card">
-                <strong className="cl-help-label">
-                  {way.label}
-                  {!way.scoped && <span className="cl-help-scope"> · all causes</span>}
-                </strong>
-                <span className="cl-help-blurb">{way.blurb}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-        {disclosure && <p className="cl-help-note">{disclosure}</p>}
-      </section>
+          Removing them loses no destination. Every link the ways grid carried
+          is reachable from somewhere that outranks it:
+            · /campaigns, /events, /volunteer  → the hub tab strip below the stats
+            · /create                          → the hero AND the closing band
+            · /partner                         → the main nav's Resources group
+          The per-category counts were the same campaigns the grid underneath
+          already lists, counted a second time.
+
+          Asserted in `cause-landing.test.ts` rather than merely deleted, so a
+          later copy-paste cannot quietly bring either back. */}
     </>
   );
 }
@@ -212,9 +184,19 @@ export async function CauseCtaBand({ cause }: { cause: Cause }) {
   return (
     <section className="cl-cta" aria-labelledby="cl-cta-title">
       <div className="cl-cta-inner">
+        {/* The reference's outline heart. Decorative — the heading beside it
+            carries the message. */}
+        <span className="cl-cta-heart" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8Z" />
+          </svg>
+        </span>
         <div>
-          <h2 id="cl-cta-title">{t('cl.cta_title')}</h2>
-          <p>{t('cl.cta_body', { cause: cause.label.toLowerCase() })}</p>
+          {/* `ctaTitle` is authored English. Falling back to the translated
+              default keeps the other 18 causes localised — see the note on
+              `Cause.ctaTitle` for why this is not applied everywhere. */}
+          <h2 id="cl-cta-title">{cause.ctaTitle ?? t('cl.cta_title')}</h2>
+          <p>{cause.ctaBlurb ?? t('cl.cta_body', { cause: cause.label.toLowerCase() })}</p>
         </div>
         <div className="cl-cta-actions">
           <Link href={causeBrowseHref(cause)} className="cta-primary" style={{ display: 'inline-flex' }}>

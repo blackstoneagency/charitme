@@ -8850,6 +8850,18 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   color: var(--t1);
   text-align: center;
 }
+/* The reference's short accent rule under the heading. Purely decorative, so it
+   is drawn with ::after rather than markup — nothing here should reach a screen
+   reader or the accessibility tree. */
+.cl-helps-title::after {
+  content: '';
+  display: block;
+  width: 54px;
+  height: 3px;
+  margin: 12px auto 0;
+  border-radius: 999px;
+  background: var(--grad-brand);
+}
 .cl-helps-grid {
   list-style: none;
   margin: 0;
@@ -8944,6 +8956,12 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   letter-spacing: .04em;
   text-transform: uppercase;
 }
+/* Per-card accent, as in the reference. The chip's own contrast comes from the
+   dark plate behind it (set above), NOT from these — they tint the border and
+   the label only, so a chip stays legible whichever accent it draws. */
+.cl-story-chip--0 { color: #d7c4ff; box-shadow: inset 0 0 0 1px rgba(155, 122, 255, .55); }
+.cl-story-chip--1 { color: #ffc0e6; box-shadow: inset 0 0 0 1px rgba(255, 105, 180, .5); }
+.cl-story-chip--2 { color: #ffd7a3; box-shadow: inset 0 0 0 1px rgba(255, 168, 66, .5); }
 .cl-story-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 7px; padding: 16px 18px 18px; }
 .cl-story-body strong { font-size: 15.5px; font-weight: 780; color: var(--t1); line-height: 1.35; }
 .cl-story-blurb {
@@ -8958,36 +8976,6 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 .cl-story-meta { font-size: 12.5px; font-weight: 700; color: var(--green-text); }
 .cl-story-cta { font-size: 13.5px; font-weight: 700; color: var(--brand-text); }
 
-.cl-programs-band {
-  max-width: var(--container, 1200px);
-  margin: 0 auto 40px;
-  padding: 0 var(--gutter, 20px);
-}
-.cl-programs-title { margin: 0 0 16px; font-size: var(--fs-h2); font-weight: 780; color: var(--t1); }
-.cl-programs-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
-  gap: 10px;
-}
-.cl-program {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 44px;
-  padding: 10px 14px;
-  border: 1px solid var(--b1);
-  border-radius: var(--r);
-  background: var(--s1);
-  text-decoration: none;
-}
-.cl-program:hover { background: var(--s2); border-color: var(--b2); }
-.cl-program-name { font-size: 14px; font-weight: 700; color: var(--t1); }
-.cl-program-count { font-size: 12.5px; font-weight: 700; color: var(--t3); white-space: nowrap; }
-
 .cl-cta { padding: 0 var(--gutter, 20px) 64px; }
 .cl-cta-inner {
   display: grid;
@@ -9001,6 +8989,7 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   border-radius: var(--rxl);
   background: var(--s2);
 }
+.cl-cta-heart { display: none; }
 .cl-cta-inner h2 { margin: 0; font-size: var(--fs-h2); font-weight: 780; color: var(--t1); }
 .cl-cta-inner p { margin: 8px 0 0; font-size: 14.5px; line-height: 1.6; color: var(--t3); max-width: 52ch; }
 .cl-cta-actions { display: flex; flex-wrap: wrap; gap: 12px; }
@@ -9019,7 +9008,20 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   .cl-hero { padding: 32px 0 120px; }
   .cl-hero-inner { grid-template-columns: minmax(0, 1.35fr) minmax(0, 320px); }
   .cl-crumbs { grid-column: 1 / -1; }
-  .cl-cta-inner { grid-template-columns: minmax(0, 1fr) auto; }
+  /* The heart is purely ornamental, so it appears only where there is room for
+     it. Below 980px the band is already two stacked rows and a 56px glyph would
+     push the actions further from the copy they belong to. */
+  .cl-cta-heart {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 56px;
+    height: 56px;
+    color: var(--red-text, #ff4d8d);
+  }
+  .cl-cta-heart svg { width: 100%; height: 100%; }
+  .cl-cta-inner { grid-template-columns: auto minmax(0, 1fr) auto; }
 }
 /* Below the breakpoint the photo becomes a band above the copy rather than a
    side panel, so the text never sits on the busiest part of the image. */
@@ -9133,40 +9135,6 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 /* `.growth-brand h2 em` ("New") keeps a light violet plate in both themes, so
    like the "Beta" chip its ink must stay dark there — it measured 1.84:1. */
 [data-theme="dark"] .growth-brand h2 em { color: #4c1d95; background: #f1ecff; }
-
-/* ── Cause landing: "Ways to help" ─────────────────────────────────────────
-   Distinct from `.cl-ways`, which lists other CAUSES. Each card states whether
-   it narrows to this cause: only /campaigns accepts a category filter, so the
-   rest are marked "all causes" rather than implying a filter that is not there. */
-.cl-help { max-width: 1180px; margin: 0 auto; padding: 8px 24px 8px; min-width: 0; }
-.cl-help-title { margin: 0 0 6px; font-size: var(--fs-h2); font-weight: 800; color: var(--t1); letter-spacing: -.02em; }
-.cl-help-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
-  gap: 12px;
-  list-style: none;
-  margin: 16px 0 0;
-  padding: 0;
-  min-width: 0;
-}
-.cl-help-card {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 6px;
-  align-content: start;
-  min-height: 44px;
-  min-width: 0;
-  padding: 16px;
-  border: 1px solid var(--b1);
-  border-radius: var(--rl);
-  background: var(--s1);
-  text-decoration: none;
-}
-.cl-help-card:hover { border-color: var(--b2); background: var(--s2); }
-.cl-help-label { font-size: 15px; font-weight: 750; color: var(--t1); }
-.cl-help-scope { font-size: 12px; font-weight: 600; color: var(--t3); }
-.cl-help-blurb { font-size: 13.5px; line-height: 1.55; color: var(--t2); }
-.cl-help-note { margin: 14px 0 0; max-width: 640px; font-size: 12.5px; line-height: 1.6; color: var(--t3); }
 
 /* ═══ /needs — current needs list ═══ */
 .needs-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }

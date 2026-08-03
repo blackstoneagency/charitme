@@ -1,5 +1,61 @@
 # CharitMe — Execution Tracker
 
+## ✅ /causes/sports-youth — matched to the reference (Claude, 2026-08-03)
+
+The brief was two side-by-side screenshots: LEFT the target, RIGHT the page as
+shipped. Most of the gap had already been closed on master (`da7f5014`) — the
+photo cards, the stats band icons and the stories block were all there. **The
+branch was 27 commits behind, so the first useful act was merging master**, not
+building; three of the five "missing" sections in the brief were missing only
+from this branch.
+
+What actually changed:
+
+| | before | after |
+|---|---|---|
+| section order | stats → *your support goes to* → *ways to help* → helps → stories → tabs → grid | stats → tabs → **grid** → helps → stories |
+| "your support goes to" | a per-category count row | **removed** — counted the campaigns the grid below already lists |
+| "ways to help" | a five-link grid | **removed** — every destination is in the tab strip, the hero, or the main nav |
+| helps icons | the same heart ×5, varying only in colour | **five distinct glyphs** (`HelpGlyph.tsx`) |
+| closing band | the shared "Small act. Big impact." | per-cause **"Be part of their journey"** + outline heart |
+
+Ordering matters more than it looks: the grid used to sit below ~1.5 screens of
+editorial copy, so a visitor met the explanation before the thing they came to
+do. Both reference images (Sports & Youth and People in Need) put the tabs and
+the grid directly under the stats band.
+
+**Two things were deliberately NOT copied from the reference, both restatements
+of standing decisions rather than new calls:**
+
+1. **The stat figures stay measured.** The mock asserts 125K+ Youth Impacted /
+   68K+ Athletes Supported / 1,250+ Programs Funded / 250+ Communities Reached.
+   None is an entity in this schema, the country claim is already recorded in
+   `docs/` as a fabricated statistic this repo shipped once and retracted, and
+   `cause-landing.test.ts` fails if any of those literals reaches the source.
+2. **The story cards carry no play button.** Every `campaign_media` row of type
+   `video` points at a reserved `.example` host that cannot resolve, so a
+   control that opens a campaign page instead would be a fake affordance.
+
+**Fixed while in there:** `getCauseStories` was the one read on this page with
+no time bound, no visibility filter and no try/catch — so a stalled database
+held the whole page open, a completed-then-made-private campaign could resurface
+as a public "story", and a missing service-role env 500'd the route before any
+query ran. All three now match `getCauseStats`.
+
+**Removed:** `lib/cause-ways-core.ts` and its test, dead once the block they
+rendered was gone. Dead CSS (`.cl-programs-*`, `.cl-help-*`) went with them.
+
+**Verified:** 2776 tests, typecheck, 0 lint errors, production build. In a real
+browser at 1280 and 320/390/768: dark `rgb(0, 0, 0)` with no background image,
+light mode untouched (`--s1: #fbfaff`), one `h1`, no missing `alt`, zero
+horizontal overflow at every width, and the reference's section order.
+
+⚠️ **Not verifiable here:** the campaign grid and the stories row. This sandbox
+points at `placeholder.supabase.co`, so both reads return `QUERY_TIMEOUT` and
+the page renders its honest degraded state (an EmptyState for the grid, nothing
+for stories). Their POSITION is pinned by source order in the test instead —
+a weaker signal than a rendered one, and worth re-checking against production.
+
 ## 🗂️ ORPHAN TABLES — 8 with no reader and no writer (Claude, 2026-08-02)
 
 Static sweep of all **162** tables in `supabase/schema.sql` against every
