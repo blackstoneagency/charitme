@@ -57,6 +57,29 @@ against all **77 indexable public routes** — `no 5xx`. That is the real check;
 the source-level scan lists 40 `lib` modules with the same shape, and most are
 called from API routes where a 500 is the honest answer.
 
+### Collided with a concurrent lane, and what was kept from theirs
+
+`16e5f4ec` had just given `/campaigns` the shared `IndexHero` + `StatStrip` that
+`/causes` uses. Both lanes rewrote the same hero, so the merge conflicted on the
+page and on `globals.css`.
+
+- **CSS:** both blocks kept — they append distinct rules, neither had to lose
+  anything.
+- **The hero photo is theirs, and they were right.** I had used a gradient panel
+  on the reasoning that no campaign-agnostic photo here was ours to publish. That
+  was wrong: `getCoverForCategory` is the repo's own catalog, already used by
+  `/causes`. The reference art has a photograph, so the page now has one, from
+  the same source, with a scrim so the headline does not depend on what the
+  photo happens to contain.
+- **Their guard was narrowed, not deleted.** "Both browse indexes use the shared
+  hero" no longer holds — the reference gives `/campaigns` a different hero — but
+  its two stated reasons are now asserted directly instead of waived: the scrim
+  is checked against `.cbx-hero-art::after`, and a new conditional check says
+  that *if* `/campaigns` ever renders a platform figure again it must read the
+  shared loader. A silenced test was the easy resolution and the wrong one.
+
+`/causes` and `components/IndexHero` are untouched.
+
 ### Verified
 
 contrast 86×2 clean · responsive 86×3×2 clean · focus-order 87×2 clean
