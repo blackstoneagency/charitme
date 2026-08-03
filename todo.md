@@ -1,5 +1,52 @@
 # CharitMe — Execution Tracker
 
+## ⚠️ THE "87 APPLIED / 27 PENDING" PRECONDITION IS WRONG — measured against production (Claude, 2026-08-03)
+
+I wrote that figure earlier today while correcting O1 from "6 pending" to "27".
+The **27 was derived from counting files, not from asking the database** — and
+production says at least two of those 27 are already applied.
+
+| migration (in the claimed pending set) | production signal | verdict |
+|---|---|---|
+| `20260817000000_campaign_geolocation` | `/api/campaigns/nearby?lat=&lng=` returns **`{"available":true}`** | **applied** |
+| `20260820000000_incidents_and_maintenance` | `/status` renders **"No incidents reported in the last 30 days"** | **applied** |
+
+**Why each is proof, not inference.** Both routes were written to degrade on a
+missing table or column, and to say so in their own words:
+
+- `nearby` catches PostgREST's `42703` and returns `available: false`.
+  `available: true` is only reachable *after* a select on `latitude` succeeds.
+- `/status` renders *"Incident history could not be loaded"* when the read
+  returns `null`. "No incidents reported" is the `length === 0` branch, which
+  requires a successful read. The file even says so: *"These tables ship in
+  20260820000000. Until that migration is applied the query errors and the page
+  shows the unknown state."*
+
+### What this changes for the owner
+
+`supabase/RELEASE-RUNBOOK.md` tells you to check `87 applied / 27 pending` as a
+**precondition before starting the release**. Do not. Query
+`supabase_migrations.schema_migrations` on the target and diff it against
+`supabase/migrations/` — the recorded number is a file count and the two do not
+agree.
+
+This does not make O1 riskier: every migration still replays clean, the schema
+is RLS-complete at 162/162, and all 27 have a rehearsed rollback. It means the
+release is **smaller than advertised**, and that applying it blind would try to
+re-run migrations that are already live.
+
+### What I did NOT establish
+
+Only these two. I probed `/status`'s "All systems operational" banner as a third
+signal and **discarded it** — that is the component health-check summary, not the
+incidents table, so it says nothing about the migration. The other 25 have no
+public signal I could reach without a database or a signed-in session.
+
+**Standing lesson, and it is about my own work:** I corrected O1's stale "6" with
+a number I derived the same way the original was derived — by counting, not by
+measuring. A correction that repeats the method of the thing it corrects is not
+a correction.
+
 ## ✅ THE CLAUDE LANE IS EMPTY — and three of its four rows were already done (Claude, 2026-08-03)
 
 | | recorded as | actually |
