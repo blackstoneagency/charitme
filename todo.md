@@ -1,5 +1,51 @@
 # CharitMe — Execution Tracker
 
+## 🚨 WEBHOOK — two money events were silently dropped on a failed read (Claude, 2026-08-03)
+
+Money has ALREADY MOVED by the time these handlers run, and both answered **200
+to Stripe** on an unreadable row — so there was no retry, ever.
+
+```js
+const { data: donation } = await supabaseAdmin.from('donations')…maybeSingle();
+if (!donation) return;      // ← a failed READ takes this branch
+```
+
+| handler | what a failed read left behind |
+|---|---|
+| `charge.refunded` | donation stays `completed`; the campaign keeps counting money it has **already given back** |
+| `charge.dispute.*` | the chargeback exists at Stripe with **no record here at all** |
+
+Neither is recoverable afterwards: the 200 tells Stripe the event was handled, so
+it is never redelivered, and nothing in our data says anything is missing.
+
+**The fix was already the file's own contract.** Every other money-critical read
+here throws — `record_donation failed`, `Recurring donation renewal could not be
+recorded`, and five more. The webhook 500s, Stripe redelivers, and the work is
+idempotent on `p_stripe_event_id`, which is exactly why throwing is safe. These
+two paths were the outliers that swallowed instead.
+
+**"No row" still returns early, deliberately.** A refund for a payment we never
+recorded genuinely has nothing to update; throwing on that would retry forever.
+Only a read ERROR throws.
+
+**Triaged, not bulk-fixed.** 48 sites across 22 money-path files destructure
+`{ data }` without `error`. Most are correct: `lib`-style lookup helpers that
+return `null` for callers to handle, and receipt/email enrichment that is
+explicitly non-fatal. Two more are false-but-fail-CLOSED and worth a later pass —
+`/api/payouts` and `/api/stripe/connect/status` tell a fully-onboarded fundraiser
+to "complete Stripe onboarding" when the read fails. They move no money, so they
+rank below these.
+
+**Standing lesson, second instance today:** on a money path, `const { data } =
+await …` is the shape to grep for. Dropping `error` does not lose a message — it
+converts "we don't know" into a confident, wrong action.
+
+Guard: `__tests__/donation-read-failures.test.ts`. Note the guard's own bug,
+caught by running it: matching `if (donationError) throw` also swept up the
+recurring-renewal handler, a pre-existing correct site with no row branch after
+it. A guard that fails for the wrong reason gets loosened, so it now matches each
+handler's own message.
+
 ## 🚨 PAYMENT PATH — a failed read was reported to donors as fact (Claude, 2026-08-03)
 
 Both donation routes destructured only `{ data }` from their Supabase lookups and
