@@ -415,6 +415,55 @@ shipped. Check the deployment result per PR, the same way CI runs have to be
 checked per run.
 
 
+## 🔑 SECRET EXPOSURE — MEASURED CLEAN ON BOTH SURFACES (Claude, 2026-08-03)
+
+The standing instruction says *"No secrets may be exposed in browser bundles,
+logs, source code, or client-visible error messages."* That was asserted, never
+measured. It is now measured, and it holds.
+
+```bash
+npm run build && npm run audit:secret-exposure --workspace=apps/web
+```
+
+| surface | scanned | findings |
+|---|---|---|
+| client bundles under `.next/static` | **537 files** | **0** |
+| API responses (every GET + mutating method) | **377 responses** | **0** |
+
+The build ran with a **sentinel** service-role key so a leak would be
+unmistakable; it appears nowhere. No internal Supabase host, no filesystem path,
+no stack frame, no raw PostgREST code. Of 378 responses the error strings are all
+generic — 308 `Unauthorized`, 10 `Internal server error`, the rest validation
+messages naming only the field.
+
+### It searches for VALUES, not names — and that distinction is the whole design
+
+Grepping for `STRIPE_SECRET_KEY` finds **three** hits in the bundles and **zero**
+problems:
+
+- `app/create` ships the copy *"Ensure STRIPE_SECRET_KEY is set in Vercel"* — an
+  operator hint shown when Connect onboarding fails;
+- `admin/users` and `admin/super/roles` ship a permissions matrix whose rows
+  describe `CRON_SECRET` behaviour.
+
+All three are the **name** in user-facing text. A check that flagged them would
+be noise, and noise is how a real hit gets waved through. `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+(`pk_…`) is likewise excluded on purpose: it is public by design.
+
+It catches two ways — the **value** of any secret env var it can see, and
+**shapes** that are secret whatever the variable is called (`sk_live_`, `whsec_`,
+`re_`, `sk-proj-`, `ghp_`), so a key hardcoded into a file is caught even with no
+env var set.
+
+⚠️ **Stated limitation, because it changes what a green run means:** a leaked
+value of a variable that is *unset in the running shell* is invisible to the
+value check — only the shape patterns can fire. The script says so in its own
+output when it sees fewer secrets than it knows about.
+
+Mutation-tested both paths: planting `sk_live_…` in a client chunk is caught by
+shape; planting a secret's value there is caught by value. Both exit 1, and the
+chunk was restored to a clean exit 0.
+
 ## 🔐 A REGEX CANNOT TELL A GATE FROM A PERSONALISATION (Claude, 2026-08-03)
 
 The webhook finding below generalises: **139 of 258 test files read source as
