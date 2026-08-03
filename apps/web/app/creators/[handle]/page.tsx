@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { createClient } from '../../../lib/supabase-server';
 import { supabaseAdmin } from '../../../lib/supabase';
+import JoinTierButton from './JoinTierButton';
 import { formatMoneyShort, DEFAULT_CURRENCY } from '@shared/currencies';
 import {
   redactPosts,
@@ -253,8 +254,12 @@ export default async function CreatorPage({ params }: { params: Promise<{ handle
 
       {/* Membership tiers. Rendered only when the creator has published one — an
           empty "Memberships" heading would advertise a capability this page
-          cannot offer, and there is no subscribe flow wired yet, so a tier is
-          presented as information rather than a button that does nothing. */}
+          cannot offer.
+          Each tier now carries a real Join button: /api/creators/tiers/subscribe
+          creates the Stripe subscription and the webhook records it in
+          `member_subscriptions`, which is what the post paywall reads. Until that
+          route existed these were deliberately information-only, because a
+          button that posts nowhere is worse than no button. */}
       {tiers.length > 0 && (
         <section style={{ marginTop: 32 }}>
           <h2 style={{ fontSize: 19, fontWeight: 800, color: 'var(--t1)', margin: '0 0 4px' }}>Memberships</h2>
@@ -274,6 +279,15 @@ export default async function CreatorPage({ params }: { params: Promise<{ handle
                   <ul style={{ margin: '10px 0 0', padding: '0 0 0 16px', fontSize: 12.5, color: 'var(--t3)', lineHeight: 1.7 }}>
                     {t.benefits.map((b: string, i: number) => <li key={i}>{b}</li>)}
                   </ul>
+                )}
+                {/* An existing member sees their state, not a second Join that
+                    would create a duplicate subscription. */}
+                {viewer.memberships.some((m) => m.tierId === t.id) ? (
+                  <p style={{ margin: '12px 0 0', fontSize: 13, fontWeight: 750, color: 'var(--green-text)' }}>
+                    ✓ You are a member
+                  </p>
+                ) : (
+                  <JoinTierButton tierId={t.id} label={`Join ${t.title}`} />
                 )}
               </li>
             ))}
@@ -319,10 +333,6 @@ export default async function CreatorPage({ params }: { params: Promise<{ handle
                   >
                     <span aria-hidden="true">🔒</span>
                     {p.lockReason}
-                    {/* Says what is true today. Memberships cannot be bought yet,
-                        so a "Join" button would be a dead control — the exact
-                        defect class this repo has been removing. */}
-                    <span style={{ color: 'var(--t4)' }}>· memberships open soon</span>
                   </p>
                 ) : (
                   <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.6, color: 'var(--t2)', whiteSpace: 'pre-wrap' }}>

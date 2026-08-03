@@ -1,5 +1,52 @@
 # CharitMe — Execution Tracker
 
+## ✅ A2 CLOSED — paid membership checkout, and a second mis-classified gate (Claude, 2026-08-03)
+
+`membership_tiers` and `member_subscriptions` have been applied since
+20260525002000 and the tier CRUD shipped, but nothing could take the money — so
+`/creators/[handle]` said *"memberships open soon"*. That placeholder was the
+honest thing to show while no route existed; a Join button posting nowhere is
+the dead-control defect this repo has spent real effort removing.
+
+**A2 was recorded as gated on O3 (Stripe test keys). It was not.** Writing,
+typechecking and unit-testing a subscription-mode Checkout needs no key — only a
+live end-to-end charge does, which is equally true of `/api/donations`,
+`/api/donations/recurring` and every other Stripe path already shipped here.
+**Second row today whose gate turned out to be imaginary** (A1's O1 gate had
+been designed out).
+
+### What ships
+
+- `POST /api/creators/tiers/subscribe` — subscription-mode Checkout with an
+  on-demand Price, so no Stripe dashboard setup is needed. Signed-in only (a
+  membership grants post access, so it must attach to an account), and **gated
+  on a payout destination**: no destination, no subscription, because CharitMe
+  never holds the money.
+- Webhook branches on `kind: 'membership'` **before** the donation paths — a
+  membership session has no `campaignId`, so falling through would record the
+  whole thing against nothing. Upserts `member_subscriptions` idempotently on
+  the unique `stripe_subscription_id`, and **throws** rather than answering 200,
+  so a failed write is redelivered instead of stranding a paying member outside
+  the paywall.
+- `customer.subscription.updated/deleted` track status onto the same row, so a
+  past_due card stops granting access and a recovered one restores it.
+- A real Join button, and existing members see their state rather than a second
+  Join that would buy the tier twice.
+
+### The guard had a hole, found by mutation-testing it
+
+Asserting `onConflict: 'stripe_subscription_id'` against the whole webhook file
+**passed with the membership upsert deleted** — the recurring-donation handler
+lower down carries the same conflict target. The assertion is now scoped to the
+membership branch. Worth remembering: in a 2,000-line file with several similar
+handlers, a file-wide `toMatch` is close to meaningless.
+
+Also corrected one assertion that compared against `indexOf('createCheckoutSession')`
+— which finds the *import*, not the call, so it was pinning where the import sits.
+
+**Still owner-blocked:** a live test charge needs O3. The code, its 13
+assertions, typecheck, lint and build do not.
+
 ## 🔴 A GREEN BUILD IS NOT A RENDERING PAGE (Claude, 2026-08-03)
 
 `/success-stories` was rebuilt, committed, pushed and opened as a PR while
@@ -3630,7 +3677,7 @@ with tests. Re-measured 2026-08-03 by reading the code and running the suites, n
 by trusting the row. The remaining two name real gates.
 
 | A1 | ✅ **DONE — verify before believing this row.** Threaded end to end: `DonateButton` passes `peerFundraiserId` (line 251) → `/api/donations` validates it **against the campaign** before trusting it (209–213) → Stripe metadata (391) → the webhook spreads `peerRpcArg(meta.peerFundraiserId)` into `record_donation` (244, 386). `/campaigns/[slug]/team/[peerSlug]` exists. **The O1 gate was designed out, not waited on**: `lib/peer-attribution.ts` probes whether `donations.peer_fundraiser_id` exists and OMITS the argument when it does not, so the same code is correct against an unapplied *and* an applied database. 39 tests across four files. |
-| A2 | **Creator-economy module** (Patreon/Ko-fi/Buy Me a Coffee = 0/10). Public page + profile writer + tier CRUD + `/dashboard/creator` + **member-only posts with a proven paywall** all ship. Remaining: **paid subscription checkout** — which is now the ONLY thing left, and it is **gated on O3** (Stripe test keys). DMs are optional polish, not parity. |
+| A2 | ✅ **DONE — the O3 gate was a mis-classification, like A1's.** Paid membership checkout ships: `POST /api/creators/tiers/subscribe` creates a subscription-mode Stripe Checkout with an on-demand Price, the webhook branches on `kind: 'membership'` BEFORE the donation paths and upserts `member_subscriptions` idempotently on the unique `stripe_subscription_id`, and `customer.subscription.updated/deleted` track status onto the same row so a past_due card stops granting access. `/creators/[handle]` now carries a real Join button instead of *"memberships open soon"*. **O3 was never needed to BUILD this** — only to place a live test charge, which is equally true of every Stripe path already shipped here. Gated on payout destination, not on keys: no destination, no subscription, because CharitMe never holds the money. |
 | A3 | **Proximity discovery** — needs lat/long on campaigns, so it opens with a migration → effectively O1-shaped. |
 | A4 | ✅ **DONE — the "no reader" claim is stale.** `lib/coach-sessions-server.ts` reads and writes, `/api/coach-sessions` exposes the read, and `/dashboard/ai-coach` renders the history through `lib/coach-sessions-core`. It also follows the house rule the row was worried about: a failed read says *"that is a read failure, not an empty history"* rather than printing a confident 0. |
 
