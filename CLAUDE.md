@@ -228,6 +228,37 @@ not your branch. Both facts together are conclusive.
 `30751833105` (`runner_id: 0`, empty `runner_name`, 10s, 0 billable ms) *and* on
 master run `30750918547` (same signature; master's last 6 runs all failed).
 
+### 🔎 LIKELY CAUSE, and it is not random: the private-repo Actions minutes quota
+
+The flip-flopping this section keeps recording is what an **exhausted monthly
+Actions allowance** looks like. Evidence, all checkable:
+
+- **This repository is private** (`"private": true` from the API). Private repos
+  on a free personal account get a fixed monthly minute allowance; public repos
+  get unlimited. Exhausting it creates the job, assigns no runner, and fails in
+  seconds with `0` billable ms and no steps — **exactly the signature above**.
+- **It is not `ci.yml`.** `image-links.yml` has run once ever (`30259517312`,
+  2026-07-27) and failed the same way in 3s. Every workflow is affected, which
+  rules out anything in a single workflow file. The `ci.yml` config is plain
+  `ubuntu-latest` + `actions/checkout@v4` and is fine.
+- **The timeline matches a billing cycle.** Dead ~2 weeks → alive **2026-08-01,
+  the first day of a month** → dead again 2026-08-02. A quota resetting on the
+  1st and being re-burned within a day by heavy agent traffic explains the one
+  "good" day that has otherwise looked inexplicable.
+
+**Falsifiable prediction:** runners return on **1 September** and die again
+shortly after, unless the plan changes or push volume drops. If that does not
+happen, this diagnosis is wrong and should be struck.
+
+⚠️ **This does not replace the check.** It is a hypothesis that fits the
+evidence, not something read off a billing page — the API does not expose the
+allowance to this token. Keep verifying per run; the table above is still the
+authority on *whether* a given red check is real.
+
+**Owner-actionable, if it holds:** raise/enable the Actions spending limit, or
+make the repository public (unlimited minutes), or cut the number of pushes that
+trigger a full run.
+
 **Whichever state it is in, verify locally — that is the only signal that never
 lies:**
 

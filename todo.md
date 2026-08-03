@@ -123,7 +123,49 @@ to grep for. Dropping `error` does not lose an error message — it converts
 Guard: `__tests__/donation-read-failures.test.ts`, 10 assertions across both
 routes, mutation-tested by deleting each 503 in turn.
 
-## ⚠️ CLS — 5 routes "fail" the web-vitals budget here, and it is a SANDBOX ARTIFACT (Claude, 2026-08-03)
+## ✅ CLS — RESOLVED BY MEASUREMENT: the current skeleton is correct, 0.000 vs 0.225 (Claude, 2026-08-03)
+
+**The open question in this entry is now CLOSED, and the answer is measured, not
+reasoned.** I previously wrote that settling it needed "a seeded database or a
+preview with data". It did not — it needed the page's data dependency removed so
+the Suspense boundary could actually resolve.
+
+| `ListPageSkeleton` | populated list | empty list |
+|---|---|---|
+| **`minHeight: 100vh`** (current code) | **0.0000** — zero shifts | 0.116 |
+| removed | **0.2250** | 0.037 |
+
+**The current code is right by a wide margin.** Removing the reservation buys
+0.116 → 0.037 on the empty case and costs **0 → 0.225** on the populated one —
+the common case in production, and 2.25× the budget. The 0.225 is also an exact
+independent reproduction of the figure the component's own comment cites as the
+bug it was written to fix.
+
+### The experiment failed THREE times first, each time looking like a result
+
+Worth reading before trusting any future measurement of a Suspense route here:
+
+1. **Filler added to the page** — never reached the response. The data fetch
+   never resolves without a database, so the served HTML is the fallback and the
+   deferred chunk is never flushed. Measured the skeleton against itself.
+2. **Fixture with wrong field names** — the page rendered *"Something went
+   wrong"*. The 0.116 I got back was an **error boundary**, not a populated list.
+   Caught only by dumping `document.body.innerText`.
+3. **Fixture that resolved synchronously** — `loading.tsx` never painted, so both
+   variants measured 0.0000 and the comparison was meaningless.
+
+Only the fourth attempt — correct `VolunteerOpportunity` shape, plus an explicit
+900ms delay so the skeleton actually renders — produced a real comparison. Each
+failure returned a plausible number; none of them announced itself.
+
+**Rule this hands forward:** when measuring a Suspense route, assert the LOADED
+state is on screen before believing the metric. `cardsRendered: 48` and
+`footerY: 3648` were what made the fourth run trustworthy.
+
+---
+
+*Original entry, kept for the reasoning:*
+
 
 **Do not "fix" the list skeletons off this reading.** I nearly shipped a
 regression doing exactly that, and the trap is well hidden.
@@ -583,7 +625,7 @@ external release constraints after the latest production deployment.
 
 | # | Blocker | Evidence | Who can clear it |
 |---|---------|----------|------------------|
-| 1 | **GitHub Actions assigns no runner — RE-BROKEN, verified 2026-08-03.** This row said CLEARED; it is not. Eight runs today (`30778197657`, `30779419210`, `30780039522`, `30780372581`, `30782321643`, `30802456447`, `30803013774`, `30803728152`) all show `runner_id: 0`, empty `runner_name`, `billable.UBUNTU.total_ms: 0`, 2–11s duration, no steps. Master's runs match, which rules out any branch. **A red check right now is not a signal.** One run showed `queued` briefly before dropping — that is not recovery. Verify per run (`actions_get` → `get_workflow_run_usage`); do not trust this row or its predecessor. | 8 runs + master, 2026-08-03 | **External** — GitHub |
+| 1 | **GitHub Actions assigns no runner — RE-BROKEN, verified 2026-08-03.** This row said CLEARED; it is not. Eight runs today (`30778197657`, `30779419210`, `30780039522`, `30780372581`, `30782321643`, `30802456447`, `30803013774`, `30803728152`) all show `runner_id: 0`, empty `runner_name`, `billable.UBUNTU.total_ms: 0`, 2–11s duration, no steps. Master's runs match, which rules out any branch. **A red check right now is not a signal.** One run showed `queued` briefly before dropping — that is not recovery. Verify per run (`actions_get` → `get_workflow_run_usage`); do not trust this row or its predecessor. | 8 runs + master, 2026-08-03; `image-links.yml` fails identically; repo is private | **Owner** — likely the private-repo Actions minute allowance (see CLAUDE.md): raise the spending limit, make the repo public, or cut push volume |
 | 2 | **No CharitMe staging Supabase project is available.** The account exposes CharitMe production and an unrelated Auto Trading project. Preview Branch creation returns HTTP 402 because the account is not on Pro; dedicated `charitme-staging` creation is also rejected because the owner has reached the two-active-free-project limit. Database release policy correctly blocks production migration application until the same commit is verified on real staging. | Supabase project/branch inventory and both provisioning probes, 2026-07-29 | **Owner** — upgrade Supabase, pause/delete an unrelated project, or provision staging in another organization |
 | 3 | ~~Vercel free daily deployment quota exhausted~~ — **NOT BLOCKING as of 2026-08-03.** Eight preview deployments built and went Ready across this session, and production answers 200 on `/api/health`, `/needs` and `/campaigns` (~1.4–1.5s, `x-vercel-cache: MISS`, `age: 0`). The 100/day cap is real and will re-exhaust under a busy day — it is a recurring condition, not a cleared one. | 8 preview builds + production probes, 2026-08-03 | **External reset** — or upgrade Vercel to remove the recurrence |
 
