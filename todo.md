@@ -1,5 +1,69 @@
 # CharitMe — Execution Tracker
 
+## ⚠️ CLS — 5 routes "fail" the web-vitals budget here, and it is a SANDBOX ARTIFACT (Claude, 2026-08-03)
+
+**Do not "fix" the list skeletons off this reading.** I nearly shipped a
+regression doing exactly that, and the trap is well hidden.
+
+`audit:web-vitals` reports 5 of 86 routes over the 0.1 CLS budget — `/matching`,
+`/volunteer`, `/leaderboard`, `/events`, `/sponsor`, all clustered at
+**0.116–0.13**. One tight cluster means one shared cause, and there is one:
+attributing the shift with a `layout-shift` PerformanceObserver names a single
+source on every route, `<footer class="kind-footer">`, moving the same distance.
+
+All five are the routes that have a `loading.tsx` (11 exist in total).
+
+### What is actually happening
+
+`ListPageSkeleton` reserves `minHeight: 100vh` — a deliberate, documented fix for
+an earlier 0.225 CLS. That pushes the footer to y≈986, below the 900px fold,
+while loading.
+
+**This sandbox has no database, so every list resolves to its EMPTY state.**
+Content collapses to ~493px, and the footer travels back **UP** into view
+(986 → 561). The skeleton is not too short — it is too tall, and the jump has
+reversed direction.
+
+Removing the `minHeight: 100vh` drops those four routes to **0.0371**, measured.
+It is still the wrong change:
+
+| | footer during load | populated list | empty list |
+|---|---|---|---|
+| **with** `100vh` (current) | y≈986, below fold | moves down, stays below fold → **0** | moves up into view → 0.116 |
+| **without** | y≈691, in view | moves down **from inside the viewport** → shift | 0.037 |
+
+So removing it trades a fixed regression on the common (populated) case for an
+improvement on the case this sandbox happens to show. **The current code is
+right; the measurement is what is wrong.**
+
+### The populated case cannot be measured here — verified, not assumed
+
+I tried, by injecting 48 filler cards into `/volunteer` and rebuilding. The
+filler reached the build output (`.next/server/app/volunteer/(list)/page.js`)
+and never reached the response. The served HTML is the Suspense **fallback** —
+`<template id="B:1">` plus the skeleton — because the data fetch never resolves
+without a database, so the deferred chunk carrying the real content (and the
+filler) is never flushed. The experiment measured the skeleton against itself.
+
+**Worth knowing generally: on a Suspense route in this sandbox, `curl` and
+Playwright both see the fallback, not the page.** Any "measurement" of such a
+route's loaded state here is measuring the skeleton.
+
+### What would settle it
+
+A seeded database, or a preview deployment with data, then re-run
+`audit:web-vitals`. Until then the honest reading of those 5 rows is "unmeasured",
+not "failing". Everything reverted; no CLS change shipped.
+
+### The rest of the audit suite is genuinely clean
+
+Run against a production build on a live port:
+
+- `audit:contrast` — **86 pages × 2 themes**, 10,516 text elements per theme, no AA failures
+- `audit:responsive` — **86 pages × 3 viewports × 2 themes**, no regressions
+- `audit:focus-order` — **87 routes × 2 themes**, 15,290 focus stops, no keyboard traps, no invisible focus stops, no order breaks
+- `audit:web-vitals` — 81/86 within budget; the 5 above are the artifact
+
 ## ✅ RESILIENCE — the helper that made reads degrade could not catch the commonest failure (Claude, 2026-08-03)
 
 `boundedQuery` exists so a degraded database takes each call site's existing
