@@ -2804,7 +2804,26 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
   align-items: center;
   gap: clamp(40px, 6vw, 88px);
 }
-.mirror-spotlight-copy { max-width: 560px; }
+/* The merged band: carousel left, and one column on the right holding the
+   "Live Right Now" copy, the supporter quotes and the impact CTA. These were
+   three stacked sections before; the reference reads them as one. */
+/* No max-width on the COLUMN: the reference has the quotes and the CTA card
+   filling it, and a 560px cap left ~190px of dead space beside them at 1440.
+   The reading measure is capped on the paragraph instead, where it belongs. */
+.mirror-spotlight-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.mirror-spotlight-copy > .mirror-actions { margin-bottom: 2px; }
+.mirror-spotlight-copy > p { max-width: 62ch; }
+/* The quotes sit two-up beside the carousel, and stack once the column is too
+   narrow for two readable cards rather than at a fixed breakpoint. */
+.mirror-spotlight-copy .mirror-testimonials {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+}
+.mirror-spotlight-copy .mirror-testimonials article { min-height: 0; }
+.mirror-spotlight-copy .mirror-proof-cta { flex: 0 0 auto; }
 .mirror-spotlight-copy h2 {
   margin: 0 0 16px;
   color: var(--mh-text);

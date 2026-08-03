@@ -18959,3 +18959,24 @@ place at every width and mid-word at some of them.
 
 The other four pages using this card (`/campaigns`, `/search`, `/donate`,
 `/supporter-space`) are untouched and a test asserts they stay on the dense card.
+
+## 🏠 HOMEPAGE — three lower sections merged into one (Claude, 2026-08-02)
+
+The reference shows the campaign carousel on the LEFT with "Live Right Now", the
+two supporter quotes and the "Make an Impact Today" CTA all in one column beside
+it. The page had those as **three separate stacked bands** (`mirror-spotlight`,
+`mirror-proof`, plus the trust row below). Merged into `mirror-spotlight`.
+
+**Nothing was rebuilt.** The carousel card already matched the reference exactly
+— Trust Score / Donors / Funded chips, ACTIVE CAMPAIGN badge, organiser line,
+raised-of-goal, progress bar, donations + days left, Donate Now, arrows and
+dots. The quotes were already real `donations` rows. So this was a layout merge,
+not new UI.
+
+⚠️ **The `#impact` id moved with it.** The removed section owned that anchor and
+both the header and footer link to it — deleting the section without carrying the
+id would have produced two dead nav links pointing at nothing.
+
+The copy column lost its 560px cap: at 1440 that left ~190px of dead space beside
+the quotes and the CTA card, which the reference fills. The reading measure is
+capped on the paragraph (62ch) instead, where it belongs.
