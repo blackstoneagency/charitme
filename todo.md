@@ -1,5 +1,73 @@
 # CharitMe — Execution Tracker
 
+## ✅ MIGRATIONS REHEARSED LOCALLY — 114/114 apply clean; 17 of 27 have NO ROLLBACK (Claude, 2026-08-03)
+
+Staging remains owner-blocked, but the part of staging's job that does **not**
+need a Supabase plan has now been done here: replaying every migration in order
+against a throwaway Postgres and checking what the resulting schema contains.
+
+```
+applied=114 failed=0
+tables            162
+tables with RLS   162      ← every public table
+RLS policies      245
+tables WITHOUT RLS  0
+```
+
+All ten representative objects from the pending set are present — `organizations`,
+`organization_members`, `volunteer_shifts`, `volunteer_hours`, `tasks`,
+`custom_domains`, `incidents`, `data_retention_policies`, `peer_fundraisers`,
+`donation_forms`. **The 9 migrations added since the 2026-07-29 audit — which had
+never been rehearsed anywhere — apply cleanly.**
+
+### 🔴 The finding: 17 of the 27 pending migrations have NO rollback script
+
+The ledger audit proved rollback for the 18 it covered. It is not true of the set
+as it now stands:
+
+| | count |
+|---|---|
+| pending **with** a rollback script | 10 |
+| pending **without** | **17** |
+
+Five of the six security migrations are covered. **One is not:**
+`20260812010000_creator_tips_not_world_readable`. Every one of the 9 added since
+the audit is uncovered.
+
+That is worth knowing *before* the gate opens, not after: it means 17 of the 27
+cannot be backed out if applying them goes wrong in production.
+
+### ⚠️ `regen_schema.sh` cannot catch a broken migration — by construction
+
+It runs psql with **`ON_ERROR_STOP=0`** and sends stdout and stderr to
+`/dev/null`, because its job is to emit a schema mirror and it tolerates partial
+failures to do it. A migration that errors is silently skipped and the mirror is
+still written. It was never a verification tool, and reading it as one is how a
+bad migration could sit unnoticed.
+
+`scripts/rehearse-migrations.sh` is the verification tool: `ON_ERROR_STOP=1`, one
+migration at a time, names the failing file, and **exits non-zero**.
+Mutation-tested — a planted broken migration exits 1 and names it; a planted
+table with RLS left off exits 1; the clean tree exits 0.
+
+### The stub that makes or breaks the replay
+
+The first replay reported 2 failures and **both were artifacts of my own harness**:
+
+`supabase_migrations.schema_migrations` is the Supabase CLI's ledger and exists on
+every real project. Without it, `20260607900000_prepare_support_policy_hardening`
+— a compatibility shim that reads the ledger to decide whether later hardening
+already ran — aborts, and that cascades into `20260608000000_production_hardening`
+failing with *"policy already exists"*. Two red migrations, neither of them
+broken. The script now creates the ledger and inserts each version after applying
+it, exactly as `supabase db push` does; the count went 112/114 → **114/114**.
+
+**Not a substitute for staging.** This is a clean-replay from zero against stubbed
+`auth`/`storage`, not a restore of the production snapshot, so it cannot catch
+drift between the migrations and what is actually live. It does establish that the
+migrations are internally consistent and RLS-complete, which is the half that
+needed no account upgrade.
+
 ## 🔻 CI MINUTES — a third of the allowance went on docs commits; fixed (Claude, 2026-08-03)
 
 Follows from the diagnosis in CLAUDE.md: this repo is **private**, so Actions
