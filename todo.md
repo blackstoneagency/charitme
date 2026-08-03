@@ -1,5 +1,65 @@
 # CharitMe — Execution Tracker
 
+## ✅ ROLLBACK COVERAGE — 10 → 22 of 27; the last 5 are named, not forgotten (Claude, 2026-08-03)
+
+Second pass. I had applied an incoherent standard: willing to write `drop table`
+(destroys every row) while calling `drop column` (destroys one column) too
+dangerous to write. Both are what reverting the respective migration means.
+
+```
+rehearse-rollbacks.sh — 10/10 pass, exit 0
+  6 table rollbacks   (volunteer, organizations, incidents, tasks, retention, domains)
+  4 column rollbacks  (demo labels, geolocation, locale, marketing org scoping)
+```
+
+| | before | now |
+|---|---|---|
+| pending migrations with a rollback | 10 | **20** |
+| declared permanently irreversible | 0 | **2** |
+| genuinely uncovered | 17 | **5** |
+
+### Contents MEASURED, not parsed
+
+`scripts/diff-migration.sh <version>` replays every earlier migration, snapshots
+the schema, applies the target and diffs. That matters: several columns are added
+inside `DO` blocks that build statements with `format()`, and a grep over the SQL
+does not see them. My first attempt to enumerate the columns by grep found
+**zero** for three of the four migrations.
+
+### The two 15s mean opposite things
+
+`marketing_org_scoping` adds `org_id` to exactly the 15 marketing tables whose
+foreign keys the `organizations` rollback destroys — independent corroboration of
+the ordering hazard found in the previous pass.
+
+- **`rollback_marketing_org_scoping`** loses 15 FKs *with the columns being
+  dropped* → expected.
+- **`rollback_organizations_multitenancy`** loses 15 FKs *from columns that
+  survive* → the dangerous case.
+
+The harness cannot tell them apart on its own — it counts FKs by surviving
+*table*, and in both cases the tables survive. Hence an explicit
+`EXPECTED_FK_LOSS=` declaration in each, with the distinction written down.
+
+### The two RLS ones now REFUSE rather than not exist
+
+An absent rollback reads as an oversight. These exist, explain themselves, and
+`raise exception` — **psql exits 3**, so they halt a release script rather than
+printing a warning:
+
+- `20260812010000_creator_tips_not_world_readable` — reverting restores anonymous
+  SELECT over `supporter_id`, `amount_cents`, `message` and
+  `stripe_payment_intent_id`.
+- `20260819000000_donation_forms_slug_and_campaign_owner` — same shape, and a
+  partial revert would break form URLs rather than restore anything.
+
+### The 5 still uncovered, and why
+
+3 `create or replace function` (two of them replace **`record_donation`**, the
+RPC the Stripe webhook calls — the inverse is "restore the previous body", and
+getting it wrong breaks the donation path) and 2 mixed. Each needs a decision,
+not a template.
+
 ## ✅ ROLLBACKS — 6 written and REHEARSED; one is not safe to run alone (Claude, 2026-08-03)
 
 Resolves the first of the two questions left open by the classification: the

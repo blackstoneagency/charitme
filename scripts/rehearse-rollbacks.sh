@@ -26,19 +26,28 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PGBIN="$(pg_config --bindir 2>/dev/null || echo /usr/lib/postgresql/16/bin)"
 PORT="${PGPORT:-55472}"
 
-# version:table,table,...  — what each rollback must remove.
+# version:KIND:targets — what each rollback must remove.
+#   TABLES:  comma-separated table names
+#   COLUMNS: comma-separated table.column pairs
 CASES=(
-  "20260806000000:volunteer_hours,volunteer_shifts"
-  "20260807000000:brands,organization_members,organizations"
-  "20260820000000:maintenance_windows,incident_updates,incidents"
-  "20260821000000:tasks"
-  "20260822000000:data_retention_runs,data_retention_policies"
-  "20260823000000:custom_domains"
+  "20260806000000:TABLES:volunteer_hours,volunteer_shifts"
+  "20260807000000:TABLES:brands,organization_members,organizations"
+  "20260820000000:TABLES:maintenance_windows,incident_updates,incidents"
+  "20260821000000:TABLES:tasks"
+  "20260822000000:TABLES:data_retention_runs,data_retention_policies"
+  "20260823000000:TABLES:custom_domains"
+  "20260808000000:COLUMNS:campaigns.is_demo,donations.is_demo,profiles.is_demo"
+  "20260817000000:COLUMNS:campaigns.latitude,campaigns.longitude"
+  "20260818000000:COLUMNS:profiles.locale"
+  "20260814000000:COLUMNS:marketing_audit_logs.org_id,marketing_automations.org_id,marketing_campaign_plans.org_id,marketing_campaigns.org_id,marketing_consent.org_id,marketing_contacts.org_id,marketing_email_templates.org_id,marketing_events.org_id,marketing_forms.org_id,marketing_goals.org_id,marketing_opportunities.org_id,marketing_referrals.org_id,marketing_segments.org_id,marketing_suppression_list.org_id,marketing_utm_links.org_id"
 )
 
 FAILURES=0
 for case in "${CASES[@]}"; do
-  VERSION="${case%%:*}"; TABLES="${case#*:}"
+  VERSION="${case%%:*}"; REST="${case#*:}"; KIND="${REST%%:*}"; TARGETS="${REST#*:}"
+  # `TABLES` stays the variable the table path uses; empty for COLUMN cases so
+  # the survivor filter below excludes nothing.
+  if [ "$KIND" = "TABLES" ]; then TABLES="$TARGETS"; else TABLES=""; fi
   RB=$(ls "$ROOT"/supabase/rollbacks/${VERSION}_*.sql 2>/dev/null | head -1)
   if [ -z "$RB" ]; then echo "MISSING rollback for $VERSION"; FAILURES=$((FAILURES+1)); continue; fi
 
@@ -89,15 +98,22 @@ APPLY
   # Counts foreign keys on tables that SURVIVE the rollback. FKs owned by the
   # dropped tables go with them by definition and are not collateral; counting
   # them made every rollback look damaging and hid the one that is.
-  SURVIVOR_FILTER=$(printf "'%s'," ${TABLES//,/ } | sed 's/,$//')
+  SURVIVOR_FILTER=$(printf "'%s'," ${TABLES//,/ } | sed "s/,$//")
+  [ -z "$SURVIVOR_FILTER" ] && SURVIVOR_FILTER="''"
   fks() { su postgres -c "psql -h $WORK/sock -p $PORT -U postgres -tAc \"select count(*) from information_schema.table_constraints where constraint_schema='public' and constraint_type='FOREIGN KEY' and table_name not in ($SURVIVOR_FILTER);\""; }
   BEFORE=$(count); FK_BEFORE=$(fks)
 
   # Every target must exist before the rollback, or the check below is vacuous.
+  exists_target() {  # $1 = target (table or table.column)
+    if [ "$KIND" = "TABLES" ]; then
+      su postgres -c "psql -h $WORK/sock -p $PORT -U postgres -tAc \"select count(*) from information_schema.tables where table_schema='public' and table_name='$1';\""
+    else
+      su postgres -c "psql -h $WORK/sock -p $PORT -U postgres -tAc \"select count(*) from information_schema.columns where table_schema='public' and table_name='${1%%.*}' and column_name='${1#*.}';\""
+    fi
+  }
   MISSING_BEFORE=""
-  for t in ${TABLES//,/ }; do
-    n=$(su postgres -c "psql -h $WORK/sock -p $PORT -U postgres -tAc \"select count(*) from information_schema.tables where table_schema='public' and table_name='$t';\"")
-    [ "$n" = "1" ] || MISSING_BEFORE="$MISSING_BEFORE $t"
+  for t in ${TARGETS//,/ }; do
+    [ "$(exists_target "$t")" = "1" ] || MISSING_BEFORE="$MISSING_BEFORE $t"
   done
   if [ -n "$MISSING_BEFORE" ]; then
     echo "✗ $VERSION — target table(s) absent BEFORE rollback:$MISSING_BEFORE (test would be vacuous)"
@@ -105,12 +121,11 @@ APPLY
   else
     su postgres -c "psql -h $WORK/sock -p $PORT -U postgres -q -v ON_ERROR_STOP=1 -f $WORK/rollback.sql" >/dev/null
     STILL=""
-    for t in ${TABLES//,/ }; do
-      n=$(su postgres -c "psql -h $WORK/sock -p $PORT -U postgres -tAc \"select count(*) from information_schema.tables where table_schema='public' and table_name='$t';\"")
-      [ "$n" = "0" ] || STILL="$STILL $t"
+    for t in ${TARGETS//,/ }; do
+      [ "$(exists_target "$t")" = "0" ] || STILL="$STILL $t"
     done
     AFTER=$(count); FK_AFTER=$(fks)
-    EXPECTED=$(( BEFORE - $(echo "${TABLES//,/ }" | wc -w) ))
+    if [ "$KIND" = "TABLES" ]; then EXPECTED=$(( BEFORE - $(echo "${TABLES//,/ }" | wc -w) )); else EXPECTED=$BEFORE; fi
     # FKs owned BY the dropped tables are expected to go; FKs on tables that
     # survive are not. EXPECTED_FK_LOSS records the reviewed, accepted number.
     # `|| true`: under set -o pipefail a grep with no match kills the script
@@ -126,7 +141,7 @@ APPLY
       echo "✗ $VERSION — $(( FK_BEFORE - FK_AFTER )) foreign keys lost on SURVIVING tables, only $ALLOWED declared. Review them, then record EXPECTED_FK_LOSS=<n> in the rollback."
       FAILURES=$((FAILURES+1))
     else
-      echo "✓ $VERSION — removed $(echo "${TABLES//,/ }" | wc -w) tables ($BEFORE → $AFTER); FKs lost on surviving tables: $(( FK_BEFORE - FK_AFTER )) (≤$ALLOWED declared)"
+      echo "✓ $VERSION — removed $(echo "${TARGETS//,/ }" | wc -w) $KIND ($BEFORE → $AFTER tables); FKs lost on surviving tables: $(( FK_BEFORE - FK_AFTER )) (≤$ALLOWED declared)"
     fi
   fi
 
