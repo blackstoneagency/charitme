@@ -9475,3 +9475,31 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   }
   .cx-grid.is-list .cx-card { grid-template-columns: minmax(0, 120px) minmax(0, 1fr); }
 }
+
+/* Cause-card icon badge (the reference puts one over each photo). Sits on the
+   image, so it needs its own opaque plate rather than a themed surface — the
+   photo behind it is arbitrary and a translucent chip would fail contrast over
+   a light one. */
+.cx-card-ic {
+  position: absolute;
+  z-index: 1;
+  top: 12px;
+  left: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  background: rgba(10, 6, 28, .82);
+  border: 1px solid rgba(255, 255, 255, .18);
+}
+.cx-card-ic svg { width: 19px; height: 19px; }
+/* Light accents only: these sit on a fixed dark plate in BOTH themes, so the
+   accessible direction is lighter regardless of the visitor's theme. */
+.cx-card-ic--0 { color: #ff9db4; }
+.cx-card-ic--1 { color: #7ee2a8; }
+.cx-card-ic--2 { color: #b9a5ff; }
+.cx-card-ic--3 { color: #ffc978; }
+.cx-card-ic--4 { color: #8fd0ff; }
+.cx-card-ic--5 { color: #f5a3ff; }
