@@ -13,7 +13,7 @@ import CampaignImage from '../../../components/CampaignImage';
 import { getPhotosForCategory } from '../../../lib/photo-catalog';
 import { formatMoneyCompact } from '@shared/currencies';
 import CauseLanding, { CauseCtaBand } from './CauseLanding';
-import HelpGlyph from './HelpGlyph';
+import HelpGlyph from '../../../components/HelpGlyph';
 
 const PAGE_SIZE = 24;
 
