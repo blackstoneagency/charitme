@@ -9839,6 +9839,9 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 .cx-stat-ic--1 { color: var(--green-text); }
 .cx-stat-ic--2 { color: var(--brand-text); }
 .cx-stat-ic--3 { color: var(--orange-text); }
+/* /about-us runs a fifth tile. Without this the icon inherits body colour and
+   reads as a disabled glyph beside four coloured ones. */
+.cx-stat-ic--4 { color: var(--blue-text); }
 .cx-stat dd { margin: 0; }
 .cx-stat-value { font-size: 24px; font-weight: 850; letter-spacing: -.02em; line-height: 1.12; color: var(--t1); }
 /* Indented to clear the icon so the label lines up under the number. */
@@ -11016,3 +11019,173 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 }
 
 .imp-subscribe { margin-top: 34px; }
+/* ═══════════════════════════════════════════════════════════════════════════
+   /about-us — the reference design
+   Shares the photo hero and measured stat strip with /causes, /campaigns and
+   /how-it-works (.cx-hero / .cx-stats) rather than restating them, which is why
+   this block only carries what is unique to the page.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.ab-main { padding: 0 0 72px; }
+.ab-h2 {
+  margin: 0 0 26px;
+  font-size: var(--fs-h2);
+  font-weight: 800;
+  letter-spacing: -.02em;
+  color: var(--t1);
+  text-align: center;
+}
+.ab-h2--left { text-align: left; }
+
+/* "Watch our story" — sits in the hero, so it follows the hero's fixed
+   white-on-dark treatment rather than the theme. */
+.ab-watch {
+  display: inline-flex; align-items: center; gap: 10px;
+  min-height: 44px; padding: 0 20px;
+  border: 1px solid rgba(255,255,255,.34); border-radius: 999px;
+  background: rgba(255,255,255,.08); color: #fff;
+  font-size: 14.5px; font-weight: 700; text-decoration: none;
+}
+.ab-watch:hover { border-color: rgba(255,255,255,.7); background: rgba(255,255,255,.16); }
+.ab-watch-ic {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 999px;
+  background: rgba(255,255,255,.18);
+}
+.ab-watch-ic .pub-icon { width: 14px; height: 14px; }
+
+/* ── Mission / Values ───────────────────────────────────────────────────── */
+.ab-mission-band {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 26px;
+  margin-top: 44px;
+  padding: 26px;
+  border: 1px solid var(--b1);
+  border-radius: var(--rxl);
+  background: var(--s1);
+}
+.ab-mission { min-width: 0; }
+.ab-mission-ic {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 46px; height: 46px; border-radius: 999px;
+  border: 1px solid var(--b1); background: var(--s2); color: var(--red-text);
+}
+.ab-mission-ic .pub-icon { width: 22px; height: 22px; }
+.ab-mission p { margin: 14px 0 0; font-size: 14.5px; line-height: 1.65; color: var(--t3); }
+
+.ab-values { min-width: 0; }
+.ab-values-grid {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px;
+}
+.ab-value {
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px;
+  min-width: 0; text-decoration: none;
+}
+.ab-value-ic {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; border-radius: 999px;
+  border: 1px solid var(--b1); background: var(--s2);
+}
+.ab-value-ic .pub-icon { width: 19px; height: 19px; }
+.ab-value-ic--0 { color: var(--red-text); }
+.ab-value-ic--1 { color: var(--brand-text); }
+.ab-value-ic--2 { color: var(--orange-text); }
+.ab-value-ic--3 { color: var(--green-text); }
+.ab-value strong { font-size: 15px; font-weight: 780; color: var(--t1); }
+.ab-value span:last-child { font-size: 13.5px; line-height: 1.6; color: var(--t3); }
+.ab-value:hover strong { color: var(--brand-text); }
+
+/* ── Impact strip ───────────────────────────────────────────────────────── */
+.ab-impact { padding: 48px 0 8px; }
+.ab-impact-note {
+  margin: 16px 0 0; text-align: center;
+  font-size: 13.5px; line-height: 1.6; color: var(--t3);
+}
+.ab-impact-note a { color: var(--brand-text); font-weight: 700; }
+
+/* ── Our Story ──────────────────────────────────────────────────────────── */
+.ab-story {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  align-items: center;
+  margin-top: 48px;
+  padding: 26px;
+  border: 1px solid var(--b1);
+  border-radius: var(--rxl);
+  background: var(--s1);
+}
+.ab-story-copy { min-width: 0; }
+.ab-story-copy p { margin: 0 0 12px; font-size: 14.5px; line-height: 1.7; color: var(--t3); }
+.ab-story-cta {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px;
+  border: 1px solid var(--b2); border-radius: var(--r);
+  color: var(--t1); font-size: 14px; font-weight: 700; text-decoration: none;
+}
+.ab-story-cta:hover { border-color: var(--t3); background: var(--s2); }
+.ab-story-media { min-width: 0; border-radius: var(--rl); overflow: hidden; }
+.ab-story-media img { display: block; width: 100%; height: auto; }
+
+/* ── Our Team ───────────────────────────────────────────────────────────── */
+.ab-team { padding: 48px 0 0; }
+.ab-team-grid {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;
+}
+.ab-team-card {
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px;
+  min-width: 0; padding: 16px; text-align: center;
+  border: 1px solid var(--b1); border-radius: var(--rl); background: var(--s1);
+}
+.ab-team-media {
+  display: flex; align-items: center; justify-content: center;
+  width: 74px; height: 74px; margin: 0 auto 10px;
+  border-radius: 999px; overflow: hidden;
+  border: 1px solid var(--b1); background: var(--s2);
+}
+.ab-team-media img { width: 100%; height: 100%; object-fit: cover; }
+.ab-team-mono { font-size: 22px; font-weight: 800; color: var(--t3); }
+.ab-team-card strong { font-size: 14.5px; font-weight: 780; color: var(--t1); }
+.ab-team-card > span:last-child { font-size: 12.5px; line-height: 1.5; color: var(--t3); }
+
+/* ── Be Part of Our Mission ─────────────────────────────────────────────── */
+.ab-cta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+  margin-top: 48px;
+  padding: 28px;
+  border: 1px solid var(--b1);
+  border-radius: var(--rxl);
+  background: var(--s2);
+}
+.ab-cta-ic {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 56px; height: 56px; flex: 0 0 auto;
+  border-radius: 999px; border: 1px solid var(--b1);
+  background: var(--s1); color: var(--red-text);
+}
+.ab-cta-ic .pub-icon { width: 26px; height: 26px; }
+.ab-cta h2 { margin: 0; font-size: 20px; font-weight: 800; color: var(--t1); }
+.ab-cta p { margin: 6px 0 0; font-size: 14px; line-height: 1.55; color: var(--t3); }
+.ab-cta-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+/* Inside this themed band the secondary button follows the theme rather than
+   the hero's fixed white-on-dark treatment — a literal white-on-transparent
+   button renders as invisible text in light mode. */
+.ab-cta-secondary { border-color: var(--b2); background: var(--s1); color: var(--t1); }
+.ab-cta-secondary:hover { border-color: var(--t3); background: var(--s2); }
+
+@media (min-width: 700px) {
+  .ab-values-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ab-team-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (min-width: 900px) {
+  .ab-mission-band { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 34px; padding: 32px; }
+  .ab-story { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; padding: 32px; }
+  .ab-cta { grid-template-columns: auto minmax(0, 1fr) auto; }
+}
+@media (min-width: 1100px) {
+  .ab-team-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}

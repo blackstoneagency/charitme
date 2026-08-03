@@ -4,6 +4,7 @@ import React, { useEffect, useId, useState } from 'react';
 import { SUPPORTED_CURRENCIES } from '@shared/currencies';
 import Link from 'next/link';
 import { KFIcon, StatusPill } from '../../../../components/CharitMeApp';
+import type { SettingsCategory } from '../../../../lib/settings-defaults';
 
 function useEscape(onClose: () => void): void {
   useEffect(() => {
@@ -47,18 +48,15 @@ export type ResourceUsage = {
   color: string;
 };
 
-export type AllSettings = {
-  general: Record<string, unknown>;
-  security: Record<string, unknown>;
-  email: Record<string, unknown>;
-  payment: Record<string, unknown>;
-  integrations: Record<string, unknown>;
-  notifications: Record<string, unknown>;
-  storage: Record<string, unknown>;
-  maintenance: Record<string, unknown>;
-  flags: Record<string, unknown>;
-  advanced: Record<string, unknown>;
-};
+/**
+ * Derived from VALID_CATEGORIES rather than restated.
+ *
+ * It was restated, and it had already drifted: `footer` has been a valid
+ * category (and a live settings surface) for some time and never appeared here,
+ * so `draft.footer` would not have typechecked. Deriving it means adding a
+ * category in one place cannot leave this behind again.
+ */
+export type AllSettings = Record<SettingsCategory, Record<string, unknown>>;
 
 type Props = {
   categories: SystemCategory[];
@@ -197,6 +195,10 @@ const LABEL_MAPS: Record<string, Record<string, string>> = {
     cacheTtlSeconds: 'Cache TTL (s)',
     webhookTimeoutSeconds: 'Webhook Timeout (s)',
     allowNewRegistrations: 'Allow New Registrations',
+  },
+  about: {
+    teamRoster: 'Team Roster (JSON)',
+    storyVideoUrl: 'Story Video URL',
   },
 };
 
@@ -863,8 +865,93 @@ export default function SystemClient({ categories, overview, recentActivity, res
     );
   }
 
+  /**
+   * /about-us content that no table can back: the leadership roster and the
+   * story video. Both ship empty and both blocks stay unrendered on the public
+   * page until they are entered here — the design shows six named executives,
+   * and inventing them would put fabricated claims about real people on the
+   * company's own About page.
+   *
+   * The roster is edited as JSON rather than a row builder because it is a
+   * handful of entries changed once or twice a year; the read side
+   * (lib/about-page.ts) drops any entry missing a name or a title, so a
+   * malformed paste loses that entry instead of rendering a blank card. The
+   * live count below is the feedback that the JSON parsed at all.
+   */
+  function renderAboutForm() {
+    const s = draft.about;
+    const roster = String(s.teamRoster ?? '[]');
+    const video = String(s.storyVideoUrl ?? '');
+
+    let parsedCount: number | null = null;
+    try {
+      const value: unknown = JSON.parse(roster);
+      parsedCount = Array.isArray(value)
+        ? value.filter((r) => {
+            if (!r || typeof r !== 'object' || Array.isArray(r)) return false;
+            const row = r as Record<string, unknown>;
+            return typeof row.name === 'string' && row.name.trim() !== ''
+              && typeof row.title === 'string' && row.title.trim() !== '';
+          }).length
+        : null;
+    } catch {
+      parsedCount = null;
+    }
+
+    return (
+      <div className="sys-form">
+        <div className="sys-form-section">
+          <h3>Our Team</h3>
+          <div className="sys-fields">
+            <Field
+              label="Team roster (JSON)"
+              hint={'A JSON array of {"name", "title", "photo"} — photo is optional and must be https. The section is hidden on /about-us while this is empty.'}
+              full
+            >
+              <textarea
+                className="sys-textarea"
+                rows={10}
+                spellCheck={false}
+                value={roster}
+                onChange={e => setField('about', 'teamRoster', e.target.value)}
+              />
+            </Field>
+          </div>
+          <p style={{ margin: '8px 0 0', fontSize: 12.5, color: parsedCount === null ? 'var(--red-text)' : 'var(--t3)' }}>
+            {parsedCount === null
+              ? 'Not valid JSON, or not an array — nothing will render until this parses.'
+              : parsedCount === 0
+                ? 'No usable entries yet. The Our Team section stays hidden.'
+                : `${parsedCount} team member${parsedCount === 1 ? '' : 's'} will render on /about-us.`}
+          </p>
+        </div>
+
+        <div className="sys-form-section">
+          <h3>Story Video</h3>
+          <div className="sys-fields">
+            <Field
+              label="Story video URL"
+              hint="Shows the “Watch our story” button in the hero. Must be https. Left empty, no button renders — a play control that plays nothing is worse than none."
+              full
+            >
+              <input
+                className="sys-input"
+                type="url"
+                inputMode="url"
+                placeholder="https://…"
+                value={video}
+                onChange={e => setField('about', 'storyVideoUrl', e.target.value)}
+              />
+            </Field>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   function renderCategoryForm(key: string) {
     switch (key) {
+      case 'about': return renderAboutForm();
       case 'general': return renderGeneralForm();
       case 'security': return renderSecurityForm();
       case 'email': return renderEmailForm();

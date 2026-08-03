@@ -2,7 +2,7 @@ import { FOOTER_SETTINGS_DEFAULTS } from './footer-nav';
 
 export const VALID_CATEGORIES = [
   'general', 'security', 'email', 'payment', 'integrations',
-  'notifications', 'storage', 'maintenance', 'flags', 'advanced', 'footer',
+  'notifications', 'storage', 'maintenance', 'flags', 'advanced', 'footer', 'about',
 ] as const;
 
 export type SettingsCategory = typeof VALID_CATEGORIES[number];
@@ -94,4 +94,17 @@ export const DEFAULTS: Record<SettingsCategory, Record<string, unknown>> = {
   // string is meaningful: it hides that link. The app store URLs ship empty
   // because the apps do not exist yet.
   footer: { ...FOOTER_SETTINGS_DEFAULTS },
+  // /about-us — the two blocks on that page which no table can back.
+  //
+  // Both ship EMPTY on purpose and both are re-validated on read in
+  // lib/about-page.ts. `teamRoster` is a JSON array of {name, title, photo?};
+  // the reference design shows six named executives, and inventing them would
+  // put fabricated claims about real people on the company's own About page,
+  // so the section stays unrendered until someone enters the real roster.
+  // `storyVideoUrl` gates the "Watch our story" button the same way — a play
+  // control that plays nothing is a dead affordance.
+  about: {
+    teamRoster: '[]',
+    storyVideoUrl: '',
+  },
 };

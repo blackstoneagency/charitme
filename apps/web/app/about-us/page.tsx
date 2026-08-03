@@ -1,342 +1,200 @@
-import { unstable_cache } from 'next/cache';
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { supabaseAdmin } from '../../lib/supabase';
+import { PublicIcon } from '../../components/PublicIcon';
+import CampaignImage from '../../components/CampaignImage';
+import { IndexHero, StatStrip, statValue, moneyValue } from '../../components/IndexHero';
+import { getCausesIndexData } from '../../lib/causes-index';
+import { getAboutPageContent } from '../../lib/about-page';
+import { getCoverForCategory } from '../../lib/photo-catalog';
+import AboutTeam from './AboutTeam';
 
 export const metadata: Metadata = {
   title: 'About Us',
-  description: 'CharitMe combines compassionate design, AI-powered guidance, and radical transparency to help every cause reach its full potential.',
+  description:
+    'CharitMe is a global crowdfunding and fundraising platform that connects compassionate people with the causes that matter to them.',
   alternates: { canonical: 'https://www.charitme.com/about-us' },
 };
 
+/**
+ * Dynamic on purpose. Both loaders are failure-safe — the figures fall back to
+ * `null` (which renders an em dash, never a zero) and the owner-controlled
+ * content falls back to its defaults — so a database problem degrades this page
+ * rather than failing the Vercel build.
+ */
 export const dynamic = 'force-dynamic';
 
-async function getLiveStatsUncached() {
-  try {
-    const [donRes, campRes, donorRes] = await Promise.all([
-      supabaseAdmin.from('donations').select('amount_cents').eq('status', 'completed').limit(20000),
-      supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-      supabaseAdmin.from('donations').select('donor_id').eq('status', 'completed').limit(20000),
-    ]);
-    const totalRaised  = ((donRes.data ?? []) as { amount_cents: number }[]).reduce((s, d) => s + d.amount_cents, 0);
-    const activeCamps  = campRes.count ?? 0;
-    const uniqueDonors = new Set(((donorRes.data ?? []) as { donor_id: string }[]).map(d => d.donor_id)).size;
-    return { totalRaised, activeCamps, uniqueDonors };
-  } catch {
-    return { totalRaised: 0, activeCamps: 0, uniqueDonors: 0 };
-  }
-}
-
-/**
- * Cached: this is public, non-personalised aggregate data, and it was costing a
- * Supabase round-trip on every request. `npm run audit:web-vitals` measured these
- * data-backed pages at 120-600ms TTFB against ~20ms for static ones. 60s matches
- * the homepage and impact layers; the tag allows an explicit bust.
- */
-const getLiveStats = unstable_cache(getLiveStatsUncached, ['public-about-stats'], { revalidate: 60, tags: ['about-stats'] });
-
-function fmtBig(cents: number) {
-  const d = cents / 100;
-  if (d >= 1_000_000) return `$${(d / 1_000_000).toFixed(1)}M+`;
-  if (d >= 1_000)     return `$${Math.round(d / 1_000)}K+`;
-  return `$${Math.round(d).toLocaleString()}`;
-}
+/** The reference's four values. Editorial: a value is a claim we make, not a row we count. */
+const VALUES = [
+  {
+    icon: 'shield',
+    title: 'Trust & Transparency',
+    body: 'We operate with honesty, accountability and openness in everything we do.',
+    href: '/verification',
+  },
+  {
+    icon: 'heart',
+    title: 'Compassion',
+    body: 'We lead with empathy and put people and communities first.',
+    href: '/success-stories',
+  },
+  {
+    icon: 'users',
+    title: 'Empowerment',
+    body: 'We give individuals the tools to take action and make a meaningful impact.',
+    href: '/how-it-works',
+  },
+  {
+    icon: 'globe',
+    title: 'Inclusion',
+    body: 'We welcome everyone and believe in equal opportunity to make a difference.',
+    href: '/causes',
+  },
+] as const;
 
 export default async function AboutUsPage() {
-  const stats = await getLiveStats();
-
-  const coreValues = [
-    {
-      emoji: '🔒',
-      title: 'Radical Transparency',
-      body: 'Every fee, every transaction, every dollar is visible — donors and organizers see exactly where money goes.',
-      color: 'var(--brand-text)',
-      bg: '#f5f3ff',
-    },
-    {
-      emoji: '🤖',
-      title: 'AI with Empathy',
-      body: 'Our AI doesn\'t replace human connection — it amplifies it. Better stories, smarter reach, deeper impact.',
-      color: '#0ea5e9',
-      bg: '#f0f9ff',
-    },
-    {
-      emoji: '💚',
-      title: 'Zero Mandatory Fees',
-      body: 'We charge $0 platform fees. We\'re sustained by donors who choose to tip — proving giving can be generous all the way down.',
-      color: 'var(--green-text)',
-      bg: '#ecfdf5',
-    },
-    {
-      emoji: '🛡️',
-      title: 'Trust by Design',
-      body: 'AI-powered verification, real-time trust scores, and fraud prevention built into every campaign from day one.',
-      color: 'var(--red-text)',
-      bg: '#fef2f2',
-    },
-    {
-      emoji: '🌍',
-      title: 'Built for Everyone',
-      body: 'From a family facing a medical crisis to a nonprofit scaling globally — one platform built for every kind of cause.',
-      color: 'var(--orange-text)',
-      bg: '#fffbeb',
-    },
-    {
-      emoji: '⚡',
-      title: 'Speed to Impact',
-      body: 'Create a campaign in minutes. Get paid in days. No waiting, no bureaucracy — just real results for real people.',
-      color: 'var(--brand-text)',
-      bg: '#f5f0ff',
-    },
-  ];
-
-  const milestones = [
-    { year: '2022', title: 'The Idea', body: 'Founded by fundraising veterans who saw donors losing trust in opaque platforms charging hidden fees.' },
-    { year: '2023', title: 'Built in Public', body: 'Launched in beta with radical transparency. Every feature shipped openly, every dollar tracked live.' },
-    { year: '2024', title: 'AI Fundraising', body: 'Became the first fundraising platform with an AI coach built for emotional storytelling and donor re-engagement.' },
-    { year: '2025', title: 'Scale', body: 'Thousands of campaigns, millions raised, zero mandatory platform fees — proving the model works for everyone.' },
-    { year: '2026', title: 'The Future', body: 'Expanding globally, deepening AI capabilities, and building the most trusted giving ecosystem on earth.' },
-  ];
-
-  const teamValues = [
-    { icon: '🧠', label: 'Move with intention' },
-    { icon: '❤️', label: 'Care deeply' },
-    { icon: '🔍', label: 'Default to transparency' },
-    { icon: '🚀', label: 'Ship, then improve' },
-    { icon: '🤝', label: 'Earn every dollar' },
-    { icon: '🌱', label: 'Long-term thinking' },
-  ];
+  // Independent reads, so they run together rather than in series.
+  const [platform, content] = await Promise.all([getCausesIndexData(), getAboutPageContent()]);
+  const { companyName } = content;
 
   return (
-    <div className="about-page">
+    <div className="ab-page">
+      <IndexHero
+        crumbs={[{ label: 'Home', href: '/' }, { label: 'About Us' }]}
+        title={`About ${companyName}`}
+        heart
+        lede={`We believe every person has the power to create a better tomorrow. ${companyName} is a global crowdfunding and fundraising platform that connects compassionate people with the causes that matter.`}
+        photo={getCoverForCategory('Family')}
+        photoCategory="Family"
+        photoKey="about-us"
+        actions={
+          // The reference's "Watch Our Story" control. Rendered ONLY when an
+          // administrator has set a real URL: a play button that plays nothing
+          // is a dead affordance, and this page has no video of its own.
+          content.storyVideoUrl ? (
+            <a href={content.storyVideoUrl} className="ab-watch" target="_blank" rel="noreferrer">
+              <span className="ab-watch-ic" aria-hidden="true">
+                <PublicIcon name="play" />
+              </span>
+              Watch our story
+            </a>
+          ) : undefined
+        }
+      />
 
-      {/* ── HERO ─────────────────────────────────────────────────────── */}
-      <section className="about-hero">
-        <div className="about-hero-bg" aria-hidden="true">
-          <div className="about-orb about-orb-1" />
-          <div className="about-orb about-orb-2" />
-          <div className="about-orb about-orb-3" />
-          <div className="about-grid-overlay" />
-        </div>
-        <div className="about-hero-inner">
-          <div className="about-hero-badge">
-            <span>✦</span> Our Mission
-          </div>
-          <h1 className="about-hero-h1">
-            Fundraising that<br />
-            <em>thinks for you.</em>
-          </h1>
-          <p className="about-hero-sub">
-            We built CharitMe because every cause deserves world-class tools — not just the ones with the biggest budgets.
-            <br />AI-powered. Radically transparent. Zero mandatory fees.
-          </p>
-          <div className="about-hero-actions">
-            <Link href="/create/choose-path" className="about-cta-primary">Start Your Campaign →</Link>
-            <Link href="/success-stories" className="about-cta-ghost">See Real Stories</Link>
-          </div>
-
-          {/* Live stat pills */}
-          <div className="about-hero-stats">
-            <div className="about-stat-pill">
-              <span className="about-stat-num">{stats.activeCamps.toLocaleString()}</span>
-              <span className="about-stat-label">Active Campaigns</span>
-            </div>
-            <div className="about-stat-divider" />
-            <div className="about-stat-pill">
-              <span className="about-stat-num">{fmtBig(stats.totalRaised)}</span>
-              <span className="about-stat-label">Total Raised</span>
-            </div>
-            <div className="about-stat-divider" />
-            <div className="about-stat-pill">
-              <span className="about-stat-num">{stats.uniqueDonors.toLocaleString()}</span>
-              <span className="about-stat-label">Donors Worldwide</span>
-            </div>
-            <div className="about-stat-divider" />
-            <div className="about-stat-pill">
-              <span className="about-stat-num">0%</span>
-              <span className="about-stat-label">Platform Fee</span>
-            </div>
-          </div>
-        </div>
-        <div className="about-hero-scroll-hint" aria-hidden="true">↓ scroll</div>
-      </section>
-
-      {/* ── MANIFESTO ────────────────────────────────────────────────── */}
-      <section className="about-manifesto">
-        <div className="about-manifesto-inner">
-          <div className="about-manifesto-label">Why we exist</div>
-          <blockquote className="about-manifesto-quote">
-            &ldquo;Giving should feel good — not complicated. We believe every family, every nonprofit, every dreamer deserves the same powerful tools that used to be reserved for the privileged few.&rdquo;
-          </blockquote>
-          <div className="about-manifesto-attr">
-            <div className="about-manifesto-avatar">C</div>
-            <div>
-              <strong>CharitMe Founding Team</strong>
-              <span>Built by fundraisers, for fundraisers</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── CORE VALUES ──────────────────────────────────────────────── */}
-      <section className="about-section about-values-section">
-        <div className="about-section-inner">
-          <div className="about-section-label">What we stand for</div>
-          <h2 className="about-section-h2">Six principles that drive everything we build</h2>
-          <div className="about-values-grid">
-            {coreValues.map((v) => (
-              <div key={v.title} className="about-value-card" style={{ '--accent': v.color, '--accent-bg': v.bg } as React.CSSProperties}>
-                <div className="about-value-emoji">{v.emoji}</div>
-                <h3 className="about-value-title">{v.title}</h3>
-                <p className="about-value-body">{v.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── SPLIT FEATURE ────────────────────────────────────────────── */}
-      <section className="about-split">
-        <div className="about-split-inner">
-          <div className="about-split-visual">
-            <div className="about-visual-card about-visual-card-1">
-              <div className="about-visual-icon">🤖</div>
-              <div>
-                <strong>AI Growth Engine</strong>
-                <span>Working 24/7 on your campaign</span>
-              </div>
-            </div>
-            <div className="about-visual-card about-visual-card-2">
-              <div className="about-visual-icon">📈</div>
-              <div>
-                <strong>+47% avg. reach increase</strong>
-                <span>vs. campaigns without AI assist</span>
-              </div>
-            </div>
-            <div className="about-visual-card about-visual-card-3">
-              <div className="about-visual-icon">✅</div>
-              <div>
-                <strong>Trust Score: 94</strong>
-                <span>Identity verified · Story verified</span>
-              </div>
-            </div>
-            <div className="about-visual-ring" />
-          </div>
-          <div className="about-split-copy">
-            <div className="about-section-label">AI + Humanity</div>
-            <h2 className="about-split-h2">The first platform where AI works <em>for</em> the fundraiser, not against them</h2>
-            <p className="about-split-p">
-              Our AI coach writes with your voice, not instead of it. It analyzes your story, suggests improvements based on thousands of successful campaigns, and helps donors feel the urgency behind every cause.
+      <div className="container ab-main">
+        {/* ── Our Mission / Our Values ─────────────────────────────────────── */}
+        <section className="ab-mission-band" aria-labelledby="ab-mission">
+          <div className="ab-mission">
+            <h2 id="ab-mission" className="ab-h2 ab-h2--left">Our Mission</h2>
+            <span className="ab-mission-ic" aria-hidden="true"><PublicIcon name="heart" /></span>
+            <p>
+              To empower individuals and communities to raise funds, create change, and build a
+              better world — together.
             </p>
-            <ul className="about-split-list">
-              <li><span>✓</span> AI-generated story drafts that you own and edit</li>
-              <li><span>✓</span> Donor re-engagement suggestions based on behavior</li>
-              <li><span>✓</span> Real-time trust scoring to build donor confidence</li>
-              <li><span>✓</span> Smart social sharing with campaign-specific messaging</li>
+          </div>
+
+          <div className="ab-values">
+            <h2 id="ab-values" className="ab-h2 ab-h2--left">Our Values</h2>
+            <ul className="ab-values-grid" aria-labelledby="ab-values">
+              {VALUES.map((value, i) => (
+                <li key={value.title}>
+                  {/* Each value links to the page that demonstrates it, so the
+                      block is navigation rather than four paragraphs of claim. */}
+                  <Link href={value.href} className="ab-value">
+                    <span className={`ab-value-ic ab-value-ic--${i}`} aria-hidden="true">
+                      <PublicIcon name={value.icon} />
+                    </span>
+                    <strong>{value.title}</strong>
+                    <span>{value.body}</span>
+                  </Link>
+                </li>
+              ))}
             </ul>
-            <Link href="/ai-fundraising" className="about-cta-primary about-cta-sm">Explore AI Fundraising →</Link>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── TIMELINE ─────────────────────────────────────────────────── */}
-      <section className="about-section about-timeline-section">
-        <div className="about-section-inner">
-          <div className="about-section-label">Our journey</div>
-          <h2 className="about-section-h2">From idea to impact</h2>
-          <div className="about-timeline">
-            {milestones.map((m, i) => (
-              <div key={m.year} className={`about-timeline-item ${i % 2 === 0 ? 'left' : 'right'}`}>
-                <div className="about-timeline-year">{m.year}</div>
-                <div className="about-timeline-dot" />
-                <div className="about-timeline-content">
-                  <h3>{m.title}</h3>
-                  <p>{m.body}</p>
-                </div>
-              </div>
-            ))}
-            <div className="about-timeline-line" />
-          </div>
-        </div>
-      </section>
+        {/* ── Our Impact So Far ────────────────────────────────────────────
+            Every tile MEASURED, from the same loader /causes, /campaigns and
+            /how-it-works use — so the four surfaces cannot quote different
+            numbers for the same thing.
 
-      {/* ── IMPACT STRIP ─────────────────────────────────────────────── */}
-      <section className="about-impact-strip">
-        <div className="about-impact-inner">
-          {[
-            { num: fmtBig(stats.totalRaised), label: 'Raised for real causes', icon: '💰' },
-            { num: '0%',   label: 'Mandatory platform fee',      icon: '🎯' },
-            { num: '< 5m', label: 'To launch a campaign',        icon: '⚡' },
-            { num: '99%',  label: 'Uptime SLA',                  icon: '🔒' },
-          ].map((item) => (
-            <div key={item.label} className="about-impact-item">
-              <div className="about-impact-icon">{item.icon}</div>
-              <div className="about-impact-num">{item.num}</div>
-              <div className="about-impact-label">{item.label}</div>
-            </div>
-          ))}
-        </div>
-      </section>
+            ⚠️ The reference asserts "2.3M+ People Helped", "68K+ Lives
+            Transformed", "1,250+ Programs Funded", "120+ Countries Reached"
+            and "98% Funds to Programs". Not one is an entity in this schema:
+            campaigns, donations and supported countries are. Those figures are
+            not reproduced.
 
-      {/* ── HOW WE WORK ──────────────────────────────────────────────── */}
-      <section className="about-section">
-        <div className="about-section-inner">
-          <div className="about-section-label">Our culture</div>
-          <h2 className="about-section-h2">How we work every day</h2>
-          <p className="about-section-sub">
-            We&apos;re a small, focused team obsessed with one goal: make giving easier, smarter, and more trustworthy than it&apos;s ever been.
+            The fifth tile IS real and is the strongest number on the page:
+            PLATFORM_FEE_PERCENT is 0, so 100% of a donation reaches the
+            fundraiser. It is stated as a product fact and linked to /fees,
+            which shows the arithmetic. */}
+        <section className="ab-impact" aria-labelledby="ab-impact-h">
+          <h2 id="ab-impact-h" className="ab-h2">Our Impact So Far</h2>
+          <StatStrip
+            label={`${companyName} at a glance`}
+            tiles={[
+              { value: statValue(platform.activeCampaigns), label: 'Active campaigns' },
+              { value: moneyValue(platform.raisedTotalCents), label: 'Raised on CharitMe' },
+              { value: statValue(platform.gifts), label: 'Gifts given' },
+              { value: statValue(platform.countries), label: 'Countries supported' },
+              { value: '100%', label: 'Of your gift to the cause' },
+            ]}
+          />
+          <p className="ab-impact-note">
+            Zero platform fee — <Link href="/fees">see exactly how the money moves</Link>.
           </p>
-          <div className="about-culture-grid">
-            {teamValues.map((t) => (
-              <div key={t.label} className="about-culture-item">
-                <span className="about-culture-icon">{t.icon}</span>
-                <span className="about-culture-label">{t.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── TESTIMONIAL ──────────────────────────────────────────────── */}
-      <section className="about-testimonial-section">
-        <div className="about-testimonial-inner">
-          <div className="about-testimonial-stars">★★★★★</div>
-          <blockquote className="about-testimonial-quote">
-            &ldquo;CharitMe helped us raise more in 30 days than we had in the entire previous year — and every donor could see exactly where their money was going. The trust score alone doubled our conversion rate.&rdquo;
-          </blockquote>
-          <div className="about-testimonial-attr">
-            <div className="about-testimonial-avatar">M</div>
-            <div>
-              <strong>Maria T.</strong>
-              <span>Nonprofit Director, Community Health Fund</span>
-            </div>
+        {/* ── Our Story ────────────────────────────────────────────────────── */}
+        <section className="ab-story" aria-labelledby="ab-story-h">
+          <div className="ab-story-copy">
+            <h2 id="ab-story-h" className="ab-h2 ab-h2--left">Our Story</h2>
+            <p>
+              {companyName} was founded with a simple idea: giving should be easy, transparent and
+              accessible to all.
+            </p>
+            <p>
+              We saw how many incredible causes struggle to get the support they deserve. So we
+              built a platform that removes the barriers, builds trust, and puts the power of change
+              in your hands.
+            </p>
+            <p>
+              Today, {companyName} is a global community of changemakers who believe that together,
+              we can solve the world&apos;s biggest challenges.
+            </p>
+            <Link href="/impact" className="ab-story-cta">Learn more about our impact →</Link>
           </div>
-        </div>
-      </section>
+          <div className="ab-story-media" aria-hidden="true">
+            <CampaignImage
+              src={getCoverForCategory('Community')}
+              category="Community"
+              campaignKey="about-story"
+              alt=""
+              width={560}
+              height={380}
+            />
+          </div>
+        </section>
 
-      {/* ── BOTTOM CTA ───────────────────────────────────────────────── */}
-      <section className="about-cta-section">
-        <div className="about-cta-bg" aria-hidden="true">
-          <div className="about-orb about-orb-cta-1" />
-          <div className="about-orb about-orb-cta-2" />
-        </div>
-        <div className="about-cta-inner">
-          <div className="about-hero-badge" style={{ marginBottom: 24 }}>
-            <span>✦</span> Join the movement
-          </div>
-          <h2 className="about-cta-h2">
-            Every great cause<br />starts with one step.
-          </h2>
-          <p className="about-cta-p">
-            Start your campaign in minutes. No fees. No friction. Just tools that work as hard as you do.
-          </p>
-          <div className="about-hero-actions" style={{ justifyContent: 'center' }}>
-            <Link href="/create/choose-path" className="about-cta-primary about-cta-large">Create Your Campaign →</Link>
-            <Link href="/contact" className="about-cta-ghost about-cta-large">Talk to Us</Link>
-          </div>
-        </div>
-      </section>
+        {/* Renders nothing until an administrator enters a real roster. See
+            lib/about-page.ts for why no names are shipped in code. */}
+        <AboutTeam members={content.team} />
 
+        {/* ── Be Part of Our Mission ───────────────────────────────────────── */}
+        <section className="ab-cta" aria-labelledby="ab-cta-h">
+          <span className="ab-cta-ic" aria-hidden="true"><PublicIcon name="heart" /></span>
+          <div>
+            <h2 id="ab-cta-h">Be Part of Our Mission</h2>
+            <p>Together, we can create a world where everyone has hope and every dream has a chance.</p>
+          </div>
+          <div className="ab-cta-actions">
+            <Link href="/causes" className="cx-btn-secondary ab-cta-secondary">Explore causes</Link>
+            <Link href="/create/choose-path" className="cta-primary" style={{ display: 'inline-flex' }}>
+              Start a fundraiser
+            </Link>
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
