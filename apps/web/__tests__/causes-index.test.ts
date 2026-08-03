@@ -6,7 +6,9 @@ import { CAUSES } from '../lib/causes';
 const read = (p: string) => readFileSync(resolve(__dirname, '..', p), 'utf8');
 const page = read('app/causes/page.tsx');
 const browser = read('app/causes/CausesBrowser.tsx');
-const stay = read('app/causes/StayInformed.tsx');
+// Moved to components/ when /impact began reusing it — a subscribe band on two
+// pages should be one component, not two that drift.
+const stay = read('components/StayInformed.tsx');
 const data = read('lib/causes-index.ts');
 const hero = read('components/IndexHero.tsx');
 const campaigns = read('app/campaigns/(list)/page.tsx');
