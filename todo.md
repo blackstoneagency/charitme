@@ -19008,3 +19008,40 @@ The reference asserts a six-figure "youth impacted", a five-figure "athletes
 supported", a four-figure programme count and a three-figure community count.
 Measured for Sports & Youth: **38 live campaigns, $12,600 raised, 47 gifts, 69
 countries**. A test fails if any mock literal reaches the source.
+
+## 🗂 /causes INDEX — rebuilt to the reference (Claude, 2026-08-03)
+
+Photo hero with breadcrumb and a "Together, we can make a difference" card, a
+measured stats strip, **Browse by cause** with working filter pills / sort /
+grid-list toggle, 20 cause cards carrying a photo and real figures, the
+"can't find your cause" band, and a **Stay informed** subscribe box.
+
+### Every figure measured, and the reads bounded
+The reference asserts a five-figure campaign count, an eight-figure raised
+total, a seven-figure "people helped" and a three-figure country count. "People
+helped" is not an entity in this schema — donations are. Actual: **351 active
+campaigns, $96,850 raised, 592 gifts, 69 countries**.
+
+Sums cannot use a head-only count, so `lib/causes-index.ts` takes **ONE bounded
+read** and tallies in JS. If that read comes back saturated at the limit the
+total is **refused** rather than published short — a quietly understated total is
+worse than a missing one, because nothing on screen says it is wrong. The
+platform total is derived from the same tally as the cards, so the headline and
+the grid cannot disagree.
+
+### ⚠️ "Raised this month" was genuinely $0 — the tile was relabelled
+No donation carries a timestamp in the current calendar month. A $0 hero tile on
+a page asking people to give is true but counterproductive, so the tile shows the
+all-time total and says "Raised on CharitMe". Relabelling so a tile matches its
+number is the same call already made when a "Communities" tile turned out to be
+counting `supported_countries` and became "Countries".
+
+### 🐛 A `<dl>` may group with a `<div>` — but only if the div holds dt/dd DIRECTLY
+The stats strip wrapped its `<dt>`/`<dd>` in an extra div, which axe flagged
+twice (`definition-list` + `dlitem`, both serious). The icon now lives inside the
+`<dd>` and is placed with CSS instead of adding a level.
+
+### Sorting never treats an unmeasured figure as zero
+A cause whose count failed to load is not the least popular cause. Those sort
+LAST rather than being ranked as empty, and their figures are omitted from the
+card rather than rendered as "0".
