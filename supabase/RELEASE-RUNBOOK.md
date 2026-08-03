@@ -15,8 +15,28 @@ that is merged but not live.
 > | `20260817000000_campaign_geolocation` | `/api/campaigns/nearby?lat=&lng=` returns `{"available":true}`, which is only reachable after a select on the `latitude` column succeeds — the route returns `available:false` on PostgREST's `42703` |
 > | `20260820000000_incidents_and_maintenance` | `/status` renders "No incidents reported in the last 30 days", the `length === 0` branch, which requires a successful read; it renders "Incident history could not be loaded" otherwise |
 >
-> The other 25 have no public signal, so the true pending set is **somewhere
-> between 0 and 25 — establish it in Step 3 rather than assuming it.**
+> **This is now four, not two, and it is a script rather than a note.** Run it
+> before you plan anything — it needs no credentials and takes seconds:
+>
+> ```bash
+> npm run probe:migrations --workspace=apps/web     # --base defaults to www.charitme.com
+> ```
+>
+> Measured 2026-08-03 against production: **4 of the 27 are already applied** —
+> `reconcile_runtime_tables` (proven twice, via `campaign_milestones` and
+> `campaign_faqs`), `volunteer_shifts_hours`, `campaign_geolocation`, and
+> `incidents_and_maintenance`. The remaining 23 have **no public signal**, which
+> the script lists individually with the reason.
+>
+> ⚠️ **APPLIED is proof; "no proof" is NOT evidence of pending.** A successful
+> read cannot happen unless the migration ran, so a ✅ is conclusive. A ❔ only
+> means no unauthenticated route reads that table — six of them are RLS changes
+> that are invisible to any successful read by design, and one
+> (`creator_tips_not_world_readable`) could only be probed by performing the
+> leak it closes.
+>
+> So the true pending set is **somewhere between 0 and 23 — establish it in Step
+> 3 rather than assuming it.**
 
 ---
 
@@ -72,7 +92,8 @@ the belief that something had gone wrong outside the gate.
 Measure instead of expecting:
 
 ```bash
-supabase migration list --linked
+npm run probe:migrations --workspace=apps/web   # no credentials; proves what is ALREADY live
+supabase migration list --linked                # the authoritative answer, needs the project
 ```
 
 Take the pending list from THAT output. Cross-check it against the files:
@@ -85,7 +106,12 @@ ls supabase/migrations/*.sql | xargs -n1 basename | sed 's/_.*//' | sort > /tmp/
 **What to do with the result:**
 
 - A migration listed as applied that you expected to be pending is **normal** —
-  see the note at the top. Skip it; do not re-run it.
+  see the note at the top. Skip it; do not re-run it. The four the probe already
+  proved are the known cases.
+- A migration the probe reports **APPLIED** but `migration list` reports
+  **pending** is the one contradiction worth stopping for: the schema has the
+  change but the ledger does not know, so `db push` would try to re-run it.
+  Check that migration is idempotent before pushing.
 - A migration listed as *pending* that you expected to be applied is the case
   worth stopping for. That is real drift.
 - `supabase db push` applies only what is missing, so an already-applied
