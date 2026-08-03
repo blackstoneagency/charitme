@@ -5911,7 +5911,7 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
   --muted: #8e99b8;
   --line: #252948;
   --soft: #0e1030;
-  --bg: #0b0d24; /* dark page base — pairs with light token text for readability */
+  --bg: #000000; /* dark page base — true black. Surfaces (--s1/s2/s3) stay lifted so cards still read as elevated against it. */
   --shadow: 0 22px 70px rgba(0,0,0,.5);
   --shadow-sm: 0 10px 32px rgba(0,0,0,.35);
   --shadow-lg: 0 24px 80px rgba(0,0,0,.55);
@@ -5962,11 +5962,13 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
      behind the header. The header is transparent (see `.kind-header` below), so
      that purple WAS the navigation bar: dark mode read as a purple banner over
      a black page.
-     Starting the ramp at --bg (#0b0d24) makes the region behind the nav the
-     same black as the rest of dark mode, which is the whole point. The
-     remaining stops move by ±4 per channel, so the wash still has depth without
-     being a different colour. */
-  background: radial-gradient(circle at 50% 0%, #0b0d24 0, #0f1128 42%, #090b1e 100%);
+     The wash is now gone entirely: dark mode uses a solid #000 page. A radial
+     navy ramp over black is exactly the "purple banner behind the header" this
+     comment was written to remove, one shade quieter — and it is not black,
+     which is what the page is meant to be. Depth comes from the surface tokens
+     (--s1/--s2/--s3), which stay lifted above the page rather than from a
+     gradient painted onto it. */
+  background: #000000;
   color: var(--ink);
 }
 
@@ -6082,7 +6084,7 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 [data-theme="dark"] .kf-admin-nav .kf-nav a:hover { background: #1e1848; }
 [data-theme="dark"] .kf-admin-nav .kf-nav a.active { color: #c4b5fd; background: #1e1848; }
 [data-theme="dark"] .kf-main {
-  background: linear-gradient(180deg, #0e1030 0%, #0c0e2a 100%);
+  background: #000000;
 }
 
 /* ── Dashboard topbar ── */
@@ -6555,7 +6557,7 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 [data-theme="dark"] .pc-trust-bar { background: var(--s1); border-color: var(--b1); }
 
 /* ── Dashboard landing ── */
-[data-theme="dark"] .dash-home { background: #0e1030; }
+[data-theme="dark"] .dash-home { background: #000000; }
 [data-theme="dark"] .dash-head h1 { color: var(--t1); }
 [data-theme="dark"] .dash-head p { color: var(--t2); }
 [data-theme="dark"] .dash-search { background: var(--s1); border-color: var(--b1); box-shadow: none; }
@@ -6821,7 +6823,7 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 
 /* ── Public page wrapper ── */
 [data-theme="dark"] .pub-page {
-  background: linear-gradient(180deg, #0e1030 0%, #090b1e 100%);
+  background: #000000;
   color: var(--t1);
 }
 [data-theme="dark"] .pub-breadcrumb { color: var(--t3); }
@@ -7425,7 +7427,7 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
   background:
     radial-gradient(1100px 560px at 12% -6%, rgba(124,59,255,.20), transparent 62%),
     radial-gradient(950px 520px at 94% 4%, rgba(236,57,195,.14), transparent 60%),
-    linear-gradient(180deg, #0e1030 0%, #090b1e 46%, #0b0d24 100%);
+    linear-gradient(180deg, #000000 0%, #000000 46%, #000000 100%);
   box-shadow: 0 20px 90px rgba(0,0,0,.5);
 }
 .home svg.hi { width: 1em; height: 1em; display: inline-block; vertical-align: -.12em; flex: 0 0 auto; }
