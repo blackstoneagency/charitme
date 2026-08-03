@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../lib/query-timeout';
 import 'server-only';
 import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
 import { requireAdmin } from '../../../lib/auth';
@@ -20,11 +21,11 @@ export default async function AdminContentPage() {
     updated_at: string | null;
   };
 
-  const { data: updates, count: totalCount } = await supabaseAdmin
+  const { data: updates, count: totalCount } = await boundedQuery(() => supabaseAdmin
     .from('campaign_updates')
     .select('id,title,body,ai_generated,campaign_id,user_id,created_at,updated_at', { count: 'exact' })
     .order('created_at', { ascending: false })
-    .limit(100);
+    .limit(100));
 
   const updateList = (updates ?? []) as UpdateRow[];
 
@@ -32,8 +33,8 @@ export default async function AdminContentPage() {
   const campaignIds = [...new Set(updateList.map(u => u.campaign_id).filter(Boolean))];
   const campaignMap = new Map<string, { title: string; user_id: string }>();
   if (campaignIds.length > 0) {
-    const { data: campaigns } = await supabaseAdmin
-      .from('campaigns').select('id,title,user_id').in('id', campaignIds);
+    const { data: campaigns } = await boundedQuery(() => supabaseAdmin
+      .from('campaigns').select('id,title,user_id').in('id', campaignIds));
     for (const c of (campaigns ?? []) as { id: string; title: string; user_id: string }[]) {
       campaignMap.set(c.id, { title: c.title, user_id: c.user_id });
     }
@@ -45,8 +46,8 @@ export default async function AdminContentPage() {
   )];
   const authorMap = new Map<string, string>();
   if (authorIds.length > 0) {
-    const { data: profiles } = await supabaseAdmin
-      .from('profiles').select('id,full_name').in('id', authorIds);
+    const { data: profiles } = await boundedQuery(() => supabaseAdmin
+      .from('profiles').select('id,full_name').in('id', authorIds));
     for (const p of (profiles ?? []) as { id: string; full_name: string | null }[]) {
       if (p.full_name) authorMap.set(p.id, p.full_name);
     }

@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../lib/query-timeout';
 import 'server-only';
 import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
 import { requireAdmin } from '../../../lib/auth';
@@ -34,21 +35,21 @@ export default async function AdminPayoutsPage() {
     { count: failedCount },
     { data: trendData },
   ] = await Promise.all([
-    supabaseAdmin
+    boundedQuery(() => supabaseAdmin
       .from('payouts')
       .select('id,campaign_id,user_id,amount_cents,fee_cents,payout_speed,status,note,paid_at,created_at')
       .order('created_at', { ascending: false })
-      .limit(100),
-    supabaseAdmin.from('payouts').select('amount_cents').eq('status', 'paid'),
-    supabaseAdmin.from('payouts').select('amount_cents').in('status', ['requested', 'approved', 'pending']),
-    supabaseAdmin.from('payouts').select('*', { count: 'exact', head: true }).in('status', ['requested', 'approved', 'pending']),
-    supabaseAdmin.from('payouts').select('*', { count: 'exact', head: true }).eq('status', 'paid'),
-    supabaseAdmin.from('payouts').select('*', { count: 'exact', head: true }).eq('status', 'failed'),
-    supabaseAdmin
+      .limit(100)),
+    boundedQuery(() => supabaseAdmin.from('payouts').select('amount_cents').eq('status', 'paid')),
+    boundedQuery(() => supabaseAdmin.from('payouts').select('amount_cents').in('status', ['requested', 'approved', 'pending'])),
+    boundedQuery(() => supabaseAdmin.from('payouts').select('*', { count: 'exact', head: true }).in('status', ['requested', 'approved', 'pending'])),
+    boundedQuery(() => supabaseAdmin.from('payouts').select('*', { count: 'exact', head: true }).eq('status', 'paid')),
+    boundedQuery(() => supabaseAdmin.from('payouts').select('*', { count: 'exact', head: true }).eq('status', 'failed')),
+    boundedQuery(() => supabaseAdmin
       .from('payouts')
       .select('amount_cents,created_at')
       .gte('created_at', eightWeeksAgo.toISOString())
-      .order('created_at', { ascending: true }),
+      .order('created_at', { ascending: true })),
   ]);
 
   const payoutList = (payouts ?? []) as RawPayout[];
@@ -59,7 +60,7 @@ export default async function AdminPayoutsPage() {
   const campaignIds = [...new Set(payoutList.map(p => p.campaign_id).filter(Boolean))];
   const campaignMap = new Map<string, string>();
   if (campaignIds.length > 0) {
-    const { data: campaigns } = await supabaseAdmin.from('campaigns').select('id,title').in('id', campaignIds);
+    const { data: campaigns } = await boundedQuery(() => supabaseAdmin.from('campaigns').select('id,title').in('id', campaignIds));
     for (const c of (campaigns ?? []) as { id: string; title: string }[]) {
       campaignMap.set(c.id, c.title);
     }
@@ -69,7 +70,7 @@ export default async function AdminPayoutsPage() {
   const userIds = [...new Set(payoutList.map(p => p.user_id).filter(Boolean))];
   const profileMap = new Map<string, { name: string; email: string }>();
   if (userIds.length > 0) {
-    const { data: profiles } = await supabaseAdmin.from('profiles').select('id,full_name').in('id', userIds);
+    const { data: profiles } = await boundedQuery(() => supabaseAdmin.from('profiles').select('id,full_name').in('id', userIds));
     for (const p of (profiles ?? []) as { id: string; full_name: string | null }[]) {
       profileMap.set(p.id, { name: p.full_name ?? 'Unknown', email: '' });
     }

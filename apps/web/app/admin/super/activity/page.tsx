@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../../lib/query-timeout';
 import 'server-only';
 import { CharitMeShell, TopBar } from '../../../../components/CharitMeShellServer';
 import { requireSuperAdmin } from '../../../../lib/auth';
@@ -20,16 +21,16 @@ function tone(action: string): string {
 export default async function SuperAdminActivityPage() {
   await requireSuperAdmin();
 
-  const { data: logs } = await supabaseAdmin
+  const { data: logs } = await boundedQuery(() => supabaseAdmin
     .from('audit_logs')
     .select('id, actor_id, action, target_type, target_id, metadata, created_at')
     .order('created_at', { ascending: false })
-    .limit(300);
+    .limit(300));
 
   const rows = (logs ?? []) as Log[];
   const actorIds = Array.from(new Set(rows.map((r) => r.actor_id).filter(Boolean))) as string[];
   const { data: actors } = actorIds.length
-    ? await supabaseAdmin.from('profiles').select('id, full_name, email').in('id', actorIds)
+    ? await boundedQuery(() => supabaseAdmin.from('profiles').select('id, full_name, email').in('id', actorIds))
     : { data: [] };
   const actorMap = new Map((actors ?? []).map((a) => [a.id as string, (a.full_name as string) || (a.email as string)]));
 

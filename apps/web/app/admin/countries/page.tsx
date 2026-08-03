@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../lib/query-timeout';
 import 'server-only';
 import { requireAdmin } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
@@ -8,10 +9,16 @@ export const dynamic = 'force-dynamic';
 
 // ── Seed all countries on first visit (idempotent) ────────────────────────────
 async function maybeSeed() {
-  const { count } = await supabaseAdmin
+  const { count, error } = await boundedQuery(() => supabaseAdmin
     .from('supported_countries')
-    .select('id', { count: 'exact', head: true });
-  if ((count ?? 0) > 0) return;
+    .select('id', { count: 'exact', head: true }));
+  // ⚠️ A FAILED read is not an empty table, and this branch performs a WRITE.
+  // `(count ?? 0) > 0` treated an unreadable count as zero and fell through to
+  // seeding, which would try to insert the entire country list over a table that
+  // may already be populated. Only seed when the count was genuinely measured
+  // and is genuinely 0 — anything else returns and leaves the data alone.
+  if (error || typeof count !== 'number') return;
+  if (count > 0) return;
 
   const fundraisers = [
     { name: 'United States',   flag_emoji: '🇺🇸', iso_code: 'US', currency_code: 'USD', can_fundraise: true, can_donate: true, sort_order: 1 },
@@ -107,8 +114,8 @@ export default async function AdminCountriesPage() {
   // `?? 0` fallback rendered "0 countries — 0 can fundraise" as though it were a
   // measurement. Convention already set in dashboard/settings: "null when the
   // count could not be read — render unknown, never 0."
-  const { count: total }     = await supabaseAdmin.from('supported_countries').select('id', { count: 'exact', head: true });
-  const { count: fundraise } = await supabaseAdmin.from('supported_countries').select('id', { count: 'exact', head: true }).eq('can_fundraise', true);
+  const { count: total }     = await boundedQuery(() => supabaseAdmin.from('supported_countries').select('id', { count: 'exact', head: true }));
+  const { count: fundraise } = await boundedQuery(() => supabaseAdmin.from('supported_countries').select('id', { count: 'exact', head: true }).eq('can_fundraise', true));
 
   return (
     <CharitMeShell active="Supported Countries" mode="admin">

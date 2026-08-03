@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../../lib/query-timeout';
 import 'server-only';
 import { CharitMeShell, TopBar } from '../../../../components/CharitMeShellServer';
 import { requireSuperAdmin } from '../../../../lib/auth';
@@ -10,11 +11,11 @@ export const dynamic = 'force-dynamic';
 export default async function SuperAdminRolesPage() {
   await requireSuperAdmin();
 
-  const { data } = await supabaseAdmin
+  const { data } = await boundedQuery(() => supabaseAdmin
     .from('profiles')
     .select('id, full_name, email, avatar_url, roles, created_at')
     .order('created_at', { ascending: false })
-    .limit(2000);
+    .limit(2000));
 
   const users: RoleUser[] = (data ?? []).map((p) => ({
     id: p.id as string,

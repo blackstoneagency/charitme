@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../lib/query-timeout';
 import 'server-only';
 import { requireAdmin } from '../../lib/auth';
 import { supabaseAdmin } from '../../lib/supabase';
@@ -56,21 +57,21 @@ export default async function AdminDashboardPage() {
     donStatusRefundedResult,
     donStatusFailedResult,
   ] = await Promise.all([
-    supabaseAdmin.from('donations').select('amount_cents').eq('status', 'completed'),
-    supabaseAdmin.from('donations').select('donor_id, amount_cents').eq('status', 'completed').gte('created_at', monthAgo.toISOString()),
-    supabaseAdmin.from('donations').select('amount_cents').eq('status', 'completed').gte('created_at', twoMonthsAgo.toISOString()).lt('created_at', monthAgo.toISOString()),
-    supabaseAdmin.from('donations').select('donor_id').eq('status', 'completed'),
-    supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-    supabaseAdmin.from('payouts').select('amount_cents').eq('status', 'paid'),
-    supabaseAdmin.from('campaigns').select('id, title, status, raised_amount, goal_amount').order('raised_amount', { ascending: false }).limit(10),
-    supabaseAdmin.from('donations').select('id, amount_cents, donor_id, campaign_id, created_at').eq('status', 'completed').order('created_at', { ascending: false }).limit(10),
-    supabaseAdmin.from('donations').select('amount_cents, created_at').eq('status', 'completed').gte('created_at', eightWeeksAgo.toISOString()),
-    supabaseAdmin.from('integration_connections').select('id', { count: 'exact', head: true }).eq('status', 'connected'),
-    supabaseAdmin.from('webhook_events').select('id', { count: 'exact', head: true }).not('processing_error', 'is', null),
-    supabaseAdmin.from('donations').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
-    supabaseAdmin.from('donations').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-    supabaseAdmin.from('donations').select('id', { count: 'exact', head: true }).eq('status', 'refunded'),
-    supabaseAdmin.from('donations').select('id', { count: 'exact', head: true }).eq('status', 'failed'),
+    boundedQuery(() => supabaseAdmin.from('donations').select('amount_cents').eq('status', 'completed')),
+    boundedQuery(() => supabaseAdmin.from('donations').select('donor_id, amount_cents').eq('status', 'completed').gte('created_at', monthAgo.toISOString())),
+    boundedQuery(() => supabaseAdmin.from('donations').select('amount_cents').eq('status', 'completed').gte('created_at', twoMonthsAgo.toISOString()).lt('created_at', monthAgo.toISOString())),
+    boundedQuery(() => supabaseAdmin.from('donations').select('donor_id').eq('status', 'completed')),
+    boundedQuery(() => supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'active')),
+    boundedQuery(() => supabaseAdmin.from('payouts').select('amount_cents').eq('status', 'paid')),
+    boundedQuery(() => supabaseAdmin.from('campaigns').select('id, title, status, raised_amount, goal_amount').order('raised_amount', { ascending: false }).limit(10)),
+    boundedQuery(() => supabaseAdmin.from('donations').select('id, amount_cents, donor_id, campaign_id, created_at').eq('status', 'completed').order('created_at', { ascending: false }).limit(10)),
+    boundedQuery(() => supabaseAdmin.from('donations').select('amount_cents, created_at').eq('status', 'completed').gte('created_at', eightWeeksAgo.toISOString())),
+    boundedQuery(() => supabaseAdmin.from('integration_connections').select('id', { count: 'exact', head: true }).eq('status', 'connected')),
+    boundedQuery(() => supabaseAdmin.from('webhook_events').select('id', { count: 'exact', head: true }).not('processing_error', 'is', null)),
+    boundedQuery(() => supabaseAdmin.from('donations').select('id', { count: 'exact', head: true }).eq('status', 'completed')),
+    boundedQuery(() => supabaseAdmin.from('donations').select('id', { count: 'exact', head: true }).eq('status', 'pending')),
+    boundedQuery(() => supabaseAdmin.from('donations').select('id', { count: 'exact', head: true }).eq('status', 'refunded')),
+    boundedQuery(() => supabaseAdmin.from('donations').select('id', { count: 'exact', head: true }).eq('status', 'failed')),
   ]);
 
   // Surface DB connectivity errors immediately
@@ -187,7 +188,7 @@ export default async function AdminDashboardPage() {
   const donorIds = [...new Set(recentDonationsRaw.map(d => d.donor_id))];
   const donorMap = new Map<string, string>();
   if (donorIds.length > 0) {
-    const { data: profiles } = await supabaseAdmin.from('profiles').select('id, full_name').in('id', donorIds);
+    const { data: profiles } = await boundedQuery(() => supabaseAdmin.from('profiles').select('id, full_name').in('id', donorIds));
     for (const p of (profiles ?? []) as { id: string; full_name: string | null }[]) {
       if (p.full_name) donorMap.set(p.id, p.full_name);
     }
@@ -197,7 +198,7 @@ export default async function AdminDashboardPage() {
   const campaignIds = [...new Set(recentDonationsRaw.map(d => d.campaign_id).filter(Boolean))] as string[];
   const campaignMap = new Map<string, string>();
   if (campaignIds.length > 0) {
-    const { data: clist } = await supabaseAdmin.from('campaigns').select('id, title').in('id', campaignIds);
+    const { data: clist } = await boundedQuery(() => supabaseAdmin.from('campaigns').select('id, title').in('id', campaignIds));
     for (const c of (clist ?? []) as { id: string; title: string }[]) {
       campaignMap.set(c.id, c.title);
     }

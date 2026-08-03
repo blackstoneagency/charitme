@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../lib/query-timeout';
 import 'server-only';
 import Link from 'next/link';
 import { requireAdmin } from '../../../lib/auth';
@@ -47,23 +48,23 @@ export default async function TrustSafetyPage() {
   await requireAdmin();
 
   const [flagsResult, reportsResult, frozenResult] = await Promise.all([
-    supabaseAdmin
+    boundedQuery(() => supabaseAdmin
       .from('risk_flags')
       .select('id, flag_type, severity, description, resolved, created_at, campaign_id, campaigns:campaign_id(title, slug)', { count: 'exact' })
       .eq('resolved', false)
       .order('created_at', { ascending: false })
-      .limit(50),
-    supabaseAdmin
+      .limit(50)),
+    boundedQuery(() => supabaseAdmin
       .from('campaign_reports')
       .select('id, reason, status, created_at, campaign_id, campaigns:campaign_id(title, slug)', { count: 'exact' })
       .in('status', ['open', 'investigating'])
       .order('created_at', { ascending: false })
-      .limit(50),
-    supabaseAdmin
+      .limit(50)),
+    boundedQuery(() => supabaseAdmin
       .from('campaigns')
       .select('id, title, slug, status, trust_status')
       .eq('payout_frozen', true)
-      .limit(20),
+      .limit(20)),
   ]);
 
   const flags = (flagsResult.data ?? []) as unknown as RiskFlag[];

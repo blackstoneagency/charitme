@@ -159,6 +159,63 @@ describe('pages survive a degraded Supabase', () => {
     ).toEqual([]);
   });
 
+  /**
+   * Admin pages are held to the same rule, with one deliberate exception.
+   *
+   * The exception is a WRITE, not a read: /admin/countries seeds the supported
+   * -country table, and a write must stay loud. Routing a failed INSERT into
+   * `{ data: null, error }` and carrying on is how a silent partial seed
+   * happens — the page crashing is the correct, visible outcome there.
+   *
+   * The allowlist is exact (file + the fact that it is an insert), so it cannot
+   * quietly grow to cover a read.
+   */
+  it('has no unguarded supabaseAdmin READ on any admin page either', () => {
+    const bad = findUnguardedReads(pages.filter((p) => p.includes('/admin/')));
+    const unexpected = bad.filter((b) => {
+      if (!b.file.endsWith('app/admin/countries/page.tsx')) return true;
+      const line = readFileSync(join(APP, 'admin', 'countries', 'page.tsx'), 'utf8').split('\n')[b.line - 1];
+      return !/\.insert\(/.test(line); // reads here are still failures
+    });
+    expect(
+      unexpected.map((b) => `${b.file}:${b.line}${b.fn ? ` (in ${b.fn})` : ''}`),
+      'Admin pages must degrade too — wrap the read in boundedQuery(() => …). Only the supported_countries seed INSERT is exempt, because a failed write must stay loud.',
+    ).toEqual([]);
+    // The exemption must still be earned: if the seed insert ever disappears,
+    // this allowlist should be deleted rather than left as dead permission.
+    expect(bad.length, 'the documented admin exemption no longer exists — remove it').toBe(1);
+  });
+
+  // ── A degraded read must never be mistaken for measured data ──────────────
+  //
+  // Making reads degrade gracefully has a failure mode of its own: code that
+  // previously CRASHED on a bad read now continues with a fallback value, and if
+  // that fallback gates a write, a read outage starts causing writes.
+  //
+  // /admin/countries seeds the supported-country list "on first visit" behind
+  // `if ((count ?? 0) > 0) return;`. Once the count read degrades to undefined
+  // instead of throwing, that reads as "table is empty" and falls through to
+  // inserting the entire country list over a table that may already be full.
+  it('never seeds supported_countries off an unmeasured count', () => {
+    const raw = readFileSync(join(APP, 'admin', 'countries', 'page.tsx'), 'utf8');
+    const from = raw.indexOf('async function maybeSeed');
+    const to = raw.indexOf('const fundraisers');
+    // Anchors checked on RAW source: `blank()` empties string literals too, so
+    // the table name is only visible before blanking. Without this the slice
+    // could silently become empty and the assertions below would pass vacuously.
+    expect(from, 'maybeSeed must exist for this guard to mean anything').toBeGreaterThan(-1);
+    expect(raw.slice(from, to), 'the seed block must still read supported_countries').toContain('supported_countries');
+    // Pattern matched on BLANKED source: the fix's own comment QUOTES the old
+    // `(count ?? 0)` form to explain it, and matching that would make this
+    // assertion permanently red for describing the bug it prevents.
+    const seed = blank(raw).slice(from, to);
+    expect(
+      seed,
+      'a failed count must not fall through to the seed INSERT — check `error` and that `count` is a real number',
+    ).not.toMatch(/\(\s*count\s*\?\?\s*0\s*\)/);
+    expect(seed, 'the read error must be inspected before writing').toMatch(/\berror\b/);
+  });
+
   // ── Mutation checks: the detector must actually detect ────────────────────
   it('flags a raw unguarded read (detector is not vacuous)', () => {
     const tmp = join(APP, '..', '__tests__', '__fixtures__');

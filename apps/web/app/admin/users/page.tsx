@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../lib/query-timeout';
 import 'server-only';
 import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
 import { requireAdmin } from '../../../lib/auth';
@@ -147,20 +148,20 @@ export default async function AdminUsersPage() {
   _thirtyDaysAgo.setDate(_thirtyDaysAgo.getDate() - 30);
   const thirtyDaysIso = _thirtyDaysAgo.toISOString();
   const [profileDataResult, countResult, newUsersCountResult] = await Promise.all([
-    supabaseAdmin
+    boundedQuery(() => supabaseAdmin
       .from('profiles')
       .select('id, full_name, email, avatar_url, roles, identity_verified, plan, timezone, currency, created_at, updated_at')
       .order('created_at', { ascending: false })
-      .limit(2000),
+      .limit(2000)),
     // Exact total — never capped
-    supabaseAdmin
+    boundedQuery(() => supabaseAdmin
       .from('profiles')
-      .select('*', { count: 'exact', head: true }),
+      .select('*', { count: 'exact', head: true })),
     // New users in last 30 days — exact count
-    supabaseAdmin
+    boundedQuery(() => supabaseAdmin
       .from('profiles')
       .select('*', { count: 'exact', head: true })
-      .gte('created_at', thirtyDaysIso),
+      .gte('created_at', thirtyDaysIso)),
   ]);
 
   const profileError  = profileDataResult.error;

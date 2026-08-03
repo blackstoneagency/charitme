@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../../lib/query-timeout';
 import 'server-only';
 import { CharitMeShell, TopBar } from '../../../../components/CharitMeShellServer';
 import { requireSuperAdmin } from '../../../../lib/auth';
@@ -8,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function SuperAdminFlagsPage() {
   await requireSuperAdmin();
-  const { data } = await supabaseAdmin.from('feature_flags').select('*').order('key', { ascending: true });
+  const { data } = await boundedQuery(() => supabaseAdmin.from('feature_flags').select('*').order('key', { ascending: true }));
   return (
     <CharitMeShell active="Feature Flags" mode="admin">
       <TopBar title="Feature Flags" subtitle={`${(data ?? []).length} flags · toggle platform capabilities`} />
