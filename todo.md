@@ -415,6 +415,73 @@ shipped. Check the deployment result per PR, the same way CI runs have to be
 checked per run.
 
 
+## 🔐 A REGEX CANNOT TELL A GATE FROM A PERSONALISATION (Claude, 2026-08-03)
+
+The webhook finding below generalises: **139 of 258 test files read source as
+text.** Most are legitimately static (CSS, config, docs). One guards a security
+property that way, and it has a blind spot.
+
+`__tests__/api-auth-coverage.test.ts` proves every mutating route is guarded by
+matching `requireUser|auth.getUser()|…` **anywhere in the file**. These two are
+identical to it:
+
+```ts
+const { data: { user } } = await supabase.auth.getUser();
+if (!user) return 401;                     // ← a gate
+
+const { data: { user } } = await supabase.auth.getUser();
+if (user) { /* also save it for them */ }  // ← personalisation
+```
+
+`app/api/ai/grant-match/route.ts` is the second kind: **a public mutation that
+never had to be justified in `PUBLIC_MUTATIONS`, because the regex read its
+personalisation as a gate.** The whole point of that allow-list is that a 9th
+public mutation must be a deliberate act. This one slipped in silently.
+
+⚠️ **It is not a security hole.** The route is public by design — the comment
+says so, it reads public grant columns, and `getUser()` only decides whether to
+persist matches for a signed-in user. **The defect is in the check, not the
+route.** Saying otherwise would be the fake-finding failure.
+
+### Tightening the regex was tried and abandoned
+
+Three attempts, each mis-classifying real routes: `if (authError || !user)` is as
+common as `if (!user)`, and a 400-character window around the call flagged six
+routes (`upload/*`, `team-members`) that provably return 401 at runtime. **My own
+pattern was the bug three times in a row** — the same failure mode already
+recorded twice in this file.
+
+### So the runtime is the check: `npm run audit:route-auth`
+
+POSTs to **all 185 mutating routes** against a **local** build and reads the
+status code:
+
+| | |
+|---|---|
+| ✅ enforced (401/403) | **166** |
+| 🔓 public, declared | 2 |
+| ❔ inconclusive (400 on `{}`) | 16 — validated the body *before* authenticating; **not counted as passing** |
+| ⚠️ other (no database in a placeholder build) | 1 |
+| 🚨 public, **undeclared** | **0** |
+
+The 16 are reported honestly rather than counted as green: an empty body was
+rejected before any auth check ran, so this method cannot speak for them.
+
+⚠️ **It refuses to run against production** (exit 2, verified). It sends
+unauthenticated mutations — if a guard is missing, the mutation *happens*. That
+is also why the pre-existing `audit-api-auth-live.mjs` is **GET-only**: idempotent
+and safe against a live database, which is exactly why it cannot cover the
+methods that do damage. The two are counterparts; this one is cross-referenced
+from it.
+
+Mutation-tested: removing `auth/signout` from the declared list makes the sweep
+report it and exit 1. Restored to 0/exit 0.
+
+**And the repo's own guard caught me**: `audit-base-resolution.test.ts` failed
+because I hand-rolled `--base` parsing instead of using `scripts/lib/audit-base.mjs`.
+Fixed. That test exists because inconsistent base parsing had already wasted
+three audit runs — it worked exactly as intended on a brand-new script.
+
 ## 💳 O3 — THE WEBHOOK HAD NEVER BEEN EXECUTED IN A TEST (Claude, 2026-08-03)
 
 O3 is "no Stripe test keys". It blocked A2 on paper and did not — building

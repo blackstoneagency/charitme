@@ -18,6 +18,33 @@ const API_ROOT = join(WEB_ROOT, 'app', 'api');
 // Public OpenAI-backed endpoints additionally need a DURABLE (Postgres-backed)
 // rate limit: `lib/rate-limit.ts` is per-process, so on serverless each instance
 // keeps its own counter and the effective global limit is `limit × instances`.
+//
+// ⚠️ KNOWN BLIND SPOT — this test cannot tell a gate from a personalisation.
+//
+// `AUTH` matches a token anywhere in the file, so these two are identical to it:
+//
+//     const { data: { user } } = await supabase.auth.getUser();
+//     if (!user) return 401;                    // ← a gate
+//
+//     const { data: { user } } = await supabase.auth.getUser();
+//     if (user) { /* also save it for them */ } // ← personalisation
+//
+// `app/api/ai/grant-match/route.ts` is the second kind — a deliberately public
+// endpoint whose `getUser()` only decides whether to persist the result. This
+// test reads it as guarded, so it never had to be justified in PUBLIC_MUTATIONS
+// below, which is the one thing that list is for. It is not a hole in the route;
+// it is a hole in this check.
+//
+// Tightening the regex was tried and abandoned: `if (authError || !user)` is as
+// common as `if (!user)`, and each attempt mis-classified real routes in one
+// direction or the other. The behavioural sweep is the answer instead —
+// `npm run audit:route-auth`, which POSTs to all 185 mutating routes against a
+// LOCAL build and reads the status code. Measured 2026-08-03: 166 enforce
+// (401/403), 2 are declared public, 16 validate the body before authenticating
+// (inconclusive, not counted as passing), 1 errors on the absent database.
+//
+// Keep this test: it is fast, it runs in CI, and it catches a forgotten guard.
+// Just do not read a pass here as proof that a route refuses anonymous callers.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const AUTH = /requireAdmin|requireUser|requireSuperAdmin|verifyAdmin|guardSuperAdmin|getUser\(\)|isAdmin\(|isSuperAdmin|CRON_SECRET|stripe\.webhooks|constructEvent|auth\.getUser/i;
