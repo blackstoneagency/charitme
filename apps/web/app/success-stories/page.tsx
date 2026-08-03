@@ -10,7 +10,8 @@ import { getCoverForCampaign } from '../../lib/photo-catalog';
 import { optimizedCoverUrl } from '../../lib/img-optimize';
 import { formatMoneyStat, formatStat } from '../../lib/cause-landing';
 import StayInformed from '../../components/StayInformed';
-import SortSelect, { SORTS, type SortValue } from './SortSelect';
+import SortSelect from './SortSelect';
+import { SORT_ORDER, isSortValue, type SortValue } from '../../lib/story-sort';
 
 export const metadata: Metadata = {
   title: 'Stories of Hope',
@@ -107,12 +108,6 @@ const UNMEASURED: StoryData = {
 
 const SCAN_LIMIT = 2000;
 
-const ORDER: Record<SortValue, { column: string; ascending: boolean }> = {
-  recent: { column: 'created_at', ascending: false },
-  raised: { column: 'raised_amount', ascending: false },
-  supporters: { column: 'backer_count', ascending: false },
-};
-
 async function readStories(cause: Cause | undefined, sort: SortValue): Promise<StoryData> {
   try {
     const cols = await campaignColumns();
@@ -128,7 +123,7 @@ async function readStories(cause: Cause | undefined, sort: SortValue): Promise<S
         cols,
       ).in('status', ['active', 'completed']);
 
-    let listQuery = base().order(ORDER[sort].column, { ascending: ORDER[sort].ascending }).limit(8);
+    let listQuery = base().order(SORT_ORDER[sort].column, { ascending: SORT_ORDER[sort].ascending }).limit(8);
     if (cause) listQuery = listQuery.in('category', [...cause.categories]);
 
     const [list, totals, countries] = await Promise.all([
@@ -183,17 +178,13 @@ const getStoryData = (cause: string, sort: SortValue) =>
     { revalidate: 60, tags: ['success-stories'] },
   )();
 
-function isSort(v: string | undefined): v is SortValue {
-  return SORTS.some((s) => s.value === v);
-}
-
 export default async function SuccessStoriesPage({
   searchParams,
 }: {
   searchParams?: Promise<{ cause?: string; sort?: string }>;
 }) {
   const sp = (await searchParams) ?? {};
-  const sort: SortValue = isSort(sp.sort) ? sp.sort : 'recent';
+  const sort: SortValue = isSortValue(sp.sort) ? sp.sort : 'recent';
   // An unknown slug falls through to unfiltered rather than 404ing: a bad query
   // string should not take the page away.
   const activeCause = typeof sp.cause === 'string' ? getCause(sp.cause) : undefined;

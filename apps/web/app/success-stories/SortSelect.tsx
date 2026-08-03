@@ -2,13 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export const SORTS = [
-  { value: 'recent', label: 'Most Recent' },
-  { value: 'raised', label: 'Most Raised' },
-  { value: 'supporters', label: 'Most Supporters' },
-] as const;
-
-export type SortValue = (typeof SORTS)[number]['value'];
+import { SORTS, type SortValue } from '../../lib/story-sort';
 
 /**
  * The reference's sort dropdown.

@@ -144,6 +144,51 @@ describe('the category chips filter for real', () => {
   });
 });
 
+describe('the server page imports no VALUE from a client module', () => {
+  // ⚠️ This is the guard for a production-only 500 that everything else missed.
+  //
+  // `SORTS` was exported from `SortSelect.tsx`, a 'use client' module, and the
+  // server page imported it. Next replaces a client module with a
+  // client-reference proxy on the server: the COMPONENT export is usable (as a
+  // reference to render), but a plain `const` is not a real value there. The
+  // page typechecked, linted, built, and passed a source-reading suite — then
+  // died with `SORTS.some is not a function` on the first real request.
+  //
+  // Only a browser hitting the built page caught it, which is exactly why the
+  // browser sweep is not optional.
+  const clientModules = ['app/success-stories/SortSelect.tsx'];
+
+  it('every client module the page imports gives it only the component', () => {
+    for (const mod of clientModules) {
+      expect(read(mod), `${mod} must be a client module for this to apply`).toContain("'use client'");
+      const spec = mod.split('/').pop()!.replace('.tsx', '');
+      const importLine = new RegExp(`import\\s+([^;]+?)\\s+from\\s+'\\./${spec}'`);
+      const m = importLine.exec(page);
+      expect(m, `page does not import ${spec}`).not.toBeNull();
+      // A default import alone. `{ … }` here means a named export is crossing
+      // the server/client boundary as a value.
+      expect(
+        m![1],
+        `the page imports a NAMED export from the client module ${spec} — move it ` +
+          'to a non-client module (see lib/story-sort.ts)',
+      ).not.toMatch(/[{}]/);
+    }
+  });
+
+  it('the shared sort constants live in a non-client module', () => {
+    const shared = read('lib/story-sort.ts');
+    // Comments stripped: this file's doc block EXPLAINS the 'use client'
+    // boundary that made the constant unusable on the server, and matching the
+    // prose instead of the directive would punish the explanation — the same
+    // mistake the fabricated-figure and gradient guards were both bitten by.
+    const sharedCode = shared.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
+    expect(sharedCode).not.toContain("'use client'");
+    expect(shared).toContain('export const SORTS');
+    expect(shared).toContain('export const SORT_ORDER');
+    expect(shared).toContain('export function isSortValue');
+  });
+});
+
 describe('honest affordances', () => {
   it('renders no donor faces beside the donation count', () => {
     // `donations.anonymous` exists so a donor can give without being shown, and
