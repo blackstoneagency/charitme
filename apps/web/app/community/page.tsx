@@ -53,14 +53,14 @@ async function getFeed(): Promise<Feed | null> {
       : 'campaigns:campaign_id(title, slug)';
 
     const [updRes, donRes] = await Promise.all([
-      boundedQuery(
+      boundedQuery(() =>
         supabaseAdmin
           .from('campaign_updates')
           .select(`id, title, body, created_at, ${campaignJoin}`)
           .order('created_at', { ascending: false })
           .limit(30)
       ),
-      boundedQuery(
+      boundedQuery(() =>
         supabaseAdmin
           .from('donations')
           .select(`id, amount_cents, anonymous, created_at, offline_donor_name, ${campaignJoin}, profiles:donor_id(full_name, show_public_profile)`)

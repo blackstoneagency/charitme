@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../lib/query-timeout';
 import 'server-only';
 import type { Metadata } from 'next';
 import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
@@ -38,13 +39,13 @@ export const metadata: Metadata = { title: 'Calendar | CharitMe' };
 type SourceResult = { entries: CalendarEntry[]; failed: boolean };
 
 async function campaignDeadlines(userId: string): Promise<SourceResult> {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await boundedQuery(() => supabaseAdmin
     .from('campaigns')
     .select('id, title, slug, deadline')
     .eq('user_id', userId)
     .is('deleted_at', null)
     .not('deadline', 'is', null)
-    .limit(300);
+    .limit(300));
   if (error) return { entries: [], failed: true };
   return {
     failed: false,
@@ -65,23 +66,23 @@ async function campaignDeadlines(userId: string): Promise<SourceResult> {
 async function events(userId: string): Promise<SourceResult> {
   // Scoped through the caller's campaigns: fundraising_events has no owner
   // column of its own, only campaign_id / nonprofit_id.
-  const { data: campaigns, error: cErr } = await supabaseAdmin
+  const { data: campaigns, error: cErr } = await boundedQuery(() => supabaseAdmin
     .from('campaigns')
     .select('id')
     .eq('user_id', userId)
     .is('deleted_at', null)
-    .limit(300);
+    .limit(300));
   if (cErr) return { entries: [], failed: true };
 
   const ids = (campaigns ?? []).map((c) => (c as { id: string }).id);
   if (ids.length === 0) return { entries: [], failed: false };
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await boundedQuery(() => supabaseAdmin
     .from('fundraising_events')
     .select('id, title, slug, starts_at, ends_at, status')
     .in('campaign_id', ids)
     .neq('status', 'cancelled')
-    .limit(300);
+    .limit(300));
   if (error) return { entries: [], failed: true };
 
   return {
@@ -101,22 +102,22 @@ async function events(userId: string): Promise<SourceResult> {
 }
 
 async function grantDeadlines(userId: string): Promise<SourceResult> {
-  const { data: apps, error: aErr } = await supabaseAdmin
+  const { data: apps, error: aErr } = await boundedQuery(() => supabaseAdmin
     .from('grant_applications')
     .select('grant_id')
     .eq('applicant_user_id', userId)
     .not('status', 'in', '("withdrawn","rejected")')
-    .limit(300);
+    .limit(300));
   if (aErr) return { entries: [], failed: true };
 
   const grantIds = [...new Set((apps ?? []).map((a) => (a as { grant_id: string }).grant_id))];
   if (grantIds.length === 0) return { entries: [], failed: false };
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await boundedQuery(() => supabaseAdmin
     .from('grant_deadlines')
     .select('id, label, kind, due_at, grant_id')
     .in('grant_id', grantIds)
-    .limit(300);
+    .limit(300));
   if (error) return { entries: [], failed: true };
 
   return {

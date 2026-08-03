@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../lib/query-timeout';
 import 'server-only';
 import type { Metadata } from 'next';
 import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
@@ -24,21 +25,21 @@ export default async function TasksPage() {
   const user = await requireUser();
 
   const [tasksRes, campaignsRes] = await Promise.all([
-    supabaseAdmin
+    boundedQuery(() => supabaseAdmin
       .from('tasks')
       .select(
         'id, owner_id, campaign_id, assignee_id, title, notes, priority, status, due_at, completed_at, created_at, updated_at',
       )
       .or(`owner_id.eq.${user.id},assignee_id.eq.${user.id}`)
       .order('due_at', { ascending: true, nullsFirst: false })
-      .limit(500),
-    supabaseAdmin
+      .limit(500)),
+    boundedQuery(() => supabaseAdmin
       .from('campaigns')
       .select('id, title, slug')
       .eq('user_id', user.id)
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
-      .limit(100),
+      .limit(100)),
   ]);
 
   const tasks: Task[] | null = tasksRes.error ? null : ((tasksRes.data ?? []) as Task[]);

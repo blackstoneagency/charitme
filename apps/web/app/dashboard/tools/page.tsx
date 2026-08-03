@@ -49,18 +49,27 @@ const TOOLS: readonly Tool[] = [
 
 /** `null` means the read FAILED — rendered differently from "no campaigns yet". */
 async function loadCampaigns(userId: string): Promise<CampaignRow[] | null> {
-  const { data, error } = await supabaseAdmin
-    .from('campaigns')
-    .select('id, slug, title, status')
-    .eq('user_id', userId)
-    .is('deleted_at', null)
-    .order('created_at', { ascending: false })
-    .limit(50);
-  if (error) {
-    console.warn('[dashboard/tools] campaign read failed', { code: error.code });
+  try {    // supabaseAdmin is a Proxy that THROWS on property access when the env is
+    // missing, so `.from(...)` throws before any query runs — which the error
+    // check below cannot see. The `null` contract this function already
+    // declares is the correct degraded answer, so a throw takes the same path.
+
+    const { data, error } = await supabaseAdmin
+      .from('campaigns')
+      .select('id, slug, title, status')
+      .eq('user_id', userId)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    if (error) {
+      console.warn('[dashboard/tools] campaign read failed', { code: error.code });
+      return null;
+    }
+    return (data ?? []) as CampaignRow[];
+  
+  } catch {
     return null;
   }
-  return (data ?? []) as CampaignRow[];
 }
 
 export default async function FundraisingToolsPage({

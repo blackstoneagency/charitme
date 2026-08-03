@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../lib/query-timeout';
 import 'server-only';
 import type { Metadata } from 'next';
 import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
@@ -37,12 +38,12 @@ export const metadata: Metadata = { title: 'Webhooks | CharitMe' };
 export default async function WebhooksPage() {
   const user = await requireUser();
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await boundedQuery(() => supabaseAdmin
     .from('outbound_webhook_endpoints')
     .select('id, owner_id, url, events, active, created_at, updated_at')
     .eq('owner_id', user.id)
     .order('created_at', { ascending: false })
-    .limit(100);
+    .limit(100));
 
   // null means the read FAILED — rendered differently from "you have none", so
   // nobody re-registers an endpoint that already exists.

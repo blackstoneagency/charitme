@@ -96,7 +96,7 @@ export default async function AdminSetupPage() {
         title="Setup Diagnostic"
         subtitle="Check environment variables, database connectivity, and table status."
         actions={
-          <Link href="/admin" style={{ textDecoration: 'none', fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
+          <Link href="/admin" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, textDecoration: 'none', fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
             ← Dashboard
           </Link>
         }

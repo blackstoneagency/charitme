@@ -2,7 +2,8 @@ import 'server-only';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getCampaign } from '../get-campaign';
+import { getCampaignResult } from '../get-campaign';
+import CampaignUnavailable from '../../../../components/CampaignUnavailable';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { getAppOrigin } from '../../../../lib/auth-config';
 import { resolveCampaignCover } from '../../../../lib/covers';
@@ -32,7 +33,10 @@ type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const campaign = await getCampaign(slug);
+  const metaResult = await getCampaignResult(slug);
+  // Metadata must never crash the page; an unreadable row falls back to
+  // the generic title rather than throwing.
+  const campaign = metaResult.ok ? metaResult.campaign : null;
   if (!campaign) return { title: 'Share a campaign | CharitMe' };
   const title = `Share "${campaign.title}" | CharitMe`;
   const description = `Help "${campaign.title}" reach more people. Share it in one tap, or copy a message to send yourself.`;
@@ -49,22 +53,34 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 /** `null` means the count FAILED — never conflated with "nobody has shared". */
 async function loadShareStats(campaignId: string): Promise<ShareStats | null> {
-  const [total, converted] = await Promise.all([
-    supabaseAdmin.from('share_events').select('id', { count: 'exact', head: true }).eq('campaign_id', campaignId),
-    supabaseAdmin.from('share_events').select('id', { count: 'exact', head: true })
-      .eq('campaign_id', campaignId).eq('converted', true),
-  ]);
-  if (total.error || converted.error) {
-    console.warn('[campaign/share] share stats failed', { code: total.error?.code ?? converted.error?.code });
+  try {    // supabaseAdmin is a Proxy that THROWS on property access when the env is
+    // missing, so `.from(...)` throws before any query runs — which the error
+    // check below cannot see. The `null` contract this function already
+    // declares is the correct degraded answer, so a throw takes the same path.
+
+    const [total, converted] = await Promise.all([
+      supabaseAdmin.from('share_events').select('id', { count: 'exact', head: true }).eq('campaign_id', campaignId),
+      supabaseAdmin.from('share_events').select('id', { count: 'exact', head: true })
+        .eq('campaign_id', campaignId).eq('converted', true),
+    ]);
+    if (total.error || converted.error) {
+      console.warn('[campaign/share] share stats failed', { code: total.error?.code ?? converted.error?.code });
+      return null;
+    }
+    return { shares: total.count ?? 0, converted: converted.count ?? 0 };
+  
+  } catch {
     return null;
   }
-  return { shares: total.count ?? 0, converted: converted.count ?? 0 };
 }
 
 export default async function CampaignSharePage({ params }: Props) {
   const { slug } = await params;
-  const campaign = await getCampaign(slug);
-  if (!campaign) notFound();
+  const result = await getCampaignResult(slug);
+  // An unreadable database is not a missing campaign — never 404 on it.
+  if (!result.ok && result.reason === 'unavailable') return <CampaignUnavailable slug={slug} />;
+  if (!result.ok) notFound();
+  const campaign = result.campaign;
 
   const origin = getAppOrigin();
   const campaignUrl = campaignShareUrl(origin, slug);

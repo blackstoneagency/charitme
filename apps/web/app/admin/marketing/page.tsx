@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../lib/query-timeout';
 import 'server-only';
 import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
 import { requireAdmin } from '../../../lib/auth';
@@ -21,8 +22,8 @@ export default async function AdminMarketingPage({ searchParams }: { searchParam
   await requireAdmin();
   const [overview, { data: seo }, { data: aeo }] = await Promise.all([
     getMarketingOverview(),
-    supabaseAdmin.from('seo_settings').select('*').order('route'),
-    supabaseAdmin.from('aeo_entries').select('*').order('priority', { ascending: false }).order('created_at', { ascending: false }),
+    boundedQuery(() => supabaseAdmin.from('seo_settings').select('*').order('route')),
+    boundedQuery(() => supabaseAdmin.from('aeo_entries').select('*').order('priority', { ascending: false }).order('created_at', { ascending: false })),
   ]);
 
   const seoRows = (seo ?? []) as SeoRow[];

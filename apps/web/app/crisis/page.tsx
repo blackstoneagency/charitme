@@ -61,7 +61,7 @@ async function getCrisisCampaigns(): Promise<{ rows: CrisisCampaign[]; loadFaile
     // ceiling. A timeout synthesises `{ data: null, error }`, so it takes the
     // `loadFailed` branch below — which already says "we could not load these"
     // rather than "there are no appeals".
-    const { data, error } = await boundedQuery(
+    const { data, error } = await boundedQuery(() =>
       applyLiveFilters(
         supabaseAdmin
           .from('campaigns')

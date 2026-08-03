@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../lib/query-timeout';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { supabaseAdmin } from '../../lib/supabase';
@@ -83,11 +84,11 @@ async function collect(): Promise<Subsystem[]> {
     probe(async () => {
       // Liveness, not analytics: `count: 'exact', head: true` made Postgres
       // COUNT the whole table to answer "does the database respond?".
-      const { error } = await supabaseAdmin.from('campaigns').select('id').limit(1);
+      const { error } = await boundedQuery(() => supabaseAdmin.from('campaigns').select('id').limit(1));
       if (error) throw new Error(error.code ?? 'query failed');
     }),
     probe(async () => {
-      const { error } = await supabaseAdmin.from('profiles').select('id').limit(1);
+      const { error } = await boundedQuery(() => supabaseAdmin.from('profiles').select('id').limit(1));
       if (error) throw new Error(error.code ?? 'query failed');
     }),
   ]);

@@ -35,6 +35,15 @@ import { getCoverForCategory } from '../../../lib/photo-catalog';
  *    treatment for a photo hero, and the scrim guarantees the contrast rather
  *    than the theme doing it.
  */
+/** One icon per stat tile, in tile order. Inline SVG so the band ships no font
+ *  or image request for four small glyphs. */
+const STAT_ICONS = [
+  <svg key="a" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg>,
+  <svg key="b" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>,
+  <svg key="c" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" /></svg>,
+  <svg key="d" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20Z" /></svg>,
+];
+
 export default async function CauseLanding({
   cause,
   stats,
@@ -117,28 +126,38 @@ export default async function CauseLanding({
         </div>
       </section>
 
-      {/* ── Stats sheet, lifting over the hero as in the reference ────────── */}
+      {/* ── "Real impact" band: copy on the left, the four MEASURED figures on
+          the right. The reference asserts a six-figure "youth impacted", a
+          five-figure "athletes supported", a four-figure programme count and a
+          three-figure community count. None of those is an entity in this
+          schema. These four are counted live, and the note under them says what
+          each one is so a reader cannot mistake reach for spend. */}
       <section className="cl-sheet" aria-labelledby="cl-stats-title">
-        <h2 id="cl-stats-title" className="cl-visually-hidden">
-          {t('cl.where_support_goes')}
-        </h2>
+        <div className="cl-sheet-intro">
+          <span className="cl-sheet-heart" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8Z" />
+            </svg>
+          </span>
+          <h2 id="cl-stats-title">{cause.impactTitle ?? t('cl.where_support_goes')}</h2>
+          {cause.impactBlurb && <p>{cause.impactBlurb}</p>}
+        </div>
         <dl className="cl-stat-row">
-          <div className="cl-stat">
-            <dd>{formatStat(stats.liveCampaigns)}</dd>
-            <dt>{t('cl.stat_live')}</dt>
-          </div>
-          <div className="cl-stat">
-            <dd>{formatMoneyStat(stats.raisedCents)}</dd>
-            <dt>{t('cl.stat_raised')}</dt>
-          </div>
-          <div className="cl-stat">
-            <dd>{formatStat(stats.supporters)}</dd>
-            <dt>{t('cl.stat_gifts')}</dt>
-          </div>
-          <div className="cl-stat">
-            <dd>{formatStat(stats.countries)}</dd>
-            <dt>{t('cl.stat_countries')}</dt>
-          </div>
+          {STAT_ICONS.map((icon, i) => {
+            const tile = [
+              { value: formatStat(stats.liveCampaigns), label: t('cl.stat_live') },
+              { value: formatMoneyStat(stats.raisedCents), label: t('cl.stat_raised') },
+              { value: formatStat(stats.supporters), label: t('cl.stat_gifts') },
+              { value: formatStat(stats.countries), label: t('cl.stat_countries') },
+            ][i];
+            return (
+              <div className="cl-stat" key={tile.label}>
+                <span className={`cl-stat-ic cl-stat-ic--${i}`} aria-hidden="true">{icon}</span>
+                <dd>{tile.value}</dd>
+                <dt>{tile.label}</dt>
+              </div>
+            );
+          })}
         </dl>
         <p className="cl-stats-note">{t('cl.stats_note', { categories: cause.categories.join(', ') })}</p>
       </section>

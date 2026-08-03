@@ -2804,7 +2804,26 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
   align-items: center;
   gap: clamp(40px, 6vw, 88px);
 }
-.mirror-spotlight-copy { max-width: 560px; }
+/* The merged band: carousel left, and one column on the right holding the
+   "Live Right Now" copy, the supporter quotes and the impact CTA. These were
+   three stacked sections before; the reference reads them as one. */
+/* No max-width on the COLUMN: the reference has the quotes and the CTA card
+   filling it, and a 560px cap left ~190px of dead space beside them at 1440.
+   The reading measure is capped on the paragraph instead, where it belongs. */
+.mirror-spotlight-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.mirror-spotlight-copy > .mirror-actions { margin-bottom: 2px; }
+.mirror-spotlight-copy > p { max-width: 62ch; }
+/* The quotes sit two-up beside the carousel, and stack once the column is too
+   narrow for two readable cards rather than at a fixed breakpoint. */
+.mirror-spotlight-copy .mirror-testimonials {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+}
+.mirror-spotlight-copy .mirror-testimonials article { min-height: 0; }
+.mirror-spotlight-copy .mirror-proof-cta { flex: 0 0 auto; }
 .mirror-spotlight-copy h2 {
   margin: 0 0 16px;
   color: var(--mh-text);
@@ -5911,7 +5930,13 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
   --muted: #8e99b8;
   --line: #252948;
   --soft: #0e1030;
-  --bg: #000000; /* dark page base — true black. Surfaces (--s1/s2/s3) stay lifted so cards still read as elevated against it. */
+  /* Pure black page base. Was #0b0d24 (dark navy). Black only INCREASES the
+     contrast of every token-driven text colour that sits on the page background,
+     so this cannot introduce an AA failure there — verified by a full two-theme
+     sweep. The elevated surfaces below stay navy so the elevation ramp still
+     reads: a card has to be visibly lifted off the page, and #121530 on #000 is
+     a clearer step than it was on #0b0d24. */
+  --bg: #000000;
   --shadow: 0 22px 70px rgba(0,0,0,.5);
   --shadow-sm: 0 10px 32px rgba(0,0,0,.35);
   --shadow-lg: 0 24px 80px rgba(0,0,0,.55);
@@ -5958,16 +5983,15 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 
 /* ── Body ── */
 [data-theme="dark"] body {
-  /* The top stop was #1a1040 — a purple wash centred at 50% 0%, i.e. directly
-     behind the header. The header is transparent (see `.kind-header` below), so
-     that purple WAS the navigation bar: dark mode read as a purple banner over
-     a black page.
-     The wash is now gone entirely: dark mode uses a solid #000 page. A radial
-     navy ramp over black is exactly the "purple banner behind the header" this
-     comment was written to remove, one shade quieter — and it is not black,
-     which is what the page is meant to be. Depth comes from the surface tokens
-     (--s1/--s2/--s3), which stay lifted above the page rather than from a
-     gradient painted onto it. */
+  /* Flat black, requested.
+     Two things had to change together. `--bg` was NOT what painted this: the
+     body drew its own three-stop navy wash, so setting the token alone left the
+     page navy while everything that read the token disagreed with what was on
+     screen. Both now say black.
+     History worth keeping: the wash used to start at #1a1040, a purple centred
+     at 50% 0% — directly behind a transparent header — so dark mode read as a
+     purple banner over a dark page. Flat black removes that failure mode
+     entirely rather than tuning it. */
   background: #000000;
   color: var(--ink);
 }
@@ -8745,58 +8769,194 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 .cl-sheet {
   position: relative;
   z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 22px;
+  align-items: center;
   max-width: var(--container, 1200px);
-  margin: -64px auto 40px;
-  padding: 24px;
+  margin: -64px auto 44px;
+  padding: 26px;
   border: 1px solid var(--b1);
   border-radius: var(--rxl);
   background: var(--s1);
-  box-shadow: var(--shadow-lg, 0 24px 60px rgba(10, 6, 32, .28));
+  box-shadow: var(--shadow-lg, 0 24px 60px rgba(0, 0, 0, .5));
 }
+.cl-sheet-intro { min-width: 0; }
+.cl-sheet-heart {
+  display: inline-flex;
+  width: 26px;
+  height: 26px;
+  margin-bottom: 8px;
+  color: var(--h-accent-text, var(--brand-text));
+}
+.cl-sheet-heart svg { width: 100%; height: 100%; }
+.cl-sheet-intro h2 {
+  margin: 0;
+  font-size: var(--fs-h2);
+  font-weight: 800;
+  letter-spacing: -.02em;
+  line-height: 1.15;
+  color: var(--t1);
+}
+.cl-sheet-intro p { margin: 8px 0 0; font-size: 14px; line-height: 1.6; color: var(--t3); max-width: 40ch; }
 .cl-visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-  border: 0;
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
 }
 .cl-stat-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  gap: 16px;
   margin: 0;
 }
-.cl-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 10px 14px;
-  text-align: center;
+.cl-stat { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px; text-align: center; }
+.cl-stat-ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  margin-bottom: 4px;
+  border-radius: 999px;
+  border: 1px solid var(--b1);
+  background: var(--s2);
 }
-.cl-stat + .cl-stat { border-inline-start: 1px solid var(--b1); }
-.cl-stat dd {
-  margin: 0;
-  /* A statistic is not a heading, so it takes a plain size rather than adding a
-     fourth entry to the heading scale. */
-  font-size: 30px;
-  font-weight: 850;
-  letter-spacing: -.02em;
-  line-height: 1.1;
-  color: var(--t1);
-}
-.cl-stat dt { font-size: 13px; color: var(--t3); }
+.cl-stat-ic svg { width: 19px; height: 19px; }
+/* Four accents, each a *-text token: those are the tier tuned to sit on a
+   surface, so they stay legible in both themes. A raw brand fill would not. */
+.cl-stat-ic--0 { color: var(--brand-text); }
+.cl-stat-ic--1 { color: var(--green-text); }
+.cl-stat-ic--2 { color: var(--blue-text, var(--brand-text)); }
+.cl-stat-ic--3 { color: var(--orange-text); }
+.cl-stat dd { margin: 0; font-size: 26px; font-weight: 850; letter-spacing: -.02em; line-height: 1.1; color: var(--t1); }
+.cl-stat dt { font-size: 12.5px; color: var(--t3); }
 .cl-stats-note {
-  margin: 18px auto 0;
+  grid-column: 1 / -1;
+  margin: 4px auto 0;
   max-width: 74ch;
   font-size: 12.5px;
   line-height: 1.6;
   color: var(--t3);
   text-align: center;
 }
+
+/* ── How your support helps ─────────────────────────────────────────────── */
+.cl-helps { margin: 0 0 44px; }
+.cl-helps-title {
+  margin: 0 0 22px;
+  font-size: var(--fs-h2);
+  font-weight: 800;
+  letter-spacing: -.02em;
+  color: var(--t1);
+  text-align: center;
+}
+.cl-helps-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
+  gap: 18px;
+}
+.cl-helps-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--b1);
+  border-radius: var(--rl);
+  background: var(--s1);
+  overflow: hidden;
+}
+.cl-helps-media { position: relative; aspect-ratio: 16 / 10; background: var(--s3); }
+.cl-helps-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cl-helps-ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 18px;
+  border-radius: 999px;
+  border: 1px solid var(--b1);
+  background: var(--s2);
+  position: relative;
+}
+.cl-helps-ic svg { width: 21px; height: 21px; }
+.cl-helps-ic--0 { color: var(--brand-text); }
+.cl-helps-ic--1 { color: var(--red-text); }
+.cl-helps-ic--2 { color: var(--orange-text); }
+.cl-helps-ic--3 { color: var(--green-text); }
+.cl-helps-ic--4 { color: var(--blue-text, var(--brand-text)); }
+.cl-helps-card h3 { margin: 12px 18px 0; font-size: 15.5px; font-weight: 780; color: var(--t1); line-height: 1.3; }
+.cl-helps-card p { margin: 8px 18px 18px; font-size: 13.5px; line-height: 1.55; color: var(--t3); }
+
+/* ── Stories from the field ─────────────────────────────────────────────── */
+.cl-stories { margin: 0 0 44px; }
+.cl-stories-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.cl-stories-head h2 { margin: 0; font-size: var(--fs-h2); font-weight: 800; letter-spacing: -.02em; color: var(--t1); }
+.cl-stories-all {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--brand-text);
+  text-decoration: none;
+}
+.cl-stories-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 18px;
+}
+.cl-story {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+  border: 1px solid var(--b1);
+  border-radius: var(--rl);
+  overflow: hidden;
+  background: var(--s1);
+  text-decoration: none;
+}
+.cl-story:hover { border-color: var(--b2); }
+.cl-story-media { position: relative; display: block; aspect-ratio: 16 / 10; background: var(--s3); }
+.cl-story-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cl-story-chip {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(10, 6, 28, .78);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.cl-story-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 7px; padding: 16px 18px 18px; }
+.cl-story-body strong { font-size: 15.5px; font-weight: 780; color: var(--t1); line-height: 1.35; }
+.cl-story-blurb {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--t3);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.cl-story-meta { font-size: 12.5px; font-weight: 700; color: var(--green-text); }
+.cl-story-cta { font-size: 13.5px; font-weight: 700; color: var(--brand-text); }
 
 .cl-programs-band {
   max-width: var(--container, 1200px);
@@ -8854,6 +9014,8 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 .cl-cta .cl-btn-secondary:hover { border-color: var(--t3); background: var(--s2); }
 
 @media (min-width: 980px) {
+  .cl-sheet { grid-template-columns: minmax(0, 320px) minmax(0, 1fr); gap: 32px; padding: 28px 32px; }
+  .cl-sheet .cl-stats-note { grid-column: 2; text-align: left; margin-inline: 0; }
   .cl-hero { padding: 32px 0 120px; }
   .cl-hero-inner { grid-template-columns: minmax(0, 1.35fr) minmax(0, 320px); }
   .cl-crumbs { grid-column: 1 / -1; }
@@ -9035,3 +9197,99 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 .needs-amount strong { font-size: 20px; font-weight: 850; color: var(--t1); letter-spacing: -.02em; }
 .needs-amount span { font-size: 12px; color: var(--t3); }
 .needs-cta { display: inline-flex; justify-content: center; margin-top: 10px; }
+
+/* ── Campaign card, `feature` variant ────────────────────────────────────────
+   The quieter card from the cause-landing reference: cover, title, one line of
+   description, raised-of-goal and a bar. Used on /causes/[slug]; the dense
+   listing card is unchanged everywhere else.
+
+   Surface tokens throughout — the reference draws these on a white sheet, and a
+   literal white card is a white slab in dark mode. */
+.cc-feature {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+  min-width: 0;
+  border: 1px solid var(--b1);
+  border-radius: var(--rl);
+  overflow: hidden;
+  background: var(--s1);
+  text-decoration: none;
+  transition: border-color .16s, box-shadow .16s, transform .16s;
+}
+.cc-feature:hover {
+  border-color: var(--b2);
+  box-shadow: var(--shadow-md, 0 14px 34px rgba(16, 10, 44, .14));
+  transform: translateY(-2px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .cc-feature, .cc-feature:hover { transition: none; transform: none; }
+}
+.cc-feature-media { position: relative; aspect-ratio: 16 / 10; background: var(--s3); }
+.cc-feature-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cc-feature-badges {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+.cc-feature-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px 18px;
+}
+.cc-feature-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 750;
+  line-height: 1.35;
+  color: var(--t1);
+}
+.cc-feature-blurb {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--t3);
+  /* Two lines, clamped in CSS rather than truncated in JS: a character count
+     cuts at a different place at every width, and mid-word on some of them. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.cc-feature-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 4px;
+}
+.cc-feature-money { margin: 0; font-size: 13px; color: var(--t3); min-width: 0; }
+.cc-feature-money strong { font-size: 15px; font-weight: 800; color: var(--t1); }
+.cc-feature-pct { font-size: 13px; font-weight: 700; color: var(--t2); white-space: nowrap; }
+
+/* ── Cause hub tabs ──────────────────────────────────────────────────────────
+   The reference's pill row above the campaign grid. These are LINKS, not tabs:
+   each navigates to a different page, so `role="tab"` would promise in-page
+   panel switching that never happens. */
+.cl-tabs { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 28px; }
+.cl-tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid var(--b1);
+  background: var(--s1);
+  color: var(--t2);
+  font-size: 14px;
+  font-weight: 650;
+  text-decoration: none;
+}
+.cl-tab:hover { border-color: var(--b2); background: var(--s2); color: var(--t1); }

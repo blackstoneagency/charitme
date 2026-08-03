@@ -13,6 +13,11 @@
 import Link from 'next/link';
 import { ProgressBar, Badge, Card } from './ui';
 import { formatCents } from '../lib/stripe';
+// Whole-currency formatting for the feature card. Cents on a card headline are
+// noise — the reference writes "$125,000 of $150,000" — and this is the shared
+// helper the rest of the app already uses for compact figures rather than a
+// local copy that would round differently.
+import { formatMoneyCompact } from '@shared/currencies';
 import { calculateTrustScore, getTrustLabel } from '../lib/ai-platform';
 import { getCoverForCampaign } from '../lib/photo-catalog';
 import { optimizedCoverUrl } from '../lib/img-optimize';
@@ -40,9 +45,24 @@ export interface CampaignCardData {
 export function CampaignCard({
   campaign: c,
   currency = 'usd',
+  variant = 'full',
 }: {
   campaign: CampaignCardData;
   currency?: string;
+  /**
+   * `full` is the dense listing card: trust score, donor count, goal tiles and
+   * the countdown. `feature` is the quieter card from the cause-landing
+   * reference — cover, title, one line of description, raised-of-goal and a
+   * progress bar.
+   *
+   * A VARIANT rather than a second component, deliberately. This file exists
+   * because the repo's recurring failure is a lookalike copy that drifts: three
+   * copies of the category list, five of the public-route list, and ten
+   * implementations of "days left", one of which shipped "136 days left" directly
+   * above "This campaign has ended". A card states the things a donor decides on,
+   * so a divergent copy misstates exactly those.
+   */
+  variant?: 'full' | 'feature';
 }) {
   const pct = Math.min(100, Math.round(((c.raised_amount ?? 0) / c.goal_amount) * 100));
   // Both forms come from the same helper, so the urgency badge and the footer
@@ -51,6 +71,45 @@ export function CampaignCard({
   const days = campaignDaysLeft(c.deadline);
   const trust = calculateTrustScore(c);
   const isVerified = c.trust_status === 'Verified';
+  const hasEnded = daysLabel === 'Ended';
+
+  if (variant === 'feature') {
+    return (
+      <Link href={`/campaigns/${c.slug}`} className="cc-feature">
+        <div className="cc-feature-media">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={optimizedCoverUrl(c.cover_image_url || getCoverForCampaign(c.category ?? undefined, c.slug), 700)}
+            alt=""
+            loading="lazy"
+            decoding="async"
+          />
+          <div className="cc-feature-badges">
+            {c.category && <Badge color="gray">{c.category}</Badge>}
+            {/* The reference shows no status chips. These two are kept anyway:
+                dropping "Verified" removes a signal a donor decides on, and
+                dropping "Ended" is how this repo once shipped a live-looking
+                countdown above a finished campaign. The trust NUMBER and the
+                donor/goal tiles are what the quieter layout drops. */}
+            {isVerified && <Badge color="green">✓ Verified</Badge>}
+            {hasEnded && <Badge color="gray">Ended</Badge>}
+          </div>
+        </div>
+        <div className="cc-feature-body">
+          <h3 className="cc-feature-title">{c.title}</h3>
+          {c.tagline && <p className="cc-feature-blurb">{c.tagline}</p>}
+          <div className="cc-feature-foot">
+            <p className="cc-feature-money">
+              <strong>{formatMoneyCompact(c.raised_amount ?? 0, currency)}</strong>
+              <span> of {formatMoneyCompact(c.goal_amount, currency)}</span>
+            </p>
+            <span className="cc-feature-pct">{pct}%</span>
+          </div>
+          <ProgressBar value={c.raised_amount ?? 0} max={c.goal_amount} />
+        </div>
+      </Link>
+    );
+  }
 
   return (
     <Link href={`/campaigns/${c.slug}`} style={{ textDecoration: 'none' }}>

@@ -155,3 +155,66 @@ describe('the landing is wired to real destinations', () => {
     expect(dupes).toEqual([]);
   });
 });
+
+describe('the fuller Sports & Youth layout', () => {
+  const causesSrc = read('lib/causes.ts');
+  const css = read('app/globals.css');
+
+  it('every cause has an authored impact heading, not one line repeated 20 times', () => {
+    for (const c of CAUSES) {
+      expect(c.impactTitle, `${c.slug} needs an impactTitle`).toBeTruthy();
+      expect(c.impactBlurb, `${c.slug} needs an impactBlurb`).toBeTruthy();
+    }
+    const titles = new Set(CAUSES.map((c) => c.impactTitle));
+    expect(titles.size, 'impact headings must be distinct per cause').toBe(CAUSES.length);
+  });
+
+  it('the impact band shows measured figures, not the mock’s', () => {
+    // The reference asserts a six-figure "youth impacted", a five-figure
+    // "athletes supported", a four-figure programme count and a three-figure
+    // community count. None is an entity in this schema.
+    const src = `${landing} ${causesSrc}`;
+    for (const fake of ['125K', '68K', '1,250+', '250+', '578K']) {
+      expect(src, `mock figure "${fake}" must not be hardcoded`).not.toContain(fake);
+    }
+    expect(landing).toContain('formatStat(stats.liveCampaigns)');
+    expect(landing).toContain('formatMoneyStat(stats.raisedCents)');
+  });
+
+  it('stories link to a campaign and carry NO play button', () => {
+    // Every campaign_media row of type `video` points at a reserved .example
+    // host that cannot resolve, so there is nothing to play. A play button that
+    // opens a campaign page instead is a fake affordance.
+    const page = read('app/causes/[slug]/page.tsx');
+    expect(page).toContain('cl-story');
+    expect(page).toContain('Read the story');
+    expect(page).not.toMatch(/Watch Story/i);
+    expect(page).not.toContain('cl-story-play');
+  });
+
+  it('stories come from genuinely completed campaigns', () => {
+    const helper = read('lib/cause-landing.ts');
+    expect(helper).toContain("eq('status', 'completed')");
+    expect(helper).toContain("is('deleted_at', null)");
+    // `null` on failure so "we could not load these" stays distinct from "none".
+    expect(helper).toContain('return null;');
+  });
+
+  it('the hub row is links, not ARIA tabs', () => {
+    // Each navigates to a different page, so role="tab" would promise in-page
+    // panel switching that never happens.
+    const page = read('app/causes/[slug]/page.tsx');
+    expect(page).toContain('className="cl-tabs"');
+    expect(page).not.toContain('role="tab"');
+  });
+
+  it('dark mode paints a black page background', () => {
+    // `--bg` alone was not enough: the body painted a three-stop navy radial
+    // gradient that ignored the token entirely, so changing the token left the
+    // page navy.
+    expect(css).toContain('--bg: #000000;');
+    const darkBody = css.slice(css.indexOf('[data-theme="dark"] body {'));
+    expect(darkBody.slice(0, 1200)).toContain('background: #000000;');
+    expect(darkBody.slice(0, 1200)).not.toContain('radial-gradient');
+  });
+});

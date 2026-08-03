@@ -8,7 +8,10 @@ import { CAUSES, getCause, type Cause } from '../../../lib/causes';
 import { CampaignCard, CampaignGrid, type CampaignCardData } from '../../../components/CampaignCard';
 import { EmptyState } from '../../../components/ui';
 import { getTranslator } from '../../../lib/locale-server';
-import { getCauseStats } from '../../../lib/cause-landing';
+import { getCauseStats, getCauseStories } from '../../../lib/cause-landing';
+import CampaignImage from '../../../components/CampaignImage';
+import { getPhotosForCategory } from '../../../lib/photo-catalog';
+import { formatMoneyCompact } from '@shared/currencies';
 import CauseLanding, { CauseCtaBand } from './CauseLanding';
 
 const PAGE_SIZE = 24;
@@ -64,7 +67,7 @@ async function getCampaigns(cause: Cause): Promise<CampaignCardData[] | null> {
     // Bounded, like every other discovery read. A timeout returns
     // `{ data: null, error }`, which takes the `null` branch below — and the page
     // already renders that as "we could not load these", not as "none exist".
-    const { data, error } = await boundedQuery(
+    const { data, error } = await boundedQuery(() =>
       applyLiveFilters(
         supabaseAdmin
           .from('campaigns')
@@ -95,7 +98,11 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
 
   // Stats are fetched alongside the campaigns rather than after them: they are
   // independent queries and this page is a common entry point from a share.
-  const [campaigns, stats] = await Promise.all([getCampaigns(cause), getCauseStats(cause)]);
+  const [campaigns, stats, stories] = await Promise.all([
+    getCampaigns(cause),
+    getCauseStats(cause),
+    getCauseStories(cause),
+  ]);
 
   return (
     <div className="cause-landing">
@@ -141,15 +148,73 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
           is where the design puts them. Rendering them here as well meant two
           sets of the same numbers on one page. */}
       {cause.helps && cause.helps.length > 0 && (
-        <section aria-labelledby="how-support-helps" style={{ margin: '0 0 38px' }}>
-          <h2 id="how-support-helps" style={{ fontSize: '22px', fontWeight: 800, color: 'var(--t1)', margin: '0 0 16px' }}>
-            How your support helps
-          </h2>
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 210px), 1fr))', gap: '14px' }}>
-            {cause.helps.map((h) => (
-              <li key={h.title} style={{ background: 'var(--s1)', border: '1px solid var(--b1)', borderRadius: 'var(--rl)', padding: '18px 16px' }}>
-                <h3 style={{ fontSize: '15px', fontWeight: 750, color: 'var(--t1)', margin: '0 0 6px' }}>{h.title}</h3>
-                <p style={{ fontSize: '13.5px', color: 'var(--t3)', lineHeight: 1.55, margin: 0 }}>{h.body}</p>
+        <section className="cl-helps" aria-labelledby="how-support-helps">
+          <h2 id="how-support-helps" className="cl-helps-title">How your support helps</h2>
+          <ul className="cl-helps-grid">
+            {cause.helps.map((h, i) => (
+              <li className="cl-helps-card" key={h.title}>
+                <div className="cl-helps-media" aria-hidden="true">
+                  <CampaignImage
+                    src={getPhotosForCategory(cause.categories[0], cause.helps!.length)[i] ?? null}
+                    category={cause.categories[0]}
+                    campaignKey={`${cause.slug}-help-${i}`}
+                    alt=""
+                    width={320}
+                    height={200}
+                  />
+                </div>
+                <span className={`cl-helps-ic cl-helps-ic--${i % 5}`} aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8Z" />
+                  </svg>
+                </span>
+                <h3>{h.title}</h3>
+                <p>{h.body}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* ── Stories from the field ────────────────────────────────────────────
+          ⚠️ The reference draws these as video cards with a start-media control
+          over each photo. Nothing here can be started: every `campaign_media`
+          row of type `video` points at a reserved `.example` host that cannot
+          resolve. A control that opens a campaign page instead of starting media
+          is a fake affordance, so it is not rendered. These are the cause's
+          genuinely COMPLETED campaigns, linking to the campaign and labelled as
+          reading, not watching. */}
+      {stories !== null && stories.length > 0 && (
+        <section className="cl-stories" aria-labelledby="cause-stories">
+          <header className="cl-stories-head">
+            <h2 id="cause-stories">Stories from the field</h2>
+            <Link href="/success-stories" className="cl-stories-all">View all stories →</Link>
+          </header>
+          <ul className="cl-stories-grid">
+            {stories.map((story) => (
+              <li key={story.id}>
+                <Link href={`/campaigns/${story.slug}`} className="cl-story">
+                  <span className="cl-story-media">
+                    <CampaignImage
+                      src={story.cover}
+                      category={story.category}
+                      campaignKey={story.slug}
+                      alt=""
+                      width={420}
+                      height={260}
+                    />
+                    {story.category && <span className="cl-story-chip">{story.category}</span>}
+                  </span>
+                  <span className="cl-story-body">
+                    <strong>{story.title}</strong>
+                    {story.blurb && <span className="cl-story-blurb">{story.blurb}</span>}
+                    <span className="cl-story-meta">
+                      Funded — {formatMoneyCompact(story.raisedCents, 'usd')} from {story.backers.toLocaleString()}{' '}
+                      {story.backers === 1 ? 'supporter' : 'supporters'}
+                    </span>
+                    <span className="cl-story-cta">Read the story →</span>
+                  </span>
+                </Link>
               </li>
             ))}
           </ul>
@@ -160,7 +225,7 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
           new per-cause page — twenty causes times six pages would be 120 routes
           that drift apart. Campaigns and volunteering already accepted a cause;
           events and teams gained it in this change. */}
-      <nav aria-label={`More in ${cause.label}`} style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', margin: '0 0 32px' }}>
+      <nav aria-label={`More in ${cause.label}`} className="cl-tabs">
         {[
           { href: `/campaigns?cause=${cause.slug}`, label: 'All campaigns' },
           { href: `/events?cause=${cause.slug}`, label: 'Events' },
@@ -169,17 +234,7 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
           { href: '/success-stories', label: 'Stories' },
           { href: '/impact', label: 'Impact reports' },
         ].map((l) => (
-          <Link
-            key={l.href}
-            href={l.href}
-            style={{
-              display: 'inline-flex', alignItems: 'center', minHeight: '44px', padding: '0 16px',
-              borderRadius: '999px', border: '1px solid var(--b2)', background: 'var(--s1)',
-              color: 'var(--t1)', fontSize: '14px', fontWeight: 650, textDecoration: 'none',
-            }}
-          >
-            {l.label}
-          </Link>
+          <Link key={l.href} href={l.href} className="cl-tab">{l.label}</Link>
         ))}
       </nav>
 
@@ -208,7 +263,7 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
       ) : (
         <>
           <CampaignGrid>
-            {campaigns.map((c) => <CampaignCard key={c.id} campaign={c} />)}
+            {campaigns.map((c) => <CampaignCard key={c.id} campaign={c} variant="feature" />)}
           </CampaignGrid>
 
           {campaigns.length === PAGE_SIZE && (

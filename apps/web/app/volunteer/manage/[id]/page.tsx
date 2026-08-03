@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../../lib/query-timeout';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
@@ -17,12 +18,12 @@ export default async function ManageShiftsPage({ params }: { params: Promise<{ i
   const user = await requireUser();
   const { id } = await params;
 
-  const { data: opp } = await supabaseAdmin
+  const { data: opp } = await boundedQuery(() => supabaseAdmin
     .from('volunteer_opportunities')
     .select('id, title, org_name, created_by')
     .eq('id', id)
     .is('deleted_at', null)
-    .maybeSingle();
+    .maybeSingle());
   if (!opp) notFound();
 
   // Ownership is checked here as well as in the API. A page that renders

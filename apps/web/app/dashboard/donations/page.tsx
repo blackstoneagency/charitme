@@ -99,7 +99,7 @@ async function fetchDonationsData(userId: string): Promise<{
 }> {
   try {
     // Step 1: get user's campaigns
-    const { data: campData, error: campError } = await boundedQuery(
+    const { data: campData, error: campError } = await boundedQuery(() =>
       supabaseAdmin
         .from('campaigns')
         .select('id,title')
@@ -121,7 +121,7 @@ async function fetchDonationsData(userId: string): Promise<{
     const campaignIds = campaigns.map((c) => c.id);
 
     // Step 2: get completed donations
-    const { data: donData, error: donError } = await boundedQuery(
+    const { data: donData, error: donError } = await boundedQuery(() =>
       supabaseAdmin
         .from('donations')
         .select('id,amount_cents,currency,status,created_at,anonymous,donor_id,campaign_id')
@@ -149,7 +149,7 @@ async function fetchDonationsData(userId: string): Promise<{
     const profileMap = new Map<string, string>();
 
     if (uniqueDonorIds.length > 0) {
-      const { data: profileData } = await boundedQuery(
+      const { data: profileData } = await boundedQuery(() =>
         supabaseAdmin
           .from('profiles')
           .select('id,full_name')

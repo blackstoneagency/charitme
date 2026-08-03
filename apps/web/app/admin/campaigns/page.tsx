@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../lib/query-timeout';
 import 'server-only';
 import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
 import { requireAdmin } from '../../../lib/auth';
@@ -19,7 +20,7 @@ export default async function AdminCampaignsPage() {
     draftResult,
     attentionResult,
   ] = await Promise.all([
-    supabaseAdmin
+    boundedQuery(() => supabaseAdmin
       .from('campaigns')
       .select(
         // image_urls and video_url are added via ALTER TABLE — may not exist in older DBs.
@@ -28,10 +29,10 @@ export default async function AdminCampaignsPage() {
         { count: 'exact' },
       )
       .order('created_at', { ascending: false })
-      .limit(200),
-    supabaseAdmin.from('campaigns').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-    supabaseAdmin.from('campaigns').select('*', { count: 'exact', head: true }).eq('status', 'draft'),
-    supabaseAdmin.from('campaigns').select('*', { count: 'exact', head: true }).in('status', ['paused', 'frozen', 'rejected']),
+      .limit(200)),
+    boundedQuery(() => supabaseAdmin.from('campaigns').select('*', { count: 'exact', head: true }).eq('status', 'active')),
+    boundedQuery(() => supabaseAdmin.from('campaigns').select('*', { count: 'exact', head: true }).eq('status', 'draft')),
+    boundedQuery(() => supabaseAdmin.from('campaigns').select('*', { count: 'exact', head: true }).in('status', ['paused', 'frozen', 'rejected'])),
   ]);
 
   // If query failed due to missing new columns (image_urls / video_url),
@@ -42,11 +43,11 @@ export default async function AdminCampaignsPage() {
     const { code, message } = campaignsResult.error;
     const isMissingCol = code === '42703' || (message ?? '').includes('image_urls') || (message ?? '').includes('video_url');
     if (isMissingCol) {
-      campaignsResult2 = await supabaseAdmin
+      campaignsResult2 = await boundedQuery(() => supabaseAdmin
         .from('campaigns')
         .select('id, slug, title, tagline, description, status, raised_amount, goal_amount, backer_count, category, user_id, trust_status, campaign_health_score, payout_frozen, featured, pinned, cover_image_url, deadline, beneficiary_name, created_at', { count: 'exact' })
         .order('created_at', { ascending: false })
-        .limit(200);
+        .limit(200));
     }
   }
 
@@ -114,10 +115,10 @@ export default async function AdminCampaignsPage() {
   const profileMap = new Map<string, string>();
 
   if (organizerIds.length > 0) {
-    const { data: profiles } = await supabaseAdmin
+    const { data: profiles } = await boundedQuery(() => supabaseAdmin
       .from('profiles')
       .select('id, full_name, email')
-      .in('id', organizerIds);
+      .in('id', organizerIds));
     for (const p of (profiles ?? []) as { id: string; full_name: string | null; email: string | null }[]) {
       profileMap.set(p.id, p.full_name || p.email || 'Unknown Organizer');
     }

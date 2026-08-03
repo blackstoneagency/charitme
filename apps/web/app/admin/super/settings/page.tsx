@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../../lib/query-timeout';
 import 'server-only';
 import { CharitMeShell, TopBar } from '../../../../components/CharitMeShellServer';
 import { requireSuperAdmin } from '../../../../lib/auth';
@@ -9,7 +10,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function SuperAdminSettingsPage() {
   await requireSuperAdmin();
-  const { data } = await supabaseAdmin.from('platform_settings').select('config').eq('id', 1).maybeSingle();
+  const { data } = await boundedQuery(() => supabaseAdmin.from('platform_settings').select('config').eq('id', 1).maybeSingle());
   const raw = ((data?.config as Record<string, unknown> | null) ?? {});
   // The featured price is stored in cents under `payment`; the form works in
   // dollars. Converted here rather than in the client so the field is populated

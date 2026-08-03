@@ -265,7 +265,17 @@ export default function AdminVolunteersClient() {
                       </span>
                     </div>
                     <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      <a href={`/volunteer/${o.slug}`} target="_blank" rel="noreferrer">{o.title}</a>
+                      {/* 44px target: the row title is the primary way into an
+                          opportunity, and it measured 254x16 — under the WCAG
+                          2.2 SC 2.5.8 minimum. */}
+                      <a
+                        href={`/volunteer/${o.slug}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, maxWidth: '100%' }}
+                      >
+                        {o.title}
+                      </a>
                     </div>
                   </div>
                   <div style={{ display: 'flex', minWidth: 0, gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>

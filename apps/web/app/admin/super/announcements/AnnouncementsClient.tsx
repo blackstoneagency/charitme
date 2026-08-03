@@ -72,7 +72,9 @@ export default function AnnouncementsClient({ rows: initial }: { rows: Announcem
           <label style={{ fontSize: 12, color: 'var(--t3)' }}>Level<select style={input} value={draft.level} onChange={(e) => setDraft({ ...draft, level: e.target.value as Announcement['level'] })}><option value="info">Info</option><option value="success">Success</option><option value="warning">Warning</option><option value="critical">Critical</option></select></label>
           <label style={{ fontSize: 12, color: 'var(--t3)' }}>Link URL<input style={input} value={draft.link_url ?? ''} onChange={(e) => setDraft({ ...draft, link_url: e.target.value })} placeholder="/pricing" /></label>
           <label style={{ fontSize: 12, color: 'var(--t3)' }}>Link label<input style={input} value={draft.link_label ?? ''} onChange={(e) => setDraft({ ...draft, link_label: e.target.value })} /></label>
-          <label style={{ fontSize: 12, display: 'flex', minWidth: 0, gap: 8, alignItems: 'center', color: 'var(--t2)' }}><input type="checkbox" checked={draft.active} onChange={(e) => setDraft({ ...draft, active: e.target.checked })} /> Active now</label>
+          {/* The LABEL is the effective target for a checkbox, so it carries the
+              44px minimum — measured 260x18, under WCAG 2.2 SC 2.5.8. */}
+          <label style={{ fontSize: 12, display: 'flex', minWidth: 0, gap: 8, alignItems: 'center', minHeight: 44, color: 'var(--t2)' }}><input type="checkbox" checked={draft.active} onChange={(e) => setDraft({ ...draft, active: e.target.checked })} /> Active now</label>
           <div style={{ display: 'flex', minWidth: 0, gap: 8 }}>
             <button style={btn} onClick={save} disabled={busy}>{draft.id ? 'Update' : 'Create'}</button>
             {draft.id !== '' && <button style={btnGhost} onClick={() => setDraft(blank)}>Cancel</button>}

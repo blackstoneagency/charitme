@@ -43,14 +43,14 @@ async function getBuckets(): Promise<Buckets | null> {
     const cols = await campaignColumns();
 
     const [closing, verified, needing] = await Promise.all([
-      boundedQuery(
+      boundedQuery(() =>
         applyLiveFilters(supabaseAdmin.from('campaigns').select(SELECT), cols)
           .not('deadline', 'is', null)
           .gte('deadline', new Date().toISOString())
           .order('deadline', { ascending: true })
           .limit(6)
       ),
-      boundedQuery(
+      boundedQuery(() =>
         applyLiveFilters(supabaseAdmin.from('campaigns').select(SELECT), cols)
           .eq('trust_status', 'Verified')
           .order('raised_amount', { ascending: false })
@@ -59,7 +59,7 @@ async function getBuckets(): Promise<Buckets | null> {
       // "Furthest from its goal" is the honest read of most-needed: sorted by
       // least raised, so the campaigns nobody has found yet surface instead of
       // the ones already succeeding.
-      boundedQuery(
+      boundedQuery(() =>
         applyLiveFilters(supabaseAdmin.from('campaigns').select(SELECT), cols)
           .order('raised_amount', { ascending: true })
           .limit(6)

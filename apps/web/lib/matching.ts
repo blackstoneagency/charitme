@@ -24,7 +24,7 @@ export async function listActivePrograms(search?: string): Promise<ProgramWithSp
   const safeSearch = search ? likeTerm(search) : '';
   if (safeSearch) query = query.ilike('company_name', `%${safeSearch}%`);
 
-  const { data, error } = await boundedQuery(query);
+  const { data, error } = await boundedQuery(() => query);
   if (error || !data) return [];
   return decorate(data as MatchingProgram[]);
 }
@@ -41,7 +41,7 @@ export async function getProgram(id: string): Promise<ProgramWithSponsor | null>
 }
 
 export async function listSponsorPrograms(sponsorId: string): Promise<ProgramWithSponsor[]> {
-  const { data, error } = await boundedQuery(
+  const { data, error } = await boundedQuery(() =>
   supabaseAdmin
       .from('matching_programs')
       .select(PROGRAM_COLUMNS)
@@ -75,7 +75,7 @@ export interface ClaimWithNames extends MatchingClaim {
 }
 
 export async function listEmployeeClaims(employeeId: string): Promise<ClaimWithNames[]> {
-  const { data, error } = await boundedQuery(
+  const { data, error } = await boundedQuery(() =>
   supabaseAdmin
       .from('matching_claims')
       .select('*')
@@ -87,7 +87,7 @@ export async function listEmployeeClaims(employeeId: string): Promise<ClaimWithN
 }
 
 export async function listProgramClaims(programId: string): Promise<ClaimWithNames[]> {
-  const { data, error } = await boundedQuery(
+  const { data, error } = await boundedQuery(() =>
   supabaseAdmin
       .from('matching_claims')
       .select('*')

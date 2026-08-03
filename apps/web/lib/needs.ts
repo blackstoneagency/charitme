@@ -96,7 +96,7 @@ export async function listCurrentNeeds(opts: { category?: string; limit?: number
     // raised_amount ascending puts the least-funded first, which is the closest
     // the database can get to "largest gap" without a computed column —
     // the exact gap is then computed per row below.
-    const { data, error } = await boundedQuery(
+    const { data, error } = await boundedQuery(() =>
       query.order('raised_amount', { ascending: true }).limit(limit * 4),
     );
     if (error || !data) return null;

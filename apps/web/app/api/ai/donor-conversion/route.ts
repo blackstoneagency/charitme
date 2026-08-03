@@ -84,7 +84,14 @@ export async function GET(request: NextRequest) {
     .eq('id', campaignId)
     .maybeSingle<Campaign>();
 
-  if (campaignError) return NextResponse.json({ error: campaignError.message }, { status: 500 });
+  if (campaignError) {
+    // Never return the database's own message to an UNAUTHENTICATED caller.
+    // These two routes are IP-rate-limited only — no session required — and a
+    // PostgREST message can carry table, column and constraint names. Detail
+    // goes to the server log; the caller gets the repo's standard opaque 500.
+    console.error('[donor-conversion] campaign read failed:', campaignError.message);
+    return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
+  }
   if (!campaign) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
 
   const [{ data: recentDonations }, { data: launchSettings }] = await Promise.all([

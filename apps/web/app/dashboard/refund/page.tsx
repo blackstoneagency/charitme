@@ -46,7 +46,7 @@ export default async function RefundPage({
   const ninetyDaysAgo = new Date();
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
-  const { data: rawDonations, error: donationsError } = await boundedQuery(
+  const { data: rawDonations, error: donationsError } = await boundedQuery(() =>
     supabaseAdmin
       .from('donations')
       .select('id, amount_cents, currency, status, created_at, campaign_id')
@@ -92,7 +92,7 @@ export default async function RefundPage({
 
   // ── Resolve campaign titles ───────────────────────────────────────────────
   const campaignIds = [...new Set(donations.map((d) => d.campaign_id))];
-  const { data: campaignData, error: campaignError } = await boundedQuery(
+  const { data: campaignData, error: campaignError } = await boundedQuery(() =>
     supabaseAdmin
       .from('campaigns')
       .select('id, title')
@@ -105,7 +105,7 @@ export default async function RefundPage({
 
   // ── Check which donations already have a pending/approved refund request ──
   const donationIds = donations.map((d) => d.id);
-  const { data: existingRefunds, error: refundsError } = await boundedQuery(
+  const { data: existingRefunds, error: refundsError } = await boundedQuery(() =>
     supabaseAdmin
       .from('refunds')
       .select('donation_id, status')

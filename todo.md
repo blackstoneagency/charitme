@@ -58,6 +58,785 @@ actually need.
 
 
 ## ⏱️ PERF — 13 public pages stalled ~14.1s; shared cause fixed, per-page reads open (Claude, 2026-08-02)
+## 🛑 THE ONE REMAINING ITEM, and why no further looping moves it (Claude, 2026-08-03)
+
+Applying the 27 pending migrations. **Measured, not assumed** — this environment
+has no way to do it:
+
+```
+SUPABASE_SERVICE_ROLE_KEY      unset
+SUPABASE_ACCESS_TOKEN          unset
+NEXT_PUBLIC_SUPABASE_URL       unset
+SUPABASE_DB_URL                unset
+DATABASE_URL                   unset
+supabase CLI                   not installed
+env files present              .env.example only
+```
+
+That is the same root fact behind every degraded page in this sandbox, and it is
+why the whole resilience sweep was testable here at all. It is not a judgement
+being deferred and not a task being avoided: there is no credential, so there is
+no action.
+
+Going straight to production without staging is refused on three separate
+grounds, any one of which is sufficient: the release ledger's own instruction
+("Do not bypass this gate"), the standing instruction not to weaken RLS or bypass
+approval controls, and the fact that six of the 27 are privilege changes.
+
+**`supabase/RELEASE-RUNBOOK.md`** is the handoff — five steps, the exact commands,
+the smoke tests that matter, and the rollback ordering hazard that rehearsal
+found and reading the SQL would not.
+
+### Everything that did not need an account is done
+
+| | |
+|---|---|
+| all 114 migrations replay from zero, in order | ✅ 114/114 |
+| resulting schema RLS-complete | ✅ 162/162 tables |
+| every pending migration has a rollback | ✅ 27/27 |
+| rollbacks rehearsed against a real database | ✅ 11/11 |
+| function rollbacks byte-identical to prior body | ✅ 3/3 |
+| irreversible ones refuse loudly (psql exit 3) | ✅ 2 |
+
+The gap staging closes — drift between the migrations and what is actually live —
+is the one thing a clean replay structurally cannot show. That is exactly what
+step 2 of the runbook is for.
+
+## ✅ ROLLBACK COVERAGE IS 27/27 — including the three that touch `record_donation` (Claude, 2026-08-03)
+
+Every pending migration now has a rollback, and each is either **rehearsed** or a
+**documented refusal**. I had said the function ones needed the owner's sign-off
+because "a wrong guess breaks the donation path". The mistake was in *guess* —
+the previous body does not have to be guessed.
+
+```
+rehearse-rollbacks.sh — 11/11 pass, exit 0
+  6 table   ·  4 column  ·  1 index
+generate-function-rollback.sh — 3/3 byte-identical
+  2 declared irreversible (raise exception, psql exit 3)
+```
+
+### The function rollbacks are GENERATED and byte-proven, not transcribed
+
+`scripts/generate-function-rollback.sh` replays every migration up to the one
+before the target, asks Postgres for the exact definition via
+`pg_get_functiondef()`, and writes **that**. Then it applies the target, applies
+the generated rollback, re-reads the definition, and **only writes the file if
+the text matches the pre-target snapshot byte for byte.**
+
+That removes the risk that stopped me: the inverse of `create or replace` is not
+inferred, it is measured. All three — including both that replace
+`record_donation`, the RPC the Stripe webhook calls — verified identical.
+
+### It immediately caught something a body-only check would have shipped
+
+Dropping a function **cascades to every trigger that calls it**. The first
+generated rollback for `volunteer_hours_guard_verification` restored the function
+perfectly and left its guard trigger deleted — and the comparison passed, because
+it only compared function text. Verification now covers `pg_get_triggerdef` too.
+
+Note the subtlety in the opposite direction: `20260815000000` cascades away
+`donations_increment_peer_fundraiser`, and its rollback correctly does **not**
+restore it — that trigger is created by the migration, so it should not exist
+after a revert. Before and after are both empty, which is why the count reads 0.
+
+### The last two were a false "mixed"
+
+`20260728020000` looked like it added nothing because it swaps a **partial**
+unique index for a plain one **under the same name**. `20260812000000` adds four
+unique indexes built inside a `DO` block. Both are index-only — no data moves —
+and both rollbacks carry a warning that reverting reinstates the exact `42P10`
+upsert failure the migrations fixed, which for tax receipts means emailing a
+donor an IRS receipt and recording nothing.
+
+### Coverage
+
+| | start of day | now |
+|---|---|---|
+| pending migrations with a rollback | 10 / 27 | **27 / 27** |
+| rehearsed against a real database | 0 | **11** |
+| byte-proven function restores | 0 | **3** |
+| documented refusals | 0 | **2** |
+
+**Still owner-blocked:** applying the 27 needs a staging project. Everything that
+does not need one is now done — they replay clean, the schema is RLS-complete at
+162/162, and every migration can be backed out or says in writing why it cannot.
+
+## ✅ ROLLBACK COVERAGE — 10 → 22 of 27; the last 5 are named, not forgotten (Claude, 2026-08-03)
+
+Second pass. I had applied an incoherent standard: willing to write `drop table`
+(destroys every row) while calling `drop column` (destroys one column) too
+dangerous to write. Both are what reverting the respective migration means.
+
+```
+rehearse-rollbacks.sh — 10/10 pass, exit 0
+  6 table rollbacks   (volunteer, organizations, incidents, tasks, retention, domains)
+  4 column rollbacks  (demo labels, geolocation, locale, marketing org scoping)
+```
+
+| | before | now |
+|---|---|---|
+| pending migrations with a rollback | 10 | **20** |
+| declared permanently irreversible | 0 | **2** |
+| genuinely uncovered | 17 | **5** |
+
+### Contents MEASURED, not parsed
+
+`scripts/diff-migration.sh <version>` replays every earlier migration, snapshots
+the schema, applies the target and diffs. That matters: several columns are added
+inside `DO` blocks that build statements with `format()`, and a grep over the SQL
+does not see them. My first attempt to enumerate the columns by grep found
+**zero** for three of the four migrations.
+
+### The two 15s mean opposite things
+
+`marketing_org_scoping` adds `org_id` to exactly the 15 marketing tables whose
+foreign keys the `organizations` rollback destroys — independent corroboration of
+the ordering hazard found in the previous pass.
+
+- **`rollback_marketing_org_scoping`** loses 15 FKs *with the columns being
+  dropped* → expected.
+- **`rollback_organizations_multitenancy`** loses 15 FKs *from columns that
+  survive* → the dangerous case.
+
+The harness cannot tell them apart on its own — it counts FKs by surviving
+*table*, and in both cases the tables survive. Hence an explicit
+`EXPECTED_FK_LOSS=` declaration in each, with the distinction written down.
+
+### The two RLS ones now REFUSE rather than not exist
+
+An absent rollback reads as an oversight. These exist, explain themselves, and
+`raise exception` — **psql exits 3**, so they halt a release script rather than
+printing a warning:
+
+- `20260812010000_creator_tips_not_world_readable` — reverting restores anonymous
+  SELECT over `supporter_id`, `amount_cents`, `message` and
+  `stripe_payment_intent_id`.
+- `20260819000000_donation_forms_slug_and_campaign_owner` — same shape, and a
+  partial revert would break form URLs rather than restore anything.
+
+### The 5 still uncovered, and why
+
+3 `create or replace function` (two of them replace **`record_donation`**, the
+RPC the Stripe webhook calls — the inverse is "restore the previous body", and
+getting it wrong breaks the donation path) and 2 mixed. Each needs a decision,
+not a template.
+
+## ✅ ROLLBACKS — 6 written and REHEARSED; one is not safe to run alone (Claude, 2026-08-03)
+
+Resolves the first of the two questions left open by the classification: the
+mechanical rollbacks are written, and — more to the point — **run**.
+
+```
+✓ 20260806000000 volunteer_shifts_hours     2 tables, 0 collateral FKs
+✓ 20260807000000 organizations_multitenancy 3 tables, 15 collateral FKs (declared)
+✓ 20260820000000 incidents_and_maintenance  3 tables, 0
+✓ 20260821000000 tasks                      1 table,  0
+✓ 20260822000000 data_retention_policies    2 tables, 0
+✓ 20260823000000 custom_domains             1 table,  0
+```
+
+`scripts/rehearse-rollbacks.sh` replays all 114 migrations against a fresh
+database per case, applies one rollback, and asserts the targets are gone and
+nothing else went with them. Each case also asserts the targets **exist before**
+the rollback, so a mistyped table name fails loudly instead of passing vacuously.
+
+### 🔴 `organizations_multitenancy` cannot be rolled back on its own
+
+Dropping `organizations` cascades into **15 foreign keys on tables that survive**
+— the entire marketing subsystem is org-scoped by
+`20260814000000_marketing_org_scoping`. Every one of those tables keeps its
+`org_id` column and loses the constraint: the rows stay and nothing enforces them.
+That is worse than either applying or fully reverting — a half-reverted schema
+that still looks scoped. `20260814000000` must be rolled back **first**.
+
+### My own check missed it, which is the reusable lesson
+
+The first version counted **tables** only. Every table survived the organizations
+rollback, so it printed *"no collateral"* while fifteen constraints went. Two
+further corrections were needed before the number meant anything:
+
+1. Counting *all* FKs made every rollback look damaging, because a dropped
+   table's own FKs go with it by definition. The metric had to narrow to FKs on
+   **surviving** tables — after which five of six read 0, and the real one stood
+   out.
+2. `set -euo pipefail` plus a `grep` with no match killed the script before its
+   `:-0` default could apply, so it exited 1 with **no output at all** and looked
+   like a crash rather than a finding.
+
+### Corrected: "function-only" migrations are NOT mechanical
+
+The earlier classification put three migrations in a "function-only, drop is
+mechanical" bucket. That was wrong — all three use `create or replace`, so the
+true inverse is *restore the previous definition*, not `drop`. Two of them
+replace **`record_donation`**, the RPC the Stripe webhook calls. A drop-style
+rollback there would break the donation path. They are correctly still uncovered.
+
+**Still open (owner decision):** whether the two RLS migrations should be marked
+permanently irreversible. Remaining uncovered: 11 of 27 — 3 function-replace,
+4 column/constraint, 2 policy/RLS, 2 mixed.
+
+## ✅ MIGRATIONS REHEARSED LOCALLY — 114/114 apply clean; 17 of 27 have NO ROLLBACK (Claude, 2026-08-03)
+
+Staging remains owner-blocked, but the part of staging's job that does **not**
+need a Supabase plan has now been done here: replaying every migration in order
+against a throwaway Postgres and checking what the resulting schema contains.
+
+```
+applied=114 failed=0
+tables            162
+tables with RLS   162      ← every public table
+RLS policies      245
+tables WITHOUT RLS  0
+```
+
+All ten representative objects from the pending set are present — `organizations`,
+`organization_members`, `volunteer_shifts`, `volunteer_hours`, `tasks`,
+`custom_domains`, `incidents`, `data_retention_policies`, `peer_fundraisers`,
+`donation_forms`. **The 9 migrations added since the 2026-07-29 audit — which had
+never been rehearsed anywhere — apply cleanly.**
+
+### 🔴 The finding: 17 of the 27 pending migrations have NO rollback script
+
+**Classified, because "write the 17 missing rollbacks" is not a mechanical task:**
+
+| kind | n | what a rollback would mean |
+|---|---|---|
+| creates new tables (12 tables across 6 migrations) | 6 | mechanical `drop table` |
+| function-only | 3 | mechanical drop/restore |
+| adds columns or constraints | 4 | **`drop column` destroys the data in it** |
+| policy / RLS change | 2 | **re-exposes data that was deliberately closed** |
+| mixed | 2 | needs reading, not a template |
+
+⚠️ **Two of them should probably stay irreversible, and that is a decision, not
+an omission.**
+
+`20260812010000_creator_tips_not_world_readable` replaced
+`using (true)` on a table carrying `supporter_id`, `amount_cents`, `message` and
+`stripe_payment_intent_id`. Its rollback restores anonymous read of all four. The
+rollback for *"we stopped leaking data"* is *"leak it again"* — writing that
+script puts a loaded gun in the repo, and it conflicts with the standing
+instruction not to weaken RLS. `20260819000000_donation_forms_slug_and_campaign_owner`
+is the same shape.
+
+**Not auto-generated deliberately.** Nine of the seventeen (new tables +
+functions) could be written and proven with `scripts/rehearse-migrations.sh` —
+apply, roll back, diff the schema. The other eight are judgement calls with
+data-loss or data-exposure consequences, and generating them speculatively at the
+end of a long session, with no production access to validate against, is how a
+rollback that quietly drops a populated column gets written.
+
+**Owner decision needed:** should the nine mechanical rollbacks be written and
+rehearsed, and should the two RLS ones be marked permanently irreversible in the
+release procedure?
+
+
+The ledger audit proved rollback for the 18 it covered. It is not true of the set
+as it now stands:
+
+| | count |
+|---|---|
+| pending **with** a rollback script | 10 |
+| pending **without** | **17** |
+
+Five of the six security migrations are covered. **One is not:**
+`20260812010000_creator_tips_not_world_readable`. Every one of the 9 added since
+the audit is uncovered.
+
+That is worth knowing *before* the gate opens, not after: it means 17 of the 27
+cannot be backed out if applying them goes wrong in production.
+
+### ⚠️ `regen_schema.sh` cannot catch a broken migration — by construction
+
+It runs psql with **`ON_ERROR_STOP=0`** and sends stdout and stderr to
+`/dev/null`, because its job is to emit a schema mirror and it tolerates partial
+failures to do it. A migration that errors is silently skipped and the mirror is
+still written. It was never a verification tool, and reading it as one is how a
+bad migration could sit unnoticed.
+
+`scripts/rehearse-migrations.sh` is the verification tool: `ON_ERROR_STOP=1`, one
+migration at a time, names the failing file, and **exits non-zero**.
+Mutation-tested — a planted broken migration exits 1 and names it; a planted
+table with RLS left off exits 1; the clean tree exits 0.
+
+### The stub that makes or breaks the replay
+
+The first replay reported 2 failures and **both were artifacts of my own harness**:
+
+`supabase_migrations.schema_migrations` is the Supabase CLI's ledger and exists on
+every real project. Without it, `20260607900000_prepare_support_policy_hardening`
+— a compatibility shim that reads the ledger to decide whether later hardening
+already ran — aborts, and that cascades into `20260608000000_production_hardening`
+failing with *"policy already exists"*. Two red migrations, neither of them
+broken. The script now creates the ledger and inserts each version after applying
+it, exactly as `supabase db push` does; the count went 112/114 → **114/114**.
+
+**Not a substitute for staging.** This is a clean-replay from zero against stubbed
+`auth`/`storage`, not a restore of the production snapshot, so it cannot catch
+drift between the migrations and what is actually live. It does establish that the
+migrations are internally consistent and RLS-complete, which is the half that
+needed no account upgrade.
+
+## 🔻 CI MINUTES — a third of the allowance went on docs commits; fixed (Claude, 2026-08-03)
+
+Follows from the diagnosis in CLAUDE.md: this repo is **private**, so Actions
+minutes are a finite monthly allowance, and exhausting it produces exactly the
+runner outage this file keeps re-recording.
+
+**Measured: 5 of the last 15 commits changed only narrative markdown.** Each ran
+the full ~9-minute matrix — typecheck, lint, 2767 tests, audit, build, plus e2e —
+**twice**, once for the PR and once for the merge. About a third of the allowance
+was being spent on changes that cannot alter a test result.
+
+`ci.yml` now sets `paths-ignore` on both triggers.
+
+### The obvious version of this fix is wrong
+
+`'**.md'` looks equivalent and would have opened a silent hole: `AI/employees/*.md`
+and `AI/sprints/*.md` compile into `lib/ai-roster.generated.ts` via `prebuild`,
+and `ai-control-center.test.ts` fails when the committed output drifts. Ignoring
+all markdown would skip CI on a markdown change that genuinely breaks the build.
+The list is explicit, and `__tests__/ci-paths-ignore.test.ts` **refuses any
+pattern that could match under `AI/`** — mutation-tested by planting `'**.md'`
+and by planting `apps/web/lib/**`.
+
+The two triggers share one YAML **anchor** rather than two copies, so they cannot
+drift into the state where a PR skips CI but its merge runs it.
+
+⚠️ **If required status checks are ever enabled on `master`, revisit this.** A
+skipped workflow leaves its check pending forever and would deadlock a docs-only
+PR. Nothing is required today, which is why this is safe now — recorded so the
+next person does not find out the hard way.
+
+## 🛑 SUPABASE STAGING — blocked, and the pending count is **27** (Claude, 2026-08-03)
+
+**The count is settled, and none of the four numbers previously in this file was
+right.** I had written it off as unmeasurable; that was wrong — the answer was in
+this file, in the release ledger.
+
+The 2026-07-29 ledger audit compared against the **live production ledger**:
+**105 local / 87 remote / 18 pending**, verified three ways — `supabase db push
+--dry-run --include-all` selected exactly those 18, a read-only production schema
+dump confirmed the objects were absent, and a restored production clone applied
+all 18 in order and proved rollback.
+
+Nine migrations have been added since. So the count is arithmetic:
+
+```
+114 local − 87 applied           = 27
+18 audited pending + 9 added     = 27   ✓ reconciles
+```
+
+All 18 audited-pending versions are still on disk under their original names.
+
+### ⚠️ Six of the 27 are SECURITY hardening, not features
+
+This is the part that changes the priority. Written, reviewed, merged — and
+**not live**:
+
+- `20260809000000_harden_privileged_database_boundaries`
+- `20260810000000_lock_down_service_managed_writes`
+- `20260811000000_secure_schema_cache_reload`
+- `20260812010000_creator_tips_not_world_readable`
+- `20260813000000_donor_message_anonymity_contract`
+- `20260814010000_harden_role_and_team_boundaries`
+
+The staging blocker is not only holding back features; it is holding back RLS and
+privilege hardening in production. Several others (`tasks`, `custom_domains`,
+`incidents_and_maintenance`, `data_retention_policies`) back dashboard pages that
+are therefore inert live.
+
+### Why it still cannot be verified from here
+
+`supabase/schema.sql` is **not** evidence of what is live. `scripts/regen_schema.sh`
+regenerates it by replaying `supabase/migrations/` into a throwaway Postgres, so
+it contains every table including unapplied ones — it mirrors intent, not
+production. I checked it hoping to narrow the set; it cannot answer that.
+
+The one external input is `applied = 87`. Anyone with credentials re-checks it in
+one command: `supabase migration list --linked`.
+
+Guard: `__tests__/migration-ledger.test.ts` reconciles the count two ways, fails
+if an audited-pending migration is renamed or removed, and **fails if todo.md
+stops stating the current number** — because the original defect was not
+miscounting, it was adding migrations and leaving the old number in place.
+
+Owner action unchanged: upgrade Supabase, free a project slot, or provision
+staging elsewhere. Do not bypass the gate — the ledger's last line says so, and
+27 unverified migrations including six privilege changes is exactly the case the
+gate exists for.
+
+## ⚪ `/certificate` — NOT a deferral; building it would require inventing data
+
+Recorded plainly because "left to another lane" reads like a gap, and it is not.
+
+Design 64 wants a donor certificate. `/donor/receipt/[donationId]` already exists
+and renders a real donation. A standalone `/certificate` route has **no donation
+id in the URL**, so it could only be one of two things: a mock-up with invented
+figures, or a duplicate of a page another lane owns. The first is a fabricated
+financial document, which no goal justifies.
+
+The correct shape is a print/share view on the existing receipt route — that
+route currently offers "Open in a new tab to print or save as PDF" and nothing
+more. It belongs to the donor-receipt lane, and this lane is not taking it.
+
+## ✅ MONEY-PATH READ SWEEP — closed out (Claude, 2026-08-03)
+
+Third and final batch of the "a failed read is not a fact" sweep. The 48 sites
+across 22 money-path files are now triaged to completion:
+
+| | |
+|---|---|
+| **fixed — money consequence** | `/api/donations`, `/api/donations/recurring` (wrong-currency charge, false 404s), Stripe webhook `charge.refunded` + `charge.dispute.*` (silently dropped, 200 to Stripe, no retry) |
+| **fixed — false claim, fails closed** | `/api/payouts`, `/api/stripe/connect/status`, `/api/campaigns/[id]/payout-status` |
+| **correct as-is** | null-returning lookup helpers whose callers handle null; receipt/email enrichment explicitly marked non-fatal |
+
+### The last batch: `false` is a claim
+
+`!!(row?.payouts_enabled && …)` on an unreadable row is `false`, and `false`
+here is not "unknown" — the UI renders it as a statement:
+
+- `/api/payouts` → *"Complete Stripe onboarding before accessing payouts"*, to a
+  **verified** account, sending a fundraiser back into a flow they finished
+- `/api/stripe/connect/status` → `{ connected: false }` → *"connect your Stripe
+  account"*, to someone already connected
+- `/api/campaigns/[id]/payout-status` → 404 *"Campaign not found"* to the
+  campaign's **own organizer**, plus a checklist telling a fully-connected
+  beneficiary to go and connect
+
+All three fail CLOSED — no money moves either way — which is exactly why they
+ranked last rather than not at all. Each now answers 503 and says nothing it
+cannot support.
+
+`payout-status` needed all **three** of its reads guarded (campaign, beneficiary,
+organizer). Guarding one and leaving another renders the same wrong checklist,
+just half as often — the test asserts the count is 3, so a partial fix fails.
+
+### The whole sweep in one line
+
+**`const { data } = await …` on a money path is the shape to grep for.** Dropping
+`error` does not lose a message; it converts "we don't know" into a confident,
+wrong action taken on someone else's money.
+
+## 🚨 WEBHOOK — two money events were silently dropped on a failed read (Claude, 2026-08-03)
+
+Money has ALREADY MOVED by the time these handlers run, and both answered **200
+to Stripe** on an unreadable row — so there was no retry, ever.
+
+```js
+const { data: donation } = await supabaseAdmin.from('donations')…maybeSingle();
+if (!donation) return;      // ← a failed READ takes this branch
+```
+
+| handler | what a failed read left behind |
+|---|---|
+| `charge.refunded` | donation stays `completed`; the campaign keeps counting money it has **already given back** |
+| `charge.dispute.*` | the chargeback exists at Stripe with **no record here at all** |
+
+Neither is recoverable afterwards: the 200 tells Stripe the event was handled, so
+it is never redelivered, and nothing in our data says anything is missing.
+
+**The fix was already the file's own contract.** Every other money-critical read
+here throws — `record_donation failed`, `Recurring donation renewal could not be
+recorded`, and five more. The webhook 500s, Stripe redelivers, and the work is
+idempotent on `p_stripe_event_id`, which is exactly why throwing is safe. These
+two paths were the outliers that swallowed instead.
+
+**"No row" still returns early, deliberately.** A refund for a payment we never
+recorded genuinely has nothing to update; throwing on that would retry forever.
+Only a read ERROR throws.
+
+**Triaged, not bulk-fixed.** 48 sites across 22 money-path files destructure
+`{ data }` without `error`. Most are correct: `lib`-style lookup helpers that
+return `null` for callers to handle, and receipt/email enrichment that is
+explicitly non-fatal. Two more are false-but-fail-CLOSED and worth a later pass —
+`/api/payouts` and `/api/stripe/connect/status` tell a fully-onboarded fundraiser
+to "complete Stripe onboarding" when the read fails. They move no money, so they
+rank below these.
+
+**Standing lesson, second instance today:** on a money path, `const { data } =
+await …` is the shape to grep for. Dropping `error` does not lose a message — it
+converts "we don't know" into a confident, wrong action.
+
+Guard: `__tests__/donation-read-failures.test.ts`. Note the guard's own bug,
+caught by running it: matching `if (donationError) throw` also swept up the
+recurring-renewal handler, a pre-existing correct site with no row branch after
+it. A guard that fails for the wrong reason gets loosened, so it now matches each
+handler's own message.
+
+## 🚨 PAYMENT PATH — a failed read was reported to donors as fact (Claude, 2026-08-03)
+
+Both donation routes destructured only `{ data }` from their Supabase lookups and
+threw the `error` away. Three consequences, all reaching a donor mid-checkout:
+
+| read fails | donor was told | now |
+|---|---|---|
+| campaign | **404 "Campaign not found"** — a live fundraiser declared nonexistent | 503 `CAMPAIGN_LOOKUP_UNAVAILABLE` |
+| reward (one-time) | **404 "Reward not found"** | 503 `REWARD_LOOKUP_UNAVAILABLE` |
+| `campaign_launch_settings` | nothing — **charged in USD** | 503 `CURRENCY_LOOKUP_UNAVAILABLE` |
+
+**The currency one is a money bug, not a display bug.** `normalizeCurrency` maps
+anything unrecognised — including `undefined` — to `DEFAULT_CURRENCY`, so a
+discarded error charged a GBP or EUR campaign's donor in **dollars**. It is
+invisible afterwards because the donation records the currency it charged. On
+`/api/donations/recurring` it creates a SUBSCRIPTION, so the wrong currency
+re-charges every period until someone cancels it.
+
+The reward case is subtler than it reads: the donor picked a real perk, and the
+obvious recovery from "Reward not found" is to retry WITHOUT it — completing a
+gift that silently drops the reward they chose.
+
+**The right answer was already in the file.** The organizer-suspension check
+returns 503 `ACCOUNT_STATUS_UNAVAILABLE` with "we could not process this right
+now" for exactly this situation — we could not determine a fact, so we do not
+proceed and we assert nothing false. It had been applied to one read out of four.
+
+Also `.single()` → `.maybeSingle()` on both campaign lookups. `.single()` reports
+zero rows AS AN ERROR, so under the new rule every genuinely missing campaign
+would have routed into the 503 branch — the opposite failure, equally wrong.
+Same trap as `getCampaign`, second instance.
+
+**Standing lesson:** `const { data } = await …` on the payment path is the shape
+to grep for. Dropping `error` does not lose an error message — it converts
+"we don't know" into a confident, wrong statement to someone holding a card.
+
+Guard: `__tests__/donation-read-failures.test.ts`, 10 assertions across both
+routes, mutation-tested by deleting each 503 in turn.
+
+## ✅ CLS — RESOLVED BY MEASUREMENT: the current skeleton is correct, 0.000 vs 0.225 (Claude, 2026-08-03)
+
+**The open question in this entry is now CLOSED, and the answer is measured, not
+reasoned.** I previously wrote that settling it needed "a seeded database or a
+preview with data". It did not — it needed the page's data dependency removed so
+the Suspense boundary could actually resolve.
+
+| `ListPageSkeleton` | populated list | empty list |
+|---|---|---|
+| **`minHeight: 100vh`** (current code) | **0.0000** — zero shifts | 0.116 |
+| removed | **0.2250** | 0.037 |
+
+**The current code is right by a wide margin.** Removing the reservation buys
+0.116 → 0.037 on the empty case and costs **0 → 0.225** on the populated one —
+the common case in production, and 2.25× the budget. The 0.225 is also an exact
+independent reproduction of the figure the component's own comment cites as the
+bug it was written to fix.
+
+### The experiment failed THREE times first, each time looking like a result
+
+Worth reading before trusting any future measurement of a Suspense route here:
+
+1. **Filler added to the page** — never reached the response. The data fetch
+   never resolves without a database, so the served HTML is the fallback and the
+   deferred chunk is never flushed. Measured the skeleton against itself.
+2. **Fixture with wrong field names** — the page rendered *"Something went
+   wrong"*. The 0.116 I got back was an **error boundary**, not a populated list.
+   Caught only by dumping `document.body.innerText`.
+3. **Fixture that resolved synchronously** — `loading.tsx` never painted, so both
+   variants measured 0.0000 and the comparison was meaningless.
+
+Only the fourth attempt — correct `VolunteerOpportunity` shape, plus an explicit
+900ms delay so the skeleton actually renders — produced a real comparison. Each
+failure returned a plausible number; none of them announced itself.
+
+**Rule this hands forward:** when measuring a Suspense route, assert the LOADED
+state is on screen before believing the metric. `cardsRendered: 48` and
+`footerY: 3648` were what made the fourth run trustworthy.
+
+---
+
+*Original entry, kept for the reasoning:*
+
+
+**Do not "fix" the list skeletons off this reading.** I nearly shipped a
+regression doing exactly that, and the trap is well hidden.
+
+`audit:web-vitals` reports 5 of 86 routes over the 0.1 CLS budget — `/matching`,
+`/volunteer`, `/leaderboard`, `/events`, `/sponsor`, all clustered at
+**0.116–0.13**. One tight cluster means one shared cause, and there is one:
+attributing the shift with a `layout-shift` PerformanceObserver names a single
+source on every route, `<footer class="kind-footer">`, moving the same distance.
+
+All five are the routes that have a `loading.tsx` (11 exist in total).
+
+### What is actually happening
+
+`ListPageSkeleton` reserves `minHeight: 100vh` — a deliberate, documented fix for
+an earlier 0.225 CLS. That pushes the footer to y≈986, below the 900px fold,
+while loading.
+
+**This sandbox has no database, so every list resolves to its EMPTY state.**
+Content collapses to ~493px, and the footer travels back **UP** into view
+(986 → 561). The skeleton is not too short — it is too tall, and the jump has
+reversed direction.
+
+Removing the `minHeight: 100vh` drops those four routes to **0.0371**, measured.
+It is still the wrong change:
+
+| | footer during load | populated list | empty list |
+|---|---|---|---|
+| **with** `100vh` (current) | y≈986, below fold | moves down, stays below fold → **0** | moves up into view → 0.116 |
+| **without** | y≈691, in view | moves down **from inside the viewport** → shift | 0.037 |
+
+So removing it trades a fixed regression on the common (populated) case for an
+improvement on the case this sandbox happens to show. **The current code is
+right; the measurement is what is wrong.**
+
+### The populated case cannot be measured here — verified, not assumed
+
+I tried, by injecting 48 filler cards into `/volunteer` and rebuilding. The
+filler reached the build output (`.next/server/app/volunteer/(list)/page.js`)
+and never reached the response. The served HTML is the Suspense **fallback** —
+`<template id="B:1">` plus the skeleton — because the data fetch never resolves
+without a database, so the deferred chunk carrying the real content (and the
+filler) is never flushed. The experiment measured the skeleton against itself.
+
+**Worth knowing generally: on a Suspense route in this sandbox, `curl` and
+Playwright both see the fallback, not the page.** Any "measurement" of such a
+route's loaded state here is measuring the skeleton.
+
+### What would settle it
+
+A seeded database, or a preview deployment with data, then re-run
+`audit:web-vitals`. Until then the honest reading of those 5 rows is "unmeasured",
+not "failing". Everything reverted; no CLS change shipped.
+
+### The rest of the audit suite is genuinely clean
+
+Run against a production build on a live port:
+
+- `audit:contrast` — **86 pages × 2 themes**, 10,516 text elements per theme, no AA failures
+- `audit:responsive` — **86 pages × 3 viewports × 2 themes**, no regressions
+- `audit:focus-order` — **87 routes × 2 themes**, 15,290 focus stops, no keyboard traps, no invisible focus stops, no order breaks
+- `audit:web-vitals` — 81/86 within budget; the 5 above are the artifact
+
+## ✅ RESILIENCE — the helper that made reads degrade could not catch the commonest failure (Claude, 2026-08-03)
+
+`boundedQuery` exists so a degraded database takes each call site's existing
+`if (error)` branch instead of crashing the page. **It could not do that for the
+most common way the database becomes unavailable.**
+
+`supabaseAdmin` is a Proxy whose `get` trap THROWS when the service-role env vars
+are missing. So `supabaseAdmin.from('campaigns')` throws **synchronously, while
+the argument is being evaluated** — before `boundedQuery` is ever entered. It
+never becomes a rejection, never becomes `{ error }`, and no `if (error)` check
+on this site could see it. **All 69 call sites passed an already-built query, so
+all 69 were blind to it.** That was the single cause of the ~39 pages returning
+500 on a degraded database while each already had an empty state written.
+
+**`boundedQuery` now takes a THUNK** — `boundedQuery(() => supabaseAdmin.from(…))`
+— so construction happens inside its try. **TypeScript enforces it**: the old
+form is a compile error, which is stronger than a lint rule because it cannot be
+forgotten at a new call site.
+
+| | before | after |
+|---|---|---|
+| non-admin pages with an unguarded read | 22 | **0** |
+| admin pages with an unguarded read | 26 | **0** (1 allowlisted *write*) |
+| `boundedQuery` call sites in the unsafe form | 69 | **0** (compile error) |
+
+**Measured, not reasoned** — production build with `SUPABASE_SERVICE_ROLE_KEY`
+removed: `/campaigns/{slug}`, `/share`, `/updates`, `/gallery` went **500 → 200**
+and render the unavailable state. 19 routes checked, all 200.
+
+### `/campaigns/[slug]` told visitors a live campaign DOES NOT EXIST
+
+`getCampaign` returned `null` both for "no such row" and for "the read failed",
+and all eight callers turned `null` into `notFound()`. **A 404 is a factual claim**
+that browsers cache, people share and search engines index — and this is the
+donation path. A transient outage was producing it.
+
+`getCampaignResult` now reports `missing` and `unavailable` separately. Three
+details that are easy to get wrong:
+
+- The query moved `.single()` → **`.maybeSingle()`**. `.single()` reports zero
+  rows *as an error*, which under the new rule is indistinguishable from an
+  outage. `.maybeSingle()` returns `{ data: null, error: null }` for no row.
+- The layout gate deliberately does **not** throw on `unavailable` — an
+  `error.tsx` inside a segment cannot catch a throw from that segment's *own*
+  layout, so throwing there would replace the friendly state with a crash.
+- `getCampaign` now **throws** on unavailable rather than returning null, so no
+  future caller can reintroduce the false 404 by forgetting to check.
+
+### ⚠️ Making reads resilient turned one fail-CLOSED path into fail-OPEN
+
+`/admin/countries` seeds the supported-country table behind
+`if ((count ?? 0) > 0) return;`. That was safe **only because the failing read
+used to throw**. Once the read degrades, `count` is undefined, `?? 0` reads as
+"the table is empty", and it falls through to **inserting the entire country
+list** over a table that may already be populated.
+
+**This is the general hazard of this kind of change** — code that previously
+crashed now continues with a fallback, and if that fallback gates a write, a read
+outage starts causing writes. Checked repo-wide rather than spot-fixed: of every
+file touched, `/admin/countries` is the only one where a wrapped read and a write
+coexist. The seed INSERT itself is left **unwrapped on purpose** — a failed write
+must stay loud.
+
+### Guard added
+
+`__tests__/page-supabase-guarded.test.ts` fails on any unguarded `supabaseAdmin`
+read on any page. It understands three shapes: inside a `try`, inside a
+`boundedQuery` thunk, and **caller-guards-callee** — the last is how
+`/success-stories` was already safe, and my first scanner wrongly flagged it.
+
+Two self-inflicted bugs in the guard itself, both worth remembering:
+- `enclosingFnName` took the *nearest declaration*, so a local `const cols =
+  await …` counted as the enclosing function and the caller-guard rule never fired.
+- The seed assertion matched **its own comment**, which quotes the `(count ?? 0)`
+  form it forbids. Comments must be blanked before matching — but string literals
+  get blanked too, so anchors have to be checked on the raw source.
+
+Mutation-tested in both directions, including by planting a real read in a real
+page (red) and reverting (green).
+
+**Honest limit:** admin pages answer 307 to the login redirect before rendering,
+so their degraded output could not be curl-verified — no admin session in the
+sandbox. Their guards rest on the type system and the source-level test. The
+public pages *were* observed going 500 → 200.
+
+**Still open:** `/api/admin/*` route handlers. An API route that throws returns a
+500 JSON body to one internal caller rather than breaking a visitor's page, so
+they rank below everything above.
+
+## ✅ PERF — CLOSED: all 13 stalled routes are now sub-second in production (Claude, 2026-08-03)
+
+**CLOSED 2026-08-03, measured against production with a real database.**
+
+Every route this section listed as stalled, re-measured on `www.charitme.com`.
+TTFB, not `time_total` — the lesson this section itself records:
+
+| route | was (total) | now TTFB | now total |
+|---|---|---|---|
+| `/causes` | 14.1s → 8.56s | **0.88s** | 0.93s |
+| `/donate` | 14.1s → 8.56s | **0.80s** | 0.85s |
+| `/community` | 14.1s → 8.56s | **0.64s** | 0.67s |
+| `/teams/create` | 14.1s → 8.56s | **0.58s** | 0.60s |
+| `/impact-map` | 14.1s → 8.56s | **0.56s** | 0.62s |
+| `/gallery` | 14.1s → 8.56s | **0.49s** | 0.53s |
+| `/ai-fundraising` | 14.1s → 8.56s | **0.46s** | 0.54s |
+| `/supporter-space` | 14.1s → 8.56s | **0.44s** | 0.49s |
+| `/donor-wall` | 14.1s → 8.56s | **0.42s** | 0.47s |
+| `/crisis` | 14.1s → 8.56s | **0.41s** | 0.47s |
+| `/give` | 14.1s → 8.56s | **0.38s** | 0.40s |
+| `/campaigns` | 14.1s → 8.56s | **0.29s** | 0.78s |
+| `/leaderboard` | 9.56s → 4.02s | **0.31s** | 0.53s |
+
+All 200. Worst TTFB across the set is **0.88s**; a wider sweep of 24 public
+routes put the worst at 0.99s (`/`).
+
+**Not a caching artifact — checked, because it would have been the obvious way to
+be wrong here.** `/causes`, `/donate` and `/campaigns` all return
+`x-vercel-cache: MISS`, `age: 0` and `cache-control: private, no-cache, no-store`.
+These are uncached, fully server-rendered responses hitting the real database, so
+the numbers are the server's actual work, not a CDN replay.
+
+The remaining "per-page reads open" item is therefore closed: whatever those
+reads cost, they now cost under a second end to end in production.
+
+---
+
+*Original entry, kept for the reasoning:*
+
 
 Timed **all 83 public routes** on a production build. Thirteen returned in
 **~14.1s** — and 14.1 ≈ **2 × 7.05**, i.e. two sequential unbounded reads.
@@ -326,14 +1105,23 @@ external release constraints after the latest production deployment.
 
 | # | Blocker | Evidence | Who can clear it |
 |---|---------|----------|------------------|
-| 1 | ~~GitHub Actions assigns no runner~~ — **CLEARED 2026-08-01.** Run `30704209059` shows `runner_id: 1000001483`, a real runner name, all steps, 3m09s. Red checks are real signals again. | run 30704209059 | ✅ resolved |
+| 1 | **GitHub Actions assigns no runner — RE-BROKEN, verified 2026-08-03.** This row said CLEARED; it is not. Eight runs today (`30778197657`, `30779419210`, `30780039522`, `30780372581`, `30782321643`, `30802456447`, `30803013774`, `30803728152`) all show `runner_id: 0`, empty `runner_name`, `billable.UBUNTU.total_ms: 0`, 2–11s duration, no steps. Master's runs match, which rules out any branch. **A red check right now is not a signal.** One run showed `queued` briefly before dropping — that is not recovery. Verify per run (`actions_get` → `get_workflow_run_usage`); do not trust this row or its predecessor. | 8 runs + master, 2026-08-03; `image-links.yml` fails identically; repo is private | **Owner** — likely the private-repo Actions minute allowance (see CLAUDE.md): raise the spending limit, make the repo public, or cut push volume |
 | 2 | **No CharitMe staging Supabase project is available.** The account exposes CharitMe production and an unrelated Auto Trading project. Preview Branch creation returns HTTP 402 because the account is not on Pro; dedicated `charitme-staging` creation is also rejected because the owner has reached the two-active-free-project limit. Database release policy correctly blocks production migration application until the same commit is verified on real staging. | Supabase project/branch inventory and both provisioning probes, 2026-07-29 | **Owner** — upgrade Supabase, pause/delete an unrelated project, or provision staging in another organization |
-| 3 | **Vercel's free daily deployment quota is exhausted again.** PR #163 reports `api-deployments-free-per-day` after more than 100 deployments. PR #162 is live, but the subsequent accessibility commit cannot become production in this quota window. | Vercel PR #163 check, 2026-07-29 | **External reset** — retry an exact-master deployment after the 24-hour window or upgrade Vercel |
+| 3 | **Vercel daily deployment quota — NOT currently blocking (2026-08-03).** ⚠️ *An earlier version of this row claimed the quota recurred at ~10:41 UTC. That was WRONG and is corrected here.* One deployment (the #211 merge) did return `Error` with no preview URL, and I read that as a quota rejection. **The very next deployment, six minutes later, built normally and served** — a daily cap does not clear in six minutes, so the error was transient and its cause is unknown. Nine-plus deployments went Ready across this session. The 100/day cap is real and will bite under a busy day; it had not bitten here. | ~9 Ready deploys + one transient Error, 2026-08-03 | **External reset** — or upgrade Vercel to remove the recurrence |
 
-**Vercel production is operational.** The current production deployment is
-Ready and aliased to both `www.charitme.com` and `charitme.com`; exact deployment
-evidence is recorded in the release sections below. New deployments are
-temporarily blocked by item 3.
+**Vercel production is operational** — re-measured 2026-08-03: `/api/health`,
+`/needs` and `/campaigns` all 200 on `www.charitme.com`. New deployments are **not**
+currently blocked.
+
+⚠️ **This table went stale in BOTH directions**, which is the failure mode it exists
+to prevent. Row 1 claimed a resolved blocker that had come back — the worse
+direction, because a reader treats a red check as a real failure and chases a
+phantom. Row 3 claimed a live blocker that had lifted. Item 2 is the only row NOT
+re-measured today; treat it as carried forward, not confirmed.
+
+The same warning is in CLAUDE.md for the CI row specifically: **run the check
+yourself, it takes one call.** `runner_id: 0` + `billable.UBUNTU.total_ms: 0` +
+no steps = dead. Real runner id + minutes of duration + a full step list = alive.
 
 ## 🚧 DESIGN SHEETS 36–83 — measured gap analysis + lane claims (Claude wcu7oh, 2026-08-01)
 
@@ -1077,6 +1865,53 @@ hardcoded fee figure or a default-tip percentage that disagrees with the
 constants. **The sweep found three of the four wrong pages on its first run** —
 only `/terms` was found by reading. It also asserts it can fail, and strips
 comments so a doc comment quoting a rate is not a finding.
+
+## ✅ 2026-08-02 — WCAG 2.5.8 closed out, and a 500 on a public route
+
+### Every remaining tap target under 24px is fixed (9 routes, 22 controls)
+
+The signed-in sweep had been reporting these for a while. Now zero across 400
+signed-in page loads.
+
+Worst by a distance: **`/dashboard/notifications` had EIGHTEEN "Dismiss" buttons
+at 13×16** — a bare `×` glyph with no padding, the smallest control in the
+product, once per row. Visual weight unchanged; only the hit area grew.
+
+The rest: "Export CSV" in `PaymentAdminParts` (one component, three payment
+routes), "Manage" on the marketing command centre, "View Page" on
+`/admin/countries`, "Back to Dashboard" on `/admin/setup`, the opportunity title
+on `/admin/volunteers` (254×16, and it is the primary way into a row), and the
+"Active now" checkbox **label** on `/admin/super/announcements` — the label is
+the effective target for a checkbox, so it carries the minimum.
+
+### `/campaigns/[slug]/gallery` was answering HTTP 500 — optional chaining is not a type check
+
+```
+TypeError: c?.some is not a function
+```
+
+`data?.some(...)` on a Supabase Storage `list()` result. **`?.` guards `null` and
+`undefined`, not a value of the wrong TYPE.** When `list()` returned a non-array
+the call threw — and `campaign-media-storage.ts` documents itself as returning
+`null` on ANY failure, so it was breaking its own contract on a page anyone can
+open. The sibling call site had the identical latent bug (`data ?? []` fails the
+same way); both now go through one `asFileList` guard in a new pure
+`lib/campaign-media-core.ts` (the storage module imports React `cache()`, which
+cannot be imported from a unit test).
+
+⚠️ **Found because an audit REFUSED to measure.** The mobile sweep reports a
+non-200 rather than skipping it, so "HTTP 500; nothing to measure" is what
+surfaced a route that had been failing silently behind a fixture slug.
+
+### Whole-site state, measured on this build
+
+| Surface | Overflow | Tap targets | axe | Contrast | Focus order |
+|---|---|---|---|---|---|
+| Public (87 routes) | 0 | 0 | 0 across 166 loads | 0 across 86 × 2 themes | 0 traps, 14,830 stops |
+| Admin mode (400 loads) | 0 | 0 | — | clean 199 × 2 | — |
+| Member mode (300 pages) | 0 | 0 | — | clean | — |
+
+---
 
 ## 🖼️ COMPOSITE IMAGE #4 (12 resource pages in the signed-in shell) — tbaz3i, 2026-08-02
 
@@ -1902,7 +2737,65 @@ keys to the same seven files produces merge conflicts on every single batch.
 remaining surfaces. This is the ONLY unblocked item left in this file — everything
 else is owner-gated (see the table below).
 
-## ⚠️ 42 server pages read Supabase with no `try/catch` (2026-08-02)
+## ⚠️ PRODUCTION DEPLOYS STALLED — two merges behind (2026-08-02 ~18:2x UTC)
+
+**www.charitme.com is serving a build that predates #198 and #199.** Measured
+rather than inferred, by grepping the live CSS bundle for markers from each
+merge:
+
+| merge | marker | in production? |
+|---|---|---|
+| ff24f9d9 (pre-#197) | `.cause-landing` | ✅ |
+| #197 (16:36) | `.cb-page` | ✅ |
+| #198 (17:46) | `.needs-list` | ❌ |
+| #199 | — | ❌ |
+
+Consequence: **`/needs` returns 404 on production** and is absent from
+`sitemap.xml`, while being present and green on master and rendering 200 from a
+local `next start` of the same commit. The code is fine; it has not shipped.
+
+**This is NOT the GitHub Actions outage.** That was checked: `release.yml` only
+triggers on `v*.*.*` tags, so production comes from Vercel's own git
+integration and is not gated on Actions runners. Two separate faults.
+
+**Not diagnosable from the agent sandbox** — there is no Vercel CLI, no
+`VERCEL_*` token and no `~/.vercel` auth here, so the deployment log is not
+reachable. The Vercel dashboard will say whether the production deploy errored,
+is queued, or is stuck behind the several merges that landed in quick
+succession.
+
+Worth knowing before assuming a code fault next time: a page can be correct, on
+master, and green in every local check while still being absent from the site.
+Verify a claim of "shipped" against the live origin, not against the merge.
+
+## ✅ CLOSED — 42 server pages read Supabase with no `try/catch` → now 0 (Claude, 2026-08-03)
+
+**CLOSED 2026-08-03. Count is 0, and the guard this section asked for exists.**
+
+The judgement call recorded below — "bulk-editing 42 files with a script is a
+worse risk than the defect" — was right about the risk and wrong about the
+remedy. The fix was not 42 per-page decisions; it was one helper. `boundedQuery`
+already existed to route a failed read into each caller's error branch, and it
+could not, because every one of its 69 call sites passed an ALREADY-BUILT query
+and the Proxy throws while that argument is evaluated. Making it take a thunk
+fixed all of them at once, and **TypeScript now rejects the unsafe form**, which
+is a stronger guard than the test this section hoped for.
+
+The per-page judgement still had to happen where a degraded state had to be
+*invented* — and one of those was load-bearing: `/admin/countries` seeded a table
+behind `if ((count ?? 0) > 0) return;`, which was safe only because the read used
+to THROW. Making reads degrade turned a fail-closed path into a fail-open WRITE.
+Checked repo-wide; it was the only file where a wrapped read and a write coexist.
+
+Guard: `__tests__/page-supabase-guarded.test.ts` — non-admin AND admin pages,
+understands try / thunk / caller-guards-callee, mutation-tested both ways.
+Measured end-to-end with `SUPABASE_SERVICE_ROLE_KEY` removed: `/campaigns/{slug}`
+and its subpages went 500 → 200.
+
+---
+
+*Original entry, kept for the reasoning:*
+
 
 Measured, not estimated: 42 server `page.tsx` files call `supabaseAdmin` with no
 `try/catch` anywhere in the file. Worst offenders by call count: `admin/page.tsx`
@@ -18103,3 +18996,73 @@ raised, 47 gifts, 69 countries for Sports & Youth. The mock's white stats card i
 also NOT reproduced — a literal white surface is a white slab in dark mode. The
 sheet uses surface tokens; only the photo hero commits to dark in both themes,
 and there the scrim guarantees contrast rather than the theme.
+
+### 🃏 Campaign cards on the cause landing — `feature` variant
+The reference's card is quieter than the site's listing card: cover, title, one
+line of description, raised-of-goal and a bar. Shipped as a **variant inside
+`CampaignCard`**, not a second component — this file exists precisely because
+lookalike copies drift here (three category lists, five route lists, ten
+"days left" implementations, one of which shipped *"136 days left"* directly
+above *"This campaign has ended"*).
+
+**Kept despite the mock showing no chips**: the Verified badge and an Ended
+badge. Dropping the first removes a signal a donor decides on; dropping the
+second is the exact bug above. **Dropped**: the numeric trust score and the
+donor/goal tiles — visual noise the reference removes without losing a decision.
+
+Money uses the shared `formatMoneyCompact`, so the card reads `$1,205 of $21,000`
+like the reference rather than `$1,205.00`. The description is clamped in CSS
+(`-webkit-line-clamp`) rather than `slice(0, 90)`, which cuts at a different
+place at every width and mid-word at some of them.
+
+The other four pages using this card (`/campaigns`, `/search`, `/donate`,
+`/supporter-space`) are untouched and a test asserts they stay on the dense card.
+
+## 🏠 HOMEPAGE — three lower sections merged into one (Claude, 2026-08-02)
+
+The reference shows the campaign carousel on the LEFT with "Live Right Now", the
+two supporter quotes and the "Make an Impact Today" CTA all in one column beside
+it. The page had those as **three separate stacked bands** (`mirror-spotlight`,
+`mirror-proof`, plus the trust row below). Merged into `mirror-spotlight`.
+
+**Nothing was rebuilt.** The carousel card already matched the reference exactly
+— Trust Score / Donors / Funded chips, ACTIVE CAMPAIGN badge, organiser line,
+raised-of-goal, progress bar, donations + days left, Donate Now, arrows and
+dots. The quotes were already real `donations` rows. So this was a layout merge,
+not new UI.
+
+⚠️ **The `#impact` id moved with it.** The removed section owned that anchor and
+both the header and footer link to it — deleting the section without carrying the
+id would have produced two dead nav links pointing at nothing.
+
+The copy column lost its 560px cap: at 1440 that left ~190px of dead space beside
+the quotes and the CTA card, which the reference fills. The reading measure is
+capped on the paragraph (62ch) instead, where it belongs.
+
+## 🏅 SPORTS & YOUTH — the fuller reference layout (Claude, 2026-08-03)
+
+`/causes/[slug]` now carries every band from the reference: photo hero, the
+**"Real impact. Real champions."** figures band, the hub pill row, the campaign
+grid, **"How your support helps"** with imagery, **"Stories from the field"**, and
+the closing CTA. All 20 causes get it, with authored per-cause copy — the impact
+heading is distinct on every page (a test enforces that).
+
+### ⚠️ Dark mode: `--bg` was never what painted the page
+Setting `--bg: #000000` alone left the page navy. `[data-theme="dark"] body` drew
+its **own three-stop radial gradient** (`#0b0d24 → #0f1128 → #090b1e`) that
+ignored the token entirely, so the token and the screen disagreed. Both now say
+black. **If a background looks wrong, check what actually paints it before
+changing the token.**
+
+### ⚠️ "Stories from the field" has NO play button, deliberately
+The reference draws these as video cards. There is nothing to start: all 50
+`campaign_media` rows of type `video` point at `storage.CharitMe.example`, a
+reserved TLD that cannot resolve. A control that opens a campaign page instead of
+starting media is a fake affordance. The cards are the cause's genuinely
+**completed** campaigns, linked and labelled as reading.
+
+### The figures, again, are measured
+The reference asserts a six-figure "youth impacted", a five-figure "athletes
+supported", a four-figure programme count and a three-figure community count.
+Measured for Sports & Youth: **38 live campaigns, $12,600 raised, 47 gifts, 69
+countries**. A test fails if any mock literal reaches the source.

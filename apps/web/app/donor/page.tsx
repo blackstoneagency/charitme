@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../lib/query-timeout';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '../../lib/supabase-server';
@@ -47,8 +48,20 @@ export default async function DonorPortalPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/donor');
 
+  // ⚠️ A failure here must NOT render as "$0 given, no donations". That is a
+  // donor's own giving history: showing an empty one because a read threw tells
+  // someone their record of every gift they have made has vanished.
+  //
+  // `supabaseAdmin` throws on property access when the env is missing, before
+  // any query runs, so the `.error` checks further down cannot see it.
+  let loadFailed = false;
+  type Res = { data: unknown[] | null; count?: number | null; error?: unknown };
+  let donationRes: Res = { data: [], count: 0 };
+  let totalsRes: Res = { data: [] };
+  let recurringRes: Res = { data: [] };
+  try {
   // Independent queries — run in parallel (avoids a serial round-trip waterfall).
-  const [donationRes, totalsRes, recurringRes] = await Promise.all([
+  [donationRes, totalsRes, recurringRes] = (await Promise.all([
     supabaseAdmin
       .from('donations')
       .select('id, amount_cents, tip_cents, currency, status, anonymous, message, created_at, campaign_id', { count: 'exact' })
@@ -72,7 +85,11 @@ export default async function DonorPortalPage() {
       .select('id, amount_cents, cadence, status, stripe_subscription_id, next_bill_at, created_at, campaign_id')
       .eq('donor_id', user.id)
       .order('created_at', { ascending: false }),
-  ]);
+  ])) as [Res, Res, Res];
+  } catch {
+    // Throw takes the same path the `.error` checks already produce below.
+    loadFailed = true;
+  }
   const { data: donationData, count: donationCount } = donationRes;
   const { data: recurringData } = recurringRes;
 
@@ -80,6 +97,7 @@ export default async function DonorPortalPage() {
   // into `null` -> an empty array -> "Total Given $0". That is a donor's own
   // lifetime giving record reported back to them as nothing. Checked explicitly.
   const unavailable =
+    loadFailed ||
     Boolean(donationRes.error) || donationData == null ||
     Boolean(totalsRes.error) || totalsRes.data == null ||
     Boolean(recurringRes.error) || recurringData == null;
@@ -97,8 +115,8 @@ export default async function DonorPortalPage() {
   if (cids.length > 0) {
     // Both keyed off the same campaign-id set but independent of each other.
     const [campsRes, launchRes] = await Promise.all([
-      supabaseAdmin.from('campaigns').select('id, title, slug, cover_image_url').in('id', cids),
-      supabaseAdmin.from('campaign_launch_settings').select('campaign_id, currency').in('campaign_id', cids),
+      boundedQuery(() => supabaseAdmin.from('campaigns').select('id, title, slug, cover_image_url').in('id', cids)),
+      boundedQuery(() => supabaseAdmin.from('campaign_launch_settings').select('campaign_id, currency').in('campaign_id', cids)),
     ]);
     for (const c of (campsRes.data ?? []) as CampaignRow[]) campaignMap.set(c.id, c);
     for (const ls of launchRes.data ?? []) {

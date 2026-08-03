@@ -65,7 +65,7 @@ export async function getCauseStats(cause: Cause): Promise<CauseStats> {
     // stalled connection). They solve different failures: a row cap does nothing
     // when the database never answers, and a deadline does nothing about a query
     // that answers slowly because it read the whole table.
-    boundedQuery(
+    boundedQuery(() =>
       applyLiveFilters(
         supabaseAdmin.from('campaigns').select('category, raised_amount, backer_count'),
         cols,
@@ -73,7 +73,7 @@ export async function getCauseStats(cause: Cause): Promise<CauseStats> {
         .in('category', [...cause.categories])
         .limit(CAUSE_STATS_SCAN_LIMIT),
     ),
-    boundedQuery(
+    boundedQuery(() =>
       supabaseAdmin
         .from('supported_countries')
         .select('id', { count: 'exact', head: true })
@@ -149,4 +149,54 @@ export function formatMoneyStat(cents: number | null): string {
   // Exact below a million. "$12K" for $12,345 rounds away precision a donor may
   // care about on a page that is asking them for money.
   return `$${dollars.toLocaleString('en-US')}`;
+}
+
+/**
+ * "Stories from the field" — the campaigns in this cause that actually finished.
+ *
+ * ⚠️ The reference draws these as VIDEO cards with a play button over each photo.
+ * There is no playable video behind them: the 50 `campaign_media` rows with
+ * `media_type = 'video'` all point at `storage.CharitMe.example`, a reserved TLD
+ * that cannot resolve. A play button that opens a campaign page instead of
+ * playing something is a fake affordance, so these are story cards that link to
+ * the campaign and say so.
+ *
+ * Ordered by amount raised: the most-funded finished campaigns are the ones with
+ * a story worth reading. `null` on failure, never an empty list, so the caller
+ * can tell "we could not load these" from "none yet".
+ */
+export interface CauseStory {
+  id: string;
+  slug: string;
+  title: string;
+  blurb: string | null;
+  category: string | null;
+  cover: string | null;
+  raisedCents: number;
+  backers: number;
+}
+
+export async function getCauseStories(cause: Cause, limit = 3): Promise<CauseStory[] | null> {
+  const { data, error } = await supabaseAdmin
+    .from('campaigns')
+    .select('id, slug, title, tagline, description, category, cover_image_url, raised_amount, backer_count')
+    .in('category', [...cause.categories])
+    .eq('status', 'completed')
+    .is('deleted_at', null)
+    .order('raised_amount', { ascending: false })
+    .limit(limit);
+  if (error) {
+    console.warn('[cause-landing] stories read failed', { code: error.code });
+    return null;
+  }
+  return (data ?? []).map((c) => ({
+    id: c.id as string,
+    slug: c.slug as string,
+    title: c.title as string,
+    blurb: ((c.tagline as string | null) ?? (c.description as string | null) ?? null),
+    category: (c.category as string | null) ?? null,
+    cover: (c.cover_image_url as string | null) ?? null,
+    raisedCents: Number(c.raised_amount ?? 0),
+    backers: Number(c.backer_count ?? 0),
+  }));
 }

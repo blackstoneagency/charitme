@@ -58,7 +58,7 @@ export default async function CommandCenterPage() {
           <div style={{ ...card }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--t1)' }}>Active goals</div>
-              <Link href="/admin/marketing/goals" style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand-text)', textDecoration: 'none' }}>Manage →</Link>
+              <Link href="/admin/marketing/goals" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, fontSize: 12, fontWeight: 700, color: 'var(--brand-text)', textDecoration: 'none' }}>Manage →</Link>
             </div>
             {cc.activeGoals.length === 0 ? (
               <div style={{ fontSize: 13, color: 'var(--t3)' }}>

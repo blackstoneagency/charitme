@@ -233,6 +233,13 @@ export default function NotificationsPage() {
                   onClick={e => void deleteNotif(n.id, e)}
                   aria-label="Dismiss"
                   style={{
+                    // 44x44 target. As a bare glyph this measured 13x16 — the
+                    // smallest control in the product, repeated once per row, and
+                    // failing WCAG 2.2 SC 2.5.8 (24x24 minimum) eighteen times on
+                    // one screen. The visual weight is unchanged; only the
+                    // hit area grew.
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    minWidth: 44, minHeight: 44,
                     background: 'none', border: 'none', cursor: 'pointer',
                     color: 'var(--t4, var(--b1))', fontSize: 16, padding: 0, lineHeight: 1,
                   }}

@@ -11,7 +11,7 @@ import { suppressDemoTrust, suppressDemoTrustAll } from './demo-trust';
 // Server-side reads for React Server Components.
 
 export async function getPublicOpportunities(limit = 24): Promise<VolunteerOpportunity[]> {
-  const { data, error } = await boundedQuery(
+  const { data, error } = await boundedQuery(() =>
   supabaseAdmin
       .from('volunteer_opportunities')
       .select(OPPORTUNITY_PUBLIC_COLUMNS)

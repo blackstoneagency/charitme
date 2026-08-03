@@ -1,3 +1,4 @@
+import { boundedQuery } from '../../../lib/query-timeout';
 import 'server-only';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../../lib/supabase';
@@ -25,15 +26,15 @@ export const metadata: Metadata = { title: 'Data Retention | CharitMe Admin' };
 
 export default async function RetentionPage() {
   const [policiesRes, runsRes] = await Promise.all([
-    supabaseAdmin
+    boundedQuery(() => supabaseAdmin
       .from('data_retention_policies')
       .select('id, category, retention_days, auto_delete, updated_at')
-      .order('category', { ascending: true }),
-    supabaseAdmin
+      .order('category', { ascending: true })),
+    boundedQuery(() => supabaseAdmin
       .from('data_retention_runs')
       .select('id, category, cutoff_at, matched_count, deleted_count, dry_run, error, ran_at')
       .order('ran_at', { ascending: false })
-      .limit(25),
+      .limit(25)),
   ]);
 
   const policies: Policy[] | null = policiesRes.error ? null : ((policiesRes.data ?? []) as Policy[]);

@@ -39,7 +39,7 @@ const HOW = [
 async function getFeatured(): Promise<CampaignCardData[] | null> {
   try {
     const cols = await campaignColumns();
-    const { data, error } = await boundedQuery(
+    const { data, error } = await boundedQuery(() =>
   applyLiveFilters(
         supabaseAdmin
           .from('campaigns')
