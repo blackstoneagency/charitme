@@ -220,6 +220,25 @@ describe('theme safety', () => {
     expect(surfaces).toContain('var(--s1)');
   });
 
+  it('the hero paints its own dark background, not just a ::before scrim', () => {
+    // ⚠️ This is the guard for a REAL light-mode failure that shipped in this
+    // very file, under a comment claiming the opposite.
+    //
+    // The hero's copy is white and the dark field behind it was painted only by
+    // `.ss-hero::before`. A pseudo-element is not an ancestor background —
+    // nothing resolves white-on-::before as anything but white on whatever the
+    // real ancestor is. In LIGHT mode that is the white page, so
+    // `audit:contrast` measured the H1, the lede, the breadcrumb and the
+    // secondary button at **1:1**. Dark mode passed only by accident, because
+    // the page behind it happens to be black.
+    //
+    // The invariant: any block committing to light-on-dark in BOTH themes must
+    // own its background colour, so the contrast is real rather than incidental
+    // and survives the photo or the gradient failing to arrive.
+    const hero = css.slice(css.indexOf('.ss-hero {'), css.indexOf('.ss-hero-photo'));
+    expect(hero, '.ss-hero must set its own background colour').toMatch(/background:\s*#[0-9a-f]{6}/i);
+  });
+
   it('uses the type-scale token rather than a hand-tuned clamp', () => {
     const h1 = css.slice(css.indexOf('.ss-hero-copy h1 {'), css.indexOf('.ss-heart'));
     expect(h1).toContain('font-size: var(--fs-h1);');

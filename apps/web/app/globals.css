@@ -10584,7 +10584,18 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 }
 
 /* ── Hero ── */
-.ss-hero { position: relative; padding: 28px 0 56px; overflow: hidden; }
+/* ⚠️ The background-color is REQUIRED, not decoration.
+   The hero's copy is white, and the dark field behind it was painted entirely by
+   the `::before` gradient below. A pseudo-element is not an ancestor background:
+   nothing — not the cascade, not a contrast checker — resolves white-on-::before
+   as anything but white on whatever the real ancestor is. In LIGHT mode that is
+   the white page, so `audit:contrast` measured the H1, the lede, the breadcrumb
+   and the secondary button at 1:1. Dark mode passed only by accident, because
+   the page behind it happens to be black.
+   Painting the colour on the element itself makes the contrast real rather than
+   incidental, and keeps the text legible if the photo or the gradient never
+   arrives. */
+.ss-hero { position: relative; padding: 28px 0 56px; overflow: hidden; background: #0a0618; }
 .ss-hero-photo { position: absolute; inset: 0 0 0 42%; }
 .ss-hero-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
 /* The scrim, not the theme, guarantees contrast for the white hero copy — the
