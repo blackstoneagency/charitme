@@ -326,7 +326,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
                 </svg>
               </div>
               <h2 style={{ margin: 0, fontSize: 28, fontWeight: 800, color: 'var(--t1)' }}>Success!</h2>
-              <p style={{ margin: 0, color: '#4b5676', fontSize: 15 }}>System settings have been updated successfully.</p>
+              <p style={{ margin: 0, color: 'var(--t2)', fontSize: 15 }}>System settings have been updated successfully.</p>
 
               <div style={{ marginTop: 8, padding: '20px 28px', border: '1px solid var(--b1)', borderRadius: 14, background: 'var(--s2)', minWidth: 340 }}>
                 <p style={{ margin: '0 0 14px', fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>What&apos;s Next?</p>
@@ -508,7 +508,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
         <div className="sys-form-section">
           <h3>Email Verification</h3>
           <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 13, color: '#4b5676', fontWeight: 600 }}>Last verified: today</span>
+            <span style={{ fontSize: 13, color: 'var(--t2)', fontWeight: 600 }}>Last verified: today</span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 10px', background: '#f0fdf5', border: '1px solid #bbf7d0', borderRadius: 99, color: 'var(--green-text)', fontSize: 12, fontWeight: 650 }}>Verified ✓</span>
             {/* No re-verification endpoint exists; this did nothing when clicked. */}
             <button type="button" disabled title="Re-running email verification is not built yet" style={{ height: 34, padding: '0 14px', border: '1px solid #d8d2ff', borderRadius: 8, background: 'var(--s1)', color: 'var(--brand-text)', fontSize: 12, fontWeight: 650, cursor: 'not-allowed', opacity: 0.5 }}>Verify Now</button>

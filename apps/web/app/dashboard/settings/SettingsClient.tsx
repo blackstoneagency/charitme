@@ -579,7 +579,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--t3)', margin: '16px 0 12px' }}>Available</div>
               {[
                 { name: 'Facebook Pixel', desc: 'Conversion tracking', color: '#1877f2' },
-                { name: 'Slack', desc: 'Team notifications', color: '#4a154b' },
+                { name: 'Slack', desc: 'Team notifications', color: 'var(--t1)' },
                 { name: 'Zapier', desc: 'Automation workflows', color: '#ff4a00' },
                 { name: 'Mailchimp', desc: 'Email marketing', color: '#f5a623' },
                 { name: 'Google Analytics', desc: 'Website analytics', color: '#ea4335' },

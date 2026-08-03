@@ -120,7 +120,7 @@ function StatusDonut({ pending, completed, failed, total }: { pending: number; c
           <div key={s.label} style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>
             <i style={{ width: 8, height: 8, borderRadius: '50%', background: s.color, flexShrink: 0, display: 'block' }} />
             <span>{s.label}</span>
-            <b style={{ marginLeft: 'auto', color: '#0f0f30' }}>{s.value}</b>
+            <b style={{ marginLeft: 'auto', color: 'var(--t1)' }}>{s.value}</b>
           </div>
         ))}
       </div>
@@ -175,7 +175,7 @@ function PayoutDetailPanel({ payout, onClose }: { payout: PayoutRecord; onClose:
       <div style={{ marginLeft: 'auto', width: 500, maxWidth: '100vw', background: 'var(--s1)', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: 17, fontWeight: 700, color: '#0f0f30' }}>{payout.recipient_name}</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--t1)' }}>{payout.recipient_name}</div>
             <div style={{ fontSize: 13, color: 'var(--t3)', marginTop: 2 }}>{payout.recipient_email || 'No email'}</div>
             <div style={{ marginTop: 6, display: 'flex', minWidth: 0, gap: 6 }}>
               <StatusPill status={payout.status} />

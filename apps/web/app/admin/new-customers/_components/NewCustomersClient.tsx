@@ -374,7 +374,7 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
       {/* Auto-pull result */}
       {autoPullResult && (
         <div style={{ ...card, borderColor: '#bfdbfe', background: '#f0f7ff' }}>
-          <div style={{ fontSize: 14, fontWeight: 900, color: '#1d4ed8', marginBottom: 10 }}>
+          <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--brand-text)', marginBottom: 10 }}>
             ⚡ Auto-pull (last 24h): {autoPullResult.inserted} new · {autoPullResult.enriched} enriched · {autoPullResult.alerted} alerted
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6 }}>
