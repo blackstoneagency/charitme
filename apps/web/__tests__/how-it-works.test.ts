@@ -90,21 +90,28 @@ describe('icons resolve to real glyphs', () => {
   });
 });
 
-describe('the product detail survived the redesign', () => {
-  it('keeps the fundraiser and donor step lists', () => {
-    // The reference's four steps are a donor-facing summary. These two lists
-    // carry the actual product facts — Stripe verification, the payout schedule
-    // and its fees, how the trust score is earned — and /how-it-works is the
-    // page a visitor opens to find them.
-    expect(page).toContain('FUNDRAISER_STEPS.map');
-    expect(page).toContain('DONOR_STEPS.map');
+describe('the page carries only the sections the reference has', () => {
+  it('does not reinstate the fundraiser/donor step-by-step flows', () => {
+    // They were removed to match the design. Nothing was lost: every product
+    // fact they stated is on the page that owns it (asserted below). If a
+    // future change wants them back, change the design first.
+    const src = stripComments(page);
+    expect(src).not.toContain('FUNDRAISER_STEPS');
+    expect(src).not.toContain('DONOR_STEPS');
+    expect(src).not.toContain('hw-flow');
   });
 
-  it('still states the payout schedule and the same-day/instant fees', () => {
-    // The specific facts that would have gone missing silently.
-    expect(page).toContain('2-business-day');
-    expect(page).toMatch(/same-day \(1% fee\)/);
-    expect(page).toMatch(/instant payouts \(1\.5% fee\)/);
+  it('the payout facts they carried are still stated on their owning pages', () => {
+    // The reason removing them is safe, pinned so it stays true. If someone
+    // strips the fees off /fast-payouts, this fails here rather than leaving
+    // the site with the facts nowhere at all.
+    const payouts = read('app/fast-payouts/page.tsx');
+    expect(payouts).toMatch(/Same-day payouts \(1% fee\)/);
+    expect(payouts).toMatch(/Instant payouts \(1\.5% fee\)/);
+    expect(payouts).toContain('2 business days');
+
+    const faq = read('app/faq/page.tsx');
+    expect(faq).toMatch(/1% fee and instant payouts have a 1\.5% fee/);
   });
 
   it('every one of the four reference steps links somewhere real', () => {
