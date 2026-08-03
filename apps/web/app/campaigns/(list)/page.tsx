@@ -7,6 +7,7 @@ import { EmptyState } from '../../../components/ui';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 import { getTopDonors } from '../../../lib/leaderboard';
 import { formatCents } from '../../../lib/stripe';
+import { getCoverForCategory } from '../../../lib/photo-catalog';
 import { pageWindow } from '../../../lib/pagination';
 import { campaignDaysLeft, campaignTimeLabel } from '../../../lib/campaign-lifecycle';
 import type { Metadata } from 'next';
@@ -404,7 +405,15 @@ export default async function CampaignsPage({ searchParams }: Props) {
             </button>
           </form>
         </div>
-        <div className="cbx-hero-art" aria-hidden="true" />
+        {/* The reference art carries a photograph here. It comes from the repo's
+            own `photo-catalog` — the same source /causes uses via IndexHero — so
+            this is not an unlicensed stock image dropped onto the busiest
+            marketing page. Decorative, hence empty alt and aria-hidden: the
+            heading beside it already carries the meaning. */}
+        <div className="cbx-hero-art" aria-hidden="true">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={getCoverForCategory('Community')} alt="" loading="eager" />
+        </div>
       </section>
 
       {/* ── Category strip ────────────────────────────────────────────────────
