@@ -9479,6 +9479,293 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   .cx-grid.is-list .cx-card { grid-template-columns: minmax(0, 120px) minmax(0, 1fr); }
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   /donate — split hero with a live donation panel, impact, trust, supporters.
+
+   The page surface is `var(--bg)`, which is #000000 in dark mode, so the
+   background is genuinely black rather than the navy the section shells use.
+   The hero BAND stays dark in both themes because it is a photograph: white
+   copy over a light overlay would be unreadable in light mode, and a
+   theme-reactive ink there would go dark-on-dark. Same reasoning already
+   recorded on `.mirror-hero-aside`.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.dn {
+  background: var(--bg);
+  color: var(--t1);
+  padding-bottom: 8px;
+}
+.dn-wrapish, .dn-crumb, .dn-section, .dn-thanks { width: min(100% - 32px, 1180px); margin-inline: auto; }
+
+.dn-crumb {
+  display: flex; align-items: center; gap: 8px;
+  padding: 18px 0 14px;
+  font-size: 13px; color: var(--t3);
+}
+.dn-crumb a { color: var(--t3); text-decoration: none; }
+.dn-crumb a:hover { color: var(--t1); text-decoration: underline; }
+.dn-crumb [aria-current] { color: var(--t1); font-weight: 700; }
+
+/* ── Hero ─────────────────────────────────────────────────────────────── */
+
+.dn-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  /* An opaque dark base ON THE HERO ITSELF, not only the -1 overlay span.
+     The photo and the shade are negative-z-index children, so they are siblings
+     of the copy rather than ancestors of it: a contrast sweep walking ancestors
+     resolved this text against the LIGHT page background and read 1.54:1. It
+     rendered fine — but "readable only because of a stacking-context sibling"
+     is exactly the fragility worth removing. Painting order is unchanged
+     (element background, then negative-z children, then content), so this is
+     invisible while making the ancestor chain honest. */
+  background: #050716;
+  border-radius: 20px;
+  width: min(100% - 32px, 1180px);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 372px);
+  gap: clamp(24px, 4vw, 56px);
+  align-items: center;
+  padding: clamp(28px, 4vw, 52px);
+}
+.dn-hero-media { position: absolute; inset: 0; z-index: -2; }
+.dn-hero-media img { object-fit: cover; object-position: center 38%; }
+/* Opaque enough at the copy end that white text is measured against a near-black
+   stop rather than against the photograph, which cannot be scored. */
+.dn-hero-shade {
+  position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(96deg, rgba(3,5,16,.96) 0%, rgba(3,5,16,.93) 42%, rgba(3,5,16,.72) 100%);
+}
+
+.dn-hero-copy { max-width: 560px; }
+.dn-hero-copy h1 {
+  margin: 0;
+  color: #fff;
+  font-size: var(--fs-h1);
+  line-height: 1.1;
+  font-weight: 850;
+  letter-spacing: -.02em;
+}
+.dn-title-heart { display: inline-flex; margin-left: 10px; color: #ff5b8a; vertical-align: -6px; }
+.dn-title-heart svg { width: 30px; height: 30px; }
+.dn-lede { margin: 18px 0 0; color: #d7dcec; font-size: 16px; line-height: 1.6; }
+
+.dn-trust { list-style: none; margin: 26px 0 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.dn-trust li { display: flex; align-items: flex-start; gap: 13px; }
+.dn-trust-ic {
+  flex: none; width: 40px; height: 40px; border-radius: 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,.12); color: #ffb0c8;
+}
+.dn-trust-ic svg { width: 19px; height: 19px; }
+.dn-trust-txt { display: flex; flex-direction: column; gap: 2px; }
+.dn-trust-txt b { color: #fff; font-size: 15px; font-weight: 800; }
+.dn-trust-txt small { color: #c3cadd; font-size: 13.5px; line-height: 1.5; }
+
+.dn-proof { display: flex; align-items: center; gap: 14px; margin-top: 28px; }
+.dn-avatars { display: inline-flex; }
+.dn-avatars i {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 2px solid rgba(3,5,16,.9);
+  margin-left: -10px;
+  background: var(--grad-violet);
+}
+.dn-avatars i:first-child { margin-left: 0; }
+.dn-proof-copy { display: flex; flex-direction: column; gap: 2px; }
+.dn-proof-copy small { color: #c3cadd; font-size: 13px; }
+.dn-stars { display: inline-flex; gap: 2px; color: #ffb020; }
+
+/* ── Donation panel ───────────────────────────────────────────────────── */
+
+.dn-panel {
+  background: var(--s1, #fff);
+  border: 1px solid var(--b1, #e7e3f2);
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: 0 24px 60px rgba(2, 4, 18, .4);
+  display: grid;
+  /* minmax(0, 1fr), not the implicit `auto`. A grid item defaults to
+     min-width:auto, so the single implicit column sized itself to the widest
+     child's MIN-CONTENT: the amount grid measured 487px inside a 370px panel
+     and the whole right-hand half of the form was clipped by the hero's
+     overflow:hidden. Same trap already recorded on .mirror-hero-inner. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+.dn-panel-title { margin: 0; font-size: 20px; font-weight: 850; color: var(--t1); }
+.dn-panel-sub { margin: -8px 0 0; font-size: 13px; color: var(--t3); }
+
+.dn-freq { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.dn-freq-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  min-height: 42px; padding: 0 14px; border-radius: 11px;
+  border: 1px solid var(--b2, #ddd7ee);
+  background: var(--s2, #f7f5fd);
+  color: var(--t2); font: inherit; font-size: 14px; font-weight: 750; cursor: pointer;
+}
+@media (max-width: 360px) {
+  .dn-freq-btn { padding: 0 8px; font-size: 13px; }
+}
+.dn-freq-btn.is-on { background: var(--grad-brand); border-color: transparent; color: #fff; }
+
+.dn-amounts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.dn-amt {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  min-height: 62px; padding: 8px 6px; border-radius: 12px;
+  border: 1px solid var(--b2, #ddd7ee); background: var(--s1, #fff);
+  color: var(--t1); font: inherit; cursor: pointer; text-align: center;
+}
+.dn-amt b { font-size: 15px; font-weight: 850; }
+.dn-amt span { font-size: 10.5px; color: var(--t3); line-height: 1.25; }
+.dn-amt.is-on { border-color: var(--h-accent, #6d35ff); box-shadow: 0 0 0 2px rgba(109,53,255,.22); }
+.dn-amt.is-on span { color: var(--t2); }
+
+/* minmax(0, 1fr) for the same reason as .dn-panel above: this label is a grid,
+   and its implicit column sized to the <select>'s MIN-CONTENT — the longest
+   campaign title in the picker — measuring 487px inside a 326px field. The
+   select then has to be told it may shrink, or it re-widens the row itself. */
+.dn-field { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.dn-label { font-size: 12.5px; font-weight: 750; color: var(--t2); }
+.dn-money {
+  min-width: 0;
+  display: flex; align-items: center; gap: 8px;
+  min-height: 44px; padding: 0 12px; border-radius: 11px;
+  border: 1px solid var(--b2, #ddd7ee); background: var(--s1, #fff); color: var(--t3);
+  font-size: 13px;
+}
+.dn-money input {
+  flex: 1; min-width: 0; border: 0; background: none; color: var(--t1);
+  font: inherit; font-size: 15px; font-weight: 700;
+}
+.dn-money input:focus { outline: none; }
+.dn-select {
+  min-width: 0; max-width: 100%;
+  min-height: 44px; padding: 0 12px; border-radius: 11px;
+  border: 1px solid var(--b2, #ddd7ee); background: var(--s1, #fff);
+  color: var(--t1); font: inherit; font-size: 14px;
+}
+.dn-load-error { font-size: 13px; color: var(--red-text); line-height: 1.5; }
+
+.dn-check { display: flex; align-items: flex-start; gap: 9px; font-size: 13px; color: var(--t2); cursor: pointer; }
+.dn-check input { margin-top: 2px; flex: none; }
+.dn-dedicate {
+  min-height: 42px; padding: 0 12px; border-radius: 11px;
+  border: 1px solid var(--b2, #ddd7ee); background: var(--s1, #fff);
+  color: var(--t1); font: inherit; font-size: 14px;
+}
+.dn-error { margin: 0; font-size: 13px; font-weight: 650; color: var(--red-text); }
+
+.dn-submit {
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  min-height: 50px; border: 0; border-radius: 13px;
+  background: var(--grad-brand);
+  color: #fff; font: inherit; font-size: 15.5px; font-weight: 850; cursor: pointer;
+}
+.dn-submit:disabled { opacity: .6; cursor: not-allowed; }
+.dn-secure { margin: -6px 0 0; text-align: center; font-size: 12px; color: var(--t3); }
+
+.dn-methods {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 6px;
+  margin: 0; padding: 0; list-style: none;
+}
+.dn-methods li {
+  padding: 5px 9px; border-radius: 6px;
+  border: 1px solid var(--b1, #e7e3f2); background: var(--s2, #f7f5fd);
+  font-size: 10px; font-weight: 800; color: var(--t2); letter-spacing: .02em;
+}
+
+.dn-legal {
+  display: flex; align-items: flex-start; gap: 9px;
+  margin: 0; padding: 11px 12px; border-radius: 11px;
+  background: var(--s2, #f7f5fd);
+  font-size: 11.5px; line-height: 1.45; color: var(--t3);
+}
+.dn-legal svg { flex: none; margin-top: 1px; color: var(--green-text); }
+
+/* ── Sections below the fold ──────────────────────────────────────────── */
+
+.dn-section { padding: clamp(40px, 6vw, 68px) 0 0; }
+.dn-h2 {
+  margin: 0 0 26px; text-align: center;
+  color: var(--t1); font-size: var(--fs-h2); font-weight: 850; letter-spacing: -.01em;
+}
+
+.dn-impact { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
+.dn-impact-card {
+  min-width: 0; display: flex; flex-direction: column; align-items: flex-start;
+  border: 1px solid var(--b1, #e7e3f2); border-radius: 14px;
+  background: var(--s1, #fff); overflow: hidden;
+}
+.dn-impact-media { display: block; width: 100%; height: 128px; overflow: hidden; background: var(--s2); }
+.dn-impact-media img { width: 100%; height: 100%; object-fit: cover; }
+.dn-impact-ic {
+  width: 40px; height: 40px; margin: -20px 0 0 14px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--grad-brand); color: #fff;
+  border: 3px solid var(--s1, #fff);
+}
+.dn-impact-ic svg { width: 17px; height: 17px; }
+.dn-impact-card h3 { margin: 10px 14px 0; font-size: 15px; font-weight: 800; color: var(--t1); }
+.dn-impact-card p { margin: 6px 14px 0; font-size: 12.5px; line-height: 1.5; color: var(--t3); }
+.dn-impact-pill {
+  margin: 12px 14px 14px; padding: 5px 10px; border-radius: 999px;
+  background: var(--s2, #f4f2fb); color: var(--violet-ink);
+  font-size: 11px; font-weight: 800;
+}
+
+.dn-trustgrid {
+  list-style: none; margin: 0; padding: clamp(18px, 3vw, 28px);
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(16px, 3vw, 34px);
+  border: 1px solid var(--b1, #e7e3f2); border-radius: 16px; background: var(--s1, #fff);
+}
+.dn-trustgrid li { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.dn-trustgrid-ic {
+  width: 40px; height: 40px; border-radius: 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--s2, #f4f2fb); color: var(--violet-ink);
+}
+.dn-trustgrid-ic svg { width: 19px; height: 19px; }
+.dn-trustgrid b { font-size: 14.5px; font-weight: 800; color: var(--t1); }
+.dn-trustgrid small { font-size: 12.5px; line-height: 1.5; color: var(--t3); }
+
+.dn-quotes { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.dn-quotes li {
+  min-width: 0; display: flex; gap: 12px; align-items: flex-start;
+  padding: 18px; border: 1px solid var(--b1, #e7e3f2); border-radius: 14px; background: var(--s1, #fff);
+}
+.dn-quote-avatar {
+  flex: none; width: 42px; height: 42px; border-radius: 50%;
+  background: var(--grad-violet);
+}
+.dn-quotes p { margin: 0 0 8px; font-size: 13px; line-height: 1.55; color: var(--t2); }
+.dn-quotes b { display: block; font-size: 13px; font-weight: 800; color: var(--t1); }
+
+.dn-thanks {
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+  margin: clamp(34px, 5vw, 56px) auto 0;
+  font-size: 14.5px; font-weight: 700; color: var(--t2);
+}
+.dn-thanks svg { width: 18px; height: 18px; color: #e0397f; }
+
+/* ── Responsive ───────────────────────────────────────────────────────── */
+
+@media (max-width: 1020px) {
+  .dn-hero { grid-template-columns: minmax(0, 1fr); }
+  .dn-hero-copy { max-width: 100%; }
+  .dn-impact { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .dn-trustgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dn-quotes { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 720px) {
+  .dn-impact { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .dn-impact, .dn-trustgrid { grid-template-columns: minmax(0, 1fr); }
+  .dn-amounts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dn-hero { padding: 22px 18px; border-radius: 16px; }
+}
 /* Cause-card icon badge (the reference puts one over each photo). Sits on the
    image, so it needs its own opaque plate rather than a themed surface — the
    photo behind it is arbitrary and a translucent chip would fail contrast over
