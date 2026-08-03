@@ -37,9 +37,20 @@ the routes, neither did. Both are now tests — every `?cause=` link is checked
 against the route file it targets, which must read `sp.cause` and resolve it
 through `getCause`.
 
-⚠️ **Not swept:** other pages emit `?cause=` too. Only the six links in this
-strip were checked. A repo-wide sweep of `?cause=` emitters against the routes
-that read it is worth doing and has **not** been done.
+### The sweep, now done — and clean
+
+I flagged a repo-wide check as outstanding, then did it. Every `?cause=` emitter
+in `app/`, `lib/` and `components/`, against every route that reads `sp.cause`:
+
+| emitted to | emitters | route reads `sp.cause` |
+|---|---|---|
+| `/campaigns` | 2 (the hub tab + the "Help now" cards) | ✅ (this change) |
+| `/events` | 1 | ✅ |
+| `/teams` | 1 | ✅ |
+
+**Four emitters, three routes, no others anywhere in the codebase** — so the two
+false filters were the whole population, not a sample. Nothing further to fix
+here.
 
 ## ✅ /causes/people-in-need — matched to its reference (Claude, 2026-08-03)
 
