@@ -163,15 +163,37 @@ describe('the light-designed text that went invisible in dark stays fixed', () =
    */
   const HOST_CONTEXT = 'app/campaigns/[slug]/embed/page.tsx';
 
+  /**
+   * The MIRROR direction, found 2026-08-04: text designed for a DARK card that
+   * goes invisible in LIGHT. `#cbd5e1` was applied as a text colour at three
+   * sites — "not validated" in the marketing leads table, "(estimate)" on an
+   * opportunity row, and the `→` separator in the new-customers pipeline — each
+   * inside a card whose sibling text already uses `var(--t1)`/`var(--t3)`. The
+   * card flips; those three did not.
+   *
+   *   #cbd5e1 on #ffffff (light)  1.48:1   invisible
+   *   #cbd5e1 on #12141c (dark)  12.38:1   fine, which is why nobody saw it
+   *
+   * Replaced with `var(--t3)`: 6.22:1 light, 7.25:1 dark.
+   *
+   * ⚠️ It is listed HERE, in the `color:`-only check, and NOT added to the
+   * blanket `BANNED` regex above — `#cbd5e1` is still a legitimate `STATUS_COLOR`
+   * entry for an "archived" badge in three admin clients, where it is a border
+   * and tint accent rather than text on a surface. A blanket ban would fail
+   * correct code, which is how a guard gets switched off.
+   */
+  const FIXED_LIGHT_INVISIBLE = ['#cbd5e1'];
+
   it('none of the fixed literals came back as a text colour', () => {
     const back: string[] = [];
+    const banned = [...FIXED, ...FIXED_LIGHT_INVISIBLE];
     for (const f of browserRendered()) {
       if (f.endsWith(HOST_CONTEXT)) continue;
       const src = readFileSync(f, 'utf8')
         .replace(/\/\*[\s\S]*?\*\//g, '')
         .replace(/\/\/.*$/gm, '');
       for (const m of src.matchAll(/\bcolor\s*:\s*'(#[0-9a-fA-F]{6})'/g)) {
-        if (FIXED.includes(m[1].toLowerCase())) back.push(`${f.slice(f.indexOf('/app') + 1)}: ${m[1]}`);
+        if (banned.includes(m[1].toLowerCase())) back.push(`${f.slice(f.indexOf('/app') + 1)}: ${m[1]}`);
       }
     }
     expect(
@@ -187,6 +209,26 @@ describe('the light-designed text that went invisible in dark stays fixed', () =
     // And the replacements actually clear the bar they were chosen for.
     expect(contrast('#e2e8f8', '#121530')).toBeGreaterThan(4.5); // --t1 dark
     expect(contrast('#0f1238', '#ffffff')).toBeGreaterThan(4.5); // --t1 light
+
+    // The mirror case, so the numbers in the comment above are checked and not
+    // just asserted in prose.
+    expect(contrast('#cbd5e1', '#ffffff')).toBeLessThan(1.6);     // 1.48 — invisible
+    expect(contrast('#cbd5e1', '#12141c')).toBeGreaterThan(12);   // 12.38 — why it hid
+    expect(contrast('#53617d', '#ffffff')).toBeGreaterThan(4.5);  // --t3 light 6.22
+    expect(contrast('#9aa3b6', '#12141c')).toBeGreaterThan(4.5);  // --t3 dark  7.25
+  });
+
+  it('the archived-badge use of the same hex stays legal', () => {
+    // Proves the narrowing is real rather than incidental: if this ever returns
+    // empty, the STATUS_COLOR exemption is dead permission and should go.
+    const maps = [
+      join(APP, 'admin', 'marketing', 'goals', '_components', 'GoalsClient.tsx'),
+      join(APP, 'admin', 'marketing', 'opportunities', '_components', 'OpportunitiesClient.tsx'),
+    ];
+    for (const m of maps) {
+      expect(readFileSync(m, 'utf8'), `${m} should still carry #cbd5e1 as a badge accent`)
+        .toMatch(/archived:\s*'#cbd5e1'/);
+    }
   });
 
   it('the host-context exemption is still needed', () => {

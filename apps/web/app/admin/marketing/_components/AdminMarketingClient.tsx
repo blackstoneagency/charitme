@@ -777,7 +777,7 @@ function OutreachTab({ flash }: { flash: (m: string) => void }) {
                     <div style={{ fontSize: 12.5, color: 'var(--t1)' }}>{l.email}</div>
                     {ev === true && <Pill text="deliverable" color="#059669" />}
                     {ev === false && <Pill text="risky" color="#dc2626" />}
-                    {ev == null && <span style={{ fontSize: 11, color: '#cbd5e1' }}>not validated</span>}
+                    {ev == null && <span style={{ fontSize: 11, color: 'var(--t3)' }}>not validated</span>}
                   </td>
                   <td style={td}><ScoreBar value={l.lead_score} />{l.lead_grade && <Pill text={l.lead_grade} color="#6c35ff" />}</td>
                   <td style={td}><Pill text={st} color={OUTREACH_COLORS[st] ?? 'var(--t3)'} /></td>
