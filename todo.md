@@ -1147,6 +1147,58 @@ the page renders its honest degraded state (an EmptyState for the grid, nothing
 for stories). Their POSITION is pinned by source order in the test instead —
 a weaker signal than a rendered one, and worth re-checking against production.
 
+## 💸 A FAILED LOOKUP COULD PAY THE WRONG PERSON (Claude, 2026-08-04)
+
+Second triage of the money-path queue, and the highest-consequence one found so
+far. The worst outcome in this codebase is not a declined donation — it is a
+donation that **succeeds and pays the wrong person**.
+
+`resolvePayoutDestination` tries the campaign's beneficiary first, then falls
+back to the organizer. That order is deliberate, and `lib/payout-destination.ts`
+says why in its own header: a campaign run on someone's behalf pays **that**
+person, and *"the organizer never touches the money either"*.
+
+The readiness lookup dropped its `error`:
+
+```
+beneficiary read FAILS → data = null → read as "no beneficiary account"
+                       → falls through to the ORGANIZER
+```
+
+So a transient database failure on one lookup **silently redirects the donation
+to a different human being.** Both destinations are real, verified, payout-ready
+accounts — nothing downstream would flag it, and the donor's receipt would look
+completely normal.
+
+| case | before | now |
+|---|---|---|
+| beneficiary read fails, organizer ready | **pays the organizer** | `PayoutLookupUnavailableError` → **503**, nothing charged |
+| both reads fail | 409 "completing payout setup" | 503 — we could not check, and say so |
+| beneficiary genuinely has no account | falls back to organizer | unchanged — that is the designed behaviour |
+| beneficiary present but half-onboarded | blocked (`null`) | unchanged |
+
+`.maybeSingle()` already returns `{ data: null, error: null }` for "no row", so an
+`error` here means the question genuinely could not be answered — the two are
+separable, and the fix is to stop conflating them. **Declining a donation is
+recoverable; paying the wrong person is not.**
+
+Donor-facing routes turn it into a 503 `PAYOUT_LOOKUP_UNAVAILABLE` with "Nothing
+was charged — please try again", rather than a 500 or a 409 that blames the
+recipient's setup for a fault on our side. The webhook lets it throw, which is
+its contract (Stripe retries).
+
+### The partial failure is the whole test
+
+A single all-or-nothing mock cannot express this bug — both lookups failing is
+the *safe* case. The test drives a fake Supabase keyed **per user id**, so the
+beneficiary lookup fails while the organizer's succeeds, which is the only shape
+that misroutes.
+
+Mutation-tested in both directions: removing the guard restores the misroute
+(2 tests fail), and over-throwing on a legitimate `null` breaks the intended
+organizer fallback (2 tests fail). Both matter — a fix that blocked every
+beneficiary-less campaign would be its own outage.
+
 ## 🛑 A DONOR COULD BE TOLD THEIR LIVE SUBSCRIPTION DOES NOT EXIST (Claude, 2026-08-04)
 
 First triage of the 44-item queue from the sweep below. Cancelling a recurring

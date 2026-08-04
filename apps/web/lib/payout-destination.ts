@@ -45,13 +45,38 @@ export function accountIsPayoutReady(account: ConnectedAccountReadiness | null |
   );
 }
 
+/**
+ * Raised when readiness could not be DETERMINED, as distinct from determined to
+ * be "not ready".
+ *
+ * ⚠️ This read used to drop its `error`, and the two cases collapsed into
+ * `null`. For the organizer that is harmless — the caller blocks the donation.
+ * For the BENEFICIARY it silently redirected money: `resolvePayoutDestination`
+ * treats a null beneficiary as "no beneficiary account" and falls through to the
+ * organizer, so a transient database failure on the beneficiary lookup routes
+ * the donation to a DIFFERENT PERSON — defeating the guarantee in this file's own
+ * header that "the organizer never touches the money either".
+ *
+ * Declining a donation is recoverable. Paying the wrong person is not.
+ */
+export class PayoutLookupUnavailableError extends Error {
+  constructor(cause: string) {
+    super(`payout readiness could not be determined: ${cause}`);
+    this.name = 'PayoutLookupUnavailableError';
+  }
+}
+
 async function verifiedAccount(userId: string): Promise<string | null> {
-  const { data } = await supabaseAdmin
+  const { data, error } = await supabaseAdmin
     .from('connected_accounts')
     .select('stripe_account_id, payouts_enabled, details_submitted, charges_enabled')
     .eq('user_id', userId)
     .eq('verification_status', 'verified')
     .maybeSingle();
+
+  // `.maybeSingle()` already returns { data: null, error: null } for "no row",
+  // so an error here means the question genuinely could not be answered.
+  if (error) throw new PayoutLookupUnavailableError(error.message);
 
   return accountIsPayoutReady(data) ? data!.stripe_account_id! : null;
 }
