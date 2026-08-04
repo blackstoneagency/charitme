@@ -1,7 +1,7 @@
 import 'server-only';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from './supabase';
-import { CHARITME_ORIGIN } from './public-routes';
+import { DEFAULT_OG_IMAGE } from './public-routes';
 
 export type SeoRow = {
   route: string; title: string | null; meta_description: string | null; keywords: string | null;
@@ -83,11 +83,6 @@ export async function seoMetadata(route: string, base: Metadata = {}): Promise<M
     }),
   };
 }
-
-/** Where `app/opengraph-image.tsx` is served from. The file convention appends a
- *  cache-busting hash of its own; the bare path serves the same image (verified
- *  200), and hardcoding a hash here would rot the moment the image changes. */
-const DEFAULT_OG_IMAGE = `${CHARITME_ORIGIN}/opengraph-image`;
 
 /**
  * Guarantee an `og:image`, because declaring `openGraph` at all silently removes

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { DEFAULT_OG_IMAGE } from '../../lib/public-routes';
 import Link from 'next/link';
 import { PROCESSING_FEE_COPY } from '../../lib/fee-copy';
 
@@ -8,6 +9,7 @@ export const metadata: Metadata = {
     'CharitMe charges organizers a 0% platform fee. Donor support is optional and reducible to 0%. Processing fees go to the processor, never to CharitMe.',
   alternates: { canonical: 'https://www.charitme.com/fees' },
   openGraph: {
+    images: [{ url: DEFAULT_OG_IMAGE }],
     title: 'Fee Policy — 0% Platform Fee | CharitMe',
     description: '0% platform fee for organizers. Optional donor support. Transparent processing fees.',
     url: 'https://www.charitme.com/fees',

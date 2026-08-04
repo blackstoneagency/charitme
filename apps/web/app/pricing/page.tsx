@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { DEFAULT_OG_IMAGE } from '../../lib/public-routes';
 import JsonLd from '../../components/JsonLd';
 import { safeJsonLd } from '../../lib/json-ld';
 import PricingPageClient from './PricingPageClient';
@@ -8,6 +9,7 @@ export const metadata: Metadata = {
   description: 'Review CharitMe fundraising plans, payment processing details, optional donor support, and premium campaign tools.',
   alternates: { canonical: 'https://www.charitme.com/pricing' },
   openGraph: {
+    images: [{ url: DEFAULT_OG_IMAGE }],
     title: 'CharitMe Pricing',
     description: 'Review fundraising plans, payment processing details, optional donor support, and premium campaign tools.',
     url: 'https://www.charitme.com/pricing',

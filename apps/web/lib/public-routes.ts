@@ -17,6 +17,15 @@ export type PublicRoute = {
 
 export const CHARITME_ORIGIN = 'https://www.charitme.com';
 
+/**
+ * The site-wide social preview, from `app/opengraph-image.tsx`.
+ *
+ * ⚠️ Needed EXPLICITLY by any page that declares `openGraph`, because doing so
+ * suppresses the file-convention image Next would otherwise attach. Nine pages
+ * shipped without one and rendered as blank cards when shared.
+ */
+export const DEFAULT_OG_IMAGE = `${CHARITME_ORIGIN}/opengraph-image`;
+
 export const INDEXABLE_PUBLIC_ROUTES: PublicRoute[] = [
   {
     path: '/webinars',

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { DEFAULT_OG_IMAGE } from '../../../lib/public-routes';
 import Link from 'next/link';
 import { getPublicOpportunities, getVolunteerCategories } from '../../../lib/volunteers-server';
 import VolunteerClient from '../VolunteerClient';
@@ -9,6 +10,7 @@ export const metadata: Metadata = {
     'Find volunteer opportunities that match your skills on CharitMe. Search by cause, filter remote roles, and apply in one click.',
   alternates: { canonical: 'https://www.charitme.com/volunteer' },
   openGraph: {
+    images: [{ url: DEFAULT_OG_IMAGE }],
     title: 'Volunteer with CharitMe',
     description: 'Match your skills to causes that need you.',
     url: 'https://www.charitme.com/volunteer',

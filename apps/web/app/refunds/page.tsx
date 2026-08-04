@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { DEFAULT_OG_IMAGE } from '../../lib/public-routes';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
@@ -7,6 +8,7 @@ export const metadata: Metadata = {
     'How refunds, chargebacks, and recurring-donation cancellations work on CharitMe, and how they are reflected in our auditable ledger.',
   alternates: { canonical: 'https://www.charitme.com/refunds' },
   openGraph: {
+    images: [{ url: DEFAULT_OG_IMAGE }],
     title: 'Refund Policy | CharitMe',
     description: 'How refunds, chargebacks, and recurring cancellations work on CharitMe.',
     url: 'https://www.charitme.com/refunds',
