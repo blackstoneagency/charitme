@@ -26,16 +26,22 @@ filter. **Most are correct as they stand**, and adding a filter would be a bug:
 | **Not a real read** | `lib/query-timeout` | ✅ matched on a comment |
 | **⚠️ Worth checking** | `lib/trust-signals`, `lib/sponsorships`, `lib/giving-days-server`, `lib/nonprofit-data`, `lib/referrals`, `app/status` | needs per-file judgement |
 
-**One confirmed in that last bucket, not yet fixed:** `lib/trust-signals.ts:40`
-counts *other campaigns by this organiser* with
-`.eq('user_id', …).neq('id', …)` and no `deleted_at` or visibility filter. That
-count is shown publicly, so it includes the organiser's **private and deleted**
-campaigns — inflating a public trust signal and leaking the existence count of
-private ones. Not content exposure; still wrong. The fix is `.is('deleted_at',
-null)` plus `.eq('visibility', 'public')` — `eq` is right here, unlike the detail
-page, because this is an aggregate over OTHER campaigns, not a direct-link fetch.
+**All six in that bucket are now examined — 1 fixed, 5 correct as they stand:**
 
-The remaining five in that bucket are unexamined.
+| file | verdict |
+|---|---|
+| `lib/trust-signals.ts:40` | ❌ **fixed** — counted the organiser's private and deleted campaigns into a PUBLIC trust signal, inflating it and leaking how many private campaigns they have. Now `eq('visibility','public')` + `is('deleted_at', null)`. |
+| `lib/nonprofit-data.ts` | ✅ imported only by `app/dashboard/nonprofit/page.tsx` — auth-gated, owner-scoped. Showing an owner their own private campaigns is correct. |
+| `lib/giving-days-server.ts` | ✅ `.eq('user_id', owner)` — owner-scoped. |
+| `app/status/page.tsx` | ✅ `select('id').limit(1)` health probe, exposes nothing. |
+| `lib/sponsorships.ts`, `lib/referrals.ts` | ✅ fetch by IDs the viewer already holds from their own sponsorship/referral rows. Low risk; not a discovery surface. |
+
+⚠️ **The `eq` vs `neq` split is the subtle part** and is now used both ways on
+purpose:
+* `trust-signals` uses `eq('public')` — an AGGREGATE over other campaigns, where
+  'unlisted' is by definition not something to advertise;
+* `get-campaign` uses `neq('private')` — a DIRECT-LINK fetch, where 'unlisted'
+  must still resolve or sharing breaks.
 
 
 ## ⚠️ THE "87 APPLIED / 27 PENDING" PRECONDITION IS WRONG — measured against production (Claude, 2026-08-03)
