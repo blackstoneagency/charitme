@@ -1147,6 +1147,56 @@ the page renders its honest degraded state (an EmptyState for the grid, nothing
 for stories). Their POSITION is pinned by source order in the test instead —
 a weaker signal than a rendered one, and worth re-checking against production.
 
+## ✅ PRODUCTION SWEPT WITH A REAL DATABASE BEHIND IT — clean (Claude, 2026-08-04)
+
+Every browser audit in `scripts/` drives a **local** build with no Supabase
+credentials, where `supabaseAdmin` is a Proxy that throws on property access. A
+route that 500s *only* when a real query runs is invisible to all of them. That
+is exactly how a 500 on `/causes/mental-health` reached production underneath a
+passing audit suite.
+
+So production was asked directly — `npm run sweep:production --workspace=apps/web`:
+
+| | result |
+|---|---|
+| 116 public route shapes (live sitemap + all 20 cause slugs) | **0 failing**, no 5xx |
+| 12 unauthenticated JSON routes | **0 failing** |
+| 8 admin/cron routes | **8/8 refuse an anonymous caller** |
+| public list payloads (`--data`) | every one returns real rows |
+
+The gated check is **inverted on purpose**: for `/api/admin/*` a 200 is a security
+finding, not a pass. Mutation-tested in both directions — pointing the gated list
+at `/api/health` is caught, and a list endpoint whose rows key is wrong is caught.
+
+⚠️ **A pass here means the handlers ran, not that a page is correct.** For a list
+endpoint a 200 does not even mean the data arrived — a failed read renders 200
+with an empty array, which is why `--data` exists. Anything behind a login is
+still unmeasured.
+
+### One thing for the owner — it is content, not code
+
+The sweep surfaced a live public campaign titled **"Support my medical expenses —
+Bitches!"** (`/campaigns/support-my-medical-expenses-mscg7b2e`), served by
+`/api/campaigns/stories` and indexable.
+
+It is **not** seed data — its slug shape differs from every seeded campaign
+(`campaign-NNN-hash`) and the title appears nowhere in this repo. That makes it a
+real fundraiser's own content in the production database, so editing or removing
+it is a moderation decision and **not something an agent should do silently**.
+
+Checked before reporting, because the standing rule forbids unsupported claims:
+`/trust-safety`'s promises are **supported** — `campaign_reports` has an admin
+queue (`app/admin/trust-safety/page.tsx`) and a submission route, and `risk_flags`
+is written by the AI trust-score and fraud-monitor routes. The moderation that
+exists is *reactive*: it acts on a report, and nobody has reported this one.
+Whether to add pre-publication screening is a product decision.
+
+Guard: `__tests__/production-sweep.test.ts`, 6 offline assertions — no route is
+both public and gated, every catalogued route exists on disk, cause slugs come
+from `lib/causes.ts` rather than a copy, and the script cannot fire HTTP on
+import. Mutation-tested: moving a public route into the gated list is caught, and
+so is cataloguing a route that does not exist.
+
 ## 🗂️ ORPHAN TABLES — the list below is STALE; re-measured 2026-08-04 (Claude)
 
 The section that follows says 8 tables are orphaned and "not claimed", implying 8
