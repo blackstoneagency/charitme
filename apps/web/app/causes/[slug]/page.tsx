@@ -8,7 +8,7 @@ import { CAUSES, getCause, type Cause } from '../../../lib/causes';
 import { CampaignCard, CampaignGrid, type CampaignCardData } from '../../../components/CampaignCard';
 import { EmptyState } from '../../../components/ui';
 import { getTranslator } from '../../../lib/locale-server';
-import { getCauseStats, getCauseStories } from '../../../lib/cause-landing';
+import { getCauseStats, getCauseStories, getAuthoredStats } from '../../../lib/cause-landing';
 import CampaignImage from '../../../components/CampaignImage';
 import { getPhotosForCategory } from '../../../lib/photo-catalog';
 import { formatMoneyCompact } from '@shared/currencies';
@@ -99,15 +99,16 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
 
   // Stats are fetched alongside the campaigns rather than after them: they are
   // independent queries and this page is a common entry point from a share.
-  const [campaigns, stats, stories] = await Promise.all([
+  const [campaigns, stats, stories, authoredStats] = await Promise.all([
     getCampaigns(cause),
     getCauseStats(cause),
     getCauseStories(cause),
+    getAuthoredStats(cause),
   ]);
 
   return (
     <div className="cause-landing">
-      <CauseLanding cause={cause} stats={stats} />
+      <CauseLanding cause={cause} stats={stats} authoredStats={authoredStats} />
 
       <div className="container" style={{ padding: '8px 0 72px' }}>
       {/* ── Order, and why ────────────────────────────────────────────────────

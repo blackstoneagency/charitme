@@ -284,3 +284,55 @@ export async function getCauseStories(cause: Cause, limit = 3): Promise<CauseSto
     return null;
   }
 }
+
+/**
+ * An owner-authored figure for the "Real Impact" band.
+ *
+ * `value` is a display string ("125K+", "1,250+"), because that is what the
+ * design shows and formatting it in code would lose the "+".
+ */
+export interface AuthoredStat {
+  value: string;
+  label: string;
+  icon: number;
+}
+
+/**
+ * The four figures the design draws, when the owner has authored them.
+ *
+ * ⚠️ Returns `[]` — not `null` — when nothing is authored or the table is
+ * absent (`42P01`), so the caller falls back to MEASURED counts. That fallback
+ * is the whole safety property: an unseeded or un-migrated deployment shows real
+ * numbers rather than an empty band or invented ones.
+ *
+ * Why this exists at all: "125K+ Youth Impacted" is not derivable from this
+ * schema, and hardcoding it would put an unverifiable claim in front of donors
+ * with an engineer as its only author. Authored rows make the platform owner the
+ * author, which is who it should be.
+ */
+export async function getAuthoredStats(cause: Cause): Promise<AuthoredStat[]> {
+  try {
+    const { data, error } = await boundedQuery(() =>
+      supabaseAdmin
+        .from('cause_impact_stats')
+        .select('value, label, icon')
+        .eq('cause_slug', cause.slug)
+        .eq('published', true)
+        .order('sort_order', { ascending: true })
+        .limit(4),
+    );
+    if (error) {
+      if (error.code !== '42P01') {
+        console.warn('[cause-landing] authored stats read failed', { code: error.code });
+      }
+      return [];
+    }
+    return (data ?? []).map((r) => ({
+      value: String(r.value),
+      label: String(r.label),
+      icon: Number(r.icon ?? 0),
+    }));
+  } catch {
+    return [];
+  }
+}
