@@ -10701,3 +10701,87 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   .ct-form { padding: 30px; }
   .ct-cta { grid-template-columns: auto minmax(0, 1fr) auto; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   /faq — the shared design language
+   Hero and quick-answer strip come from .cx-hero / .cx-stats. The accordion is
+   the same native details/summary pattern as /contact and /how-it-works.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.fq-main { padding: 0 0 72px; }
+.fq-h2 {
+  margin: 0 0 22px;
+  font-size: var(--fs-h2);
+  font-weight: 800;
+  letter-spacing: -.02em;
+  color: var(--t1);
+  text-align: center;
+}
+.fq-h2--left { text-align: left; }
+
+.fq-quick { padding: 44px 0 8px; }
+.fq-quick-note {
+  margin: 16px 0 0; text-align: center;
+  font-size: 13.5px; line-height: 1.6; color: var(--t3);
+}
+.fq-quick-note a { color: var(--brand-text); font-weight: 700; }
+
+/* ── Topic sections ─────────────────────────────────────────────────────── */
+.fq-section { padding: 40px 0 0; scroll-margin-top: 24px; }
+.fq-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.fq-item {
+  border: 1px solid var(--b1);
+  border-radius: var(--rl);
+  background: var(--s1);
+}
+.fq-item summary {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  min-height: 52px; padding: 12px 18px;
+  cursor: pointer; list-style: none;
+}
+.fq-item summary::-webkit-details-marker { display: none; }
+.fq-item summary:focus-visible { outline: 2px solid var(--brand-text); outline-offset: 2px; border-radius: var(--rl); }
+.fq-q { font-size: 15px; font-weight: 720; line-height: 1.45; color: var(--t1); }
+/* Drawn in CSS rather than shipped as an icon: it rotates with the element's
+   own open state, which no static glyph can do without JavaScript. */
+.fq-mark { position: relative; flex: 0 0 auto; width: 18px; height: 18px; }
+.fq-mark::before,
+.fq-mark::after {
+  content: ''; position: absolute; left: 50%; top: 50%;
+  width: 11px; height: 2px; border-radius: 2px;
+  background: var(--t3); transform: translate(-50%, -50%);
+}
+.fq-mark::after { transform: translate(-50%, -50%) rotate(90deg); transition: transform .16s ease; }
+.fq-item[open] .fq-mark::after { transform: translate(-50%, -50%) rotate(0deg); }
+.fq-a { padding: 0 18px 16px; }
+.fq-a p { margin: 0; font-size: 14px; line-height: 1.7; color: var(--t3); }
+
+/* ── Closing band ───────────────────────────────────────────────────────── */
+.fq-cta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+  margin-top: 48px;
+  padding: 28px;
+  border: 1px solid var(--b1);
+  border-radius: var(--rxl);
+  background: var(--s2);
+}
+.fq-cta-ic {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 56px; height: 56px; flex: 0 0 auto;
+  border-radius: 999px; border: 1px solid var(--b1);
+  background: var(--s1); color: var(--red-text);
+}
+.fq-cta-ic .pub-icon { width: 26px; height: 26px; }
+.fq-cta h2 { margin: 0; font-size: 20px; font-weight: 800; color: var(--t1); }
+.fq-cta p { margin: 6px 0 0; font-size: 14px; line-height: 1.55; color: var(--t3); }
+.fq-cta-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+/* Inside this themed band the secondary button follows the theme rather than
+   the hero's fixed white-on-dark treatment. */
+.fq-cta-secondary { border-color: var(--b2); background: var(--s1); color: var(--t1); }
+.fq-cta-secondary:hover { border-color: var(--t3); background: var(--s2); }
+
+@media (min-width: 900px) {
+  .fq-cta { grid-template-columns: auto minmax(0, 1fr) auto; }
+}

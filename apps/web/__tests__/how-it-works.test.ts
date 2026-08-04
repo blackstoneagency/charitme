@@ -114,7 +114,10 @@ describe('the page carries only the sections the reference has', () => {
     expect(payouts).toMatch(/Instant payouts \(1\.5% fee\)/);
     expect(payouts).toContain('2 business days');
 
-    const faq = read('app/faq/page.tsx');
+    // The curated answers moved out of app/faq/page.tsx into lib/faq-content.ts
+    // when /faq was rebuilt and /how-it-works and /contact needed to share
+    // them. The assertion follows the content rather than being deleted.
+    const faq = read('lib/faq-content.ts');
     expect(faq).toMatch(/1% fee and instant payouts have a 1\.5% fee/);
   });
 

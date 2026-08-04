@@ -1,5 +1,6 @@
 import 'server-only';
 import { getPublishedAeoEntries, type PublicAeoEntry } from './aeo';
+import { getCuratedFaqs } from './faq-content';
 
 /**
  * Published FAQ rows for a marketing route, topped up from the general `/faq`
@@ -29,5 +30,21 @@ export async function getRouteFaqs(route: string, limit = 5): Promise<PublicAeoE
 
   const seen = new Set(own.map((e) => e.question.trim().toLowerCase()));
   const topUp = general.filter((e) => !seen.has(e.question.trim().toLowerCase()));
-  return [...own, ...topUp].slice(0, limit);
+  const published = [...own, ...topUp];
+
+  // ⚠️ Top up from the CURATED answers when the store cannot fill the block.
+  //
+  // Every published `/faq` row in production is a seeder placeholder and is now
+  // filtered out in lib/aeo.ts, so without this these blocks render empty on
+  // /how-it-works and /contact — pages that had a working FAQ before their
+  // content was pointed at the store. The curated set is the site's real
+  // answers; admin-published entries still come FIRST, so a genuine entry
+  // always outranks the fallback.
+  if (published.length >= limit) return published.slice(0, limit);
+
+  const curatedSeen = new Set(published.map((e) => e.question.trim().toLowerCase()));
+  const curated = getCuratedFaqs(limit * 4).filter(
+    (e) => !curatedSeen.has(e.question.trim().toLowerCase()),
+  );
+  return [...published, ...curated].slice(0, limit);
 }
