@@ -3,6 +3,7 @@ import { supabaseAdmin } from './supabase';
 import { boundedQuery } from './query-timeout';
 import { campaignColumns, applyLiveFilters, applyVisibilityFilters } from './campaign-visibility';
 import type { Cause } from './causes';
+import type { CauseStoryRow, CauseImpactStatRow, EmbeddedCampaignSlug } from './database.types';
 
 /**
  * Live figures for a cause landing page.
@@ -212,19 +213,21 @@ async function getAuthoredStories(cause: Cause, limit: number): Promise<CauseSto
     return null;
   }
 
-  return (data ?? []).map((r) => {
-    const campaign = r.campaigns as { slug?: string } | null;
+  type Row = Pick<CauseStoryRow, 'id' | 'title' | 'blurb' | 'chip_label' | 'chip_accent' | 'poster_url' | 'video_url'>
+    & { campaigns: EmbeddedCampaignSlug };
+  return ((data ?? []) as unknown as Row[]).map((r) => {
+    const campaign = r.campaigns;
     return {
-      id: r.id as string,
+      id: r.id,
       slug: campaign?.slug ?? null,
-      title: r.title as string,
-      blurb: (r.blurb as string | null) ?? null,
+      title: r.title,
+      blurb: r.blurb ?? null,
       category: null,
-      cover: (r.poster_url as string | null) ?? null,
+      cover: r.poster_url ?? null,
       raisedCents: 0,
       backers: 0,
-      videoUrl: (r.video_url as string | null) ?? null,
-      chipLabel: (r.chip_label as string | null) ?? null,
+      videoUrl: r.video_url ?? null,
+      chipLabel: r.chip_label ?? null,
       chipAccent: Number(r.chip_accent ?? 0),
     };
   });
@@ -327,9 +330,10 @@ export async function getAuthoredStats(cause: Cause): Promise<AuthoredStat[]> {
       }
       return [];
     }
-    return (data ?? []).map((r) => ({
-      value: String(r.value),
-      label: String(r.label),
+    type StatRow = Pick<CauseImpactStatRow, 'value' | 'label' | 'icon'>;
+    return ((data ?? []) as unknown as StatRow[]).map((r) => ({
+      value: r.value,
+      label: r.label,
       icon: Number(r.icon ?? 0),
     }));
   } catch {
