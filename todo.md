@@ -21107,3 +21107,49 @@ reference's four steps are a donor-facing summary that answers none of that, and
 the FAQ rows do not either. Deleting accurate product detail to match a layout is
 a loss the layout does not pay for, so both lists are kept below the ripple row
 and pinned by tests naming the specific fees. **Say the word and they go.**
+
+## 🔁 /donate re-verified 2026-08-04 — and the exact limit of what a sandbox can prove
+
+Re-ran the check rather than citing the 2026-08-03 owner verification, because a
+historical "it was live" is not evidence that it *is* live.
+
+**Verified fresh, against a real `next build` + `next start` (not `next dev` —
+the CSP has no `unsafe-eval`, so hydration never runs under dev):**
+
+| clause of the goal | evidence |
+|---|---|
+| renders the rebuilt design | `Make a Donation` present; `.dn-panel` / `.dn-hero` / `.dn-amount` all present; 66KB page, HTTP 200 |
+| black in dark mode | browser computed `body` background = **`rgb(0, 0, 0)`**, `--bg` = `#000000` |
+| layout intact | panel 372px, no overflow, **no horizontal page scroll**, 0 page errors — both themes |
+| wired to Supabase | `supabaseAdmin` → `campaigns` + `donations`, `revalidate = 300`, form → `/api/donations` and `/api/donations/recurring` |
+| untouched since verification | **0 commits** to `apps/web/app/donate/` since 2026-08-03 |
+
+### ⚠️ `loadFailed: true` locally is the sandbox, not a bug
+The Supabase host answers `000` from here — same gateway denial as everything
+else. Worth recording because it accidentally proved the degraded path: with the
+database unreachable the page still returns a complete 200 with the design
+intact, rather than erroring.
+
+### ❌ Production *hosting* is not observable from this sandbox — all channels tried
+
+Do not spend another round re-deriving this. Every route was exhausted on
+2026-08-04:
+
+| channel | result |
+|---|---|
+| `curl https://www.charitme.com/donate` | `000` |
+| `WebFetch` same URL | **403** |
+| proxy status (`$HTTPS_PROXY/__agentproxy/status`) | `connect_rejected` — *"gateway answered 403 to CONNECT (policy denial)"*, for arbitrary hosts, i.e. blanket |
+| GitHub **Deployments** API (`?environment=Production`) | 403 *"Resource not accessible by integration"* — token scope |
+| GitHub **commit statuses** API | 403, same |
+| MCP `pull_request_read get_status` | works, **but only ever reports the PR head's *preview* deploy** — it cannot speak to production |
+
+⚠️ That last row corrects an earlier entry in this file: PR Vercel statuses were
+once cited as proof of production. They prove the **build succeeds**, not that
+the production alias serves it. Different claim.
+
+**The whole procedure is one owner-side line** — it costs seconds and settles it:
+
+```bash
+curl -s https://www.charitme.com/donate | grep -c "Make a Donation"   # → 1
+```
