@@ -267,7 +267,7 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
                 <span style={{ fontSize: 22 }}>{step.icon}</span>
                 <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--t2)', textAlign: 'center', lineHeight: 1.3 }}>{step.label}</span>
               </div>
-              {i < PIPELINE_STEPS.length - 1 && <span style={{ color: '#cbd5e1', fontSize: 18, fontWeight: 900 }}>→</span>}
+              {i < PIPELINE_STEPS.length - 1 && <span style={{ color: 'var(--t3)', fontSize: 18, fontWeight: 900 }}>→</span>}
             </React.Fragment>
           ))}
         </div>

@@ -87,7 +87,7 @@ is that "blocked" rows lie in both directions:
 | **O2** staging Supabase | a database | `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ACCESS_TOKEN`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_DB_URL`, `DATABASE_URL` all **unset**; `supabase` CLI not installed; only `.env.example` on disk. No credential exists, so there is no action — not a deferred judgement |
 | **O3** Stripe test keys | a live card charge | `STRIPE_SECRET_KEY` unset. ⚠️ This gate is **narrower than it looks** — it blocked A2 on paper and did not: writing and testing subscription checkout needs no key, only *charging* does. A2 shipped without it |
 | **O4** Actions runners | billing | `runner_id: 0`, empty `runner_name`, 0 billable ms on every run today. **The agent half is done and measured** — see the O4 section below |
-| **O5** Vercel plan | billing | — |
+| **O5** Vercel plan | billing | **This cell was empty — the only row never actually checked, so it is checked now.** The plan itself is billing and stays the owner’s. But the consequence people fear from it is not currently happening: merges ARE reaching production. `f729cf05` (merged 2026-08-04) is live within minutes, verified by markup it introduced. So O5 is a recurrence risk to remove, not an active outage — and nothing is stranded on master |
 | **O7** donor guarantee | underwriting fraud losses with company money | A financial commitment. The standing instruction is explicit: do not commit CharitMe to holding or paying out money beyond the intended architecture |
 | **O8** nonprofit fee | charging verified nonprofits less than 2.9% + $0.30 | A pricing decision. The standing instruction is explicit: **do not change fee behaviour without documented requirements.** The code branch is trivial (`nonprofit_verified` is already known at donation time) — what to charge is not mine to pick |
 | signed-in a11y sweep | a test login | `audit:contrast` cannot authenticate, so the admin surface stays unmeasured by the browser |
@@ -937,6 +937,52 @@ this pass proves it: it flagged the donut totals (correct code, on a hardcoded
 white backdrop) and it would have missed nothing only because I read each site.
 Static analysis cannot see the surface an element sits on. That is why the
 committed guards are regression checks over inspected sites, not general rules.
+
+### ✅ C1 — three INVISIBLE labels found in the mirror direction (Claude, 2026-08-04)
+
+The earlier pass measured light-designed text failing in dark, and dark-designed
+text failing in light (`#94a3b8`, 2.56:1). It did not measure the whole surface.
+Doing that found three more, all the same shape and all still shipping:
+
+| site | text |
+|---|---|
+| `AdminMarketingClient.tsx:780` | "not validated" in the leads table |
+| `OpportunitiesClient.tsx:123` | "(estimate)" on an opportunity row |
+| `NewCustomersClient.tsx:270` | the pipeline arrow separator |
+
+```
+#cbd5e1 on #ffffff (light)   1.48:1   invisible
+#cbd5e1 on #12141c (dark)   12.38:1   fine — which is why nobody saw it
+var(--t3)                    6.22:1 light / 7.25:1 dark
+```
+
+Each sat in a card whose sibling text already used `var(--t1)`/`var(--t3)`: **the
+card flips theme and those three pieces of text do not.** Identical to the
+`/admin/content` count fixed last pass, in the opposite direction.
+
+### The measurement over-reported 51, and that is the point worth recording
+
+A naive "any `color: '#hex'` failing either theme" sweep flags **51** sites. Most
+are wrong, in three distinct ways — worth knowing before anyone trusts a rerun:
+
+1. **`#fff` on a coloured button.** The background is set by a `Btn` variant or a
+   className, so static analysis cannot see it. ~30 of the 51.
+2. **An object property that is not a style at all.** `DonationsClient.tsx:1080`
+   matched `color:` inside a `DonutChart` **slices** array — a data-viz fill,
+   where 4.5:1 text contrast is the wrong bar entirely.
+3. **Documented exemptions** — `/campaigns/[slug]/embed` renders inside a
+   third-party page, and `global-error.tsx` runs when the app CSS never loaded.
+
+3 of 51 were real. **A guard that fires on correct code gets switched off**, which
+is why the fix is 3 individual replacements plus a regression entry, and *not* a
+new general rule.
+
+Guard: `__tests__/admin-muted-contrast.test.ts`. `#cbd5e1` is banned as a **text
+colour only** — it is still a legitimate `STATUS_COLOR` "archived" badge accent in
+three admin clients, so the blanket ban used for `#94a3b8` would fail correct
+code here. Mutation-tested both ways: reintroducing it as text fails, and removing
+the legitimate badge use also fails (so the exemption cannot quietly become dead
+permission).
 
 ### Still open on C1
 
@@ -2230,7 +2276,7 @@ external release constraints after the latest production deployment.
 |---|---------|----------|------------------|
 | 1 | **GitHub Actions assigns no runner — RE-BROKEN, verified 2026-08-03.** This row said CLEARED; it is not. Eight runs today (`30778197657`, `30779419210`, `30780039522`, `30780372581`, `30782321643`, `30802456447`, `30803013774`, `30803728152`) all show `runner_id: 0`, empty `runner_name`, `billable.UBUNTU.total_ms: 0`, 2–11s duration, no steps. Master's runs match, which rules out any branch. **A red check right now is not a signal.** One run showed `queued` briefly before dropping — that is not recovery. Verify per run (`actions_get` → `get_workflow_run_usage`); do not trust this row or its predecessor. | 8 runs + master, 2026-08-03; `image-links.yml` fails identically; repo is private | **Owner** — likely the private-repo Actions minute allowance (see CLAUDE.md): raise the spending limit, make the repo public, or cut push volume |
 | 2 | **No CharitMe staging Supabase project is available.** The account exposes CharitMe production and an unrelated Auto Trading project. Preview Branch creation returns HTTP 402 because the account is not on Pro; dedicated `charitme-staging` creation is also rejected because the owner has reached the two-active-free-project limit. Database release policy correctly blocks production migration application until the same commit is verified on real staging. | Supabase project/branch inventory and both provisioning probes, 2026-07-29 | **Owner** — upgrade Supabase, pause/delete an unrelated project, or provision staging in another organization |
-| 3 | **Vercel daily deployment quota — REAL and INTERMITTENT, resolved 2026-08-03 ~18:3x UTC.** Two hard `api-deployments-free-per-day` rejections (#231, #234) with two successful builds between them (#232, #233), so it is a quota at its limit rather than a clean 24h stop. **A merge no longer implies a deploy** — #234 carried a code fix and was rejected, so it sits on master possibly unshipped. Production itself is current and serving 200. | Deploy errors on #231 and #234; builds on #232 and #233; production 200 | **External reset**, or upgrade Vercel (O5) to remove the recurrence |
+| 3 | **Vercel daily deployment quota — REAL and INTERMITTENT, and the “possibly unshipped” worry is now CLOSED (2026-08-04).** Two hard `api-deployments-free-per-day` rejections (#231, #234) with successful builds between them (#232, #233), so it is a quota at its limit rather than a clean 24h stop. The row used to end “#234 carried a code fix and was rejected, so it sits on master **possibly unshipped**”. That cannot be true any more, and the reasoning is worth keeping: **Vercel builds the whole tree at a commit, not a PR’s diff**, so one successful production deploy of a later commit ships every earlier one with it. Production serves the `fq-*` markup introduced by `f729cf05`, which is newer than #234 — therefore #234’s fix is live. | `fq-item`/`fq-list`/`fq-mark` and `ct-faq-band`/`ct-faq-mark` all present on production `/faq` and `/contact`, 2026-08-04 | **External reset**, or upgrade Vercel (O5) to remove the recurrence |
 
 **Vercel production is operational** — re-measured 2026-08-03: `/api/health`,
 `/needs` and `/campaigns` all 200 on `www.charitme.com`. New deployments are **not**
