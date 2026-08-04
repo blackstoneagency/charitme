@@ -1735,11 +1735,28 @@ async function sendDonorReceipt(
       donorName = profile?.full_name ?? donorName;
     }
 
-    const { data: camp } = await supabaseAdmin
+    // ⚠️ This whole function is deliberately wrapped in `catch {}` below — a
+    // receipt failure must NOT fail the webhook, because failing would make
+    // Stripe re-run the donation handler. That is correct, and it means
+    // "throw and let Stripe retry" is the wrong instinct here.
+    //
+    // What it does NOT justify is failing INVISIBLY. Each read below dropped its
+    // `error`, so a transient failure silently changed what the donor received
+    // with nothing recorded anywhere. Logging is the whole fix: the behaviour
+    // stays non-fatal, but it stops being unobservable.
+    const { data: camp, error: campError } = await supabaseAdmin
       .from('campaigns')
       .select('title, slug, user_id')
       .eq('id', campaignId)
       .single();
+    if (campError) {
+      // The donor gets NO receipt at all, and unlike deductibility below,
+      // nothing else ever recovers this one.
+      console.error('[receipt] campaign read failed, no receipt sent:', {
+        campaignId, donationId, code: campError.code, message: campError.message,
+      });
+      return;
+    }
     if (!donorEmail || !camp) return;
 
     const { data: donationRow } = donationId
@@ -1768,11 +1785,26 @@ async function sendDonorReceipt(
     type NpRow = { id: string; name: string; tax_id: string | null; verified: boolean; verification_status: string; tax_receipt_enabled: boolean };
     let nonprofit: NpRow | null = null;
     if (camp.user_id) {
-      const { data: np } = await supabaseAdmin
+      const { data: np, error: npError } = await supabaseAdmin
         .from('nonprofit_profiles')
         .select('id, name, tax_id, verified, verification_status, tax_receipt_enabled')
         .eq('owner_id', camp.user_id)
         .maybeSingle();
+      if (npError) {
+        // A failed read here made `deductible` false, so a donation to a
+        // VERIFIED NONPROFIT silently received the generic thank-you instead of
+        // an official tax receipt with EIN and disclosure — indistinguishable
+        // from a genuinely non-deductible gift.
+        //
+        // Bounded, and worth stating precisely rather than overstating: the
+        // annual giving statement (`lib/tax.ts`, reachable from /donor)
+        // recomputes deductibility from `nonprofit_profiles` at generation time,
+        // so the donor's year-end documentation still comes out right. What is
+        // lost is the per-donation receipt, and — until now — any trace of it.
+        console.error('[receipt] nonprofit read failed, sent as NON-deductible:', {
+          campaignId, donationId, ownerId: camp.user_id, code: npError.code, message: npError.message,
+        });
+      }
       nonprofit = (np as NpRow | null) ?? null;
     }
 
