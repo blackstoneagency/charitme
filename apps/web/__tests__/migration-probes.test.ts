@@ -23,7 +23,12 @@ type Probe = {
   migration: string;
   proves: string;
   firstCreatedIn: string;
-  path: string;
+  path?: string;
+  resolve?: unknown;
+  sentinel?: string;
+  sentinelSource?: string;
+  requires?: RegExp;
+  ok: (body: unknown, text: string) => boolean;
   control: { path: string; status: number; method?: string };
 };
 
@@ -99,7 +104,9 @@ describe('production migration probes', () => {
       expect(p.control.status, `${p.proves}: a 200 control proves nothing`).not.toBe(200);
       // Same path is fine ONLY when the method differs — that is the
       // "POST returns 401 before touching the database" pattern.
-      if (p.control.path === p.path) {
+      // A probe with no static path discovers one at runtime; its control is
+      // still static, so it cannot collide with the probe request.
+      if (p.path && p.control.path === p.path) {
         expect(
           p.control.method && p.control.method !== 'GET',
           `${p.proves}: control duplicates the probe request exactly`,
@@ -108,10 +115,59 @@ describe('production migration probes', () => {
     }
   });
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // Absence-probes. One probe (peer-fundraiser attribution) proves the column
+  // EXISTS because a failure note is NOT on the page. That is strictly weaker
+  // than the others: every one of them needs a specific string to appear, and
+  // fails closed if the page changes, whereas this one passes when the string
+  // it looks for vanishes — including if it vanishes because someone reworded
+  // it. These three tests are the whole reason that shape is acceptable.
+  // ───────────────────────────────────────────────────────────────────────────
+  const absence = probes.filter((p) => p.sentinel);
+
+  it('every absence-probe still finds its sentinel in the source it names', () => {
+    expect(absence.length, 'the absence-probe was removed — delete these tests too').toBeGreaterThan(0);
+    for (const p of absence) {
+      const src = readFileSync(join(__dirname, '..', p.sentinelSource!), 'utf8');
+      expect(
+        src.includes(p.sentinel!),
+        `${p.proves}: "${p.sentinel}" is no longer in ${p.sentinelSource}. The probe reads the ` +
+          'ABSENCE of that note as proof the column exists, so a reworded note makes it report ' +
+          'APPLIED unconditionally. Update the sentinel and the probe together.',
+      ).toBe(true);
+    }
+  });
+
+  it('every absence-probe also demands positive evidence the page rendered', () => {
+    // Without this, an empty body, an error shell or a 200-with-nothing all read
+    // as "the note is absent" and therefore as APPLIED.
+    for (const p of absence) {
+      expect(p.requires, `${p.proves}: an absence-probe with no positive requirement`).toBeInstanceOf(RegExp);
+      expect(p.ok(null, ''), `${p.proves}: an EMPTY page must not count as proof`).toBe(false);
+      expect(
+        p.ok(null, 'unrelated markup with no team heading'),
+        `${p.proves}: a page missing the required marker must not count as proof`,
+      ).toBe(false);
+    }
+  });
+
+  it('an absence-probe rejects a page that DOES carry its failure note', () => {
+    // The direction that matters: schema missing → note present → NOT applied.
+    for (const p of absence) {
+      const degraded = `<h1>Fundraising team</h1><p role="note">${p.sentinel}, so this figure will not move.</p>`;
+      expect(
+        p.ok(null, degraded),
+        `${p.proves}: the degraded page must read as NO PROOF, not APPLIED`,
+      ).toBe(false);
+      // ...and the healthy page, same markup minus the note, must still pass.
+      expect(p.ok(null, '<h1>Fundraising team</h1><p>$120 raised</p>'), `${p.proves}: false negative`).toBe(true);
+    }
+  });
+
   it('does not probe a route that authenticates before reading', () => {
     // `/api/locale` is the worked example: it answers `{locale:null}` to an
     // anonymous caller without querying, so a 200 would be a phantom proof.
-    const authFirst = probes.filter((p) => /\/api\/(locale|tasks|custom-domains)\b/.test(p.path));
+    const authFirst = probes.filter((p) => /\/api\/(locale|tasks|custom-domains)\b/.test(p.path ?? ''));
     expect(
       authFirst.map((p) => p.path),
       'these routes answer before touching the database, so a 200 proves nothing',
