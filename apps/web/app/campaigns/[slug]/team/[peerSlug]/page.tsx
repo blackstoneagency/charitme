@@ -2,6 +2,7 @@ import { boundedQuery } from '../../../../../lib/query-timeout';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
+import { DEFAULT_OG_IMAGE } from '../../../../../lib/public-routes';
 import { cache } from 'react';
 import { supabaseAdmin } from '../../../../../lib/supabase';
 import { getPeerPage } from './get-peer';
@@ -68,7 +69,7 @@ export async function generateMetadata({
     openGraph: {
       title,
       description: `Support ${found.campaign.title} through ${name}.`,
-      images: found.campaign.cover_image_url ? [found.campaign.cover_image_url] : undefined,
+      images: found.campaign.cover_image_url ? [found.campaign.cover_image_url] : [{ url: DEFAULT_OG_IMAGE }],
     },
   };
 }

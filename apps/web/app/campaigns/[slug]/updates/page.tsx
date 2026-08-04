@@ -1,5 +1,6 @@
 import 'server-only';
 import type { Metadata } from 'next';
+import { DEFAULT_OG_IMAGE } from '../../../../lib/public-routes';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getCampaignResult } from '../get-campaign';
@@ -53,7 +54,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title,
     description,
     alternates: { canonical: `/campaigns/${slug}/updates` },
-    openGraph: { title, description, url: `/campaigns/${slug}/updates`, type: 'article' },
+    openGraph: { title, description, url: `/campaigns/${slug}/updates`, type: 'article', images: [{ url: DEFAULT_OG_IMAGE }] },
     twitter: { card: 'summary_large_image', title, description },
   };
 }
