@@ -1147,6 +1147,54 @@ the page renders its honest degraded state (an EmptyState for the grid, nothing
 for stories). Their POSITION is pinned by source order in the test instead —
 a weaker signal than a rendered one, and worth re-checking against production.
 
+## 🛑 A DONOR COULD BE TOLD THEIR LIVE SUBSCRIPTION DOES NOT EXIST (Claude, 2026-08-04)
+
+First triage of the 44-item queue from the sweep below. Cancelling a recurring
+charge is the highest-consequence self-service action on the platform: **if it
+appears to fail, the alternative the donor reaches for is their bank.** Both
+control routes were wrong, in two independent ways.
+
+### 1. `.single()` + a dropped `error` = "Subscription not found"
+
+`.single()` reports **zero rows as an error**. With `error` discarded, a missing
+subscription and an unreadable database both produced `record = null`, and both
+answered **404 "Subscription not found"** — to someone trying to stop a live
+recurring donation. They either give up and keep being charged, or dispute it.
+
+Now `.maybeSingle()` + an explicit error branch → **503
+`SUBSCRIPTION_LOOKUP_UNAVAILABLE`**, with the genuine 404 still intact. Both
+`cancel` and `pause` had it.
+
+### 2. The Stripe call succeeded, the local write failed, the route said `ok`
+
+`await stripe.subscriptions.update(...)` then `await supabaseAdmin…update(...)`
+with **no error check at all**, returning `{ ok: true }` either way.
+
+The severity differs per action, and that decided the fix:
+
+| action | if the local write fails | response now |
+|---|---|---|
+| **cancel** | `customer.subscription.deleted` rewrites the row — but only when the period actually ends, so our record disagrees until then | **200**, with `stripeCancelled: true, recordUpdated: false`. The cancellation is real; saying it failed would make a donor retry or dispute |
+| **pause / resume** | **never self-heals** — `customer.subscription.updated` only touches memberships and plans, never `recurring_donations` | **500 `RECURRING_STATE_DIVERGED`**, so the client retries. Safe: the Stripe call is idempotent and a retry re-attempts the write |
+
+The dangerous direction is **resume**: collection is on again at Stripe while
+CharitMe still shows "paused", so the donor sees charges they believe they
+stopped. That asymmetry is why cancel returns 200 and resume returns 500 —
+Stripe is authoritative for whether money moves, so the response has to match
+what actually happened rather than being uniformly optimistic or uniformly loud.
+
+### Executed, not read
+
+`__tests__/recurring-control-failures.test.ts` runs the real handlers against a
+fake Stripe and Supabase — these routes had **never been executed by a test**.
+7 assertions, including two that guard the guards: a genuine 404 must survive the
+new 503 branch, and a subscription owned by someone else must still 403 (the
+error branch must not have widened authorization).
+
+All seven passed on first run, which by now is a reason to check rather than to
+trust — **each of the four guards was reverted individually and is caught by
+exactly one test.**
+
 ## 🔁 THE WEBHOOK'S DUPLICATE CHECK TURNED ITSELF OFF, AND COULD NEVER REPORT ONE (Claude, 2026-08-04)
 
 Swept the whole codebase for the pattern the last two passes kept finding — a

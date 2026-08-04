@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { stripe } from '../../../../../lib/stripe';
 import { supabaseAdmin } from '../../../../../lib/supabase';
 import { createClient } from '../../../../../lib/supabase-server';
+import { boundedQuery } from '../../../../../lib/query-timeout';
 
 const Schema = z.object({
   subscriptionId: z.string().min(1),
@@ -42,11 +43,25 @@ export async function POST(request: NextRequest) {
   const { subscriptionId } = parsed.data;
 
   // Verify ownership: the recurring_donation row must belong to this user
-  const { data: record } = await supabaseAdmin
-    .from('recurring_donations')
-    .select('id, donor_id, status')
-    .eq('stripe_subscription_id', subscriptionId)
-    .single();
+  // ⚠️ `.single()` reports ZERO ROWS AS AN ERROR, and this dropped `error`. So a
+  // missing subscription and an unreadable database both produced `record =
+  // null`, and both answered 404 "Subscription not found" — to a donor trying to
+  // stop a recurring charge. They either give up and keep being charged, or
+  // dispute it with their bank. `.maybeSingle()` separates the two.
+  const { data: record, error: recordError } = await boundedQuery(() =>
+    supabaseAdmin
+      .from('recurring_donations')
+      .select('id, donor_id, status')
+      .eq('stripe_subscription_id', subscriptionId)
+      .maybeSingle(),
+  );
+
+  if (recordError) {
+    return NextResponse.json(
+      { error: 'Subscription lookup unavailable, please try again', code: 'SUBSCRIPTION_LOOKUP_UNAVAILABLE' },
+      { status: 503 },
+    );
+  }
 
   if (!record) {
     return NextResponse.json({ error: 'Subscription not found' }, { status: 404 });
@@ -65,10 +80,26 @@ export async function POST(request: NextRequest) {
   // Cancel at period end so donor still gets their paid period
   await stripe.subscriptions.update(subscriptionId, { cancel_at_period_end: true });
 
-  await supabaseAdmin
+  // Stripe is authoritative for whether the donor is charged again, and it has
+  // already accepted the cancellation — so this is not reported as a failure to
+  // cancel. `customer.subscription.deleted` does rewrite this row, but only when
+  // the period actually ends, so until then our record would silently disagree.
+  const { error: cancelWriteError } = await supabaseAdmin
     .from('recurring_donations')
     .update({ status: 'cancelled', updated_at: new Date().toISOString() })
     .eq('id', row.id);
+  if (cancelWriteError) {
+    console.error('[recurring cancel] stripe cancelled but local write failed:', cancelWriteError.message);
+    return NextResponse.json(
+      {
+        ok: true,
+        stripeCancelled: true,
+        recordUpdated: false,
+        warning: 'Your recurring donation is cancelled with the payment processor. Our records may take a moment to catch up.',
+      },
+      { status: 200 },
+    );
+  }
 
   return NextResponse.json({ ok: true });
 }
