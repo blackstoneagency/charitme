@@ -253,3 +253,65 @@ describe('peer-to-peer ships, so it is counted and not marked planned', () => {
     ).toBe(true);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// `backedBy` — the general form of the peer-to-peer check above.
+//
+// That test verifies ONE feature family's backing code, by hand. Every other
+// shipped claim was a hand-set boolean with nothing tying it to an
+// implementation, which is exactly how Auctions was advertised as Live with no
+// route, API or UI. `backedBy` records the file that makes a claim true, and
+// these tests make the record enforceable.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('claims name the code that backs them', () => {
+  const WEB_ROOT = join(__dirname, '..');
+  const all = PLATFORM_MODULES.flatMap((m) => m.features);
+  const backed = all.filter((f) => f.backedBy);
+
+  it('every recorded path exists on disk', () => {
+    expect(backed.length, 'no feature records its backing code').toBeGreaterThan(0);
+    const missing = backed
+      .filter((f) => !existsSync(join(WEB_ROOT, f.backedBy as string)))
+      .map((f) => `${f.name} → ${f.backedBy}`);
+    expect(
+      missing,
+      'a feature names backing code that is not there. The claim is published on ' +
+        '/features, so either restore the code or stop making the claim.',
+    ).toEqual([]);
+  });
+
+  it("every CharitMe feature names its backing code", () => {
+    // Required only for CharitMe's OWN claims: there is no competitor product to
+    // check them against, and a visitor cannot verify them independently.
+    const unbacked = all
+      .filter((f) => f.competitor === 'CharitMe' && !f.backedBy && !f.planned)
+      .map((f) => f.name);
+    expect(
+      unbacked,
+      'a CharitMe differentiator claim with no backing file recorded',
+    ).toEqual([]);
+  });
+
+  it('no CharitMe claim says AI unless an AI route backs it', () => {
+    // The correction this came from: "AI Campaign Health Score — Predicts success
+    // and recommends improvements" was neither AI nor predictive.
+    // `campaigns.campaign_health_score` is an int defaulting to 0 whose only
+    // writer is an admin typing a number. Nothing computed it.
+    const lying = all
+      .filter((f) => f.competitor === 'CharitMe' && /\bAI\b/.test(f.name))
+      .filter((f) => !/\/ai\/|openai|ai-/.test(f.backedBy ?? ''))
+      .map((f) => `${f.name} → ${f.backedBy ?? '(nothing)'}`);
+    expect(
+      lying,
+      'a feature called "AI ..." is not backed by an AI route or lib. Either it is ' +
+        'AI and should point at one, or it is not and should not say so.',
+    ).toEqual([]);
+  });
+
+  it('the health score is described as what it actually is', () => {
+    const health = all.find((f) => /Health Score/.test(f.name));
+    expect(health, 'the health score entry vanished').toBeTruthy();
+    expect(health!.name, 'nothing computes this with AI').not.toMatch(/\bAI\b/);
+    expect(health!.description, 'nothing predicts anything here').not.toMatch(/predict/i);
+  });
+});
