@@ -9077,7 +9077,16 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
    photograph, where the scrim guarantees the contrast rather than the theme. */
 .cx-page { display: block; }
 
-.cx-hero { position: relative; isolation: isolate; overflow: hidden; padding: 26px 0 92px; background: #0d0a1f; }
+/* ⚠️ `padding-bottom` was 92px and the hero still rendered ~1000px tall, because
+   `.cx-hero-heart` below had NO RULE AT ALL — an inline SVG with no width
+   constraint expands to fill its container, so a decorative heart was sizing the
+   whole band. Both are fixed; keep them together.
+   Smaller top band overall: 26/92 was tuned around the oversized heart. */
+.cx-hero { position: relative; isolation: isolate; overflow: hidden; padding: 20px 0 68px; background: #0d0a1f; }
+/* The missing rule. `.cl-hero-heart` is the same glyph and always had it —
+   sizing in `em` keeps the heart proportional to the H1 at every breakpoint. */
+.cx-hero-heart { display: inline-flex; width: .58em; height: .58em; margin-left: .16em; color: #ff4d8d; vertical-align: baseline; }
+.cx-hero-heart svg { width: 100%; height: 100%; }
 .cx-hero-photo { position: absolute; inset: 0 0 0 42%; z-index: -2; }
 .cx-hero-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .cx-hero::before {
@@ -9118,6 +9127,28 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 }
 .cx-hero-card h2 { margin: 0; font-size: 16.5px; font-weight: 780; line-height: 1.35; color: #fff; }
 .cx-hero-card p { margin: 10px 0 0; font-size: 13.5px; line-height: 1.6; color: rgba(255,255,255,.8); }
+
+/* ── Mobile-first sizing for the top band ──────────────────────────────────
+   Below 900px the photo becomes a dimmed backdrop behind the copy rather than a
+   58%-wide side panel, which at 390px was a sliver next to squeezed text. The
+   H1 also steps down: `--fs-hero` is tuned for a full-bleed display heading and
+   was wrapping to four lines on a phone. */
+@media (max-width: 899px) {
+  .cx-hero { padding: 16px 0 48px; }
+  .cx-hero-photo { inset: 0; opacity: .28; }
+  .cx-hero::before {
+    background: linear-gradient(180deg, rgba(13,10,31,.82) 0%, rgba(13,10,31,.94) 60%, #0d0a1f 100%);
+  }
+  .cx-hero-copy h1 { font-size: var(--fs-h1); }
+  .cx-hero-copy > p { margin-top: 12px; font-size: 15px; max-width: none; }
+  .cx-hero-actions { margin-top: 20px; }
+  /* The floating card stacks under the copy instead of bottom-aligning to a
+     grid row that no longer exists at one column. */
+  .cx-hero-card { align-self: stretch; }
+  /* The stats sheet overlapped the hero by 56px, which on a short mobile band
+     pulled it over the lede. */
+  .cx-stats { margin-top: -28px; }
+}
 
 .cx-stats {
   position: relative; z-index: 1;
