@@ -422,7 +422,7 @@ function SegmentsTab({ flash }: { flash: (m: string) => void }) {
             {segments.map(s => (
               <tr key={s.id}>
                 <td style={td}>
-                  <b style={{ color: 'var(--t1)' }}>{s.name}</b>{s.is_system && <Pill text="system" color="#94a3b8" />}
+                  <b style={{ color: 'var(--t1)' }}>{s.name}</b>{s.is_system && <Pill text="system" color="var(--t3)" />}
                   {s.description && <div style={{ fontSize: 12, color: 'var(--t3)' }}>{s.description}</div>}
                 </td>
                 <td style={{ ...td, fontSize: 11.5, fontFamily: 'monospace', color: 'var(--t3)' }}>
@@ -517,7 +517,7 @@ function CampaignsTab({ flash }: { flash: (m: string) => void }) {
                   <div style={{ fontSize: 12, color: 'var(--t3)' }}>{c.subject}</div>
                 </td>
                 <td style={td}>{c.marketing_segments?.name ?? '—'}{c.marketing_segments ? ` (${c.marketing_segments.member_count})` : ''}</td>
-                <td style={td}><Pill text={c.status} color={c.status === 'sent' ? '#059669' : c.status === 'draft' ? '#94a3b8' : '#d97706'} /></td>
+                <td style={td}><Pill text={c.status} color={c.status === 'sent' ? '#059669' : c.status === 'draft' ? 'var(--t3)' : '#d97706'} /></td>
                 <td style={td}><b>{c.sent_count}</b></td>
                 <td style={{ ...td, whiteSpace: 'nowrap' }}>
                   <button onClick={() => void action(c.id, 'send_test')} style={{ ...btnGhost, marginRight: 6, padding: '5px 10px', fontSize: 12 }}>Send test</button>
@@ -571,7 +571,7 @@ function AutomationsTab({ flash }: { flash: (m: string) => void }) {
                 <td style={{ ...td, fontFamily: 'monospace', fontSize: 12 }}>{a.trigger_event}</td>
                 <td style={{ ...td, fontFamily: 'monospace', fontSize: 12 }}>{a.action_type}</td>
                 <td style={td}>{a.run_count}{a.last_run_at ? ` · last ${dt(a.last_run_at)}` : ''}</td>
-                <td style={td}><Pill text={a.enabled ? 'enabled' : 'disabled'} color={a.enabled ? '#059669' : '#94a3b8'} /></td>
+                <td style={td}><Pill text={a.enabled ? 'enabled' : 'disabled'} color={a.enabled ? '#059669' : 'var(--t3)'} /></td>
                 <td style={{ ...td, whiteSpace: 'nowrap' }}>
                   <button onClick={() => void act(a.id, a.enabled ? 'disable' : 'enable')} style={{ ...btnGhost, marginRight: 6, padding: '5px 10px', fontSize: 12 }}>{a.enabled ? 'Disable' : 'Enable'}</button>
                   <button onClick={() => void act(a.id, 'run')} style={{ ...btn, padding: '5px 12px', fontSize: 12 }}>Run now</button>
@@ -667,7 +667,7 @@ function outreachStatus(lead: OutreachLead): string {
   return lead.outreach?.status ?? 'new';
 }
 const OUTREACH_COLORS: Record<string, string> = {
-  new: '#94a3b8', drafted: '#94a3b8', ready: '#2563eb', sent: '#d97706', clicked: '#7c3aed', converted: '#059669', failed: '#dc2626',
+  new: 'var(--t3)', drafted: 'var(--t3)', ready: '#2563eb', sent: '#d97706', clicked: '#7c3aed', converted: '#059669', failed: '#dc2626',
 };
 
 function OutreachTab({ flash }: { flash: (m: string) => void }) {
@@ -777,10 +777,10 @@ function OutreachTab({ flash }: { flash: (m: string) => void }) {
                     <div style={{ fontSize: 12.5, color: 'var(--t1)' }}>{l.email}</div>
                     {ev === true && <Pill text="deliverable" color="#059669" />}
                     {ev === false && <Pill text="risky" color="#dc2626" />}
-                    {ev == null && <span style={{ fontSize: 11, color: '#cbd5e1' }}>not validated</span>}
+                    {ev == null && <span style={{ fontSize: 11, color: 'var(--t3)' }}>not validated</span>}
                   </td>
                   <td style={td}><ScoreBar value={l.lead_score} />{l.lead_grade && <Pill text={l.lead_grade} color="#6c35ff" />}</td>
-                  <td style={td}><Pill text={st} color={OUTREACH_COLORS[st] ?? '#94a3b8'} /></td>
+                  <td style={td}><Pill text={st} color={OUTREACH_COLORS[st] ?? 'var(--t3)'} /></td>
                   <td style={td}><b style={{ color: l.outreach && l.outreach.click_count > 0 ? 'var(--brand-text)' : 'var(--t3)' }}>{l.outreach?.click_count ?? 0}</b></td>
                   <td style={td}><button onClick={e => { e.stopPropagation(); setSelected(l); }} style={{ ...btn, padding: '6px 14px', fontSize: 12 }}>Outreach →</button></td>
                 </tr>
@@ -866,7 +866,7 @@ function OutreachComposer({ lead, onClose, onUpdate, flash }: {
           </div>
           <button onClick={onClose} style={{ ...btnGhost, padding: '4px 12px' }}>✕</button>
         </div>
-        <div style={{ margin: '6px 0 18px' }}><Pill text={st} color={OUTREACH_COLORS[st] ?? '#94a3b8'} /></div>
+        <div style={{ margin: '6px 0 18px' }}><Pill text={st} color={OUTREACH_COLORS[st] ?? 'var(--t3)'} /></div>
 
         {/* 1 — Email validation */}
         <Section title="① Validate email">
@@ -886,7 +886,7 @@ function OutreachComposer({ lead, onClose, onUpdate, flash }: {
                   {val?.mx === false && <Pill text="no MX" color="#dc2626" />}
                   {val?.disposable && <Pill text="disposable" color="#dc2626" />}
                   {val?.roleBased && <Pill text="role-based" color="#d97706" />}
-                  {val?.freeProvider && <Pill text="free-mail" color="#94a3b8" />}
+                  {val?.freeProvider && <Pill text="free-mail" color="var(--t3)" />}
                 </div>
                 {val?.suggestion && <div style={{ fontSize: 12.5, color: 'var(--orange-text)', marginTop: 8 }}>Did you mean <b>{val.suggestion}</b>?</div>}
                 {(val?.reasons ?? []).length > 0 && (
@@ -946,10 +946,25 @@ function OutreachComposer({ lead, onClose, onUpdate, flash }: {
 
 /* ── tiny helpers ── */
 function Pill({ text, color }: { text: string; color: string }) {
-  return <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: 999, fontSize: 11, fontWeight: 650, color, background: `${color}18`, marginLeft: 4 }}>{text}</span>;
+  // `background: ${color}18` appended an alpha suffix to the literal, which is
+  // why every caller had to pass a hex. That forced the muted state colour to be
+  // a hardcoded `#94a3b8`, rendering slate text on a near-white tint at
+  // **2.56:1** — an AA failure in LIGHT mode only, which is exactly the kind a
+  // dark-measured sweep reports as clean.
+  //
+  // color-mix takes a custom property, so callers can now pass `var(--t3)` and
+  // the pill flips with the theme instead of being pinned to one.
+  return (
+    <span style={{
+      display: 'inline-block', padding: '2px 10px', borderRadius: 999,
+      fontSize: 11, fontWeight: 650, marginLeft: 4,
+      color,
+      background: `color-mix(in srgb, ${color} 9%, transparent)`,
+    }}>{text}</span>
+  );
 }
 function ScoreBar({ value }: { value: number }) {
-  const color = value >= 70 ? '#059669' : value >= 40 ? '#d97706' : '#94a3b8';
+  const color = value >= 70 ? '#059669' : value >= 40 ? '#d97706' : 'var(--t3)';
   return (
     <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8 }}>
       <div style={{ width: 56, height: 6, background: 'var(--s2)', borderRadius: 999, overflow: 'hidden' }}>

@@ -107,6 +107,10 @@ function WeeklyLineChart({ points }: { points: WeekPoint[] }) {
       {coords.map((c, i) => (
         <circle key={i} cx={c.x} cy={c.y} r={5} fill="#6c35ff" stroke="#fff" strokeWidth={3} />
       ))}
+      {/* Axis labels are real text, so AA 4.5 applies. `#8c95b2` measured
+          2.80:1 on a white card — fine on dark, which is how it survived a
+          sweep that cannot log in to see this page. The token clears the bar
+          in both themes. */}
       {points.map((p, i) => (
         <text
           key={`lbl-${i}`}
@@ -114,7 +118,7 @@ function WeeklyLineChart({ points }: { points: WeekPoint[] }) {
           y={H - 4}
           textAnchor="middle"
           fontSize={9}
-          fill="#8c95b2"
+          fill="var(--t3)"
         >
           {p.label}
         </text>
@@ -266,7 +270,7 @@ export default function AdminDashboardClient({ metrics, campaigns, donations, we
             {services.map((s) => (
               <div key={s.name} style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 9, border: '1px solid var(--line)', background: 'var(--s2)' }}>
                 <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: s.status === 'Operational' ? '#19b86a' : s.status === 'Degraded' ? '#f59e0b' : s.status === 'Unknown' ? '#94a3b8' : '#ef4444' }} />
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: s.status === 'Operational' ? '#19b86a' : s.status === 'Degraded' ? '#f59e0b' : s.status === 'Unknown' ? 'var(--t3)' : '#ef4444' }} />
                   <span style={{ fontSize: 13, fontWeight: 650 }}>{s.name}</span>
                 </div>
                 <span style={{ fontSize: 11, fontWeight: 700, color: s.status === 'Operational' ? 'var(--green-text)' : s.status === 'Degraded' ? 'var(--orange-text)' : s.status === 'Unknown' ? 'var(--t3)' : 'var(--red-text)' }}>

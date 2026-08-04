@@ -446,7 +446,15 @@ export const en: Dictionary = {
   'cl.stat_live': 'Live campaigns',
   'cl.stat_countries': 'Countries we can reach',
   'cl.cta_title': 'Small act. Big impact.',
-  'cl.support_card_title': 'Your support changes the game.',
+  // "changes the game" is a sports idiom, and this card renders on EVERY cause
+  // landing — including People in Need, where the campaigns are bereavement,
+  // eviction and medical bills. Every other locale already translated the
+  // neutral sense ("cambia todo", "verandert alles", "cambia tutto"); English
+  // was the outlier, so this brings it back in line rather than inventing new
+  // copy.
+  'cl.programs_card_title': 'Your kindness creates real change',
+  'cl.see_all_programs': 'See all programmes →',
+  'cl.support_card_title': 'Your support changes everything.',
   'cl.support_card_body': 'Help people build confidence, capability, and a better year ahead.',
   'cl.see_real_stories': 'See real stories →',
   'cl.stats_note': 'Counted live from CharitMe campaigns in {categories}. “Countries” is where we can accept a donation today, not a claim about where money has been spent.',

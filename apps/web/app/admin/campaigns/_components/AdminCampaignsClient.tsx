@@ -614,7 +614,7 @@ export default function AdminCampaignsClient({
         </div>
       )}
       {statusTab === 'homepage' && (
-        <div style={{ margin: '0 0 14px', padding: '10px 16px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, fontSize: 13, color: '#1e40af', fontWeight: 600 }}>
+        <div style={{ margin: '0 0 14px', padding: '10px 16px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, fontSize: 13, color: 'var(--brand-text)', fontWeight: 600 }}>
           🏠 These are all <strong>active campaigns with a cover photo</strong> — they rotate on the homepage carousel. Featured ones appear first.
         </div>
       )}
@@ -667,7 +667,7 @@ export default function AdminCampaignsClient({
                 <span style={{ fontSize: 10, fontWeight: 650, padding: '2px 7px', borderRadius: 6, background: 'var(--tint-amber)', border: '1px solid #fcd34d', color: 'var(--orange-text)' }}>⭐ Featured</span>
               )}
               {c.coverImageUrl?.startsWith('http') && c.status === 'active' && (
-                <span style={{ fontSize: 10, fontWeight: 650, padding: '2px 7px', borderRadius: 6, background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1e40af' }}>🏠 Carousel</span>
+                <span style={{ fontSize: 10, fontWeight: 650, padding: '2px 7px', borderRadius: 6, background: '#eff6ff', border: '1px solid #bfdbfe', color: 'var(--brand-text)' }}>🏠 Carousel</span>
               )}
             </span>
             <span className="ac-cell ac-date">{fmtDate(c.createdAt)}</span>

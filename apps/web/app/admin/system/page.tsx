@@ -10,7 +10,7 @@ import SystemClient, {
   type ResourceUsage,
   type AllSettings,
 } from './_components/SystemClient';
-import { DEFAULTS } from '../../../lib/settings-defaults';
+import { DEFAULTS, VALID_CATEGORIES } from '../../../lib/settings-defaults';
 
 export const dynamic = 'force-dynamic';
 
@@ -247,6 +247,10 @@ export default async function SystemSettingsPage() {
     { key: 'maintenance', label: 'System Maintenance', icon: 'sliders', description: 'Backups, logs and maintenance' },
     { key: 'flags', label: 'Feature Flags', icon: 'check', description: 'Manage platform features' },
     { key: 'advanced', label: 'Advanced', icon: 'filter', description: 'Advanced system configurations' },
+    // The two blocks on /about-us that no table can back. Both sections stay
+    // unrendered on the public page until they are filled in here — see
+    // lib/about-page.ts for why nothing is shipped in code.
+    { key: 'about', label: 'About Page', icon: 'doc', description: 'Team roster and story video on /about-us' },
   ];
 
   // Merge stored config with defaults per category
@@ -306,18 +310,13 @@ export default async function SystemSettingsPage() {
     errorRate,
   };
 
-  const initialSettings: AllSettings = {
-    general: mergeCategory(rawConfig.general, DEFAULTS.general),
-    security: mergeCategory(rawConfig.security, DEFAULTS.security),
-    email: mergeCategory(rawConfig.email, DEFAULTS.email),
-    payment: mergeCategory(rawConfig.payment, DEFAULTS.payment),
-    integrations: mergeCategory(rawConfig.integrations, DEFAULTS.integrations),
-    notifications: mergeCategory(rawConfig.notifications, DEFAULTS.notifications),
-    storage: mergeCategory(rawConfig.storage, DEFAULTS.storage),
-    maintenance: mergeCategory(rawConfig.maintenance, DEFAULTS.maintenance),
-    flags: mergeCategory(rawConfig.flags, DEFAULTS.flags),
-    advanced: mergeCategory(rawConfig.advanced, DEFAULTS.advanced),
-  };
+  // Built by walking VALID_CATEGORIES rather than listing the categories again.
+  // The hand-written version had already fallen behind by one — `footer` was a
+  // live settings surface that never appeared here — and this is the second
+  // place that same list had drifted.
+  const initialSettings = Object.fromEntries(
+    VALID_CATEGORIES.map((cat) => [cat, mergeCategory(rawConfig[cat], DEFAULTS[cat])]),
+  ) as AllSettings;
 
   return (
     <CharitMeShell active="System Settings" mode="admin">

@@ -104,15 +104,44 @@ describe('the page keeps what already worked', () => {
 });
 
 describe('the landing is wired to real destinations', () => {
-  it('links programme rows to a real filtered campaign list', () => {
-    expect(landing).toContain('/campaigns?category=');
-  });
-
   it('does not render a cross-sell row of other causes', () => {
     // Removed on request. Asserted rather than merely deleted so a later
     // copy-paste cannot quietly bring the section back.
     expect(landing).not.toContain('cl-ways');
     expect(landing).not.toContain('otherCauses');
+  });
+
+  it('renders neither the per-category count row nor the "Ways to help" grid', () => {
+    // Both sat between the stats band and the campaigns, and neither appears in
+    // the reference for any cause. Same reasoning as the cross-sell row above:
+    // asserted so a copy-paste cannot bring them back.
+    //
+    // No destination was lost. /campaigns, /events and /volunteer are in the hub
+    // tab strip; /create is in the hero and the closing band; /partner is in the
+    // main nav's Resources group. The per-category counts counted the campaigns
+    // the grid underneath already lists.
+    // ⚠️ Named exactly, NOT by the `cl-programs` prefix. The hero's
+    // `.cl-programs-card` — the People in Need reference's "what this cause
+    // funds" list — shares that prefix and is a different thing entirely; a
+    // prefix match failed against it and would have pushed the next author to
+    // rename a legitimate component to satisfy a guard about a deleted one.
+    expect(landing).not.toContain('cl-programs-band');
+    expect(landing).not.toContain('cl-programs-list');
+    expect(landing).not.toContain('cl-help-grid');
+    expect(landing).not.toContain('causeWays');
+  });
+
+  it('still reaches every destination the removed grid carried', () => {
+    // The point of the previous assertion is that the links moved, not that
+    // they vanished. Checked against the files that now carry them.
+    expect(page).toContain('/campaigns?cause=');
+    expect(page).toContain('/events?cause=');
+    // Unscoped, deliberately: /volunteer reads no search params, so `?cause=`
+    // there was decoration. The LINK is what this test is about; whether it
+    // narrows is pinned separately, below.
+    expect(page).toContain("href: '/volunteer'");
+    expect(landing).toContain('href="/create"');
+    expect(read('lib/main-nav.ts')).toContain("href: '/partner'");
   });
 
   it('leaves no orphaned translation keys behind', () => {
@@ -123,11 +152,125 @@ describe('the landing is wired to real destinations', () => {
     }
   });
 
-  it('the H1 is the cause name, not a slogan shared by all 20 pages', () => {
-    // The first draft put "Hope changes everything." in every cause's H1, which
-    // made twenty pages compete for the same heading in search results.
-    expect(landing).toContain('{cause.label}');
-    expect(landing).toContain("id=\"cl-hero-title\"");
+  it('no two pages share an H1, whether it is the name or a slogan', () => {
+    // The original rule here was "the H1 is the cause name". It was written
+    // against a draft that put "Hope changes everything." in ALL TWENTY H1s, so
+    // twenty pages competed for one heading in search — and the rule was a
+    // proxy for that, not the point itself.
+    //
+    // The two design references disagree, and each is right about its own page:
+    // Sports & Youth heads with the cause name, People in Need with a slogan
+    // over a small cause-name eyebrow. So the proxy is replaced by the property
+    // it stood for: whatever heads the page, it must be UNIQUE across causes.
+    const heads = CAUSES.map((c) => c.heroTitle ?? c.label);
+    expect(new Set(heads).size, 'two causes render the same H1').toBe(CAUSES.length);
+    expect(landing).toContain('{cause.heroTitle ?? cause.label}');
+    expect(landing).toContain('id="cl-hero-title"');
+  });
+
+  it('a cause that heads with a slogan still shows its NAME on the page', () => {
+    // Otherwise the page has no visible occurrence of the term people search
+    // for, which is the other half of what the old rule was protecting.
+    expect(landing).toContain('cause.heroTitle && <p className="cl-eyebrow">{cause.label}</p>');
+  });
+
+  it('the hero programmes card links somewhere that exists', () => {
+    // The mock's "See All Programs" pointed nowhere. There is no per-cause
+    // programmes ROUTE to send it to, and inventing one would be a link to a
+    // 404 — so it is an in-page jump to the section that expands on exactly
+    // these rows, and that section's id must therefore exist.
+    expect(landing).toContain('href="#how-support-helps"');
+    expect(page).toContain('id="how-support-helps"');
+  });
+
+  it('the hero programmes list is not a second copy of the helps list', () => {
+    // The reference draws BOTH, naming different things. If they were the same
+    // list the page would print the same four items twice.
+    const pin = CAUSES.find((c) => c.slug === 'people-in-need')!;
+    expect(pin.programs, 'people-in-need declares hero programmes').toBeTruthy();
+    expect(pin.helps, 'people-in-need declares helps').toBeTruthy();
+    const overlap = pin.programs!.filter((p) => pin.helps!.some((h) => h.title === p.title));
+    expect(overlap.map((p) => p.title), 'a row appears in both lists').toEqual([]);
+  });
+
+  it('every `?cause=` link goes to a route that actually READS the param', () => {
+    // ⚠️ This is the check whose absence shipped two false filters. The hub
+    // strip linked "All campaigns" to `/campaigns?cause=…` and "Volunteer" to
+    // `/volunteer?cause=…`; NEITHER route read the param, so both rendered the
+    // whole unfiltered list under a label naming one cause.
+    //
+    // Measured against the route files rather than trusted from a comment — the
+    // comment on that strip asserted both routes accepted a cause, and it was
+    // wrong about both.
+    const ROUTES: Record<string, string> = {
+      '/campaigns': 'app/campaigns/(list)/page.tsx',
+      '/events': 'app/events/(list)/page.tsx',
+      '/teams': 'app/teams/page.tsx',
+    };
+    const scopedHrefs = [...page.matchAll(/href: `(\/[a-z-]+)\?cause=\$\{cause\.slug\}`/g)].map((m) => m[1]);
+    expect(scopedHrefs.length, 'no `?cause=` links found — has the strip moved?').toBeGreaterThan(0);
+    for (const href of scopedHrefs) {
+      const file = ROUTES[href];
+      expect(file, `${href} is linked with ?cause= but is not in this map`).toBeTruthy();
+      const src = read(file);
+      expect(src, `${href} is linked with ?cause= but never reads sp.cause`).toMatch(/sp\.cause/);
+      expect(src, `${href} reads sp.cause but never resolves it`).toContain('getCause(');
+    }
+  });
+
+  it('/campaigns carries `?cause=` across paging, category tiles and the filters form', () => {
+    // Reading the param is only half of it. `pageHref` and `catHref` were two
+    // hand-maintained copies of the same param list, and the filters form
+    // re-emits state as hidden inputs — so a cause could be honoured on arrival
+    // and then dropped the moment the visitor paged, picked a category, or
+    // ticked any filter. That is the scope vanishing exactly when they tried to
+    // narrow further.
+    const src = read('app/campaigns/(list)/page.tsx');
+    // One builder, not two: both helpers must delegate rather than re-list.
+    expect(src).toContain('function campaignsHref(');
+    expect(src).toContain('const pageHref = (targetPage: number) => campaignsHref({ page: targetPage });');
+    expect(src).toContain('const catHref = (c: string | null) => campaignsHref({ category: c });');
+    expect(src).toContain("if (cause) params.set('cause', cause.slug);");
+    // …and the form round-trips it too.
+    expect(src).toContain('<input type="hidden" name="cause" value={cause.slug} />');
+    // The param list must exist in exactly ONE place. Two `new URLSearchParams()`
+    // in this file is how the copies came back last time.
+    expect(
+      (src.match(/new URLSearchParams\(\)/g) ?? []).length,
+      'a second URL builder has appeared — fold it into campaignsHref',
+    ).toBe(1);
+  });
+
+  it('a link that does NOT narrow says so', () => {
+    // The other half. A site-wide link is fine; a site-wide link labelled as if
+    // it were filtered is not.
+    expect(page).toContain("{ href: '/volunteer', label: 'Volunteer', scoped: false }");
+    expect(page).toContain('{!l.scoped && <span className="cl-tab-scope"> · all causes</span>}');
+  });
+
+  it('the helps CTA does not link the page to itself', () => {
+    // `causeBrowseHref` returns the CAUSE PAGE for a multi-category cause, so
+    // using it here made all four "Help now" links on People in Need point at
+    // the page they were already on.
+    expect(page).toContain('href={`/campaigns?cause=${cause.slug}`}');
+    // Comments stripped first — the block carries a comment EXPLAINING why
+    // `causeBrowseHref` is wrong here, and matching the text rather than the
+    // code would punish the explanation and push the next author to delete it.
+    // Same mistake, and same fix, as the fabricated-figure guard above.
+    const code = page.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
+    const at = code.indexOf('cl-helps-cta');
+    expect(at, 'the helps CTA is not rendered').toBeGreaterThan(-1);
+    expect(code.slice(at - 400, at + 200)).not.toContain('causeBrowseHref');
+  });
+
+  it('every helps CTA carries the card it belongs to in its accessible name', () => {
+    // Four links reading "Help now →" are indistinguishable in a links list, so
+    // the card title goes in the aria-label. They share ONE destination on
+    // purpose: `helps` are editorial groupings and nothing in the schema tags a
+    // campaign as "shelter" rather than "food", so a per-card filter would
+    // promise a narrowing that is not there.
+    expect(page).toContain('aria-label={`${cause.helpsCta}: ${h.title}`}');
+    expect(page).toContain('href={`/campaigns?cause=${cause.slug}`}');
   });
 
   it('treats the hero photo as decorative, since the H1 beside it names the cause', () => {
@@ -206,6 +349,53 @@ describe('the fuller Sports & Youth layout', () => {
     const page = read('app/causes/[slug]/page.tsx');
     expect(page).toContain('className="cl-tabs"');
     expect(page).not.toContain('role="tab"');
+  });
+
+  it('puts the campaigns above the editorial blocks, as the reference does', () => {
+    // The grid used to sit BELOW "how your support helps" and "stories from the
+    // field", which put roughly a screen and a half of copy between a visitor
+    // and the thing they came to do. Order is asserted by position rather than
+    // presence: every one of these strings survived the reshuffle, so a check
+    // that they merely EXIST would have passed against the old order too.
+    const grid = page.indexOf('<CampaignGrid>');
+    const tabs = page.indexOf('className="cl-tabs"');
+    // `cl-helps` is now built in a template literal (it gains a modifier for
+    // causes that left-align the heading), so the old `className="cl-helps"`
+    // needle no longer matches. Anchored on the section's stable id instead —
+    // the thing the heading actually labels — rather than on how the class
+    // string happens to be assembled this week.
+    const helps = page.indexOf('aria-labelledby="how-support-helps"');
+    const stories = page.indexOf('className="cl-stories"');
+    for (const [name, at] of Object.entries({ grid, tabs, helps, stories })) {
+      expect(at, `${name} is not rendered at all`).toBeGreaterThan(-1);
+    }
+    expect(tabs, 'the hub tabs come before the grid').toBeLessThan(grid);
+    expect(grid, 'the grid comes before "how your support helps"').toBeLessThan(helps);
+    expect(helps, '"how your support helps" comes before the stories').toBeLessThan(stories);
+  });
+
+  it('keeps an accessible name for the campaign grid after dropping its visible title', () => {
+    // The reference runs the tabs straight into the cards with no heading. The
+    // <h2> is hidden rather than deleted — a section labelled by an id that
+    // points at nothing is worse than the heading it replaced.
+    expect(page).toContain('id="cause-campaigns"');
+    expect(page).toContain('cl-visually-hidden');
+  });
+
+  it('gives each "how your support helps" card its own glyph', () => {
+    // Five identical hearts differing only in colour told a reader nothing about
+    // which card was which, and told a reader who does not perceive the colour
+    // nothing at all.
+    // Moved to components/ when /success-stories reused it for the category
+    // chips — two callers, one glyph set.
+    const glyphs = read('components/HelpGlyph.tsx');
+    const sports = CAUSES.find((c) => c.slug === 'sports-youth')!;
+    expect(sports.helps!.every((h) => h.icon), 'every Sports & Youth card names an icon').toBe(true);
+    const icons = new Set(sports.helps!.map((h) => h.icon));
+    expect(icons.size, 'the five cards must not share one glyph').toBe(sports.helps!.length);
+    for (const icon of icons) expect(glyphs, `HelpGlyph is missing "${icon}"`).toContain(`${icon}:`);
+    // The badge, not the glyph, carries aria-hidden — one place makes the call.
+    expect(page).toContain('<HelpGlyph icon={h.icon} />');
   });
 
   it('dark mode paints a black page background', () => {

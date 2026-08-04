@@ -14,6 +14,9 @@
     "test:watch": "vitest",
     "e2e": "playwright test",
     "audit:campaign-images": "node scripts/audit-campaign-images.mjs",
+    "probe:migrations": "node scripts/probe-production-migrations.mjs",
+    "audit:route-auth": "node scripts/audit-route-auth.mjs",
+    "audit:secret-exposure": "node scripts/audit-secret-exposure.mjs",
     "audit:page-images": "node scripts/audit-page-images.mjs",
     "audit:contrast": "node scripts/audit-contrast.mjs",
     "audit:responsive": "node scripts/audit-responsive.mjs",
@@ -31,7 +34,8 @@
     "check:env": "node scripts/check-env.mjs",
     "audit:orphan-tables": "node scripts/audit-orphan-tables.mjs",
     "audit:shell-seam": "node scripts/audit-shell-seam.mjs",
-    "audit:maintenance": "node scripts/audit-maintenance-mode.mjs --build"
+    "audit:maintenance": "node scripts/audit-maintenance-mode.mjs --build",
+    "sweep:production": "node scripts/sweep-production-routes.mjs"
   },
   "dependencies": {
     "@shared/fees": "*",

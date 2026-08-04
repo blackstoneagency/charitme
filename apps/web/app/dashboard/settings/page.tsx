@@ -106,7 +106,7 @@ export default async function SettingsPage({ searchParams }: PageProps) {
           gap: 12,
           fontSize: 14,
           fontWeight: 600,
-          color: '#0f6e3f',
+          color: 'var(--green-text)',
         }}>
           🎉{' '}
           {upgradedPlan ? (

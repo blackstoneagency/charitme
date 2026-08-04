@@ -6,7 +6,10 @@ import { CAUSES } from '../lib/causes';
 const read = (p: string) => readFileSync(resolve(__dirname, '..', p), 'utf8');
 const page = read('app/causes/page.tsx');
 const browser = read('app/causes/CausesBrowser.tsx');
-const stay = read('app/causes/StayInformed.tsx');
+// Moved out of `app/causes/` once /success-stories and /impact grew the same
+// newsletter band. One component, three callers — a second hand-maintained
+// copy is how this repo's category list drifted three ways.
+const stay = read('components/StayInformed.tsx');
 const data = read('lib/causes-index.ts');
 const hero = read('components/IndexHero.tsx');
 const campaigns = read('app/campaigns/(list)/page.tsx');

@@ -48,7 +48,7 @@ const STATUS_COLOR: Record<string, string> = {
   contacted: '#f59e0b',
   qualified: '#8b5cf6',
   converted: '#19b86a',
-  rejected: '#94a3b8',
+  rejected: '#556070',
 };
 
 function gradeColor(grade: string | null): string {
@@ -56,7 +56,7 @@ function gradeColor(grade: string | null): string {
     case 'A': return '#19b86a';
     case 'B': return '#0ea5e9';
     case 'C': return '#f59e0b';
-    default: return '#94a3b8';
+    default: return '#556070';
   }
 }
 
@@ -267,7 +267,7 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
                 <span style={{ fontSize: 22 }}>{step.icon}</span>
                 <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--t2)', textAlign: 'center', lineHeight: 1.3 }}>{step.label}</span>
               </div>
-              {i < PIPELINE_STEPS.length - 1 && <span style={{ color: '#cbd5e1', fontSize: 18, fontWeight: 900 }}>→</span>}
+              {i < PIPELINE_STEPS.length - 1 && <span style={{ color: 'var(--t3)', fontSize: 18, fontWeight: 900 }}>→</span>}
             </React.Fragment>
           ))}
         </div>
@@ -374,7 +374,7 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
       {/* Auto-pull result */}
       {autoPullResult && (
         <div style={{ ...card, borderColor: '#bfdbfe', background: '#f0f7ff' }}>
-          <div style={{ fontSize: 14, fontWeight: 900, color: '#1d4ed8', marginBottom: 10 }}>
+          <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--brand-text)', marginBottom: 10 }}>
             ⚡ Auto-pull (last 24h): {autoPullResult.inserted} new · {autoPullResult.enriched} enriched · {autoPullResult.alerted} alerted
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 6 }}>
@@ -509,7 +509,7 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
                         style={{
                           padding: '5px 10px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
                           border: `1px solid ${STATUS_COLOR[l.status] ?? '#cbd5e1'}40`,
-                          background: (STATUS_COLOR[l.status] ?? '#94a3b8') + '14',
+                          background: (STATUS_COLOR[l.status] ?? '#556070') + '14',
                           color: STATUS_COLOR[l.status] ?? 'var(--t3)',
                         }}
                       >

@@ -1,10 +1,10 @@
 import Link from 'next/link';
 import { getTranslator } from '../../../lib/locale-server';
-import { causeWays, scopeDisclosure } from '../../../lib/cause-ways-core';
 import CampaignImage from '../../../components/CampaignImage';
 import { causeBrowseHref, type Cause } from '../../../lib/causes';
 import { formatStat, formatMoneyStat, type CauseStats } from '../../../lib/cause-landing';
 import { getCoverForCategory } from '../../../lib/photo-catalog';
+import HelpGlyph from '../../../components/HelpGlyph';
 
 /**
  * The cause landing hero and stats sheet.
@@ -34,6 +34,18 @@ import { getCoverForCategory } from '../../../lib/photo-catalog';
  *    the same mistake: it is white text over a photographic scrim, the standard
  *    treatment for a photo hero, and the scrim guarantees the contrast rather
  *    than the theme doing it.
+ *
+ * ── Why the hero has two shapes ──────────────────────────────────────────────
+ *
+ * The two references DISAGREE about the hero, and each is right about its own
+ * page. Sports & Youth heads with the cause name over a tagline and floats a
+ * one-line support card. People in Need heads with "Hope changes everything."
+ * over a small cause-name eyebrow, and floats a list of what the cause funds.
+ *
+ * Both shapes live here, selected by `heroTitle` / `heroCard` on the cause,
+ * rather than in two components: the breadcrumb, the photo, the scrim, the
+ * actions and the whole responsive treatment are identical, and a second copy
+ * of that is how this repo's category list drifted three ways.
  */
 /** One icon per stat tile, in tile order. Inline SVG so the band ships no font
  *  or image request for four small glyphs. */
@@ -52,9 +64,10 @@ export default async function CauseLanding({
   stats: CauseStats;
 }) {
   const t = await getTranslator();
-  const ways = causeWays(cause);
-  const disclosure = scopeDisclosure(ways, cause.label);
   const heroPhoto = getCoverForCategory(cause.categories[0]);
+  // `heroCard: 'programs'` with no `programs` list falls back to the support
+  // card rather than rendering an empty aside.
+  const programs = cause.heroCard === 'programs' && cause.programs?.length ? cause.programs : null;
 
   return (
     <>
@@ -87,15 +100,21 @@ export default async function CauseLanding({
           </nav>
 
           <div className="cl-hero-copy">
+            {/* When a cause heads with a slogan, its NAME still renders — as the
+                eyebrow above. Dropping it would leave the page with no visible
+                occurrence of the term people search for. */}
+            {cause.heroTitle && <p className="cl-eyebrow">{cause.label}</p>}
             <h1 id="cl-hero-title" className="cl-hero-title">
-              {cause.label}
+              {cause.heroTitle ?? cause.label}
               <span className="cl-hero-heart" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8Z" />
                 </svg>
               </span>
             </h1>
-            <p className="cl-tagline">{cause.tagline}</p>
+            {/* A slogan followed by a second slogan reads as filler, and the
+                reference puts the lede directly under the headline. */}
+            {!cause.heroTitle && <p className="cl-tagline">{cause.tagline}</p>}
             <p className="cl-hero-lede">{cause.intro}</p>
 
             <div className="cl-hero-actions">
@@ -108,21 +127,47 @@ export default async function CauseLanding({
             </div>
           </div>
 
-          {/* The reference's floating support card. Its CTA points at
-              /success-stories, a page that exists — the mock's link had nowhere
-              to go. */}
-          <aside className="cl-support-card" aria-labelledby="cl-support-title">
-            <span className="cl-support-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8Z" />
-              </svg>
-            </span>
-            <h2 id="cl-support-title">{t('cl.support_card_title')}</h2>
-            <p>{t('cl.support_card_body')}</p>
-            <Link href="/success-stories" className="cl-support-link">
-              {t('cl.see_real_stories')}
-            </Link>
-          </aside>
+          {/* Two hero cards, because the two references draw two.
+              `programs` lists what the cause funds; `support` is the one-line
+              reassurance. Both link somewhere real — the mock's links did not.
+              The programs link is an in-page jump to the section that expands
+              on exactly these rows, which is what "see all programmes" means
+              here; there is no per-cause programmes ROUTE to send it to, and
+              inventing one would be a link to a page that does not exist. */}
+          {programs ? (
+            <aside className="cl-programs-card" aria-labelledby="cl-support-title">
+              <h2 id="cl-support-title">{t('cl.programs_card_title')}</h2>
+              <ul>
+                {programs.map((p) => (
+                  <li key={p.title}>
+                    <span className={`cl-programs-ic cl-programs-ic--${p.icon}`} aria-hidden="true">
+                      <HelpGlyph icon={p.icon} />
+                    </span>
+                    <span>
+                      <strong>{p.title}</strong>
+                      <span>{p.body}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <a href="#how-support-helps" className="cl-support-link">
+                {t('cl.see_all_programs')}
+              </a>
+            </aside>
+          ) : (
+            <aside className="cl-support-card" aria-labelledby="cl-support-title">
+              <span className="cl-support-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8Z" />
+                </svg>
+              </span>
+              <h2 id="cl-support-title">{t('cl.support_card_title')}</h2>
+              <p>{t('cl.support_card_body')}</p>
+              <Link href="/success-stories" className="cl-support-link">
+                {t('cl.see_real_stories')}
+              </Link>
+            </aside>
+          )}
         </div>
       </section>
 
@@ -162,46 +207,21 @@ export default async function CauseLanding({
         <p className="cl-stats-note">{t('cl.stats_note', { categories: cause.categories.join(', ') })}</p>
       </section>
 
-      {/* ── What this cause's money actually goes to ──────────────────────── */}
-      <section className="cl-programs-band" aria-labelledby="cl-programs-title">
-        <h2 id="cl-programs-title" className="cl-programs-title">{t('cl.support_goes_to')}</h2>
-        <ul className="cl-programs-list">
-          {cause.categories.map((category) => {
-            const n = stats.perCategory[category];
-            return (
-              <li key={category}>
-                <Link href={`/campaigns?category=${encodeURIComponent(category)}`} className="cl-program">
-                  <span className="cl-program-name">{category}</span>
-                  <span className="cl-program-count">
-                    {n === undefined ? '—' : `${n} ${t('cl.live_suffix')}`}
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
+      {/* ── Two blocks that used to sit here are deliberately gone ────────────
+          "Your support goes to" (a per-category count row) and "Ways to help"
+          (a five-link grid) both sat between the stats band and the campaigns,
+          and neither appears in the reference for any cause.
 
-      {/* ── Ways to help THIS cause. Each link carries an explicit "all causes"
-          marker unless it genuinely narrows — only /campaigns takes a category
-          filter. (Owned by the cause-ways lane; left intact.) */}
-      <section className="cl-help" aria-labelledby="cl-help-title">
-        <h2 id="cl-help-title" className="cl-help-title">Ways to help</h2>
-        <ul className="cl-help-grid">
-          {ways.map((way) => (
-            <li key={way.id}>
-              <Link href={way.href} className="cl-help-card">
-                <strong className="cl-help-label">
-                  {way.label}
-                  {!way.scoped && <span className="cl-help-scope"> · all causes</span>}
-                </strong>
-                <span className="cl-help-blurb">{way.blurb}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-        {disclosure && <p className="cl-help-note">{disclosure}</p>}
-      </section>
+          Removing them loses no destination. Every link the ways grid carried
+          is reachable from somewhere that outranks it:
+            · /campaigns, /events, /volunteer  → the hub tab strip below the stats
+            · /create                          → the hero AND the closing band
+            · /partner                         → the main nav's Resources group
+          The per-category counts were the same campaigns the grid underneath
+          already lists, counted a second time.
+
+          Asserted in `cause-landing.test.ts` rather than merely deleted, so a
+          later copy-paste cannot quietly bring either back. */}
     </>
   );
 }
@@ -212,9 +232,19 @@ export async function CauseCtaBand({ cause }: { cause: Cause }) {
   return (
     <section className="cl-cta" aria-labelledby="cl-cta-title">
       <div className="cl-cta-inner">
+        {/* The reference's outline heart. Decorative — the heading beside it
+            carries the message. */}
+        <span className="cl-cta-heart" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8Z" />
+          </svg>
+        </span>
         <div>
-          <h2 id="cl-cta-title">{t('cl.cta_title')}</h2>
-          <p>{t('cl.cta_body', { cause: cause.label.toLowerCase() })}</p>
+          {/* `ctaTitle` is authored English. Falling back to the translated
+              default keeps the other 18 causes localised — see the note on
+              `Cause.ctaTitle` for why this is not applied everywhere. */}
+          <h2 id="cl-cta-title">{cause.ctaTitle ?? t('cl.cta_title')}</h2>
+          <p>{cause.ctaBlurb ?? t('cl.cta_body', { cause: cause.label.toLowerCase() })}</p>
         </div>
         <div className="cl-cta-actions">
           <Link href={causeBrowseHref(cause)} className="cta-primary" style={{ display: 'inline-flex' }}>

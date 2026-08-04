@@ -88,7 +88,7 @@ export default async function AdminDashboardPage() {
             <p style={{ fontFamily: 'monospace', fontSize: 13, color: 'var(--red-text)', margin: '0 0 14px', lineHeight: 1.7 }}>
               {donationsResult.error.code}: {errMsg}
             </p>
-            <div style={{ fontSize: 14, color: '#334064', lineHeight: 1.8 }}>
+            <div style={{ fontSize: 14, color: 'var(--t1)', lineHeight: 1.8 }}>
               <strong>Steps to fix:</strong>
               <ol style={{ paddingLeft: 20, margin: '8px 0' }}>
                 <li>Go to <strong>Vercel → your project → Settings → Environment Variables</strong></li>

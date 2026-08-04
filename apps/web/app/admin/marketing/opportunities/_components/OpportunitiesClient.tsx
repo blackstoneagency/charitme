@@ -101,7 +101,7 @@ export default function OpportunitiesClient() {
 }
 
 function OppCard({ o, act }: { o: Opportunity; act: (id: string, body: Record<string, unknown>, msg: string) => void }) {
-  const scoreColor = o.score >= 66 ? '#10b981' : o.score >= 33 ? '#f59e0b' : '#94a3b8';
+  const scoreColor = o.score >= 66 ? '#10b981' : o.score >= 33 ? '#f59e0b' : '#556070';
   return (
     <div style={card}>
       <div style={{ display: 'flex', minWidth: 0, gap: 14, alignItems: 'flex-start' }}>
@@ -114,13 +114,13 @@ function OppCard({ o, act }: { o: Opportunity; act: (id: string, body: Record<st
             <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--t1)' }}>{o.title}</div>
             <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: STATUS_COLOR[o.status], padding: '3px 8px', borderRadius: 20, textTransform: 'uppercase', height: 'fit-content' }}>{o.status}</span>
           </div>
-          {o.description && <div style={{ fontSize: 13, color: '#475569', marginTop: 5, lineHeight: 1.5 }}>{o.description}</div>}
+          {o.description && <div style={{ fontSize: 13, color: 'var(--t2)', marginTop: 5, lineHeight: 1.5 }}>{o.description}</div>}
           {o.rationale && <div style={{ fontSize: 12, color: 'var(--brand-text)', marginTop: 6, fontWeight: 600 }}>Why: {o.rationale}</div>}
 
           <div style={{ display: 'flex', minWidth: 0, gap: 16, flexWrap: 'wrap', marginTop: 10, fontSize: 12, color: 'var(--t3)' }}>
-            <span><b style={{ color: '#334155' }}>{METRIC_LABEL[o.target_metric]}</b></span>
+            <span><b style={{ color: 'var(--t1)' }}>{METRIC_LABEL[o.target_metric]}</b></span>
             {o.category && <span>· {o.category}</span>}
-            <span>· Est. impact <b style={{ color: '#334155' }}>{money(o.est_impact_cents)}</b> <span style={{ color: '#cbd5e1' }}>(estimate)</span></span>
+            <span>· Est. impact <b style={{ color: 'var(--t1)' }}>{money(o.est_impact_cents)}</b> <span style={{ color: 'var(--t3)' }}>(estimate)</span></span>
             {o.confidence != null && <span>· Confidence {Math.round(o.confidence * 100)}%</span>}
             <span>· Effort {o.effort}</span>
             {o.time_to_value_days != null && <span>· ~{o.time_to_value_days}d to value</span>}

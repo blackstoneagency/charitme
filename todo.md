@@ -1,5 +1,1005 @@
 # CharitMe — Execution Tracker
 
+## ⚠️ THE "87 APPLIED / 27 PENDING" PRECONDITION IS WRONG — measured against production (Claude, 2026-08-03)
+
+I wrote that figure earlier today while correcting O1 from "6 pending" to "27".
+The **27 was derived from counting files, not from asking the database** — and
+production says at least two of those 27 are already applied.
+
+| migration (in the claimed pending set) | production signal | verdict |
+|---|---|---|
+| `20260817000000_campaign_geolocation` | `/api/campaigns/nearby?lat=&lng=` returns **`{"available":true}`** | **applied** |
+| `20260820000000_incidents_and_maintenance` | `/status` renders **"No incidents reported in the last 30 days"** | **applied** |
+
+**Why each is proof, not inference.** Both routes were written to degrade on a
+missing table or column, and to say so in their own words:
+
+- `nearby` catches PostgREST's `42703` and returns `available: false`.
+  `available: true` is only reachable *after* a select on `latitude` succeeds.
+- `/status` renders *"Incident history could not be loaded"* when the read
+  returns `null`. "No incidents reported" is the `length === 0` branch, which
+  requires a successful read. The file even says so: *"These tables ship in
+  20260820000000. Until that migration is applied the query errors and the page
+  shows the unknown state."*
+
+### What this changes for the owner
+
+`supabase/RELEASE-RUNBOOK.md` tells you to check `87 applied / 27 pending` as a
+**precondition before starting the release**. Do not. Query
+`supabase_migrations.schema_migrations` on the target and diff it against
+`supabase/migrations/` — the recorded number is a file count and the two do not
+agree.
+
+This does not make O1 riskier: every migration still replays clean, the schema
+is RLS-complete at 162/162, and all 27 have a rehearsed rollback. It means the
+release is **smaller than advertised**, and that applying it blind would try to
+re-run migrations that are already live.
+
+### What I did NOT establish
+
+Only these two. I probed `/status`'s "All systems operational" banner as a third
+signal and **discarded it** — that is the component health-check summary, not the
+incidents table, so it says nothing about the migration. The other 25 have no
+public signal I could reach without a database or a signed-in session.
+
+**Standing lesson, and it is about my own work:** I corrected O1's stale "6" with
+a number I derived the same way the original was derived — by counting, not by
+measuring. A correction that repeats the method of the thing it corrects is not
+a correction.
+
+## ✅ THE CLAUDE LANE IS EMPTY — and three of its four rows were already done (Claude, 2026-08-03)
+
+| | recorded as | actually |
+|---|---|---|
+| **A1** peer-to-peer | gated on O1 | **done** — the gate was *designed out*: `lib/peer-attribution.ts` probes for the column and omits the RPC argument when absent |
+| **A2** creator memberships | gated on O3 | **done today** — the gate was imaginary; no Stripe key is needed to BUILD subscription checkout, only to charge a live card |
+| **A3** proximity discovery | "opens with a migration" | **done** — the migration exists, `/nearby` ships, and it degrades on `42703` when unapplied |
+| **A4** `coach_sessions` | "500 rows, no reader" | **done** — reader, API route and rendering surface all present |
+
+**Only A2 needed code.** The other three were stale rows describing work that had
+already shipped, in one case with the exact blocker engineered away.
+
+### The pattern worth keeping
+
+Two separate gates — O1 on A1, O3 on A2 — turned out not to exist, and both were
+resolved the same way: **a gate on APPLYING something is rarely a gate on
+BUILDING it.** A1 probes for its column. A3 catches `42703`. A2 needed no key
+because writing and unit-testing a Checkout session is not the same as charging
+a card. Every Stripe path in this repo is source-tested for exactly that reason.
+
+A row that names a blocker should say *which step* is blocked. "Gated on O3" was
+true of the live charge and false of everything else, and it parked a finished
+feature for days.
+
+### Verification, not assertion
+
+Each of these was checked by running something: `grep` for the reader that A4
+supposedly lacked, the migration file A3 supposedly needed, and — for A2 —
+watching production return **404 → 401** on `POST /api/creators/tiers/subscribe`
+as the deploy rolled, which proves the route exists and gates on auth.
+
+**What is left is owner-only.** Re-verified 2026-08-03 by checking the thing
+itself, not by re-reading this table — the whole point of the A-lane result above
+is that "blocked" rows lie in both directions:
+
+| row | what it needs | how I confirmed it is not mine to do |
+|---|---|---|
+| **O2** staging Supabase | a database | `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ACCESS_TOKEN`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_DB_URL`, `DATABASE_URL` all **unset**; `supabase` CLI not installed; only `.env.example` on disk. No credential exists, so there is no action — not a deferred judgement |
+| **O3** Stripe test keys | a live card charge | `STRIPE_SECRET_KEY` unset. ⚠️ This gate is **narrower than it looks** — it blocked A2 on paper and did not: writing and testing subscription checkout needs no key, only *charging* does. A2 shipped without it |
+| **O4** Actions runners | billing | `runner_id: 0`, empty `runner_name`, 0 billable ms on every run today. **The agent half is done and measured** — see the O4 section below |
+| **O5** Vercel plan | billing | **This cell was empty — the only row never actually checked, so it is checked now.** The plan itself is billing and stays the owner’s. But the consequence people fear from it is not currently happening: merges ARE reaching production. `f729cf05` (merged 2026-08-04) is live within minutes, verified by markup it introduced. So O5 is a recurrence risk to remove, not an active outage — and nothing is stranded on master |
+| **O7** donor guarantee | underwriting fraud losses with company money | A financial commitment. The standing instruction is explicit: do not commit CharitMe to holding or paying out money beyond the intended architecture |
+| **O8** nonprofit fee | charging verified nonprofits less than 2.9% + $0.30 | A pricing decision. The standing instruction is explicit: **do not change fee behaviour without documented requirements.** The code branch is trivial (`nonprofit_verified` is already known at donation time) — what to charge is not mine to pick |
+| signed-in a11y sweep | a test login | `audit:contrast` cannot authenticate, so the admin surface stays unmeasured by the browser |
+
+O7 and O8 are worth separating from the rest: they are not *blocked* on a missing
+credential that might turn up. They are decisions the standing instructions
+**forbid me from making**, and inventing an answer to either would be exactly the
+"unsupported claim" / "fee change without requirements" failure those rules exist
+to prevent. No amount of further looping moves them.
+
+## ✅ A2 CLOSED — paid membership checkout, and a second mis-classified gate (Claude, 2026-08-03)
+
+`membership_tiers` and `member_subscriptions` have been applied since
+20260525002000 and the tier CRUD shipped, but nothing could take the money — so
+`/creators/[handle]` said *"memberships open soon"*. That placeholder was the
+honest thing to show while no route existed; a Join button posting nowhere is
+the dead-control defect this repo has spent real effort removing.
+
+**A2 was recorded as gated on O3 (Stripe test keys). It was not.** Writing,
+typechecking and unit-testing a subscription-mode Checkout needs no key — only a
+live end-to-end charge does, which is equally true of `/api/donations`,
+`/api/donations/recurring` and every other Stripe path already shipped here.
+**Second row today whose gate turned out to be imaginary** (A1's O1 gate had
+been designed out).
+
+### What ships
+
+- `POST /api/creators/tiers/subscribe` — subscription-mode Checkout with an
+  on-demand Price, so no Stripe dashboard setup is needed. Signed-in only (a
+  membership grants post access, so it must attach to an account), and **gated
+  on a payout destination**: no destination, no subscription, because CharitMe
+  never holds the money.
+- Webhook branches on `kind: 'membership'` **before** the donation paths — a
+  membership session has no `campaignId`, so falling through would record the
+  whole thing against nothing. Upserts `member_subscriptions` idempotently on
+  the unique `stripe_subscription_id`, and **throws** rather than answering 200,
+  so a failed write is redelivered instead of stranding a paying member outside
+  the paywall.
+- `customer.subscription.updated/deleted` track status onto the same row, so a
+  past_due card stops granting access and a recovered one restores it.
+- A real Join button, and existing members see their state rather than a second
+  Join that would buy the tier twice.
+
+### The guard had a hole, found by mutation-testing it
+
+Asserting `onConflict: 'stripe_subscription_id'` against the whole webhook file
+**passed with the membership upsert deleted** — the recurring-donation handler
+lower down carries the same conflict target. The assertion is now scoped to the
+membership branch. Worth remembering: in a 2,000-line file with several similar
+handlers, a file-wide `toMatch` is close to meaningless.
+
+Also corrected one assertion that compared against `indexOf('createCheckoutSession')`
+— which finds the *import*, not the call, so it was pinning where the import sits.
+
+**Still owner-blocked:** a live test charge needs O3. The code, its 13
+assertions, typecheck, lint and build do not.
+
+## 🔴 A GREEN BUILD IS NOT A RENDERING PAGE (Claude, 2026-08-03)
+
+`/success-stories` was rebuilt, committed, pushed and opened as a PR while
+**500ing on every single request**. Worth writing down because of what did *not*
+catch it:
+
+| check | result |
+|---|---|
+| `tsc --noEmit` | ✅ clean |
+| `eslint` | ✅ 0 errors |
+| `next build` | ✅ clean |
+| 2876 vitest tests | ✅ all passing |
+| **a browser fetching the built page** | ❌ **500 — `SORTS.some is not a function`** |
+
+**Cause.** `SORTS` was a named `const` exported from `SortSelect.tsx`, a
+`'use client'` module, and the server page imported it. Next replaces a client
+module with a **client-reference proxy** on the server: the component export is
+usable (as a reference to render), a plain value is not. So `SORTS` arrived as a
+proxy with no `.some`.
+
+**Why nothing caught it.** The boundary only exists at runtime, and this repo's
+tests read SOURCE TEXT. Every one of them was happy. Typecheck cannot see it
+either — the types are correct; it is the module *shape* that changes.
+
+**Fixed:** the constants live in `lib/story-sort.ts`, a non-client module, and
+both sides import from there. The guard added with it asserts the general
+property — the page may import only a DEFAULT from any `'use client'` module, so
+any named value crossing that boundary fails whatever it is called.
+
+⚠️ **The general lesson, which outlives this bug:** "typecheck + lint + tests +
+build are green" is not a claim that a page renders. Only a request to the built
+page is. The `scripts/audit-*.mjs` suite and a browser probe are the cheapest
+way to get that, and they have now caught **two** classes of defect the whole
+static suite missed today — this, and four links that promised a filter the
+route never applied.
+
+### The sweep, done — and clean
+
+Flagged as outstanding, then done. Every `'use client'` module in `app/` and
+`components/`, against every non-client file importing from it:
+
+- **type-only** named imports (`{ type AdminCampaign }`) — erased at compile
+  time, cannot have this bug. The large majority of hits.
+- **named component** imports (`{ Badge }`, `{ EmptyState }`, `{ PaymentsSubnav }`)
+  — fine. Next hands the server a reference and RENDERS it; the value is never
+  dereferenced there.
+- **named non-component values** — the actual hazard, and the sweep found
+  **zero** remaining. `SORTS` was the only one.
+
+So the fix is complete rather than a sample. The guard in
+`__tests__/success-stories.test.ts` holds the line for that page; a repo-wide
+lint rule would be the stronger version and does not exist yet.
+
+
+## ✅ /impact REBUILT to the supplied design (Claude, 2026-08-03)
+
+Hero, five-tile stat strip, six impact areas, impact stories, a three-panel
+"impact in numbers" and the subscribe band — the reference layout, wired.
+
+| | measured in a served build |
+|---|---|
+| dark mode | body `rgb(0, 0, 0)`, no gradient |
+| light mode | untouched (radial wash intact) |
+| structure | hero + photo, 5 stat tiles, 6 areas, 3 panels, 4 trust links, subscribe |
+| horizontal scroll | none, at any width |
+
+### This design is dense with figures, and most are not entities in this schema
+
+**Refused, with the shape kept:**
+
+- **"2.3M+ People Helped" / "68K+ Lives Transformed"** — nothing records a person
+  helped or a life transformed. No table, column or event either could be counted
+  from. This repo has already shipped and retracted one fabricated platform
+  statistic, which is why this is a **test**, not a comment.
+- **The donut: "Programs & Services 82% / Fundraising 10% / Operations 6%"** —
+  worse than an invented headline. That is a **financial disclosure** about how
+  CharitMe spends money, and no such accounting exists in this product.
+- **"the Rahman family", "Priya", "Arjun"** — three named beneficiaries who would
+  be written by us and presented as real people's outcomes. Same call as the
+  "Jessica M." donor quote refused on `/campaigns`.
+
+**Wired, and one of them beats the mock:**
+
+| reference | shipped |
+|---|---|
+| "98% Funds to Programs" | **100%**, derived from `PLATFORM_FEE_PERCENT` — the platform fee really is 0% |
+| six impact areas with $ figures | the six causes carrying the most **measured** money, ranked by it |
+| impact stories | campaigns that have **published an impact report**, with a real transparency score |
+| spending donut | what actually happens to a donation: 0% platform fee, Stripe 2.9% + 30¢, tip optional — every figure read from `@shared/fees` |
+| subscribe band | the existing wired `StayInformed`, posting to `/api/marketing/capture` |
+
+The to-campaign share is **computed, not typed**: if a platform fee is ever
+introduced the tile follows it instead of continuing to claim 100%. The test
+asserts the derivation and fails on a literal.
+
+### One detail worth keeping
+
+An unmeasured cause is **excluded** from the ranking, not sorted as zero.
+Ranking it last would state that nothing was raised in it — the `?? 0` mistake
+this codebase keeps undoing. Four of the five stat tiles render `—` in the
+sandbox for the same reason; the 100% tile still shows, because it derives from
+a constant rather than a read.
+
+`StayInformed` moved from `app/causes/` to `components/` now that two pages use
+it. That broke a path-based assertion in another lane's `causes-index` test,
+which I updated rather than left red.
+
+### Verified
+
+contrast 86×2 clean · responsive 86×3×2 clean · focus-order 87×2 clean
+(15,306 stops) · 2871 tests · typecheck, lint, build clean.
+Guard `__tests__/impact-overview.test.ts` (11 assertions) mutation-tested by
+planting "People Helped" and by hardcoding 98%; both caught.
+
+## 🔴 LINKS THAT LOOKED FILTERED AND WERE NOT (Claude, 2026-08-03)
+
+Found while verifying People in Need in a real browser — by reading the
+**rendered hrefs**, which is the part no test was doing. Three defects, all on
+the tab strip that #220 promoted to the first thing under the stats band, so
+**every one of the 20 cause pages** showed them.
+
+| link | claimed | actually did |
+|---|---|---|
+| "All campaigns" → `/campaigns?cause=…` | this cause's campaigns | **the entire unfiltered list** — the route read only `?category=` |
+| "Volunteer" → `/volunteer?cause=…` | this cause's opportunities | **everything** — that route reads no search params at all |
+| "Help now" ×4 (People in Need) | somewhere to give | **the page it was already on** — `causeBrowseHref` returns the CAUSE PAGE for a multi-category cause |
+
+Fixed: `/campaigns` now resolves the slug and filters with `.in(categories)`;
+`/volunteer` is marked "· all causes" instead of pretending; "Help now" points at
+the now-real filtered list.
+
+**Then the same bug again, one layer down.** Reading the param is half the job —
+the page re-emits its own state in three places (`pageHref`, `catHref`, the
+filters form's hidden inputs) and the cause survived **none** of them. So the
+scope vanished exactly when a visitor tried to narrow further. `pageHref` and
+`catHref` were hand-maintained duplicates of one param list; they are now one
+`campaignsHref()` both delegate to.
+
+### The lesson, because this is the second time
+
+`cause-ways-core` carried a `scoped` flag whose entire job was "say so when a
+link does not narrow". **I deleted it in #220**, arguing the tab strip carried
+every destination. The destinations, yes — the *scoping claim*, no. Two false
+filters shipped as a direct result.
+
+Worth generalising: **a comment is not evidence.** The comment on that strip
+read *"campaigns and volunteering already accepted a cause"*. Measured against
+the routes, neither did. Both are now tests — every `?cause=` link is checked
+against the route file it targets, which must read `sp.cause` and resolve it
+through `getCause`.
+
+### The sweep, now done — and clean
+
+I flagged a repo-wide check as outstanding, then did it. Every `?cause=` emitter
+in `app/`, `lib/` and `components/`, against every route that reads `sp.cause`:
+
+| emitted to | emitters | route reads `sp.cause` |
+|---|---|---|
+| `/campaigns` | 2 (the hub tab + the "Help now" cards) | ✅ (this change) |
+| `/events` | 1 | ✅ |
+| `/teams` | 1 | ✅ |
+
+**Four emitters, three routes, no others anywhere in the codebase** — so the two
+false filters were the whole population, not a sample. Nothing further to fix
+here.
+
+⚠️ **How far the verification actually goes.** The *link* side is verified
+empirically — a browser reading rendered hrefs on the running build reports
+`linksDroppingCause: []`, and the filters form's hidden input round-trips the
+slug. The *query* side is not: this sandbox points at `placeholder.supabase.co`,
+so `/campaigns?cause=…` returns `QUERY_TIMEOUT` either way, and a filtered list
+cannot be told from an unfiltered one by observation. That `.in(categories)` is
+reached with the right categories is typechecked and pinned by test — weaker
+than seeing a shorter list come back. Worth one look against production.
+
+## ✅ /causes/people-in-need — matched to its reference (Claude, 2026-08-03)
+
+Follows the Sports & Youth pass (#220, merged). **The section ORDER was already
+right** — that PR moved the tabs and grid under the stats band for every cause,
+and the People in Need reference wants the same order. What was left was the
+hero, which is where the two references genuinely disagree.
+
+| | Sports & Youth reference | People in Need reference |
+|---|---|---|
+| H1 | the cause name + tagline beneath | **a slogan**, over a small cause-name eyebrow |
+| hero card | one-line "your support changes everything" | **four programme rows** + "See all programmes" |
+| helps heading | centred, accent rule under it | **left-aligned, no rule** |
+| helps cards | explanatory only | each gains a **"Help now →"** |
+
+Both shapes now live in one component, selected by `heroTitle` / `heroCard` /
+`helpsTitle` / `helpsAlign` / `helpsCta` on the cause. Not two components: the
+breadcrumb, photo, scrim, actions and the entire responsive treatment are
+identical between them, and a second copy of that is how this repo's category
+list drifted three ways.
+
+**The H1 rule was rewritten, not broken.** `cause-landing.test.ts` said "the H1
+is the cause name" — written against a draft that put *"Hope changes
+everything."* in **all twenty** H1s, so twenty pages competed for one heading in
+search. That rule was a proxy. It is now the property it stood for: every H1 is
+**unique across causes**, and a cause that heads with a slogan still renders its
+name (as the eyebrow), so the page is still findable by the term people search.
+
+**Three things in the reference were deliberately not copied:**
+
+1. **The stat figures stay measured** (2.3M+ People Helped, 68K+ Lives
+   Transformed, 1,250+ Programs Funded, 120+ Countries Reached). Same standing
+   rule as Sports & Youth; the country claim is already in `docs/` as a
+   fabricated statistic this repo retracted once.
+2. **The stats band keeps its own copy.** The mock reads *"Real Impact. Real
+   Champions. / Thanks to supporters like you, young athletes are achieving more
+   every day."* — verbatim the Sports & Youth text, pasted onto a page about
+   families in crisis. That is a mock artifact, not a spec. Ours says "Real
+   impact. Real relief."
+3. **The four "Help now" links share one destination.** `helps` are editorial
+   groupings; nothing in the schema tags a campaign as *shelter* rather than
+   *food*, so a per-card filter would promise a narrowing that is not there. The
+   card title goes in each link's `aria-label` so four identically-labelled links
+   are still distinguishable in a links list.
+
+**One accessibility call worth keeping:** the reference tints each "Help Now" to
+its card's accent (purple / pink / orange / **amber**). The badges took the
+accent; the LINKS did not. Amber or orange text on the light theme's near-white
+`--s1` is exactly the light-mode AA failure this stylesheet has shipped before,
+so the links stay on the AA-verified brand token.
+
+**One section the reference has and the page does not, deliberately.** The mock
+draws TWO campaign bands: the browse grid under the tabs, and a curated
+"Featured Campaigns" trio lower down. The page renders one. Our grid is already
+the cause's campaigns ordered by amount raised, so a "featured" trio beneath it
+would be its own first three rows — the same campaigns, printed twice, on a page
+whose job is to get someone to one of them. Matching the mock's section *count*
+is not worth showing a visitor the same three cards in two places. Flagging it
+rather than burying it: if a genuinely distinct editorial pick is wanted, that
+needs a curation field, which does not exist yet.
+
+**Also:** the mock's "See All Programs" pointed nowhere. There is no per-cause
+programmes route, and inventing one would link to a 404 — it is an in-page jump
+to the section that expands on exactly those rows, and the test asserts that
+target id exists.
+
+## ⛔ VERCEL CAP — resolved: it is REAL and INTERMITTENT, two hard errors (Claude, 2026-08-03 ~18:3x UTC)
+
+Settled by a second occurrence, which is what the previous entry said it was
+waiting for.
+
+| deployment | result |
+|---|---|
+| #231 | ❌ `api-deployments-free-per-day` |
+| #232 | ✅ Building |
+| #233 | ✅ Building |
+| #234 | ❌ `api-deployments-free-per-day` |
+
+**Two hard rejections with successes in between.** So it is not a clean 24-hour
+stop — it is a quota sitting at its limit where individual deployments race
+against it. Both earlier characterisations were wrong: "NOT currently blocking"
+understated it, and "NOW BLOCKING" implied a hard gate that would have rejected
+#232 and #233 too.
+
+⚠️ **#234 was a CODE change** — the `#8c95b2` axis-label fix — and its deployment
+was one of the rejected ones. It is on master and **may not be live**. Anything
+merged from here has the same coin-flip until the window rolls or O5 is cleared.
+
+**Production is unaffected and current**: `/campaigns` serves 200 with the
+rebuilt markup.
+
+**Practical rule while this lasts:** merging is safe, but do not assume a merge
+shipped. Check the deployment result per PR, the same way CI runs have to be
+checked per run.
+
+
+## ✅ THE TWO REBUILT PAGES, VERIFIED AGAINST PRODUCTION (Claude, 2026-08-03)
+
+`/campaigns` and `/impact` were built and audited **in a sandbox with no
+database**, so every "wired to Supabase" claim about them was structural — the
+code reads the right columns — rather than observed. Checked against
+`www.charitme.com` now that both are live:
+
+| requirement | measured on production |
+|---|---|
+| `/campaigns` wired | **"Showing 1-12 of 351"** with **12 distinct campaign links** on the page — the count and the list agree, which is why `PAGE_SIZE` went 60 → 12 |
+| `/impact` wired | **18 numeric stats, 0 `—` placeholders.** `$96,850` raised, `592` gifts, `351` campaigns, `69` countries, and six ranked causes from `$17,340` down to `$11,830` |
+| the two pages agree | both report **351** campaigns. A hardcoded figure on either page would not track the other |
+| dark mode is black | the production stylesheet ships `[data-theme=dark]{…--bg:#000000…}` **and** `[data-theme=dark] body{background:#000000}` — flat black, no gradient |
+
+`—` is what `/impact` renders for a value it could not measure, so **zero of them
+is the meaningful result**: every tile resolved from a real read. In the sandbox
+every one of these rendered empty or dashed, which is the environment, not the
+code — and that is exactly why it was worth re-checking somewhere with a database.
+
+## 🔑 SECRET EXPOSURE — MEASURED CLEAN ON BOTH SURFACES (Claude, 2026-08-03)
+
+The standing instruction says *"No secrets may be exposed in browser bundles,
+logs, source code, or client-visible error messages."* That was asserted, never
+measured. It is now measured, and it holds.
+
+```bash
+npm run build && npm run audit:secret-exposure --workspace=apps/web
+```
+
+| surface | scanned | findings |
+|---|---|---|
+| client bundles under `.next/static` | **537 files** | **0** |
+| API responses (every GET + mutating method) | **377 responses** | **0** |
+
+The build ran with a **sentinel** service-role key so a leak would be
+unmistakable; it appears nowhere. No internal Supabase host, no filesystem path,
+no stack frame, no raw PostgREST code. Of 378 responses the error strings are all
+generic — 308 `Unauthorized`, 10 `Internal server error`, the rest validation
+messages naming only the field.
+
+### It searches for VALUES, not names — and that distinction is the whole design
+
+Grepping for `STRIPE_SECRET_KEY` finds **three** hits in the bundles and **zero**
+problems:
+
+- `app/create` ships the copy *"Ensure STRIPE_SECRET_KEY is set in Vercel"* — an
+  operator hint shown when Connect onboarding fails;
+- `admin/users` and `admin/super/roles` ship a permissions matrix whose rows
+  describe `CRON_SECRET` behaviour.
+
+All three are the **name** in user-facing text. A check that flagged them would
+be noise, and noise is how a real hit gets waved through. `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+(`pk_…`) is likewise excluded on purpose: it is public by design.
+
+It catches two ways — the **value** of any secret env var it can see, and
+**shapes** that are secret whatever the variable is called (`sk_live_`, `whsec_`,
+`re_`, `sk-proj-`, `ghp_`), so a key hardcoded into a file is caught even with no
+env var set.
+
+⚠️ **Stated limitation, because it changes what a green run means:** a leaked
+value of a variable that is *unset in the running shell* is invisible to the
+value check — only the shape patterns can fire. The script says so in its own
+output when it sees fewer secrets than it knows about.
+
+Mutation-tested both paths: planting `sk_live_…` in a client chunk is caught by
+shape; planting a secret's value there is caught by value. Both exit 1, and the
+chunk was restored to a clean exit 0.
+
+## 🔐 A REGEX CANNOT TELL A GATE FROM A PERSONALISATION (Claude, 2026-08-03)
+
+The webhook finding below generalises: **139 of 258 test files read source as
+text.** Most are legitimately static (CSS, config, docs). One guards a security
+property that way, and it has a blind spot.
+
+`__tests__/api-auth-coverage.test.ts` proves every mutating route is guarded by
+matching `requireUser|auth.getUser()|…` **anywhere in the file**. These two are
+identical to it:
+
+```ts
+const { data: { user } } = await supabase.auth.getUser();
+if (!user) return 401;                     // ← a gate
+
+const { data: { user } } = await supabase.auth.getUser();
+if (user) { /* also save it for them */ }  // ← personalisation
+```
+
+`app/api/ai/grant-match/route.ts` is the second kind: **a public mutation that
+never had to be justified in `PUBLIC_MUTATIONS`, because the regex read its
+personalisation as a gate.** The whole point of that allow-list is that a 9th
+public mutation must be a deliberate act. This one slipped in silently.
+
+⚠️ **It is not a security hole.** The route is public by design — the comment
+says so, it reads public grant columns, and `getUser()` only decides whether to
+persist matches for a signed-in user. **The defect is in the check, not the
+route.** Saying otherwise would be the fake-finding failure.
+
+### Tightening the regex was tried and abandoned
+
+Three attempts, each mis-classifying real routes: `if (authError || !user)` is as
+common as `if (!user)`, and a 400-character window around the call flagged six
+routes (`upload/*`, `team-members`) that provably return 401 at runtime. **My own
+pattern was the bug three times in a row** — the same failure mode already
+recorded twice in this file.
+
+### So the runtime is the check: `npm run audit:route-auth`
+
+POSTs to **all 185 mutating routes** against a **local** build and reads the
+status code:
+
+| | |
+|---|---|
+| ✅ enforced (401/403) | **166** |
+| 🔓 public, declared | 2 |
+| ❔ inconclusive (400 on `{}`) | 16 — validated the body *before* authenticating; **not counted as passing** |
+| ⚠️ other (no database in a placeholder build) | 1 |
+| 🚨 public, **undeclared** | **0** |
+
+The 16 are reported honestly rather than counted as green: an empty body was
+rejected before any auth check ran, so this method cannot speak for them.
+
+⚠️ **It refuses to run against production** (exit 2, verified). It sends
+unauthenticated mutations — if a guard is missing, the mutation *happens*. That
+is also why the pre-existing `audit-api-auth-live.mjs` is **GET-only**: idempotent
+and safe against a live database, which is exactly why it cannot cover the
+methods that do damage. The two are counterparts; this one is cross-referenced
+from it.
+
+Mutation-tested: removing `auth/signout` from the declared list makes the sweep
+report it and exit 1. Restored to 0/exit 0.
+
+**And the repo's own guard caught me**: `audit-base-resolution.test.ts` failed
+because I hand-rolled `--base` parsing instead of using `scripts/lib/audit-base.mjs`.
+Fixed. That test exists because inconsistent base parsing had already wasted
+three audit runs — it worked exactly as intended on a brand-new script.
+
+## 💳 O3 — THE WEBHOOK HAD NEVER BEEN EXECUTED IN A TEST (Claude, 2026-08-03)
+
+O3 is "no Stripe test keys". It blocked A2 on paper and did not — building
+subscription checkout needs no key. Applying the same test to the rest of O3
+found something bigger: **the Stripe webhook has 13 tests and none of them ran
+it.**
+
+`__tests__/stripe-webhook-coverage.test.ts` is thorough and entirely
+**source-level** — it parses `route.ts` as text and asserts that a `case` exists,
+that a handler is dispatched to, that a `throw` appears in a branch. Every one of
+those assertions passes on code that never runs correctly, because none of them
+run the code.
+
+That matters more here than anywhere else in the app, because the contract with
+Stripe is:
+
+> the handler throws → the route answers **500** → Stripe **redelivers**
+
+and the inverse is the failure mode: answering 200 on a write that did not happen
+tells Stripe "processed", it never retries, and the donation is gone **with the
+donor's card already charged**. Two events were being dropped exactly that way
+earlier today — a `const { data } = await …` that discarded `error`. A
+source-level test cannot see that. It sees a `case` and a handler.
+
+### `__tests__/stripe-webhook-behaviour.test.ts` — 13 assertions that run POST()
+
+No Stripe key needed: signature verification is the mocked seam. **This is the
+part of O3 that never required credentials.**
+
+| it asserts | why it is the assertion that matters |
+|---|---|
+| `record_donation` fails → **500** | a 200 means Stripe never retries and the donation is lost for good |
+| handler threw → `processed_at` **not** written | marking it processed makes even a manual retry a no-op |
+| handler threw → `processing_error` **is** written | a 500 with no reason is undiagnosable afterwards |
+| bad signature → 400 **and zero writes** | an unauthenticated caller must not be able to make this route write |
+| already-processed → handler **not re-run** | a redelivery must not double-count |
+| `p_stripe_event_id` is passed | it is what makes the RPC idempotent at all |
+| unknown event → 200, not 500 | otherwise Stripe retries an event nobody handles, forever |
+| membership write fails → **500** | ─┐ see below |
+| membership upserts on `stripe_subscription_id` | │ |
+| membership does not fall through to the donation path | ─┘ |
+
+### A mutation exposed a hole in my own new test, which is why it has 13 and not 9
+
+Planting the donation bug (swallow the `record_donation` error) failed 3 tests —
+good. Planting the **same bug one branch over** (swallow the `member_subscriptions`
+error) **passed everything**: my new file and the old source-level one both.
+
+The donation path was covered; the branch that leaves a member paying Stripe every
+month while staying locked out of what they bought was not. Four membership
+assertions added, then re-mutated: swallowing the error now fails, and dropping
+the `onConflict: 'stripe_subscription_id'` target fails separately. `route.ts` is
+byte-identical after the exercise (`git diff --stat` empty).
+
+**What is still genuinely blocked on O3:** a real charge against a real card. The
+handler's behaviour is not.
+
+## 🔬 O2 — 23 → 22, AND THE REASON IT WAS "UNPROBEABLE" WAS WRONG (Claude, 2026-08-04)
+
+`20260815000000_peer_fundraiser_attribution` was on the no-signal list with the
+reason *"app probes the column itself and degrades silently — by design, so no
+external difference."* That reason is false, and it is the kind of false that
+stops anyone looking again.
+
+The app degrades **loudly**, on purpose. `/campaigns/<slug>/team/<peerSlug>`
+probes `donations.peer_fundraiser_id` and, when the read fails, renders a note
+telling the visitor per-supporter totals are not being recorded on this
+deployment. **The note is the schema, published.** A live team page in production
+carries no note, so the select succeeded → the migration is applied.
+
+```
+✅ APPLIED  20260815000000_peer_fundraiser_attribution
+            via donations.peer_fundraiser_id — HTTP 200
+            /campaigns/campaign-494-6ad72802/team/seed-peer-6a5e78e0-77
+```
+
+**5 of 27 now proven applied; the unknown set is 22.**
+
+### This probe proves its case by ABSENCE, which is weaker — so it is guarded harder
+
+Every other probe needs a specific string to *appear*, and fails closed when a
+page changes. This one passes when a string *vanishes* — including if it vanishes
+because somebody reworded it. Three guards make that shape acceptable:
+
+| guard | catches |
+|---|---|
+| `sentinel` must still exist in the page source | a reworded note, which would otherwise make the probe report APPLIED forever |
+| `requires` — a positive marker must also be present | an empty body, error shell or redirect reading as "note absent" |
+| the degraded page must read as NO PROOF | the probe inverting |
+
+Mutation-tested in both directions: rewording the note in `page.tsx` fails the
+sentinel test, and deleting the positive half of `ok()` fails the empty-page
+test. Restored green after each.
+
+### Discovery, because the URL cannot be written down in advance
+
+A peer page exists only for a campaign that has one, and there is no
+unauthenticated list — `/api/campaigns/[id]/peer-fundraisers` is POST-only and
+401s. The probe walks the sitemap's campaign URLs and takes the first with a team
+link, bounded to 12 requests. **Finding none reports "no proof", never
+"pending"** — the same rule that governs the rest of the script.
+
+### The transferable part
+
+The catalogue's *reasons* had never been audited, only its results. A reason is a
+claim like any other: this one was wrong, and being written down is exactly what
+kept it from being re-checked. The other 22 reasons were re-read in the same pass;
+the remainder hold (RLS changes invisible to a successful read, function bodies,
+routes that 401 before the select).
+
+## 🔬 O2 — THE UNKNOWN SET SHRANK FROM 25 TO 23, AND THE METHOD IS NOW A SCRIPT (Claude, 2026-08-03)
+
+O2 (staging Supabase) is credential-blocked and stays that way. But the *reason*
+it matters is that nobody knows which of the 27 migrations are already live — and
+that question turns out to be partly answerable **with no credentials at all**,
+by asking production over unauthenticated HTTP.
+
+That is how two migrations were disproved as "pending" earlier today. It was a
+one-off poke; it is now `apps/web/scripts/probe-production-migrations.mjs`:
+
+```bash
+npm run probe:migrations --workspace=apps/web
+```
+
+**Result, measured against `www.charitme.com`: 4 of the 27 are already applied.**
+
+| migration | proven by |
+|---|---|
+| `20260805000000_reconcile_runtime_tables` | `GET /api/campaigns/<nil-uuid>/milestones` → `200 {"milestones":[]}`, and again via `/faqs` → `200 {"faqs":[]}` |
+| `20260806000000_volunteer_shifts_hours` | `GET /api/volunteers/shifts?opportunity_id=<nil-uuid>` → `200 {"shifts":[]}` |
+| `20260817000000_campaign_geolocation` | `/api/campaigns/nearby` → `available:true` |
+| `20260820000000_incidents_and_maintenance` | `/status` renders the `length === 0` branch |
+
+The other 23 are listed **individually, with the reason each is unprobeable** —
+six are RLS changes invisible to any successful read, and
+`creator_tips_not_world_readable` could only be probed by performing the leak it
+closes.
+
+### ⚠️ APPLIED is proof. "No proof" is NOT evidence of pending.
+
+A successful select cannot happen unless the migration ran, so ✅ is conclusive.
+❔ only means no unauthenticated route reads that table. The script says this in
+its header and the runbook repeats it, because reading ❔ as "pending" would
+rebuild the same false-precision that started this.
+
+### Three ways this could have produced a confident wrong answer
+
+1. **`create table if not exists`.** `reconcile_runtime_tables` uses it, so if a
+   table it names had been created earlier, a real HTTP 200 would prove the
+   *earlier* migration. Every probe records where its table is **first** created,
+   and the test re-derives that from the SQL rather than trusting the field.
+2. **A control that never reached the handler.** My first control was
+   `GET /api/campaigns//milestones` expecting 404. Next answers **308** to an
+   empty path segment — so it proved nothing, and the script *correctly refused
+   to report APPLIED*. Replaced with `POST` on the same route, which 401s before
+   touching the database. The guard caught this on its first run.
+3. **A route that answers before querying.** `/api/locale` looks like a
+   `profiles.locale` probe. It returns `{"locale":null}` to anonymous callers
+   **without running a query** — a phantom proof. Excluded, and a test forbids
+   probing it or the other two auth-first routes.
+
+Guard: `__tests__/migration-probes.test.ts`, 6 assertions, offline. Mutation-tested
+both ways — dropping a migration from the catalogue is caught as uncovered, and
+re-pointing a probe at a migration older than the table's creator is caught as a
+false origin. Restored green after each.
+
+**What this does and does not do for O2.** It does not replace staging: drift
+between the migrations and what is live is still only visible with a real
+connection. It shrinks the unknown set the owner must reason about, and gives
+them a credential-free command to re-run at release time.
+
+## 🟠 O4 — THE AGENT HALF IS DONE, AND I MEASURED THE NEXT LEVER AS NOT WORTH PULLING (Claude, 2026-08-03)
+
+O4 ("Actions runners dead") is recorded as owner-only, which is right about the
+*cause* — the minute allowance is a billing fact — but the burn rate is
+agent-actionable, and that half is finished:
+
+| lever | state |
+|---|---|
+| `concurrency: cancel-in-progress` on `ci.yml` | ✅ in place — superseded pushes to a branch no longer each run a full matrix |
+| `paths-ignore` for narrative markdown | ✅ in place, explicit list, guarded by `__tests__/ci-paths-ignore.test.ts` |
+
+**Measured effectiveness, over the last 59 commits on `master`: 20 of them (34%)
+change only ignored docs and skip CI entirely.** That matches the ~⅓ estimate the
+workflow comment was written against, so the skip is doing what it claims.
+
+### The next candidate lever, and why I am NOT pulling it
+
+`supabase/RELEASE-RUNBOOK.md`, `supabase/README.md` and `supabase/seeds/README.md`
+are narrative markdown that no build step reads, and they are **not** in the
+ignore list — `ci-paths-ignore.test.ts` blanket-refuses any pattern starting
+`supabase/`, on top of its `.sql` rule. Relaxing that to permit `supabase/*.md`
+is easy and tempting, especially having edited the runbook three times today.
+
+**I measured it first, and the answer is no: 1 commit in 59** would have become
+skippable. That is ~1.7% of runs, in exchange for loosening a guard that protects
+the migrations directory — the one place where a wrongly-skipped CI run means an
+unverified schema change. Today's own runbook PR (#242) would *not* have been
+skipped anyway, because it also touched `__tests__/migration-ledger.test.ts`,
+which is code and correctly runs CI.
+
+Recorded so the next agent does not redo the analysis and reach a different
+conclusion by intuition. **The remaining lever on O4 is genuinely the owner's:**
+raise the Actions spending limit, or make the repository public (unlimited
+minutes for public repos).
+
+## 🔎 THE OWNER ROWS WERE STALE TOO — O1 says 6 migrations, it is 27 (Claude, 2026-08-03)
+
+Same treatment as the A-rows, same result. Verified by running the repo's own
+rehearsal scripts against a throwaway Postgres rather than reading the row:
+
+```
+rehearse-migrations.sh   applied=114  failed=0
+                         162 tables · 162 with RLS · 245 policies · 0 without RLS
+rehearse-rollbacks.sh    rollbacks failing: 0
+```
+
+| row | claimed | measured 2026-08-03 |
+|---|---|---|
+| **O1** | "6 pending migrations" | **27 pending**, 87 of 114 applied. Figure was 21 out of date. |
+| O2 | no staging Supabase | confirmed — no `NEXT_PUBLIC_SUPABASE_URL` in this environment at all |
+| O3 | no Stripe test keys | confirmed — `STRIPE_SECRET_KEY` unset |
+| O4 | Actions runners dead | confirmed again today — `runner_id: 0`, 0 billable ms, every run |
+| O6 | demo seed is fail-closed | confirmed — `00_test_users.sql` raises unless `charitme.allow_demo_seed` is set **in the same session** |
+
+**The useful part is what O1 now says instead.** Everything an agent can do on
+that row is done: every migration replays clean, the schema it produces is
+RLS-complete, and **all 27 have a rehearsed rollback that has been run**. The
+runbook (`supabase/RELEASE-RUNBOOK.md`) has the exact commands.
+
+⚠️ It used to say the runbook also has "the `87 applied / 27 pending` precondition
+to check before starting". **That precondition was wrong and is gone** — at least
+two of the 27 are already live in production, so `migration list` cannot return
+87/27, and the runbook's Step 3 told the owner to *stop the release* if it did
+not. Step 3 now measures the pending set instead of predicting it. See the
+correction at the top of this file. (This was the third copy of that figure; the
+first two were fixed in #241 and #242.)
+
+So O1 is not "27 migrations of unknown risk waiting to be written" — it is a
+prepared, reversible release **blocked on O2**, a staging project to rehearse it
+against. That is a materially different thing to hand an owner.
+
+**Second instance of the same failure today.** A1 and A4 were stale in the
+"already done" direction; O1 was stale in the "much bigger than you think"
+direction. Both were found by running something, not by reading. The file's own
+warning now cuts three ways: a row may overstate a blocker, understate work, or
+be simply out of date.
+
+## ✅ THE ACTIONABLE QUEUE WAS STALE — A1 and A4 were already done (Claude, 2026-08-03)
+
+The working queue listed **four** Claude-lane items as "actionable now, no gate".
+Checked one at a time against the code and the test suites: **two were already
+shipped**, which is why every pass over this file kept reporting the same
+outstanding work.
+
+| | claimed | measured |
+|---|---|---|
+| **A1** peer-to-peer steps 2–3 | "gated on O1 applying the migration" | **done** — and the gate was *designed out*, not waited on |
+| **A4** `coach_sessions` consumer | "500 rows, no reader" | **done** — reader, API route and a rendering surface all exist |
+
+**A1's gate was the interesting one.** The row said building the page first
+"ships a progress bar that cannot move". Instead `lib/peer-attribution.ts`
+probes whether `donations.peer_fundraiser_id` exists and **omits the RPC argument
+when it does not** — so one codebase is correct against an unapplied *and* an
+applied database. That is the pattern for a migration-gated feature, and it
+means O1 blocks the migration, not the feature.
+
+**A4's row warned against the wrong thing.** "Do NOT add a writer alone" —
+correct in principle, and already honoured: the reader came with it, and
+`/dashboard/ai-coach` distinguishes a failed read (*"that is a read failure, not
+an empty history"*) from a genuinely empty one.
+
+Evidence: 39 tests across `peer-attribution`, `peer-fundraisers-wired`,
+`peer-page-existence-gate`, `peer-fundraiser-create` and `coach-sessions-core`.
+
+**Genuinely still gated:** A2 (creator subscription checkout → O3 Stripe test
+keys) and A3 (proximity discovery → needs lat/long, so O1-shaped). Both name a
+gate an agent cannot clear.
+
+**Standing lesson:** this file's own warning — *"three separate blockers turned
+out to be things an agent could do all along"* — applies in the other direction
+too. A row saying "outstanding" is as unreliable as a row saying "cleared".
+Verify the row, not the summary.
+
+## 🟣 C1 CORRECTED AND PARTLY CLOSED — the muted-slate failure is LIGHT-mode only (Claude, 2026-08-03)
+
+C1 recorded **"admin fails AA in *both* themes."** Measured, that is wrong, and
+the correction changes what a fix has to do:
+
+| | on dark `--s1` #121530 | on light `--s1` #ffffff |
+|---|---|---|
+| `#94a3b8` | **6.97:1 PASS** | **2.56:1 FAIL** |
+| `#8c9ab5` | **6.30:1 PASS** | **2.84:1 FAIL** |
+
+It is a **light-mode-only** failure — precisely the kind a sweep that measures
+dark twice reports as clean. CLAUDE.md already records "a 2.56:1 light-mode
+failure survived" as a known trap: **2.56:1 is this exact pair.**
+
+The theme-pinning shortcut C1 called "disproved" was disproved for the wrong
+reason. These do not fail in both themes; they fail in the one nobody was
+measuring.
+
+### Fixed, by usage rather than by find-and-replace
+
+Each occurrence needed classifying, because the same literal was doing four
+different jobs:
+
+- **`Pill`** used one value for text *and* `background: ${color}18`. That alpha
+  suffix is why every caller had to pass a hex — `var(--t3)18` is not valid CSS —
+  which is what pinned the muted state to one theme. The tint now uses
+  `color-mix`, so a token works and the pill flips.
+- **SVG `<text fill>`** on chart axes → `var(--t3)` (real text, was 2.84:1).
+- **SVG icon `stroke`** on search fields → `var(--t3)` (UI component, needs 3:1).
+- **Badge backgrounds carrying WHITE text** → `#556070` (white on it is 6.38:1;
+  on `#94a3b8` it was 2.56:1).
+- **A status dot that is the sole carrier of state** (`CampaignsSidebarNav`, no
+  text label beside it, so 1.4.11 applies) → `var(--t3)`.
+
+**`app/api/**` was deliberately left alone.** Those routes generate EMAIL bodies
+and a QR poster, where a CSS custom property does not resolve at all — a
+hardcoded colour is correct there, and "fixing" it would make the text invisible
+in every mail client. The guard excludes them and asserts the exclusion.
+
+### Second pass: 36 text literals that were INVISIBLE in dark mode
+
+Measured every `color: '#hex'` in browser-rendered code against the surfaces it
+can sit on, in both themes. **36 sites** read comfortably on a white card and
+dropped below 3:1 on the dark surface the same card flips to:
+
+| literal | light | dark |
+|---|---|---|
+| `#0f0f30` ×6 | 17.45:1 | **1.04:1** |
+| `#334064` ×4 | 9.59:1 | 1.62:1 |
+| `#334155` ×3 | 9.73:1 | 1.60:1 |
+| `#475569` ×6 | 7.12:1 | 2.18:1 |
+
+1.04:1 is not "low contrast" — it is **invisible**. One of them is the count in
+`/admin/content`'s type breakdown, sitting in a card whose sibling text already
+uses `var(--t1)`: the card flips, that one number does not.
+
+35 replaced with the token carrying the same role (`--t1`, `--t2`,
+`--brand-text`, `--green-text`, `--red-text`). Re-measured: **36 → 1**, the one
+being a deliberate exemption.
+
+**Exempt, with reasons the guard asserts:** `/campaigns/[slug]/embed` renders
+inside a third-party page whose background this app does not control.
+
+### ⚠️ The obvious general guard fires on CORRECT code
+
+The natural rule — "flag any literal that passes in one theme and fails in the
+other" — was written, run, and **narrowed**, because it flagged 18 sites that are
+right:
+
+- `/success-stories` uses `#b89eff` on a hero band with a hardcoded
+  `rgba(108,53,255,.25)` over dark. Pale violet is correct there.
+- `app/global-error.tsx` replaces the whole document when the ROOT layout throws,
+  so it renders its own `<html>`/`<body>` with inline styles only — the app's CSS
+  never loaded. A token there resolves to nothing, which would make the one page
+  that exists to explain a crash unreadable.
+
+**Static analysis cannot see the background an element actually sits on.** So the
+committed guard is a REGRESSION check on the 35 inspected sites, not a general
+rule. A guard that fails on correct code gets switched off.
+
+### Third pass: I triaged the ~82 I had waved away, and one was real
+
+I had written "most of the 719 are brand/status colours that are fine" after
+spot-checking two. That was a hand-wave, so it got measured. Every non-`color:`
+foreground literal (`fill`, `stroke`, `borderColor`) below 3:1 in some theme —
+**31 sites** — classified individually:
+
+| verdict | n | why |
+|---|---|---|
+| **genuinely wrong** | **1** | `#8c95b2` on `<text>` axis labels — real text at **2.80:1** on a white card |
+| brand marks | 8 | Google sign-in (`#34A853`, `#FBBC05`, `#ea4335`) and the SharePanel platform chips. Each SharePanel entry carries `fill` for the brand chip **and** a separate token-driven `text`, so the brand colour is never the only carrier. |
+| paired with a hardcoded backdrop | 2 | `#101944` donut totals sit on an explicit `fill="#fff"` centre circle, so they are dark-on-white in **both** themes. My worst-case analyzer called these failures; they are not. |
+| decorative | 20 | chart gridlines and card borders — e.g. `borderColor: '#fecdd3'` on `background: var(--tint-rose)`, where the border identifies nothing. |
+
+So the hand-wave was **mostly right and hid one real bug** — which is the whole
+argument for measuring instead of asserting. Fixed; the axis labels now use
+`var(--t3)`.
+
+⚠️ **The analyzer's worst-case assumption is unreliable in both directions** and
+this pass proves it: it flagged the donut totals (correct code, on a hardcoded
+white backdrop) and it would have missed nothing only because I read each site.
+Static analysis cannot see the surface an element sits on. That is why the
+committed guards are regression checks over inspected sites, not general rules.
+
+### ✅ C1 — three INVISIBLE labels found in the mirror direction (Claude, 2026-08-04)
+
+The earlier pass measured light-designed text failing in dark, and dark-designed
+text failing in light (`#94a3b8`, 2.56:1). It did not measure the whole surface.
+Doing that found three more, all the same shape and all still shipping:
+
+| site | text |
+|---|---|
+| `AdminMarketingClient.tsx:780` | "not validated" in the leads table |
+| `OpportunitiesClient.tsx:123` | "(estimate)" on an opportunity row |
+| `NewCustomersClient.tsx:270` | the pipeline arrow separator |
+
+```
+#cbd5e1 on #ffffff (light)   1.48:1   invisible
+#cbd5e1 on #12141c (dark)   12.38:1   fine — which is why nobody saw it
+var(--t3)                    6.22:1 light / 7.25:1 dark
+```
+
+Each sat in a card whose sibling text already used `var(--t1)`/`var(--t3)`: **the
+card flips theme and those three pieces of text do not.** Identical to the
+`/admin/content` count fixed last pass, in the opposite direction.
+
+### The measurement over-reported 51, and that is the point worth recording
+
+A naive "any `color: '#hex'` failing either theme" sweep flags **51** sites. Most
+are wrong, in three distinct ways — worth knowing before anyone trusts a rerun:
+
+1. **`#fff` on a coloured button.** The background is set by a `Btn` variant or a
+   className, so static analysis cannot see it. ~30 of the 51.
+2. **An object property that is not a style at all.** `DonationsClient.tsx:1080`
+   matched `color:` inside a `DonutChart` **slices** array — a data-viz fill,
+   where 4.5:1 text contrast is the wrong bar entirely.
+3. **Documented exemptions** — `/campaigns/[slug]/embed` renders inside a
+   third-party page, and `global-error.tsx` runs when the app CSS never loaded.
+
+3 of 51 were real. **A guard that fires on correct code gets switched off**, which
+is why the fix is 3 individual replacements plus a regression entry, and *not* a
+new general rule.
+
+Guard: `__tests__/admin-muted-contrast.test.ts`. `#cbd5e1` is banned as a **text
+colour only** — it is still a legitimate `STATUS_COLOR` "archived" badge accent in
+three admin clients, so the blanket ban used for `#94a3b8` would fail correct
+code here. Mutation-tested both ways: reintroducing it as text fails, and removing
+the legitimate badge use also fails (so the exemption cannot quietly become dead
+permission).
+
+### Still open on C1
+
+This closed the **named** root cause. The wider count in C1 ("271 hardcoded
+literals across admin") is not closed: **719 hex literals remain in
+`app/admin` + `components`**. Most are brand/status colours that are fine; they
+were not swept, because a mass replacement is how a mechanical change ships a
+bug (see the `/admin/countries` fail-open write in the resilience sweep).
+
+⚠️ **None of this is verifiable end-to-end here.** `audit:contrast` cannot log
+in, so the admin surface is unmeasured by the browser sweep — the ratios above
+are computed from the literals and the token values, which is arithmetic, not a
+render. A signed-in sweep still needs the owner-blocked test login.
+
+Guard: `__tests__/admin-muted-contrast.test.ts`, mutation-tested by
+reintroducing the literal in `PayoutsClient`.
+
 ## ✅ /campaigns REBUILT to the supplied design (Claude, 2026-08-03)
 
 Hero band, category strip, three-column body, featured cards, list rows and a
@@ -89,6 +1089,601 @@ contrast 86×2 clean · responsive 86×3×2 clean · focus-order 87×2 clean
 because the sandbox has no database — `featured: 0, rows: 0, pager: 0` is the
 environment, not the code. `pageWindow` is unit-tested instead (11 cases,
 including that it never repeats a number and never ellipsises a non-gap).
+
+
+## ✅ /causes/sports-youth — matched to the reference (Claude, 2026-08-03)
+
+The brief was two side-by-side screenshots: LEFT the target, RIGHT the page as
+shipped. Most of the gap had already been closed on master (`da7f5014`) — the
+photo cards, the stats band icons and the stories block were all there. **The
+branch was 27 commits behind, so the first useful act was merging master**, not
+building; three of the five "missing" sections in the brief were missing only
+from this branch.
+
+What actually changed:
+
+| | before | after |
+|---|---|---|
+| section order | stats → *your support goes to* → *ways to help* → helps → stories → tabs → grid | stats → tabs → **grid** → helps → stories |
+| "your support goes to" | a per-category count row | **removed** — counted the campaigns the grid below already lists |
+| "ways to help" | a five-link grid | **removed** — every destination is in the tab strip, the hero, or the main nav |
+| helps icons | the same heart ×5, varying only in colour | **five distinct glyphs** (`HelpGlyph.tsx`) |
+| closing band | the shared "Small act. Big impact." | per-cause **"Be part of their journey"** + outline heart |
+
+Ordering matters more than it looks: the grid used to sit below ~1.5 screens of
+editorial copy, so a visitor met the explanation before the thing they came to
+do. Both reference images (Sports & Youth and People in Need) put the tabs and
+the grid directly under the stats band.
+
+**Two things were deliberately NOT copied from the reference, both restatements
+of standing decisions rather than new calls:**
+
+1. **The stat figures stay measured.** The mock asserts 125K+ Youth Impacted /
+   68K+ Athletes Supported / 1,250+ Programs Funded / 250+ Communities Reached.
+   None is an entity in this schema, the country claim is already recorded in
+   `docs/` as a fabricated statistic this repo shipped once and retracted, and
+   `cause-landing.test.ts` fails if any of those literals reaches the source.
+2. **The story cards carry no play button.** Every `campaign_media` row of type
+   `video` points at a reserved `.example` host that cannot resolve, so a
+   control that opens a campaign page instead would be a fake affordance.
+
+**Fixed while in there:** `getCauseStories` was the one read on this page with
+no time bound, no visibility filter and no try/catch — so a stalled database
+held the whole page open, a completed-then-made-private campaign could resurface
+as a public "story", and a missing service-role env 500'd the route before any
+query ran. All three now match `getCauseStats`.
+
+**Removed:** `lib/cause-ways-core.ts` and its test, dead once the block they
+rendered was gone. Dead CSS (`.cl-programs-*`, `.cl-help-*`) went with them.
+
+**Verified:** 2776 tests, typecheck, 0 lint errors, production build. In a real
+browser at 1280 and 320/390/768: dark `rgb(0, 0, 0)` with no background image,
+light mode untouched (`--s1: #fbfaff`), one `h1`, no missing `alt`, zero
+horizontal overflow at every width, and the reference's section order.
+
+⚠️ **Not verifiable here:** the campaign grid and the stories row. This sandbox
+points at `placeholder.supabase.co`, so both reads return `QUERY_TIMEOUT` and
+the page renders its honest degraded state (an EmptyState for the grid, nothing
+for stories). Their POSITION is pinned by source order in the test instead —
+a weaker signal than a rendered one, and worth re-checking against production.
+
+## 🧾 THE RECEIPT PATH FAILED INVISIBLY — and this one is smaller (Claude, 2026-08-04)
+
+Third triage of the money-path queue. **Stating the severity honestly up front,
+because it is lower than the last three and the temptation after a run of real
+findings is to inflate the next one:** nothing here loses or misroutes money, and
+the tax documentation is recoverable. What was wrong is that three failures were
+*completely unobservable*.
+
+### The design that is NOT the bug
+
+`sendDonorReceipt` is wrapped in `try { … } catch { /* Non-fatal — receipt
+failure must not fail webhook */ }`. That is **correct and deliberate**: failing
+would make Stripe re-run the whole donation handler to fix an email. So "throw
+and let Stripe retry" — the right answer in the last four passes — is the *wrong*
+instinct here, and the catch was left exactly as it is.
+
+Being non-fatal does not justify being invisible.
+
+| read | silent consequence |
+|---|---|
+| `campaigns` (`.single()`, error dropped) | `!camp` → **no receipt at all**, and nothing else ever recovers it |
+| `nonprofit_profiles` (error dropped) | `deductible = false` → a gift to a **verified nonprofit** sent as a generic thank-you instead of an official receipt with EIN and disclosure — indistinguishable from a genuinely non-deductible donation |
+
+### Verified rather than assumed: the tax harm is bounded
+
+Before writing this up I checked whether the donor is actually left without
+documentation. They are not. The **annual giving statement** (`lib/tax.ts`,
+reachable from `/donor`) recomputes deductibility from `nonprofit_profiles` at
+generation time, so the year-end record still comes out right. What is lost is
+the per-donation receipt — and, until now, any trace that it happened.
+
+That mitigation is real, so the fix is proportionate: **log, do not change
+behaviour.** Both branches now record the campaign, donation and error code.
+
+### The harness could only break writes, so the bug was untestable
+
+`stripe-webhook-behaviour.test.ts` answered `data: null` to every select, which
+meant the receipt path always returned early at `if (!camp)` — **no test could
+reach the nonprofit lookup behind it.** Added per-table read *data* alongside the
+existing read/write failure injection, opt-in so existing tests keep the old
+default.
+
+Two mistakes of mine on the way, both caught by running it:
+- the `console.error` spy is created in `beforeEach` and **re-spying returns the
+  same mock**, so my first assertion matched log lines from *earlier tests*;
+- the nonprofit assertion then went green-to-empty, which is what exposed that
+  the branch had never been reachable at all.
+
+Mutation-tested three ways: silencing either branch fails its test, and making a
+log fire unconditionally fails the happy-path test — **a log that always fires is
+noise, not a signal.**
+
+## 💸 A FAILED LOOKUP COULD PAY THE WRONG PERSON (Claude, 2026-08-04)
+
+Second triage of the money-path queue, and the highest-consequence one found so
+far. The worst outcome in this codebase is not a declined donation — it is a
+donation that **succeeds and pays the wrong person**.
+
+`resolvePayoutDestination` tries the campaign's beneficiary first, then falls
+back to the organizer. That order is deliberate, and `lib/payout-destination.ts`
+says why in its own header: a campaign run on someone's behalf pays **that**
+person, and *"the organizer never touches the money either"*.
+
+The readiness lookup dropped its `error`:
+
+```
+beneficiary read FAILS → data = null → read as "no beneficiary account"
+                       → falls through to the ORGANIZER
+```
+
+So a transient database failure on one lookup **silently redirects the donation
+to a different human being.** Both destinations are real, verified, payout-ready
+accounts — nothing downstream would flag it, and the donor's receipt would look
+completely normal.
+
+| case | before | now |
+|---|---|---|
+| beneficiary read fails, organizer ready | **pays the organizer** | `PayoutLookupUnavailableError` → **503**, nothing charged |
+| both reads fail | 409 "completing payout setup" | 503 — we could not check, and say so |
+| beneficiary genuinely has no account | falls back to organizer | unchanged — that is the designed behaviour |
+| beneficiary present but half-onboarded | blocked (`null`) | unchanged |
+
+`.maybeSingle()` already returns `{ data: null, error: null }` for "no row", so an
+`error` here means the question genuinely could not be answered — the two are
+separable, and the fix is to stop conflating them. **Declining a donation is
+recoverable; paying the wrong person is not.**
+
+Donor-facing routes turn it into a 503 `PAYOUT_LOOKUP_UNAVAILABLE` with "Nothing
+was charged — please try again", rather than a 500 or a 409 that blames the
+recipient's setup for a fault on our side. The webhook lets it throw, which is
+its contract (Stripe retries).
+
+### The partial failure is the whole test
+
+A single all-or-nothing mock cannot express this bug — both lookups failing is
+the *safe* case. The test drives a fake Supabase keyed **per user id**, so the
+beneficiary lookup fails while the organizer's succeeds, which is the only shape
+that misroutes.
+
+Mutation-tested in both directions: removing the guard restores the misroute
+(2 tests fail), and over-throwing on a legitimate `null` breaks the intended
+organizer fallback (2 tests fail). Both matter — a fix that blocked every
+beneficiary-less campaign would be its own outage.
+
+## 🛑 A DONOR COULD BE TOLD THEIR LIVE SUBSCRIPTION DOES NOT EXIST (Claude, 2026-08-04)
+
+First triage of the 44-item queue from the sweep below. Cancelling a recurring
+charge is the highest-consequence self-service action on the platform: **if it
+appears to fail, the alternative the donor reaches for is their bank.** Both
+control routes were wrong, in two independent ways.
+
+### 1. `.single()` + a dropped `error` = "Subscription not found"
+
+`.single()` reports **zero rows as an error**. With `error` discarded, a missing
+subscription and an unreadable database both produced `record = null`, and both
+answered **404 "Subscription not found"** — to someone trying to stop a live
+recurring donation. They either give up and keep being charged, or dispute it.
+
+Now `.maybeSingle()` + an explicit error branch → **503
+`SUBSCRIPTION_LOOKUP_UNAVAILABLE`**, with the genuine 404 still intact. Both
+`cancel` and `pause` had it.
+
+### 2. The Stripe call succeeded, the local write failed, the route said `ok`
+
+`await stripe.subscriptions.update(...)` then `await supabaseAdmin…update(...)`
+with **no error check at all**, returning `{ ok: true }` either way.
+
+The severity differs per action, and that decided the fix:
+
+| action | if the local write fails | response now |
+|---|---|---|
+| **cancel** | `customer.subscription.deleted` rewrites the row — but only when the period actually ends, so our record disagrees until then | **200**, with `stripeCancelled: true, recordUpdated: false`. The cancellation is real; saying it failed would make a donor retry or dispute |
+| **pause / resume** | **never self-heals** — `customer.subscription.updated` only touches memberships and plans, never `recurring_donations` | **500 `RECURRING_STATE_DIVERGED`**, so the client retries. Safe: the Stripe call is idempotent and a retry re-attempts the write |
+
+The dangerous direction is **resume**: collection is on again at Stripe while
+CharitMe still shows "paused", so the donor sees charges they believe they
+stopped. That asymmetry is why cancel returns 200 and resume returns 500 —
+Stripe is authoritative for whether money moves, so the response has to match
+what actually happened rather than being uniformly optimistic or uniformly loud.
+
+### Executed, not read
+
+`__tests__/recurring-control-failures.test.ts` runs the real handlers against a
+fake Stripe and Supabase — these routes had **never been executed by a test**.
+7 assertions, including two that guard the guards: a genuine 404 must survive the
+new 503 branch, and a subscription owned by someone else must still 403 (the
+error branch must not have widened authorization).
+
+All seven passed on first run, which by now is a reason to check rather than to
+trust — **each of the four guards was reverted individually and is caught by
+exactly one test.**
+
+## 🔁 THE WEBHOOK'S DUPLICATE CHECK TURNED ITSELF OFF, AND COULD NEVER REPORT ONE (Claude, 2026-08-04)
+
+Swept the whole codebase for the pattern the last two passes kept finding — a
+read whose `error` is discarded, so a failure becomes a confident answer. **330
+sites**, but most are `boundedQuery`-wrapped display surfaces where degrading to
+an empty list is a deliberate, already-reviewed choice. Filtered to money-path
+files where an absent result becomes a **decision** rather than a rendering:
+**46**. Two in the webhook were worth fixing now.
+
+### 1. The idempotency check disabled itself when unreadable
+
+```ts
+const { data: existing } = await supabaseAdmin
+  .from('webhook_events').select('id, processed_at')
+  .eq('stripe_event_id', event.id).maybeSingle();
+if (existing?.processed_at) return … // already processed
+```
+
+A failed read gives `existing = null`, which is **indistinguishable from "never
+seen this event"** — so a redelivery is processed again.
+
+Honest severity: the money writes behind it are each individually idempotent
+(`record_donation` on `p_stripe_event_id`, ledger posts on `idempotency_key`, the
+membership upsert on `stripe_subscription_id`), so this is defence in depth, not
+the last line. **But emails are not idempotent** — a reprocess re-sends receipts —
+and a defence that switches itself off when it cannot see is not a defence.
+
+Now answers **500**, so Stripe retries. Returned rather than thrown: this sits
+*before* the try/catch that converts handler throws into a 500, so a throw would
+escape `POST` entirely — which is exactly what the first version did, caught by
+the test expecting a status code and getting an exception.
+
+### 2. `status: 'duplicate'` was UNREACHABLE
+
+```ts
+if (existing?.processed_at) return …            // early return
+…
+await recordCampaignPaymentWebhookEvent(event,
+  existing?.processed_at ? 'duplicate' : 'received');   // always 'received'
+```
+
+The ternary sits **after** the early return, so its condition is always false.
+`campaign_payment_webhook_events` could never record a duplicate delivery — so
+anything counting duplicate webhooks read **zero forever**, and zero is the
+reassuring answer. Same shape as the `open_issues_count` rule in CLAUDE.md: a
+number that cannot be non-zero is not a measurement.
+
+Now recorded where a duplicate actually is one, before the early return. Safe to
+reorder — the recorder upserts on `(processor, processor_event_id)` independently
+of the `webhook_events` row.
+
+### Both tested by RUNNING the webhook
+
+Added to `stripe-webhook-behaviour.test.ts`, which executes `POST()` against a
+fake Stripe and Supabase. Extended its harness with a *read* failure (it could
+only simulate write failures before). Mutation-tested: dropping the guard fails
+the 500 test, and restoring the unreachable ternary fails the duplicate test.
+
+**44 of the 46 remain**, deliberately unfixed in this pass — each needs its own
+judgement about whether absence is a claim, and a mechanical sweep is how a
+fail-open write got introduced in `/admin/countries` earlier this session.
+
+## 🚨 THE RECONCILIATION JOB REPORTED "ALL CLEAR" WHILE BLIND (Claude, 2026-08-04)
+
+Follow-on from the ledger fix below: reconciliation is the **safety net** that
+should have caught that gap. Five reads in `lib/reconciliation.ts` dropped their
+`error`, and each failed in a **different** wrong direction.
+
+| read | what a failure produced |
+|---|---|
+| `donations` | `rows = []` → `{ checked: 0, clean: 0, findings: [] }`, which the cron route wraps as **`{ ok: true }`** — a clean bill of health, produced while completely blind |
+| `ledger_entries` | `?? []` → every donation observed with **no ledger footprint** → a `missing` exception opened for **every donation in the window**, up to 2000 false alarms in one run |
+| open exceptions | `?? []` → de-dupe set empty → **every exception re-opened on every run**, defeating the idempotency its own comment promises |
+| `listExceptions` | `[]` → the admin reconciliation screen renders an **empty queue**: "no outstanding money discrepancies", the most reassuring thing that screen can say |
+| `getExceptionStatus` | `null` → caller answers **404 "Not found"** about a row it could not read |
+
+The first is the worst: a monitoring job whose failure mode is *reporting
+success*. Nobody would look again.
+
+All five now take the caller's error branch via `boundedQuery` and throw. The
+cron route does not catch, so this surfaces as a 500 in the Vercel Cron log
+instead of a reassuring `{ ok: true, checked: 0 }`. `listExceptions` throwing
+follows the precedent `getCampaign` set — **"unavailable" must not render as
+"absent"**.
+
+### Tested behaviourally, not by reading the source
+
+The existing convention for this class (`payout-status-read-failures.test.ts`)
+asserts against **source text** with comments stripped. Here that was
+unnecessary: `server-only` is stubbed in `vitest.config` and `lib/supabase` is
+mockable, so the tests assert what the functions actually **do** when the
+database refuses.
+
+The ledger and open-exception reads sit *after* the donations read, so an
+all-failing mock can never reach them — the first throw wins. They need a client
+that succeeds for `donations` and fails only for the later table, which is the
+only way to prove those two guards independently. **Mutation-tested one at a
+time: removing any single one of the five throws is caught by its own test, and
+only its own.**
+
+### My "guards the guard" test measured nothing
+
+I put the "did we actually reach the database" assertion in its own `it`, after a
+`beforeEach` that clears the mock — so it ran having called nothing and asserted
+against a freshly-cleared spy. It failed on first run, which is how it surfaced;
+moved into the test where the call happens. Same lesson as the vacuous refund
+sweep below: **a test proves nothing until you have watched it fail.**
+
+## 💰 A BALANCED LEDGER GROUP CAN STILL LOSE MONEY, SILENTLY (Claude, 2026-08-04)
+
+The ledger is the strongest code in this repo — `assertBalanced` before every
+insert, append-only trigger, RLS, nightly reconciliation, 19 tests. All of it
+guards **balance**. None of it guarded **postability**, and the gap loses money
+without raising anything.
+
+Idempotency is a unique index on `(idempotency_key, account, direction)`, and
+every line in a group shares one key. So two lines in the *same* group with the
+same account and direction collide **with each other on the very first insert**.
+`postEntryGroup` catches `23505` and returns `{ posted: false }` — which is its
+signal for *"this webhook was already handled"*.
+
+Sequence, end to end:
+
+| step | result |
+|---|---|
+| donation row written | ✅ |
+| ledger insert | `23505`, swallowed as an idempotent skip |
+| webhook response | **200** — so Stripe never retries |
+| error raised | **none, anywhere** |
+| the money | in `donations`, absent from the ledger |
+
+**No builder does this today.** Donation, refund and dispute each emit distinct
+account/direction pairs — I checked all three across their input space, not at
+one sample point. But the invariant lived *only in the shape of three literal
+arrays*. Adding one plausible line — a second `platform_revenue` credit to carry
+a tip separately — is enough, and nothing would have said so.
+
+`assertPostable` now runs inside `assertBalanced`, so every existing caller gets
+it for free. It throws, which is deliberately loud: a 500 is this repo's webhook
+contract (Stripe retries, the failure surfaces) and is strictly better than
+silent loss. **It can only fire on a code change, never on data**, so no live
+flow changes.
+
+### The mutation that mattered passed on my first attempt
+
+I planted the duplicate line with `amount_cents: 0` — and the builder omits
+zero-amount lines, so it was filtered out before reaching the check. **My
+mutation test proved nothing and I nearly recorded it as proof.** Re-run with the
+fee split across two non-zero lines: caught, by three tests. The refund builder
+was mutated separately and is caught too.
+
+### And a vacuous test of my own, caught by typecheck
+
+My input sweep passed `{ donationCents, platformFeeCents }` to the refund
+builders, whose input is `{ refundDonationCents, refundPlatformFeeCents }`. Every
+iteration was exercising `undefined`. It **passed green**, and only `tsc` caught
+it — a reminder that a passing test says nothing until you have seen it fail.
+Fixed, then re-mutated to confirm the sweep now has teeth.
+
+## 🔴 "AI CAMPAIGN HEALTH SCORE — PREDICTS SUCCESS" IS NEITHER (Claude, 2026-08-04)
+
+`/features` published this as a CharitMe differentiator:
+
+> **AI Campaign Health Score** — Predicts success and recommends improvements.
+
+Both halves are false, measured:
+
+| | |
+|---|---|
+| the column | `campaigns.campaign_health_score`, `int not null default 0` |
+| its **only** writer | an admin typing a number into `/admin/campaigns`, clamped 0–100 in `app/api/admin/campaigns/[id]/route.ts` |
+| AI routes computing it | **none** — 16 routes under `/api/ai/`, not one touches it |
+| triggers / crons computing it | **none** in any migration or `/api/cron/*` |
+| `matching-finder` | **reads** it (`c.campaign_health_score ?? 0`), does not produce it |
+
+The admin UI's own comment says it: *"0 means 'never scored'"*. So there is no
+prediction and no recommendation — it is a staff-entered number that reaches
+donors through the homepage, search, supporter-space, donor recommendations and
+the rotator.
+
+**The score is real and does ship, so the entry stays — the wording was what was
+wrong.** Now: *"Campaign Health Score — A staff-reviewed health signal shown on
+discovery surfaces."* This is the standing "no unsupported marketing claims" rule
+applied to the platform's own copy; ⚠️ **it is a change to public product copy,
+so if the intent was to build the AI engine and advertise ahead of it, that is
+the owner's call to reverse — deliberately.**
+
+### The mechanism that let it through, now closed
+
+`planned` recorded what is NOT built. **Nothing recorded what IS.** All ~75
+shipped claims were hand-set booleans, and exactly one family — peer-to-peer —
+had its backing code checked, by a bespoke test written for it alone. That is the
+same gap Auctions fell through: tables existed, the entry looked shipped, no
+route or UI read them.
+
+`PlatformFeature.backedBy` now names the file that makes a claim true, and three
+guards make it enforceable:
+
+| guard | catches |
+|---|---|
+| every `backedBy` path exists on disk | a claim outliving its code — a deleted route now fails the build instead of leaving a promise on /features |
+| every **CharitMe** feature names one | required only for our own differentiators: no competitor product to check them against, and a visitor cannot verify them |
+| a feature named "AI …" must point at an AI route or lib | the exact defect above |
+
+Optional elsewhere on purpose — forcing a path onto all 105 at once means 105
+guesses, and a wrong mapping is worse than none.
+
+Mutation-tested: pointing a claim at a deleted route is caught, and restoring the
+original "AI Campaign Health Score / Predicts success" wording trips **two**
+guards. The AI guard also caught a mapping of my own — I first pointed "AI Donor
+Targeting" at `lib/donor-segments-core.ts`, which is rule-based, not AI;
+repointed to `/api/ai/donor-conversion`.
+
+### Checked and NOT found wanting
+
+Said plainly, because the temptation on a sweep like this is to report everything
+as broken: the other seven CharitMe claims each map to real code, `/trust-safety`'s
+promises are backed by a real report queue and flag writers, and the parity
+counting was already honest — `planned`, per-module status and the `fullParity`
+flag were all fixed in earlier passes and hold up.
+
+## ✅ PRODUCTION SWEPT WITH A REAL DATABASE BEHIND IT — clean (Claude, 2026-08-04)
+
+Every browser audit in `scripts/` drives a **local** build with no Supabase
+credentials, where `supabaseAdmin` is a Proxy that throws on property access. A
+route that 500s *only* when a real query runs is invisible to all of them. That
+is exactly how a 500 on `/causes/mental-health` reached production underneath a
+passing audit suite.
+
+So production was asked directly — `npm run sweep:production --workspace=apps/web`:
+
+| | result |
+|---|---|
+| 116 public route shapes (live sitemap + all 20 cause slugs) | **0 failing**, no 5xx |
+| 12 unauthenticated JSON routes | **0 failing** |
+| 8 admin/cron routes | **8/8 refuse an anonymous caller** |
+| public list payloads (`--data`) | every one returns real rows |
+
+The gated check is **inverted on purpose**: for `/api/admin/*` a 200 is a security
+finding, not a pass. Mutation-tested in both directions — pointing the gated list
+at `/api/health` is caught, and a list endpoint whose rows key is wrong is caught.
+
+⚠️ **A pass here means the handlers ran, not that a page is correct.** For a list
+endpoint a 200 does not even mean the data arrived — a failed read renders 200
+with an empty array, which is why `--data` exists. Anything behind a login is
+still unmeasured.
+
+### One thing for the owner — it is content, not code
+
+The sweep surfaced a live public campaign titled **"Support my medical expenses —
+Bitches!"** (`/campaigns/support-my-medical-expenses-mscg7b2e`), served by
+`/api/campaigns/stories` and indexable.
+
+It is **not** seed data — its slug shape differs from every seeded campaign
+(`campaign-NNN-hash`) and the title appears nowhere in this repo. That makes it a
+real fundraiser's own content in the production database, so editing or removing
+it is a moderation decision and **not something an agent should do silently**.
+
+Checked before reporting, because the standing rule forbids unsupported claims:
+`/trust-safety`'s promises are **supported** — `campaign_reports` has an admin
+queue (`app/admin/trust-safety/page.tsx`) and a submission route, and `risk_flags`
+is written by the AI trust-score and fraud-monitor routes. The moderation that
+exists is *reactive*: it acts on a report, and nobody has reported this one.
+Whether to add pre-publication screening is a product decision.
+
+Guard: `__tests__/production-sweep.test.ts`, 6 offline assertions — no route is
+both public and gated, every catalogued route exists on disk, cause slugs come
+from `lib/causes.ts` rather than a copy, and the script cannot fire HTTP on
+import. Mutation-tested: moving a public route into the gated list is caught, and
+so is cataloguing a route that does not exist.
+
+## 🗂️ ORPHAN TABLES — the list below is STALE; re-measured 2026-08-04 (Claude)
+
+The section that follows says 8 tables are orphaned and "not claimed", implying 8
+open decisions. Re-running the sweep: **every orphan now carries a written reason
+and a guard.** `__tests__/orphan-tables-ratchet.test.ts` bounds the whole set and
+ratchets both ways — a new orphan must be added with a reason, and an entry that
+gains a reader must be removed. `superseded-tables.test.ts` additionally pins 6 of
+them with a named successor.
+
+So there is no undocumented orphan. What is left is a product decision on the
+unbuilt features (creator economy, marketing referrals, multi-tenancy), which is
+the owner's call, not a wiring gap.
+
+### Two wrong reasons, and a broken guard of my own
+
+Auditing the *reasons* rather than the results — the method that paid on the
+migration probe — found two:
+
+**1. A claim this repo cannot observe.** `organizations`, `organization_members`
+and `brands` were justified with *"multi-tenancy; migration unapplied in
+production"*. Nothing here can see that. `20260807000000_organizations_multitenancy`
+is one of the migrations the probe script lists with **no public signal** — and the
+reason it has none is precisely that these tables have no reader, so no route's
+success or failure reveals the answer. The probe script's governing rule is that
+APPLIED is proof and "no proof" is **not** evidence of pending; this comment broke
+that rule in a place nobody was checking. Now: *"no reader in app code (production
+state unknown)"* — the code fact is verified right there, the production fact is
+no longer claimed.
+
+**2. Two different successors for one MONEY table.** `platform_fees` was recorded
+as superseded by `campaign_payments` in one guard and by `ledger_entries` in the
+other. Both are real and both are read — `campaign_payments.platform_fee_amount`
+holds the per-payment figure, `ledger_entries` the balanced double-entry record —
+so neither was wrong. But "where is the fee recorded" must have one answer, not
+two a reader has to reconcile. Stated together now, in the order a fee moves, and
+the successors are **derived from the reason string** so editing the reason to
+cite a different table cannot leave the check silently passing.
+
+⚠️ **My first version of guard 1 did not work.** It sliced the test's own source
+on the constant's name and landed on the wrong occurrence, so it passed with the
+claim planted back in. Caught by mutation-testing it rather than by reading it —
+rewritten to inspect the object's VALUES. Third time this session a guard of mine
+was wrong on first run; each was corrected rather than loosened.
+
+## 🗂️ ORPHAN TABLES — 8 with no reader and no writer (Claude, 2026-08-02)
+
+Static sweep of all **162** tables in `supabase/schema.sql` against every
+`.from('…')` in `app/`, `lib/` and `scripts/`. **142 are referenced; 20 are not.**
+
+20 is a candidate list, not a defect list — several are reached by SQL rather
+than PostgREST (`rate_limit_hits` is written by the `check_rate_limit` RPC, so it
+is correctly absent from `.from()`). Filtering to tables with **zero references
+of any kind** anywhere in app code leaves **8**:
+
+| table | created by | note |
+|---|---|---|
+| `admin_settings` | `20260528114000_runtime_config_dependencies` | has an RLS policy and a catch-up supplement; nothing reads it |
+| `campaign_payment_exports` | `20260608020000_campaign_payment_observability` | ─┐ three of the four payment-observability |
+| `campaign_payment_settings` | same | │ tables have no code on either side |
+| `processor_accounts` | same | ─┘ |
+| `donor_tips` | (not in migrations — schema-only) | ⚠️ also absent from `supabase/migrations/` |
+| `livestreams` | (not in migrations — schema-only) | ⚠️ same |
+| `organization_members` | (not in migrations — schema-only) | ⚠️ same; part of the inert multi-tenancy work |
+| `marketing_referrals` | `20260610010000_marketing_engine` | |
+
+**This is the thread that has paid best all session.** `donation_forms`,
+`outbound_webhook_endpoints`, `giving_days`, `donor_segments` and
+`embedded_buttons` all had exactly this signature — a table with RLS, indexes and
+foreign keys, and nothing on either side of it — and each became a real feature.
+
+⚠️ **CORRECTION — I claimed three of these existed in no migration. That was
+wrong, and the mistake is the fourth of its kind this session.**
+
+I reported `donor_tips`, `livestreams` and `organization_members` as present in
+`schema.sql` with no `CREATE TABLE` in `supabase/migrations/`. **All three have
+one:**
+
+| table | migration |
+|---|---|
+| `donor_tips` | `20260525000000_initial_schema.sql` |
+| `livestreams` | `20260525002000_competitor_parity_features.sql` |
+| `organization_members` | `20260807000000_organizations_multitenancy.sql` |
+
+My detection grep required a `public.` prefix (`create table if not exists
+public.x`). These migrations write `create table if not exists donor_tips (` —
+no prefix — so the pattern missed them. Re-checked with a pattern accepting both
+forms: **0 of 162 tables lack a migration.** The mirror is sound and there is
+nothing to resolve.
+
+**Fourth instance of the same error**, after invented table names, grepping the
+wrong file for `fetch`, and guessing route paths that live behind route groups.
+Every one was a *pattern I constructed* rather than a match against what exists.
+The rule was already written down after the third; this is what it looks like
+when it is not followed.
+
+**Not claimed.** Whoever takes one: check whether the feature is wanted before
+wiring it — an orphan table is equally good evidence for *delete the table* as
+for *build the page*, and this file has more of the latter than the product may
+actually need.
+
+
+## ⏱️ PERF — ~~13 public pages stalled ~14.1s; per-page reads open~~ → **CLOSED**, see below (Claude, 2026-08-02)
+
+This heading's body was removed when the work closed, but the heading itself was
+left saying "per-page reads open" — so the tracker carried an open row for
+finished work. Superseded by **"PERF — CLOSED: all 13 stalled routes are now
+sub-second in production"** further down.
+
+Re-measured on `www.charitme.com` today (2026-08-03) rather than trusting that
+entry: all 12 discovery routes return 200 in **0.46s–0.95s** wall time — `/causes`
+0.95s, `/donate` 0.95s, `/teams/create` 0.75s, `/ai-fundraising` 0.76s,
+`/donor-wall` 0.72s, `/campaigns` 0.67s, `/supporter-space` 0.56s, `/community`
+0.54s, `/gallery` 0.51s, `/impact-map` 0.51s, `/crisis` 0.47s, `/give` 0.46s.
+None is anywhere near the 14.1s this row was opened for.
 
 ## 🛑 THE ONE REMAINING ITEM, and why no further looping moves it (Claude, 2026-08-03)
 
@@ -442,11 +2037,20 @@ next person does not find out the hard way.
 
 ## 🛑 SUPABASE STAGING — blocked, and the pending count is **27** (Claude, 2026-08-03)
 
-**The count is settled, and none of the four numbers previously in this file was
-right.** I had written it off as unmeasurable; that was wrong — the answer was in
-this file, in the release ledger.
+⚠️ **Superseded in part — read the correction at the top of this file first.**
+The arithmetic below is sound and the drift guard on it is worth keeping, but the
+number it produces is a **file-derived upper bound, not the applied state**. At
+least two of the 27 are demonstrably live in production, measured against the
+running site. Treat 27 as "no more than 27", and establish the real set with
+`supabase migration list --linked` before planning a release.
 
-The 2026-07-29 ledger audit compared against the **live production ledger**:
+**None of the four numbers previously in this file was right**, and the fifth —
+this one — is right about the files and wrong about production. I had written the
+count off as unmeasurable; that was wrong, but the ledger it came from is a
+snapshot from 2026-07-29, not a live reading.
+
+The 2026-07-29 ledger audit compared against the production ledger **as it stood
+that day**:
 **105 local / 87 remote / 18 pending**, verified three ways — `supabase db push
 --dry-run --include-all` selected exactly those 18, a read-only production schema
 dump confirmed the objects were absent, and a restored production clone applied
@@ -1139,7 +2743,7 @@ external release constraints after the latest production deployment.
 |---|---------|----------|------------------|
 | 1 | **GitHub Actions assigns no runner — RE-BROKEN, verified 2026-08-03.** This row said CLEARED; it is not. Eight runs today (`30778197657`, `30779419210`, `30780039522`, `30780372581`, `30782321643`, `30802456447`, `30803013774`, `30803728152`) all show `runner_id: 0`, empty `runner_name`, `billable.UBUNTU.total_ms: 0`, 2–11s duration, no steps. Master's runs match, which rules out any branch. **A red check right now is not a signal.** One run showed `queued` briefly before dropping — that is not recovery. Verify per run (`actions_get` → `get_workflow_run_usage`); do not trust this row or its predecessor. | 8 runs + master, 2026-08-03; `image-links.yml` fails identically; repo is private | **Owner** — likely the private-repo Actions minute allowance (see CLAUDE.md): raise the spending limit, make the repo public, or cut push volume |
 | 2 | **No CharitMe staging Supabase project is available.** The account exposes CharitMe production and an unrelated Auto Trading project. Preview Branch creation returns HTTP 402 because the account is not on Pro; dedicated `charitme-staging` creation is also rejected because the owner has reached the two-active-free-project limit. Database release policy correctly blocks production migration application until the same commit is verified on real staging. | Supabase project/branch inventory and both provisioning probes, 2026-07-29 | **Owner** — upgrade Supabase, pause/delete an unrelated project, or provision staging in another organization |
-| 3 | **Vercel daily deployment quota — NOT currently blocking (2026-08-03).** ⚠️ *An earlier version of this row claimed the quota recurred at ~10:41 UTC. That was WRONG and is corrected here.* One deployment (the #211 merge) did return `Error` with no preview URL, and I read that as a quota rejection. **The very next deployment, six minutes later, built normally and served** — a daily cap does not clear in six minutes, so the error was transient and its cause is unknown. Nine-plus deployments went Ready across this session. The 100/day cap is real and will bite under a busy day; it had not bitten here. | ~9 Ready deploys + one transient Error, 2026-08-03 | **External reset** — or upgrade Vercel to remove the recurrence |
+| 3 | **Vercel daily deployment quota — REAL and INTERMITTENT, and the “possibly unshipped” worry is now CLOSED (2026-08-04).** Two hard `api-deployments-free-per-day` rejections (#231, #234) with successful builds between them (#232, #233), so it is a quota at its limit rather than a clean 24h stop. The row used to end “#234 carried a code fix and was rejected, so it sits on master **possibly unshipped**”. That cannot be true any more, and the reasoning is worth keeping: **Vercel builds the whole tree at a commit, not a PR’s diff**, so one successful production deploy of a later commit ships every earlier one with it. Production serves the `fq-*` markup introduced by `f729cf05`, which is newer than #234 — therefore #234’s fix is live. | `fq-item`/`fq-list`/`fq-mark` and `ct-faq-band`/`ct-faq-mark` all present on production `/faq` and `/contact`, 2026-08-04 | **External reset**, or upgrade Vercel (O5) to remove the recurrence |
 
 **Vercel production is operational** — re-measured 2026-08-03: `/api/health`,
 `/needs` and `/campaigns` all 200 on `www.charitme.com`. New deployments are **not**
@@ -3033,7 +4637,7 @@ need the owner.
 
 | # | Item | Why it is owner-only |
 |---|---|---|
-| O1 | Apply **6 pending migrations** (compat, receipts, donor-message anonymity, role/team boundaries, privileged DB boundaries, **peer-fundraiser attribution** — the last one written this session) | DDL; PostgREST cannot run it, and release policy wants a staging run first |
+| O1 | Apply **27 pending migrations** (not 6 — that figure is from 2026-07-29 and 21 have landed since). **87 of 114 applied to production.** Everything an agent can do IS done and re-verified 2026-08-03: all 114 replay clean against a throwaway Postgres (`applied=114 failed=0`), the resulting schema is **RLS-complete at 162/162 tables, 245 policies, 0 without RLS**, and **all 27 have a rehearsed rollback** (`rollbacks failing: 0`). Steps are written out in `supabase/RELEASE-RUNBOOK.md`. | DDL; PostgREST cannot run it, and release policy wants a staging run first — so this is really **blocked on O2**, not on the work |
 | O2 | Provision a **CharitMe staging Supabase project** | Blocks O1's staging step |
 | O3 | **Stripe test keys** → live charge→transfer→payout→reconcile, refund/dispute via test clocks | No charge should be placed against the live account |
 | O4 | **GitHub Actions billing** | `runner_id: 0` — no machine is assigned |
@@ -3046,12 +4650,17 @@ need the owner.
 
 | C1 | **355 WCAG AA contrast failures** (line ~285). Root causes already located and handed over: 271 hardcoded literals across admin (`PayoutsClient`/`DonationsClient` hold 75), the `#94a3b8`/`#8c9ab5` muted-text pair, and the green/orange/red status-badge palette. The theme-pinning shortcut is **disproved** — admin fails AA in *both* themes. |
 
-### 🟢 CLAUDE lane — actionable now, no gate (4)
+### 🟢 CLAUDE lane — 2 done, 2 genuinely gated (was "actionable now (4)")
 
-| A1 | **Peer-to-peer steps 2–3**: thread `peer_fundraiser_id` through `DonateButton` → `/api/donations` → Stripe metadata, then the shareable `/campaigns/[slug]/team/[peerSlug]` page. **Gated on O1** applying the migration — building the page first ships a progress bar that cannot move. |
-| A2 | **Creator-economy module** (Patreon/Ko-fi/Buy Me a Coffee = 0/10). Public page + profile writer + tier CRUD + `/dashboard/creator` + **member-only posts with a proven paywall** all ship. Remaining: **paid subscription checkout** — which is now the ONLY thing left, and it is **gated on O3** (Stripe test keys). DMs are optional polish, not parity. |
-| A3 | **Proximity discovery** — needs lat/long on campaigns, so it opens with a migration → effectively O1-shaped. |
-| A4 | **`coach_sessions` consumer decision** — 500 rows, no reader. Do NOT add a writer alone; that satisfies the audit while producing analytics nothing consumes. |
+⚠️ **This section was stale, and that is the failure mode this file exists to
+prevent.** A1 and A4 were both listed as outstanding; both were already shipped
+with tests. Re-measured 2026-08-03 by reading the code and running the suites, not
+by trusting the row. The remaining two name real gates.
+
+| A1 | ✅ **DONE — verify before believing this row.** Threaded end to end: `DonateButton` passes `peerFundraiserId` (line 251) → `/api/donations` validates it **against the campaign** before trusting it (209–213) → Stripe metadata (391) → the webhook spreads `peerRpcArg(meta.peerFundraiserId)` into `record_donation` (244, 386). `/campaigns/[slug]/team/[peerSlug]` exists. **The O1 gate was designed out, not waited on**: `lib/peer-attribution.ts` probes whether `donations.peer_fundraiser_id` exists and OMITS the argument when it does not, so the same code is correct against an unapplied *and* an applied database. 39 tests across four files. |
+| A2 | ✅ **DONE — the O3 gate was a mis-classification, like A1's.** Paid membership checkout ships: `POST /api/creators/tiers/subscribe` creates a subscription-mode Stripe Checkout with an on-demand Price, the webhook branches on `kind: 'membership'` BEFORE the donation paths and upserts `member_subscriptions` idempotently on the unique `stripe_subscription_id`, and `customer.subscription.updated/deleted` track status onto the same row so a past_due card stops granting access. `/creators/[handle]` now carries a real Join button instead of *"memberships open soon"*. **O3 was never needed to BUILD this** — only to place a live test charge, which is equally true of every Stripe path already shipped here. Gated on payout destination, not on keys: no destination, no subscription, because CharitMe never holds the money. |
+| A3 | ✅ **DONE — the migration gate was imaginary, third stale row in this lane.** `20260817000000_campaign_geolocation.sql` already adds `campaigns.latitude`/`longitude` with range constraints (a longitude in the latitude column is the commonest geocoding bug, and the constraint catches it). `/nearby`, `NearbyClient`, `/api/campaigns/nearby` and `lib/geo.ts` all ship, and the route is registered as *Fundraisers Near You*. **It also handles the unapplied case**: PostgREST answers a select on a missing column with `42703`, which the route catches and degrades on rather than 500ing — the same probe-and-degrade pattern A1 used, so one codebase is correct against an applied and an unapplied database. |
+| A4 | ✅ **DONE — the "no reader" claim is stale.** `lib/coach-sessions-server.ts` reads and writes, `/api/coach-sessions` exposes the read, and `/dashboard/ai-coach` renders the history through `lib/coach-sessions-core`. It also follows the house rule the row was worried about: a failed read says *"that is a read failure, not an empty history"* rather than printing a confident 0. |
 
 ### ⚪ Verified-clean — do NOT re-investigate
 
@@ -19467,3 +21076,34 @@ now means above/below. Final: 18 labels, 0 collisions, 0 inside a node, 0 clippe
 **Regenerating:** edit `docs/architecture.json`, then re-inline it into the HTML
 (the `const DATA = {...}` line). The JSON is the source of truth; the HTML embeds
 a copy so it stays self-contained.
+
+## 📘 /how-it-works — rebuilt to the reference (Claude, 2026-08-03)
+
+Hero (shared `IndexHero`, with the reference's heart glyph) → four numbered steps
+with a dashed connector → measured impact figures → "every action creates a
+ripple" → **FAQ accordion wired to `aeo_entries`** → trust panel → closing CTA.
+Black page background in dark mode.
+
+### The FAQ is real Supabase content
+`aeo_entries` — the same table `/faq` renders, so an answer edited in the admin
+console changes both surfaces. ⚠️ `/how-it-works` has only **1** published entry
+and the design shows five, and the built-in fallback does NOT help: it maps a
+dynamic *detail* route to its parent collection, which `/how-it-works` is not.
+`lib/how-it-works.ts` tops up from `/faq` and dedupes.
+
+Built on native `<details>/<summary>` — keyboard operation, screen-reader
+semantics and toggling for **zero client JS**.
+
+### 🐛 `PublicIcon` silently ships the wrong glyph for an unknown name
+`paths[name] ?? paths.ai`. My first pass used `community` and `gift`, neither of
+which exists, and both rendered a sparkle **without erroring**. A test now
+extracts every name used on the page and asserts it is in the icon map.
+
+### ⚠️ I deviated from the reference, deliberately
+The old page carried **5 fundraiser steps and 4 donor steps** with the real
+product facts: Stripe verification, the 2-business-day payout schedule, the
+same-day (1%) and instant (1.5%) fees, how the trust score is earned. The
+reference's four steps are a donor-facing summary that answers none of that, and
+the FAQ rows do not either. Deleting accurate product detail to match a layout is
+a loss the layout does not pay for, so both lists are kept below the ripple row
+and pinned by tests naming the specific fees. **Say the word and they go.**
