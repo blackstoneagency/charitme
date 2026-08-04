@@ -237,7 +237,7 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
           aria-labelledby="how-support-helps"
         >
           <h2 id="how-support-helps" className="cl-helps-title">
-            {cause.helpsTitle ?? 'How your support helps'}
+            {cause.helpsTitle ?? 'How Your Support Helps'}
           </h2>
           <ul className="cl-helps-grid">
             {cause.helps.map((h, i) => (
@@ -298,7 +298,7 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
       {stories !== null && stories.length > 0 && (
         <section className="cl-stories" aria-labelledby="cause-stories">
           <header className="cl-stories-head">
-            <h2 id="cause-stories">Stories from the field</h2>
+            <h2 id="cause-stories">Stories from the Field</h2>
             <Link href="/success-stories" className="cl-stories-all">View all stories →</Link>
           </header>
           <ul className="cl-stories-grid">

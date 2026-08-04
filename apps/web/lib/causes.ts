@@ -166,7 +166,7 @@ export const POPULAR_CAUSES: readonly Cause[] = [
   {
     slug: 'sports-youth',
     label: 'Sports & Youth',
-    impactTitle: 'Real impact. Real champions.',
+    impactTitle: 'Real Impact. Real Champions.',
     impactBlurb: 'Thanks to supporters like you, young athletes achieve more every day.',
     blurb: 'Teams, clubs, and young athletes raising for gear, travel, and season fees.',
     intro: 'Every kid deserves the chance to play, grow, and dream big. Your support provides gear, coaching, mentorship, and safe spaces for young athletes to thrive on and off the field.',
@@ -185,13 +185,13 @@ export const POPULAR_CAUSES: readonly Cause[] = [
   {
     slug: 'people-in-need',
     label: 'People in Need',
-    impactTitle: 'Real impact. Real relief.',
+    impactTitle: 'Real Impact. Real Relief.',
     impactBlurb: 'Thanks to supporters like you, families get help the week they need it.',
     blurb: 'Direct help for individuals and families facing hardship.',
     tagline: 'Real help. Real people. Right now.',
     heroTitle: 'Hope changes everything.',
     heroCard: 'programs',
-    helpsTitle: 'Ways you can help',
+    helpsTitle: 'Ways You Can Help',
     helpsAlign: 'start',
     helpsCta: 'Help now',
     intro: 'Millions of people face hunger, homelessness, poverty, and crisis every day. Your support brings hope, healing, and a better tomorrow.',
@@ -212,7 +212,7 @@ export const POPULAR_CAUSES: readonly Cause[] = [
   {
     slug: 'community-relief',
     label: 'Community & Relief',
-    impactTitle: 'Real impact. Real neighbours.',
+    impactTitle: 'Real Impact. Real Neighbours.',
     impactBlurb: 'Thanks to supporters like you, communities recover faster together.',
     blurb: 'Neighbourhood projects and rapid response when disaster hits.',
     tagline: 'Neighbours first. Always.',
@@ -222,7 +222,7 @@ export const POPULAR_CAUSES: readonly Cause[] = [
   {
     slug: 'health-wellness',
     label: 'Health & Wellness',
-    impactTitle: 'Real impact. Real recovery.',
+    impactTitle: 'Real Impact. Real Recovery.',
     impactBlurb: 'Thanks to supporters like you, patients face treatment with less to worry about.',
     blurb: 'Treatment costs, recovery, and care for patients and their families.',
     tagline: 'Care should never depend on a balance.',
@@ -232,7 +232,7 @@ export const POPULAR_CAUSES: readonly Cause[] = [
   {
     slug: 'education',
     label: 'Education',
-    impactTitle: 'Real impact. Real futures.',
+    impactTitle: 'Real Impact. Real Futures.',
     impactBlurb: 'Thanks to supporters like you, more students stay in the classroom.',
     blurb: 'Tuition, classrooms, supplies, and access to learning.',
     tagline: 'Every child. Every classroom.',
@@ -242,7 +242,7 @@ export const POPULAR_CAUSES: readonly Cause[] = [
   {
     slug: 'animals-planet',
     label: 'Animals & Planet',
-    impactTitle: 'Real impact. Real sanctuary.',
+    impactTitle: 'Real Impact. Real Sanctuary.',
     impactBlurb: 'Thanks to supporters like you, more animals are fed, treated and rehomed.',
     blurb: 'Rescue, shelter, conservation, and climate work.',
     tagline: 'Protecting what cannot ask.',
@@ -252,7 +252,7 @@ export const POPULAR_CAUSES: readonly Cause[] = [
   {
     slug: 'arts-culture',
     label: 'Arts & Culture',
-    impactTitle: 'Real impact. Real work.',
+    impactTitle: 'Real Impact. Real Work.',
     impactBlurb: 'Thanks to supporters like you, more artists finish what they started.',
     blurb: 'Artists, performances, festivals, and creative projects.',
     tagline: 'Keep the work alive.',
@@ -262,7 +262,7 @@ export const POPULAR_CAUSES: readonly Cause[] = [
   {
     slug: 'faith-belief',
     label: 'Faith & Belief',
-    impactTitle: 'Real impact. Real service.',
+    impactTitle: 'Real Impact. Real Service.',
     impactBlurb: 'Thanks to supporters like you, congregations reach further into their communities.',
     blurb: 'Congregations, missions, and faith-led community work.',
     tagline: 'Communities of care.',
@@ -276,7 +276,7 @@ export const ALL_CAUSES_COLUMN: readonly Cause[] = [
   {
     slug: 'sports-recreation',
     label: 'Sports & Recreation',
-    impactTitle: 'Real impact. Real teams.',
+    impactTitle: 'Real Impact. Real Teams.',
     impactBlurb: 'Thanks to supporters like you, more people get to keep playing.',
     blurb: 'Leagues, facilities, and equipment for players at every level.',
     tagline: 'Play is not a luxury.',
@@ -286,7 +286,7 @@ export const ALL_CAUSES_COLUMN: readonly Cause[] = [
   {
     slug: 'youth-development',
     label: 'Youth Development',
-    impactTitle: 'Real impact. Real potential.',
+    impactTitle: 'Real Impact. Real Potential.',
     impactBlurb: 'Thanks to supporters like you, young people get backing before they need rescuing.',
     blurb: 'Mentoring, after-school programmes, and scholarships for young people.',
     tagline: 'Backing young people, early.',
@@ -297,7 +297,7 @@ export const ALL_CAUSES_COLUMN: readonly Cause[] = [
   {
     slug: 'food-hunger',
     label: 'Food & Hunger',
-    impactTitle: 'Real impact. Real meals.',
+    impactTitle: 'Real Impact. Real Meals.',
     impactBlurb: 'Thanks to supporters like you, food reaches the people who need it this week.',
     blurb: 'Food banks, meal programmes, and emergency food relief.',
     tagline: 'No one should go without.',
@@ -308,7 +308,7 @@ export const ALL_CAUSES_COLUMN: readonly Cause[] = [
   {
     slug: 'disaster-relief',
     label: 'Disaster Relief',
-    impactTitle: 'Real impact. Real response.',
+    impactTitle: 'Real Impact. Real Response.',
     impactBlurb: 'Thanks to supporters like you, help arrives while it still counts.',
     blurb: 'Immediate support after fires, floods, storms, and crises.',
     tagline: 'When every hour counts.',
@@ -318,7 +318,7 @@ export const ALL_CAUSES_COLUMN: readonly Cause[] = [
   {
     slug: 'mental-health',
     label: 'Mental Health',
-    impactTitle: 'Real impact. Real support.',
+    impactTitle: 'Real Impact. Real Support.',
     impactBlurb: 'Thanks to supporters like you, more people get care without waiting for a crisis.',
     blurb: 'Counselling, crisis support, and mental health treatment costs.',
     tagline: 'Support worth asking for.',
@@ -329,7 +329,7 @@ export const ALL_CAUSES_COLUMN: readonly Cause[] = [
   {
     slug: 'medical-research',
     label: 'Medical Research',
-    impactTitle: 'Real impact. Real answers.',
+    impactTitle: 'Real Impact. Real Answers.',
     impactBlurb: 'Thanks to supporters like you, research keeps moving between grants.',
     blurb: 'Studies, trials, and research into treatments and cures.',
     tagline: 'Funding the next answer.',
@@ -340,7 +340,7 @@ export const ALL_CAUSES_COLUMN: readonly Cause[] = [
   {
     slug: 'environment',
     label: 'Environment',
-    impactTitle: 'Real impact. Real ground.',
+    impactTitle: 'Real Impact. Real Ground.',
     impactBlurb: 'Thanks to supporters like you, conservation work carries on where it matters.',
     blurb: 'Conservation, clean-up, and climate resilience projects.',
     tagline: 'One planet. No spare.',
@@ -350,7 +350,7 @@ export const ALL_CAUSES_COLUMN: readonly Cause[] = [
   {
     slug: 'veterans-military',
     label: 'Veterans & Military',
-    impactTitle: 'Real impact. Real service returned.',
+    impactTitle: 'Real Impact. Real Service returned.',
     impactBlurb: 'Thanks to supporters like you, veterans get what was promised.',
     blurb: 'Support for service members, veterans, and their families.',
     tagline: 'Owed, not given.',
@@ -361,7 +361,7 @@ export const ALL_CAUSES_COLUMN: readonly Cause[] = [
   {
     slug: 'human-rights',
     label: 'Human Rights',
-    impactTitle: 'Real impact. Real dignity.',
+    impactTitle: 'Real Impact. Real Dignity.',
     impactBlurb: 'Thanks to supporters like you, more people have someone in their corner.',
     blurb: 'Advocacy, legal aid, and organisations defending civil rights.',
     tagline: 'Dignity is not negotiable.',
@@ -372,7 +372,7 @@ export const ALL_CAUSES_COLUMN: readonly Cause[] = [
   {
     slug: 'seniors-elderly',
     label: 'Seniors & Elderly',
-    impactTitle: 'Real impact. Real company.',
+    impactTitle: 'Real Impact. Real Company.',
     impactBlurb: 'Thanks to supporters like you, older people are less alone and better cared for.',
     blurb: 'Care, companionship, and dignity for older people.',
     tagline: 'Nobody ages out of mattering.',
@@ -383,7 +383,7 @@ export const ALL_CAUSES_COLUMN: readonly Cause[] = [
   {
     slug: 'women-girls',
     label: 'Women & Girls',
-    impactTitle: 'Real impact. Real equality.',
+    impactTitle: 'Real Impact. Real Equality.',
     impactBlurb: 'Thanks to supporters like you, more women and girls get a fair footing.',
     blurb: "Programmes advancing women's health, safety, and opportunity.",
     tagline: 'Equal footing, everywhere.',
@@ -394,7 +394,7 @@ export const ALL_CAUSES_COLUMN: readonly Cause[] = [
   {
     slug: 'lgbtq-support',
     label: 'LGBTQ+ Support',
-    impactTitle: 'Real impact. Real belonging.',
+    impactTitle: 'Real Impact. Real Belonging.',
     impactBlurb: 'Thanks to supporters like you, more people find somewhere safe.',
     blurb: 'Community, safety, and healthcare for LGBTQ+ people.',
     tagline: 'Safe, seen, supported.',
