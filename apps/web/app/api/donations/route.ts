@@ -205,16 +205,44 @@ export async function POST(request: NextRequest) {
   // worse outcome than recording it as a direct gift. `record_donation` repeats
   // this same check server-side — belt and braces, because that function runs
   // SECURITY DEFINER and metadata is client-influenced.
-  let verifiedPeerId: string | null = null;
+  //
+  // ⚠️ The reasoning above is about a STALE OR FORGED id, and it is right about
+  // that. It does not cover a failed READ, and this lookup discarded its `error`
+  // so the two were the same thing: `null`.
+  //
+  // The consequence is not recoverable. Only the VERIFIED id reaches Stripe
+  // metadata (see below), so a dropped one is gone — the webhook has nothing to
+  // re-check, `record_donation` receives NULL, and a gift given through a
+  // supporter's team page is permanently recorded as a direct donation. Their
+  // total never moves, which is exactly the dead progress bar the peer page
+  // warns about.
+  //
+  // Refusing the donation is still the wrong answer. So on a read failure the
+  // REQUESTED id is passed through instead, because the check here is belt and
+  // braces: `record_donation` re-runs the identical rule server-side
+  // (`id = p_peer_fundraiser_id and parent_campaign_id = p_campaign_id`,
+  // 20260816000000) under SECURITY DEFINER and drops it to NULL if it does not
+  // check out. So nothing is trusted that was not already going to be verified —
+  // the authoritative gate is unchanged.
+  let peerIdToRecord: string | null = null;
   if (peerFundraiserId) {
-    const { data: peer } = await supabaseAdmin
-      .from('peer_fundraisers')
-      .select('id')
-      .eq('id', peerFundraiserId)
-      // `parent_campaign_id`, not `campaign_id` — this table is the exception.
-      .eq('parent_campaign_id', campaignId)
-      .maybeSingle();
-    verifiedPeerId = (peer as { id: string } | null)?.id ?? null;
+    const { data: peer, error: peerError } = await boundedQuery(() =>
+      supabaseAdmin
+        .from('peer_fundraisers')
+        .select('id')
+        // `parent_campaign_id`, not `campaign_id` — this table is the exception.
+        .eq('id', peerFundraiserId)
+        .eq('parent_campaign_id', campaignId)
+        .maybeSingle(),
+    );
+    if (peerError) {
+      console.error('[donations] peer verification unavailable, deferring to record_donation:', {
+        campaignId, peerFundraiserId, code: peerError.code, message: peerError.message,
+      });
+      peerIdToRecord = peerFundraiserId;
+    } else {
+      peerIdToRecord = (peer as { id: string } | null)?.id ?? null;
+    }
   }
 
   // ── Campaign currency (defaults to USD) ─────────────────────────────────────
@@ -404,7 +432,7 @@ export async function POST(request: NextRequest) {
       paymentMethod,
       // '' rather than omitted: Stripe metadata values must be strings, and the
       // webhook reads `meta.peerFundraiserId || null`.
-      peerFundraiserId:     verifiedPeerId ?? '',
+      peerFundraiserId:     peerIdToRecord ?? '',
       // Connected account info (so webhook knows routing without extra DB lookup)
       connectedAccountId:   destination.stripeAccountId,
       hasConnectedAccount:  '1',
