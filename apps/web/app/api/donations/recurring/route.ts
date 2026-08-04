@@ -8,7 +8,7 @@ import { boundedQuery } from '../../../../lib/query-timeout';
 import { createClient } from '../../../../lib/supabase-server';
 import { donorTip, MIN_DONATION_CENTS, MAX_DONATION_CENTS, DEFAULT_DONOR_TIP_PERCENT } from '@shared/fees';
 import { normalizeCurrency } from '@shared/currencies';
-import { resolvePayoutDestination } from '../../../../lib/payout-destination';
+import { resolvePayoutDestination, PayoutLookupUnavailableError } from '../../../../lib/payout-destination';
 import { getAppOrigin } from '../../../../lib/auth-config';
 import { checkRateLimit } from '../../../../lib/rate-limit';
 
@@ -161,7 +161,23 @@ export async function POST(request: NextRequest) {
 
   // Resolve payout destination (beneficiary first, then organizer).
   // CharitMe NEVER holds donation funds — no destination, no subscription.
-  const destination = await resolvePayoutDestination(campaign);
+  // A failed readiness lookup must NOT be answered as "not set up yet", and must
+  // never fall through to a different recipient — see PayoutLookupUnavailableError.
+  let destination;
+  try {
+    destination = await resolvePayoutDestination(campaign);
+  } catch (err) {
+    if (err instanceof PayoutLookupUnavailableError) {
+      return NextResponse.json(
+        {
+          error: 'We could not verify the recipient just now. Nothing was charged — please try again.',
+          code: 'PAYOUT_LOOKUP_UNAVAILABLE',
+        },
+        { status: 503 },
+      );
+    }
+    throw err;
+  }
   if (!destination) {
     return NextResponse.json(
       {
