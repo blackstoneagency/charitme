@@ -1147,6 +1147,68 @@ the page renders its honest degraded state (an EmptyState for the grid, nothing
 for stories). Their POSITION is pinned by source order in the test instead —
 a weaker signal than a rendered one, and worth re-checking against production.
 
+## 🔁 THE WEBHOOK'S DUPLICATE CHECK TURNED ITSELF OFF, AND COULD NEVER REPORT ONE (Claude, 2026-08-04)
+
+Swept the whole codebase for the pattern the last two passes kept finding — a
+read whose `error` is discarded, so a failure becomes a confident answer. **330
+sites**, but most are `boundedQuery`-wrapped display surfaces where degrading to
+an empty list is a deliberate, already-reviewed choice. Filtered to money-path
+files where an absent result becomes a **decision** rather than a rendering:
+**46**. Two in the webhook were worth fixing now.
+
+### 1. The idempotency check disabled itself when unreadable
+
+```ts
+const { data: existing } = await supabaseAdmin
+  .from('webhook_events').select('id, processed_at')
+  .eq('stripe_event_id', event.id).maybeSingle();
+if (existing?.processed_at) return … // already processed
+```
+
+A failed read gives `existing = null`, which is **indistinguishable from "never
+seen this event"** — so a redelivery is processed again.
+
+Honest severity: the money writes behind it are each individually idempotent
+(`record_donation` on `p_stripe_event_id`, ledger posts on `idempotency_key`, the
+membership upsert on `stripe_subscription_id`), so this is defence in depth, not
+the last line. **But emails are not idempotent** — a reprocess re-sends receipts —
+and a defence that switches itself off when it cannot see is not a defence.
+
+Now answers **500**, so Stripe retries. Returned rather than thrown: this sits
+*before* the try/catch that converts handler throws into a 500, so a throw would
+escape `POST` entirely — which is exactly what the first version did, caught by
+the test expecting a status code and getting an exception.
+
+### 2. `status: 'duplicate'` was UNREACHABLE
+
+```ts
+if (existing?.processed_at) return …            // early return
+…
+await recordCampaignPaymentWebhookEvent(event,
+  existing?.processed_at ? 'duplicate' : 'received');   // always 'received'
+```
+
+The ternary sits **after** the early return, so its condition is always false.
+`campaign_payment_webhook_events` could never record a duplicate delivery — so
+anything counting duplicate webhooks read **zero forever**, and zero is the
+reassuring answer. Same shape as the `open_issues_count` rule in CLAUDE.md: a
+number that cannot be non-zero is not a measurement.
+
+Now recorded where a duplicate actually is one, before the early return. Safe to
+reorder — the recorder upserts on `(processor, processor_event_id)` independently
+of the `webhook_events` row.
+
+### Both tested by RUNNING the webhook
+
+Added to `stripe-webhook-behaviour.test.ts`, which executes `POST()` against a
+fake Stripe and Supabase. Extended its harness with a *read* failure (it could
+only simulate write failures before). Mutation-tested: dropping the guard fails
+the 500 test, and restoring the unreachable ternary fails the duplicate test.
+
+**44 of the 46 remain**, deliberately unfixed in this pass — each needs its own
+judgement about whether absence is a claim, and a mechanical sweep is how a
+fail-open write got introduced in `/admin/countries` earlier this session.
+
 ## 🚨 THE RECONCILIATION JOB REPORTED "ALL CLEAR" WHILE BLIND (Claude, 2026-08-04)
 
 Follow-on from the ledger fix below: reconciliation is the **safety net** that

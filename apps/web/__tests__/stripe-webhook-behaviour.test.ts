@@ -33,6 +33,8 @@ let rpcResult: { data: unknown; error: { message: string; code?: string } | null
 };
 /** Row returned by the `webhook_events` idempotency lookup. */
 let existingEvent: { id: string; processed_at: string | null } | null = null;
+/** Failure for the `webhook_events` idempotency READ (not a write). */
+let existingEventError: { message: string; code?: string } | null = null;
 /** Every table write attempted, so a test can assert what was recorded. */
 let writes: Array<{ table: string; op: string; payload: unknown; options?: unknown }> = [];
 /** Per-table write failures, so a test can break one table and no others. */
@@ -51,7 +53,7 @@ function builder(table: string, op: string, payload: unknown) {
   const result = failure
     ? { data: null, error: failure }
     : table === 'webhook_events' && op === 'select'
-      ? { data: existingEvent, error: null }
+      ? { data: existingEventError ? null : existingEvent, error: existingEventError }
       : { data: null, error: null };
 
   // A Proxy rather than a list of methods: PostgREST's builder has dozens
@@ -151,6 +153,7 @@ beforeEach(() => {
   writeErrors = {};
   rpcCalls = [];
   existingEvent = null;
+  existingEventError = null;
   signatureValid = true;
   rpcResult = { data: 'donation-1', error: null };
   nextEvent = checkoutSessionEvent();
@@ -238,6 +241,42 @@ describe('idempotency', () => {
       rpcCalls.filter((c) => c.fn === 'record_donation'),
       'a redelivered event must not record the donation twice',
     ).toEqual([]);
+  });
+
+  it('answers 500 when the idempotency read FAILS, instead of reprocessing', async () => {
+    // The defect: this read dropped its `error`, so a failed lookup produced
+    // `existing = null` — indistinguishable from "never seen this event". The
+    // duplicate check silently disabled itself and the handler ran again.
+    // Stripe retrying is strictly safer than reprocessing, and emails are not
+    // idempotent even though the money writes are.
+    existingEventError = { message: 'connection terminated', code: '08006' };
+
+    const res = await post();
+
+    expect(res.status, 'a blind idempotency check must not proceed').toBe(500);
+    expect(
+      rpcCalls.filter((c) => c.fn === 'record_donation'),
+      'the handler must not run when we could not check whether it already had',
+    ).toEqual([]);
+  });
+
+  it('records a redelivery as `duplicate`, a status that was unreachable', async () => {
+    // `recordCampaignPaymentWebhookEvent(event, existing?.processed_at ?
+    // 'duplicate' : 'received')` sat AFTER the early return for an
+    // already-processed event, so its condition was always false and the
+    // ternary always chose 'received'. `campaign_payment_webhook_events` could
+    // never record a duplicate delivery, so anything counting them read zero
+    // forever — and zero is the reassuring answer.
+    existingEvent = { id: 'row-1', processed_at: '2026-08-03T00:00:00Z' };
+
+    await post();
+
+    const recorded = writes.filter((w) => w.table === 'campaign_payment_webhook_events');
+    expect(recorded.length, 'a duplicate delivery was not recorded at all').toBeGreaterThan(0);
+    expect(
+      recorded.map((w) => (w.payload as { status?: string }).status),
+      'a redelivered event must be recorded as duplicate, not received',
+    ).toContain('duplicate');
   });
 
   it('passes the Stripe event id to record_donation, which is what makes the RPC idempotent', async () => {
