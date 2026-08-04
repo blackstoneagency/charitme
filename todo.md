@@ -1147,6 +1147,57 @@ the page renders its honest degraded state (an EmptyState for the grid, nothing
 for stories). Their POSITION is pinned by source order in the test instead —
 a weaker signal than a rendered one, and worth re-checking against production.
 
+## 💰 A BALANCED LEDGER GROUP CAN STILL LOSE MONEY, SILENTLY (Claude, 2026-08-04)
+
+The ledger is the strongest code in this repo — `assertBalanced` before every
+insert, append-only trigger, RLS, nightly reconciliation, 19 tests. All of it
+guards **balance**. None of it guarded **postability**, and the gap loses money
+without raising anything.
+
+Idempotency is a unique index on `(idempotency_key, account, direction)`, and
+every line in a group shares one key. So two lines in the *same* group with the
+same account and direction collide **with each other on the very first insert**.
+`postEntryGroup` catches `23505` and returns `{ posted: false }` — which is its
+signal for *"this webhook was already handled"*.
+
+Sequence, end to end:
+
+| step | result |
+|---|---|
+| donation row written | ✅ |
+| ledger insert | `23505`, swallowed as an idempotent skip |
+| webhook response | **200** — so Stripe never retries |
+| error raised | **none, anywhere** |
+| the money | in `donations`, absent from the ledger |
+
+**No builder does this today.** Donation, refund and dispute each emit distinct
+account/direction pairs — I checked all three across their input space, not at
+one sample point. But the invariant lived *only in the shape of three literal
+arrays*. Adding one plausible line — a second `platform_revenue` credit to carry
+a tip separately — is enough, and nothing would have said so.
+
+`assertPostable` now runs inside `assertBalanced`, so every existing caller gets
+it for free. It throws, which is deliberately loud: a 500 is this repo's webhook
+contract (Stripe retries, the failure surfaces) and is strictly better than
+silent loss. **It can only fire on a code change, never on data**, so no live
+flow changes.
+
+### The mutation that mattered passed on my first attempt
+
+I planted the duplicate line with `amount_cents: 0` — and the builder omits
+zero-amount lines, so it was filtered out before reaching the check. **My
+mutation test proved nothing and I nearly recorded it as proof.** Re-run with the
+fee split across two non-zero lines: caught, by three tests. The refund builder
+was mutated separately and is caught too.
+
+### And a vacuous test of my own, caught by typecheck
+
+My input sweep passed `{ donationCents, platformFeeCents }` to the refund
+builders, whose input is `{ refundDonationCents, refundPlatformFeeCents }`. Every
+iteration was exercising `undefined`. It **passed green**, and only `tsc` caught
+it — a reminder that a passing test says nothing until you have seen it fail.
+Fixed, then re-mutated to confirm the sweep now has teeth.
+
 ## 🔴 "AI CAMPAIGN HEALTH SCORE — PREDICTS SUCCESS" IS NEITHER (Claude, 2026-08-04)
 
 `/features` published this as a CharitMe differentiator:
