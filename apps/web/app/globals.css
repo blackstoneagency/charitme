@@ -10785,3 +10785,14 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 @media (min-width: 900px) {
   .fq-cta { grid-template-columns: auto minmax(0, 1fr) auto; }
 }
+
+/* Secondary action on /volunteer — token-driven, so it follows the theme rather
+   than committing to the hero treatment used on photo-backed pages. */
+.vol-btn-secondary {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; padding: 0 20px;
+  border: 1px solid var(--b2); border-radius: var(--r);
+  background: var(--s1); color: var(--t1);
+  font-size: 14.5px; font-weight: 700; text-decoration: none;
+}
+.vol-btn-secondary:hover { border-color: var(--t3); background: var(--s2); }
