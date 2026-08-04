@@ -330,6 +330,25 @@ pattern. It also self-checks that it actually tabbed, and fails if it did not.
    env var and the first two abort with *"Please run npx playwright install"*.
 2. Default `--base` is `:3000`/`:3100`, so without `--base` they silently audit nothing
    useful.
+3. ⚠️ **`audit:web-vitals` CANNOT produce a trustworthy result in a sandbox with no
+   database** — and it fails loudly enough to look like a real regression. Measured
+   2026-08-04: **31 of 86 routes "over budget"**, every one of them a data-backed page,
+   while static pages returned 16–24ms. The same routes measured against production:
+
+   | metric | sandbox | production |
+   |---|---|---|
+   | TTFB/FCP/LCP | 4,000–8,500ms | **362–1,642ms** |
+   | CLS | 0.088–0.207 | **0.000** |
+
+   The TTFBs cluster at giveaway values (7043, 7044, 4016, 4017, 2514) because they are
+   stacked connection timeouts to `placeholder.supabase.co`, not work. The CLS has one
+   cause on every affected route — `FOOTER.kind-footer` jumping `y:0 → 459…609px` — because
+   the App Router streams the shell first and the suspended content takes seconds to
+   arrive; with a real database it lands inside the first paint and nothing shifts.
+
+   **Do not "optimise" pages on the strength of a local vitals run.** Confirm against
+   production first: `curl -w "%{time_starttransfer}"`. The only finding that survived that
+   check was `/faq` at 1.64s TTFB, marginally over the 1500ms budget.
 
 **Prefer these over writing your own harness.** `audit:contrast` sweeps **both themes** by
 default — the site ships **dark**, so a hand-rolled axe run measures dark twice and reports
