@@ -19378,15 +19378,12 @@ Or open the Vercel dashboard and check the deployment aliased to
 **Do not record this as "unverified work".** The work is verified; what cannot
 be observed from inside the sandbox is a DNS alias belonging to the owner.
 Those are different claims, and conflating them has now cost five rounds.
-<<<<<<< HEAD
-=======
 
 ### Consequence for the shared hero
 `/causes` and `/campaigns` share `components/IndexHero.tsx`; `/donate`
 deliberately does NOT, because it has a design of its own. The test iterates the
 two pages that opted in rather than asserting "every index" — which would now be
 false.
->>>>>>> origin/master
 
 ## ✅ CONFIRMED LIVE ON PRODUCTION — /donate (owner-verified, 2026-08-03)
 
