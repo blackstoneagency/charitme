@@ -1147,6 +1147,52 @@ the page renders its honest degraded state (an EmptyState for the grid, nothing
 for stories). Their POSITION is pinned by source order in the test instead —
 a weaker signal than a rendered one, and worth re-checking against production.
 
+## 🚨 THE RECONCILIATION JOB REPORTED "ALL CLEAR" WHILE BLIND (Claude, 2026-08-04)
+
+Follow-on from the ledger fix below: reconciliation is the **safety net** that
+should have caught that gap. Five reads in `lib/reconciliation.ts` dropped their
+`error`, and each failed in a **different** wrong direction.
+
+| read | what a failure produced |
+|---|---|
+| `donations` | `rows = []` → `{ checked: 0, clean: 0, findings: [] }`, which the cron route wraps as **`{ ok: true }`** — a clean bill of health, produced while completely blind |
+| `ledger_entries` | `?? []` → every donation observed with **no ledger footprint** → a `missing` exception opened for **every donation in the window**, up to 2000 false alarms in one run |
+| open exceptions | `?? []` → de-dupe set empty → **every exception re-opened on every run**, defeating the idempotency its own comment promises |
+| `listExceptions` | `[]` → the admin reconciliation screen renders an **empty queue**: "no outstanding money discrepancies", the most reassuring thing that screen can say |
+| `getExceptionStatus` | `null` → caller answers **404 "Not found"** about a row it could not read |
+
+The first is the worst: a monitoring job whose failure mode is *reporting
+success*. Nobody would look again.
+
+All five now take the caller's error branch via `boundedQuery` and throw. The
+cron route does not catch, so this surfaces as a 500 in the Vercel Cron log
+instead of a reassuring `{ ok: true, checked: 0 }`. `listExceptions` throwing
+follows the precedent `getCampaign` set — **"unavailable" must not render as
+"absent"**.
+
+### Tested behaviourally, not by reading the source
+
+The existing convention for this class (`payout-status-read-failures.test.ts`)
+asserts against **source text** with comments stripped. Here that was
+unnecessary: `server-only` is stubbed in `vitest.config` and `lib/supabase` is
+mockable, so the tests assert what the functions actually **do** when the
+database refuses.
+
+The ledger and open-exception reads sit *after* the donations read, so an
+all-failing mock can never reach them — the first throw wins. They need a client
+that succeeds for `donations` and fails only for the later table, which is the
+only way to prove those two guards independently. **Mutation-tested one at a
+time: removing any single one of the five throws is caught by its own test, and
+only its own.**
+
+### My "guards the guard" test measured nothing
+
+I put the "did we actually reach the database" assertion in its own `it`, after a
+`beforeEach` that clears the mock — so it ran having called nothing and asserted
+against a freshly-cleared spy. It failed on first run, which is how it surfaced;
+moved into the test where the call happens. Same lesson as the vacuous refund
+sweep below: **a test proves nothing until you have watched it fail.**
+
 ## 💰 A BALANCED LEDGER GROUP CAN STILL LOSE MONEY, SILENTLY (Claude, 2026-08-04)
 
 The ledger is the strongest code in this repo — `assertBalanced` before every
