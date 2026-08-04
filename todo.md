@@ -1147,6 +1147,58 @@ the page renders its honest degraded state (an EmptyState for the grid, nothing
 for stories). Their POSITION is pinned by source order in the test instead —
 a weaker signal than a rendered one, and worth re-checking against production.
 
+## 🧾 THE RECEIPT PATH FAILED INVISIBLY — and this one is smaller (Claude, 2026-08-04)
+
+Third triage of the money-path queue. **Stating the severity honestly up front,
+because it is lower than the last three and the temptation after a run of real
+findings is to inflate the next one:** nothing here loses or misroutes money, and
+the tax documentation is recoverable. What was wrong is that three failures were
+*completely unobservable*.
+
+### The design that is NOT the bug
+
+`sendDonorReceipt` is wrapped in `try { … } catch { /* Non-fatal — receipt
+failure must not fail webhook */ }`. That is **correct and deliberate**: failing
+would make Stripe re-run the whole donation handler to fix an email. So "throw
+and let Stripe retry" — the right answer in the last four passes — is the *wrong*
+instinct here, and the catch was left exactly as it is.
+
+Being non-fatal does not justify being invisible.
+
+| read | silent consequence |
+|---|---|
+| `campaigns` (`.single()`, error dropped) | `!camp` → **no receipt at all**, and nothing else ever recovers it |
+| `nonprofit_profiles` (error dropped) | `deductible = false` → a gift to a **verified nonprofit** sent as a generic thank-you instead of an official receipt with EIN and disclosure — indistinguishable from a genuinely non-deductible donation |
+
+### Verified rather than assumed: the tax harm is bounded
+
+Before writing this up I checked whether the donor is actually left without
+documentation. They are not. The **annual giving statement** (`lib/tax.ts`,
+reachable from `/donor`) recomputes deductibility from `nonprofit_profiles` at
+generation time, so the year-end record still comes out right. What is lost is
+the per-donation receipt — and, until now, any trace that it happened.
+
+That mitigation is real, so the fix is proportionate: **log, do not change
+behaviour.** Both branches now record the campaign, donation and error code.
+
+### The harness could only break writes, so the bug was untestable
+
+`stripe-webhook-behaviour.test.ts` answered `data: null` to every select, which
+meant the receipt path always returned early at `if (!camp)` — **no test could
+reach the nonprofit lookup behind it.** Added per-table read *data* alongside the
+existing read/write failure injection, opt-in so existing tests keep the old
+default.
+
+Two mistakes of mine on the way, both caught by running it:
+- the `console.error` spy is created in `beforeEach` and **re-spying returns the
+  same mock**, so my first assertion matched log lines from *earlier tests*;
+- the nonprofit assertion then went green-to-empty, which is what exposed that
+  the branch had never been reachable at all.
+
+Mutation-tested three ways: silencing either branch fails its test, and making a
+log fire unconditionally fails the happy-path test — **a log that always fires is
+noise, not a signal.**
+
 ## 💸 A FAILED LOOKUP COULD PAY THE WRONG PERSON (Claude, 2026-08-04)
 
 Second triage of the money-path queue, and the highest-consequence one found so
