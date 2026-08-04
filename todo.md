@@ -607,6 +607,59 @@ byte-identical after the exercise (`git diff --stat` empty).
 **What is still genuinely blocked on O3:** a real charge against a real card. The
 handler's behaviour is not.
 
+## 🔬 O2 — 23 → 22, AND THE REASON IT WAS "UNPROBEABLE" WAS WRONG (Claude, 2026-08-04)
+
+`20260815000000_peer_fundraiser_attribution` was on the no-signal list with the
+reason *"app probes the column itself and degrades silently — by design, so no
+external difference."* That reason is false, and it is the kind of false that
+stops anyone looking again.
+
+The app degrades **loudly**, on purpose. `/campaigns/<slug>/team/<peerSlug>`
+probes `donations.peer_fundraiser_id` and, when the read fails, renders a note
+telling the visitor per-supporter totals are not being recorded on this
+deployment. **The note is the schema, published.** A live team page in production
+carries no note, so the select succeeded → the migration is applied.
+
+```
+✅ APPLIED  20260815000000_peer_fundraiser_attribution
+            via donations.peer_fundraiser_id — HTTP 200
+            /campaigns/campaign-494-6ad72802/team/seed-peer-6a5e78e0-77
+```
+
+**5 of 27 now proven applied; the unknown set is 22.**
+
+### This probe proves its case by ABSENCE, which is weaker — so it is guarded harder
+
+Every other probe needs a specific string to *appear*, and fails closed when a
+page changes. This one passes when a string *vanishes* — including if it vanishes
+because somebody reworded it. Three guards make that shape acceptable:
+
+| guard | catches |
+|---|---|
+| `sentinel` must still exist in the page source | a reworded note, which would otherwise make the probe report APPLIED forever |
+| `requires` — a positive marker must also be present | an empty body, error shell or redirect reading as "note absent" |
+| the degraded page must read as NO PROOF | the probe inverting |
+
+Mutation-tested in both directions: rewording the note in `page.tsx` fails the
+sentinel test, and deleting the positive half of `ok()` fails the empty-page
+test. Restored green after each.
+
+### Discovery, because the URL cannot be written down in advance
+
+A peer page exists only for a campaign that has one, and there is no
+unauthenticated list — `/api/campaigns/[id]/peer-fundraisers` is POST-only and
+401s. The probe walks the sitemap's campaign URLs and takes the first with a team
+link, bounded to 12 requests. **Finding none reports "no proof", never
+"pending"** — the same rule that governs the rest of the script.
+
+### The transferable part
+
+The catalogue's *reasons* had never been audited, only its results. A reason is a
+claim like any other: this one was wrong, and being written down is exactly what
+kept it from being re-checked. The other 22 reasons were re-read in the same pass;
+the remainder hold (RLS changes invisible to a successful read, function bodies,
+routes that 401 before the select).
+
 ## 🔬 O2 — THE UNKNOWN SET SHRANK FROM 25 TO 23, AND THE METHOD IS NOW A SCRIPT (Claude, 2026-08-03)
 
 O2 (staging Supabase) is credential-blocked and stays that way. But the *reason*

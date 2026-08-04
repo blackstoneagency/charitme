@@ -15,18 +15,26 @@ that is merged but not live.
 > | `20260817000000_campaign_geolocation` | `/api/campaigns/nearby?lat=&lng=` returns `{"available":true}`, which is only reachable after a select on the `latitude` column succeeds — the route returns `available:false` on PostgREST's `42703` |
 > | `20260820000000_incidents_and_maintenance` | `/status` renders "No incidents reported in the last 30 days", the `length === 0` branch, which requires a successful read; it renders "Incident history could not be loaded" otherwise |
 >
-> **This is now four, not two, and it is a script rather than a note.** Run it
+> **This is now five, not two, and it is a script rather than a note.** Run it
 > before you plan anything — it needs no credentials and takes seconds:
 >
 > ```bash
 > npm run probe:migrations --workspace=apps/web     # --base defaults to www.charitme.com
 > ```
 >
-> Measured 2026-08-03 against production: **4 of the 27 are already applied** —
+> Measured 2026-08-04 against production: **5 of the 27 are already applied** —
 > `reconcile_runtime_tables` (proven twice, via `campaign_milestones` and
-> `campaign_faqs`), `volunteer_shifts_hours`, `campaign_geolocation`, and
-> `incidents_and_maintenance`. The remaining 23 have **no public signal**, which
-> the script lists individually with the reason.
+> `campaign_faqs`), `volunteer_shifts_hours`, `campaign_geolocation`,
+> `incidents_and_maintenance`, and `peer_fundraiser_attribution`. The remaining
+> 22 have **no public signal**, which the script lists individually with the
+> reason.
+>
+> The fifth was listed as unprobeable on the grounds that the app "degrades
+> silently" without `donations.peer_fundraiser_id`. It does the opposite: a peer
+> page renders a visible note saying per-supporter totals are not being recorded
+> on this deployment. A live team page carries no such note, so the read
+> succeeded. **A reason recorded for why something cannot be measured is itself a
+> claim, and can be wrong in the direction that stops anyone re-checking.**
 >
 > ⚠️ **APPLIED is proof; "no proof" is NOT evidence of pending.** A successful
 > read cannot happen unless the migration ran, so a ✅ is conclusive. A ❔ only
@@ -35,7 +43,7 @@ that is merged but not live.
 > (`creator_tips_not_world_readable`) could only be probed by performing the
 > leak it closes.
 >
-> So the true pending set is **somewhere between 0 and 23 — establish it in Step
+> So the true pending set is **somewhere between 0 and 22 — establish it in Step
 > 3 rather than assuming it.**
 
 ---
