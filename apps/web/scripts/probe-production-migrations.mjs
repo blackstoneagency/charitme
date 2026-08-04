@@ -121,6 +121,7 @@ const PROBES = [
  * re-derive it, and does not mistake "not probed" for "not applied".
  */
 const NO_PUBLIC_SIGNAL = [
+  ['20260824000000_cause_stories', 'public SELECT is gated on published=true, so applied-but-unseeded is indistinguishable from not-applied; the cause page falls back to campaigns either way'],
   ['20260803000000_profiles_preference_columns', 'profiles columns are only read behind auth'],
   ['20260803010000_profiles_profile_billing_columns', 'same'],
   ['20260804000000_banner_content_and_recovery', 'banner_settings is read by admin routes only'],

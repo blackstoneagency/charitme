@@ -1513,7 +1513,7 @@ skipped workflow leaves its check pending forever and would deadlock a docs-only
 PR. Nothing is required today, which is why this is safe now — recorded so the
 next person does not find out the hard way.
 
-## 🛑 SUPABASE STAGING — blocked, and the pending count is **27** (Claude, 2026-08-03)
+## 🛑 SUPABASE STAGING — blocked, and the pending count is **28** (Claude, 2026-08-03)
 
 ⚠️ **Superseded in part — read the correction at the top of this file first.**
 The arithmetic below is sound and the drift guard on it is worth keeping, but the
@@ -1537,8 +1537,8 @@ all 18 in order and proved rollback.
 Nine migrations have been added since. So the count is arithmetic:
 
 ```
-114 local − 87 applied           = 27
-18 audited pending + 9 added     = 27   ✓ reconciles
+115 local − 87 applied           = 28
+18 audited pending + 10 added    = 28   ✓ reconciles
 ```
 
 All 18 audited-pending versions are still on disk under their original names.

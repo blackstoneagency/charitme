@@ -10796,3 +10796,29 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   font-size: 14.5px; font-weight: 700; text-decoration: none;
 }
 .vol-btn-secondary:hover { border-color: var(--t3); background: var(--s2); }
+
+/* ── Story video control ────────────────────────────────────────────────────
+   Renders ONLY for a `cause_stories` row with a `video_url`. The design draws a
+   play button on every card; one over a campaign link would start nothing, so
+   the markup omits it rather than the CSS hiding it.
+   `aria-hidden` on the span is correct here — the link's own text says "Watch
+   Story", so the glyph would only repeat it. */
+.cl-story-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, .92);
+  background: rgba(12, 8, 28, .42);
+  backdrop-filter: blur(2px);
+  color: #fff;
+  pointer-events: none;
+}
+.cl-story-play svg { width: 22px; height: 22px; margin-left: 3px; }
+.cl-story:hover .cl-story-play { background: rgba(12, 8, 28, .62); }

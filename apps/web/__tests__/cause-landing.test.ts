@@ -324,15 +324,35 @@ describe('the fuller Sports & Youth layout', () => {
     expect(landing).toContain('formatMoneyStat(stats.raisedCents)');
   });
 
-  it('stories link to a campaign and carry NO play button', () => {
-    // Every campaign_media row of type `video` points at a reserved .example
-    // host that cannot resolve, so there is nothing to play. A play button that
-    // opens a campaign page instead is a fake affordance.
+  it('shows a play control only when a story really has a video', () => {
+    // ⚠️ This guard used to assert NO play button anywhere, because every
+    // `campaign_media` video row points at a reserved `.example` host that
+    // cannot resolve — a control that plays nothing is a fake affordance.
+    //
+    // `cause_stories.video_url` changes the fact the rule was protecting, not
+    // the rule itself. The invariant was never "no play buttons"; it was "no
+    // control that does nothing". So the assertion is now conditional: the play
+    // control and the "Watch Story" label must BOTH be gated on `videoUrl`, and
+    // a story without one still renders as a read link.
     const page = read('app/causes/[slug]/page.tsx');
     expect(page).toContain('cl-story');
-    expect(page).toContain('Read the story');
-    expect(page).not.toMatch(/Watch Story/i);
-    expect(page).not.toContain('cl-story-play');
+    // Both affordances gated on the same condition.
+    expect(page).toContain('{story.videoUrl && (');
+    expect(page).toContain("story.videoUrl ? 'Watch Story →' : 'Read the story →'");
+    // The play glyph must sit INSIDE the videoUrl guard, not merely exist.
+    // ⚠️ A `not.toMatch(/<span className="cl-story-play".../)` cannot express
+    // this — that markup is identical whether it is gated or not, so the
+    // assertion failed against correctly-gated code. Position is the property
+    // that actually matters, so position is what this measures.
+    const guard = page.indexOf('{story.videoUrl && (');
+    const glyph = page.indexOf('className="cl-story-play"');
+    expect(guard, 'videoUrl guard missing').toBeGreaterThan(-1);
+    expect(glyph, 'play glyph missing').toBeGreaterThan(guard);
+    expect(glyph - guard, 'play glyph is not inside the videoUrl guard').toBeLessThan(120);
+    // Exactly one play control, so a second ungated copy cannot creep in.
+    expect(page.match(/className="cl-story-play"/g) ?? []).toHaveLength(1);
+    // And a video story must open the video, not the campaign page.
+    expect(page).toContain('const href = story.videoUrl ?? (story.slug ? `/campaigns/${story.slug}` : null);');
   });
 
   it('stories come from genuinely completed campaigns', () => {

@@ -157,17 +157,87 @@ export function formatMoneyStat(cents: number | null): string {
  */
 export interface CauseStory {
   id: string;
-  slug: string;
+  /** Campaign slug when the story links to one; `null` for editorial-only. */
+  slug: string | null;
   title: string;
   blurb: string | null;
   category: string | null;
   cover: string | null;
   raisedCents: number;
   backers: number;
+  /**
+   * Present only for authored `cause_stories` rows that carry a video.
+   *
+   * ⚠️ This is what makes the reference's play control honest. It renders when
+   * and only when there is something to play — the design draws a play button on
+   * every card, but every `campaign_media` video row in this database points at
+   * `storage.CharitMe.example`, a reserved TLD that cannot resolve. A control
+   * that plays nothing is a dead affordance, so the card degrades to a read link
+   * when this is null.
+   */
+  videoUrl: string | null;
+  /** Chip label as the design draws it, e.g. "YOUTH EMPOWERMENT". */
+  chipLabel: string | null;
+  /** 0-2, selecting the chip's accent colour. */
+  chipAccent: number;
+}
+
+/**
+ * Authored stories for a cause, from `cause_stories`.
+ *
+ * `null` distinguishes "could not read" from "none authored" — the caller falls
+ * back to completed campaigns only in the SECOND case, so a database blip never
+ * silently swaps editorial content for an approximation of it.
+ *
+ * The `cause_stories` migration may not be applied yet. Postgres reports an
+ * unknown relation as `42P01`, which is treated as "none authored" rather than a
+ * failure: on a deployment without the table the page must fall back cleanly,
+ * exactly as `campaign-visibility` treats a missing column.
+ */
+async function getAuthoredStories(cause: Cause, limit: number): Promise<CauseStory[] | null> {
+  const { data, error } = await boundedQuery(() =>
+    supabaseAdmin
+      .from('cause_stories')
+      .select('id, title, blurb, chip_label, chip_accent, poster_url, video_url, campaigns:campaign_id(slug)')
+      .eq('cause_slug', cause.slug)
+      .eq('published', true)
+      .order('sort_order', { ascending: true })
+      .order('published_at', { ascending: false })
+      .limit(limit),
+  );
+
+  if (error) {
+    if (error.code === '42P01') return [];
+    console.warn('[cause-landing] authored stories read failed', { code: error.code });
+    return null;
+  }
+
+  return (data ?? []).map((r) => {
+    const campaign = r.campaigns as { slug?: string } | null;
+    return {
+      id: r.id as string,
+      slug: campaign?.slug ?? null,
+      title: r.title as string,
+      blurb: (r.blurb as string | null) ?? null,
+      category: null,
+      cover: (r.poster_url as string | null) ?? null,
+      raisedCents: 0,
+      backers: 0,
+      videoUrl: (r.video_url as string | null) ?? null,
+      chipLabel: (r.chip_label as string | null) ?? null,
+      chipAccent: Number(r.chip_accent ?? 0),
+    };
+  });
 }
 
 export async function getCauseStories(cause: Cause, limit = 3): Promise<CauseStory[] | null> {
   try {
+  // Authored stories are the design's intent; completed campaigns are the
+  // fallback that keeps the section alive before any are written.
+  const authored = await getAuthoredStories(cause, limit);
+  if (authored === null) return null;
+  if (authored.length > 0) return authored;
+
   // `status` is set here rather than by `applyLiveFilters`, which pins
   // `status = 'active'` — the opposite of what this reads. Visibility is still
   // applied, so a completed campaign the owner has since made private does not
@@ -202,6 +272,10 @@ export async function getCauseStories(cause: Cause, limit = 3): Promise<CauseSto
     cover: (c.cover_image_url as string | null) ?? null,
     raisedCents: Number(c.raised_amount ?? 0),
     backers: Number(c.backer_count ?? 0),
+    // A campaign is not a video story: no play control, no editorial chip.
+    videoUrl: null,
+    chipLabel: null,
+    chipAccent: 0,
   }));
   } catch {
     // Same guard as `getCauseStats`: `supabaseAdmin` throws on property access
