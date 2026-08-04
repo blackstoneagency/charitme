@@ -1,5 +1,43 @@
 # CharitMe — Execution Tracker
 
+## 🔐 CAMPAIGN READS WITHOUT A VISIBILITY FILTER — 1 fixed, 18 triaged (Claude, 2026-08-04)
+
+`getCampaignResult` — the shared loader behind `/campaigns/[slug]` and its
+`gallery`, `updates`, `share` and `team` sub-routes — filtered `deleted_at` and
+**nothing else**, so a campaign set to **private** was fully readable at its
+public URL: story, donor names and messages, amount raised. Fixed in `c14d6a71`
+with `neq('visibility', 'private')` (NOT `eq('public')` — 'unlisted' must stay
+reachable by direct link, which is what unlisted means).
+
+**How it was found matters more than the bug.** Every runtime sweep skips these
+routes for want of seeded data, and I had been calling them unverifiable on that
+basis. A **static** check of the source reaches them fine. Do not write a surface
+off as unverifiable because a browser cannot load it here.
+
+### The remaining 18, triaged — do NOT blanket-fix
+
+A repo-wide sweep found 18 more files reading `campaigns` with no visibility
+filter. **Most are correct as they stand**, and adding a filter would be a bug:
+
+| bucket | files | verdict |
+|---|---|---|
+| **Owner-scoped** | `app/donor`, `app/profile`, `app/welcome`, `lib/tax-server`, `lib/beneficiary-data`, `lib/donation-form-access` | ✅ correct — an owner MUST see their own private campaign |
+| **Internal/admin** | `lib/marketing-*` (3), `lib/ai-context`, `lib/contact-page` | ✅ not a public surface |
+| **Not a real read** | `lib/query-timeout` | ✅ matched on a comment |
+| **⚠️ Worth checking** | `lib/trust-signals`, `lib/sponsorships`, `lib/giving-days-server`, `lib/nonprofit-data`, `lib/referrals`, `app/status` | needs per-file judgement |
+
+**One confirmed in that last bucket, not yet fixed:** `lib/trust-signals.ts:40`
+counts *other campaigns by this organiser* with
+`.eq('user_id', …).neq('id', …)` and no `deleted_at` or visibility filter. That
+count is shown publicly, so it includes the organiser's **private and deleted**
+campaigns — inflating a public trust signal and leaking the existence count of
+private ones. Not content exposure; still wrong. The fix is `.is('deleted_at',
+null)` plus `.eq('visibility', 'public')` — `eq` is right here, unlike the detail
+page, because this is an aggregate over OTHER campaigns, not a direct-link fetch.
+
+The remaining five in that bucket are unexamined.
+
+
 ## ⚠️ THE "87 APPLIED / 27 PENDING" PRECONDITION IS WRONG — measured against production (Claude, 2026-08-03)
 
 I wrote that figure earlier today while correcting O1 from "6 pending" to "27".
