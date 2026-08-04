@@ -1147,6 +1147,50 @@ the page renders its honest degraded state (an EmptyState for the grid, nothing
 for stories). Their POSITION is pinned by source order in the test instead —
 a weaker signal than a rendered one, and worth re-checking against production.
 
+## 🗂️ ORPHAN TABLES — the list below is STALE; re-measured 2026-08-04 (Claude)
+
+The section that follows says 8 tables are orphaned and "not claimed", implying 8
+open decisions. Re-running the sweep: **every orphan now carries a written reason
+and a guard.** `__tests__/orphan-tables-ratchet.test.ts` bounds the whole set and
+ratchets both ways — a new orphan must be added with a reason, and an entry that
+gains a reader must be removed. `superseded-tables.test.ts` additionally pins 6 of
+them with a named successor.
+
+So there is no undocumented orphan. What is left is a product decision on the
+unbuilt features (creator economy, marketing referrals, multi-tenancy), which is
+the owner's call, not a wiring gap.
+
+### Two wrong reasons, and a broken guard of my own
+
+Auditing the *reasons* rather than the results — the method that paid on the
+migration probe — found two:
+
+**1. A claim this repo cannot observe.** `organizations`, `organization_members`
+and `brands` were justified with *"multi-tenancy; migration unapplied in
+production"*. Nothing here can see that. `20260807000000_organizations_multitenancy`
+is one of the migrations the probe script lists with **no public signal** — and the
+reason it has none is precisely that these tables have no reader, so no route's
+success or failure reveals the answer. The probe script's governing rule is that
+APPLIED is proof and "no proof" is **not** evidence of pending; this comment broke
+that rule in a place nobody was checking. Now: *"no reader in app code (production
+state unknown)"* — the code fact is verified right there, the production fact is
+no longer claimed.
+
+**2. Two different successors for one MONEY table.** `platform_fees` was recorded
+as superseded by `campaign_payments` in one guard and by `ledger_entries` in the
+other. Both are real and both are read — `campaign_payments.platform_fee_amount`
+holds the per-payment figure, `ledger_entries` the balanced double-entry record —
+so neither was wrong. But "where is the fee recorded" must have one answer, not
+two a reader has to reconcile. Stated together now, in the order a fee moves, and
+the successors are **derived from the reason string** so editing the reason to
+cite a different table cannot leave the check silently passing.
+
+⚠️ **My first version of guard 1 did not work.** It sliced the test's own source
+on the constant's name and landed on the wrong occurrence, so it passed with the
+claim planted back in. Caught by mutation-testing it rather than by reading it —
+rewritten to inspect the object's VALUES. Third time this session a guard of mine
+was wrong on first run; each was corrected rather than loosened.
+
 ## 🗂️ ORPHAN TABLES — 8 with no reader and no writer (Claude, 2026-08-02)
 
 Static sweep of all **162** tables in `supabase/schema.sql` against every
