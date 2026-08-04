@@ -40,7 +40,17 @@ function AreaCard({ area }: { area: ImpactArea }) {
   const { cause, raisedCents } = area;
   return (
     <article className="imp-area">
-      <Link href={`/causes/${cause.slug}`} className="imp-area-media">
+      {/* ⚠️ Decorative for assistive tech, on purpose — axe reported `link-name`
+          (serious) ×6 here because this link wraps only an `alt=""` image and so
+          had NO accessible name.
+          Naming it would fix the violation and leave a worse page: the <h3>
+          below links to the SAME href with the cause as its text, so a screen
+          reader and a keyboard user would meet two adjacent stops for one
+          destination. Hiding the duplicate is the better answer.
+          `tabIndex={-1}` is required alongside `aria-hidden` — an aria-hidden
+          subtree must not contain a focusable element, which is its own axe
+          rule (`aria-hidden-focus`). The image stays clickable for a mouse. */}
+      <Link href={`/causes/${cause.slug}`} className="imp-area-media" aria-hidden="true" tabIndex={-1}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={getCoverForCategory(cause.label)} alt="" loading="lazy" />
         <span className="imp-area-badge" aria-hidden="true">
