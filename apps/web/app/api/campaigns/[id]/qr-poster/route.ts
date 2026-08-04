@@ -25,6 +25,18 @@ export async function GET(
     .select('id, title, slug, tagline, raised_amount, goal_amount, cover_image_url')
     .eq(isUuid ? 'id' : 'slug', id)
     .eq('status', 'active')
+    // Unauthenticated GET that renders a campaign's title, tagline, cover and
+    // amount raised into a shareable poster. It filtered `status` only, so a
+    // PRIVATE or soft-deleted campaign still produced one — the same hole found
+    // in `get-campaign.ts` and `trust-signals.ts`, a third time.
+    //
+    // `neq('private')`, matching the detail page rather than the listings: a QR
+    // poster is generated FROM a direct link, and an unlisted campaign is meant
+    // to be reachable that way. `/api/campaigns/rotator` next door gets this
+    // right with `eq('public') + deleted_at`, which is why the omission here
+    // reads as an oversight rather than a decision.
+    .neq('visibility', 'private')
+    .is('deleted_at', null)
     .single();
 
   if (!campaign) {
