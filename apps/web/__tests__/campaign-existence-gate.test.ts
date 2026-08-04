@@ -49,12 +49,25 @@ vi.mock('../lib/supabase', () => ({
       // query is built. That is precisely the failure `boundedQuery`'s thunk
       // exists to catch, so the mock has to reproduce it at the same point.
       if (clientThrows) throw new Error(clientThrows);
-      return () => ({ select: () => ({ eq: () => ({ is: () => ({ maybeSingle }) }) }) });
+      // `.neq('visibility', 'private')` sits between `.eq()` and `.is()` when the
+      // probe reports the column exists. It excludes PRIVATE only — 'unlisted'
+      // must stay reachable by direct link, which is what unlisted means — and
+      // without it a private campaign was fully readable at its public URL.
+      const afterEq: Record<string, unknown> = { is: () => ({ maybeSingle }) };
+      afterEq.neq = () => afterEq;
+      return () => ({ select: () => ({ eq: () => afterEq }) });
     },
   },
 }));
 
 // Stand in for Next's not-found signal, which is a throw with a `digest`.
+// The loader probes for the optional `visibility` column before filtering on it.
+// Pinned to "present" — the production shape, and the one where the private-campaign
+// filter actually applies.
+vi.mock('../lib/campaign-visibility', () => ({
+  campaignColumns: async () => ({ visibility: true, deletedAt: true }),
+}));
+
 vi.mock('next/navigation', () => ({
   notFound: () => {
     const err = new Error('NEXT_NOT_FOUND') as Error & { digest?: string };
@@ -133,16 +146,26 @@ describe('soft-deleted campaigns are excluded at the source', () => {
       const actual = await importOriginal<typeof import('react')>();
       return { ...actual, cache: <T,>(fn: T) => fn };
     });
+    vi.doMock('../lib/campaign-visibility', () => ({
+      campaignColumns: async () => ({ visibility: true, deletedAt: true }),
+    }));
     vi.doMock('../lib/supabase', () => ({
       supabaseAdmin: {
         from: () => ({
           select: () => ({
-            eq: () => ({
-              is: (col: string, val: unknown) => {
-                calls.push([col, val]);
-                return { maybeSingle: async () => ({ data: null, error: null }) };
-              },
-            }),
+            eq: () => {
+              // Records BOTH exclusions this query must apply. They are the same
+              // defect twice: a row the owner removed from public view staying
+              // readable at its public URL.
+              const after: Record<string, unknown> = {
+                is: (col: string, val: unknown) => {
+                  calls.push([col, val]);
+                  return { maybeSingle: async () => ({ data: null, error: null }) };
+                },
+              };
+              after.neq = (col: string, val: unknown) => { calls.push([col, val]); return after; };
+              return after;
+            },
           }),
         }),
       },
@@ -150,5 +173,11 @@ describe('soft-deleted campaigns are excluded at the source', () => {
     const { getCampaign: freshGetCampaign } = await import('../app/campaigns/[slug]/get-campaign');
     await freshGetCampaign('some-slug');
     expect(calls, 'the query must filter deleted_at IS NULL').toContainEqual(['deleted_at', null]);
+    // Same class of hole, found by a static sweep of the campaign sub-routes:
+    // the fetch applied no `visibility` filter either, so a campaign set to
+    // PRIVATE stayed fully readable at its public URL. `neq('private')` rather
+    // than `eq('public')` on purpose — 'unlisted' must remain reachable by
+    // direct link, which is the entire point of unlisted.
+    expect(calls, 'the query must exclude private campaigns').toContainEqual(['visibility', 'private']);
   });
 });
