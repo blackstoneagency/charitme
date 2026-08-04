@@ -1147,6 +1147,68 @@ the page renders its honest degraded state (an EmptyState for the grid, nothing
 for stories). Their POSITION is pinned by source order in the test instead —
 a weaker signal than a rendered one, and worth re-checking against production.
 
+## 🔴 "AI CAMPAIGN HEALTH SCORE — PREDICTS SUCCESS" IS NEITHER (Claude, 2026-08-04)
+
+`/features` published this as a CharitMe differentiator:
+
+> **AI Campaign Health Score** — Predicts success and recommends improvements.
+
+Both halves are false, measured:
+
+| | |
+|---|---|
+| the column | `campaigns.campaign_health_score`, `int not null default 0` |
+| its **only** writer | an admin typing a number into `/admin/campaigns`, clamped 0–100 in `app/api/admin/campaigns/[id]/route.ts` |
+| AI routes computing it | **none** — 16 routes under `/api/ai/`, not one touches it |
+| triggers / crons computing it | **none** in any migration or `/api/cron/*` |
+| `matching-finder` | **reads** it (`c.campaign_health_score ?? 0`), does not produce it |
+
+The admin UI's own comment says it: *"0 means 'never scored'"*. So there is no
+prediction and no recommendation — it is a staff-entered number that reaches
+donors through the homepage, search, supporter-space, donor recommendations and
+the rotator.
+
+**The score is real and does ship, so the entry stays — the wording was what was
+wrong.** Now: *"Campaign Health Score — A staff-reviewed health signal shown on
+discovery surfaces."* This is the standing "no unsupported marketing claims" rule
+applied to the platform's own copy; ⚠️ **it is a change to public product copy,
+so if the intent was to build the AI engine and advertise ahead of it, that is
+the owner's call to reverse — deliberately.**
+
+### The mechanism that let it through, now closed
+
+`planned` recorded what is NOT built. **Nothing recorded what IS.** All ~75
+shipped claims were hand-set booleans, and exactly one family — peer-to-peer —
+had its backing code checked, by a bespoke test written for it alone. That is the
+same gap Auctions fell through: tables existed, the entry looked shipped, no
+route or UI read them.
+
+`PlatformFeature.backedBy` now names the file that makes a claim true, and three
+guards make it enforceable:
+
+| guard | catches |
+|---|---|
+| every `backedBy` path exists on disk | a claim outliving its code — a deleted route now fails the build instead of leaving a promise on /features |
+| every **CharitMe** feature names one | required only for our own differentiators: no competitor product to check them against, and a visitor cannot verify them |
+| a feature named "AI …" must point at an AI route or lib | the exact defect above |
+
+Optional elsewhere on purpose — forcing a path onto all 105 at once means 105
+guesses, and a wrong mapping is worse than none.
+
+Mutation-tested: pointing a claim at a deleted route is caught, and restoring the
+original "AI Campaign Health Score / Predicts success" wording trips **two**
+guards. The AI guard also caught a mapping of my own — I first pointed "AI Donor
+Targeting" at `lib/donor-segments-core.ts`, which is rule-based, not AI;
+repointed to `/api/ai/donor-conversion`.
+
+### Checked and NOT found wanting
+
+Said plainly, because the temptation on a sweep like this is to report everything
+as broken: the other seven CharitMe claims each map to real code, `/trust-safety`'s
+promises are backed by a real report queue and flag writers, and the parity
+counting was already honest — `planned`, per-module status and the `fullParity`
+flag were all fixed in earlier passes and hold up.
+
 ## ✅ PRODUCTION SWEPT WITH A REAL DATABASE BEHIND IT — clean (Claude, 2026-08-04)
 
 Every browser audit in `scripts/` drives a **local** build with no Supabase
