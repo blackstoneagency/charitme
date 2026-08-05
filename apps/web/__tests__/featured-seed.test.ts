@@ -98,6 +98,18 @@ describe('the seed covers every cause page, and cannot drift from the causes', (
     expect(sql).toMatch(/e\.rank <= 2/);
   });
 
+  it('never promotes two identically titled campaigns into the top slots', () => {
+    // Measured against production: six of the fifteen categories have exactly
+    // ONE distinct title among their eligible rows, because the seed data is
+    // templated. Without the per-title pass, /causes/sports-recreation led with
+    // "Help our team make it to nationals this season" twice — which reads as a
+    // rendering bug rather than a promotion.
+    expect(sql).toMatch(/partition by c\.category, c\.title/);
+    expect(sql, 'the second pass must rank only the per-title winners').toMatch(
+      /where b\.title_rank = 1/,
+    );
+  });
+
   it('covers every category every cause draws on', () => {
     // If a cause gains a category and this list is not updated, that cause page
     // gets no featured campaign and the omission is invisible on the page.

@@ -43,16 +43,32 @@
 -- `apps/web/lib/causes.ts`. `__tests__/featured-seed.test.ts` fails if the two
 -- ever drift.
 
-with eligible as (
+-- ── Why there are TWO ranking passes ─────────────────────────────────────────
+-- Measured against production: SIX of the fifteen categories have exactly ONE
+-- distinct campaign title among all their eligible rows (Sports, Competition,
+-- Community, Environment, Event, Faith — the seed data is templated). A plain
+-- "top 2 per category" therefore promoted two IDENTICALLY TITLED campaigns into
+-- slots 1 and 2 of those cause pages: /causes/sports-recreation would have led
+-- with "Help our team make it to nationals this season" twice.
+--
+-- Two identical cards side by side read as a rendering bug, not a promotion, so
+-- the first pass keeps only the best campaign per (category, title) and the
+-- second ranks across those. A category with one distinct title contributes ONE
+-- featured campaign rather than a duplicate pair — fewer, but none that look
+-- broken. 25 campaigns across the 20 causes, every cause covered.
+with best_per_title as (
   select
     c.id,
+    c.category,
+    c.campaign_health_score,
+    c.raised_amount,
     row_number() over (
-      partition by c.category
+      partition by c.category, c.title
       order by
         coalesce(c.campaign_health_score, 0) desc,
         coalesce(c.raised_amount, 0) desc,
         c.id
-    ) as rank
+    ) as title_rank
   from public.campaigns c
   where c.status = 'active'
     and c.visibility = 'public'
@@ -84,6 +100,19 @@ with eligible as (
       'Faith',
       'Nonprofit'
     )
+),
+eligible as (
+  select
+    b.id,
+    row_number() over (
+      partition by b.category
+      order by
+        coalesce(b.campaign_health_score, 0) desc,
+        coalesce(b.raised_amount, 0) desc,
+        b.id
+    ) as rank
+  from best_per_title b
+  where b.title_rank = 1
 )
 update public.campaigns t
    set featured = true
