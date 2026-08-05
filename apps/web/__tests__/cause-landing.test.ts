@@ -377,7 +377,11 @@ describe('the fuller Sports & Youth layout', () => {
     // and the thing they came to do. Order is asserted by position rather than
     // presence: every one of these strings survived the reshuffle, so a check
     // that they merely EXIST would have passed against the old order too.
-    const grid = page.indexOf('<CampaignGrid>');
+    // The grid itself moved into `CauseCampaignList` (six campaigns + a "See
+    // more" button), so the page no longer contains `<CampaignGrid>`. Anchored
+    // on the wrapper that marks the same position in the page — the ordering
+    // being asserted is unchanged, only the needle for where the grid sits.
+    const grid = page.indexOf('id="cause-campaign-grid"');
     const tabs = page.indexOf('className="cl-tabs"');
     // `cl-helps` is now built in a template literal (it gains a modifier for
     // causes that left-align the heading), so the old `className="cl-helps"`

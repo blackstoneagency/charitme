@@ -187,14 +187,32 @@ export async function GET(request: NextRequest) {
 
   let query = supabaseAdmin
     .from('campaigns')
-    .select('id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, status, location, accept_donations', { count: 'exact' })
+    // `trust_status`, `nonprofit_verified` and `campaign_health_score` are the
+    // fields CampaignCard uses for its Verified badge and countdown. Without
+    // them a card rendered from THIS route looks different from the identical
+    // campaign server-rendered on a cause page — the badge simply vanishes on
+    // everything loaded by "See more campaigns".
+    .select('id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, status, location, accept_donations, trust_status, nonprofit_verified, campaign_health_score', { count: 'exact' })
     .eq('status', 'active')
     .eq('visibility', visibility)
     .is('deleted_at', null)
     .order(sortCol, { ascending: false })
     .range(offset, offset + limit - 1);
 
-  if (category) query = query.eq('category', category);
+  // A cause spans SEVERAL categories, so this accepts a comma-separated list and
+  // filters with `.in()`. A single value still takes the `.eq()` path, so every
+  // existing caller is unaffected. Unknown names are dropped rather than passed
+  // through — an unrecognised category would otherwise return zero rows and read
+  // as "this cause has no campaigns".
+  if (category) {
+    const wanted = category
+      .split(',')
+      .map((c) => c.trim())
+      .filter((c) => (CAMPAIGN_CATEGORIES as readonly string[]).includes(c));
+    if (wanted.length === 1) query = query.eq('category', wanted[0]);
+    else if (wanted.length > 1) query = query.in('category', wanted);
+    else return NextResponse.json({ error: 'Unknown category', code: 'UNKNOWN_CATEGORY' }, { status: 400 });
+  }
   // Escape LIKE wildcards — the API counterpart of the /campaigns page filter.
   const safeLocation = location ? likeTerm(location) : '';
   if (safeLocation) query = query.ilike('location', `%${safeLocation}%`);
