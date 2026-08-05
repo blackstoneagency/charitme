@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { boundedQuery } from '../../../lib/query-timeout';
-import { campaignColumns, applyLiveFilters } from '../../../lib/campaign-visibility';
+import { campaignColumns, applyLiveFilters, applyNotExpired } from '../../../lib/campaign-visibility';
 import { applyCampaignSearch, likeTerm } from '../../../lib/campaign-search';
 import { EmptyState } from '../../../components/ui';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
@@ -133,11 +133,21 @@ async function getCampaigns(opts: {
 }) {
   try {
     const cols = await campaignColumns();
-    let query = applyLiveFilters(
-      supabaseAdmin
-        .from('campaigns')
-        .select(CAMPAIGN_SELECT, { count: 'exact' }),
-      cols,
+    // Not-expired as well as active. `status = 'active'` is not "still running" —
+    // nothing moves a campaign out of `active` when its deadline passes, so this
+    // listing returned finished campaigns whose own cards rendered "Ended".
+    //
+    // Applied here, and not only on /causes/[slug], because the cause hub links
+    // to THIS page as that cause's "All campaigns": excluding expired campaigns
+    // from the cause grid and then showing them one click later would just move
+    // the problem. `sort=ending` becomes genuinely "ending soonest" as a result.
+    let query = applyNotExpired(
+      applyLiveFilters(
+        supabaseAdmin
+          .from('campaigns')
+          .select(CAMPAIGN_SELECT, { count: 'exact' }),
+        cols,
+      ),
     );
 
     if (opts.category) query = query.eq('category', opts.category);

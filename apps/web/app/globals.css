@@ -8564,6 +8564,25 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 @media (prefers-reduced-motion: reduce) {
   .cc-feature, .cc-feature:hover { transition: none; transform: none; }
 }
+/* A featured campaign inside the cause grid.
+   Tokens only — a literal green here is the muted-slate regression again, and
+   this rule has to read in both themes. The ring is a `box-shadow` rather than a
+   thicker border so the card does not change size and shift the row beside it.
+   It is the VISUAL half of the highlight; the "★ Featured" badge is the half a
+   screen reader gets, and neither ships without the other. */
+.cc-feature--promoted {
+  border-color: var(--green);
+  box-shadow: 0 0 0 2px var(--green-light);
+}
+.cc-feature--promoted:hover {
+  border-color: var(--green);
+  box-shadow: 0 0 0 2px var(--green-light), var(--shadow-md, 0 14px 34px rgba(16, 10, 44, .14));
+}
+/* Windows High Contrast / forced colours drops box-shadow entirely, so the ring
+   would simply vanish. A forced-colour outline is the one thing that survives. */
+@media (forced-colors: active) {
+  .cc-feature--promoted { outline: 2px solid Highlight; outline-offset: -2px; }
+}
 .cc-feature-media { position: relative; aspect-ratio: 16 / 10; background: var(--s3); }
 .cc-feature-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .cc-feature-badges {
