@@ -110,10 +110,48 @@ public campaign is currently `featured = true`.
 `featured` column, already surfaced there). The moment one is flagged it will
 sort into the top six of its cause page and render the ring + badge.
 
-I am deliberately NOT seeding `featured = true` on a campaign to make the
-feature visible — choosing which fundraiser gets promoted placement is a
-platform-editorial decision about real people's campaigns, and inventing one to
-produce a screenshot is exactly the class of thing this file exists to prevent.
+#### ⏸️ STILL UNFLAGGED as of 2026-08-05 21:30 — the seed exists, it has not run
+
+`supabase/seed/featured_campaigns.sql` (PRs #272, #273) picks 25 campaigns and
+covers all 20 causes. It **cannot be run from an agent session**: there are no
+Supabase credentials in the sandbox (only `.env.example` exists, and every
+`SUPABASE_*` var is unset). It is one paste into Supabase → SQL Editor.
+
+Verified after a reported run, and it had NOT applied:
+
+```
+curl https://www.charitme.com/api/campaigns?limit=100&featured_first=1
+→ 314 live campaigns, featured=true on ZERO of them
+```
+
+`featured_first=1` sorts featured to position 1, so a single flagged row would
+be the first result. Ruled out on the way:
+- **not caching** — `x-vercel-cache: MISS`, `age: 0`, `cache-control: no-store`;
+- **not eligibility** — applying the seed's own rule to all 314 rows, every one
+  of the 15 categories has 12–22 eligible campaigns;
+- **not a schema gap** — `visibility`, `deleted_at`, `campaign_health_score` and
+  `featured` all exist and are queryable (the API filters on them).
+
+Most likely cause: **Supabase's SQL Editor runs only the highlighted text when
+anything is selected.** Re-run with nothing selected; it should report 25 rows.
+
+#### 🔁 THE LISTING FOUND A REAL BUG — always print the picks before running a seed
+
+Listing the picks before running them is what caught this, and it is worth
+keeping as a habit: **six of the fifteen categories have exactly ONE distinct
+campaign title** among their eligible rows (Sports, Competition, Community,
+Environment, Event, Faith — the data is templated). "Top 2 per category" would
+have promoted **two identically titled cards into slots 1 and 2** of those cause
+pages, both ringed and badged. That reads as a rendering bug, not a promotion.
+
+Fixed in #273 with a per-`(category, title)` pass before the per-category rank,
+so a single-title category contributes one featured campaign instead of a
+duplicate pair. 30 → 25 campaigns, all 20 causes still covered.
+
+I did not pick the campaigns by hand: the rule is `campaign_health_score` desc,
+tie-broken by raised then id. Choosing which fundraiser gets promoted placement
+is platform-editorial, so it is a stated rule the owner can audit, not a
+judgement made silently on their behalf.
 
 ### ✅ MEASURED ON PRODUCTION — the defect was live, in 3 of 12 slots
 
