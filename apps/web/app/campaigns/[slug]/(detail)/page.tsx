@@ -821,6 +821,15 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             </Link>
           </p>
 
+          {/* The guided, one-question-at-a-time version of the donate panel above.
+              Same POST /api/donations, same Stripe Checkout hand-off — it is a
+              calmer route through the same flow, not a second checkout. */}
+          <p style={{ margin: '6px 0 0', fontSize: 13 }}>
+            <Link href={`/donate/${campaign.slug}`} style={{ color: 'var(--brand-text)', fontWeight: 650 }}>
+              Prefer one step at a time? Use the guided donation flow →
+            </Link>
+          </p>
+
         </div>{/* end pc-left */}
 
         {/* RIGHT column: sticky donation form */}

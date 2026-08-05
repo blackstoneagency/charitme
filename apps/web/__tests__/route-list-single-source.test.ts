@@ -168,6 +168,10 @@ describe('public route list has a single source of truth', () => {
       // engines should consolidate there rather than rank the share page — and
       // it is a dynamic route, so it has no place in a static sitemap catalog.
       '/campaigns/security-header-fixture/share',
+      // Guided checkout for one campaign. Canonical points at the campaign and
+      // the page is noindex — it is a checkout surface, not something search
+      // engines should rank in the campaign's place.
+      '/donate/security-header-fixture',
       // Same reasoning as /share: a per-campaign surface listed in the sweep so
       // the audits reach it. Its canonical points at /campaigns/[slug]/updates
       // for the REAL slug, and a dynamic route cannot live in a static catalog.
