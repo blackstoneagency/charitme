@@ -49,7 +49,7 @@ concurrency:
 
 jobs:
   verify:
-    name: typecheck · lint · test · audit · build
+    name: typecheck · lint · test · build · e2e · a11y
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -105,34 +105,23 @@ jobs:
   # All four specs pass against the placeholder env below, on chromium AND
   # mobile: verified 16/16. Please don't re-narrow this without re-testing.
   #
-  # Runs as its own job so it parallelises with `verify` and can publish a report.
-  e2e:
-    name: e2e (playwright)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20.x
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
+  # ⚠️ These steps USED TO BE a second job, `e2e`, running in parallel with
+  # `verify`. The comment justifying that said "parallelises with verify" — true,
+  # and the right call when Actions minutes were free.
+  #
+  # They are not free: this is a private repo on a personal account with a fixed
+  # monthly allowance, and exhausting it is what produced the runner outages
+  # recorded in CLAUDE.md. Two jobs meant TWO `npm ci` and TWO full Next builds
+  # per run, and the build is by far the most expensive step here.
+  #
+  # Minutes are billed per job-minute SUMMED, so merging trades wall-clock (the
+  # two no longer overlap) for roughly a third fewer billed minutes. Wall-clock
+  # is not the scarce resource; the allowance is. Reverse this if the plan
+  # changes and parallel feedback becomes worth more than the minutes.
 
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
         working-directory: apps/web
-
-      # playwright.config.ts owns the webServer (`npm start`), so the suite runs
-      # against a real production build using the same placeholders as `verify`.
-      - name: Production build
-        run: npm run build --workspace=apps/web
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
-          NEXT_PUBLIC_APP_URL: https://www.charitme.com
-          SUPABASE_SERVICE_ROLE_KEY: placeholder-service-role-key
 
       - name: End-to-end tests (chromium + mobile)
         run: npx playwright test
@@ -143,14 +132,14 @@ jobs:
           NEXT_PUBLIC_APP_URL: https://www.charitme.com
           SUPABASE_SERVICE_ROLE_KEY: placeholder-service-role-key
 
-      # Runtime WCAG AA contrast sweep. It needs a live server, and
-      # playwright.config.ts tears its own webServer down after the suite, so this
-      # step owns one. Two gotchas are encoded deliberately:
+      # Runtime sweeps that need a live server. playwright.config.ts tears its own
+      # webServer down after the suite, so this step owns one. Two gotchas are
+      # encoded deliberately:
       #   • it fails fast if the port is already taken — a stale server silently
       #     audits the OLD build and produces plausible-looking nonsense.
       #   • the pkill pattern is bracketed so it cannot match this step's own
       #     shell (`next-server` appears in that command line otherwise).
-      # Runtime sweeps that need a live server. Both run against ONE server start,
+      # Both sweeps run against ONE server start,
       # so the axe sweep costs a sweep rather than another build — which matters
       # while Actions minutes are the binding constraint on this repo.
       #
