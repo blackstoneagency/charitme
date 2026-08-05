@@ -304,9 +304,12 @@ describe('the fuller Sports & Youth layout', () => {
   const css = read('app/globals.css');
 
   it('every cause has an authored impact heading, not one line repeated 20 times', () => {
+    // `impactBlurb` was dropped with the heavy stats sheet: the tight strip has
+    // no room for a paragraph, and a field nothing renders is a field the next
+    // author spends time wondering about. The heading survives — it names the
+    // strip for screen readers.
     for (const c of CAUSES) {
       expect(c.impactTitle, `${c.slug} needs an impactTitle`).toBeTruthy();
-      expect(c.impactBlurb, `${c.slug} needs an impactBlurb`).toBeTruthy();
     }
     const titles = new Set(CAUSES.map((c) => c.impactTitle));
     expect(titles.size, 'impact headings must be distinct per cause').toBe(CAUSES.length);
@@ -430,5 +433,56 @@ describe('the fuller Sports & Youth layout', () => {
     const darkBody = css.slice(css.indexOf('[data-theme="dark"] body {'));
     expect(darkBody.slice(0, 1200)).toContain('background: #000000;');
     expect(darkBody.slice(0, 1200)).not.toContain('radial-gradient');
+  });
+});
+
+describe('the stats band is the shared strip, on every cause page', () => {
+  const landing = read('app/causes/[slug]/CauseLanding.tsx');
+  const cssSrc = read('app/globals.css');
+
+  it('renders StatStrip rather than a second implementation', () => {
+    // Two strips that must agree about what an unmeasured figure looks like is
+    // exactly the drift this repo keeps paying for. One component, one em-dash
+    // rule, one <dl> grouping that axe accepts, one icon set.
+    expect(landing).toContain("import { StatStrip }");
+    expect(landing).toContain('<StatStrip');
+  });
+
+  it('dropped the sheet chrome that made the band heavy', () => {
+    // A heart glyph, a heading, a blurb and a footnote around four numbers.
+    // The /causes index states the same kind of figures in one tight panel.
+    for (const gone of ['cl-sheet', 'cl-sheet-intro', 'cl-sheet-heart', 'cl-stat-row', 'cl-stats-note']) {
+      expect(landing, `${gone} must be gone from the markup`).not.toContain(gone);
+      expect(cssSrc, `${gone} must not be left as orphaned CSS`).not.toContain(`.${gone}`);
+    }
+  });
+
+  it('keeps its own icon set nowhere — the strip carries them', () => {
+    expect(landing).not.toContain('STAT_ICONS');
+  });
+
+  it('still names the band for screen readers', () => {
+    // The visible <h2> is gone, so the accessible name has to come from the
+    // strip's aria-label or the section is announced as nothing at all.
+    expect(landing).toMatch(/label=\{cause\.impactTitle \?\? t\('cl\.where_support_goes'\)\}/);
+  });
+
+  it('applies to EVERY cause, because they share one component', () => {
+    // The request named four slugs; there is only one renderer, so all of them
+    // change together. This asserts the set is complete rather than a sample.
+    const slugs = CAUSES.map((c) => c.slug);
+    for (const named of ['sports-youth', 'people-in-need', 'community-relief', 'health-wellness']) {
+      expect(slugs, `${named} must be a real cause page`).toContain(named);
+    }
+    expect(slugs.length).toBeGreaterThanOrEqual(20);
+  });
+
+  it('still shows the four MEASURED figures, and an em dash for a failed read', () => {
+    expect(landing).toContain('formatStat(stats.liveCampaigns)');
+    expect(landing).toContain('formatMoneyStat(stats.raisedCents)');
+    expect(landing).toContain('formatStat(stats.supporters)');
+    expect(landing).toContain('formatStat(stats.countries)');
+    expect(formatStat(null)).toBe('—');
+    expect(formatMoneyStat(null)).toBe('—');
   });
 });
