@@ -1,5 +1,48 @@
 # CharitMe — Execution Tracker
 
+## 💸 A REFUND REQUEST COULD BE TOLD THE DONATION DOES NOT EXIST (Claude, 2026-08-05)
+
+Fifth triage of the money-path queue. A donor asking for their money back must
+never be told the donation is not there. **If the refund path looks broken, the
+alternative they reach for is a chargeback** — expensive for the platform, and
+worse for the fundraiser, whose campaign balance is what gets clawed back.
+
+`.single()` reports **zero rows as an error**, so a missing donation and an
+unreadable database produced the same `fetchErr`:
+
+| handler | before |
+|---|---|
+| `POST` | captured the error, then **collapsed it**: `if (fetchErr \|\| !donation) → 404 "Donation not found"` |
+| `GET` | did not capture the error at all → `donation` null → **404 "Not found"** |
+
+Both now `.maybeSingle()` with the two cases separated: a read failure answers
+**503 `DONATION_LOOKUP_UNAVAILABLE`**, a genuinely missing donation still answers
+404, and someone else's donation still answers 404 (GET) / 403 (POST).
+
+### The tell was inside the same file
+
+The `refunds` read **two blocks below each of these** already answered 503, with a
+comment saying why: *"Never report 'no request' because the lookup failed — the
+donor would file a duplicate."* One guarded read and one unguarded read in the
+same handler is what marks this as an oversight rather than a decision. Worth
+remembering as a search heuristic: **where one read is guarded, check its
+neighbours.**
+
+### Mutation-testing found a hole in my OWN tests
+
+Three mutations, and the third initially **passed**: deleting POST's
+`if (!donation) → 404` broke no test — yet the very next line dereferences
+`donation`, so a genuinely missing donation would have thrown. My tests covered
+POST's 503 and 403 paths but never its plain 404. Added, then re-mutated: caught.
+
+**A guard nobody exercises is not a guard.** That is the third time in this
+session that mutation-testing has caught my own test being weaker than it looked.
+
+Guard: `__tests__/refund-request-read-failures.test.ts`, 6 assertions, executing
+the real handlers — this route had never been run by a test.
+
+
+
 ## ✅ CAUSE PAGES: SIX CAMPAIGNS, THEN "SEE MORE" — verified on all 20 (Claude, 2026-08-05)
 
 Every cause page rendered up to **24** campaigns at once. It now renders **six** —

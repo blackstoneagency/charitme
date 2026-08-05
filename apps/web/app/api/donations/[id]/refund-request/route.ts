@@ -50,13 +50,28 @@ export async function POST(
   const { id: donationId } = await params;
 
   // ── 3. Fetch donation — must belong to the requesting donor ──────────────
+  // ⚠️ `.single()` reports ZERO ROWS AS AN ERROR, so `fetchErr` was set both when
+  // the donation genuinely did not exist and when the read failed — and the
+  // branch below collapsed the two into 404 "Donation not found". A donor trying
+  // to request a refund during a database blip was told their donation does not
+  // exist; the next thing they reach for is a chargeback.
+  //
+  // The read two blocks down ALREADY answers 503 for exactly this reason. Having
+  // one guarded and the other not, inside a single handler, is what marks this as
+  // an oversight rather than a decision.
   const { data: donation, error: fetchErr } = await supabaseAdmin
     .from('donations')
     .select('id, donor_id, amount_cents, status, created_at, campaign_id')
     .eq('id', donationId)
-    .single();
+    .maybeSingle();
 
-  if (fetchErr || !donation) {
+  if (fetchErr) {
+    return NextResponse.json(
+      { error: 'Could not load this donation right now. Please try again.', code: 'DONATION_LOOKUP_UNAVAILABLE' },
+      { status: 503 },
+    );
+  }
+  if (!donation) {
     return NextResponse.json({ error: 'Donation not found' }, { status: 404 });
   }
 
@@ -172,12 +187,21 @@ export async function GET(
   const { id: donationId } = await params;
 
   // Verify ownership
-  const { data: donation } = await supabaseAdmin
+  // Same split as POST. A failed read must not read as "no such donation".
+  const { data: donation, error: donationErr } = await supabaseAdmin
     .from('donations')
     .select('donor_id')
     .eq('id', donationId)
-    .single();
+    .maybeSingle();
 
+  if (donationErr) {
+    return NextResponse.json(
+      { error: 'Could not load this donation right now. Please try again.', code: 'DONATION_LOOKUP_UNAVAILABLE' },
+      { status: 503 },
+    );
+  }
+  // A donation owned by someone else still answers 404 rather than 403 — this is
+  // a read of a specific id, so 403 would confirm the donation exists.
   if (!donation || (donation as { donor_id: string | null }).donor_id !== user.id) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
