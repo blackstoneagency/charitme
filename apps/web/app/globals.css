@@ -10992,3 +10992,18 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
    mode therefore produced dark-on-dark: measured at 1.08:1 for the H1. The
    white text was already correct; the mistake was assuming the band followed
    the theme because the photo behind it had moved. */
+
+/* ── About: the "in" control under each team member ──────────────────────────
+   Rendered only when a real LinkedIn URL is configured. Token-driven so it
+   flips with the theme; the brand blue is LinkedIn's own and is deliberately
+   the one literal here, matching how ShareButtons already treats it. */
+.ab-team-in {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; margin-top: 10px;
+  border: 1px solid var(--b1); border-radius: 6px;
+  background: var(--s2); color: var(--t2);
+  font-size: 12px; font-weight: 800; line-height: 1; text-decoration: none;
+  transition: color .15s ease, border-color .15s ease, background .15s ease;
+}
+.ab-team-in:hover { color: #0a66c2; border-color: #0a66c2; background: var(--s3); }
+.ab-team-in:focus-visible { outline: 2px solid var(--brand-text); outline-offset: 2px; }

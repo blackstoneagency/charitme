@@ -35,6 +35,22 @@ export default function AboutTeam({ members }: { members: TeamMember[] }) {
             </span>
             <strong>{member.name}</strong>
             <span>{member.title}</span>
+            {member.linkedin && (
+              // The reference's small "in" control under each face. Rendered only
+              // when a real LinkedIn URL was entered — an icon that links nowhere
+              // is worse than no icon. `rel` is set because this leaves the site.
+              <a
+                className="ab-team-in"
+                href={member.linkedin}
+                target="_blank"
+                rel="noreferrer noopener"
+                // Named per person: six links all called "LinkedIn" are
+                // indistinguishable to a screen-reader user tabbing the row.
+                aria-label={`${member.name} on LinkedIn`}
+              >
+                <span aria-hidden="true">in</span>
+              </a>
+            )}
           </li>
         ))}
       </ul>

@@ -62,6 +62,16 @@ export interface TeamMember {
   title: string;
   /** Optional headshot. Absent renders monogram initials rather than a broken image. */
   photo?: string;
+  /**
+   * Optional LinkedIn profile, shown as the small "in" control the reference
+   * puts under each face.
+   *
+   * ⚠️ Validated as ACTUALLY LinkedIn, not merely https. An arbitrary URL behind
+   * a LinkedIn icon tells the visitor where they are going and then sends them
+   * somewhere else — a small lie, but on the page whose entire job is looking
+   * trustworthy, and one an administrator could introduce with a typo.
+   */
+  linkedin?: string;
 }
 
 export interface AboutPageContent {
@@ -110,10 +120,33 @@ export function parseTeam(raw: unknown): TeamMember[] {
     // https only. An http headshot would be blocked as mixed content and render
     // as a broken image on a page whose whole job is looking trustworthy.
     const photo = /^https:\/\/\S+$/.test(photoRaw) ? photoRaw : undefined;
-    out.push({ name, title, photo });
+    const linkedinRaw = typeof r.linkedin === 'string' ? r.linkedin.trim() : '';
+    out.push({ name, title, photo, linkedin: parseLinkedIn(linkedinRaw) });
     if (out.length === 12) break;
   }
   return out;
+}
+
+/**
+ * A LinkedIn profile, or nothing.
+ *
+ * Host-checked rather than substring-matched: `https://evil.com/linkedin.com`
+ * contains the string and is not LinkedIn, and `https://linkedin.com.evil.com`
+ * is the classic suffix trick. Parsing the URL and comparing the HOSTNAME is
+ * the only form that gets both right.
+ */
+export function parseLinkedIn(raw: unknown): string | undefined {
+  const value = typeof raw === 'string' ? raw.trim() : '';
+  if (!value) return undefined;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return undefined;
+  }
+  if (url.protocol !== 'https:') return undefined;
+  const host = url.hostname.toLowerCase();
+  return host === 'linkedin.com' || host.endsWith('.linkedin.com') ? value : undefined;
 }
 
 /** Only a real https URL is a video. Anything else leaves the control unrendered. */
