@@ -1,0 +1,411 @@
+<title>CharitMe — Architecture Map</title>
+
+<style>
+  /* ─── Tokens ─────────────────────────────────────────────────────────────
+     Neutrals carry a violet bias so they read as chosen against the brand
+     accent rather than inherited grey. Node CLASS carries semantic hue —
+     the service-role boundary is the one thing on this page worth seeing at
+     a glance, so it gets the alarm colour and nothing else does. */
+  :root {
+    --ground:      #f7f6fb;
+    --panel:       #ffffff;
+    --panel-2:     #f1eff8;
+    --line:        #e0dcee;
+    --line-strong: #c7c1de;
+    --ink:         #16142a;
+    --ink-2:       #4a4566;
+    --ink-3:       #6d6889;
+    --accent:      #6a3cf0;
+    --accent-soft: #efe9ff;
+    --money:       #0f7a42;
+    --money-soft:  #e3f5ea;
+    --external:    #9a5a06;
+    --external-soft:#fbefd9;
+    --elevated:    #b62742;
+    --elevated-soft:#fce6ea;
+    --dim:         .16;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground:#0b0a14; --panel:#131126; --panel-2:#1b1832; --line:#2a2545;
+      --line-strong:#3d3663; --ink:#eceaf7; --ink-2:#b6b0d0; --ink-3:#8b85a8;
+      --accent:#a688ff; --accent-soft:#241c46;
+      --money:#4fc98a; --money-soft:#0e2b1d;
+      --external:#e0a44a; --external-soft:#33240c;
+      --elevated:#ff7d97; --elevated-soft:#3a1420;
+      --dim:.13;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:#0b0a14; --panel:#131126; --panel-2:#1b1832; --line:#2a2545;
+    --line-strong:#3d3663; --ink:#eceaf7; --ink-2:#b6b0d0; --ink-3:#8b85a8;
+    --accent:#a688ff; --accent-soft:#241c46;
+    --money:#4fc98a; --money-soft:#0e2b1d;
+    --external:#e0a44a; --external-soft:#33240c;
+    --elevated:#ff7d97; --elevated-soft:#3a1420;
+    --dim:.13;
+  }
+  :root[data-theme="light"] {
+    --ground:#f7f6fb; --panel:#ffffff; --panel-2:#f1eff8; --line:#e0dcee;
+    --line-strong:#c7c1de; --ink:#16142a; --ink-2:#4a4566; --ink-3:#6d6889;
+    --accent:#6a3cf0; --accent-soft:#efe9ff;
+    --money:#0f7a42; --money-soft:#e3f5ea;
+    --external:#9a5a06; --external-soft:#fbefd9;
+    --elevated:#b62742; --elevated-soft:#fce6ea;
+    --dim:.16;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--ground); color: var(--ink);
+    font-family: var(--sans); font-size: 15px; line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1560px; margin: 0 auto; padding: 28px clamp(16px, 3vw, 32px) 56px; }
+
+  header { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px 28px; margin-bottom: 22px; }
+  h1 { margin: 0; font-size: clamp(21px, 2.4vw, 27px); font-weight: 750; letter-spacing: -.02em; text-wrap: balance; }
+  .sub { margin: 4px 0 0; color: var(--ink-2); font-size: 14px; max-width: 66ch; }
+  .scale { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-left: auto; font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  .scale b { color: var(--ink); font-weight: 650; }
+
+  .grid { display: grid; grid-template-columns: minmax(0,1fr) 372px; gap: 20px; align-items: start; }
+  @media (max-width: 1120px) { .grid { grid-template-columns: minmax(0,1fr); } }
+
+  .stage { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px; overflow-x: auto; }
+  svg.map { display: block; width: 100%; height: auto; min-width: 760px; }
+
+  /* Node shells. Fill/stroke set per class below. */
+  .node rect { stroke-width: 1.5; rx: 9; transition: opacity .18s ease; }
+  .node text { font-family: var(--sans); fill: var(--ink); }
+  .node .n-label { font-size: 13.5px; font-weight: 680; }
+  .node .n-badge { font-family: var(--mono); font-size: 10px; fill: var(--ink-3); }
+  .node { cursor: pointer; }
+  .node:focus { outline: none; }
+  .node:focus-visible rect { stroke: var(--accent); stroke-width: 3; }
+
+  .c-client   rect { fill: var(--panel-2);      stroke: var(--line-strong); }
+  .c-edge     rect { fill: var(--accent-soft);  stroke: var(--accent); }
+  .c-app      rect { fill: var(--accent-soft);  stroke: var(--accent); }
+  .c-access   rect { fill: var(--external-soft);stroke: var(--external); }
+  .c-elevated rect { fill: var(--elevated-soft);stroke: var(--elevated); stroke-width: 2.25; }
+  .c-data     rect { fill: var(--money-soft);   stroke: var(--money); }
+  .c-external rect { fill: var(--external-soft);stroke: var(--external); stroke-dasharray: 5 3; }
+  .c-job      rect { fill: var(--panel-2);      stroke: var(--line-strong); stroke-dasharray: 5 3; }
+
+  .edge path { fill: none; stroke: var(--line-strong); stroke-width: 1.6; transition: opacity .18s ease, stroke .18s ease; }
+  .edge text { font-family: var(--mono); font-size: 9.5px; fill: var(--ink-3); }
+
+  /* Flow selection: everything not on the path recedes; the path lights up. */
+  .filtering .node:not(.on), .filtering .edge:not(.on) { opacity: var(--dim); }
+  .edge.on path { stroke: var(--accent); stroke-width: 2.75; }
+  .edge.on text { fill: var(--accent); font-weight: 700; }
+  .flow-money .edge.on path { stroke: var(--money); }
+  .flow-money .edge.on text { fill: var(--money); }
+  .node.on rect { stroke-width: 2.75; }
+  .step-dot circle { fill: var(--accent); }
+  .flow-money .step-dot circle { fill: var(--money); }
+  .step-dot text { fill: #fff; font-size: 10px; font-weight: 750; font-family: var(--mono); }
+
+  /* ─── Flows panel ─── */
+  .side { display: flex; flex-direction: column; gap: 12px; position: sticky; top: 18px; }
+  @media (max-width: 1120px) { .side { position: static; } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+  .card > h2 { margin: 0; padding: 13px 15px 11px; font-size: 11px; font-weight: 750; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-3); border-bottom: 1px solid var(--line); }
+
+  .flows { display: flex; flex-direction: column; padding: 7px; gap: 3px; }
+  .flow-btn {
+    display: flex; align-items: center; gap: 9px; width: 100%;
+    padding: 9px 11px; border: 0; border-radius: 8px; background: none;
+    color: var(--ink); font: inherit; font-size: 13.5px; font-weight: 600;
+    text-align: left; cursor: pointer;
+  }
+  .flow-btn:hover { background: var(--panel-2); }
+  .flow-btn[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 720; }
+  .flow-btn.is-money[aria-pressed="true"] { background: var(--money-soft); color: var(--money); }
+  .flow-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .flow-btn .tick { width: 7px; height: 7px; border-radius: 50%; background: var(--line-strong); flex: none; }
+  .flow-btn[aria-pressed="true"] .tick { background: currentColor; }
+  .flow-btn .n { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); }
+
+  .detail { padding: 13px 15px 16px; }
+  .detail .summary { margin: 0 0 13px; font-size: 13.5px; color: var(--ink-2); }
+  ol.steps { margin: 0; padding: 0; list-style: none; counter-reset: s; display: flex; flex-direction: column; gap: 11px; }
+  ol.steps li { counter-increment: s; display: grid; grid-template-columns: 21px minmax(0,1fr); gap: 10px; }
+  ol.steps li::before {
+    content: counter(s); grid-column: 1;
+    width: 21px; height: 21px; border-radius: 50%;
+    display: grid; place-items: center;
+    background: var(--accent); color: #fff;
+    font-family: var(--mono); font-size: 10.5px; font-weight: 750;
+  }
+  .flow-money ol.steps li::before { background: var(--money); }
+  ol.steps .who { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); display: block; margin-bottom: 1px; }
+  ol.steps p { margin: 0; font-size: 13px; color: var(--ink-2); line-height: 1.5; }
+  .empty { padding: 15px; font-size: 13.5px; color: var(--ink-3); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 5px 14px; padding: 11px 15px 14px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--ink-2); }
+  .legend i { width: 12px; height: 12px; border-radius: 3px; border: 1.5px solid; flex: none; }
+
+  /* ─── Tooltip ─── */
+  #tip {
+    position: fixed; z-index: 40; max-width: 320px; pointer-events: none; opacity: 0;
+    transform: translateY(3px); transition: opacity .12s ease, transform .12s ease;
+    background: var(--panel); color: var(--ink);
+    border: 1px solid var(--line-strong); border-radius: 9px;
+    padding: 9px 11px; box-shadow: 0 12px 34px rgba(10,8,30,.22);
+    font-size: 12.5px; line-height: 1.45;
+  }
+  #tip.show { opacity: 1; transform: translateY(0); }
+  #tip b { display: block; font-size: 13px; margin-bottom: 2px; }
+  #tip code { font-family: var(--mono); font-size: 11px; color: var(--ink-3); display: block; margin-top: 5px; word-break: break-all; }
+
+  footer { margin-top: 26px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--ink-3); max-width: 78ch; }
+  footer code { font-family: var(--mono); font-size: 11.5px; }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>CharitMe — architecture map</h1>
+      <p class="sub">
+        Every node, count and step below was read from the repository, not inferred.
+        Pick a flow on the right to light its path through the system.
+      </p>
+    </div>
+    <div class="scale" id="scale"></div>
+  </header>
+
+  <div class="grid">
+    <div class="stage">
+      <svg class="map" id="map" viewBox="0 0 1080 620" role="img"
+           aria-label="Layered map of the CharitMe system: browser and edge middleware above the Next.js pages and route handlers, which reach Postgres through three separate Supabase clients — two anon clients under RLS and one service-role client that bypasses it — with Stripe, OpenAI, Resend and cron jobs alongside.">
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="currentColor" />
+          </marker>
+        </defs>
+        <g id="edges"></g>
+        <g id="nodes"></g>
+        <g id="dots"></g>
+      </svg>
+    </div>
+
+    <aside class="side">
+      <div class="card">
+        <h2>Flows</h2>
+        <div class="flows" id="flows"></div>
+      </div>
+      <div class="card" id="detailCard">
+        <h2 id="detailTitle">Detail</h2>
+        <div id="detail" class="empty">Select a flow to trace it step by step.</div>
+      </div>
+      <div class="card">
+        <h2>Node classes</h2>
+        <div class="legend" id="legend"></div>
+      </div>
+    </aside>
+  </div>
+
+  <footer>
+    Companion to <code>docs/architecture.json</code>, which carries the same
+    <code>{nodes, edges, flows}</code> for agents to walk before editing a subsystem.
+    The one boundary worth memorising: <b>supabaseAdmin bypasses RLS</b>, so every
+    route handler using it owns its own authorisation check — the database will not
+    catch a mistake there.
+  </footer>
+</div>
+
+<div id="tip" role="tooltip" aria-hidden="true"></div>
+
+<script>
+const DATA = {"$comment":["Machine-readable architecture map of the CharitMe repository.","","Generated by reading the repo, not by inference: every count, file path, RPC","name and Stripe event listed here was verified against source at the commit","noted in `meta.verifiedAt`. Where a fact could not be checked from inside the","build sandbox it is absent rather than guessed.","","Consumers: docs/architecture.html renders this directly. Agents can walk","`flows[].steps[]` to learn the real call order for a subsystem before editing it."],"meta":{"repo":"blackstoneagency/charitme","verifiedAt":"2026-08-03","framework":"Next.js 15 App Router","scale":{"pages":231,"apiRoutes":247,"libModules":188,"components":34,"tables":162,"migrations":114,"testFiles":249}},"classes":{"client":{"label":"Client","hue":"neutral"},"edge":{"label":"Edge","hue":"violet"},"app":{"label":"Application","hue":"violet"},"access":{"label":"Data access","hue":"amber"},"elevated":{"label":"Service role","hue":"red"},"data":{"label":"Data","hue":"green"},"external":{"label":"External service","hue":"amber"},"job":{"label":"Scheduled job","hue":"neutral"}},"nodes":[{"id":"browser","label":"Browser","class":"client","x":40,"y":36,"w":250,"h":54,"tooltip":"Public visitors and signed-in users. Session lives in a Supabase auth cookie."},{"id":"middleware","label":"middleware.ts","class":"edge","file":"apps/web/middleware.ts","x":40,"y":128,"w":250,"h":54,"tooltip":"Refreshes the session on every non-API request and redirects anonymous users away from /create, /dashboard, /admin and /profile."},{"id":"pages-public","label":"Public pages","class":"app","file":"apps/web/app/**/page.tsx","badge":"231","x":40,"y":226,"w":224,"h":64,"tooltip":"Server Components. Marketing, campaigns, /donate. Rendered with ISR — most carry `export const revalidate`."},{"id":"pages-gated","label":"Dashboard + Admin","class":"app","file":"apps/web/app/(dashboard|admin)/**","x":284,"y":226,"w":210,"h":64,"tooltip":"Auth-gated surfaces. Admin is doubly gated: the layout requires admin, and super-admin pages call requireSuperAdmin()."},{"id":"api","label":"Route handlers","class":"app","file":"apps/web/app/api/**/route.ts","badge":"247","x":514,"y":226,"w":224,"h":64,"tooltip":"72 admin, 29 campaigns, 16 ai, 13 volunteers, 7 donations, 6 stripe, plus the long tail."},{"id":"sb-browser","label":"supabase-browser","class":"access","file":"apps/web/lib/supabase-browser.ts","badge":"anon key","x":40,"y":348,"w":224,"h":62,"tooltip":"Client Components only ('use client'). Anon key — every read and write is subject to RLS."},{"id":"sb-server","label":"supabase-server","class":"access","file":"apps/web/lib/supabase-server.ts","badge":"anon + cookies","x":284,"y":348,"w":210,"h":62,"tooltip":"Server Components and Route Handlers. Anon key plus cookies(), server-only guarded. Still subject to RLS."},{"id":"sb-admin","label":"supabaseAdmin","class":"elevated","file":"apps/web/lib/supabase.ts","badge":"service role — bypasses RLS","x":514,"y":348,"w":224,"h":62,"tooltip":"API routes ONLY. Service-role key, bypasses RLS entirely, so every handler must do its own ownership check. A Proxy whose get trap throws when the env vars are missing."},{"id":"postgres","label":"Supabase Postgres","class":"data","badge":"162 tables · RLS","x":40,"y":470,"w":454,"h":68,"tooltip":"162 tables across 114 migrations. RLS is the enforcement boundary for the two anon clients."},{"id":"rpc","label":"RPCs + triggers","class":"data","file":"supabase/migrations","x":514,"y":470,"w":224,"h":68,"tooltip":"record_donation, decrement_campaign_stats, claim_campaign_reward, check_rate_limit. The donations_increment_campaign_stats trigger moves campaign totals — the RPC does not."},{"id":"stripe","label":"Stripe","class":"external","badge":"Checkout · Connect","x":800,"y":226,"w":240,"h":64,"tooltip":"Checkout Sessions for donations, Connect Express for payouts. Sends 12 webhook event types back."},{"id":"openai","label":"OpenAI","class":"external","badge":"degrades to deterministic","x":800,"y":330,"w":240,"h":62,"tooltip":"16 /api/ai routes. Every one falls back to a deterministic result when OPENAI_API_KEY is unset — AI features never hard-fail."},{"id":"resend","label":"Resend","class":"external","badge":"email","x":800,"y":430,"w":240,"h":62,"tooltip":"All outbound email. Without RESEND_API_KEY every message is dropped and an error is logged in production only."},{"id":"cron","label":"Cron","class":"job","file":"apps/web/app/api/cron/*","badge":"4 jobs","x":800,"y":530,"w":240,"h":62,"tooltip":"apply-retention, snapshot-analytics, ingest-filings, reconcile-ledger. Bearer CRON_SECRET; fails safe — unset means the route demands an admin session instead."}],"edges":[{"id":"e-browser-mw","from":"browser","to":"middleware","label":"every non-API request"},{"id":"e-mw-public","from":"middleware","to":"pages-public","label":"passes through"},{"id":"e-mw-gated","from":"middleware","to":"pages-gated","label":"or 302 → /login"},{"id":"e-browser-api","from":"browser","to":"api","label":"fetch()"},{"id":"e-public-sbs","from":"pages-public","to":"sb-server","label":"reads","labelDx":18},{"id":"e-gated-sbs","from":"pages-gated","to":"sb-server","label":"reads"},{"id":"e-gated-sbb","from":"pages-gated","to":"sb-browser","label":"client components","labelDx":-54},{"id":"e-api-sba","from":"api","to":"sb-admin","label":"service role"},{"id":"e-sbb-pg","from":"sb-browser","to":"postgres","label":"RLS enforced"},{"id":"e-sbs-pg","from":"sb-server","to":"postgres","label":"RLS enforced"},{"id":"e-sba-pg","from":"sb-admin","to":"postgres","label":"RLS bypassed"},{"id":"e-sba-rpc","from":"sb-admin","to":"rpc","label":".rpc()","labelDx":26},{"id":"e-rpc-pg","from":"rpc","to":"postgres","label":"trigger updates totals","labelDy":12,"lane":34},{"id":"e-api-stripe","from":"api","to":"stripe","label":"create session","lane":-30,"labelDy":-6,"labelDx":0},{"id":"e-stripe-api","from":"stripe","to":"api","label":"webhook","lane":30,"labelDy":12,"labelDx":0},{"id":"e-api-openai","from":"api","to":"openai","label":"assist","lane":64},{"id":"e-api-resend","from":"api","to":"resend","label":"send","lane":104},{"id":"e-cron-api","from":"cron","to":"api","label":"Bearer CRON_SECRET","lane":150,"labelDx":60}],"flows":[{"id":"donation-oneoff","label":"One-off donation","emphasis":"money","summary":"The money path. Idempotent end to end, and the campaign totals are moved by a trigger rather than the RPC.","steps":[{"node":"browser","edge":"e-browser-api","text":"Donor submits the panel on /donate or a campaign page. An Idempotency-Key is generated per submit, so a double-click cannot charge twice."},{"node":"api","text":"POST /api/donations validates against @shared/fees (min $1, max $1,000,000), rejects inactive or ended campaigns, campaigns with donations switched off, and suspended organizers."},{"node":"api","edge":"e-api-stripe","text":"Creates a Stripe Checkout Session. application_fee_amount = tipCents + processingFeeCents — the donor's tip plus processing, NOT a percentage cut. PLATFORM_FEE_PERCENT is 0."},{"node":"stripe","text":"Donor completes payment on Stripe's hosted page. transfer_data.destination routes the principal to the organizer's connected account."},{"node":"stripe","edge":"e-stripe-api","text":"Stripe posts checkout.session.completed to /api/stripe/webhook, signature-verified against STRIPE_WEBHOOK_SECRET."},{"node":"api","edge":"e-api-sba","text":"The handler uses supabaseAdmin — service role, RLS bypassed — because a webhook carries no user session."},{"node":"sb-admin","edge":"e-sba-rpc","text":"Calls the record_donation RPC, which is idempotent on p_stripe_event_id. That is why every caller may safely throw and let Stripe retry."},{"node":"rpc","edge":"e-rpc-pg","text":"The RPC inserts the donation row only. The donations_increment_campaign_stats TRIGGER moves raised_amount and backer_count — do not increment in the RPC."},{"node":"api","edge":"e-api-resend","text":"Receipt email dispatched via Resend. Gifts to verified 501(c)(3) recipients get an official tax receipt; gifts to personal fundraisers are not deductible."}]},{"id":"donation-recurring","label":"Monthly donation","emphasis":"money","summary":"Diverges from the one-off path at the endpoint and stays diverged: subscriptions settle through invoice events, not checkout.session.completed.","steps":[{"node":"browser","edge":"e-browser-api","text":"Panel posts to /api/donations/recurring with cadence: monthly."},{"node":"api","edge":"e-api-stripe","text":"Creates a Stripe subscription rather than a one-off session."},{"node":"stripe","edge":"e-stripe-api","text":"invoice.payment_succeeded arrives on each cycle; invoice.payment_failed and customer.subscription.deleted handle dunning and cancellation."},{"node":"sb-admin","edge":"e-sba-rpc","text":"Each successful invoice records a donation through the same record_donation RPC, so recurring and one-off gifts land in one table with one idempotency rule."}]},{"id":"campaign-create","label":"Create a campaign","summary":"Publishing is gated server-side, not only in the wizard — a crafted request cannot publish a one-character story with a $0.01 goal.","steps":[{"node":"browser","edge":"e-browser-api","text":"The /create wizard posts to /api/campaigns."},{"node":"api","text":"Rate limited to 5 creations per IP per hour. Suspended accounts are refused with 403 ACCOUNT_SUSPENDED; an unreadable account status returns 503 rather than failing open."},{"node":"api","text":"A Zod superRefine enforces the publish bar — story length and minimum goal — only when status is 'active'. Drafts stay deliberately permissive."},{"node":"sb-admin","edge":"e-sba-pg","text":"Inserted with a slug derived from the title plus a base-36 timestamp. Falls back gracefully if the image_urls column is absent (PGRST204 / 42703)."}]},{"id":"payout-connect","label":"Organizer payout","emphasis":"money","summary":"Money reaches organizers through Stripe Connect, so CharitMe never holds it — which is why 'freeze payouts' is architecturally hard, not merely unbuilt.","steps":[{"node":"browser","edge":"e-browser-api","text":"Organizer starts onboarding from the dashboard."},{"node":"api","edge":"e-api-stripe","text":"POST /api/stripe/connect creates a Connect Express onboarding link."},{"node":"stripe","edge":"e-stripe-api","text":"Connect webhooks report account status against STRIPE_CONNECT_WEBHOOK_SECRET, surfaced by /api/health."},{"node":"sb-admin","edge":"e-sba-pg","text":"GET /api/stripe/connect?return marks profiles.stripe_onboarded = true. Until then, donations carry no transfer_data.destination."}]},{"id":"auth-session","label":"Sign in","summary":"The session is refreshed at the edge on every request, so a page never renders against a stale identity.","steps":[{"node":"browser","edge":"e-browser-mw","text":"Any non-API request."},{"node":"middleware","edge":"e-mw-gated","text":"Refreshes the session; anonymous users hitting /create, /dashboard, /admin or /profile are redirected to /login?next=<path>."},{"node":"pages-gated","edge":"e-gated-sbb","text":"Login and signup render the shared AuthPanel and call createClient() from supabase-browser."},{"node":"api","text":"OAuth and email confirmation land on /api/auth/callback; safeNextPath() prevents an open redirect."},{"node":"sb-server","edge":"e-sbs-pg","text":"Server components read identity through getUser() / requireUser()."}]},{"id":"ai-assist","label":"AI assist","summary":"Sixteen AI routes, none of which can hard-fail: an unset key degrades to a deterministic answer rather than an error.","steps":[{"node":"browser","edge":"e-browser-api","text":"A dashboard surface requests a suggestion — campaign copy, a growth plan, donor conversion hints."},{"node":"api","edge":"e-api-openai","text":"The /api/ai/* route calls OpenAI using OPENAI_MODEL."},{"node":"openai","text":"If the key is unset or the call fails, the route returns a deterministic fallback. Features degrade; they never 500."},{"node":"sb-admin","edge":"e-sba-pg","text":"Generations are recorded in ai_generations for audit and cost tracking."}]},{"id":"cron-reconcile","label":"Ledger reconciliation","summary":"The scheduled job that catches money the webhook path missed — and its auth fails safe rather than open.","steps":[{"node":"cron","edge":"e-cron-api","text":"Scheduler calls /api/cron/reconcile-ledger with a Bearer CRON_SECRET."},{"node":"api","text":"An UNSET secret locks cron out — the route then demands an admin session — rather than leaving the endpoint open."},{"node":"sb-admin","edge":"e-sba-pg","text":"Compares ledger_entries against Stripe-derived totals and writes reconciliation_exceptions for anything that does not balance."}]}]};
+
+const NS = 'http://www.w3.org/2000/svg';
+const el = (n, a = {}) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); return e; };
+const byId = Object.fromEntries(DATA.nodes.map(n => [n.id, n]));
+const edgeById = Object.fromEntries(DATA.edges.map(e => [e.id, e]));
+
+/* Scale strip */
+document.getElementById('scale').innerHTML = Object.entries(DATA.meta.scale)
+  .map(([k, v]) => `<span><b>${v.toLocaleString()}</b> ${k.replace(/([A-Z])/g, ' $1').toLowerCase()}</span>`).join('');
+
+/* ── Edges ──
+   Orthogonal routing: straight where the boxes align, otherwise a single
+   dog-leg. Curves would read as decorative here; the claim is "A calls B". */
+const eG = document.getElementById('edges');
+const anchor = (n, side) => ({
+  t: { x: n.x + n.w / 2, y: n.y },
+  b: { x: n.x + n.w / 2, y: n.y + n.h },
+  l: { x: n.x,          y: n.y + n.h / 2 },
+  r: { x: n.x + n.w,    y: n.y + n.h / 2 },
+}[side]);
+
+function route(a, b, e = {}) {
+  const A = byId[a], B = byId[b];
+  const lane = e.lane || 0;               // separates edges sharing a corridor
+  const vertical = Math.abs((A.x + A.w / 2) - (B.x + B.w / 2)) < 140 && B.y > A.y + A.h - 1;
+  if (vertical) {
+    const p = anchor(A, 'b'), q = anchor(B, 't');
+    return { d: `M${p.x} ${p.y} L${q.x} ${q.y}`, mid: { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 } };
+  }
+  if (B.y > A.y + A.h - 1) {                       // down and across
+    const p = anchor(A, 'b'), q = anchor(B, 't'), my = (p.y + q.y) / 2 + lane;
+    return { d: `M${p.x} ${p.y} L${p.x} ${my} L${q.x} ${my} L${q.x} ${q.y}`, mid: { x: (p.x + q.x) / 2, y: my } };
+  }
+  // Sideways. The corridor sits below both boxes so the two directions of a
+  // bidirectional pair (create-session out, webhook back) never overlap.
+  const leftward = B.x + B.w < A.x + 1;
+  const p = anchor(A, leftward ? 'l' : 'r'), q = anchor(B, leftward ? 'r' : 'l');
+  if (lane) {
+    // Sign carries direction: a negative lane runs the corridor ABOVE both
+    // boxes, positive runs it below. An earlier version always went below and
+    // offset by the raw value, so a negative lane put the corridor — and its
+    // label — inside the boxes it was meant to skirt.
+    const my = lane < 0 ? Math.min(A.y, B.y) + lane : Math.max(A.y + A.h, B.y + B.h) + lane;
+    return { d: `M${p.x} ${p.y} L${p.x + (leftward ? -18 : 18)} ${p.y} L${p.x + (leftward ? -18 : 18)} ${my} L${q.x + (leftward ? 18 : -18)} ${my} L${q.x + (leftward ? 18 : -18)} ${q.y} L${q.x} ${q.y}`,
+             mid: { x: (p.x + q.x) / 2, y: my } };
+  }
+  const mx = (p.x + q.x) / 2;
+  return { d: `M${p.x} ${p.y} L${mx} ${p.y} L${mx} ${q.y} L${q.x} ${q.y}`, mid: { x: mx, y: (p.y + q.y) / 2 } };
+}
+
+for (const e of DATA.edges) {
+  const g = el('g', { class: 'edge', 'data-id': e.id, color: 'currentColor' });
+  const r = route(e.from, e.to, e);
+  g.appendChild(el('path', { d: r.d, 'marker-end': 'url(#ah)' }));
+  const t = el('text', { x: r.mid.x + (e.labelDx || 0), y: r.mid.y - 4 + (e.labelDy || 0), 'text-anchor': 'middle' });
+  t.textContent = e.label;
+  g.appendChild(t);
+  eG.appendChild(g);
+}
+
+/* ── Nodes ── */
+const nG = document.getElementById('nodes');
+for (const n of DATA.nodes) {
+  const g = el('g', { class: `node c-${n.class}`, 'data-id': n.id, tabindex: '0', role: 'button',
+                      'aria-label': `${n.label}. ${n.tooltip}` });
+  g.appendChild(el('rect', { x: n.x, y: n.y, width: n.w, height: n.h }));
+  const cx = n.x + n.w / 2, hasBadge = Boolean(n.badge);
+  const lab = el('text', { x: cx, y: n.y + (hasBadge ? n.h / 2 - 3 : n.h / 2 + 5), 'text-anchor': 'middle', class: 'n-label' });
+  lab.textContent = n.label;
+  g.appendChild(lab);
+  if (hasBadge) {
+    const b = el('text', { x: cx, y: n.y + n.h / 2 + 13, 'text-anchor': 'middle', class: 'n-badge' });
+    b.textContent = n.badge;
+    g.appendChild(b);
+  }
+  nG.appendChild(g);
+}
+
+/* ── Tooltip ── */
+const tip = document.getElementById('tip');
+function showTip(n, x, y) {
+  tip.innerHTML = `<b>${n.label}</b>${n.tooltip}${n.file ? `<code>${n.file}</code>` : ''}`;
+  tip.classList.add('show');
+  tip.setAttribute('aria-hidden', 'false');
+  const r = tip.getBoundingClientRect();
+  tip.style.left = Math.min(Math.max(10, x - r.width / 2), innerWidth - r.width - 10) + 'px';
+  tip.style.top  = (y - r.height - 12 < 8 ? y + 18 : y - r.height - 12) + 'px';
+}
+const hideTip = () => { tip.classList.remove('show'); tip.setAttribute('aria-hidden', 'true'); };
+
+nG.addEventListener('mousemove', ev => {
+  const g = ev.target.closest('.node');
+  if (!g) return hideTip();
+  showTip(byId[g.dataset.id], ev.clientX, ev.clientY);
+});
+nG.addEventListener('mouseleave', hideTip);
+nG.addEventListener('focusin', ev => {
+  const g = ev.target.closest('.node'); if (!g) return;
+  const r = g.getBoundingClientRect();
+  showTip(byId[g.dataset.id], r.left + r.width / 2, r.top);
+});
+nG.addEventListener('focusout', hideTip);
+
+/* ── Flows ── */
+const flowsEl = document.getElementById('flows');
+const detail = document.getElementById('detail');
+const detailTitle = document.getElementById('detailTitle');
+const svg = document.getElementById('map');
+const dotsG = document.getElementById('dots');
+let active = null;
+
+DATA.flows.forEach(f => {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'flow-btn' + (f.emphasis === 'money' ? ' is-money' : '');
+  b.setAttribute('aria-pressed', 'false');
+  b.dataset.id = f.id;
+  b.innerHTML = `<span class="tick"></span>${f.label}<span class="n">${f.steps.length}</span>`;
+  b.addEventListener('click', () => select(f.id === active ? null : f.id));
+  flowsEl.appendChild(b);
+});
+
+function select(id) {
+  active = id;
+  dotsG.textContent = '';
+  svg.classList.toggle('filtering', Boolean(id));
+  svg.classList.remove('flow-money');
+  document.body.classList.remove('flow-money');
+  document.querySelectorAll('.node.on, .edge.on').forEach(n => n.classList.remove('on'));
+  flowsEl.querySelectorAll('.flow-btn').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.id === id)));
+
+  if (!id) {
+    detailTitle.textContent = 'Detail';
+    detail.className = 'empty';
+    detail.textContent = 'Select a flow to trace it step by step.';
+    return;
+  }
+
+  const f = DATA.flows.find(x => x.id === id);
+  if (f.emphasis === 'money') { svg.classList.add('flow-money'); document.body.classList.add('flow-money'); }
+
+  // Light the path, and number each node in the order the flow reaches it.
+  const seen = new Map();
+  f.steps.forEach((s, i) => {
+    const nEl = nG.querySelector(`[data-id="${s.node}"]`);
+    if (nEl) nEl.classList.add('on');
+    if (s.edge) {
+      const eEl = eG.querySelector(`[data-id="${s.edge}"]`);
+      if (eEl) eEl.classList.add('on');
+    }
+    if (!seen.has(s.node)) seen.set(s.node, i + 1);
+  });
+  for (const [nodeId, step] of seen) {
+    const n = byId[nodeId];
+    const g = el('g', { class: 'step-dot' });
+    g.appendChild(el('circle', { cx: n.x + 12, cy: n.y + 12, r: 9 }));
+    const t = el('text', { x: n.x + 12, y: n.y + 15.5, 'text-anchor': 'middle' });
+    t.textContent = step;
+    g.appendChild(t);
+    dotsG.appendChild(g);
+  }
+
+  detailTitle.textContent = f.label;
+  detail.className = 'detail' + (f.emphasis === 'money' ? ' flow-money' : '');
+  detail.innerHTML =
+    `<p class="summary">${f.summary}</p><ol class="steps">` +
+    f.steps.map(s => {
+      const who = byId[s.node] ? byId[s.node].label : s.node;
+      const via = s.edge && edgeById[s.edge] ? ` → ${edgeById[s.edge].label}` : '';
+      return `<li><div><span class="who">${who}${via}</span><p>${s.text}</p></div></li>`;
+    }).join('') + '</ol>';
+}
+
+/* Legend, derived from the classes actually used. */
+const used = [...new Set(DATA.nodes.map(n => n.class))];
+document.getElementById('legend').innerHTML = used.map(c => {
+  const hue = { violet: 'var(--accent)', amber: 'var(--external)', red: 'var(--elevated)',
+                green: 'var(--money)', neutral: 'var(--line-strong)' }[DATA.classes[c].hue];
+  return `<span><i style="border-color:${hue};background:${hue}22"></i>${DATA.classes[c].label}</span>`;
+}).join('');
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && active) select(null); });
+</script>
