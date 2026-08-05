@@ -95,8 +95,34 @@ describe('/impact states no figure it cannot measure', () => {
     expect(pageCode, 'a bare form here would post nowhere').not.toMatch(/<form[\s>]/);
   });
 
-  it('the stories row shows real published reports', () => {
-    expect(pageCode).toContain('listPublishedImpactSummaries');
+  // ───────────────────────────────────────────────────────────────────────────
+  // The "Impact Stories" row was REMOVED on request. This test used to assert it
+  // was present and wired to real published reports; it now asserts the opposite,
+  // because a deleted section with no test is a section that quietly comes back
+  // the next time somebody works from the reference design.
+  // ───────────────────────────────────────────────────────────────────────────
+  it('no longer renders an Impact Stories row', () => {
+    expect(pageCode).not.toContain('Impact Stories');
+    expect(pageCode).not.toContain('View All Stories');
+    expect(pageCode).not.toMatch(/aria-labelledby="imp-stories"/);
+  });
+
+  it('does not read published reports it no longer displays', () => {
+    // The row was the only consumer. Leaving the fetch would pay for a query on
+    // every /impact request and discard the result.
+    expect(pageCode).not.toContain('listPublishedImpactSummaries');
+  });
+
+  it('leaves the report pages themselves alone', () => {
+    // Only the discovery ROW went. `/impact/<slug>` and the authoring flow are
+    // still live, so a fundraiser who publishes a report still has a page — this
+    // guards against the removal being widened into deleting the feature.
+    expect(read('app/impact/[slug]/page.tsx')).toContain('getImpactBundle');
+    expect(read('app/impact/manage/page.tsx')).toContain('listOwnedCampaigns');
+  });
+
+  it('ships no orphaned styles for the removed row', () => {
+    expect(read('app/globals.css'), 'dead rules for a deleted section').not.toContain('.imp-story');
   });
 });
 

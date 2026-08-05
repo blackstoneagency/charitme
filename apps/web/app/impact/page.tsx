@@ -4,7 +4,6 @@ import { formatMoneyShort } from '@shared/currencies';
 import { PLATFORM_FEE_PERCENT, PROCESSING_FEE_PERCENT, PROCESSING_FEE_FIXED_CENTS } from '@shared/fees';
 import JsonLd from '../../components/JsonLd';
 import StayInformed from '../../components/StayInformed';
-import { listPublishedImpactSummaries } from '../../lib/impact';
 import { getImpactOverview, fallbackAreas, type ImpactArea } from '../../lib/impact-overview';
 import { StatStrip, statValue, moneyValue } from '../../components/IndexHero';
 import { getCoverForCategory } from '../../lib/photo-catalog';
@@ -71,10 +70,10 @@ function AreaCard({ area }: { area: ImpactArea }) {
 }
 
 export default async function ImpactPage() {
-  const [overview, stories] = await Promise.all([
-    getImpactOverview(),
-    listPublishedImpactSummaries(3).catch(() => []),
-  ]);
+  // The published-report read went with the Impact Stories row it fed. Left as
+  // a single await rather than a one-element Promise.all so nothing suggests a
+  // second fetch is still expected here.
+  const overview = await getImpactOverview();
 
   const areas = overview.areas.length > 0 ? overview.areas : fallbackAreas();
 
@@ -176,42 +175,19 @@ export default async function ImpactPage() {
           </div>
         </section>
 
-        {/* ── Impact stories ────────────────────────────────────────────────
-            The reference shows three stories with named beneficiaries — "the
-            Rahman family", "Priya", "Arjun". Those people do not exist in any
-            table, so the cards would be written by us and presented as real
-            people's outcomes. That is fabricating a testimonial, which is the
-            same call already made about the donor quote on /campaigns.
-            What IS real: campaigns that have PUBLISHED an impact report, with a
-            spending plan and a transparency score. Those are the stories. */}
-        {stories.length > 0 && (
-          <section aria-labelledby="imp-stories">
-            <div className="cb-section-head">
-              <h2 id="imp-stories">Impact Stories</h2>
-              <Link href="/campaigns">View All Stories <span aria-hidden="true">&rarr;</span></Link>
-            </div>
-            <div className="imp-story-grid">
-              {stories.map((s) => (
-                <article key={s.campaign.id} className="imp-story">
-                  <Link href={`/impact/${s.campaign.slug}`} className="imp-story-media">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={getCoverForCategory(s.campaign.title)} alt="" loading="lazy" />
-                    <span className="imp-story-badge">
-                      {formatMoneyShort(s.campaign.raised_amount, s.campaign.currency)} raised
-                    </span>
-                  </Link>
-                  <div className="imp-story-body">
-                    <h3><Link href={`/impact/${s.campaign.slug}`}>{s.campaign.title}</Link></h3>
-                    {s.plan.summary && <p>{s.plan.summary}</p>}
-                    <Link href={`/impact/${s.campaign.slug}`} className="imp-story-cta">
-                      Read the report <span aria-hidden="true">&rarr;</span>
-                    </Link>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
-        )}
+        {/* ── Impact stories: REMOVED ───────────────────────────────────────
+            The "Impact Stories" row (heading, "View All Stories →" and the
+            published-report cards) was removed on request.
+
+            Kept as a note rather than a silent deletion because the section was
+            not decorative: it was the only public surface that linked to
+            `/impact/<slug>` report pages. Those pages, `lib/impact.ts` and the
+            whole `/impact/manage` authoring flow are all still live — a
+            fundraiser can still publish a report and it is still readable at its
+            own URL. What is gone is the discovery row on this page.
+
+            Re-adding it means restoring `listPublishedImpactSummaries(3)` to the
+            `Promise.all` in ImpactPage and this block; nothing else was touched. */}
 
         {/* ── Numbers ───────────────────────────────────────────────────── */}
         <section aria-labelledby="imp-numbers">
