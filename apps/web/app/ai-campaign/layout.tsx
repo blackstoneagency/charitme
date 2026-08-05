@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { DEFAULT_OG_IMAGE } from '../../lib/public-routes';
 import JsonLd from '../../components/JsonLd';
 import { safeJsonLd } from '../../lib/json-ld';
 
@@ -7,6 +8,7 @@ export const metadata: Metadata = {
   description: 'Describe your fundraiser in a sentence and let CharitMe AI build your campaign title, story, goal, and donation tiers in seconds.',
   alternates: { canonical: 'https://www.charitme.com/ai-campaign' },
   openGraph: {
+    images: [{ url: DEFAULT_OG_IMAGE }],
     title: 'CharitMe AI Campaign Builder',
     description: 'Describe your fundraiser and let CharitMe AI build your campaign title, story, goal, and donation tiers.',
     url: 'https://www.charitme.com/ai-campaign',

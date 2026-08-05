@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { DEFAULT_OG_IMAGE } from '../../lib/public-routes';
 import Link from 'next/link';
 import { getPublicGrants, getGrantCategories } from '../../lib/grants-server';
 import GrantsClient from './GrantsClient';
@@ -9,6 +10,7 @@ export const metadata: Metadata = {
     'Discover foundation, government, corporate, and community grants on CharitMe. Search by cause, filter by category, and apply with AI-assisted matching.',
   alternates: { canonical: 'https://www.charitme.com/grants' },
   openGraph: {
+    images: [{ url: DEFAULT_OG_IMAGE }],
     title: 'Grant Discovery on CharitMe',
     description: 'Find and apply for grants that fund your mission — with AI matching.',
     url: 'https://www.charitme.com/grants',

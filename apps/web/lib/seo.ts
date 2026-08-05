@@ -1,6 +1,7 @@
 import 'server-only';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from './supabase';
+import { DEFAULT_OG_IMAGE } from './public-routes';
 
 export type SeoRow = {
   route: string; title: string | null; meta_description: string | null; keywords: string | null;
@@ -60,7 +61,7 @@ export async function seoMetadata(route: string, base: Metadata = {}): Promise<M
   const canonical = row?.canonical_url || base.alternates?.canonical || route;
   const alternates = { ...(base.alternates ?? {}), canonical };
 
-  if (!row) return { ...base, alternates };
+  if (!row) return { ...base, alternates, openGraph: withOgImage(base.openGraph) };
 
   const title = row.title || undefined;
   const description = row.meta_description || undefined;
@@ -74,11 +75,40 @@ export async function seoMetadata(route: string, base: Metadata = {}): Promise<M
     ...(row.keywords ? { keywords: row.keywords } : {}),
     ...(row.noindex ? { robots: { index: false, follow: false } } : {}),
     alternates,
-    openGraph: {
+    openGraph: withOgImage({
       ...(base.openGraph ?? {}),
       ...(ogTitle ? { title: ogTitle } : {}),
       ...(ogDescription ? { description: ogDescription } : {}),
       ...(row.og_image_url ? { images: [{ url: row.og_image_url }] } : {}),
-    },
+    }),
   };
+}
+
+/**
+ * Guarantee an `og:image`, because declaring `openGraph` at all silently removes
+ * the one Next generates.
+ *
+ * ⚠️ This is a real Next.js metadata trap and it cost this site 9 shared-link
+ * previews. `app/opengraph-image.tsx` supplies an image to every route by the
+ * FILE convention — but only for routes that do not declare `openGraph`
+ * themselves. Measured: `/about-us` and `/campaigns` declare none and emit
+ * `og:image`; `/pricing`, `/impact`, `/volunteer`, `/fees`, `/transparency`,
+ * `/grants`, `/roles`, `/help` and `/refunds` each declare `openGraph` (for a
+ * per-page title and url) with no `images`, and emitted **no og:image at all**.
+ * A link to any of them rendered as a bare grey card — on a platform whose
+ * growth runs on shared links, and on exactly the pages someone shares to
+ * justify giving.
+ *
+ * Applied on BOTH return paths above, which matters: the `!row` early return is
+ * the one nearly every page takes, since `seo_settings` rows are optional
+ * overrides that mostly do not exist. Fixing only the override path would have
+ * left every one of those 9 pages still broken.
+ *
+ * An explicit image always wins — a page or a super-admin override that sets one
+ * is expressing intent, and this only fills the gap where nothing was chosen.
+ */
+function withOgImage(og: Metadata['openGraph']): Metadata['openGraph'] {
+  if (!og) return og;
+  const hasImages = 'images' in og && og.images !== undefined;
+  return hasImages ? og : { ...og, images: [{ url: DEFAULT_OG_IMAGE }] };
 }

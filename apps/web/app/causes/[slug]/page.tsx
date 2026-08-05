@@ -9,7 +9,7 @@ import { type CampaignCardData } from '../../../components/CampaignCard';
 import CauseCampaignList from './CauseCampaignList';
 import { EmptyState } from '../../../components/ui';
 import { getTranslator } from '../../../lib/locale-server';
-import { getCauseStats, getCauseStories } from '../../../lib/cause-landing';
+import { getCauseStats, getCauseStories, getAuthoredStats } from '../../../lib/cause-landing';
 import CampaignImage from '../../../components/CampaignImage';
 import { getPhotosForCategory } from '../../../lib/photo-catalog';
 import { formatMoneyCompact } from '@shared/currencies';
@@ -103,15 +103,16 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
 
   // Stats are fetched alongside the campaigns rather than after them: they are
   // independent queries and this page is a common entry point from a share.
-  const [campaigns, stats, stories] = await Promise.all([
+  const [campaigns, stats, stories, authoredStats] = await Promise.all([
     getCampaigns(cause),
     getCauseStats(cause),
     getCauseStories(cause),
+    getAuthoredStats(cause),
   ]);
 
   return (
     <div className="cause-landing">
-      <CauseLanding cause={cause} stats={stats} />
+      <CauseLanding cause={cause} stats={stats} authoredStats={authoredStats} />
 
       <div className="container" style={{ padding: '8px 0 72px' }}>
       {/* ── Order, and why ────────────────────────────────────────────────────
@@ -231,7 +232,7 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
           aria-labelledby="how-support-helps"
         >
           <h2 id="how-support-helps" className="cl-helps-title">
-            {cause.helpsTitle ?? 'How your support helps'}
+            {cause.helpsTitle ?? 'How Your Support Helps'}
           </h2>
           <ul className="cl-helps-grid">
             {cause.helps.map((h, i) => (
@@ -292,38 +293,59 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
       {stories !== null && stories.length > 0 && (
         <section className="cl-stories" aria-labelledby="cause-stories">
           <header className="cl-stories-head">
-            <h2 id="cause-stories">Stories from the field</h2>
+            <h2 id="cause-stories">Stories from the Field</h2>
             <Link href="/success-stories" className="cl-stories-all">View all stories →</Link>
           </header>
           <ul className="cl-stories-grid">
-            {stories.map((story, i) => (
+            {stories.map((story, i) => {
+              // The play control and "Watch Story" appear only for a story that
+              // actually carries a video. The design draws them on every card;
+              // rendering one over a campaign link would be a control that plays
+              // nothing. `cause_stories.video_url` is what makes it real.
+              const chip = story.chipLabel ?? story.category;
+              const accent = story.chipLabel ? story.chipAccent : i % 3;
+              const href = story.videoUrl ?? (story.slug ? `/campaigns/${story.slug}` : null);
+              if (!href) return null;
+              return (
               <li key={story.id}>
-                <Link href={`/campaigns/${story.slug}`} className="cl-story">
+                <Link
+                  href={href}
+                  className="cl-story"
+                  {...(story.videoUrl ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                >
                   <span className="cl-story-media">
                     <CampaignImage
                       src={story.cover}
                       category={story.category}
-                      campaignKey={story.slug}
+                      campaignKey={story.slug ?? story.id}
                       alt=""
                       width={420}
                       height={260}
                     />
-                    {story.category && (
-                      <span className={`cl-story-chip cl-story-chip--${i % 3}`}>{story.category}</span>
+                    {chip && <span className={`cl-story-chip cl-story-chip--${accent}`}>{chip}</span>}
+                    {story.videoUrl && (
+                      <span className="cl-story-play" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.6v12.8L19 12 8 5.6Z" /></svg>
+                      </span>
                     )}
                   </span>
                   <span className="cl-story-body">
                     <strong>{story.title}</strong>
                     {story.blurb && <span className="cl-story-blurb">{story.blurb}</span>}
-                    <span className="cl-story-meta">
-                      Funded — {formatMoneyCompact(story.raisedCents, 'usd')} from {story.backers.toLocaleString()}{' '}
-                      {story.backers === 1 ? 'supporter' : 'supporters'}
+                    {!story.videoUrl && (
+                      <span className="cl-story-meta">
+                        Funded — {formatMoneyCompact(story.raisedCents, 'usd')} from {story.backers.toLocaleString()}{' '}
+                        {story.backers === 1 ? 'supporter' : 'supporters'}
+                      </span>
+                    )}
+                    <span className="cl-story-cta">
+                      {story.videoUrl ? 'Watch Story →' : 'Read the story →'}
                     </span>
-                    <span className="cl-story-cta">Read the story →</span>
                   </span>
                 </Link>
               </li>
-            ))}
+              );
+            })}
           </ul>
         </section>
       )}

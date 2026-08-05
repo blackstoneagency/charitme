@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { DEFAULT_OG_IMAGE } from '../lib/public-routes';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
@@ -26,6 +27,7 @@ export const metadata: Metadata = {
   description: 'Create trusted fundraising campaigns in seconds with CharitMe AI. 0% platform fees. Raise more with your personal AI fundraising team.',
   keywords: ['AI fundraising platform', 'GoFundMe alternative', 'free fundraising website', 'nonprofit fundraising software', 'AI donation platform', 'peer-to-peer fundraising', 'fundraising with AI', 'online fundraiser'],
   openGraph: {
+    images: [{ url: DEFAULT_OG_IMAGE }],
     siteName: 'CharitMe',
     url: 'https://www.charitme.com',
     type: 'website',

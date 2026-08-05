@@ -2,6 +2,7 @@ import { cache } from 'react';
 import { notFound } from 'next/navigation';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { boundedQuery } from '../../../lib/query-timeout';
+import { campaignColumns } from '../../../lib/campaign-visibility';
 
 // `select('*')` with an embedded relation is untyped in supabase-js without
 // generated DB types, so this row was already `any` at every call site. Kept
@@ -31,11 +32,33 @@ export type CampaignResult =
 // and React cache() dedupes them to a single query on the highest-traffic public
 // page — so the layout's existence gate below costs no extra round-trip.
 export const getCampaignResult = cache(async (slug: string): Promise<CampaignResult> => {
-  const { data, error } = await boundedQuery(() =>
-    supabaseAdmin
+  // `visibility` is added by a later migration, so it may not exist on every
+  // deployment — filtering on an absent column errors and would 404 EVERY
+  // campaign. Probe first (cached per process, fails toward privacy on an
+  // indeterminate answer), exactly as the discovery listings do.
+  const cols = await campaignColumns();
+
+  const { data, error } = await boundedQuery(() => {
+    let q = supabaseAdmin
       .from('campaigns')
       .select('*, profiles:user_id (full_name, avatar_url)')
-      .eq('slug', slug)
+      .eq('slug', slug);
+
+    // ⚠️ `neq('private')`, NOT `eq('public')`.
+    //
+    // The column is one of 'public' | 'unlisted' | 'private'. This fetch applied
+    // NONE of them, so a campaign the owner had set to **private** stayed fully
+    // readable at its public URL — story, donor names and messages, amount
+    // raised — for anyone holding the link or a stale search result. Identical
+    // to the soft-delete hole described below, which this same query had.
+    //
+    // `applyVisibilityFilters()` is deliberately not reused here: it pins
+    // `visibility = 'public'`, which is right for LISTINGS and wrong for a
+    // detail page, because 'unlisted' means precisely "not listed, but reachable
+    // by direct link". Using it would break sharing an unlisted campaign, which
+    // is a feature people rely on.
+    if (cols.visibility) q = q.neq('visibility', 'private');
+    return q
       // Soft-deleted campaigns must 404 like missing ones. DELETE
       // /api/campaigns/[id] sets deleted_at rather than removing the row ("for
       // compliance audit trail"), and every listing filters it — but this fetch
@@ -44,8 +67,8 @@ export const getCampaignResult = cache(async (slug: string): Promise<CampaignRes
       // because the campaign vanished from listings, while anyone holding the link
       // (or a search-engine result) could still open it.
       .is('deleted_at', null)
-      .maybeSingle(),
-  );
+      .maybeSingle();
+  });
 
   if (data) return { ok: true, campaign: data as CampaignRow };
   // `.maybeSingle()` returns `{ data: null, error: null }` for "no row" — that,

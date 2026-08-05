@@ -56,6 +56,18 @@ export async function getHomeStories(limit = 3): Promise<CauseStory[] | null> {
       cover: (c.cover_image_url as string | null) ?? null,
       raisedCents: Number(c.raised_amount ?? 0),
       backers: Number(c.backer_count ?? 0),
+      // ⚠️ A campaign is not an authored `cause_stories` row, so it carries no
+      // video and no editorial chip. Explicit nulls rather than optional fields:
+      // the card renders a play control ONLY when `videoUrl` is set, and making
+      // these optional would let a future caller forget them and get a play
+      // button over something that will not play.
+      //
+      // This is a semantic merge conflict git could not see — master added this
+      // file while `CauseStory` gained three required fields on the branch. Only
+      // `tsc` caught it; lint and 3057 tests passed.
+      videoUrl: null,
+      chipLabel: null,
+      chipAccent: 0,
     }));
   } catch {
     // `supabaseAdmin` throws on property access when the env is missing, before

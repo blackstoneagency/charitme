@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { DEFAULT_OG_IMAGE } from '../../lib/public-routes';
 import Link from 'next/link';
 import { safeJsonLd } from '../../lib/json-ld';
 import MoneyCalculator from './MoneyCalculator';
@@ -11,6 +12,7 @@ export const metadata: Metadata = {
     'See exactly where every dollar goes: a 0% platform fee for organizers, always-optional donor support, and funds paid directly to verified recipients via Stripe.',
   alternates: { canonical: 'https://www.charitme.com/transparency' },
   openGraph: {
+    images: [{ url: DEFAULT_OG_IMAGE }],
     title: 'Transparency Center — Where Your Money Goes | CharitMe',
     description:
       '0% platform fee. Optional donor support. Funds flow directly to verified recipients via Stripe. See the full breakdown.',

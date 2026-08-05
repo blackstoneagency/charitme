@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { DEFAULT_OG_IMAGE } from '../../lib/public-routes';
 import Link from 'next/link';
 import { ROLE_DEFINITIONS, ROLE_ORDER } from '../../lib/role-capabilities';
 
@@ -8,6 +9,7 @@ export const metadata: Metadata = {
     'Every CharitMe account can donate and create campaigns. Roles describe how you use CharitMe; only Admin and Super Admin change what you can access.',
   alternates: { canonical: 'https://www.charitme.com/roles' },
   openGraph: {
+    images: [{ url: DEFAULT_OG_IMAGE }],
     title: 'Account Roles — What Each One Means | CharitMe',
     description:
       'Donor, Organizer, Beneficiary, Nonprofit, Admin, Super Admin — what each role means, in plain language.',

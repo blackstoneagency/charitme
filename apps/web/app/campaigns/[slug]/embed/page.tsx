@@ -21,7 +21,17 @@ export async function generateMetadata({ params }: Pick<Props, 'params'>): Promi
   // Never throws. This runs for a widget embedded in SOMEONE ELSE'S page, so a
   // thrown error here renders a Next error document inside their site.
   try {
-    const { data } = await supabaseAdmin.from('campaigns').select('title').eq('slug', slug).single();
+    // The page body below correctly 404s a private or deleted campaign, but this
+    // ran first and filtered nothing — so the <title> of that 404 response could
+    // still carry a private campaign's name. Same filters as the body, for the
+    // same reason.
+    const { data } = await supabaseAdmin
+      .from('campaigns')
+      .select('title')
+      .eq('slug', slug)
+      .neq('visibility', 'private')
+      .is('deleted_at', null)
+      .single();
     return { title: data?.title ?? 'Donate', robots: { index: false } };
   } catch {
     return { title: 'Donate', robots: { index: false } };

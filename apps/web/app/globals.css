@@ -9122,7 +9122,16 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
    photograph, where the scrim guarantees the contrast rather than the theme. */
 .cx-page { display: block; }
 
-.cx-hero { position: relative; isolation: isolate; overflow: hidden; padding: 26px 0 92px; background: #0d0a1f; }
+/* ⚠️ `padding-bottom` was 92px and the hero still rendered ~1000px tall, because
+   `.cx-hero-heart` below had NO RULE AT ALL — an inline SVG with no width
+   constraint expands to fill its container, so a decorative heart was sizing the
+   whole band. Both are fixed; keep them together.
+   Smaller top band overall: 26/92 was tuned around the oversized heart. */
+.cx-hero { position: relative; isolation: isolate; overflow: hidden; padding: 20px 0 68px; background: #0d0a1f; }
+/* The missing rule. `.cl-hero-heart` is the same glyph and always had it —
+   sizing in `em` keeps the heart proportional to the H1 at every breakpoint. */
+.cx-hero-heart { display: inline-flex; width: .58em; height: .58em; margin-left: .16em; color: #ff4d8d; vertical-align: baseline; }
+.cx-hero-heart svg { width: 100%; height: 100%; }
 .cx-hero-photo { position: absolute; inset: 0 0 0 42%; z-index: -2; }
 .cx-hero-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .cx-hero::before {
@@ -9163,6 +9172,28 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 }
 .cx-hero-card h2 { margin: 0; font-size: 16.5px; font-weight: 780; line-height: 1.35; color: #fff; }
 .cx-hero-card p { margin: 10px 0 0; font-size: 13.5px; line-height: 1.6; color: rgba(255,255,255,.8); }
+
+/* ── Mobile-first sizing for the top band ──────────────────────────────────
+   Below 900px the photo becomes a dimmed backdrop behind the copy rather than a
+   58%-wide side panel, which at 390px was a sliver next to squeezed text. The
+   H1 also steps down: `--fs-hero` is tuned for a full-bleed display heading and
+   was wrapping to four lines on a phone. */
+@media (max-width: 899px) {
+  .cx-hero { padding: 16px 0 48px; }
+  .cx-hero-photo { inset: 0; opacity: .28; }
+  .cx-hero::before {
+    background: linear-gradient(180deg, rgba(13,10,31,.82) 0%, rgba(13,10,31,.94) 60%, #0d0a1f 100%);
+  }
+  .cx-hero-copy h1 { font-size: var(--fs-h1); }
+  .cx-hero-copy > p { margin-top: 12px; font-size: 15px; max-width: none; }
+  .cx-hero-actions { margin-top: 20px; }
+  /* The floating card stacks under the copy instead of bottom-aligning to a
+     grid row that no longer exists at one column. */
+  .cx-hero-card { align-self: stretch; }
+  /* The stats sheet overlapped the hero by 56px, which on a short mobile band
+     pulled it over the lede. */
+  .cx-stats { margin-top: -28px; }
+}
 
 .cx-stats {
   position: relative; z-index: 1;
@@ -10861,6 +10892,42 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
    a real finding rather than a style nit. */
 .cl-more-btn:focus-visible { outline: 2px solid var(--brand-text); outline-offset: 2px; }
 .cl-more-error { text-align: center; margin: 18px 0 0; font-size: 13.5px; color: var(--red); }
+/* Secondary action on /volunteer — token-driven, so it follows the theme rather
+   than committing to the hero treatment used on photo-backed pages. */
+.vol-btn-secondary {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; padding: 0 20px;
+  border: 1px solid var(--b2); border-radius: var(--r);
+  background: var(--s1); color: var(--t1);
+  font-size: 14.5px; font-weight: 700; text-decoration: none;
+}
+.vol-btn-secondary:hover { border-color: var(--t3); background: var(--s2); }
+
+/* ── Story video control ────────────────────────────────────────────────────
+   Renders ONLY for a `cause_stories` row with a `video_url`. The design draws a
+   play button on every card; one over a campaign link would start nothing, so
+   the markup omits it rather than the CSS hiding it.
+   `aria-hidden` on the span is correct here — the link's own text says "Watch
+   Story", so the glyph would only repeat it. */
+.cl-story-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, .92);
+  background: rgba(12, 8, 28, .42);
+  backdrop-filter: blur(2px);
+  color: #fff;
+  pointer-events: none;
+}
+.cl-story-play svg { width: 22px; height: 22px; margin-left: 3px; }
+.cl-story:hover .cl-story-play { background: rgba(12, 8, 28, .62); }
 /* ═══════════════════════════════════════════════════════════════════════════
    Homepage — hero two-column, stories band, impact band
    ═══════════════════════════════════════════════════════════════════════════ */

@@ -37,8 +37,20 @@ export async function buildCampaignTrustInput(campaign: TrustCampaignRow): Promi
       .eq('campaign_id', campaign.id).in('review_status', ['auto_approved', 'approved']),
     supabaseAdmin.from('campaign_media').select('id', { count: 'exact', head: true })
       .eq('campaign_id', campaign.id),
+    // "Other campaigns by this organiser" — a PUBLIC trust signal, so it must
+    // count only what the public can actually see. It previously counted every
+    // row the organiser owned, including their **private** and **soft-deleted**
+    // campaigns: an inflated trust number, and a leak of how many private
+    // campaigns someone has.
+    //
+    // `eq('public')` here, unlike the detail-page fetch in
+    // `app/campaigns/[slug]/get-campaign.ts` which uses `neq('private')`. The
+    // difference is real: this is an AGGREGATE over other campaigns, where
+    // 'unlisted' is by definition not something to advertise; that one is a
+    // direct-link fetch, where 'unlisted' must still resolve.
     supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true })
-      .eq('user_id', campaign.user_id).neq('id', campaign.id),
+      .eq('user_id', campaign.user_id).neq('id', campaign.id)
+      .eq('visibility', 'public').is('deleted_at', null),
     supabaseAdmin.from('risk_flags').select('id', { count: 'exact', head: true })
       .eq('campaign_id', campaign.id).in('status', ['open', 'reviewing']),
   ]);

@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* The design ships dark. Setting it on :root rather than a class means the
+   canvas is correct before any JS runs — no flash of a light page. */
+:root { color-scheme: dark; }
+
+html, body {
+  @apply bg-canvas text-ink font-sans antialiased;
+}
+
+/* Focus rings are part of the design, not an afterthought: keyboard users get a
+   visible 2px brand ring on every interactive element. */
+@layer base {
+  a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible {
+    @apply outline-none ring-2 ring-brand ring-offset-2 ring-offset-canvas rounded-sm;
+  }
+}
+
+@layer components {
+  .cta-primary {
+    @apply inline-flex items-center justify-center gap-2 min-h-[44px] px-6
+           rounded-full bg-grad-brand text-white text-sm font-bold
+           shadow-cta transition-opacity hover:opacity-90;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 min-h-[44px] px-5
+           rounded-card border border-white/40 bg-white/10 text-white
+           text-sm font-bold transition-colors hover:bg-white/20;
+  }
+}

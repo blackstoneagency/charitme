@@ -123,10 +123,28 @@ export default function LeaderboardClient({
           {loadingCampaigns || campaigns === undefined ? (
             <p style={{ color: 'var(--t3)', fontSize: 13, padding: '12px 0' }}>Loading top campaigns…</p>
           ) : campaigns.length === 0 ? (
+            // "Be the first to launch one!" is an invitation with nowhere to go:
+            // this route rendered 0 links inside <main>. The invitation now links
+            // to the thing it invites, and the period-filtered case offers the
+            // unfiltered view rather than leaving a dead end.
             <p style={{ color: 'var(--t3)', fontSize: 13 }}>
-              {campaignPeriod === 'all'
-                ? 'No active campaigns yet — be the first to launch one!'
-                : 'No campaigns received donations in this period yet.'}
+              {campaignPeriod === 'all' ? (
+                <>
+                  No active campaigns yet —{' '}
+                  <Link href="/create" style={{ color: 'var(--brand-text)', fontWeight: 700 }}>be the first to launch one</Link>.
+                </>
+              ) : (
+                <>
+                  No campaigns received donations in this period yet.{' '}
+                  <button
+                    type="button"
+                    onClick={() => setCampaignPeriod('all')}
+                    style={{ background: 'none', border: 0, padding: 0, color: 'var(--brand-text)', fontWeight: 700, cursor: 'pointer', font: 'inherit' }}
+                  >
+                    See all time
+                  </button>
+                </>
+              )}
             </p>
           ) : (
             <div>
@@ -194,7 +212,10 @@ export default function LeaderboardClient({
           {loadingDonors || donors === undefined ? (
             <p style={{ color: 'var(--t3)', fontSize: 13, padding: '12px 0' }}>Loading top donors…</p>
           ) : donors.length === 0 ? (
-            <p style={{ color: 'var(--t3)', fontSize: 13 }}>No donations recorded for this period yet.</p>
+            <p style={{ color: 'var(--t3)', fontSize: 13 }}>
+              No donations recorded for this period yet.{' '}
+              <Link href="/campaigns" style={{ color: 'var(--brand-text)', fontWeight: 700 }}>Find a cause to support</Link>.
+            </p>
           ) : (
             <div className="pc-donor-list">
               {donors.map((d) => {

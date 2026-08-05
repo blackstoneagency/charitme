@@ -1,5 +1,6 @@
 import 'server-only';
 import type { Metadata } from 'next';
+import { DEFAULT_OG_IMAGE } from '../../../../lib/public-routes';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getCampaignResult } from '../get-campaign';
@@ -46,7 +47,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     // Canonical points at the CAMPAIGN, not at this page: this is a helper
     // surface, and search engines should rank the campaign itself.
     alternates: { canonical: `/campaigns/${slug}` },
-    openGraph: { title, description, url: `/campaigns/${slug}/share`, type: 'website' },
+    openGraph: { title, description, url: `/campaigns/${slug}/share`, type: 'website', images: [{ url: DEFAULT_OG_IMAGE }] },
     twitter: { card: 'summary_large_image', title, description },
   };
 }
