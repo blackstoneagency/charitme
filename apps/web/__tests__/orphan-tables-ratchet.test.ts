@@ -37,11 +37,21 @@ const DELIBERATELY_UNREAD: Readonly<Record<string, string>> = {
   // Deliberate, and pinned in detail by orphan-table-hazards.test.ts.
   trust_scores: 'stale rows; the live computation is used instead',
 
-  // Code-complete but inert: the migration is not applied in production, so a
-  // reader would query a table that does not exist there.
-  organizations: 'multi-tenancy; migration unapplied in production',
-  organization_members: 'multi-tenancy; migration unapplied in production',
-  brands: 'multi-tenancy; migration unapplied in production',
+  // Code-complete but inert: nothing in `app/`, `lib/` or `components/` reads
+  // any of the three.
+  //
+  // ⚠️ The reason here USED to read "migration unapplied in production". That is
+  // not something this repo can know. `20260807000000_organizations_multitenancy`
+  // is one of the migrations `scripts/probe-production-migrations.mjs` lists with
+  // NO public signal — precisely because these tables have no reader, so there is
+  // no route whose success or failure would reveal the answer. The script's own
+  // governing rule is that APPLIED is proof and "no proof" is NOT evidence of
+  // pending; the old wording broke that rule in a comment, which is where nobody
+  // was checking it. The absence of a reader is a CODE fact and is verified right
+  // here; the migration's state in production is not, so it is no longer claimed.
+  organizations: 'multi-tenancy; no reader in app code (production state unknown)',
+  organization_members: 'multi-tenancy; no reader in app code (production state unknown)',
+  brands: 'multi-tenancy; no reader in app code (production state unknown)',
 
   // Payment observability. Three of the four tables from 20260608020000 have no
   // code on either side; the fourth (campaign_payment_disputes) does.
@@ -63,7 +73,16 @@ const DELIBERATELY_UNREAD: Readonly<Record<string, string>> = {
   donor_tips: 'superseded by the tip fields on donations',
   direct_messages: 'superseded by donor_messages / message_thread_state',
   campaign_analytics_events: 'superseded by campaign_builder_events',
-  platform_fees: 'superseded by the fee columns on campaign_payments',
+  // ⚠️ Two guards named DIFFERENT successors for this one table — here
+  // `campaign_payments`, and `superseded-tables.test.ts` `ledger_entries`. Both
+  // are real and both are read, so neither was wrong, but for a MONEY table
+  // "where is the fee actually recorded" must have one answer, not two that a
+  // reader has to reconcile. Stated together, in the order a fee moves:
+  platform_fees:
+    'superseded twice over — campaign_payments.platform_fee_amount holds the ' +
+    'per-payment figure, and ledger_entries holds the balanced double-entry ' +
+    'record of it. platform_fees is a flat subset of both, with no currency, no ' +
+    'balance and no idempotency key',
   reward_tiers: 'superseded by campaign_rewards',
 };
 
@@ -119,6 +138,52 @@ describe('every table has a reader, or a documented reason it does not', () => {
     expect(
       stale,
       'listed as deliberately unread but now has a `.from()` call site — remove it',
+    ).toEqual([]);
+  });
+
+  it('the successors named for the money table are real, read, and carry the fee', () => {
+    // `platform_fees` is the one entry whose reason names replacements by name,
+    // and it is a fee record — so the claim is checked rather than trusted.
+    // Without this, "superseded by X" can outlive X.
+    const schema = readFileSync(SCHEMA, 'utf8');
+    expect(schema, 'campaign_payments must still hold the per-payment fee')
+      .toMatch(/CREATE TABLE public\.campaign_payments \([\s\S]*?platform_fee_amount bigint/);
+    expect(schema).toContain('CREATE TABLE public.ledger_entries (');
+
+    // Derived from the REASON STRING, not a second hardcoded list — otherwise
+    // editing the reason to cite a different table would leave this passing
+    // while checking something the reason no longer says.
+    const reason = DELIBERATELY_UNREAD.platform_fees;
+    const cited = [...new Set(
+      [...reason.matchAll(/\b(campaign_payments|ledger_entries)\b/g)].map((m) => m[1]),
+    )];
+    expect(cited.length, 'the platform_fees reason must name where the fee now lives').toBe(2);
+
+    for (const successor of cited) {
+      expect(
+        new RegExp(`\\.from\\(\\s*['"\`]${successor}['"\`]\\s*\\)`).test(blob),
+        `${successor} is cited as where the fee lives, so it must actually be read`,
+      ).toBe(true);
+    }
+  });
+
+  it('does not assert anything about production schema state', () => {
+    // The multi-tenancy entries used to say "migration unapplied in production".
+    // Nothing here can observe that — those tables have no reader, which is
+    // exactly why the migration has no public signal to probe. A reason that
+    // claims unverifiable facts is how a wrong belief survives review.
+    // Reads the REASON VALUES, not the file text. The first version of this
+    // sliced the source on the constant's name and landed on the wrong
+    // occurrence, so it passed with the claim planted back in — caught by
+    // mutation-testing it, which is the only reason it is written this way.
+    const claiming = Object.entries(DELIBERATELY_UNREAD)
+      .filter(([, reason]) => /(un|not )applied in production|migration.*not live/i.test(reason))
+      .map(([table]) => table);
+    expect(
+      claiming,
+      'these reasons claim a migration is unapplied in production — this repo ' +
+        'cannot observe that, and the tables involved are exactly the ones with no ' +
+        'public signal to probe. Say what is measurable: whether app code reads it.',
     ).toEqual([]);
   });
 });

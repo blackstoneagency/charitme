@@ -33,6 +33,17 @@ let rpcResult: { data: unknown; error: { message: string; code?: string } | null
 };
 /** Row returned by the `webhook_events` idempotency lookup. */
 let existingEvent: { id: string; processed_at: string | null } | null = null;
+/** Failure for the `webhook_events` idempotency READ (not a write). */
+let existingEventError: { message: string; code?: string } | null = null;
+/** Per-table READ failures (the harness could only break writes before). */
+let readErrors: Record<string, { message: string; code?: string } | undefined> = {};
+/**
+ * Per-table READ data. The harness previously answered `data: null` to every
+ * select, which meant the receipt path always returned early at `if (!camp)` —
+ * so no test could reach the nonprofit lookup behind it. Opt-in, so existing
+ * tests keep the old default.
+ */
+let readData: Record<string, unknown> = {};
 /** Every table write attempted, so a test can assert what was recorded. */
 let writes: Array<{ table: string; op: string; payload: unknown; options?: unknown }> = [];
 /** Per-table write failures, so a test can break one table and no others. */
@@ -47,12 +58,14 @@ let rpcCalls: Array<{ fn: string; args: Record<string, unknown> }> = [];
  * from().upsert()` cannot both work, and the route does both.
  */
 function builder(table: string, op: string, payload: unknown) {
-  const failure = op !== 'select' ? writeErrors[table] : undefined;
+  const failure = op !== 'select' ? writeErrors[table] : readErrors[table];
   const result = failure
     ? { data: null, error: failure }
     : table === 'webhook_events' && op === 'select'
-      ? { data: existingEvent, error: null }
-      : { data: null, error: null };
+      ? { data: existingEventError ? null : existingEvent, error: existingEventError }
+      : op === 'select' && table in readData
+        ? { data: readData[table], error: null }
+        : { data: null, error: null };
 
   // A Proxy rather than a list of methods: PostgREST's builder has dozens
   // (`.or`, `.contains`, `.rangeGte`, …) and an incomplete list fails as
@@ -151,6 +164,9 @@ beforeEach(() => {
   writeErrors = {};
   rpcCalls = [];
   existingEvent = null;
+  existingEventError = null;
+  readErrors = {};
+  readData = {};
   signatureValid = true;
   rpcResult = { data: 'donation-1', error: null };
   nextEvent = checkoutSessionEvent();
@@ -240,6 +256,42 @@ describe('idempotency', () => {
     ).toEqual([]);
   });
 
+  it('answers 500 when the idempotency read FAILS, instead of reprocessing', async () => {
+    // The defect: this read dropped its `error`, so a failed lookup produced
+    // `existing = null` — indistinguishable from "never seen this event". The
+    // duplicate check silently disabled itself and the handler ran again.
+    // Stripe retrying is strictly safer than reprocessing, and emails are not
+    // idempotent even though the money writes are.
+    existingEventError = { message: 'connection terminated', code: '08006' };
+
+    const res = await post();
+
+    expect(res.status, 'a blind idempotency check must not proceed').toBe(500);
+    expect(
+      rpcCalls.filter((c) => c.fn === 'record_donation'),
+      'the handler must not run when we could not check whether it already had',
+    ).toEqual([]);
+  });
+
+  it('records a redelivery as `duplicate`, a status that was unreachable', async () => {
+    // `recordCampaignPaymentWebhookEvent(event, existing?.processed_at ?
+    // 'duplicate' : 'received')` sat AFTER the early return for an
+    // already-processed event, so its condition was always false and the
+    // ternary always chose 'received'. `campaign_payment_webhook_events` could
+    // never record a duplicate delivery, so anything counting them read zero
+    // forever — and zero is the reassuring answer.
+    existingEvent = { id: 'row-1', processed_at: '2026-08-03T00:00:00Z' };
+
+    await post();
+
+    const recorded = writes.filter((w) => w.table === 'campaign_payment_webhook_events');
+    expect(recorded.length, 'a duplicate delivery was not recorded at all').toBeGreaterThan(0);
+    expect(
+      recorded.map((w) => (w.payload as { status?: string }).status),
+      'a redelivered event must be recorded as duplicate, not received',
+    ).toContain('duplicate');
+  });
+
   it('passes the Stripe event id to record_donation, which is what makes the RPC idempotent', async () => {
     await post();
 
@@ -249,6 +301,60 @@ describe('idempotency', () => {
       call!.args.p_stripe_event_id,
       'without the event id the RPC cannot dedupe, and a Stripe retry double-counts the donation',
     ).toBe('evt_test_1');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The receipt path is deliberately non-fatal (`catch {}`), because failing it
+// would make Stripe re-run the donation handler. That is right. It does not
+// justify failing INVISIBLY, which is what dropping `error` on these reads did.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('a receipt that could not be built is logged, not silent', () => {
+  it('still answers 200 — a receipt failure must never fail the webhook', async () => {
+    // Pins the deliberate design, so a future "fix" cannot make it fatal.
+    readErrors = { campaigns: { message: 'connection terminated', code: '08006' } };
+
+    const res = await post();
+
+    expect(res.status, 'the donation is already recorded; retrying would re-run it').toBe(200);
+  });
+
+  it('records WHY no receipt was sent when the campaign read fails', async () => {
+    const spy = vi.spyOn(console, 'error');
+    spy.mockClear(); // beforeEach re-uses the spy, so prior tests' calls linger
+    readErrors = { campaigns: { message: 'connection terminated', code: '08006' } };
+
+    await post();
+
+    const logged = spy.mock.calls.map((c) => String(c[0])).join(' | ');
+    expect(logged, 'the donor gets no receipt and nothing recorded it').toContain('[receipt] campaign read failed');
+  });
+
+  it('records a tax receipt silently downgraded to a generic thank-you', async () => {
+    // A donation to a VERIFIED NONPROFIT sent as if non-deductible, because the
+    // nonprofit lookup failed — indistinguishable from a genuinely
+    // non-deductible gift, and previously leaving no trace at all.
+    const spy = vi.spyOn(console, 'error');
+    spy.mockClear(); // beforeEach re-uses the spy, so prior tests' calls linger
+    // The campaign must RESOLVE for the nonprofit lookup behind it to run at all.
+    readData = { campaigns: { title: 'A Campaign', slug: 'a-campaign', user_id: 'owner-1' } };
+    readErrors = { nonprofit_profiles: { message: 'connection terminated', code: '08006' } };
+
+    await post();
+
+    const logged = spy.mock.calls.map((c) => String(c[0])).join(' | ');
+    expect(logged).toContain('[receipt] nonprofit read failed');
+  });
+
+  it('logs nothing about receipts on the happy path', async () => {
+    // Guards the guard: a log that always fires is noise, not a signal.
+    const spy = vi.spyOn(console, 'error');
+    spy.mockClear(); // beforeEach re-uses the spy, so prior tests' calls linger
+
+    await post();
+
+    const logged = spy.mock.calls.map((c) => String(c[0])).join(' | ');
+    expect(logged).not.toContain('[receipt]');
   });
 });
 

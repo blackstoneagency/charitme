@@ -11,6 +11,7 @@ import { recordCampaignPayment, recordPaymentEvent } from '../../../../lib/payme
 import { resolvePayoutDestination } from '../../../../lib/payout-destination';
 import { resolveContact, trackEvent, refreshContactScores } from '../../../../lib/marketing-engine';
 import { postDonation, postRefund, postDisputeLoss, openReconciliationException } from '../../../../lib/ledger';
+import { boundedQuery } from '../../../../lib/query-timeout';
 import { resolveRecurringRenewalAmounts } from '../../../../lib/recurring-payment';
 import { normalizeReceiptEmail } from '../../../../lib/tax-receipt-access';
 
@@ -41,14 +42,47 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
-  // Idempotency: log every event; skip if already processed
-  const { data: existing } = await supabaseAdmin
-    .from('webhook_events')
-    .select('id, processed_at')
-    .eq('stripe_event_id', event.id)
-    .maybeSingle();
+  // Idempotency: log every event; skip if already processed.
+  //
+  // ⚠️ This read dropped its `error`. A failed read produced `existing = null`,
+  // which is indistinguishable from "never seen this event" — so the duplicate
+  // check silently disabled itself and the event was processed again. The money
+  // paths behind it are individually idempotent (`record_donation` on
+  // `p_stripe_event_id`, ledger posts on `idempotency_key`, the membership
+  // upsert on `stripe_subscription_id`), so this is defence in depth rather than
+  // the last line — but a defence that turns itself off when unreadable is not a
+  // defence. Emails are NOT idempotent, so a reprocess re-sends receipts.
+  //
+  // Throwing is the right answer here and is this repo's webhook contract:
+  // Stripe retries with backoff, which is strictly safer than reprocessing.
+  const { data: existing, error: existingError } = await boundedQuery(() =>
+    supabaseAdmin
+      .from('webhook_events')
+      .select('id, processed_at')
+      .eq('stripe_event_id', event.id)
+      .maybeSingle(),
+  );
+  if (existingError) {
+    // Returned rather than thrown: this sits BEFORE the try/catch that converts
+    // handler throws into a 500, so a throw here would escape POST entirely.
+    // The status code is the only thing Stripe reads, so it is set explicitly.
+    // The reason is not echoed to Stripe — it is a database message.
+    console.error('[stripe webhook] idempotency read failed:', existingError.message);
+    return NextResponse.json({ error: 'Idempotency check unavailable' }, { status: 500 });
+  }
 
   if (existing?.processed_at) {
+    // ⚠️ `status: 'duplicate'` was UNREACHABLE. It was passed below as
+    // `existing?.processed_at ? 'duplicate' : 'received'` — but that line runs
+    // only after this early return, so the condition is always false there and
+    // the ternary always chose 'received'. `campaign_payment_webhook_events`
+    // could therefore never record a duplicate delivery, and anything counting
+    // them read zero forever — zero being the reassuring answer.
+    //
+    // Recorded HERE, where a duplicate actually is one. The recorder upserts on
+    // (processor, processor_event_id) independently of the webhook_events row,
+    // so it is safe to call before that row is touched.
+    await recordCampaignPaymentWebhookEvent(event, 'duplicate');
     return NextResponse.json({ ok: true, status: 'already_processed' });
   }
 
@@ -57,7 +91,7 @@ export async function POST(request: NextRequest) {
     { stripe_event_id: event.id, event_type: event.type, payload: event as unknown as Record<string, unknown> },
     { onConflict: 'stripe_event_id', ignoreDuplicates: false },
   );
-  await recordCampaignPaymentWebhookEvent(event, existing?.processed_at ? 'duplicate' : 'received');
+  await recordCampaignPaymentWebhookEvent(event, 'received');
 
   try {
     await handleEvent(event);
@@ -1701,11 +1735,28 @@ async function sendDonorReceipt(
       donorName = profile?.full_name ?? donorName;
     }
 
-    const { data: camp } = await supabaseAdmin
+    // ⚠️ This whole function is deliberately wrapped in `catch {}` below — a
+    // receipt failure must NOT fail the webhook, because failing would make
+    // Stripe re-run the donation handler. That is correct, and it means
+    // "throw and let Stripe retry" is the wrong instinct here.
+    //
+    // What it does NOT justify is failing INVISIBLY. Each read below dropped its
+    // `error`, so a transient failure silently changed what the donor received
+    // with nothing recorded anywhere. Logging is the whole fix: the behaviour
+    // stays non-fatal, but it stops being unobservable.
+    const { data: camp, error: campError } = await supabaseAdmin
       .from('campaigns')
       .select('title, slug, user_id')
       .eq('id', campaignId)
       .single();
+    if (campError) {
+      // The donor gets NO receipt at all, and unlike deductibility below,
+      // nothing else ever recovers this one.
+      console.error('[receipt] campaign read failed, no receipt sent:', {
+        campaignId, donationId, code: campError.code, message: campError.message,
+      });
+      return;
+    }
     if (!donorEmail || !camp) return;
 
     const { data: donationRow } = donationId
@@ -1734,11 +1785,26 @@ async function sendDonorReceipt(
     type NpRow = { id: string; name: string; tax_id: string | null; verified: boolean; verification_status: string; tax_receipt_enabled: boolean };
     let nonprofit: NpRow | null = null;
     if (camp.user_id) {
-      const { data: np } = await supabaseAdmin
+      const { data: np, error: npError } = await supabaseAdmin
         .from('nonprofit_profiles')
         .select('id, name, tax_id, verified, verification_status, tax_receipt_enabled')
         .eq('owner_id', camp.user_id)
         .maybeSingle();
+      if (npError) {
+        // A failed read here made `deductible` false, so a donation to a
+        // VERIFIED NONPROFIT silently received the generic thank-you instead of
+        // an official tax receipt with EIN and disclosure — indistinguishable
+        // from a genuinely non-deductible gift.
+        //
+        // Bounded, and worth stating precisely rather than overstating: the
+        // annual giving statement (`lib/tax.ts`, reachable from /donor)
+        // recomputes deductibility from `nonprofit_profiles` at generation time,
+        // so the donor's year-end documentation still comes out right. What is
+        // lost is the per-donation receipt, and — until now — any trace of it.
+        console.error('[receipt] nonprofit read failed, sent as NON-deductible:', {
+          campaignId, donationId, ownerId: camp.user_id, code: npError.code, message: npError.message,
+        });
+      }
       nonprofit = (np as NpRow | null) ?? null;
     }
 

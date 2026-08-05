@@ -188,3 +188,83 @@ describe('ledger migration hardening', () => {
     expect(sql).toMatch(/amount_cents\s+bigint not null check \(amount_cents >= 0\)/);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// A BALANCED group can still be unpostable, and it fails silently.
+//
+// Every line in a group shares one idempotency key, and the unique index is
+// (idempotency_key, account, direction). Two lines with the same account AND
+// direction therefore collide with EACH OTHER on the first insert —
+// `postEntryGroup` catches 23505 and returns { posted: false }, which is its
+// "already handled" signal. The donation row is written, Stripe gets a 200, and
+// the money never reaches the ledger, with no error raised anywhere.
+//
+// The invariant previously lived only in the shape of three literal arrays.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('a group cannot collide with itself', () => {
+  const slots = (lines: readonly { account: string; direction: string }[]) =>
+    lines.map((l) => `${l.account}:${l.direction}`);
+
+  it('rejects a group that posts the same account and direction twice', () => {
+    expect(() =>
+      assertBalanced([
+        { account: 'donor_clearing', direction: 'debit', amount_cents: 1000 },
+        { account: 'platform_revenue', direction: 'credit', amount_cents: 400 },
+        { account: 'platform_revenue', direction: 'credit', amount_cents: 600 },
+      ] as never),
+    ).toThrow(/twice/);
+  });
+
+  it('still accepts the same account in OPPOSITE directions', () => {
+    // Not a collision: the index includes direction, so these are separate rows.
+    expect(() =>
+      assertBalanced([
+        { account: 'recipient_payable', direction: 'debit', amount_cents: 1000 },
+        { account: 'recipient_payable', direction: 'credit', amount_cents: 1000 },
+      ] as never),
+    ).not.toThrow();
+  });
+
+  it('every builder holds the invariant across its input space, not at one point', () => {
+    // A single sample would pass even if some amount combination emitted a
+    // duplicate line, so this sweeps the boundaries that change which lines are
+    // emitted at all — zero fees in particular, since PLATFORM_FEE_PERCENT is 0
+    // and the zero-amount line is omitted.
+    const amounts = [0, 1, 30, 250, 100_000];
+    for (const donationCents of amounts) {
+      for (const platformFeeCents of amounts) {
+        for (const processorFeeCents of amounts) {
+          const lines = buildDonationEntries({ donationCents, platformFeeCents, processorFeeCents });
+          const s = slots(lines);
+          expect(new Set(s).size, `donation ${donationCents}/${platformFeeCents}/${processorFeeCents}`)
+            .toBe(s.length);
+          expect(() => assertBalanced(lines)).not.toThrow();
+        }
+      }
+    }
+    for (const donation of amounts) {
+      for (const fee of amounts) {
+        for (const build of [buildRefundEntries, buildDisputeLossEntries]) {
+          const lines = build({ refundDonationCents: donation, refundPlatformFeeCents: fee });
+          const s = slots(lines);
+          expect(new Set(s).size, `${build.name} ${donation}/${fee}`).toBe(s.length);
+          expect(() => assertBalanced(lines)).not.toThrow();
+        }
+      }
+    }
+  });
+
+  it('the unique index really is (key, account, direction)', () => {
+    // The whole hazard follows from the index shape. If it ever becomes
+    // (key) alone, a group of 4 lines could never post at all; if it drops
+    // direction, the opposite-direction case above starts colliding.
+    const sql = readFileSync(
+      path.resolve(
+        path.dirname(fileURLToPath(import.meta.url)),
+        '../../../supabase/migrations/20260723001000_financial_ledger.sql',
+      ),
+      'utf8',
+    ).toLowerCase();
+    expect(sql).toMatch(/ledger_entries\(idempotency_key,\s*account,\s*direction\)/);
+  });
+});

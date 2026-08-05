@@ -36,6 +36,15 @@
 //    without touching the table. `/api/locale` looks like a `profiles.locale`
 //    probe and is not — it returns `{locale:null}` for anonymous callers before
 //    any query runs. It was caught during review and deliberately excluded.
+//
+// 5. One probe proves its case by the ABSENCE of a string, which is a weaker
+//    shape than the rest and needs its own guard. The peer-fundraiser page
+//    renders a visible note when `donations.peer_fundraiser_id` is missing, so
+//    "note not present" means the read succeeded. Reword that note and the probe
+//    would report APPLIED forever without anyone noticing — so `sentinel` records
+//    the exact string and `__tests__/migration-probes.test.ts` fails if it is no
+//    longer in the page source. Absence-probes must also assert something
+//    POSITIVE (`requires`) so a blank page or an error shell cannot pass.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { pathToFileURL } from 'node:url';
@@ -50,6 +59,13 @@ const NIL_UUID = '00000000-0000-0000-0000-000000000000';
  * @property {string} path       unauthenticated request whose 200 proves the read succeeded
  * @property {(body: unknown, text: string) => boolean} ok  given parsed JSON (null for HTML) and the raw body
  * @property {{ path: string, status: number, method?: string }} control  same handler, must fail distinctly
+ * @property {(base: string, get: (base: string, path: string) => Promise<{status: number, body: unknown, text: string}>) => Promise<string | null>} [resolve]
+ *   for probes whose URL cannot be written down in advance (a peer page exists
+ *   only for a campaign that has one). Returns the path, or null when none was
+ *   found — which is "no proof", never "pending".
+ * @property {string} [sentinel]  absence-probes only: the exact failure string
+ * @property {string} [sentinelSource]  file the sentinel must still appear in
+ * @property {RegExp} [requires]  absence-probes only: something that must be PRESENT
  */
 
 /** @type {Probe[]} */
@@ -114,7 +130,55 @@ const PROBES = [
     // server is serving this deployment rather than a cached edge error page.
     control: { path: '/status/definitely-not-a-page', status: 404 },
   },
+  {
+    migration: '20260815000000_peer_fundraiser_attribution',
+    proves: 'donations.peer_fundraiser_id',
+    firstCreatedIn: '20260815000000_peer_fundraiser_attribution',
+    // This was listed for a while as unprobeable, on the grounds that the app
+    // "degrades silently" when the column is missing. That was wrong: it degrades
+    // LOUDLY and on purpose. `/campaigns/<slug>/team/<peerSlug>` probes the column
+    // itself and, when the read fails, renders a note telling the visitor that
+    // per-supporter totals are not being recorded on this deployment. So the note
+    // is the schema, published.
+    //
+    // Hence an absence-probe (see note 5): no note = the select succeeded.
+    resolve: findPeerFundraiserPage,
+    sentinel: 'Per-supporter totals are not being recorded yet',
+    sentinelSource: 'app/campaigns/[slug]/team/[peerSlug]/page.tsx',
+    // The positive half. Without it a 200 that returned an error shell, a
+    // redirect body or an empty document would read as APPLIED.
+    requires: /Fundraising team/,
+    ok: (_b, text) =>
+      /Fundraising team/.test(text ?? '') && !/not being recorded yet/i.test(text ?? ''),
+    // Static, so it needs no discovery: the route segment exists and answers
+    // notFound() for a peer that is not there.
+    control: { path: '/campaigns/not-a-campaign-x9/team/not-a-peer-x9', status: 404 },
+  },
 ];
+
+/**
+ * Find a live peer-fundraiser page.
+ *
+ * There is no unauthenticated list of them — `/api/campaigns/[id]/peer-fundraisers`
+ * is POST-only and 401s — so this walks the sitemap's campaign URLs and takes the
+ * first that renders a team link. Bounded to a handful of requests; returning null
+ * is a normal outcome that reports "no proof", not "pending".
+ */
+async function findPeerFundraiserPage(base, get) {
+  const sitemap = await get(base, '/sitemap.xml');
+  const campaigns = [...(sitemap.text ?? '').matchAll(/<loc>([^<]*\/campaigns\/[^<]*)<\/loc>/g)]
+    .map((m) => m[1])
+    .filter((u) => !/\/campaigns\/?$/.test(u))
+    .slice(0, 12);
+
+  for (const url of campaigns) {
+    const path = url.replace(base, '');
+    const page = await get(base, path);
+    const peer = page.text?.match(/\/campaigns\/[a-z0-9-]+\/team\/[a-z0-9-]+/i)?.[0];
+    if (peer) return peer;
+  }
+  return null;
+}
 
 /**
  * Migrations with NO public signal, and why. Listed so the next person does not
@@ -139,7 +203,6 @@ const NO_PUBLIC_SIGNAL = [
   ['20260813000000_donor_message_anonymity_contract', 'RLS + trigger'],
   ['20260814000000_marketing_org_scoping', 'org_id read behind auth'],
   ['20260814010000_harden_role_and_team_boundaries', 'RLS'],
-  ['20260815000000_peer_fundraiser_attribution', 'app probes the column itself and degrades silently — by design, so no external difference'],
   ['20260816000000_record_donation_peer_attribution', 'RPC body; only a real donation would show it'],
   ['20260818000000_profile_market_locale', '/api/locale answers anonymous callers WITHOUT querying (see note 4)'],
   ['20260819000000_donation_forms_slug_and_campaign_owner', 'needs a seeded form slug'],
@@ -187,12 +250,28 @@ async function main() {
       continue;
     }
 
-    const r = await get(base, p.path);
+    let path = p.path;
+    if (p.resolve) {
+      path = await p.resolve(base, get);
+      if (!path) {
+        // No sample page exists to look at. That is an absence of evidence, and
+        // is reported as such — the one thing this script must never do is let a
+        // failed lookup harden into "pending".
+        console.log(
+          `❔ NO PROOF  ${p.migration}\n` +
+          `             via ${p.proves} — no sample page found to probe (not a claim about the schema)`,
+        );
+        continue;
+      }
+    }
+
+    const r = await get(base, path);
     const yes = r.status === 200 && p.ok(r.body, r.text);
     if (yes) applied.add(p.migration);
     console.log(
       `${yes ? '✅ APPLIED ' : '❔ NO PROOF'}  ${p.migration}\n` +
-      `             via ${p.proves} — HTTP ${r.status} ${r.body === null ? '(html)' : JSON.stringify(r.body).slice(0, 80)}`,
+      `             via ${p.proves} — HTTP ${r.status} ` +
+      `${r.body === null ? `(html ${path})` : JSON.stringify(r.body).slice(0, 80)}`,
     );
   }
 

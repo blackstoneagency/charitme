@@ -226,7 +226,12 @@ not your branch. Both facts together are conclusive.
 **Timeline so far:** dead for ~2 weeks → alive 2026-08-01 (run `30704209059`,
 `runner_id: 1000001483`, 3m09s) → **dead again 2026-08-02**, verified on run
 `30751833105` (`runner_id: 0`, empty `runner_name`, 10s, 0 billable ms) *and* on
-master run `30750918547` (same signature; master's last 6 runs all failed).
+master run `30750918547` (same signature; master's last 6 runs all failed) →
+**still dead 2026-08-04**, verified on branch run `30832734509`
+(`runner_id: 0`, empty `runner_name`, 8s, 0 billable ms) *and* on master run
+`30873938827` (0 billable ms, 9s; master's last 6 runs all failed). Three days
+into August and it has not come back — consistent with the quota hypothesis
+below, whose falsifiable prediction (return on 1 September) is still open.
 
 ### 🔎 LIKELY CAUSE, and it is not random: the private-repo Actions minutes quota
 

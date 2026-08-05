@@ -120,7 +120,7 @@ function OppCard({ o, act }: { o: Opportunity; act: (id: string, body: Record<st
           <div style={{ display: 'flex', minWidth: 0, gap: 16, flexWrap: 'wrap', marginTop: 10, fontSize: 12, color: 'var(--t3)' }}>
             <span><b style={{ color: 'var(--t1)' }}>{METRIC_LABEL[o.target_metric]}</b></span>
             {o.category && <span>· {o.category}</span>}
-            <span>· Est. impact <b style={{ color: 'var(--t1)' }}>{money(o.est_impact_cents)}</b> <span style={{ color: '#cbd5e1' }}>(estimate)</span></span>
+            <span>· Est. impact <b style={{ color: 'var(--t1)' }}>{money(o.est_impact_cents)}</b> <span style={{ color: 'var(--t3)' }}>(estimate)</span></span>
             {o.confidence != null && <span>· Confidence {Math.round(o.confidence * 100)}%</span>}
             <span>· Effort {o.effort}</span>
             {o.time_to_value_days != null && <span>· ~{o.time_to_value_days}d to value</span>}

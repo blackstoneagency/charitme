@@ -2649,35 +2649,80 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 
 .mirror-hero {
   position: relative;
-  min-height: 650px;
+  min-height: 0;
   overflow: hidden;
   isolation: isolate;
   border-bottom: 1px solid var(--mh-line);
   background: #071018;
 }
-.mirror-hero-bg {
-  position: absolute;
-  inset: 0;
-  z-index: -3;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center 42%;
-}
-.mirror-hero-shade { position: absolute; inset: 0; z-index: -2; background: rgba(1, 6, 13, .7); }
-/* Single column since the live-campaign rotator moved to its own band below
-   "Causes That Change Lives". The second track used to be
-   `minmax(280px, 340px)` for the card; leaving it in place would reserve up to
-   340px of dead space at the right of every hero. */
+/* Two columns: copy left, a contained photo panel right. The photo used to be
+   a full-bleed `position: absolute` background behind the copy with a 70% black
+   shade over it — the reference contains it instead, so both the background
+   rules and the shade are gone rather than left as dead selectors. */
 .mirror-hero-inner {
   min-height: 650px;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   align-items: center;
-  gap: clamp(40px, 7vw, 110px);
-  padding-block: 72px 58px;
+  gap: clamp(32px, 5vw, 64px);
+  padding-block: 64px 58px;
 }
-.mirror-hero-copy { max-width: 650px; }
+.mirror-hero-copy { max-width: 650px; min-width: 0; }
+
+/* ── Hero photo panel ──────────────────────────────────────────────────── */
+.mirror-hero-media { position: relative; min-width: 0; }
+.mirror-hero-media img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 19 / 14;
+  object-fit: cover;
+  border-radius: 14px;
+}
+/* The floating "Real People. Real Impact." card. Below 1100px it stops
+   overlapping and sits under the photo: overlapping a card on a narrow photo
+   covers the faces the photo exists to show. */
+.mirror-hero-card {
+  display: block;
+  margin-top: 14px;
+  padding: 18px 20px;
+  border: 1px solid var(--mh-line);
+  border-radius: 12px;
+  background: #0a1420;
+  text-decoration: none;
+}
+.mirror-hero-card:hover { border-color: #2b3d52; }
+.mirror-hero-card-ic {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; margin-bottom: 12px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ff4d8d, #ff7a45);
+  color: #fff;
+}
+.mirror-hero-card-ic svg { width: 19px; height: 19px; }
+.mirror-hero-card strong { display: block; color: var(--mh-card-strong, #fff); font-size: 16px; line-height: 1.25; font-weight: 850; }
+.mirror-hero-card-body { display: block; margin-top: 8px; color: #c4cdd6; font-size: 13.5px; line-height: 1.55; }
+.mirror-hero-card em {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 12px;
+  color: #ff5e9d; font-style: normal; font-size: 13px; font-weight: 850;
+}
+.mirror-hero-card em svg { width: 15px; height: 15px; }
+
+/* ── Measured proof row, in place of the reference's review score ──────── */
+.mirror-hero-proof {
+  display: flex; flex-wrap: wrap; gap: 28px;
+  margin: 26px 0 0;
+}
+.mirror-hero-proof > div { min-width: 0; }
+.mirror-hero-proof dt { color: #aab6c2; font-size: 12px; font-weight: 700; letter-spacing: .01em; }
+.mirror-hero-proof dd { margin: 4px 0 0; color: #fff; font-size: 26px; font-weight: 900; line-height: 1; }
+
+.mirror-h1-heart { width: .52em; height: .52em; color: #ff62bc; vertical-align: baseline; }
+/* The kicker's coloured words, as the reference sets them. */
+.mirror-kicker span:nth-of-type(1) { color: #ff9d3d; }
+.mirror-kicker span:nth-of-type(2) { color: #ff62bc; }
+.mirror-kicker span:nth-of-type(3) { color: #8b7bff; }
 .mirror-kicker {
   margin: 0 0 18px;
   color: #ff6c9f;
@@ -10853,3 +10898,143 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 }
 .cl-story-play svg { width: 22px; height: 22px; margin-left: 3px; }
 .cl-story:hover .cl-story-play { background: rgba(12, 8, 28, .62); }
+/* ═══════════════════════════════════════════════════════════════════════════
+   Homepage — hero two-column, stories band, impact band
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (min-width: 1000px) {
+  .mirror-hero-inner { grid-template-columns: minmax(0, 1fr) minmax(0, 0.92fr); }
+  /* Overlaps the photo only where there is room for it to sit clear of the
+     faces; below this it is a normal block under the image. */
+  .mirror-hero-card {
+    position: absolute;
+    right: 18px;
+    bottom: 22px;
+    width: 250px;
+    margin-top: 0;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, .45);
+  }
+}
+
+/* ── Metric icons ───────────────────────────────────────────────────────── */
+.mirror-metric-grid dt { display: flex; align-items: center; gap: 7px; }
+.mirror-metric-grid dt svg { width: 16px; height: 16px; flex: 0 0 auto; }
+.mirror-metric-0 dt svg { color: #ff4d8d; }
+.mirror-metric-1 dt svg { color: #ff9d3d; }
+.mirror-metric-2 dt svg { color: #3ddc97; }
+.mirror-metric-3 dt svg { color: #8b7bff; }
+
+/* ── Stories that inspire hope ──────────────────────────────────────────── */
+.mirror-stories-head {
+  display: flex; flex-wrap: wrap; align-items: baseline;
+  justify-content: space-between; gap: 12px;
+  margin-bottom: 22px;
+}
+.mirror-stories-head h2 { margin: 0; color: var(--mh-text); font-size: var(--fs-h2); font-weight: 900; letter-spacing: -.01em; }
+.mirror-stories-head a {
+  display: inline-flex; align-items: center; gap: 7px;
+  min-height: 24px;
+  color: #ff5e9d; font-size: 13.5px; font-weight: 850;
+}
+.mirror-stories-head a svg { width: 15px; height: 15px; }
+.mirror-stories-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+
+.mirror-story-lead {
+  display: grid;
+  grid-template-rows: auto auto;
+  min-width: 0;
+  border: 1px solid var(--mh-line);
+  border-radius: 10px;
+  background: var(--mh-panel);
+  overflow: hidden;
+  text-decoration: none;
+}
+.mirror-story-lead:hover { border-color: #2b3d52; }
+.mirror-story-media { display: block; }
+.mirror-story-media img {
+  display: block; width: 100%; height: auto;
+  aspect-ratio: 16 / 10; object-fit: cover;
+}
+.mirror-story-body { display: block; padding: 20px 22px 22px; }
+.mirror-story-chip {
+  display: inline-block; margin-bottom: 10px;
+  padding: 4px 10px; border-radius: 999px;
+  background: rgba(255, 77, 141, .16); color: #ff8ab5;
+  font-size: 11px; font-weight: 850; letter-spacing: .02em;
+}
+.mirror-story-body strong { display: block; color: var(--mh-text); font-size: 19px; line-height: 1.25; font-weight: 850; }
+.mirror-story-blurb {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  margin-top: 8px; color: var(--mh-text); font-size: 14px; line-height: 1.55;
+}
+.mirror-story-meta { display: block; margin-top: 12px; color: var(--mh-muted); font-size: 12.5px; }
+.mirror-story-body em {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 14px; min-height: 24px;
+  color: #ff5e9d; font-style: normal; font-size: 13px; font-weight: 850;
+}
+.mirror-story-body em svg { width: 15px; height: 15px; }
+
+.mirror-story-quotes { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-content: start; }
+.mirror-story-quotes article {
+  min-width: 0; padding: 22px;
+  border: 1px solid var(--mh-line); border-radius: 10px; background: var(--mh-panel);
+}
+.mirror-story-quotes article > span {
+  display: block; height: 28px;
+  color: var(--mh-pink); font-family: Georgia, serif; font-size: 44px; line-height: .9;
+}
+.mirror-story-quotes p { margin: 10px 0 18px; color: var(--mh-text); font-size: 14.5px; line-height: 1.6; }
+.mirror-story-quotes small { color: var(--mh-muted); font-size: 11.5px; line-height: 1.5; }
+
+/* ── Make an Impact Today ───────────────────────────────────────────────── */
+.mirror-impact-inner {
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: center;
+  padding: 22px;
+  border: 1px solid var(--mh-line); border-radius: 12px; background: var(--mh-panel);
+}
+.mirror-impact-media { min-width: 0; }
+.mirror-impact-media img {
+  display: block; width: 100%; height: auto;
+  aspect-ratio: 16 / 9; object-fit: cover; border-radius: 9px;
+}
+.mirror-impact-copy { min-width: 0; }
+.mirror-impact-copy h2 {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin: 0; color: var(--mh-text); font-size: var(--fs-h2); font-weight: 900; letter-spacing: -.01em;
+}
+.mirror-impact-copy h2 svg { width: .62em; height: .62em; color: #ff62bc; }
+.mirror-impact-copy p { margin: 10px 0 20px; color: var(--mh-text); font-size: 15.5px; line-height: 1.6; }
+
+@media (min-width: 860px) {
+  .mirror-stories-grid { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+  .mirror-impact-inner { grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 28px; padding: 26px; }
+}
+/* No completed campaign to illustrate the band: one centred column rather than
+   a grid with an empty track. */
+.mirror-impact-inner.is-copy-only { grid-template-columns: minmax(0, 1fr); text-align: center; }
+.mirror-impact-inner.is-copy-only .mirror-impact-copy h2,
+.mirror-impact-inner.is-copy-only .mirror-actions { justify-content: center; }
+
+/* ── Light mode for the bands added with the reference layout ──────────────
+   These were written with the hero's dark literals (#fff, #ff5e9d), which the
+   contrast audit correctly failed at 1:1 and 2.75:1 in light mode. Headings and
+   body now follow the --mh-* tokens; the accent links need a darker pink than
+   the dark theme's #ff5e9d to clear 4.5:1 on white. */
+[data-theme="light"] .mirror-stories-head a,
+[data-theme="light"] .mirror-story-body em { color: #b01458; }
+[data-theme="light"] .mirror-story-chip { background: #fce4ee; color: #98104c; }
+[data-theme="light"] .mirror-story-lead,
+[data-theme="light"] .mirror-story-quotes article,
+[data-theme="light"] .mirror-impact-inner { background: #fff; }
+[data-theme="light"] .mirror-story-lead:hover { border-color: #b8c4d2; }
+/* The hero card sits over a photograph in both themes, so it keeps its dark
+   treatment and its own light-on-dark contrast rather than inverting. */
+[data-theme="light"] .mirror-hero-card { background: #0a1420; border-color: #1c2a36; }
+[data-theme="light"] .mirror-hero-card .mirror-hero-card-body { color: #c4cdd6; }
+
+/* ⚠️ No light-mode override for the hero copy.
+   `.mirror-hero` sets its own `background: #071018` in BOTH themes — the band
+   is deliberately dark whatever the page theme is. Re-toning the copy for light
+   mode therefore produced dark-on-dark: measured at 1.08:1 for the H1. The
+   white text was already correct; the mistake was assuming the band followed
+   the theme because the photo behind it had moved. */

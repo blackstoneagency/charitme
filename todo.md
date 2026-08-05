@@ -131,7 +131,7 @@ is that "blocked" rows lie in both directions:
 | **O2** staging Supabase | a database | `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ACCESS_TOKEN`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_DB_URL`, `DATABASE_URL` all **unset**; `supabase` CLI not installed; only `.env.example` on disk. No credential exists, so there is no action — not a deferred judgement |
 | **O3** Stripe test keys | a live card charge | `STRIPE_SECRET_KEY` unset. ⚠️ This gate is **narrower than it looks** — it blocked A2 on paper and did not: writing and testing subscription checkout needs no key, only *charging* does. A2 shipped without it |
 | **O4** Actions runners | billing | `runner_id: 0`, empty `runner_name`, 0 billable ms on every run today. **The agent half is done and measured** — see the O4 section below |
-| **O5** Vercel plan | billing | — |
+| **O5** Vercel plan | billing | **This cell was empty — the only row never actually checked, so it is checked now.** The plan itself is billing and stays the owner’s. But the consequence people fear from it is not currently happening: merges ARE reaching production. `f729cf05` (merged 2026-08-04) is live within minutes, verified by markup it introduced. So O5 is a recurrence risk to remove, not an active outage — and nothing is stranded on master |
 | **O7** donor guarantee | underwriting fraud losses with company money | A financial commitment. The standing instruction is explicit: do not commit CharitMe to holding or paying out money beyond the intended architecture |
 | **O8** nonprofit fee | charging verified nonprofits less than 2.9% + $0.30 | A pricing decision. The standing instruction is explicit: **do not change fee behaviour without documented requirements.** The code branch is trivial (`nonprofit_verified` is already known at donation time) — what to charge is not mine to pick |
 | signed-in a11y sweep | a test login | `audit:contrast` cannot authenticate, so the admin surface stays unmeasured by the browser |
@@ -651,6 +651,59 @@ byte-identical after the exercise (`git diff --stat` empty).
 **What is still genuinely blocked on O3:** a real charge against a real card. The
 handler's behaviour is not.
 
+## 🔬 O2 — 23 → 22, AND THE REASON IT WAS "UNPROBEABLE" WAS WRONG (Claude, 2026-08-04)
+
+`20260815000000_peer_fundraiser_attribution` was on the no-signal list with the
+reason *"app probes the column itself and degrades silently — by design, so no
+external difference."* That reason is false, and it is the kind of false that
+stops anyone looking again.
+
+The app degrades **loudly**, on purpose. `/campaigns/<slug>/team/<peerSlug>`
+probes `donations.peer_fundraiser_id` and, when the read fails, renders a note
+telling the visitor per-supporter totals are not being recorded on this
+deployment. **The note is the schema, published.** A live team page in production
+carries no note, so the select succeeded → the migration is applied.
+
+```
+✅ APPLIED  20260815000000_peer_fundraiser_attribution
+            via donations.peer_fundraiser_id — HTTP 200
+            /campaigns/campaign-494-6ad72802/team/seed-peer-6a5e78e0-77
+```
+
+**5 of 27 now proven applied; the unknown set is 22.**
+
+### This probe proves its case by ABSENCE, which is weaker — so it is guarded harder
+
+Every other probe needs a specific string to *appear*, and fails closed when a
+page changes. This one passes when a string *vanishes* — including if it vanishes
+because somebody reworded it. Three guards make that shape acceptable:
+
+| guard | catches |
+|---|---|
+| `sentinel` must still exist in the page source | a reworded note, which would otherwise make the probe report APPLIED forever |
+| `requires` — a positive marker must also be present | an empty body, error shell or redirect reading as "note absent" |
+| the degraded page must read as NO PROOF | the probe inverting |
+
+Mutation-tested in both directions: rewording the note in `page.tsx` fails the
+sentinel test, and deleting the positive half of `ok()` fails the empty-page
+test. Restored green after each.
+
+### Discovery, because the URL cannot be written down in advance
+
+A peer page exists only for a campaign that has one, and there is no
+unauthenticated list — `/api/campaigns/[id]/peer-fundraisers` is POST-only and
+401s. The probe walks the sitemap's campaign URLs and takes the first with a team
+link, bounded to 12 requests. **Finding none reports "no proof", never
+"pending"** — the same rule that governs the rest of the script.
+
+### The transferable part
+
+The catalogue's *reasons* had never been audited, only its results. A reason is a
+claim like any other: this one was wrong, and being written down is exactly what
+kept it from being re-checked. The other 22 reasons were re-read in the same pass;
+the remainder hold (RLS changes invisible to a successful read, function bodies,
+routes that 401 before the select).
+
 ## 🔬 O2 — THE UNKNOWN SET SHRANK FROM 25 TO 23, AND THE METHOD IS NOW A SCRIPT (Claude, 2026-08-03)
 
 O2 (staging Supabase) is credential-blocked and stays that way. But the *reason*
@@ -929,6 +982,52 @@ white backdrop) and it would have missed nothing only because I read each site.
 Static analysis cannot see the surface an element sits on. That is why the
 committed guards are regression checks over inspected sites, not general rules.
 
+### ✅ C1 — three INVISIBLE labels found in the mirror direction (Claude, 2026-08-04)
+
+The earlier pass measured light-designed text failing in dark, and dark-designed
+text failing in light (`#94a3b8`, 2.56:1). It did not measure the whole surface.
+Doing that found three more, all the same shape and all still shipping:
+
+| site | text |
+|---|---|
+| `AdminMarketingClient.tsx:780` | "not validated" in the leads table |
+| `OpportunitiesClient.tsx:123` | "(estimate)" on an opportunity row |
+| `NewCustomersClient.tsx:270` | the pipeline arrow separator |
+
+```
+#cbd5e1 on #ffffff (light)   1.48:1   invisible
+#cbd5e1 on #12141c (dark)   12.38:1   fine — which is why nobody saw it
+var(--t3)                    6.22:1 light / 7.25:1 dark
+```
+
+Each sat in a card whose sibling text already used `var(--t1)`/`var(--t3)`: **the
+card flips theme and those three pieces of text do not.** Identical to the
+`/admin/content` count fixed last pass, in the opposite direction.
+
+### The measurement over-reported 51, and that is the point worth recording
+
+A naive "any `color: '#hex'` failing either theme" sweep flags **51** sites. Most
+are wrong, in three distinct ways — worth knowing before anyone trusts a rerun:
+
+1. **`#fff` on a coloured button.** The background is set by a `Btn` variant or a
+   className, so static analysis cannot see it. ~30 of the 51.
+2. **An object property that is not a style at all.** `DonationsClient.tsx:1080`
+   matched `color:` inside a `DonutChart` **slices** array — a data-viz fill,
+   where 4.5:1 text contrast is the wrong bar entirely.
+3. **Documented exemptions** — `/campaigns/[slug]/embed` renders inside a
+   third-party page, and `global-error.tsx` runs when the app CSS never loaded.
+
+3 of 51 were real. **A guard that fires on correct code gets switched off**, which
+is why the fix is 3 individual replacements plus a regression entry, and *not* a
+new general rule.
+
+Guard: `__tests__/admin-muted-contrast.test.ts`. `#cbd5e1` is banned as a **text
+colour only** — it is still a legitimate `STATUS_COLOR` "archived" badge accent in
+three admin clients, so the blanket ban used for `#94a3b8` would fail correct
+code here. Mutation-tested both ways: reintroducing it as text fails, and removing
+the legitimate badge use also fails (so the exemption cannot quietly become dead
+permission).
+
 ### Still open on C1
 
 This closed the **named** root cause. The wider count in C1 ("271 hardcoded
@@ -1091,6 +1190,473 @@ points at `placeholder.supabase.co`, so both reads return `QUERY_TIMEOUT` and
 the page renders its honest degraded state (an EmptyState for the grid, nothing
 for stories). Their POSITION is pinned by source order in the test instead —
 a weaker signal than a rendered one, and worth re-checking against production.
+
+## 🧾 THE RECEIPT PATH FAILED INVISIBLY — and this one is smaller (Claude, 2026-08-04)
+
+Third triage of the money-path queue. **Stating the severity honestly up front,
+because it is lower than the last three and the temptation after a run of real
+findings is to inflate the next one:** nothing here loses or misroutes money, and
+the tax documentation is recoverable. What was wrong is that three failures were
+*completely unobservable*.
+
+### The design that is NOT the bug
+
+`sendDonorReceipt` is wrapped in `try { … } catch { /* Non-fatal — receipt
+failure must not fail webhook */ }`. That is **correct and deliberate**: failing
+would make Stripe re-run the whole donation handler to fix an email. So "throw
+and let Stripe retry" — the right answer in the last four passes — is the *wrong*
+instinct here, and the catch was left exactly as it is.
+
+Being non-fatal does not justify being invisible.
+
+| read | silent consequence |
+|---|---|
+| `campaigns` (`.single()`, error dropped) | `!camp` → **no receipt at all**, and nothing else ever recovers it |
+| `nonprofit_profiles` (error dropped) | `deductible = false` → a gift to a **verified nonprofit** sent as a generic thank-you instead of an official receipt with EIN and disclosure — indistinguishable from a genuinely non-deductible donation |
+
+### Verified rather than assumed: the tax harm is bounded
+
+Before writing this up I checked whether the donor is actually left without
+documentation. They are not. The **annual giving statement** (`lib/tax.ts`,
+reachable from `/donor`) recomputes deductibility from `nonprofit_profiles` at
+generation time, so the year-end record still comes out right. What is lost is
+the per-donation receipt — and, until now, any trace that it happened.
+
+That mitigation is real, so the fix is proportionate: **log, do not change
+behaviour.** Both branches now record the campaign, donation and error code.
+
+### The harness could only break writes, so the bug was untestable
+
+`stripe-webhook-behaviour.test.ts` answered `data: null` to every select, which
+meant the receipt path always returned early at `if (!camp)` — **no test could
+reach the nonprofit lookup behind it.** Added per-table read *data* alongside the
+existing read/write failure injection, opt-in so existing tests keep the old
+default.
+
+Two mistakes of mine on the way, both caught by running it:
+- the `console.error` spy is created in `beforeEach` and **re-spying returns the
+  same mock**, so my first assertion matched log lines from *earlier tests*;
+- the nonprofit assertion then went green-to-empty, which is what exposed that
+  the branch had never been reachable at all.
+
+Mutation-tested three ways: silencing either branch fails its test, and making a
+log fire unconditionally fails the happy-path test — **a log that always fires is
+noise, not a signal.**
+
+## 💸 A FAILED LOOKUP COULD PAY THE WRONG PERSON (Claude, 2026-08-04)
+
+Second triage of the money-path queue, and the highest-consequence one found so
+far. The worst outcome in this codebase is not a declined donation — it is a
+donation that **succeeds and pays the wrong person**.
+
+`resolvePayoutDestination` tries the campaign's beneficiary first, then falls
+back to the organizer. That order is deliberate, and `lib/payout-destination.ts`
+says why in its own header: a campaign run on someone's behalf pays **that**
+person, and *"the organizer never touches the money either"*.
+
+The readiness lookup dropped its `error`:
+
+```
+beneficiary read FAILS → data = null → read as "no beneficiary account"
+                       → falls through to the ORGANIZER
+```
+
+So a transient database failure on one lookup **silently redirects the donation
+to a different human being.** Both destinations are real, verified, payout-ready
+accounts — nothing downstream would flag it, and the donor's receipt would look
+completely normal.
+
+| case | before | now |
+|---|---|---|
+| beneficiary read fails, organizer ready | **pays the organizer** | `PayoutLookupUnavailableError` → **503**, nothing charged |
+| both reads fail | 409 "completing payout setup" | 503 — we could not check, and say so |
+| beneficiary genuinely has no account | falls back to organizer | unchanged — that is the designed behaviour |
+| beneficiary present but half-onboarded | blocked (`null`) | unchanged |
+
+`.maybeSingle()` already returns `{ data: null, error: null }` for "no row", so an
+`error` here means the question genuinely could not be answered — the two are
+separable, and the fix is to stop conflating them. **Declining a donation is
+recoverable; paying the wrong person is not.**
+
+Donor-facing routes turn it into a 503 `PAYOUT_LOOKUP_UNAVAILABLE` with "Nothing
+was charged — please try again", rather than a 500 or a 409 that blames the
+recipient's setup for a fault on our side. The webhook lets it throw, which is
+its contract (Stripe retries).
+
+### The partial failure is the whole test
+
+A single all-or-nothing mock cannot express this bug — both lookups failing is
+the *safe* case. The test drives a fake Supabase keyed **per user id**, so the
+beneficiary lookup fails while the organizer's succeeds, which is the only shape
+that misroutes.
+
+Mutation-tested in both directions: removing the guard restores the misroute
+(2 tests fail), and over-throwing on a legitimate `null` breaks the intended
+organizer fallback (2 tests fail). Both matter — a fix that blocked every
+beneficiary-less campaign would be its own outage.
+
+## 🛑 A DONOR COULD BE TOLD THEIR LIVE SUBSCRIPTION DOES NOT EXIST (Claude, 2026-08-04)
+
+First triage of the 44-item queue from the sweep below. Cancelling a recurring
+charge is the highest-consequence self-service action on the platform: **if it
+appears to fail, the alternative the donor reaches for is their bank.** Both
+control routes were wrong, in two independent ways.
+
+### 1. `.single()` + a dropped `error` = "Subscription not found"
+
+`.single()` reports **zero rows as an error**. With `error` discarded, a missing
+subscription and an unreadable database both produced `record = null`, and both
+answered **404 "Subscription not found"** — to someone trying to stop a live
+recurring donation. They either give up and keep being charged, or dispute it.
+
+Now `.maybeSingle()` + an explicit error branch → **503
+`SUBSCRIPTION_LOOKUP_UNAVAILABLE`**, with the genuine 404 still intact. Both
+`cancel` and `pause` had it.
+
+### 2. The Stripe call succeeded, the local write failed, the route said `ok`
+
+`await stripe.subscriptions.update(...)` then `await supabaseAdmin…update(...)`
+with **no error check at all**, returning `{ ok: true }` either way.
+
+The severity differs per action, and that decided the fix:
+
+| action | if the local write fails | response now |
+|---|---|---|
+| **cancel** | `customer.subscription.deleted` rewrites the row — but only when the period actually ends, so our record disagrees until then | **200**, with `stripeCancelled: true, recordUpdated: false`. The cancellation is real; saying it failed would make a donor retry or dispute |
+| **pause / resume** | **never self-heals** — `customer.subscription.updated` only touches memberships and plans, never `recurring_donations` | **500 `RECURRING_STATE_DIVERGED`**, so the client retries. Safe: the Stripe call is idempotent and a retry re-attempts the write |
+
+The dangerous direction is **resume**: collection is on again at Stripe while
+CharitMe still shows "paused", so the donor sees charges they believe they
+stopped. That asymmetry is why cancel returns 200 and resume returns 500 —
+Stripe is authoritative for whether money moves, so the response has to match
+what actually happened rather than being uniformly optimistic or uniformly loud.
+
+### Executed, not read
+
+`__tests__/recurring-control-failures.test.ts` runs the real handlers against a
+fake Stripe and Supabase — these routes had **never been executed by a test**.
+7 assertions, including two that guard the guards: a genuine 404 must survive the
+new 503 branch, and a subscription owned by someone else must still 403 (the
+error branch must not have widened authorization).
+
+All seven passed on first run, which by now is a reason to check rather than to
+trust — **each of the four guards was reverted individually and is caught by
+exactly one test.**
+
+## 🔁 THE WEBHOOK'S DUPLICATE CHECK TURNED ITSELF OFF, AND COULD NEVER REPORT ONE (Claude, 2026-08-04)
+
+Swept the whole codebase for the pattern the last two passes kept finding — a
+read whose `error` is discarded, so a failure becomes a confident answer. **330
+sites**, but most are `boundedQuery`-wrapped display surfaces where degrading to
+an empty list is a deliberate, already-reviewed choice. Filtered to money-path
+files where an absent result becomes a **decision** rather than a rendering:
+**46**. Two in the webhook were worth fixing now.
+
+### 1. The idempotency check disabled itself when unreadable
+
+```ts
+const { data: existing } = await supabaseAdmin
+  .from('webhook_events').select('id, processed_at')
+  .eq('stripe_event_id', event.id).maybeSingle();
+if (existing?.processed_at) return … // already processed
+```
+
+A failed read gives `existing = null`, which is **indistinguishable from "never
+seen this event"** — so a redelivery is processed again.
+
+Honest severity: the money writes behind it are each individually idempotent
+(`record_donation` on `p_stripe_event_id`, ledger posts on `idempotency_key`, the
+membership upsert on `stripe_subscription_id`), so this is defence in depth, not
+the last line. **But emails are not idempotent** — a reprocess re-sends receipts —
+and a defence that switches itself off when it cannot see is not a defence.
+
+Now answers **500**, so Stripe retries. Returned rather than thrown: this sits
+*before* the try/catch that converts handler throws into a 500, so a throw would
+escape `POST` entirely — which is exactly what the first version did, caught by
+the test expecting a status code and getting an exception.
+
+### 2. `status: 'duplicate'` was UNREACHABLE
+
+```ts
+if (existing?.processed_at) return …            // early return
+…
+await recordCampaignPaymentWebhookEvent(event,
+  existing?.processed_at ? 'duplicate' : 'received');   // always 'received'
+```
+
+The ternary sits **after** the early return, so its condition is always false.
+`campaign_payment_webhook_events` could never record a duplicate delivery — so
+anything counting duplicate webhooks read **zero forever**, and zero is the
+reassuring answer. Same shape as the `open_issues_count` rule in CLAUDE.md: a
+number that cannot be non-zero is not a measurement.
+
+Now recorded where a duplicate actually is one, before the early return. Safe to
+reorder — the recorder upserts on `(processor, processor_event_id)` independently
+of the `webhook_events` row.
+
+### Both tested by RUNNING the webhook
+
+Added to `stripe-webhook-behaviour.test.ts`, which executes `POST()` against a
+fake Stripe and Supabase. Extended its harness with a *read* failure (it could
+only simulate write failures before). Mutation-tested: dropping the guard fails
+the 500 test, and restoring the unreachable ternary fails the duplicate test.
+
+**44 of the 46 remain**, deliberately unfixed in this pass — each needs its own
+judgement about whether absence is a claim, and a mechanical sweep is how a
+fail-open write got introduced in `/admin/countries` earlier this session.
+
+## 🚨 THE RECONCILIATION JOB REPORTED "ALL CLEAR" WHILE BLIND (Claude, 2026-08-04)
+
+Follow-on from the ledger fix below: reconciliation is the **safety net** that
+should have caught that gap. Five reads in `lib/reconciliation.ts` dropped their
+`error`, and each failed in a **different** wrong direction.
+
+| read | what a failure produced |
+|---|---|
+| `donations` | `rows = []` → `{ checked: 0, clean: 0, findings: [] }`, which the cron route wraps as **`{ ok: true }`** — a clean bill of health, produced while completely blind |
+| `ledger_entries` | `?? []` → every donation observed with **no ledger footprint** → a `missing` exception opened for **every donation in the window**, up to 2000 false alarms in one run |
+| open exceptions | `?? []` → de-dupe set empty → **every exception re-opened on every run**, defeating the idempotency its own comment promises |
+| `listExceptions` | `[]` → the admin reconciliation screen renders an **empty queue**: "no outstanding money discrepancies", the most reassuring thing that screen can say |
+| `getExceptionStatus` | `null` → caller answers **404 "Not found"** about a row it could not read |
+
+The first is the worst: a monitoring job whose failure mode is *reporting
+success*. Nobody would look again.
+
+All five now take the caller's error branch via `boundedQuery` and throw. The
+cron route does not catch, so this surfaces as a 500 in the Vercel Cron log
+instead of a reassuring `{ ok: true, checked: 0 }`. `listExceptions` throwing
+follows the precedent `getCampaign` set — **"unavailable" must not render as
+"absent"**.
+
+### Tested behaviourally, not by reading the source
+
+The existing convention for this class (`payout-status-read-failures.test.ts`)
+asserts against **source text** with comments stripped. Here that was
+unnecessary: `server-only` is stubbed in `vitest.config` and `lib/supabase` is
+mockable, so the tests assert what the functions actually **do** when the
+database refuses.
+
+The ledger and open-exception reads sit *after* the donations read, so an
+all-failing mock can never reach them — the first throw wins. They need a client
+that succeeds for `donations` and fails only for the later table, which is the
+only way to prove those two guards independently. **Mutation-tested one at a
+time: removing any single one of the five throws is caught by its own test, and
+only its own.**
+
+### My "guards the guard" test measured nothing
+
+I put the "did we actually reach the database" assertion in its own `it`, after a
+`beforeEach` that clears the mock — so it ran having called nothing and asserted
+against a freshly-cleared spy. It failed on first run, which is how it surfaced;
+moved into the test where the call happens. Same lesson as the vacuous refund
+sweep below: **a test proves nothing until you have watched it fail.**
+
+## 💰 A BALANCED LEDGER GROUP CAN STILL LOSE MONEY, SILENTLY (Claude, 2026-08-04)
+
+The ledger is the strongest code in this repo — `assertBalanced` before every
+insert, append-only trigger, RLS, nightly reconciliation, 19 tests. All of it
+guards **balance**. None of it guarded **postability**, and the gap loses money
+without raising anything.
+
+Idempotency is a unique index on `(idempotency_key, account, direction)`, and
+every line in a group shares one key. So two lines in the *same* group with the
+same account and direction collide **with each other on the very first insert**.
+`postEntryGroup` catches `23505` and returns `{ posted: false }` — which is its
+signal for *"this webhook was already handled"*.
+
+Sequence, end to end:
+
+| step | result |
+|---|---|
+| donation row written | ✅ |
+| ledger insert | `23505`, swallowed as an idempotent skip |
+| webhook response | **200** — so Stripe never retries |
+| error raised | **none, anywhere** |
+| the money | in `donations`, absent from the ledger |
+
+**No builder does this today.** Donation, refund and dispute each emit distinct
+account/direction pairs — I checked all three across their input space, not at
+one sample point. But the invariant lived *only in the shape of three literal
+arrays*. Adding one plausible line — a second `platform_revenue` credit to carry
+a tip separately — is enough, and nothing would have said so.
+
+`assertPostable` now runs inside `assertBalanced`, so every existing caller gets
+it for free. It throws, which is deliberately loud: a 500 is this repo's webhook
+contract (Stripe retries, the failure surfaces) and is strictly better than
+silent loss. **It can only fire on a code change, never on data**, so no live
+flow changes.
+
+### The mutation that mattered passed on my first attempt
+
+I planted the duplicate line with `amount_cents: 0` — and the builder omits
+zero-amount lines, so it was filtered out before reaching the check. **My
+mutation test proved nothing and I nearly recorded it as proof.** Re-run with the
+fee split across two non-zero lines: caught, by three tests. The refund builder
+was mutated separately and is caught too.
+
+### And a vacuous test of my own, caught by typecheck
+
+My input sweep passed `{ donationCents, platformFeeCents }` to the refund
+builders, whose input is `{ refundDonationCents, refundPlatformFeeCents }`. Every
+iteration was exercising `undefined`. It **passed green**, and only `tsc` caught
+it — a reminder that a passing test says nothing until you have seen it fail.
+Fixed, then re-mutated to confirm the sweep now has teeth.
+
+## 🔴 "AI CAMPAIGN HEALTH SCORE — PREDICTS SUCCESS" IS NEITHER (Claude, 2026-08-04)
+
+`/features` published this as a CharitMe differentiator:
+
+> **AI Campaign Health Score** — Predicts success and recommends improvements.
+
+Both halves are false, measured:
+
+| | |
+|---|---|
+| the column | `campaigns.campaign_health_score`, `int not null default 0` |
+| its **only** writer | an admin typing a number into `/admin/campaigns`, clamped 0–100 in `app/api/admin/campaigns/[id]/route.ts` |
+| AI routes computing it | **none** — 16 routes under `/api/ai/`, not one touches it |
+| triggers / crons computing it | **none** in any migration or `/api/cron/*` |
+| `matching-finder` | **reads** it (`c.campaign_health_score ?? 0`), does not produce it |
+
+The admin UI's own comment says it: *"0 means 'never scored'"*. So there is no
+prediction and no recommendation — it is a staff-entered number that reaches
+donors through the homepage, search, supporter-space, donor recommendations and
+the rotator.
+
+**The score is real and does ship, so the entry stays — the wording was what was
+wrong.** Now: *"Campaign Health Score — A staff-reviewed health signal shown on
+discovery surfaces."* This is the standing "no unsupported marketing claims" rule
+applied to the platform's own copy; ⚠️ **it is a change to public product copy,
+so if the intent was to build the AI engine and advertise ahead of it, that is
+the owner's call to reverse — deliberately.**
+
+### The mechanism that let it through, now closed
+
+`planned` recorded what is NOT built. **Nothing recorded what IS.** All ~75
+shipped claims were hand-set booleans, and exactly one family — peer-to-peer —
+had its backing code checked, by a bespoke test written for it alone. That is the
+same gap Auctions fell through: tables existed, the entry looked shipped, no
+route or UI read them.
+
+`PlatformFeature.backedBy` now names the file that makes a claim true, and three
+guards make it enforceable:
+
+| guard | catches |
+|---|---|
+| every `backedBy` path exists on disk | a claim outliving its code — a deleted route now fails the build instead of leaving a promise on /features |
+| every **CharitMe** feature names one | required only for our own differentiators: no competitor product to check them against, and a visitor cannot verify them |
+| a feature named "AI …" must point at an AI route or lib | the exact defect above |
+
+Optional elsewhere on purpose — forcing a path onto all 105 at once means 105
+guesses, and a wrong mapping is worse than none.
+
+Mutation-tested: pointing a claim at a deleted route is caught, and restoring the
+original "AI Campaign Health Score / Predicts success" wording trips **two**
+guards. The AI guard also caught a mapping of my own — I first pointed "AI Donor
+Targeting" at `lib/donor-segments-core.ts`, which is rule-based, not AI;
+repointed to `/api/ai/donor-conversion`.
+
+### Checked and NOT found wanting
+
+Said plainly, because the temptation on a sweep like this is to report everything
+as broken: the other seven CharitMe claims each map to real code, `/trust-safety`'s
+promises are backed by a real report queue and flag writers, and the parity
+counting was already honest — `planned`, per-module status and the `fullParity`
+flag were all fixed in earlier passes and hold up.
+
+## ✅ PRODUCTION SWEPT WITH A REAL DATABASE BEHIND IT — clean (Claude, 2026-08-04)
+
+Every browser audit in `scripts/` drives a **local** build with no Supabase
+credentials, where `supabaseAdmin` is a Proxy that throws on property access. A
+route that 500s *only* when a real query runs is invisible to all of them. That
+is exactly how a 500 on `/causes/mental-health` reached production underneath a
+passing audit suite.
+
+So production was asked directly — `npm run sweep:production --workspace=apps/web`:
+
+| | result |
+|---|---|
+| 116 public route shapes (live sitemap + all 20 cause slugs) | **0 failing**, no 5xx |
+| 12 unauthenticated JSON routes | **0 failing** |
+| 8 admin/cron routes | **8/8 refuse an anonymous caller** |
+| public list payloads (`--data`) | every one returns real rows |
+
+The gated check is **inverted on purpose**: for `/api/admin/*` a 200 is a security
+finding, not a pass. Mutation-tested in both directions — pointing the gated list
+at `/api/health` is caught, and a list endpoint whose rows key is wrong is caught.
+
+⚠️ **A pass here means the handlers ran, not that a page is correct.** For a list
+endpoint a 200 does not even mean the data arrived — a failed read renders 200
+with an empty array, which is why `--data` exists. Anything behind a login is
+still unmeasured.
+
+### One thing for the owner — it is content, not code
+
+The sweep surfaced a live public campaign titled **"Support my medical expenses —
+Bitches!"** (`/campaigns/support-my-medical-expenses-mscg7b2e`), served by
+`/api/campaigns/stories` and indexable.
+
+It is **not** seed data — its slug shape differs from every seeded campaign
+(`campaign-NNN-hash`) and the title appears nowhere in this repo. That makes it a
+real fundraiser's own content in the production database, so editing or removing
+it is a moderation decision and **not something an agent should do silently**.
+
+Checked before reporting, because the standing rule forbids unsupported claims:
+`/trust-safety`'s promises are **supported** — `campaign_reports` has an admin
+queue (`app/admin/trust-safety/page.tsx`) and a submission route, and `risk_flags`
+is written by the AI trust-score and fraud-monitor routes. The moderation that
+exists is *reactive*: it acts on a report, and nobody has reported this one.
+Whether to add pre-publication screening is a product decision.
+
+Guard: `__tests__/production-sweep.test.ts`, 6 offline assertions — no route is
+both public and gated, every catalogued route exists on disk, cause slugs come
+from `lib/causes.ts` rather than a copy, and the script cannot fire HTTP on
+import. Mutation-tested: moving a public route into the gated list is caught, and
+so is cataloguing a route that does not exist.
+
+## 🗂️ ORPHAN TABLES — the list below is STALE; re-measured 2026-08-04 (Claude)
+
+The section that follows says 8 tables are orphaned and "not claimed", implying 8
+open decisions. Re-running the sweep: **every orphan now carries a written reason
+and a guard.** `__tests__/orphan-tables-ratchet.test.ts` bounds the whole set and
+ratchets both ways — a new orphan must be added with a reason, and an entry that
+gains a reader must be removed. `superseded-tables.test.ts` additionally pins 6 of
+them with a named successor.
+
+So there is no undocumented orphan. What is left is a product decision on the
+unbuilt features (creator economy, marketing referrals, multi-tenancy), which is
+the owner's call, not a wiring gap.
+
+### Two wrong reasons, and a broken guard of my own
+
+Auditing the *reasons* rather than the results — the method that paid on the
+migration probe — found two:
+
+**1. A claim this repo cannot observe.** `organizations`, `organization_members`
+and `brands` were justified with *"multi-tenancy; migration unapplied in
+production"*. Nothing here can see that. `20260807000000_organizations_multitenancy`
+is one of the migrations the probe script lists with **no public signal** — and the
+reason it has none is precisely that these tables have no reader, so no route's
+success or failure reveals the answer. The probe script's governing rule is that
+APPLIED is proof and "no proof" is **not** evidence of pending; this comment broke
+that rule in a place nobody was checking. Now: *"no reader in app code (production
+state unknown)"* — the code fact is verified right there, the production fact is
+no longer claimed.
+
+**2. Two different successors for one MONEY table.** `platform_fees` was recorded
+as superseded by `campaign_payments` in one guard and by `ledger_entries` in the
+other. Both are real and both are read — `campaign_payments.platform_fee_amount`
+holds the per-payment figure, `ledger_entries` the balanced double-entry record —
+so neither was wrong. But "where is the fee recorded" must have one answer, not
+two a reader has to reconcile. Stated together now, in the order a fee moves, and
+the successors are **derived from the reason string** so editing the reason to
+cite a different table cannot leave the check silently passing.
+
+⚠️ **My first version of guard 1 did not work.** It sliced the test's own source
+on the constant's name and landed on the wrong occurrence, so it passed with the
+claim planted back in. Caught by mutation-testing it rather than by reading it —
+rewritten to inspect the object's VALUES. Third time this session a guard of mine
+was wrong on first run; each was corrected rather than loosened.
 
 ## 🗂️ ORPHAN TABLES — 8 with no reader and no writer (Claude, 2026-08-02)
 
@@ -2221,7 +2787,7 @@ external release constraints after the latest production deployment.
 |---|---------|----------|------------------|
 | 1 | **GitHub Actions assigns no runner — RE-BROKEN, verified 2026-08-03.** This row said CLEARED; it is not. Eight runs today (`30778197657`, `30779419210`, `30780039522`, `30780372581`, `30782321643`, `30802456447`, `30803013774`, `30803728152`) all show `runner_id: 0`, empty `runner_name`, `billable.UBUNTU.total_ms: 0`, 2–11s duration, no steps. Master's runs match, which rules out any branch. **A red check right now is not a signal.** One run showed `queued` briefly before dropping — that is not recovery. Verify per run (`actions_get` → `get_workflow_run_usage`); do not trust this row or its predecessor. | 8 runs + master, 2026-08-03; `image-links.yml` fails identically; repo is private | **Owner** — likely the private-repo Actions minute allowance (see CLAUDE.md): raise the spending limit, make the repo public, or cut push volume |
 | 2 | **No CharitMe staging Supabase project is available.** The account exposes CharitMe production and an unrelated Auto Trading project. Preview Branch creation returns HTTP 402 because the account is not on Pro; dedicated `charitme-staging` creation is also rejected because the owner has reached the two-active-free-project limit. Database release policy correctly blocks production migration application until the same commit is verified on real staging. | Supabase project/branch inventory and both provisioning probes, 2026-07-29 | **Owner** — upgrade Supabase, pause/delete an unrelated project, or provision staging in another organization |
-| 3 | **Vercel daily deployment quota — REAL and INTERMITTENT, resolved 2026-08-03 ~18:3x UTC.** Two hard `api-deployments-free-per-day` rejections (#231, #234) with two successful builds between them (#232, #233), so it is a quota at its limit rather than a clean 24h stop. **A merge no longer implies a deploy** — #234 carried a code fix and was rejected, so it sits on master possibly unshipped. Production itself is current and serving 200. | Deploy errors on #231 and #234; builds on #232 and #233; production 200 | **External reset**, or upgrade Vercel (O5) to remove the recurrence |
+| 3 | **Vercel daily deployment quota — REAL and INTERMITTENT, and the “possibly unshipped” worry is now CLOSED (2026-08-04).** Two hard `api-deployments-free-per-day` rejections (#231, #234) with successful builds between them (#232, #233), so it is a quota at its limit rather than a clean 24h stop. The row used to end “#234 carried a code fix and was rejected, so it sits on master **possibly unshipped**”. That cannot be true any more, and the reasoning is worth keeping: **Vercel builds the whole tree at a commit, not a PR’s diff**, so one successful production deploy of a later commit ships every earlier one with it. Production serves the `fq-*` markup introduced by `f729cf05`, which is newer than #234 — therefore #234’s fix is live. | `fq-item`/`fq-list`/`fq-mark` and `ct-faq-band`/`ct-faq-mark` all present on production `/faq` and `/contact`, 2026-08-04 | **External reset**, or upgrade Vercel (O5) to remove the recurrence |
 
 **Vercel production is operational** — re-measured 2026-08-03: `/api/health`,
 `/needs` and `/campaigns` all 200 on `www.charitme.com`. New deployments are **not**
@@ -20472,6 +21038,89 @@ deliberately does NOT, because it has a design of its own. The test iterates the
 two pages that opted in rather than asserting "every index" — which would now be
 false.
 
+## ✅ CONFIRMED LIVE ON PRODUCTION — /donate (owner-verified, 2026-08-03)
+
+The loop that ran seven rounds is closed. **The owner ran the check and it
+returned `1`:**
+
+```bash
+curl -s https://www.charitme.com/donate | grep -c "Make a Donation"   # → 1
+```
+
+`www.charitme.com/donate` is serving the rebuilt page. The production alias
+resolves to the current build — the one fact no tool inside this sandbox could
+observe, because the host is an organization egress denial.
+
+Corroborating, from `mcp__github__pull_request_read method=get_status`:
+
+| PR | Vercel |
+|---|---|
+| #221 — the `/donate` rebuild | `success` — "Deployment has completed" |
+| #226 — the latest commit | `success` — "Deployment has completed" |
+
+So: **built → tested → merged to `master` → deployed → live on the production
+domain**, each step evidenced rather than assumed.
+
+### What this settles for future sessions
+
+"Is it on Production?" is answerable, just not from in here. The **one-line
+owner check above is the whole procedure** — it costs seconds and ends the
+question. Do not spend rounds re-deriving that the host is blocked; it is, by
+policy, and the note above records why. Ask for the curl.
+
+### Still open on /donate — one item, unchanged
+
+**A real charge has never run.** The form's payloads, validation, amounts,
+dedication and endpoint routing are verified in a real browser, and the server
+route carries 16 test files, but no live Stripe session has been created:
+charge → transfer → payout → receipt remains unproven until the test keys in
+**O3** exist. That is the last gap between "production ready" and "proven in
+production" for this page.
+
+## ✅ DONE — Architecture map: interactive HTML + agent-readable JSON (Claude, 2026-08-03)
+
+Two deliverables in `docs/`, both generated by **reading the repo**, not inferring
+from the framework:
+
+| file | for |
+|---|---|
+| `docs/architecture.html` | humans — 31KB, self-contained, no network |
+| `docs/architecture.json` | agents — `{nodes, edges, flows}` |
+
+14 nodes, 18 labelled edges, **7 flows** with step-by-step paths: one-off
+donation, monthly donation, campaign creation, organizer payout, sign-in, AI
+assist, ledger reconciliation. Selecting a flow dims the graph, lights the path,
+and numbers each node in the order the flow reaches it.
+
+**Every fact was verified before being drawn** — the counts (231 pages, 247 API
+routes, 162 tables, 114 migrations), the RPC names, the 12 Stripe webhook events,
+`application_fee_amount = tipCents + processingFeeCents`, `PLATFORM_FEE_PERCENT`
+= 0, and that `donations_increment_campaign_stats` — not `record_donation` —
+moves the campaign totals.
+
+**The diagram is built around one boundary**, because it is the thing a newcomer
+gets wrong: three Supabase clients, two of them anon and under RLS, one
+service-role that **bypasses RLS entirely**. Only that node carries the alarm
+colour. Every route handler using it owns its own authorisation check.
+
+### ⚠️ My first pass looked fine and was not
+
+The browser check I wrote passed 16/16 — and the screenshot showed three edge
+labels stacked into `"realdbhooksi"`, two more clipped, and the two Stripe edges
+drawn on top of each other. **The check measured overlap between NODE BOXES and
+never looked at labels**, which is the same class of mistake this tracker keeps
+recording: a guard that measures the wrong thing reports green.
+
+Added the missing assertions — label-vs-label collision, label-inside-a-node, and
+label-clipped-by-canvas — and they immediately failed on 2 real cases. Root cause
+was mine: the lane offset always routed *below* both boxes, so a **negative** lane
+put the corridor and its caption inside the boxes it was meant to skirt. Lane sign
+now means above/below. Final: 18 labels, 0 collisions, 0 inside a node, 0 clipped.
+
+**Regenerating:** edit `docs/architecture.json`, then re-inline it into the HTML
+(the `const DATA = {...}` line). The JSON is the source of truth; the HTML embeds
+a copy so it stays self-contained.
+
 ## 📘 /how-it-works — rebuilt to the reference (Claude, 2026-08-03)
 
 Hero (shared `IndexHero`, with the reference's heart glyph) → four numbered steps
@@ -20502,3 +21151,49 @@ reference's four steps are a donor-facing summary that answers none of that, and
 the FAQ rows do not either. Deleting accurate product detail to match a layout is
 a loss the layout does not pay for, so both lists are kept below the ripple row
 and pinned by tests naming the specific fees. **Say the word and they go.**
+
+## 🔁 /donate re-verified 2026-08-04 — and the exact limit of what a sandbox can prove
+
+Re-ran the check rather than citing the 2026-08-03 owner verification, because a
+historical "it was live" is not evidence that it *is* live.
+
+**Verified fresh, against a real `next build` + `next start` (not `next dev` —
+the CSP has no `unsafe-eval`, so hydration never runs under dev):**
+
+| clause of the goal | evidence |
+|---|---|
+| renders the rebuilt design | `Make a Donation` present; `.dn-panel` / `.dn-hero` / `.dn-amount` all present; 66KB page, HTTP 200 |
+| black in dark mode | browser computed `body` background = **`rgb(0, 0, 0)`**, `--bg` = `#000000` |
+| layout intact | panel 372px, no overflow, **no horizontal page scroll**, 0 page errors — both themes |
+| wired to Supabase | `supabaseAdmin` → `campaigns` + `donations`, `revalidate = 300`, form → `/api/donations` and `/api/donations/recurring` |
+| untouched since verification | **0 commits** to `apps/web/app/donate/` since 2026-08-03 |
+
+### ⚠️ `loadFailed: true` locally is the sandbox, not a bug
+The Supabase host answers `000` from here — same gateway denial as everything
+else. Worth recording because it accidentally proved the degraded path: with the
+database unreachable the page still returns a complete 200 with the design
+intact, rather than erroring.
+
+### ❌ Production *hosting* is not observable from this sandbox — all channels tried
+
+Do not spend another round re-deriving this. Every route was exhausted on
+2026-08-04:
+
+| channel | result |
+|---|---|
+| `curl https://www.charitme.com/donate` | `000` |
+| `WebFetch` same URL | **403** |
+| proxy status (`$HTTPS_PROXY/__agentproxy/status`) | `connect_rejected` — *"gateway answered 403 to CONNECT (policy denial)"*, for arbitrary hosts, i.e. blanket |
+| GitHub **Deployments** API (`?environment=Production`) | 403 *"Resource not accessible by integration"* — token scope |
+| GitHub **commit statuses** API | 403, same |
+| MCP `pull_request_read get_status` | works, **but only ever reports the PR head's *preview* deploy** — it cannot speak to production |
+
+⚠️ That last row corrects an earlier entry in this file: PR Vercel statuses were
+once cited as proof of production. They prove the **build succeeds**, not that
+the production alias serves it. Different claim.
+
+**The whole procedure is one owner-side line** — it costs seconds and settles it:
+
+```bash
+curl -s https://www.charitme.com/donate | grep -c "Make a Donation"   # → 1
+```

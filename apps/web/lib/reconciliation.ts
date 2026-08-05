@@ -6,6 +6,7 @@ import 'server-only';
 // for anything that does not line up. Runs from a cron job (service role).
 // ─────────────────────────────────────────────────────────────────────────────
 import { supabaseAdmin } from './supabase';
+import { boundedQuery } from './query-timeout';
 import {
   observeLedger,
   reconcileDonations,
@@ -43,13 +44,33 @@ export async function runReconciliation(
   since.setUTCDate(since.getUTCDate() - days);
   const sinceIso = since.toISOString();
 
-  const { data: donations } = await supabaseAdmin
-    .from('donations')
-    .select('id, campaign_id, amount_cents, tip_cents, processing_fee_cents')
-    .eq('status', 'completed')
-    .eq('offline', false)
-    .gte('created_at', sinceIso)
-    .limit(2000);
+  // ⚠️ Each of the three reads below dropped its `error`, and each failed in a
+  // DIFFERENT wrong direction. This is the job that exists to notice money going
+  // missing, so "we could not read" must never be reported as "nothing wrong".
+  //
+  //   donations       → rows = [] → returned { checked: 0, findings: [] }, a
+  //                     CLEAN BILL OF HEALTH produced while completely blind
+  //   ledger_entries  → every donation observed with no ledger footprint, so a
+  //                     `missing` exception is opened for EVERY donation in the
+  //                     window — up to 2000 false alarms in one run
+  //   open exceptions → de-dupe set empty, so every exception is re-opened on
+  //                     every run, defeating the idempotency documented below
+  //
+  // All three now take the caller's error branch and throw. The cron route does
+  // not catch, so this surfaces as a 500 in the Vercel Cron log rather than a
+  // reassuring `{ ok: true, checked: 0 }`.
+  const { data: donations, error: donationsError } = await boundedQuery(() =>
+    supabaseAdmin
+      .from('donations')
+      .select('id, campaign_id, amount_cents, tip_cents, processing_fee_cents')
+      .eq('status', 'completed')
+      .eq('offline', false)
+      .gte('created_at', sinceIso)
+      .limit(2000),
+  );
+  if (donationsError) {
+    throw new Error(`reconciliation: donations read failed (${donationsError.message})`);
+  }
 
   const rows = donations ?? [];
   if (rows.length === 0) {
@@ -59,10 +80,16 @@ export async function runReconciliation(
   const donationIds = rows.map((d) => d.id);
 
   // One query for all ledger lines touching these donations; group in memory.
-  const { data: ledgerLines } = await supabaseAdmin
-    .from('ledger_entries')
-    .select('donation_id, account, direction, amount_cents, entry_group_id')
-    .in('donation_id', donationIds);
+  const { data: ledgerLines, error: ledgerError } = await boundedQuery(() =>
+    supabaseAdmin
+      .from('ledger_entries')
+      .select('donation_id, account, direction, amount_cents, entry_group_id')
+      .in('donation_id', donationIds),
+  );
+  if (ledgerError) {
+    // Without this, an unreadable ledger looks exactly like an EMPTY one.
+    throw new Error(`reconciliation: ledger read failed (${ledgerError.message})`);
+  }
 
   const byDonation = new Map<string, LedgerLineRow[]>();
   for (const l of (ledgerLines ?? []) as LedgerLineRow[]) {
@@ -90,11 +117,16 @@ export async function runReconciliation(
 
   // De-dupe: don't re-open an exception that is already open for the same
   // (donation, kind). Keeps the daily job idempotent across runs.
-  const { data: existing } = await supabaseAdmin
-    .from('reconciliation_exceptions')
-    .select('donation_id, kind')
-    .eq('status', 'open')
-    .in('donation_id', donationIds);
+  const { data: existing, error: existingError } = await boundedQuery(() =>
+    supabaseAdmin
+      .from('reconciliation_exceptions')
+      .select('donation_id, kind')
+      .eq('status', 'open')
+      .in('donation_id', donationIds),
+  );
+  if (existingError) {
+    throw new Error(`reconciliation: open-exception read failed (${existingError.message})`);
+  }
   const openKeys = new Set((existing ?? []).map((e) => `${e.donation_id}:${e.kind}`));
 
   let opened = 0;
@@ -157,17 +189,33 @@ export async function listExceptions(status: ExceptionStatus | 'all' = 'open', l
     .order('created_at', { ascending: false })
     .limit(limit);
   if (status !== 'all') q = q.eq('status', status);
-  const { data } = await q;
+  // A failed read used to become `[]`, which the admin reconciliation screen
+  // renders as an EMPTY QUEUE — i.e. "no outstanding money discrepancies", the
+  // most reassuring thing this screen can say, produced by not being able to
+  // read. Throwing surfaces the outage instead; `getCampaign` sets the same
+  // precedent for distinguishing "missing" from "unavailable".
+  const { data, error } = await boundedQuery(() => q);
+  if (error) {
+    throw new Error(`reconciliation: exception list read failed (${error.message})`);
+  }
   return (data ?? []) as ExceptionRow[];
 }
 
 /** Current status of one exception (for transition validation). */
 export async function getExceptionStatus(id: string): Promise<ExceptionStatus | null> {
-  const { data } = await supabaseAdmin
-    .from('reconciliation_exceptions')
-    .select('status')
-    .eq('id', id)
-    .maybeSingle();
+  // `.maybeSingle()` already separates "no row" from "query failed" — the caller
+  // turns null into a 404, so without this an unreadable database tells an admin
+  // the exception does not exist.
+  const { data, error } = await boundedQuery(() =>
+    supabaseAdmin
+      .from('reconciliation_exceptions')
+      .select('status')
+      .eq('id', id)
+      .maybeSingle(),
+  );
+  if (error) {
+    throw new Error(`reconciliation: exception status read failed (${error.message})`);
+  }
   return (data?.status as ExceptionStatus | undefined) ?? null;
 }
 

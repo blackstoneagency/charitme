@@ -8,6 +8,7 @@ import { isRotatorEligible } from '../lib/featured';
 import { withQueryTimeout } from '../lib/query-timeout';
 import { getCoverForCategory, getCoverForCampaign } from '../lib/photo-catalog';
 import { getCategoryStats, getHomeData, getRecentDonations } from '../lib/home-data';
+import { getHomeStories } from '../lib/home-stories';
 import { campaignTimeLabel } from '../lib/campaign-lifecycle';
 import { resolveCampaignCover } from '../lib/covers';
 import { safeJsonLd } from '../lib/json-ld';
@@ -97,16 +98,29 @@ async function loadOrDegrade<T>(work: Promise<T>, fallback: T): Promise<{ value:
 }
 
 export default async function HomePage() {
-  const [home, categoryResult, donationsResult] = await Promise.all([
+  const [home, categoryResult, donationsResult, storiesResult] = await Promise.all([
     loadOrDegrade(getHomeData({}), NO_HOME_DATA),
     loadOrDegrade(getCategoryStats(), [] as Awaited<ReturnType<typeof getCategoryStats>>),
     loadOrDegrade(getRecentDonations(4), [] as Awaited<ReturnType<typeof getRecentDonations>>),
+    loadOrDegrade(getHomeStories(3), null as Awaited<ReturnType<typeof getHomeStories>>),
   ]);
 
   const { metrics, rotatorCampaigns } = home.value;
   const metricsAvailable = shouldShowPlatformMetrics(metrics, home.ok);
   const categoryStats = new Map(categoryResult.value.map((row) => [row.category, row]));
   const recentDonations = donationsResult.value;
+  const stories = storiesResult.value ?? [];
+  const [leadStory, ...sideStories] = stories;
+  // The "Make an Impact Today" band's photo.
+  //
+  // ⚠️ NOT `getCoverForCategory` — `cover-uniqueness.test.ts` allows exactly one
+  // such call on this page, for the category tiles, and it is right to: a
+  // category cover is one image standing for a whole category, so reusing it as
+  // decoration puts the same photo on the page twice. This is a real campaign's
+  // cover, and it prefers the SECOND story so it does not duplicate the lead
+  // story card directly above it. With no completed campaign at all the band
+  // renders without a photo rather than inventing one.
+  const impactStory = sideStories[0] ?? leadStory ?? null;
 
   const eligibleCampaigns = rotatorCampaigns.filter((campaign) => isRotatorEligible(campaign));
   const heroItems: HeroSpotItem[] = await Promise.all(eligibleCampaigns.map(async (c) => ({
@@ -153,36 +167,74 @@ export default async function HomePage() {
     <div className="mirror-home">
       <JsonLd json={safeJsonLd(jsonLd)} />
 
+      {/* ── HERO ──────────────────────────────────────────────────────────────
+          Two columns, as the reference draws it: copy left, a contained photo
+          panel right carrying the floating "Real People. Real Impact." card.
+          The photo used to be a full-bleed background behind the copy. */}
       <section className="mirror-hero" aria-labelledby="mirror-hero-title">
-        <Image
-          className="mirror-hero-bg"
-          src="/images/charitme-community-hero.png"
-          alt="A diverse community celebrating what they can accomplish together"
-          fill
-          priority
-          sizes="100vw"
-          quality={86}
-        />
-        <div className="mirror-hero-shade" aria-hidden="true" />
         <div className="mirror-wrap mirror-hero-inner">
           <div className="mirror-hero-copy">
-            <p className="mirror-kicker">Together, we create hope &amp; opportunity</p>
-            <h1 id="mirror-hero-title">Good People.<br />Great Causes.<br /><span>Stronger Together.</span></h1>
+            <p className="mirror-kicker">
+              <span>Together,</span> we create <span>hope</span> &amp; <span>opportunity</span>
+            </p>
+            <h1 id="mirror-hero-title">Good People.<br />Great Causes.<br /><span>Stronger Together.</span> <Icon name="heart" className="mirror-h1-heart" /></h1>
             <p className="mirror-hero-body">
               CharitMe is where compassion meets action. Your support today uplifts lives,
               strengthens communities, and builds a brighter tomorrow.
             </p>
             <div className="mirror-actions">
-              <Link href="/create/choose-path" className="mirror-btn mirror-btn-primary">Create My Fundraiser Now!</Link>
-              <Link href="/campaigns" className="mirror-btn mirror-btn-secondary">Donate Now <Icon name="heart" /></Link>
+              <Link href="#causes" className="mirror-btn mirror-btn-primary">Explore Causes <Icon name="arrow" /></Link>
+              {/* The reference labels this "Watch Our Impact" with a play
+                  control. There is no film to start: every `campaign_media`
+                  video row points at a reserved `.example` host, which cannot
+                  resolve by construction. A play triangle that navigates to a
+                  page is a fake affordance — the same one already removed from
+                  /contact and the cause pages — so this says what it does. */}
+              <Link href="/impact" className="mirror-btn mirror-btn-secondary">See Our Impact <Icon name="arrow" /></Link>
             </div>
-            <div className="mirror-quick-links">
-              <Link href="#causes">Explore Causes <Icon name="arrow" /></Link>
-            </div>
+
+            {/* ⚠️ The reference puts a five-face avatar cluster here with
+                "4.9 ★★★★★ from 25,000+ reviews". Neither is renderable:
+                  • There is no reviews or ratings table in this schema, so the
+                    score and the review count would both be invented.
+                  • The only real faces available are `profiles.avatar_url` —
+                    identifiable users who did not agree to be the homepage's
+                    marketing.
+                What IS measured takes the slot instead, with labels that say
+                exactly what was counted. */}
+            {metricsAvailable && (
+              <dl className="mirror-hero-proof">
+                <div>
+                  <dt>Average trust score</dt>
+                  <dd><CountUp value={metrics.trustAvg} kind="percent" /></dd>
+                </div>
+                <div>
+                  <dt>Gifts given</dt>
+                  <dd><CountUp value={metrics.donations} kind="int" /></dd>
+                </div>
+              </dl>
+            )}
           </div>
-          {/* The live campaign rotator used to sit here, in the hero's right
-              column. It now has its own band below "Causes That Change Lives"
-              — see `.mirror-spotlight`. The hero is single-column as a result. */}
+
+          <div className="mirror-hero-media">
+            <Image
+              src="/images/charitme-community-hero.png"
+              alt="A diverse community celebrating what they can accomplish together"
+              width={760}
+              height={560}
+              priority
+              sizes="(max-width: 900px) 100vw, 46vw"
+              quality={86}
+            />
+            <Link href="/success-stories" className="mirror-hero-card">
+              <span className="mirror-hero-card-ic" aria-hidden="true"><Icon name="heart" /></span>
+              <strong>Real People.<br />Real Impact.</strong>
+              <span className="mirror-hero-card-body">
+                Every act of kindness creates a story worth sharing.
+              </span>
+              <em>View Stories <Icon name="arrow" /></em>
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -230,18 +282,24 @@ export default async function HomePage() {
         <section className="mirror-band mirror-metrics" aria-label="Our community impact">
           <div className="mirror-wrap mirror-metric-grid">
             <div className="mirror-metric-intro"><Icon name="heart" /><p><strong>Our Community.<br />Our Impact.</strong><span>Because together, we can do amazing things.</span></p></div>
-            <dl><div><dt>Raised for causes</dt><dd><CountUp value={metrics.raisedCents} kind="money" /></dd></div></dl>
-            <dl><div><dt>Lives impacted</dt><dd><CountUp value={metrics.donations} kind="int" /></dd></div></dl>
-            <dl><div><dt>Active causes</dt><dd><CountUp value={metrics.campaigns} kind="int" /></dd></div></dl>
-            <dl><div><dt>Average trust score</dt><dd><CountUp value={metrics.trustAvg} kind="percent" /></dd></div></dl>
+            {/* Every figure MEASURED. The reference shows $48.7M+ raised, 265K+
+                lives impacted, 128 countries and 58K+ supporters; none of those
+                is a number this platform has, and publishing them would be the
+                fabricated-statistic failure this repo keeps removing. The icons,
+                the layout and the labels follow the design; the values come from
+                `getHomeData`, and the whole band is suppressed rather than shown
+                as zeroes when the read degrades (`shouldShowPlatformMetrics`). */}
+            <dl className="mirror-metric-0"><div><dt><Icon name="heart" /> Raised for causes</dt><dd><CountUp value={metrics.raisedCents} kind="money" /></dd></div></dl>
+            <dl className="mirror-metric-1"><div><dt><Icon name="users" /> Lives impacted</dt><dd><CountUp value={metrics.donations} kind="int" /></dd></div></dl>
+            <dl className="mirror-metric-2"><div><dt><Icon name="globe" /> Active causes</dt><dd><CountUp value={metrics.campaigns} kind="int" /></dd></div></dl>
+            <dl className="mirror-metric-3"><div><dt><Icon name="shield" /> Average trust score</dt><dd><CountUp value={metrics.trustAvg} kind="percent" /></dd></div></dl>
           </div>
         </section>
       )}
 
-      {/* Merged band. "Live Right Now", the supporter quotes and the impact CTA
-          were three separate sections stacked down the page; the reference puts the
-          carousel on the left with all three in one column beside it. Keeps the
-          `#impact` id the removed section owned — the header and footer link it. */}
+      {/* ── Live Right Now ────────────────────────────────────────────────
+          The rotator keeps the `#impact` id the removed section owned, because
+          the header and footer both link it. */}
       <section id="impact" className="mirror-band mirror-spotlight" aria-labelledby="mirror-spotlight-title">
         <div className="mirror-wrap mirror-spotlight-inner">
           <HeroSpotlightCarousel items={heroItems} variant="card" />
@@ -257,36 +315,122 @@ export default async function HomePage() {
                 Browse All Campaigns <Icon name="arrow" />
               </Link>
             </div>
-
-            <div className="mirror-testimonials">
-              {recentDonations.length > 0
-                ? recentDonations.slice(0, 2).map((donation) => (
-                    <article key={donation.id}>
-                      <span aria-hidden="true">“</span>
-                      <p>Supported <strong>{donation.campaignTitle}</strong> with {formatMoneyCompact(donation.amountCents, 'usd')}.</p>
-                      <small>{donation.name}<br />CharitMe supporter</small>
-                    </article>
-                  ))
-                : PROOF_POINTS.map((point) => (
-                    <article key={point.name}>
-                      <span aria-hidden="true">“</span>
-                      <p>{point.quote}</p>
-                      <small>{point.name}<br />Built into CharitMe</small>
-                    </article>
-                  ))}
-            </div>
-            <div className="mirror-proof-cta">
-              <h2 id="mirror-proof-title">Make an Impact Today <Icon name="heart" /></h2>
-              <p>Small acts. Big change. Be part of something beautiful.</p>
-              <div className="mirror-actions">
-                <Link href="/create/choose-path" className="mirror-btn mirror-btn-primary">Create My Fundraiser Now!</Link>
-                <Link href="/campaigns" className="mirror-btn mirror-btn-secondary">Donate Now <Icon name="heart" /></Link>
-              </div>
-            </div>
           </div>
         </div>
       </section>
 
+      {/* ── Stories that inspire hope ─────────────────────────────────────
+          A lead story beside two supporter quotes, as the reference draws it.
+
+          ⚠️ The reference's lead card is a video with a start-media control,
+          and its two quotes are attributed to named people with photographs
+          ("Maria S., Single Mom"). Neither is real: there is no playable video
+          in `campaign_media`, and inventing a testimonial with a face attached
+          is a fabricated endorsement, not a design detail. The lead is a real
+          COMPLETED campaign and the quotes are real recorded donations — with
+          the anonymity rules `mapRecentDonations` already enforces.
+
+          Renders nothing at all when there is no completed campaign to lead
+          with: a stories band with no story is worse than no band. */}
+      {leadStory && (
+        <section className="mirror-band mirror-stories" aria-labelledby="mirror-stories-title">
+          <div className="mirror-wrap">
+            <header className="mirror-stories-head">
+              <h2 id="mirror-stories-title">Stories That Inspire Hope</h2>
+              <Link href="/success-stories">View All Stories <Icon name="arrow" /></Link>
+            </header>
+            <div className="mirror-stories-grid">
+              <Link href={`/campaigns/${leadStory.slug}`} className="mirror-story-lead">
+                <span className="mirror-story-media">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={leadStory.cover ?? getCoverForCampaign(leadStory.category, leadStory.slug)}
+                    alt=""
+                    width={560}
+                    height={340}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </span>
+                <span className="mirror-story-body">
+                  {leadStory.category && <span className="mirror-story-chip">{leadStory.category}</span>}
+                  <strong>{leadStory.title}</strong>
+                  {leadStory.blurb && <span className="mirror-story-blurb">{leadStory.blurb}</span>}
+                  <span className="mirror-story-meta">
+                    Funded — {formatMoneyCompact(leadStory.raisedCents, 'usd')} from{' '}
+                    {leadStory.backers.toLocaleString()}{' '}
+                    {leadStory.backers === 1 ? 'supporter' : 'supporters'}
+                  </span>
+                  {/* "Read", not "Watch": this opens a campaign page. */}
+                  <em>Read the story <Icon name="arrow" /></em>
+                </span>
+              </Link>
+
+              <div className="mirror-story-quotes">
+                {recentDonations.length > 0
+                  ? recentDonations.slice(0, 2).map((donation) => (
+                      <article key={donation.id}>
+                        <span aria-hidden="true">“</span>
+                        <p>Supported <strong>{donation.campaignTitle}</strong> with {formatMoneyCompact(donation.amountCents, 'usd')}.</p>
+                        <small>{donation.name}<br />CharitMe supporter</small>
+                      </article>
+                    ))
+                  : sideStories.length > 0
+                    ? sideStories.slice(0, 2).map((story) => (
+                        <article key={story.id}>
+                          <span aria-hidden="true">“</span>
+                          <p>
+                            <strong>{story.title}</strong> reached its goal with{' '}
+                            {story.backers.toLocaleString()}{' '}
+                            {story.backers === 1 ? 'supporter' : 'supporters'} behind it.
+                          </p>
+                          <small>Funded on CharitMe<br />{formatMoneyCompact(story.raisedCents, 'usd')} raised</small>
+                        </article>
+                      ))
+                    // Last resort, so the column is never empty: statements
+                    // about how the product works, attributed to the product —
+                    // not quotes attributed to invented people.
+                    : PROOF_POINTS.map((point) => (
+                        <article key={point.name}>
+                          <span aria-hidden="true">“</span>
+                          <p>{point.quote}</p>
+                          <small>{point.name}<br />Built into CharitMe</small>
+                        </article>
+                      ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── Make an Impact Today ──────────────────────────────────────────
+          Its own band with a photo beside it, as the reference draws it. It
+          used to be nested at the bottom of the rotator's copy column. */}
+      <section className="mirror-band mirror-impact-cta" aria-labelledby="mirror-proof-title">
+        <div className={`mirror-wrap mirror-impact-inner${impactStory ? '' : ' is-copy-only'}`}>
+          {impactStory && (
+            <div className="mirror-impact-media" aria-hidden="true">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={impactStory.cover ?? getCoverForCampaign(impactStory.category, impactStory.slug)}
+                alt=""
+                width={560}
+                height={300}
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
+          )}
+          <div className="mirror-impact-copy">
+            <h2 id="mirror-proof-title">Make an Impact Today <Icon name="heart" /></h2>
+            <p>Small acts. Big change. Be part of something beautiful.</p>
+            <div className="mirror-actions">
+              <Link href="/create/choose-path" className="mirror-btn mirror-btn-primary">Start a Fundraiser</Link>
+              <Link href="/campaigns" className="mirror-btn mirror-btn-secondary">Donate Now <Icon name="heart" /></Link>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <section className="mirror-trust" aria-label="Why people trust CharitMe">
         <div className="mirror-wrap mirror-trust-grid">

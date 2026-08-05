@@ -21,6 +21,26 @@ export type PlatformFeature = {
    * those tables.
    */
   planned?: boolean;
+  /**
+   * Repo-relative path to the code that makes this claim true.
+   *
+   * `planned` records what is NOT built. Nothing recorded what IS — every one of
+   * the ~75 shipped claims is a hand-set boolean, and only the peer-to-peer
+   * entries had their backing code checked, by a bespoke test written for them
+   * alone. That is precisely the gap Auctions fell through: the tables existed,
+   * the entry looked shipped, and no route, API or UI read them.
+   *
+   * `feature-catalog.test.ts` asserts every path here exists on disk, so a claim
+   * cannot outlive the code behind it — a deleted route now fails the build
+   * instead of quietly leaving a marketing promise on /features.
+   *
+   * REQUIRED on the CharitMe module. Those are the platform's own differentiator
+   * claims: there is no competitor's product to check them against, and they are
+   * the ones a visitor cannot verify for themselves. Optional elsewhere, because
+   * forcing a path onto all 105 at once would mean 105 guesses, and a wrong
+   * mapping is worse than none.
+   */
+  backedBy?: string;
 };
 
 export type PlatformModule = {
@@ -262,14 +282,22 @@ export const PLATFORM_MODULES: PlatformModule[] = [
       'Risk controls gate fast payouts, admin review, campaign freezes, and public trust status without publicly accusing organizers.',
     ],
     features: [
-      { competitor: 'CharitMe', name: 'AI Campaign Writer', description: 'Creates titles, stories, updates, FAQs, email appeals, SMS copy, and donation tiers.' },
-      { competitor: 'CharitMe', name: 'AI Trust Score', description: 'Public trust status gives donors clear confidence signals.' },
-      { competitor: 'CharitMe', name: 'AI Fraud Detection', description: 'Flags duplicate text, suspicious patterns, risky payout requests, and verification gaps.' },
-      { competitor: 'CharitMe', name: 'AI Social Media Generation', description: 'Creates captions, long-form posts, share kits, and timing recommendations.' },
-      { competitor: 'CharitMe', name: 'AI Donor Targeting', description: 'Segments donors and recommends outreach actions.' },
-      { competitor: 'CharitMe', name: 'AI Campaign Health Score', description: 'Predicts success and recommends improvements.' },
-      { competitor: 'CharitMe', name: 'AI Transparency Ledger', description: 'Summarizes receipts, milestones, expenses, payouts, and impact updates.' },
-      { competitor: 'CharitMe', name: 'AI Payout Risk Engine', description: 'Enables safer standard, same-day, and instant payouts for verified users.' },
+      { competitor: 'CharitMe', name: 'AI Campaign Writer', description: 'Creates titles, stories, updates, FAQs, email appeals, SMS copy, and donation tiers.', backedBy: 'app/api/ai/campaign/route.ts' },
+      { competitor: 'CharitMe', name: 'AI Trust Score', description: 'Public trust status gives donors clear confidence signals.', backedBy: 'app/api/ai/trust-score/route.ts' },
+      { competitor: 'CharitMe', name: 'AI Fraud Detection', description: 'Flags duplicate text, suspicious patterns, risky payout requests, and verification gaps.', backedBy: 'app/api/ai/fraud-monitor/route.ts' },
+      { competitor: 'CharitMe', name: 'AI Social Media Generation', description: 'Creates captions, long-form posts, share kits, and timing recommendations.', backedBy: 'app/api/ai/content/route.ts' },
+      { competitor: 'CharitMe', name: 'AI Donor Targeting', description: 'Segments donors and recommends outreach actions.', backedBy: 'app/api/ai/donor-conversion/route.ts' },
+      // ⚠️ NOT an AI feature, and it does not predict. `campaigns.campaign_health_score`
+      // is an int column defaulting to 0 whose ONLY writer is an admin typing a
+      // number into /admin/campaigns (clamped 0-100 in the route below). No AI
+      // route, trigger or cron computes it; `matching-finder` only reads it. It was
+      // published as 'AI Campaign Health Score - Predicts success and recommends
+      // improvements', which is two claims the code does not support. The score is
+      // real and does reach donors via discovery surfaces, so the entry stays - the
+      // wording is what was wrong.
+      { competitor: 'CharitMe', name: 'Campaign Health Score', description: 'A staff-reviewed health signal shown on discovery surfaces.', backedBy: 'app/api/admin/campaigns/[id]/route.ts' },
+      { competitor: 'CharitMe', name: 'AI Transparency Ledger', description: 'Summarizes receipts, milestones, expenses, payouts, and impact updates.', backedBy: 'app/api/ai/impact-summary/route.ts' },
+      { competitor: 'CharitMe', name: 'AI Payout Risk Engine', description: 'Enables safer standard, same-day, and instant payouts for verified users.', backedBy: 'app/api/ai/payout-concierge/route.ts' },
     ],
   },
 ];

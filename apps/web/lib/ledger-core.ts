@@ -35,6 +35,44 @@ export function assertBalanced(lines: readonly LedgerLine[]): void {
   if (diff !== 0) {
     throw new Error(`Unbalanced ledger group: debits - credits = ${diff}`);
   }
+  assertPostable(lines);
+}
+
+/**
+ * A balanced group can still be unpostable, and it fails SILENTLY.
+ *
+ * Idempotency is enforced by a unique index on
+ * `(idempotency_key, account, direction)`, and every line in a group shares one
+ * key. So two lines in the SAME group with the same account and direction
+ * collide with each other on the very first insert — and `postEntryGroup`
+ * catches `23505` and reports `{ posted: false }`, which is its signal for "this
+ * webhook was already handled". The donation row is written, Stripe gets its
+ * 200, and the money never reaches the ledger. No error anywhere.
+ *
+ * No builder does this today: donation, refund and dispute each emit distinct
+ * account/direction pairs. But the invariant lived only in the shape of three
+ * literal arrays — adding one plausible line (a second `platform_revenue` credit
+ * for a tip, say) is enough to break it, and nothing would have said so.
+ *
+ * Checked here rather than only in a test because the failure mode is silent
+ * money loss. Throwing turns it into a 500, which is this repo's webhook
+ * contract — Stripe retries, the failure surfaces — and it can only fire on a
+ * code change, never on data.
+ */
+export function assertPostable(lines: readonly LedgerLine[]): void {
+  const seen = new Set<string>();
+  for (const l of lines) {
+    const slot = `${l.account}:${l.direction}`;
+    if (seen.has(slot)) {
+      throw new Error(
+        `Ledger group posts ${slot} twice. Lines in one group share an idempotency ` +
+        'key, and the unique index is (idempotency_key, account, direction) — so the ' +
+        'group would collide with itself and be swallowed as an idempotent skip. ' +
+        'Net the amounts into a single line instead.',
+      );
+    }
+    seen.add(slot);
+  }
 }
 
 export interface DonationSplit {
