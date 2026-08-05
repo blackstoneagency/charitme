@@ -1,6 +1,6 @@
 import 'server-only';
 import { supabaseAdmin } from './supabase';
-import { columnPresence, shouldFilter, isCacheable } from './campaign-visibility-core';
+import { columnPresence, shouldFilter, isCacheable, notExpiredFilter } from './campaign-visibility-core';
 import { withQueryTimeout } from './query-timeout';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -110,11 +110,32 @@ async function probeCampaignColumns(): Promise<CampaignCols> {
 
 // Structural view of just the two filter methods we call, to avoid deeply
 // instantiating the full PostgREST builder generic (which trips TS2589).
-type AnyFilter = { eq(column: string, value: string): AnyFilter; is(column: string, value: null): AnyFilter };
+type AnyFilter = {
+  eq(column: string, value: string): AnyFilter;
+  is(column: string, value: null): AnyFilter;
+  or(filters: string): AnyFilter;
+};
 
 /** Apply status=active plus visibility=public / deleted_at IS NULL where present. */
 export function applyLiveFilters<Q>(query: Q, cols: CampaignCols): Q {
   return applyVisibilityFilters((query as unknown as AnyFilter).eq('status', 'active') as unknown as Q, cols);
+}
+
+/**
+ * Drop campaigns whose deadline has passed.
+ *
+ * Deliberately NOT folded into `applyLiveFilters`. That helper is used by
+ * surfaces which legitimately want a finished-but-still-`active` campaign —
+ * an organizer's own dashboard, the ledger, the admin console — and quietly
+ * hiding rows from those is how a fundraiser concludes their campaign has been
+ * deleted. Discovery grids opt IN.
+ *
+ * `deadline` is a `date` column; Postgres casts the ISO timestamp literal on
+ * comparison, so passing a full timestamp is safe and keeps this identical to
+ * the homepage rotator's filter.
+ */
+export function applyNotExpired<Q>(query: Q, now: Date = new Date()): Q {
+  return (query as unknown as AnyFilter).or(notExpiredFilter(now)) as unknown as Q;
 }
 
 /** Apply only visibility=public / deleted_at IS NULL where present (caller sets status). */

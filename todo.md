@@ -1,5 +1,100 @@
 # CharitMe — Execution Tracker
 
+## ⏳ CAUSE PAGES LISTED ENDED CAMPAIGNS — `status = 'active'` is not "still running" (Claude, 2026-08-05)
+
+Asked for two things on every cause page: show **only active, non-expired**
+campaigns, and **highlight Featured** ones inside the top six. The first turned
+out to be a real defect, and it hid behind a filter that looks like it already
+covers it.
+
+### The trap
+
+`applyLiveFilters` pins `status = 'active'`, which reads like "still running".
+It is not. **Nothing in this schema moves a campaign out of `active` when its
+deadline passes** — `lib/campaign-lifecycle.ts` derives that at render time,
+which is why a card could show
+
+```
+Ended            ← campaignTimeLabel, from status + deadline
+```
+
+while its row still said `active` and still occupied one of the six slots a live
+campaign should have had. The card was honest; the grid was not.
+
+### The rule, in one place
+
+`notExpiredFilter(now)` in `lib/campaign-visibility-core.ts` — pure, so it is
+tested without a database — plus `applyNotExpired()` beside `applyLiveFilters`.
+It is deliberately **not folded into** `applyLiveFilters`: an organizer's own
+dashboard, the ledger and the admin console legitimately want a
+finished-but-still-`active` campaign, and quietly hiding rows from those is how
+a fundraiser concludes their campaign has been deleted. Discovery grids opt in.
+
+`gt`, not `gte`, and that boundary is the whole reason the SQL rule and the
+render rule are asserted **against each other** rather than each against itself:
+`campaignDaysLeft` floors at 0 and the lifecycle calls `days <= 0` ended, so
+`gte` would keep a campaign in the grid whose own card said "Ended". A NULL
+deadline runs indefinitely and stays — over-filtering would empty cause pages
+and read as "this cause has no campaigns", which is the opposite lie.
+
+Applied on four surfaces, and the fourth is a deliberate widening:
+
+| surface | why it had to change too |
+|---|---|
+| `/causes/[slug]` first six | the ask |
+| `/api/campaigns` GET | pages 2+ of the same grid — a rule enforced only on the server-rendered page lets ended campaigns back in on the second click |
+| `getCauseStats` "Live campaigns" | the tile sits directly above the grid; counting what the grid refuses to show makes the two disagree, and the grid is the checkable half |
+| `/campaigns` list | ⚠️ **outside the literal ask.** The cause hub links to it as that cause's "All campaigns", so excluding expired from the grid and showing them one click later just moves the problem. Side effect: `sort=ending` becomes genuinely "ending soonest" |
+
+`getCauseStories` was left alone on purpose — it is built from **completed**
+campaigns, and a blanket expiry sweep would have emptied it. That is asserted,
+so the next sweep does not.
+
+### Featured in the top six
+
+Ordering is `featured` desc **then** `raised_amount` desc. Sorting on raised
+alone was the reason featuring did nothing here: a cause's featured campaign is
+usually the newest, which is exactly what a raised-amount sort buries.
+
+The API needed the **same** ordering or the page boundary would duplicate some
+rows and skip others — but as an opt-in `featured_first=1`, because floating
+featured rows to the top of `sort=newest` would silently stop it being newest.
+Both directions are tested.
+
+The mark is two halves that ship together: a `.cc-feature--promoted` ring
+(box-shadow, so the card does not resize and shift its row; plus a
+`forced-colors` outline, since forced colours drops box-shadow entirely) and a
+`★ Featured` badge, which is the half a screen-reader user actually receives.
+`c.featured === true`, not truthiness — most listings do not select the column,
+and `undefined` means "not known", which must render as ordinary rather than
+ringing every card on a surface that forgot the column.
+
+### Verification
+
+18 new tests in `__tests__/cause-active-featured.test.ts`; the API half executes
+the route against a recording chain rather than reading its source, so it fails
+if the filter is moved somewhere it does not run. Five mutations planted, all
+five caught:
+
+| mutation | caught by |
+|---|---|
+| `gt` → `gte` | 4 tests, incl. the lifecycle cross-check |
+| drop `.or()` from the API | "excludes expired campaigns" |
+| `featured_first` always on | "`sort=newest` stays newest-first" |
+| `c.featured === true` → truthiness | "never infers featured from position" |
+| swap the two `.order()` calls | "sorts on featured BEFORE raised_amount" |
+
+Full suite 3131/3131, typecheck and lint clean.
+
+⚠️ One test bug worth recording: `expect(x).toMatch(re, 'message')` **passes
+vitest and fails `tsc`** — the message belongs on `expect()`, not the matcher.
+Vitest ran it green while the assertion message was being silently discarded.
+
+Not verifiable from here: the sandbox has no database, so cause pages render the
+"could not load" EmptyState. The rendering half of this is source-level for the
+usual reason — `vitest.config.ts` collects `__tests__/**/*.test.ts` and importing
+a `.tsx` fails to transform under `jsx: 'preserve'`.
+
 ## 🧑‍🤝‍🧑 /about-us — ALREADY BUILT TO THE REFERENCE; the delta was one control (Claude, 2026-08-05)
 
 Asked to recreate the supplied About design. **The page was already built to it**

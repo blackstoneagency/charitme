@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { boundedQuery } from '../../../lib/query-timeout';
-import { campaignColumns, applyLiveFilters } from '../../../lib/campaign-visibility';
+import { campaignColumns, applyLiveFilters, applyNotExpired } from '../../../lib/campaign-visibility';
 import { CAUSES, getCause, type Cause } from '../../../lib/causes';
 import { type CampaignCardData } from '../../../components/CampaignCard';
 import CauseCampaignList from './CauseCampaignList';
@@ -73,17 +73,29 @@ async function getCampaigns(cause: Cause): Promise<CampaignCardData[] | null> {
     // `{ data: null, error }`, which takes the `null` branch below — and the page
     // already renders that as "we could not load these", not as "none exist".
     const { data, error } = await boundedQuery(() =>
-      applyLiveFilters(
-        supabaseAdmin
-          .from('campaigns')
-          .select(
-            'id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, status, trust_status, nonprofit_verified, location, campaign_health_score',
-          ),
-        cols,
+      applyNotExpired(
+        applyLiveFilters(
+          supabaseAdmin
+            .from('campaigns')
+            .select(
+              'id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, status, trust_status, nonprofit_verified, location, campaign_health_score, featured',
+            ),
+          cols,
+        ),
       )
         // `.in()` is why multi-category causes have their own page: /campaigns
         // filters on a single category and would silently drop the rest.
         .in('category', [...cause.categories])
+        // Featured first, then by raised. This is what puts a featured campaign
+        // INSIDE the top six rather than hoping it happens to have raised the
+        // most — a cause's featured campaign is usually the newest one, which is
+        // precisely the one a raised-amount sort buries. The card marks them, so
+        // the ordering and the badge tell the same story.
+        //
+        // `/api/campaigns` must be asked for the SAME ordering (`featured_first`
+        // below in CauseCampaignList) — two different sorts across a page
+        // boundary duplicate some rows and skip others.
+        .order('featured', { ascending: false })
         .order('raised_amount', { ascending: false })
         .limit(PAGE_SIZE + 1),
     );

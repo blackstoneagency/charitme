@@ -48,6 +48,10 @@ export default function CauseCampaignList({
         page: String(page),
         limit: String(CAUSE_PAGE_SIZE),
         sort: 'raised',
+        // Must match the server-rendered first page, which orders featured
+        // first. Two different sorts either side of a page boundary would
+        // duplicate some rows and skip others.
+        featured_first: '1',
       });
       const res = await fetch(`/api/campaigns?${params}`);
       if (!res.ok) throw new Error(String(res.status));
