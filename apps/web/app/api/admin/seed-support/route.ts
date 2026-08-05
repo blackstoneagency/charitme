@@ -16,9 +16,19 @@ export async function GET() {
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   // Check existing count — skip if already seeded
-  const { count } = await supabaseAdmin
+  // `count ?? 0` on a failed read is zero, which here means "not seeded yet" —
+  // so a blip would re-run the seed and duplicate every case. Refuse instead:
+  // seeding twice is not recoverable by re-running.
+  const { count, error: countError } = await supabaseAdmin
     .from('support_cases')
     .select('id', { count: 'exact', head: true });
+
+  if (countError) {
+    return NextResponse.json(
+      { error: 'Could not check existing support cases', code: 'SEED_COUNT_UNAVAILABLE' },
+      { status: 503 },
+    );
+  }
 
   if ((count ?? 0) >= 100) {
     return NextResponse.json({ ok: true, skipped: true, existing: count });
