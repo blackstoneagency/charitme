@@ -1,5 +1,67 @@
 # CharitMe — Execution Tracker
 
+## ✅ CAUSE PAGES: SIX CAMPAIGNS, THEN "SEE MORE" — verified on all 20 (Claude, 2026-08-05)
+
+Every cause page rendered up to **24** campaigns at once. It now renders **six** —
+the 3×2 grid in the reference — then a "See more campaigns" button that loads the
+next six **in place**.
+
+### The old button quietly lost the cause
+
+It was a **link** to `/campaigns`. A cause spans several categories and
+`/campaigns` filters on **one** — so following it showed a different set than the
+page the visitor was reading, and a multi-category cause fell through to an
+*unfiltered* `/campaigns`, i.e. the whole platform. **11 of the 20 causes are
+multi-category**, so this was the majority case, not an edge.
+
+Loading in place is what keeps the cause intact, which is why `/api/campaigns`
+had to learn multi-category filtering first: comma-separated `category` → `.in()`,
+with a single value still taking the `.eq()` path so every existing caller is
+untouched. An unrecognised name is rejected **400 `UNKNOWN_CATEGORY`** rather than
+matching nothing and reading as "this cause has no campaigns".
+
+### Measured on production, not asserted
+
+| check | result |
+|---|---|
+| all **20** cause pages | **6 cards + button on every one**, 0 rendering more |
+| multi-category filter (`Sports,Competition`) | both categories present in results, `total=38` |
+| pages 1–3 | 18 ids, **18 unique** — no duplicate across page boundaries |
+| single category (back-compat) | unchanged, all rows the requested category |
+| unknown category | **400** |
+| badge fields on API rows | `trust_status`, `nonprofit_verified`, `campaign_health_score` all present |
+
+That last row matters: without those columns the cards loaded by the button would
+render without the Verified badge, so page 2 would look subtly different from
+page 1.
+
+### Decisions worth keeping
+
+- The server query asks for `PAGE_SIZE + 1` and renders `PAGE_SIZE`. That extra
+  row is how the page knows a next page exists without paying for a `count(*)`;
+  `length === PAGE_SIZE` would hide the button whenever the total landed exactly
+  on a boundary.
+- The first six are **server-rendered** — indexable, no JS needed for first paint.
+- A failed fetch does **not** hide the button. Hiding it would assert "nothing
+  more to see", the one thing a failed request cannot establish.
+- De-duplicated by id: ordering is `raised_amount`, which a donation can change
+  mid-session, so a row crossing the boundary would otherwise repeat a React key.
+- End-of-list is a **short page**, not a reported total the component cannot
+  verify.
+
+Guard: `__tests__/cause-see-more.test.ts`, 15 assertions, mutation-tested five
+ways (page size back to 12, dropping the +1 probe row, sending only the first
+category, dropping the badge columns, hiding the button on failure) — each caught
+by exactly one test. Two existing tests were **updated rather than loosened**:
+both asserted on the cause *page* source and the grid moved into the new
+component; the claims they pin are unchanged.
+
+⚠️ **CI created no run at all for these commits** — a change from the previous
+signature (run created, `runner_id: 0`, 0 billable ms). Verified locally
+(typecheck, lint, 3077 tests, production build) and then against production.
+
+
+
 ## 🔐 CAMPAIGN READS WITHOUT A VISIBILITY FILTER — 1 fixed, 18 triaged (Claude, 2026-08-04)
 
 `getCampaignResult` — the shared loader behind `/campaigns/[slug]` and its
