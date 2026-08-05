@@ -110,7 +110,40 @@ public campaign is currently `featured = true`.
 `featured` column, already surfaced there). The moment one is flagged it will
 sort into the top six of its cause page and render the ring + badge.
 
-#### ⏸️ STILL UNFLAGGED as of 2026-08-05 21:30 — the seed exists, it has not run
+#### ✅ CLOSED 2026-08-05 22:40 — flags applied, all 20 pages verified live
+
+The owner ran the seed (25 rows). Verified on production, every cause page:
+
+```
+cause                cards ended rings  slots
+people-in-need         6     0     3    [1,2,3]
+sports-youth           6     0     2    [1,2]
+faith-belief           6     0     1    [1]
+…20 pages, FAILURES: none
+```
+
+Seven properties asserted per page, all passing on all 20:
+6 cards · 0 expired · ring count within the cap of 3 · at least 1 ring ·
+**ring and badge always paired** (never one without the other) ·
+featured always in the **leading** slots · **no duplicate titles** among them.
+
+The API agrees: `featured = true` on exactly 25 of 314 live campaigns — precisely
+the 25 predicted before the run. The page boundary holds too: on people-in-need,
+page 1 returns 6 featured, page 2 returns 0, and 18 rows across 3 pages are all
+distinct — no repeats, no skips.
+
+#### 🎯 THE CAP — 6 of 6 highlighted distinguishes nothing
+
+First verification found `/causes/people-in-need` with **all six** cards ringed
+(three categories × two featured). A grid where every card is highlighted is
+visually identical to one where none is. Capped at 3 (`lib/featured-cap.ts`,
+PR #274) — **presentation only**: the fourth featured campaign still renders,
+still holds its position, still has its flag. Nothing unsets
+`campaigns.featured`, because that column is what the Stripe webhook sets for
+**paid** placements; clearing flags to fix a visual problem would take away
+something people bought.
+
+#### ⏸️ (superseded) STILL UNFLAGGED as of 2026-08-05 21:30 — the seed exists, it has not run
 
 `supabase/seed/featured_campaigns.sql` (PRs #272, #273) picks 25 campaigns and
 covers all 20 causes. It **cannot be run from an agent session**: there are no
