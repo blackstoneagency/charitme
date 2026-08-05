@@ -6,6 +6,7 @@ import JsonLd from '../../components/JsonLd';
 import StayInformed from '../../components/StayInformed';
 import { listPublishedImpactSummaries } from '../../lib/impact';
 import { getImpactOverview, fallbackAreas, type ImpactArea } from '../../lib/impact-overview';
+import { StatStrip, statValue, moneyValue } from '../../components/IndexHero';
 import { getCoverForCategory } from '../../lib/photo-catalog';
 import { safeJsonLd } from '../../lib/json-ld';
 import { CHARITME_ORIGIN } from '../../lib/public-routes';
@@ -28,13 +29,10 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export const dynamic = 'force-dynamic';
 
-/** `null` renders an em-dash. A figure we could not read is never shown as 0. */
-function Figure({ value }: { value: string | null }) {
-  return <strong className="imp-stat-value">{value ?? '—'}</strong>;
-}
-
-const num = (n: number | null) => (n === null ? null : n.toLocaleString());
-const money = (cents: number | null) => (cents === null ? null : formatMoneyShort(cents, 'USD'));
+/* The local `Figure` component and its `num`/`money` helpers are gone with the
+   band they served. `statValue`/`moneyValue` on the shared strip carry the same
+   rule — an em dash for a figure we could not read, never a zero — and carrying
+   it in one place is the point of the swap. */
 
 function AreaCard({ area }: { area: ImpactArea }) {
   const { cause, raisedCents } = area;
@@ -132,28 +130,38 @@ export default async function ImpactPage() {
             The shape is kept; every tile here is measured, and the last one is
             better than the mock: the platform fee is 0%, so 100% of a donation
             reaches the campaign. */}
-        <section className="imp-stats" aria-label="Platform totals">
-          <div className="imp-stat">
-            <Figure value={money(overview.raisedTotalCents)} />
-            <span>Raised for campaigns</span>
-          </div>
-          <div className="imp-stat">
-            <Figure value={num(overview.gifts)} />
-            <span>Donations made</span>
-          </div>
-          <div className="imp-stat">
-            <Figure value={num(overview.activeCampaigns)} />
-            <span>Live campaigns</span>
-          </div>
-          <div className="imp-stat">
-            <Figure value={num(overview.countries)} />
-            <span>Countries supported</span>
-          </div>
-          <div className="imp-stat">
-            <Figure value={`${overview.toCampaignPercent}%`} />
-            <span>Of your donation reaches the campaign</span>
-          </div>
-        </section>
+        {/* ── The measured figures ──────────────────────────────────────────
+            The SAME `StatStrip` /causes, /campaigns, /donate and all 20
+            /causes/<slug> pages render.
+
+            The numbers were already right: `getImpactOverview` delegates to
+            `getCausesIndexData`, so this page could never have disagreed with
+            the others about a total. What it had was its own BAND — a local
+            `Figure` component with its own em-dash rule, and its own markup.
+            Four implementations of "render a measured figure or an em dash" is
+            four places for that rule to drift; there is now one.
+
+            The labels are harmonised too. This page said "Raised for
+            campaigns", "Donations made" and "Live campaigns" for figures that
+            are literally the same values the other pages call "Raised on
+            CharitMe", "Gifts given" and "Active campaigns". Same number, same
+            words — different wording invites a reader to think they are
+            different measures.
+
+            The fifth tile stays and is unique to this page: the share of a
+            donation that reaches the campaign, DERIVED from
+            `PLATFORM_FEE_PERCENT` rather than typed in, so it follows the fee
+            instead of continuing to claim 100% if one is ever introduced. */}
+        <StatStrip
+          label="Platform totals"
+          tiles={[
+            { value: statValue(overview.activeCampaigns), label: 'Active campaigns' },
+            { value: moneyValue(overview.raisedTotalCents), label: 'Raised on CharitMe' },
+            { value: statValue(overview.gifts), label: 'Gifts given' },
+            { value: statValue(overview.countries), label: 'Countries supported' },
+            { value: `${overview.toCampaignPercent}%`, label: 'Of your donation reaches the campaign' },
+          ]}
+        />
 
         {/* ── Impact areas ──────────────────────────────────────────────── */}
         <section aria-labelledby="imp-areas">

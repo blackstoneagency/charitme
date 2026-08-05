@@ -162,7 +162,7 @@ export default async function AboutUsPage() {
               Today, {companyName} is a global community of changemakers who believe that together,
               we can solve the world&apos;s biggest challenges.
             </p>
-            <Link href="/impact" className="ab-story-cta">Learn more about our impact →</Link>
+            <Link href="/impact" className="ab-story-cta">Learn More About Our Impact →</Link>
           </div>
           <div className="ab-story-media" aria-hidden="true">
             <CampaignImage

@@ -10125,28 +10125,6 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   }
 }
 
-/* ── Stat strip ──────────────────────────────────────────────────────────── */
-.imp-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 168px), 1fr));
-  gap: 4px;
-  padding: 6px;
-  margin-bottom: 34px;
-  border: 1px solid var(--b1);
-  border-radius: var(--rl, 16px);
-  background: var(--s1);
-}
-.imp-stat {
-  display: grid;
-  gap: 4px;
-  justify-items: center;
-  text-align: center;
-  padding: 18px 12px;
-  border-radius: 11px;
-}
-.imp-stat-value { font-size: 26px; font-weight: 900; letter-spacing: -.02em; color: var(--t1); }
-.imp-stat span { font-size: 12px; font-weight: 650; line-height: 1.35; color: var(--t3); }
-
 /* ── Impact areas ────────────────────────────────────────────────────────── */
 .imp-area-grid {
   display: grid;
