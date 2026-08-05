@@ -69,6 +69,52 @@ The mark is two halves that ship together: a `.cc-feature--promoted` ring
 and `undefined` means "not known", which must render as ordinary rather than
 ringing every card on a surface that forgot the column.
 
+### ✅ SHIPPED AND VERIFIED ON PRODUCTION — all 20 cause pages, before and after
+
+Merged as `711a4cb5`. The deploy was detected by a **data-independent** marker —
+the production stylesheet containing `.cc-feature--promoted` — rather than by
+"the Ended badges are gone", which could just mean the data moved. Then the
+same measurement was re-run on all twenty causes:
+
+```
+sports-youth  people-in-need  community-relief  health-wellness  education
+animals-planet  arts-culture  faith-belief  sports-recreation  youth-development
+food-hunger  disaster-relief  mental-health  medical-research  environment
+veterans-military  human-rights  seniors-elderly  women-girls  lgbtq-support
+
+→ every one:  cards=6   ended=0
+```
+
+Before/after on the two pages that had the defect:
+
+| page | before | after |
+|---|---|---|
+| `/causes/sports-youth` | 1 of 6 Ended | **0 of 6**, still 6 cards |
+| `/causes/people-in-need` | 2 of 6 Ended | **0 of 6**, still 6 cards |
+
+Still six cards each — the ended ones were **replaced by live campaigns**, not
+dropped, so the fix did not thin the grids out.
+
+### ⚠️ THE FEATURED HIGHLIGHT RENDERS ON NOTHING — because no campaign is flagged
+
+Requirement (2) is implemented, mutation-tested and deployed, and it currently
+shows on **zero** campaigns: `featBadge=0` and `ring=0` on all twenty pages.
+
+That is a **data state, not a code gap**, and the deployed behaviour is what
+proves it. Cause pages now sort `featured` desc *before* `raised_amount`, so any
+featured campaign in a cause's categories would be **card #1 with a badge**.
+Twenty causes spanning the category list, zero badges ⇒ no active, non-expired,
+public campaign is currently `featured = true`.
+
+**Owner action, not an agent one:** flag campaigns in Admin → Campaigns (the
+`featured` column, already surfaced there). The moment one is flagged it will
+sort into the top six of its cause page and render the ring + badge.
+
+I am deliberately NOT seeding `featured = true` on a campaign to make the
+feature visible — choosing which fundraiser gets promoted placement is a
+platform-editorial decision about real people's campaigns, and inventing one to
+produce a screenshot is exactly the class of thing this file exists to prevent.
+
 ### ✅ MEASURED ON PRODUCTION — the defect was live, in 3 of 12 slots
 
 `curl` reaches `www.charitme.com` again (see the correction below), so this was
