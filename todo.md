@@ -10349,6 +10349,53 @@ live Supabase/Stripe/Resend credentials for a real paid flow, and the
 ≥100-seed-record verification that needs database access this sandbox does not
 have.
 
+## 🎯 PRODUCTION-READINESS — MEASURED STATUS, 2026-08-02 (supersedes the table below)
+
+Every row here was **measured on this build**, not carried forward. Where the
+older table below says 🟢/🟡 on the strength of an earlier partial sweep, this
+one replaces it.
+
+| Goal item | Status | Measured evidence |
+|---|---|---|
+| Wired to Supabase | ✅ **closed** | `audit:orphan-tables`: **142 of 162 tables have a reader.** The 11 without one are each decided, not pending — 6 superseded by a shipped table (pinned by `superseded-tables.test.ts`), 4 blocked on the `organizations` migration, 1 (`livestreams`) the deliberate honesty fixture. `trust_scores` is resolved with a note. |
+| Mobile / responsive | ✅ **closed** | **0 horizontal overflow** at 320 and 390 px across public (87 routes), admin (400 loads) and member (300 pages). The member surface had never been measured until `--no-admin` was added this session. |
+| Tap targets (WCAG 2.5.8) | ✅ **closed** | **0 under 24 px** across the whole signed-in surface. 9 routes / 22 controls fixed, worst being 18 × 13×16 px "Dismiss" buttons on `/dashboard/notifications`. |
+| Accessibility (axe) | ✅ | **0 violations**, 166 public page loads × 2 themes, wcag2a/2aa/21a/21aa/22aa. Campaign detail page separately verified against a REAL campaign: 4 violations → **0**. |
+| Contrast (AA) | ✅ | **0 failures**, 86 pages × 2 themes, plus the member dashboard (21 failures found and fixed, worst 1:1 invisible text). |
+| Keyboard / focus order | ✅ | 0 traps, 0 invisible stops, 0 order breaks — 14,830 focus stops over 87 pages × 2 themes. |
+| Donation flow (12 steps) | ✅ **built** | `/donate` (1) → `/donate/[slug]` (2–7) → **Stripe Checkout** (4/5/8) → `/thank-you` (9) → `/donor/receipt/[id]` (10) → `/campaigns/[slug]/share` (11) → campaign (12). |
+| Tests / build | ✅ | 3202 passing, typecheck clean, lint 0 errors, `next build` EXIT=0. |
+| Payment methods end-to-end | 🟡 **owner** | unchanged: a real paid flow needs Stripe **test** keys or owner go-ahead (ADR-0003). Not something this sandbox can close. |
+
+### ⛔ What is genuinely still open, and why it is not code
+
+1. **Apply the `organizations` migration.** Blocks 4 tables. Sandbox cannot apply
+   migrations to the live database.
+2. **Stripe test keys** for an end-to-end paid donation.
+3. **Actions billing / Vercel deploy cap** — infrastructure quotas.
+4. **≥100-seed verification for tables with no public endpoint** — needs
+   `99_verify_counts.sql` run with database credentials.
+5. **Report PDFs for `/transparency`** (composite page 42) — needs a table and a
+   storage bucket, i.e. a migration.
+
+**None of these are unfinished code.** Each needs an owner action this
+environment cannot perform, and each is recorded rather than worked around.
+
+### ⚠️ Deliberately NOT built, and why
+
+- **Raw card fields** (donation steps 4–5). The reference shows card number,
+  expiry and CVC inputs. Building them would put the site in PCI-DSS scope and
+  route real card numbers through our own server. Stripe Checkout renders them on
+  Stripe's domain. `donation-flow-core.test.ts` walks `app/` and `components/`
+  and fails on any `autoComplete="cc-number"/"cc-csc"/"cc-exp"`.
+- **"Notify the honoree by email"** — no column for an address, no sending path.
+- **"Impact Reached" on the nonprofit dashboard** — nothing measures impact;
+  inventing it would put a fabricated figure in front of funders.
+- **Press-release detail pages** — a press release is a factual public statement
+  by the company; fabricating one is not a placeholder, it is a false claim.
+
+---
+
 ## 🎯 PRODUCTION-READINESS GOAL — live status (updated this session)
 
 | Goal item | Status | Evidence / blocker |
