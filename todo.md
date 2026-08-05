@@ -1,5 +1,53 @@
 # CharitMe — Execution Tracker
 
+## 🏢 A DATABASE BLIP COULD OVER-COMMIT AN EMPLOYER'S MATCH BUDGET (Claude, 2026-08-05)
+
+Sixth triage of the money-path queue, found by applying the heuristic the refund
+fix produced: **where one read is guarded, check its neighbours.** A sweep for
+routes containing BOTH a guarded and an unguarded read returned **81**; ranked by
+money, corporate matching came first — a match claim commits *the sponsor's*
+money, up to an annual cap they agreed to.
+
+`reservedMatchForEmployee` dropped its `error`, so `data ?? []` made a failed
+read return **0 used** — identical to an employee who has claimed nothing all
+year. That flows straight into the amount written on the claim:
+
+```
+remaining   = remainingCap(annual_cap_cents, used)   // = the FULL cap
+matchAmount = computeMatchAmount({ remainingCapCents: remaining, … })
+```
+
+So a blip lets a claim be created as though the cap were untouched, and the
+employer's agreed limit is exceeded. **Declining a claim is recoverable;
+over-committing someone else's money is not.**
+
+`listEmployeeClaims` sits directly below it in the same file and already used
+`boundedQuery` — the same one-guarded-one-not tell as the refund route.
+
+| caller | now |
+|---|---|
+| `POST /api/matching/claims` (commits money) | **503 `MATCH_CAP_UNAVAILABLE`**, and **no claim row is written** |
+| `/matching/[id]` (displays remaining cap) | catches → `remainingCapCents` stays `null`, which the panel already renders by *hiding* the cap line. Honest, and the server still refuses on submit |
+
+### The code corrected me twice
+
+Both were my test's errors, not the code's — worth recording because each would
+have shipped a wrong belief:
+
+1. I asserted `pending` claims reserve cap. They do not: `reservesCap` counts
+   **`approved` and `paid` only**. Expectation corrected 8000 → 7000.
+2. My POST used `program_id: 'prog-1'`, which fails the UUID schema and returns
+   **400 before the cap code ever runs** — the test would have "passed" against a
+   path it never reached had I asserted 400.
+
+Guards: `__tests__/match-cap-unavailable.test.ts`, 5 assertions including one
+that asserts **no insert happens** on the failure path (the status code matters
+less than nothing being committed). Mutation-tested both ways — restoring
+"failed read = 0 used" fails 3, and over-throwing on a legitimately empty claim
+list fails 1, so a first-time claimant is not blocked.
+
+
+
 ## 💸 A REFUND REQUEST COULD BE TOLD THE DONATION DOES NOT EXIST (Claude, 2026-08-05)
 
 Fifth triage of the money-path queue. A donor asking for their money back must
