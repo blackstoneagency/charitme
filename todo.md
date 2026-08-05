@@ -1,5 +1,74 @@
 # CharitMe — Execution Tracker
 
+## 🧑‍🤝‍🧑 /about-us — ALREADY BUILT TO THE REFERENCE; the delta was one control (Claude, 2026-08-05)
+
+Asked to recreate the supplied About design. **The page was already built to it**
+— hero, Mission/Values, "Our Impact So Far", Our Story, Our Team, "Be Part of Our
+Mission" — so this was verification, not a rebuild. Measured on production:
+
+| section | live |
+|---|---|
+| About hero, Mission, Values, Impact, Story, CTA | ✅ all render |
+| **Our Team** | ❌ omitted — roster empty |
+| **Watch Our Story** | ❌ omitted — no video URL |
+
+Both omissions are **deliberate and correct**: they are admin-entered content
+(`platform_settings.config.about`), and the section renders from real rows or not
+at all. **That is owner content, not a code gap.**
+
+Every stat tile is live Supabase data — measured on production:
+**352** active campaigns · **$96,850** raised · **592** gifts · **69** countries ·
+**100%** of your gift to the cause.
+
+⚠️ The reference's five figures — *2.3M+ People Helped, 68K+ Lives Transformed,
+1,250+ Programs Funded, 120+ Countries Reached, 98% Funds to Programs* — are
+**not** reproduced, and the existing page already documents why: none is an
+entity in this schema. The layout is identical; the numbers are ours and real.
+The fifth tile is *better* than the reference: 100%, not 98%, because
+`PLATFORM_FEE_PERCENT` is 0.
+
+### The one real delta: the LinkedIn control
+
+The design shows a small "in" control under each face; `TeamMember` had no such
+field. Unlike the six named executives — claims about real humans, correctly not
+shipped — **a LinkedIn URL is administrator-entered data**, so building it invents
+nothing.
+
+Validated as *actually* LinkedIn, by **hostname**, not substring:
+
+```
+https://evil.com/linkedin.com/in/x      ← contains it, is not LinkedIn
+https://linkedin.com.evil.com/in/x      ← the classic suffix trick
+```
+
+A substring match passes both. An arbitrary URL behind a LinkedIn icon tells the
+visitor where they are going and sends them elsewhere — small, but on the page
+whose whole job is looking trustworthy, and reachable by an admin typo. Also
+https-only, `rel="noreferrer noopener"`, and named **per person** (six links all
+called "LinkedIn" are indistinguishable to someone tabbing the row).
+
+A bad link drops the **link**, not the person.
+
+### 🔬 THIS REPO CANNOT RENDER A COMPONENT IN A TEST — worth fixing deliberately
+
+I set out to render-test the populated team section, because the existing 22
+roster assertions are all about **parsing** or **source text**: a render bug in
+the card would pass every one of them.
+
+It cannot be done here. `vitest.config.ts` collects `__tests__/**/*.test.ts`
+only, and importing a `.tsx` fails to transform because Next sets
+`jsx: 'preserve'` in tsconfig. I tried `esbuild.jsx: 'automatic'` and a
+`tsconfigRaw` override; vite's import analysis still refuses. It needs
+`@vitejs/plugin-react`, which is **not installed**.
+
+I did **not** add it: a shared-toolchain dependency affecting all 260+ test files
+should be a deliberate decision, not a side effect of an About-page change. But
+the gap is real and platform-wide — **no component in this repo is render-tested**
+— and it is exactly the "a guard nobody exercises is not a guard" lesson from the
+money-path passes. Recording it as its own item rather than leaving it implied.
+
+
+
 ## 🔓 THREE LIMITS THAT STOPPED EXISTING WHEN THE DATABASE HICCUPED (Claude, 2026-08-05)
 
 Eighth triage, narrowing the permissive-fallback lens further: a fallback feeding
