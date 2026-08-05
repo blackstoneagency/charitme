@@ -66,21 +66,45 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  // Available balance: raised minus already-paid-or-pending payouts
-  const { data: existingPayouts } = await supabaseAdmin
+  // Available balance: raised minus already-paid-or-pending payouts.
+  //
+  // ⚠️ This dropped its `error`, and `?? []` turned a failed read into
+  // "nothing has been paid out yet" — so `availableCents` became the FULL raised
+  // amount and the fundraiser was told they could withdraw money they have
+  // already received. Same shape as the matching-cap defect.
+  const { data: existingPayouts, error: payoutsError } = await supabaseAdmin
     .from('payouts')
     .select('amount_cents')
     .eq('campaign_id', campaignId)
     .in('status', ['requested', 'approved', 'paid']);
+  if (payoutsError) {
+    return NextResponse.json(
+      { error: 'We could not work out your available balance right now. Please try again.', code: 'PAYOUT_BALANCE_UNAVAILABLE' },
+      { status: 503 },
+    );
+  }
   const alreadyPaidOrPending = (existingPayouts ?? []).reduce((s, p) => s + (p.amount_cents ?? 0), 0);
   const availableCents = Math.max(0, (campaign.raised_amount ?? 0) - alreadyPaidOrPending);
 
-  // Open risk flags for this campaign
-  const { data: openFlags } = await supabaseAdmin
+  // Open risk flags for this campaign.
+  //
+  // ⚠️ The worse half. `?? []` on a failed read produced NO risk blockers, and
+  // `readiness` below is `openFlags && openFlags.length > 0 ? 'blocked' : …` —
+  // so a null read skips that test entirely and a campaign with open fraud flags
+  // is reported **'ready' to pay out**. A safety gate that switches itself off
+  // when it cannot see is not a safety gate; this is the same "all clear while
+  // blind" shape as the reconciliation job.
+  const { data: openFlags, error: flagsError } = await supabaseAdmin
     .from('risk_flags')
     .select('id, flag_type, severity, description')
     .eq('campaign_id', campaignId)
     .eq('resolved', false);
+  if (flagsError) {
+    return NextResponse.json(
+      { error: 'We could not check this campaign’s review status right now. Please try again.', code: 'RISK_STATUS_UNAVAILABLE' },
+      { status: 503 },
+    );
+  }
 
   // Stripe Connect / payout destination status
   const destination = await resolvePayoutDestination(campaign);
