@@ -150,7 +150,17 @@ jobs:
       #     audits the OLD build and produces plausible-looking nonsense.
       #   • the pkill pattern is bracketed so it cannot match this step's own
       #     shell (`next-server` appears in that command line otherwise).
-      - name: Contrast audit (WCAG AA, both themes)
+      # Runtime sweeps that need a live server. Both run against ONE server start,
+      # so the axe sweep costs a sweep rather than another build — which matters
+      # while Actions minutes are the binding constraint on this repo.
+      #
+      # ⚠️ `audit:a11y` is here because it was NOT, and that gap shipped a real
+      # defect: six links on /impact wrapped an `alt=""` image and so announced
+      # nothing to a screen reader (axe `link-name`, serious, both themes). It
+      # reached master and no CI step could have caught it — this job ran
+      # contrast only. Contrast and axe do not overlap: a link with no accessible
+      # name has perfect contrast.
+      - name: Runtime audits (WCAG AA contrast + axe, both themes)
         run: |
           set -e
           if curl -sf -o /dev/null --max-time 3 http://127.0.0.1:3000/; then
@@ -158,10 +168,16 @@ jobs:
           fi
           npx next start -p 3000 &
           for i in $(seq 1 45); do curl -sf -o /dev/null http://127.0.0.1:3000/ && break; sleep 2; done
-          npm run audit:contrast -- --base http://127.0.0.1:3000
-          status=$?
+          # Run BOTH before failing, so one red sweep does not hide the other's
+          # findings — `set -e` would otherwise abort at the first failure and
+          # leave the second entirely unmeasured.
+          set +e
+          npm run audit:contrast -- --base http://127.0.0.1:3000; contrast=$?
+          npm run audit:a11y     -- --base http://127.0.0.1:3000; a11y=$?
           pkill -f "[n]ext-server" || true
-          exit $status
+          [ $contrast -ne 0 ] && echo "::error::contrast audit failed"
+          [ $a11y -ne 0 ] && echo "::error::axe audit failed"
+          [ $contrast -eq 0 ] && [ $a11y -eq 0 ]
         working-directory: apps/web
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co

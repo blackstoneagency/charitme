@@ -55,6 +55,10 @@ export default function VolunteerClient({
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('');
   const [remoteOnly, setRemoteOnly] = useState(false);
+  // Whether the visitor narrowed anything. Drives which empty state shows: an
+  // unfiltered empty list means "none listed yet", not "your search was too
+  // narrow", and offering to clear filters nobody set is a dead end.
+  const filtersActive = query.trim() !== '' || category !== '' || remoteOnly;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -121,7 +125,30 @@ export default function VolunteerClient({
         <EmptyState icon="⚠️" title="Something went wrong" body={error}
           action={<Btn variant="secondary" onClick={() => runSearch(query, category, remoteOnly)}>Retry</Btn>} />
       ) : opps.length === 0 ? (
-        <EmptyState icon="🙌" title="No opportunities found" body="Try a different search or clear the filters." />
+        // "Your filter matched nothing" and "there are none listed yet" are
+        // different facts, and telling someone to clear filters they never set
+        // sends them in a circle. Same distinction the discovery pages draw
+        // between an empty result and a failed read.
+        filtersActive ? (
+          <EmptyState
+            icon="🙌"
+            title="No opportunities match those filters"
+            body="Try a broader search, or clear the filters to see everything on offer."
+            action={<Btn variant="secondary" onClick={() => { setQuery(''); setCategory(''); setRemoteOnly(false); runSearch('', '', false); }}>Clear filters</Btn>}
+          />
+        ) : (
+          <EmptyState
+            icon="🙌"
+            title="No volunteer opportunities listed yet"
+            body="Nothing here right now. You can still give to a cause today, or list an opportunity if your organisation needs hands."
+            action={
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
+                <Link href="/campaigns" className="cta-primary" style={{ display: 'inline-flex' }}>Browse campaigns</Link>
+                <Link href="/dashboard/volunteer" className="vol-btn-secondary">List an opportunity</Link>
+              </div>
+            }
+          />
+        )
       ) : (
         <>
           <p style={{ fontSize: 13, color: 'var(--t3)', margin: 0 }}>{opps.length} {opps.length === 1 ? 'opportunity' : 'opportunities'}</p>

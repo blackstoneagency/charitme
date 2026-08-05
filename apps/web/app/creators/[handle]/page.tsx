@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { cache } from 'react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { DEFAULT_OG_IMAGE } from '../../../lib/public-routes';
 import { createClient } from '../../../lib/supabase-server';
 import { supabaseAdmin } from '../../../lib/supabase';
 import JoinTierButton from './JoinTierButton';
@@ -173,7 +174,7 @@ export async function generateMetadata({ params }: { params: Promise<{ handle: s
     openGraph: {
       title: `${name} on CharitMe`,
       description: creator.bio ?? `${name} raises money for causes on CharitMe.`,
-      images: creator.hero_image_url ? [creator.hero_image_url] : undefined,
+      images: creator.hero_image_url ? [creator.hero_image_url] : [{ url: DEFAULT_OG_IMAGE }],
     },
   };
 }

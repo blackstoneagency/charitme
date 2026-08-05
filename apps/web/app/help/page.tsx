@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { DEFAULT_OG_IMAGE } from '../../lib/public-routes';
 import JsonLd from '../../components/JsonLd';
 import { safeJsonLd } from '../../lib/json-ld';
 import HelpPageClient from './HelpPageClient';
@@ -8,6 +9,7 @@ export const metadata: Metadata = {
   description: 'Get answers about CharitMe campaigns, donations, payouts, account security, and fundraiser support.',
   alternates: { canonical: 'https://www.charitme.com/help' },
   openGraph: {
+    images: [{ url: DEFAULT_OG_IMAGE }],
     title: 'CharitMe Help Center',
     description: 'Get answers about campaigns, donations, payouts, account security, and fundraiser support.',
     url: 'https://www.charitme.com/help',

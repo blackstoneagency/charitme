@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { safeJsonLd } from "../../../lib/json-ld";
 import type { Metadata } from 'next';
+import { DEFAULT_OG_IMAGE } from '../../../lib/public-routes';
 import { notFound } from 'next/navigation';
 import { PublicIcon } from '../../../components/PublicIcon';
 import JsonLd from '../../../components/JsonLd';
@@ -22,6 +23,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     description: post.excerpt,
     alternates: { canonical: `${BASE}/blog/${post.slug}` },
     openGraph: {
+      images: [{ url: DEFAULT_OG_IMAGE }],
       title: post.title,
       description: post.excerpt,
       type: 'article',

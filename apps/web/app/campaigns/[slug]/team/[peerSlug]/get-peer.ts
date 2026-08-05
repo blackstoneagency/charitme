@@ -43,7 +43,16 @@ export const getPeerPage = cache(
       .eq('slug', campaignSlug)
       .is('deleted_at', null)
       .maybeSingle();
+    // ⚠️ `visibility` was SELECTED here and never read. A peer fundraiser page
+    // renders the parent campaign's title, tagline, cover and amount raised, so
+    // a PRIVATE parent leaked all of it through its team pages — the fifth
+    // instance of this class found today, and the one that hid behind a column
+    // already being fetched.
+    //
+    // `neq('private')` semantics, matching the campaign detail page: an unlisted
+    // campaign must still resolve, because peer pages are shared by direct link.
     if (!campaign) return null;
+    if ((campaign as { visibility?: string | null }).visibility === 'private') return null;
 
     const { data: peer } = await supabaseAdmin
       .from('peer_fundraisers')

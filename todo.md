@@ -1,5 +1,49 @@
 # CharitMe — Execution Tracker
 
+## 🔐 CAMPAIGN READS WITHOUT A VISIBILITY FILTER — 1 fixed, 18 triaged (Claude, 2026-08-04)
+
+`getCampaignResult` — the shared loader behind `/campaigns/[slug]` and its
+`gallery`, `updates`, `share` and `team` sub-routes — filtered `deleted_at` and
+**nothing else**, so a campaign set to **private** was fully readable at its
+public URL: story, donor names and messages, amount raised. Fixed in `c14d6a71`
+with `neq('visibility', 'private')` (NOT `eq('public')` — 'unlisted' must stay
+reachable by direct link, which is what unlisted means).
+
+**How it was found matters more than the bug.** Every runtime sweep skips these
+routes for want of seeded data, and I had been calling them unverifiable on that
+basis. A **static** check of the source reaches them fine. Do not write a surface
+off as unverifiable because a browser cannot load it here.
+
+### The remaining 18, triaged — do NOT blanket-fix
+
+A repo-wide sweep found 18 more files reading `campaigns` with no visibility
+filter. **Most are correct as they stand**, and adding a filter would be a bug:
+
+| bucket | files | verdict |
+|---|---|---|
+| **Owner-scoped** | `app/donor`, `app/profile`, `app/welcome`, `lib/tax-server`, `lib/beneficiary-data`, `lib/donation-form-access` | ✅ correct — an owner MUST see their own private campaign |
+| **Internal/admin** | `lib/marketing-*` (3), `lib/ai-context`, `lib/contact-page` | ✅ not a public surface |
+| **Not a real read** | `lib/query-timeout` | ✅ matched on a comment |
+| **⚠️ Worth checking** | `lib/trust-signals`, `lib/sponsorships`, `lib/giving-days-server`, `lib/nonprofit-data`, `lib/referrals`, `app/status` | needs per-file judgement |
+
+**All six in that bucket are now examined — 1 fixed, 5 correct as they stand:**
+
+| file | verdict |
+|---|---|
+| `lib/trust-signals.ts:40` | ❌ **fixed** — counted the organiser's private and deleted campaigns into a PUBLIC trust signal, inflating it and leaking how many private campaigns they have. Now `eq('visibility','public')` + `is('deleted_at', null)`. |
+| `lib/nonprofit-data.ts` | ✅ imported only by `app/dashboard/nonprofit/page.tsx` — auth-gated, owner-scoped. Showing an owner their own private campaigns is correct. |
+| `lib/giving-days-server.ts` | ✅ `.eq('user_id', owner)` — owner-scoped. |
+| `app/status/page.tsx` | ✅ `select('id').limit(1)` health probe, exposes nothing. |
+| `lib/sponsorships.ts`, `lib/referrals.ts` | ✅ fetch by IDs the viewer already holds from their own sponsorship/referral rows. Low risk; not a discovery surface. |
+
+⚠️ **The `eq` vs `neq` split is the subtle part** and is now used both ways on
+purpose:
+* `trust-signals` uses `eq('public')` — an AGGREGATE over other campaigns, where
+  'unlisted' is by definition not something to advertise;
+* `get-campaign` uses `neq('private')` — a DIRECT-LINK fetch, where 'unlisted'
+  must still resolve or sharing breaks.
+
+
 ## ⚠️ THE "87 APPLIED / 27 PENDING" PRECONDITION IS WRONG — measured against production (Claude, 2026-08-03)
 
 I wrote that figure earlier today while correcting O1 from "6 pending" to "27".
@@ -2035,7 +2079,7 @@ skipped workflow leaves its check pending forever and would deadlock a docs-only
 PR. Nothing is required today, which is why this is safe now — recorded so the
 next person does not find out the hard way.
 
-## 🛑 SUPABASE STAGING — blocked, and the pending count is **27** (Claude, 2026-08-03)
+## 🛑 SUPABASE STAGING — blocked, and the pending count is **29** (Claude, 2026-08-03)
 
 ⚠️ **Superseded in part — read the correction at the top of this file first.**
 The arithmetic below is sound and the drift guard on it is worth keeping, but the
@@ -2059,8 +2103,8 @@ all 18 in order and proved rollback.
 Nine migrations have been added since. So the count is arithmetic:
 
 ```
-114 local − 87 applied           = 27
-18 audited pending + 9 added     = 27   ✓ reconciles
+116 local − 87 applied           = 29
+18 audited pending + 11 added    = 29   ✓ reconciles
 ```
 
 All 18 audited-pending versions are still on disk under their original names.

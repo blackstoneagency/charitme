@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { getTranslator } from '../../../lib/locale-server';
 import CampaignImage from '../../../components/CampaignImage';
 import { causeBrowseHref, type Cause } from '../../../lib/causes';
-import { formatStat, formatMoneyStat, type CauseStats } from '../../../lib/cause-landing';
+import { formatStat, formatMoneyStat, type CauseStats, type AuthoredStat } from '../../../lib/cause-landing';
 import { getCoverForCategory } from '../../../lib/photo-catalog';
 import HelpGlyph from '../../../components/HelpGlyph';
 
@@ -59,9 +59,23 @@ const STAT_ICONS = [
 export default async function CauseLanding({
   cause,
   stats,
+  authoredStats = [],
 }: {
   cause: Cause;
   stats: CauseStats;
+  /**
+   * Owner-authored figures from `cause_impact_stats`. When present these replace
+   * the measured tiles, because the design's headline claims are not derivable
+   * from this schema and the platform owner — not an engineer hardcoding a
+   * literal — is the right author of a claim about its own impact. Empty means
+   * nothing authored, and the measured counts below are used.
+   *
+   * The literals themselves live in the seed file, unpublished, with a
+   * `source_note` the publisher must fill in. They are deliberately absent from
+   * source: `cause-landing.test.ts` fails if one appears here, and that guard
+   * should keep working.
+   */
+  authoredStats?: readonly AuthoredStat[];
 }) {
   const t = await getTranslator();
   const heroPhoto = getCoverForCategory(cause.categories[0]);
@@ -189,12 +203,16 @@ export default async function CauseLanding({
         </div>
         <dl className="cl-stat-row">
           {STAT_ICONS.map((icon, i) => {
-            const tile = [
+            const measured = [
               { value: formatStat(stats.liveCampaigns), label: t('cl.stat_live') },
               { value: formatMoneyStat(stats.raisedCents), label: t('cl.stat_raised') },
               { value: formatStat(stats.supporters), label: t('cl.stat_gifts') },
               { value: formatStat(stats.countries), label: t('cl.stat_countries') },
-            ][i];
+            ];
+            // Authored wins when the owner has published a full set; a partial
+            // set would mix an authored claim with a live count in one row and
+            // read as if both had the same provenance.
+            const tile = authoredStats.length === measured.length ? authoredStats[i] : measured[i];
             return (
               <div className="cl-stat" key={tile.label}>
                 <span className={`cl-stat-ic cl-stat-ic--${i}`} aria-hidden="true">{icon}</span>

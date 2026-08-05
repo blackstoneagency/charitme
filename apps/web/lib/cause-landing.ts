@@ -3,6 +3,7 @@ import { supabaseAdmin } from './supabase';
 import { boundedQuery } from './query-timeout';
 import { campaignColumns, applyLiveFilters, applyVisibilityFilters } from './campaign-visibility';
 import type { Cause } from './causes';
+import type { CauseStoryRow, CauseImpactStatRow, EmbeddedCampaignSlug } from './database.types';
 
 /**
  * Live figures for a cause landing page.
@@ -157,17 +158,89 @@ export function formatMoneyStat(cents: number | null): string {
  */
 export interface CauseStory {
   id: string;
-  slug: string;
+  /** Campaign slug when the story links to one; `null` for editorial-only. */
+  slug: string | null;
   title: string;
   blurb: string | null;
   category: string | null;
   cover: string | null;
   raisedCents: number;
   backers: number;
+  /**
+   * Present only for authored `cause_stories` rows that carry a video.
+   *
+   * ⚠️ This is what makes the reference's play control honest. It renders when
+   * and only when there is something to play — the design draws a play button on
+   * every card, but every `campaign_media` video row in this database points at
+   * `storage.CharitMe.example`, a reserved TLD that cannot resolve. A control
+   * that plays nothing is a dead affordance, so the card degrades to a read link
+   * when this is null.
+   */
+  videoUrl: string | null;
+  /** Chip label as the design draws it, e.g. "YOUTH EMPOWERMENT". */
+  chipLabel: string | null;
+  /** 0-2, selecting the chip's accent colour. */
+  chipAccent: number;
+}
+
+/**
+ * Authored stories for a cause, from `cause_stories`.
+ *
+ * `null` distinguishes "could not read" from "none authored" — the caller falls
+ * back to completed campaigns only in the SECOND case, so a database blip never
+ * silently swaps editorial content for an approximation of it.
+ *
+ * The `cause_stories` migration may not be applied yet. Postgres reports an
+ * unknown relation as `42P01`, which is treated as "none authored" rather than a
+ * failure: on a deployment without the table the page must fall back cleanly,
+ * exactly as `campaign-visibility` treats a missing column.
+ */
+async function getAuthoredStories(cause: Cause, limit: number): Promise<CauseStory[] | null> {
+  const { data, error } = await boundedQuery(() =>
+    supabaseAdmin
+      .from('cause_stories')
+      .select('id, title, blurb, chip_label, chip_accent, poster_url, video_url, campaigns:campaign_id(slug)')
+      .eq('cause_slug', cause.slug)
+      .eq('published', true)
+      .order('sort_order', { ascending: true })
+      .order('published_at', { ascending: false })
+      .limit(limit),
+  );
+
+  if (error) {
+    if (error.code === '42P01') return [];
+    console.warn('[cause-landing] authored stories read failed', { code: error.code });
+    return null;
+  }
+
+  type Row = Pick<CauseStoryRow, 'id' | 'title' | 'blurb' | 'chip_label' | 'chip_accent' | 'poster_url' | 'video_url'>
+    & { campaigns: EmbeddedCampaignSlug };
+  return ((data ?? []) as unknown as Row[]).map((r) => {
+    const campaign = r.campaigns;
+    return {
+      id: r.id,
+      slug: campaign?.slug ?? null,
+      title: r.title,
+      blurb: r.blurb ?? null,
+      category: null,
+      cover: r.poster_url ?? null,
+      raisedCents: 0,
+      backers: 0,
+      videoUrl: r.video_url ?? null,
+      chipLabel: r.chip_label ?? null,
+      chipAccent: Number(r.chip_accent ?? 0),
+    };
+  });
 }
 
 export async function getCauseStories(cause: Cause, limit = 3): Promise<CauseStory[] | null> {
   try {
+  // Authored stories are the design's intent; completed campaigns are the
+  // fallback that keeps the section alive before any are written.
+  const authored = await getAuthoredStories(cause, limit);
+  if (authored === null) return null;
+  if (authored.length > 0) return authored;
+
   // `status` is set here rather than by `applyLiveFilters`, which pins
   // `status = 'active'` — the opposite of what this reads. Visibility is still
   // applied, so a completed campaign the owner has since made private does not
@@ -202,11 +275,68 @@ export async function getCauseStories(cause: Cause, limit = 3): Promise<CauseSto
     cover: (c.cover_image_url as string | null) ?? null,
     raisedCents: Number(c.raised_amount ?? 0),
     backers: Number(c.backer_count ?? 0),
+    // A campaign is not a video story: no play control, no editorial chip.
+    videoUrl: null,
+    chipLabel: null,
+    chipAccent: 0,
   }));
   } catch {
     // Same guard as `getCauseStats`: `supabaseAdmin` throws on property access
     // when the env is missing, before any query runs, which no `error` check can
     // see. Without it this 500'd the whole cause page.
     return null;
+  }
+}
+
+/**
+ * An owner-authored figure for the "Real Impact" band.
+ *
+ * `value` is a display string ("125K+", "1,250+"), because that is what the
+ * design shows and formatting it in code would lose the "+".
+ */
+export interface AuthoredStat {
+  value: string;
+  label: string;
+  icon: number;
+}
+
+/**
+ * The four figures the design draws, when the owner has authored them.
+ *
+ * ⚠️ Returns `[]` — not `null` — when nothing is authored or the table is
+ * absent (`42P01`), so the caller falls back to MEASURED counts. That fallback
+ * is the whole safety property: an unseeded or un-migrated deployment shows real
+ * numbers rather than an empty band or invented ones.
+ *
+ * Why this exists at all: "125K+ Youth Impacted" is not derivable from this
+ * schema, and hardcoding it would put an unverifiable claim in front of donors
+ * with an engineer as its only author. Authored rows make the platform owner the
+ * author, which is who it should be.
+ */
+export async function getAuthoredStats(cause: Cause): Promise<AuthoredStat[]> {
+  try {
+    const { data, error } = await boundedQuery(() =>
+      supabaseAdmin
+        .from('cause_impact_stats')
+        .select('value, label, icon')
+        .eq('cause_slug', cause.slug)
+        .eq('published', true)
+        .order('sort_order', { ascending: true })
+        .limit(4),
+    );
+    if (error) {
+      if (error.code !== '42P01') {
+        console.warn('[cause-landing] authored stats read failed', { code: error.code });
+      }
+      return [];
+    }
+    type StatRow = Pick<CauseImpactStatRow, 'value' | 'label' | 'icon'>;
+    return ((data ?? []) as unknown as StatRow[]).map((r) => ({
+      value: r.value,
+      label: r.label,
+      icon: Number(r.icon ?? 0),
+    }));
+  } catch {
+    return [];
   }
 }

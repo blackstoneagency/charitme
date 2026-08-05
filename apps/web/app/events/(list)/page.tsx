@@ -57,7 +57,20 @@ export default async function EventsPage({
               ? 'Nothing scheduled under this cause right now. Browse every upcoming event instead.'
               : 'Check back soon, or host the first event from the manage page.'
           }
-          action={cause ? <Link className="cta-primary" href="/events" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '0 18px', borderRadius: 'var(--r)', textDecoration: 'none', fontWeight: 700 }}>All events</Link> : undefined}
+          // ⚠️ The UNFILTERED case used to pass `undefined` here, so the more
+          // common empty state offered no action at all — and the body told the
+          // visitor to "host the first event from the manage page" without ever
+          // linking to it. Measured: 0 links inside <main> on this route.
+          action={
+            cause ? (
+              <Link className="cta-primary" href="/events" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '0 18px', borderRadius: 'var(--r)', textDecoration: 'none', fontWeight: 700 }}>All events</Link>
+            ) : (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
+                <Link className="cta-primary" href="/events/manage" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '0 18px', borderRadius: 'var(--r)', textDecoration: 'none', fontWeight: 700 }}>Host an event</Link>
+                <Link className="vol-btn-secondary" href="/campaigns">Browse campaigns</Link>
+              </div>
+            )
+          }
         />
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: 18 }}>
