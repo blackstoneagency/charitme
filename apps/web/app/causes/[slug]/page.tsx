@@ -5,7 +5,8 @@ import { supabaseAdmin } from '../../../lib/supabase';
 import { boundedQuery } from '../../../lib/query-timeout';
 import { campaignColumns, applyLiveFilters } from '../../../lib/campaign-visibility';
 import { CAUSES, getCause, type Cause } from '../../../lib/causes';
-import { CampaignCard, CampaignGrid, type CampaignCardData } from '../../../components/CampaignCard';
+import { type CampaignCardData } from '../../../components/CampaignCard';
+import CauseCampaignList from './CauseCampaignList';
 import { EmptyState } from '../../../components/ui';
 import { getTranslator } from '../../../lib/locale-server';
 import { getCauseStats, getCauseStories } from '../../../lib/cause-landing';
@@ -15,7 +16,10 @@ import { formatMoneyCompact } from '@shared/currencies';
 import CauseLanding, { CauseCtaBand } from './CauseLanding';
 import HelpGlyph from '../../../components/HelpGlyph';
 
-const PAGE_SIZE = 24;
+// Six per page, matching the reference design: a 3x2 grid, then the button.
+// The query asks for ONE MORE than it renders — that extra row is how the page
+// knows whether a next page exists without paying for a count(*).
+const PAGE_SIZE = 6;
 
 export function generateStaticParams() {
   return CAUSES.map((c) => ({ slug: c.slug }));
@@ -81,7 +85,7 @@ async function getCampaigns(cause: Cause): Promise<CampaignCardData[] | null> {
         // filters on a single category and would silently drop the rest.
         .in('category', [...cause.categories])
         .order('raised_amount', { ascending: false })
-        .limit(PAGE_SIZE),
+        .limit(PAGE_SIZE + 1),
     );
 
     if (error) return null;
@@ -204,24 +208,14 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
         />
       ) : (
         <>
-          <CampaignGrid>
-            {campaigns.map((c) => <CampaignCard key={c.id} campaign={c} variant="feature" />)}
-          </CampaignGrid>
-
-          {campaigns.length === PAGE_SIZE && (
-            <div style={{ textAlign: 'center', marginTop: '36px' }}>
-              <Link
-                href={
-                  cause.categories.length === 1
-                    ? `/campaigns?category=${encodeURIComponent(cause.categories[0])}`
-                    : '/campaigns'
-                }
-                style={{ padding: '11px 22px', borderRadius: 'var(--r)', border: '1px solid var(--b2)', color: 'var(--t1)', fontSize: '14px', fontWeight: 700, textDecoration: 'none' }}
-              >
-                {t('cause.see_more')}
-              </Link>
-            </div>
-          )}
+          <div id="cause-campaign-grid">
+            <CauseCampaignList
+              initial={campaigns.slice(0, PAGE_SIZE)}
+              categories={cause.categories}
+              hasMore={campaigns.length > PAGE_SIZE}
+              seeMoreLabel={t('cause.see_more')}
+            />
+          </div>
         </>
       )}
 

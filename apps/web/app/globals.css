@@ -10785,3 +10785,34 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 @media (min-width: 900px) {
   .fq-cta { grid-template-columns: auto minmax(0, 1fr) auto; }
 }
+
+/* ── Cause pages: "See more campaigns" ────────────────────────────────────────
+   Six campaigns render, then this button loads the next six in place. It was a
+   link to /campaigns, which dropped the cause — a cause spans several categories
+   and /campaigns filters on one, so the visitor landed on a different set than
+   the page they were reading.
+
+   Token-driven throughout, so it flips with the theme. The pill in the reference
+   sits on the page background with a hairline border; `--s2`/`--b2`/`--t1` give
+   that in light and dark without a hardcoded literal (see the muted-slate and
+   #cbd5e1 regressions this file has already paid for). */
+.cl-more-wrap { display: flex; justify-content: center; margin-top: 36px; }
+.cl-more-btn {
+  padding: 12px 26px;
+  border-radius: 999px;
+  border: 1px solid var(--b2);
+  background: var(--s2);
+  color: var(--t1);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease;
+}
+.cl-more-btn:hover:not(:disabled) { background: var(--s3); border-color: var(--t3); }
+.cl-more-btn:disabled { cursor: default; opacity: .7; }
+/* Keyboard users must see the focus ring; :focus-visible keeps it off a mouse
+   click. `audit:focus-order` tabs every public route, so a missing ring here is
+   a real finding rather than a style nit. */
+.cl-more-btn:focus-visible { outline: 2px solid var(--brand-text); outline-offset: 2px; }
+.cl-more-error { text-align: center; margin: 18px 0 0; font-size: 13.5px; color: var(--red); }
