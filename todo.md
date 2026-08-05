@@ -1,5 +1,49 @@
 # CharitMe — Execution Tracker
 
+## 🔓 THREE LIMITS THAT STOPPED EXISTING WHEN THE DATABASE HICCUPED (Claude, 2026-08-05)
+
+Eighth triage, narrowing the permissive-fallback lens further: a fallback feeding
+a **gate** (an `if`, a `>=`) rather than a display total. 24 hits, and three were
+the same fail-open bug:
+
+```ts
+const { count } = await supabase.from(x).select('id', { count: 'exact', head: true });
+if ((count ?? 0) >= LIMIT) return 409;     // ← count ?? 0 === 0 on a FAILED read
+```
+
+The `error` was discarded, so a failed count became **zero**, the comparison
+passed, and the insert underneath went ahead. **The limit silently stopped
+existing exactly when the database was unhealthy.**
+
+| check | what a failed count allowed |
+|---|---|
+| `api_keys` | **unlimited API keys.** These are credentials, so the allowance is a security control, not a nicety |
+| `campaign_wizard_drafts` | unlimited drafts — abuse and storage |
+| `support_cases` (admin seed) | reads as "not seeded yet", so the seed **re-runs and duplicates every case** — and re-running is not the fix, it *is* the damage |
+
+All three now answer **503**. **Fail-closed costs a retry; fail-open costs
+credentials.**
+
+One assertion is deliberately not about the status code: on the failure path
+**no `api_keys` row may be written**. A credential minted against an allowance
+nobody could count is the actual harm; the 503 is just how it is reported.
+
+### Same lesson as the last two passes
+
+My first run asserted against `scopes: ['read']`, which is not a real
+`API_SCOPES` value — the schema returns **400 before the count ever runs**. The
+test would have been "measuring" a path it never reached. That is now three
+consecutive passes where my test named a value or a method the route does not
+have, and each time the harness said so immediately. **The routes are better
+documentation than my assumptions about them.**
+
+Mutation-tested: reopening the API-key allowance fails 2, reopening the seed
+guard fails 1, and a positive case pins that a countable allowance still returns
+the real **409 LIMIT_REACHED** — so the 503 branch has not replaced the check it
+was added to protect.
+
+
+
 ## 🚦 A CAMPAIGN WITH OPEN FRAUD FLAGS COULD BE REPORTED "READY TO PAY OUT" (Claude, 2026-08-05)
 
 Seventh triage. The previous two money findings shared a shape the

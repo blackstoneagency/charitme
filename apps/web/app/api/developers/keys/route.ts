@@ -70,11 +70,24 @@ export async function POST(request: NextRequest) {
 
   // Counting ACTIVE keys only — revoked ones stay for the audit trail and must
   // not consume the allowance forever.
-  const { count } = await supabaseAdmin
+  //
+  // ⚠️ This dropped its `error`, and `count ?? 0` turned a failed count into
+  // ZERO — so the limit check passed and the insert below went ahead. A database
+  // blip let a user mint UNLIMITED API KEYS. These are credentials, so the
+  // allowance is a security control, not a nicety, and a control that cannot
+  // count must refuse rather than wave the request through.
+  const { count, error: countError } = await supabaseAdmin
     .from('api_keys')
     .select('id', { count: 'exact', head: true })
     .eq('owner_id', user.id)
     .is('revoked_at', null);
+
+  if (countError) {
+    return NextResponse.json(
+      { error: 'We could not check your existing keys right now. Please try again.', code: 'KEY_COUNT_UNAVAILABLE' },
+      { status: 503 },
+    );
+  }
 
   if ((count ?? 0) >= MAX_KEYS_PER_USER) {
     return NextResponse.json(

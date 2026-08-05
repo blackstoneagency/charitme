@@ -103,9 +103,17 @@ export async function PUT(req: NextRequest) {
     // create a fresh draft rather than silently dropping the user's work.
   }
 
-  const { count } = await supabase
+  // Same fail-open shape as the API-key allowance: `count ?? 0` on a failed read
+  // is zero, so the cap silently stops applying.
+  const { count, error: countError } = await supabase
     .from('campaign_wizard_drafts')
     .select('id', { count: 'exact', head: true });
+  if (countError) {
+    return NextResponse.json(
+      { error: 'We could not check your saved drafts right now. Please try again.', code: 'DRAFT_COUNT_UNAVAILABLE' },
+      { status: 503 },
+    );
+  }
   if ((count ?? 0) >= MAX_DRAFTS_PER_USER) {
     return NextResponse.json(
       { error: `You can keep up to ${MAX_DRAFTS_PER_USER} drafts. Finish or delete one to start another.`, code: 'DRAFT_LIMIT' },
