@@ -12,6 +12,7 @@ import { formatMoneyStat, formatStat } from '../../lib/cause-landing';
 import StayInformed from '../../components/StayInformed';
 import SortSelect from './SortSelect';
 import { SORT_ORDER, isSortValue, type SortValue } from '../../lib/story-sort';
+import { PROMOTABLE_TRUST_TIERS } from '../../lib/trust-tiers';
 
 export const metadata: Metadata = {
   title: 'Stories of Hope',
@@ -123,7 +124,23 @@ async function readStories(cause: Cause | undefined, sort: SortValue): Promise<S
         cols,
       ).in('status', ['active', 'completed']);
 
-    let listQuery = base().order(SORT_ORDER[sort].column, { ascending: SORT_ORDER[sort].ascending }).limit(8);
+    // ── Trust tier gate ──────────────────────────────────────────────────────
+    // Applied to the STORY LIST and deliberately NOT to `totals` below.
+    //
+    // The cards present campaigns as exemplars under a "Featured Stories"
+    // heading, so they must clear the platform's own trust bar — this page was
+    // promoting a campaign titled "Support my medical expenses — Bitches!"
+    // (`Needs More Info`, health score 0, no backers) as its second card.
+    //
+    // The totals underneath are a different claim: "N campaigns, N supporters,
+    // $N raised" is a statement about the whole platform. Filtering those by
+    // trust tier would understate real money that real donors really gave, which
+    // is a worse error than the one being fixed. Two queries, two rules, on
+    // purpose — `base()` is shared, so the filter goes here rather than in it.
+    let listQuery = base()
+      .in('trust_status', [...PROMOTABLE_TRUST_TIERS])
+      .order(SORT_ORDER[sort].column, { ascending: SORT_ORDER[sort].ascending })
+      .limit(8);
     if (cause) listQuery = listQuery.in('category', [...cause.categories]);
 
     const [list, totals, countries] = await Promise.all([
