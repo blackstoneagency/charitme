@@ -57,12 +57,41 @@ export async function listSponsorPrograms(sponsorId: string): Promise<ProgramWit
  * Matched cents an employee has already reserved (approved + paid) under a
  * program — used to compute their remaining annual cap.
  */
+/**
+ * Raised when the employee's cap usage could not be DETERMINED.
+ *
+ * ⚠️ This read dropped its `error`, so `data ?? []` made a failed read return
+ * **0 used** — indistinguishable from an employee who has claimed nothing all
+ * year. In `POST /api/matching/claims` that flows straight into:
+ *
+ *     remaining   = remainingCap(annual_cap_cents, used)   // = the FULL cap
+ *     matchAmount = computeMatchAmount({ remainingCapCents: remaining, … })
+ *
+ * so a claim is written committing the sponsor's money as though the annual cap
+ * were untouched — the employer's agreed limit can be exceeded. `listEmployeeClaims`
+ * directly below this already used `boundedQuery`; one guarded read and one
+ * unguarded read in the same file is what marks this as an oversight.
+ *
+ * Declining a claim is recoverable. Over-committing someone else's money is not.
+ */
+export class MatchCapUnavailableError extends Error {
+  constructor(cause: string) {
+    super(`match cap usage could not be determined: ${cause}`);
+    this.name = 'MatchCapUnavailableError';
+  }
+}
+
 export async function reservedMatchForEmployee(programId: string, employeeId: string): Promise<number> {
-  const { data } = await supabaseAdmin
-    .from('matching_claims')
-    .select('match_amount_cents, status')
-    .eq('program_id', programId)
-    .eq('employee_id', employeeId);
+  const { data, error } = await boundedQuery(() =>
+    supabaseAdmin
+      .from('matching_claims')
+      .select('match_amount_cents, status')
+      .eq('program_id', programId)
+      .eq('employee_id', employeeId),
+  );
+  // "No claims yet" is `data: []` with no error, so an error here means the
+  // question genuinely could not be answered — not that the cap is untouched.
+  if (error) throw new MatchCapUnavailableError(error.message);
   return (data ?? [])
     .filter((r) => reservesCap(r.status as MatchingClaim['status']))
     .reduce((sum, r) => sum + (r.match_amount_cents as number), 0);

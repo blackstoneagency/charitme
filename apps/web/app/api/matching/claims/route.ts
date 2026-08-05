@@ -2,7 +2,7 @@ import 'server-only';
 import { NextResponse, type NextRequest } from 'next/server';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { createClient } from '../../../../lib/supabase-server';
-import { listEmployeeClaims, listProgramClaims, reservedMatchForEmployee } from '../../../../lib/matching';
+import { listEmployeeClaims, listProgramClaims, reservedMatchForEmployee, MatchCapUnavailableError } from '../../../../lib/matching';
 import {
   ClaimCreateSchema,
   computeMatchAmount,
@@ -79,7 +79,20 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const used = await reservedMatchForEmployee(input.program_id, user.id);
+  // A claim commits the sponsor's money, so it must never be computed against an
+  // unknown cap usage — see MatchCapUnavailableError.
+  let used: number;
+  try {
+    used = await reservedMatchForEmployee(input.program_id, user.id);
+  } catch (err) {
+    if (err instanceof MatchCapUnavailableError) {
+      return NextResponse.json(
+        { error: 'We could not check your remaining match allowance. Nothing was submitted — please try again.', code: 'MATCH_CAP_UNAVAILABLE' },
+        { status: 503 },
+      );
+    }
+    throw err;
+  }
   const remaining = remainingCap(program.annual_cap_cents as number, used);
   const matchAmount = computeMatchAmount({
     donationCents: input.donation_amount_cents,
