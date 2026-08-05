@@ -1,5 +1,72 @@
 # CharitMe — Execution Tracker
 
+## 🏷️ A "FEATURED STORY" THAT THE PLATFORM ITSELF WOULD NOT VOUCH FOR (Claude, 2026-08-05)
+
+`/success-stories`, headed **"Featured Stories"**, was showcasing a campaign
+titled *"Support my medical expenses — Bitches!"* as its **second card**. Swept
+across all 314 live campaigns it was the only one of its kind, and it carried
+exactly the signals that should have disqualified it: `trust_status`
+**"Needs More Info"**, `campaign_health_score` **0** (one of only two at 0),
+no backers, no money raised.
+
+Fixed by the platform's own verdict, **not a word list** — a page presenting
+campaigns as exemplars should honour a trust judgement the platform already
+publishes about them.
+
+### ⚠️ THE TRUST VOCABULARY HAD ALREADY DRIFTED THREE WAYS
+
+This is why it was not a one-line `.in()`, and the drift is still only half fixed:
+
+| source | contents |
+|---|---|
+| `lib/ai-platform.ts` union | `Verified`, `Strong Trust`, `Needs More Info`, `Under Review` |
+| admin allow-list | `Needs More Info`, `Under Review`, `Trusted`, `Verified`, `Flagged` |
+| **production data (n=314)** | `Verified` 88, **`Trusted` 133**, `Needs More Info` 93 |
+
+`Trusted` is the **most common value in the database and is absent from the
+TypeScript union**. `Strong Trust` is in the union and cannot be set by an admin.
+`Flagged` is settable and appears in neither. A filter written from the union
+alone would have excluded **133 legitimate campaigns** and nearly emptied the page.
+
+`lib/trust-tiers.ts` is now the single source for *promotability*, as an
+**allow-list** so a tier invented later is not promotable by default. A test
+fails if the admin dropdown gains a value it does not classify.
+
+🔴 **STILL OPEN — the `TrustStatus` union itself is wrong.** Anything switching
+on that type is mis-handling the plurality of production data. Not widened into
+unasked; it needs its own pass.
+
+### `Flagged` was promotable until now
+
+Settable in admin, absent from the type, excluded by no query — so a campaign
+staff had **actively flagged** could appear under "Featured Stories". Not the
+reported case; it surfaced from writing the allow-list down. Barred now.
+
+### The filter is on the cards, NOT the totals — verified live
+
+"N supporters, $N raised" is a claim about the whole platform; filtering it by
+trust tier would understate real money real donors gave. Measured before/after
+on production:
+
+| | before | after |
+|---|---|---|
+| profane card | present (#2) | **gone** |
+| cards rendered | 26 | **26** — page still full |
+| Supporters | 454 | **454** |
+| Raised | $113,950 | **$113,950** |
+| Countries | 69 | **69** |
+
+Four legitimate campaigns took the freed slots. Totals untouched, which is the
+assertion the design turns on.
+
+### ⚠️ A MUTATION TEST THAT TESTS NOTHING LOOKS EXACTLY LIKE A PASSING ONE
+
+The first run reported allow-list→deny-list as **not caught**. The `perl` regex
+had matched nothing — the mutation never applied. Re-applied with an asserted
+anchor, it fails 2 tests. Always assert the mutation landed before trusting a
+"not caught" *or* a "caught".
+
+
 ## ⏳ CAUSE PAGES LISTED ENDED CAMPAIGNS — `status = 'active'` is not "still running" (Claude, 2026-08-05)
 
 Asked for two things on every cause page: show **only active, non-expired**
