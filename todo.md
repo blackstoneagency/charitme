@@ -69,6 +69,30 @@ The mark is two halves that ship together: a `.cc-feature--promoted` ring
 and `undefined` means "not known", which must render as ordinary rather than
 ringing every card on a surface that forgot the column.
 
+### ✅ MEASURED ON PRODUCTION — the defect was live, in 3 of 12 slots
+
+`curl` reaches `www.charitme.com` again (see the correction below), so this was
+checked against the real site rather than argued from the schema. Every cause
+page serves **6 cards** — the "see more" work is confirmed live — and three of
+them were finished campaigns:
+
+| cause page | card | state |
+|---|---|---|
+| `/causes/sports-youth` | "Help our team compete at the national championship" | **Ended** |
+| `/causes/people-in-need` | "Help Lily's family through a difficult time" | **Ended** |
+| `/causes/people-in-need` | "Celebrating the life of Charlotte Taylor" | **Ended** |
+| `/causes/education` | — | 6/6 live |
+
+The badge sits inside `cc-feature-badges`, immediately before `cc-feature-body`
+— i.e. these are cards in the grid, not the word "Ended" appearing elsewhere on
+the page. Three of twelve slots on two pages, given to campaigns nobody can
+donate to.
+
+⚠️ **Not** measured: whether any campaign in those categories is `featured`.
+Production does not select the column, so the rendered HTML cannot answer it —
+"featuring did nothing here" is a claim about the SORT, which is checkable in
+the query, not about how many featured rows exist.
+
 ### Verification
 
 18 new tests in `__tests__/cause-active-featured.test.ts`; the API half executes
@@ -21577,7 +21601,35 @@ else. Worth recording because it accidentally proved the degraded path: with the
 database unreachable the page still returns a complete 200 with the design
 intact, rather than erroring.
 
-### ❌ Production *hosting* is not observable from this sandbox — all channels tried
+### ✅ SUPERSEDED 2026-08-05 — `curl` REACHES PRODUCTION AGAIN
+
+The table below is **stale**. Measured 2026-08-05 20:34 UTC:
+
+```
+curl -s -o /dev/null -w "%{http_code} %{time_starttransfer}\n" https://www.charitme.com/causes/sports-youth
+→ 200  ttfb=1.218
+
+curl -s https://www.charitme.com/api/health
+→ {"status":"ok","ts":1785962075206}
+```
+
+So production HTML **can** be fetched and asserted against from here, and the
+cause-page defect above was measured that way rather than argued. Whatever the
+gateway policy was on 2026-08-04, it is not denying this host today.
+
+Two limits that have NOT changed, so do not over-read this:
+- **Playwright still cannot reach it** — chromium does not use the agent proxy,
+  and a failed navigation reports `shifts=0`, CLS 0.000, which is
+  indistinguishable from a clean page. `curl` only.
+- **Vercel PREVIEW deployments are still unreadable**: they 302 to
+  `vercel.com/sso-api` (deployment protection). Only the production alias is
+  open. So a preview URL still cannot verify a PR's rendering.
+
+The original entry follows, kept because its *reasoning* about which channels
+prove what is still correct — a PR's Vercel status still proves the build, not
+the production alias.
+
+### ❌ (2026-08-04) Production *hosting* is not observable from this sandbox — all channels tried
 
 Do not spend another round re-deriving this. Every route was exhausted on
 2026-08-04:
