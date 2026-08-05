@@ -663,7 +663,10 @@ export default async function CampaignPage({ params, searchParams }: Props) {
           {trustSignals.map((signal) => {
             const isVerified = signal.state === 'verified';
             const isWatch    = signal.state === 'watch';
-            const color  = isVerified ? 'var(--green-dark, #059669)' : isWatch ? '#d97706' : 'var(--t3, #94a3b8)';
+            // Ink tokens, not brand fills: #d97706 measured 3.18:1 and
+            // --green-dark 2.88:1 as small text. The SVG stroke above keeps
+            // the brand hues — a 4px arc is not text and is not held to 4.5:1.
+            const color  = isVerified ? 'var(--green-text)' : isWatch ? 'var(--orange-text)' : 'var(--t3, #94a3b8)';
             const bg     = isVerified ? 'rgba(22,163,74,.12)'  : isWatch ? 'rgba(217,119,6,.10)' : 'var(--s2, #f1f5f9)';
             const icon   = isVerified ? '✓' : isWatch ? '⚠' : '○';
             return (

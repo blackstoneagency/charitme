@@ -32,7 +32,7 @@ export default function JoinTeamButton({
     return (
       <a
         href={`/login?next=${encodeURIComponent(`/campaigns/${campaignSlug}`)}`}
-        style={{ fontSize: 13.5, fontWeight: 650, color: 'var(--green-dark)' }}
+        style={{ fontSize: 13.5, fontWeight: 650, color: 'var(--green-text)' }}
       >
         Sign in to fundraise for this campaign →
       </a>

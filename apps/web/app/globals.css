@@ -2144,7 +2144,11 @@ input, select, textarea, button { max-width: 100%; }
 .pc-breadcrumb span[aria-current="page"] { color: var(--ink); font-weight: 600; }
 
 /* Verified badge */
-.pc-verified { display: inline-flex; align-items: center; gap: 8px; border: 1px solid #96e7bd; border-radius: 999px; color: #079a4d; background: #f0fff6; padding: 7px 12px; font-size: 12px; font-weight: 700; text-transform: uppercase; width: fit-content; }
+/* The plate `#f0fff6` is hardcoded and does NOT flip with the theme, so the ink
+   must not either — `var(--green-text)` flips light in dark mode and measured
+   1.68:1 on that fixed light plate, worse than the 3.54:1 it replaced. A fixed
+   dark green passes on the fixed light plate in both themes. */
+.pc-verified { display: inline-flex; align-items: center; gap: 8px; border: 1px solid #96e7bd; border-radius: 999px; color: #04663a; background: #f0fff6; padding: 7px 12px; font-size: 12px; font-weight: 700; text-transform: uppercase; width: fit-content; }
 
 /* Title & organizer */
 .pc-title-h1 { margin: 0; font-size: var(--fs-h1); line-height: 1.05; letter-spacing: -.04em; font-weight: 800; }

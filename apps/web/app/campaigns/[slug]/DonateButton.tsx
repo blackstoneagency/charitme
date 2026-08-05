@@ -1,5 +1,13 @@
 'use client';
 
+import {
+  composeDedicatedMessage,
+  isValidDedication,
+  DEDICATION_KINDS,
+  DEDICATION_PREFIX,
+  DEDICATION_NAME_MAX,
+  type DedicationKind,
+} from '../../../lib/donation-flow-core';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   MAX_DONATION_CENTS,
@@ -15,6 +23,11 @@ import EmployerMatchWidget from './EmployerMatchWidget';
 
 /* ── Design tokens (CSS-variable-aware for dark mode) ──── */
 const V   = 'var(--violet, #6c35ff)';
+// Brand FILL vs brand INK. `--violet` is a fill; as small text it measured
+// 3.06:1 and 2.83:1 on the dark card — AA failures. `--brand-text` is the
+// readable counterpart and flips with the theme, so every `color:` use of the
+// brand hue goes through VT.
+const VT  = 'var(--brand-text)';
 const VL  = 'var(--s2, #f5f0ff)';
 const VD  = '#4d1ee0';          // only used inside gradient on coloured bg — stays hex
 const GR  = 'var(--green, #059669)';
@@ -130,6 +143,19 @@ export default function DonateButton({
   const [subscribeEmail, setSubscribeEmail] = useState(false);
   const [anonymous, setAnonymous]         = useState(false);
   const [message, setMessage]             = useState('');
+  // Step 7 of the reference flow. There is no dedication table and no honoree
+  // columns on `donations`, so the dedication is composed INTO the message that
+  // really is stored and really is shown on the donor wall — rather than
+  // rendering honoree fields that would be silently discarded.
+  const [dedicationKind, setDedicationKind] = useState<DedicationKind | ''>('');
+  const [honoreeName, setHonoreeName]     = useState('');
+
+  // What actually gets stored. Composed by the same pure function the tests
+  // cover, so the donor wall and the unit tests cannot disagree.
+  const dedication = dedicationKind && isValidDedication({ kind: dedicationKind, honoreeName })
+    ? { kind: dedicationKind, honoreeName }
+    : null;
+  const dedicatedMessage = composeDedicatedMessage(dedication, message);
   const [tipPercent, setTipPercent]       = useState<number>(DEFAULT_DONOR_TIP_PERCENT);
   // Custom support amount, entered in whole currency units. null = using a tier %.
   // Kept as a string so the field can be empty while typing without snapping to 0.
@@ -230,7 +256,7 @@ export default function DonateButton({
           campaignId,
           amountCents,
           cadence: 'monthly',
-          message: message.trim() ? message.trim() : undefined,
+          message: dedicatedMessage ? dedicatedMessage : undefined,
           anonymous,
           coverProcessingFee: !isMonthly,
           tipPercent,
@@ -255,7 +281,10 @@ export default function DonateButton({
       const data = (text ? JSON.parse(text) : {}) as { url?: string; error?: string };
       if (!res.ok) throw new Error(data.error ?? `Server error (${res.status})`);
       if (!data.url) throw new Error('No checkout URL returned. Please try again.');
-      window.location.href = data.url!;
+      // `assign()` rather than `location.href = …`: the react-hooks
+      // immutability rule treats assigning to a value defined outside the
+      // component as a mutation. Same navigation, same history behaviour.
+      window.location.assign(data.url!);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Something went wrong. Please try again.');
       setLoading(false);
@@ -268,7 +297,7 @@ export default function DonateButton({
       {/* ── Header ── */}
       <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
         <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12 }}>
-          <span style={{ width: 44, height: 44, flexShrink: 0, borderRadius: 14, background: VL, color: V, display: 'grid', placeItems: 'center', padding: 10 }}>
+          <span style={{ width: 44, height: 44, flexShrink: 0, borderRadius: 14, background: VL, color: VT, display: 'grid', placeItems: 'center', padding: 10 }}>
             <TipIcon name="hand" />
           </span>
           <div>
@@ -277,7 +306,7 @@ export default function DonateButton({
           </div>
         </div>
         <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 6, color: MU, fontSize: 11.5, fontWeight: 700, flexShrink: 0, textAlign: 'right', lineHeight: 1.2 }}>
-          <span style={{ width: 18, height: 18, color: V, flexShrink: 0 }}><TipIcon name="lock" /></span>
+          <span style={{ width: 18, height: 18, color: VT, flexShrink: 0 }}><TipIcon name="lock" /></span>
           <span>Secure &amp;<br />Trusted</span>
         </div>
       </div>
@@ -387,7 +416,7 @@ export default function DonateButton({
               <button
                 type="button"
                 onClick={() => setSelectedRewardId(null)}
-                style={{ background: 'none', border: 'none', color: V, fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: '2px 0', textAlign: 'left', fontFamily: 'inherit' }}
+                style={{ background: 'none', border: 'none', color: VT, fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: '2px 0', textAlign: 'left', fontFamily: 'inherit' }}
               >
                 Remove reward — donate without a perk
               </button>
@@ -467,7 +496,7 @@ export default function DonateButton({
             display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', gap: 7,
             width: '100%', padding: '11px 8px', marginTop: 2,
             border: `1.5px dashed ${BD}`, borderRadius: 14, background: 'transparent',
-            color: V, fontWeight: 700, fontSize: 13.5, cursor: 'pointer', fontFamily: 'inherit',
+            color: VT, fontWeight: 700, fontSize: 13.5, cursor: 'pointer', fontFamily: 'inherit',
           }}
         >
           <svg viewBox="0 0 24 24" width={15} height={15} style={ICON_STROKE as React.CSSProperties} aria-hidden>
@@ -517,7 +546,7 @@ export default function DonateButton({
       <div style={{ background: VL, borderRadius: 16, padding: '16px 18px', border: `1px solid ${BD}` }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, minWidth: 0 }}>
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: V, whiteSpace: 'nowrap' }}>You&rsquo;re giving</span>
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: VT, whiteSpace: 'nowrap' }}>You&rsquo;re giving</span>
             <span style={{ display: 'inline-flex', alignItems: 'baseline', minWidth: 0 }}>
               <span style={{ fontSize: 34, fontWeight: 800, color: INK }}>{symbol}</span>
               <input
@@ -543,7 +572,7 @@ export default function DonateButton({
           </div>
         </div>
         <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, marginTop: 12, color: MU, fontSize: 13 }}>
-          <span style={{ width: 18, height: 18, color: V, flexShrink: 0 }}><TipIcon name="shieldCheck" /></span>
+          <span style={{ width: 18, height: 18, color: VT, flexShrink: 0 }}><TipIcon name="shieldCheck" /></span>
           Thank you! Your contribution makes a difference.
         </div>
       </div>
@@ -627,7 +656,7 @@ export default function DonateButton({
                   display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', gap: 7,
                   width: '100%', padding: '10px 8px', marginTop: 10,
                   border: `1.5px dashed ${BD}`, borderRadius: 12, background: 'transparent',
-                  color: V, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+                  color: VT, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
                 }}
               >
                 <svg viewBox="0 0 24 24" width={14} height={14} style={ICON_STROKE as React.CSSProperties} aria-hidden>
@@ -751,6 +780,54 @@ export default function DonateButton({
               );
             })}
           </div>
+        )}
+      </div>
+
+      {/* ── Dedicate this donation (step 7 of the reference flow) ──
+          Only two things are offered, because only two can be stored: the
+          dedication kind and the honoree's name, both folded into `message`.
+          The artwork's "notify the honoree by email" is NOT here — there is
+          nowhere to keep an address and no sending path, and a tick-box that
+          silently notifies nobody is worse than its absence. */}
+      <div>
+        <label htmlFor="donor-dedication" style={{ display: 'block', fontSize: 12, fontWeight: 900, color: MU, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>
+          Dedicate this donation (optional)
+        </label>
+        <select
+          id="donor-dedication"
+          value={dedicationKind}
+          onChange={(e) => setDedicationKind(e.target.value as DedicationKind | '')}
+          style={{
+            width: '100%', minWidth: 0, boxSizing: 'border-box', border: `1.5px solid ${BD}`,
+            borderRadius: 12, padding: '11px 14px', fontSize: 14, fontFamily: 'inherit',
+            background: 'var(--s1, #fff)', color: INK, minHeight: 44,
+          }}
+        >
+          <option value="">No dedication</option>
+          {DEDICATION_KINDS.map((k) => (
+            <option key={k} value={k}>{DEDICATION_PREFIX[k].replace(/:$/, '')}</option>
+          ))}
+        </select>
+
+        {dedicationKind && (
+          <input
+            aria-label="Who is this donation for?"
+            value={honoreeName}
+            onChange={(e) => setHonoreeName(e.target.value.slice(0, DEDICATION_NAME_MAX))}
+            placeholder="Their name"
+            maxLength={DEDICATION_NAME_MAX}
+            style={{
+              width: '100%', minWidth: 0, boxSizing: 'border-box', border: `1.5px solid ${BD}`,
+              borderRadius: 12, padding: '11px 14px', fontSize: 14, fontFamily: 'inherit',
+              background: 'var(--s1, #fff)', color: INK, marginTop: 8, minHeight: 44,
+            }}
+          />
+        )}
+
+        {dedication && (
+          <p style={{ fontSize: 12, color: MU, margin: '6px 0 0' }}>
+            Your message will begin: “{DEDICATION_PREFIX[dedication.kind]} {dedication.honoreeName.trim()}”
+          </p>
         )}
       </div>
 

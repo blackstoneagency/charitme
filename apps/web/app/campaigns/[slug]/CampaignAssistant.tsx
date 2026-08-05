@@ -105,7 +105,9 @@ export default function CampaignAssistant({ campaignId }: Props) {
 
       {error && <p style={{ fontSize: 12.5, color: 'var(--red, #be123c)', margin: '0 0 10px' }}>{error}</p>}
 
-      <form onSubmit={(e) => { e.preventDefault(); ask(question); }} style={{ display: 'flex', minWidth: 0, gap: 8 }}>
+      {/* Wraps: the input plus the "Ask" button measured 328px inside a 320px
+          phone, so the button was clipped off the edge — the only way to submit. */}
+      <form onSubmit={(e) => { e.preventDefault(); ask(question); }} style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap' }}>
         <input
           type="text"
           aria-label="Ask a question about this campaign"
@@ -114,7 +116,10 @@ export default function CampaignAssistant({ campaignId }: Props) {
           placeholder="Ask a question about this campaign…"
           maxLength={300}
           disabled={loading}
-          style={{ flex: 1, padding: '10px 14px', border: '1px solid var(--b1, #e2e8f0)', borderRadius: 10, fontSize: 13.5, outline: 'none' }}
+          // Explicit ink and surface: with neither set this inherited the
+          // browser default and measured 1.22:1 in dark mode — text all but
+          // invisible in the field a donor types their question into.
+          style={{ flex: '1 1 180px', minWidth: 0, padding: '10px 14px', border: '1px solid var(--b1, #e2e8f0)', borderRadius: 10, fontSize: 13.5, outline: 'none', color: 'var(--t1)', background: 'var(--s1)' }}
         />
         <button
           type="submit"

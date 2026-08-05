@@ -67,7 +67,7 @@ export default function MobileDonateCTA({ campaignTitle, raised, pct, isActive, 
           <div style={{ flex: 1, height: 5, background: 'var(--b1, #e2e8f0)', borderRadius: 3, overflow: 'hidden' }}>
             <div style={{ width: `${pct}%`, height: '100%', background: 'linear-gradient(90deg,#6c35ff,#ec3fb4)', borderRadius: 3 }} />
           </div>
-          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--violet, #6c35ff)', flexShrink: 0 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand-text)', flexShrink: 0 }}>
             {fmtCents(raised, symbol)} raised
           </span>
         </div>
