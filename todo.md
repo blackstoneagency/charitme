@@ -1,5 +1,47 @@
 # CharitMe — Execution Tracker
 
+## 🚦 A CAMPAIGN WITH OPEN FRAUD FLAGS COULD BE REPORTED "READY TO PAY OUT" (Claude, 2026-08-05)
+
+Seventh triage. The previous two money findings shared a shape the
+"unguarded read" sweep does not capture, so I targeted **that** instead: a failed
+read whose fallback is *permissive* — feeding an amount, a limit or a gate.
+Sweeping for `?? 0` / `?? []` on money-gating values returned **50**; most are
+display totals, two were real, and both are in the payout concierge.
+
+| read | what a failure produced |
+|---|---|
+| `payouts` | `?? []` → `alreadyPaidOrPending = 0` → **`availableCents` = the FULL raised amount**. The fundraiser is told they can withdraw money they have already been paid. |
+| `risk_flags` | `?? []` → no risk blockers, **and** `readiness = openFlags && openFlags.length > 0 ? 'blocked' : …` skips the test entirely on `null` → a campaign with **open fraud flags is reported `'ready'`** |
+
+The second is the serious one: **a safety gate that switches itself off when it
+cannot see.** Identical in shape to the reconciliation job returning a clean bill
+of health while blind — and, like that one, the failure direction is the
+reassuring one, so nobody looks twice.
+
+Both now answer **503** (`PAYOUT_BALANCE_UNAVAILABLE`, `RISK_STATUS_UNAVAILABLE`)
+rather than stating a number or a verdict they could not compute.
+
+### The route corrected me twice, both times loudly
+
+Worth recording because each was a wrong assumption that the harness caught, not
+something I reasoned my way out of:
+
+1. I wrote the tests against `POST`. It is a **`GET`** with `?campaignId=` —
+   every test failed with *"POST is not a function"*, which is the harness saying
+   I had not read the route.
+2. My mock's default `data: []` for `connected_accounts` is **truthy**, so
+   `!organizerAccount.details_submitted` fired and every case picked up a stray
+   "finish Stripe onboarding" blocker. That made the ready-path test read
+   `action_needed` — it would have masked exactly what that test exists to check.
+
+Guard: `__tests__/payout-concierge-blind.test.ts`, 5 assertions. Mutation-tested
+both ways, and both directions matter: restoring either fallback fails its test,
+while the two positive cases pin that a campaign with a genuine open flag is
+still **blocked** and a genuinely clean one is still **ready** — over-blocking
+would make the feature useless.
+
+
+
 ## 🏢 A DATABASE BLIP COULD OVER-COMMIT AN EMPLOYER'S MATCH BUDGET (Claude, 2026-08-05)
 
 Sixth triage of the money-path queue, found by applying the heuristic the refund
