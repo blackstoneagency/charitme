@@ -31,6 +31,9 @@ const VT  = 'var(--brand-text)';
 const VL  = 'var(--s2, #f5f0ff)';
 const VD  = '#4d1ee0';          // only used inside gradient on coloured bg — stays hex
 const GR  = 'var(--green, #059669)';
+// Green FILL vs green INK, same split as V/VT below: --green measured 2.88:1
+// as 13px text on the breakdown card, an AA failure.
+const GRT = 'var(--green-text)';
 const BD  = 'var(--b2, #e2d9ff)';
 const MU  = 'var(--t3, #64748b)';
 const INK = 'var(--t1, #1a1a2e)';
@@ -323,7 +326,9 @@ export default function DonateButton({
               border: 0,
               borderRadius: 10,
               background: frequency === f ? (f === 'monthly' ? GR : 'var(--s1, #fff)') : 'transparent',
-              color: frequency === f ? (f === 'monthly' ? '#fff' : V) : MU,
+              // VT, not V: the brand violet as button TEXT measured 3.06:1 on
+              // the dark card. White on the green FILL is unaffected.
+              color: frequency === f ? (f === 'monthly' ? '#fff' : VT) : MU,
               fontWeight: 700,
               fontSize: 14,
               cursor: 'pointer',
@@ -908,7 +913,7 @@ export default function DonateButton({
             />
           )}
           {amountCents > 0 && !isMonthly && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', fontSize: 13, fontWeight: 700, color: GR }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', fontSize: 13, fontWeight: 700, color: GRT }}>
               <span>Recipient receives</span>
               <span>{money(breakdown.netToRecipient)}</span>
             </div>
