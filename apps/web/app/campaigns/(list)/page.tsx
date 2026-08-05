@@ -9,6 +9,8 @@ import { getCause } from '../../../lib/causes';
 import { getTopDonors } from '../../../lib/leaderboard';
 import { formatCents } from '../../../lib/stripe';
 import { getCoverForCategory } from '../../../lib/photo-catalog';
+import { StatStrip, statValue, moneyValue } from '../../../components/IndexHero';
+import { getCausesIndexData } from '../../../lib/causes-index';
 import { pageWindow } from '../../../lib/pagination';
 import { campaignDaysLeft, campaignTimeLabel } from '../../../lib/campaign-lifecycle';
 import type { Metadata } from 'next';
@@ -319,7 +321,7 @@ export default async function CampaignsPage({ searchParams }: Props) {
   // The sidebar panels and the featured row are supplementary — a failure in any
   // of them must not take the campaign list with it, so each resolves to null
   // and simply renders nothing rather than throwing the page away.
-  const [{ campaigns, total, unavailable }, featured, topDonors, locations] = await Promise.all([
+  const [{ campaigns, total, unavailable }, featured, topDonors, locations, platform] = await Promise.all([
     getCampaigns({
       category, causeCategories: cause?.categories, q, sort, verifiedOnly: verified, location,
       taxDeductibleOnly: tax, endingSoon: ending, goalRange: goal, page,
@@ -329,6 +331,15 @@ export default async function CampaignsPage({ searchParams }: Props) {
       ? getTopDonors('all', 5).catch(() => [])
       : Promise.resolve([] as Awaited<ReturnType<typeof getTopDonors>>),
     getLocations(),
+    // The SAME loader /causes uses for its strip. Two loaders for "how many
+    // live campaigns are there" is two answers to one question, and this page
+    // and /causes sit one click apart. It returns EMPTY rather than throwing,
+    // so a failed read renders em dashes and never takes the list with it.
+    //
+    // Only fetched with the rest of the page furniture: on a filtered or
+    // paginated view `showExtras` is false and the strip is not rendered, so
+    // reading it would be a round trip for nothing.
+    showExtras ? getCausesIndexData() : Promise.resolve(null),
   ]);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -445,6 +456,28 @@ export default async function CampaignsPage({ searchParams }: Props) {
           <img src={getCoverForCategory('Community')} alt="" loading="eager" />
         </div>
       </section>
+
+      {/* ── The measured figures ──────────────────────────────────────────────
+          The SAME `StatStrip` /causes and every /causes/<slug> page renders.
+          This page had no figures at all; the four here are the platform-wide
+          ones, from the shared loader, so a visitor moving between /causes and
+          /campaigns cannot be shown two different counts of the same thing.
+
+          `statValue`/`moneyValue` render an em dash for a figure that could not
+          be measured — never a zero, which is a different claim. Hidden on a
+          filtered or paginated view, where a platform-wide total sitting above
+          a filtered list would read as the count OF that list. */}
+      {platform && (
+        <StatStrip
+          label="CharitMe at a glance"
+          tiles={[
+            { value: statValue(platform.activeCampaigns), label: 'Active campaigns' },
+            { value: moneyValue(platform.raisedTotalCents), label: 'Raised on CharitMe' },
+            { value: statValue(platform.gifts), label: 'Gifts given' },
+            { value: statValue(platform.countries), label: 'Countries supported' },
+          ]}
+        />
+      )}
 
       {/* ── Category strip ────────────────────────────────────────────────────
           The reference art labels these tiles "Emergency Aid", "Food & Hunger",
