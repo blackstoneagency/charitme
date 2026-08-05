@@ -60,3 +60,39 @@ export function shouldFilter(presence: ColumnPresence): boolean {
 export function isCacheable(presence: ColumnPresence): boolean {
   return presence !== 'unknown';
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// "Not expired" — the second half of what a visitor means by an active campaign.
+//
+// `status = 'active'` is NOT enough on its own. Nothing in this schema moves a
+// campaign out of `active` when its deadline passes; `lib/campaign-lifecycle.ts`
+// derives that at render time, which is why a card can say "Ended" while its row
+// still says active. A discovery grid that filters on status alone therefore
+// lists finished campaigns — the card is honest about it, but the campaign is
+// still occupying one of six slots that a live campaign should have.
+//
+// So the same rule the lifecycle applies in TypeScript is applied in SQL:
+//
+//     campaignLifecycle(): status !== 'active'      → ended
+//                          daysLeft !== null && <= 0 → ended
+//
+// A NULL deadline runs indefinitely and stays. Matching the two matters more
+// than either one being clever: if SQL pruned rows the card would have shown as
+// live, the grid would be short for no visible reason.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * The PostgREST `.or()` argument for "this campaign has not run out of time".
+ *
+ * Kept here, as a pure string builder, so the rule can be asserted in a test
+ * without a database — and so the four surfaces that need it cannot drift into
+ * four slightly different comparisons.
+ *
+ * `gt`, not `gte`: a deadline of today is a date that has already arrived, which
+ * is exactly what `campaignDaysLeft` reports as 0 and the lifecycle calls
+ * `ended`. Using `gte` would keep such a campaign in the grid while its own card
+ * rendered "Ended".
+ */
+export function notExpiredFilter(now: Date = new Date()): string {
+  return `deadline.is.null,deadline.gt.${now.toISOString()}`;
+}

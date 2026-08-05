@@ -183,7 +183,15 @@ export default async function HomePage() {
               strengthens communities, and builds a brighter tomorrow.
             </p>
             <div className="mirror-actions">
-              <Link href="#causes" className="mirror-btn mirror-btn-primary">Explore Causes <Icon name="arrow" /></Link>
+              {/* ⚠️ "Donate Now" is the FIRST action, and it was missing entirely.
+                  The hero offered "Explore Causes" (an in-page anchor) and
+                  "See Our Impact" — so a visitor who arrived ready to give had
+                  no direct path to do it from the top of the homepage. It goes
+                  to /campaigns, which is where a donor picks who to give to;
+                  there is no single "donate" endpoint to send them to, because a
+                  donation is always to a specific campaign. */}
+              <Link href="/campaigns" className="mirror-btn mirror-btn-primary">Donate Now <Icon name="heart" /></Link>
+              <Link href="#causes" className="mirror-btn mirror-btn-secondary">Explore Causes <Icon name="arrow" /></Link>
               {/* The reference labels this "Watch Our Impact" with a play
                   control. There is no film to start: every `campaign_media`
                   video row points at a reserved `.example` host, which cannot

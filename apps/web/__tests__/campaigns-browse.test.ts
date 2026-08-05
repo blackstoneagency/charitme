@@ -160,3 +160,48 @@ describe('the campaigns page keeps dark mode black', () => {
     expect(rule).not.toMatch(/gradient/);
   });
 });
+
+describe('the measured figures strip', () => {
+  const src = readFileSync(join(__dirname, '..', 'app/campaigns/(list)/page.tsx'), 'utf8');
+  const causesSrc = readFileSync(join(__dirname, '..', 'app/causes/page.tsx'), 'utf8');
+
+  it('renders the SAME StatStrip as /causes, not a second implementation', () => {
+    // This page and /causes sit one click apart. Two components stating "how
+    // many live campaigns are there" is two answers to one question.
+    expect(src).toContain("import { StatStrip, statValue, moneyValue }");
+    expect(src).toContain('<StatStrip');
+    expect(causesSrc).toContain('<StatStrip');
+  });
+
+  it('reads the SAME loader as /causes, so the counts cannot disagree', () => {
+    expect(src).toContain('getCausesIndexData');
+    expect(causesSrc).toContain('getCausesIndexData');
+  });
+
+  it('states the same four figures with the same labels', () => {
+    for (const label of ['Active campaigns', 'Raised on CharitMe', 'Gifts given', 'Countries supported']) {
+      expect(src, `/campaigns tile: ${label}`).toContain(label);
+      expect(causesSrc, `/causes tile: ${label}`).toContain(label);
+    }
+  });
+
+  it('renders an em dash for an unmeasured figure, never a zero', () => {
+    // statValue/moneyValue own that rule; asserting the page uses them rather
+    // than formatting inline is what keeps it true here.
+    expect(src).toContain('statValue(platform.activeCampaigns)');
+    expect(src).toContain('moneyValue(platform.raisedTotalCents)');
+    expect(src).not.toMatch(/platform\.\w+ \?\? 0/);
+  });
+
+  it('hides the strip on a filtered or paginated view', () => {
+    // A platform-wide total sitting above a filtered list reads as the count OF
+    // that list. `showExtras` is the same flag the featured rail and the donor
+    // board already use.
+    expect(src).toContain('showExtras ? getCausesIndexData() : Promise.resolve(null)');
+    expect(src).toContain('{platform && (');
+  });
+
+  it('does not cost a round trip when it will not be shown', () => {
+    expect(src).not.toContain('await getCausesIndexData()');
+  });
+});

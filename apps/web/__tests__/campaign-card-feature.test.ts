@@ -86,7 +86,11 @@ describe('the other five pages are untouched', () => {
     for (const p of users) {
       expect(read(p), `${p} must keep the dense listing card`).not.toContain('variant="feature"');
     }
-    expect(read('app/causes/[slug]/page.tsx')).toContain('variant="feature"');
+    // The cause grid moved into `CauseCampaignList` when the page went to six
+    // campaigns plus a "See more" button, so the opt-in lives there now. The
+    // claim being pinned is unchanged: the cause landing is the ONLY surface
+    // using the feature card, and the four dense listings above still are not.
+    expect(read('app/causes/[slug]/CauseCampaignList.tsx')).toContain('variant="feature"');
   });
 
   it('the feature card uses surface tokens, not the mock’s literal white', () => {

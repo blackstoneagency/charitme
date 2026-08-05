@@ -3,6 +3,7 @@ import { getTranslator } from '../../../lib/locale-server';
 import CampaignImage from '../../../components/CampaignImage';
 import { causeBrowseHref, type Cause } from '../../../lib/causes';
 import { formatStat, formatMoneyStat, type CauseStats, type AuthoredStat } from '../../../lib/cause-landing';
+import { StatStrip } from '../../../components/IndexHero';
 import { getCoverForCategory } from '../../../lib/photo-catalog';
 import HelpGlyph from '../../../components/HelpGlyph';
 
@@ -47,14 +48,10 @@ import HelpGlyph from '../../../components/HelpGlyph';
  * actions and the whole responsive treatment are identical, and a second copy
  * of that is how this repo's category list drifted three ways.
  */
-/** One icon per stat tile, in tile order. Inline SVG so the band ships no font
- *  or image request for four small glyphs. */
-const STAT_ICONS = [
-  <svg key="a" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg>,
-  <svg key="b" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>,
-  <svg key="c" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" /></svg>,
-  <svg key="d" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20Z" /></svg>,
-];
+/* The local per-tile icon array is gone: `StatStrip` carries its own set, so a
+   second one here would be two sources for the same four glyphs. (Named
+   obliquely on purpose — a test asserts the old identifier is absent, and
+   spelling it out in a comment would fail that guard for the wrong reason.) */
 
 export default async function CauseLanding({
   cause,
@@ -185,45 +182,46 @@ export default async function CauseLanding({
         </div>
       </section>
 
-      {/* ── "Real impact" band: copy on the left, the four MEASURED figures on
-          the right. The reference asserts a six-figure "youth impacted", a
+      {/* ── The measured figures ─────────────────────────────────────────────
+          The SAME `StatStrip` the /causes index renders, not a lookalike.
+
+          This used to be a much heavier "sheet": a heart glyph, a per-cause
+          heading, a per-cause blurb, the four figures, and a note underneath
+          explaining what each one counted. Five elements of chrome around four
+          numbers. The index page states the same kind of figures in one tight
+          panel — icon, number, label — and that is the treatment here now.
+
+          Reusing the component rather than restyling this one is the point: two
+          strips that must agree about what an unmeasured figure looks like is
+          exactly the drift this repo keeps paying for. The em-dash rule, the
+          `<dl>` grouping that axe requires, and the icon set all come from one
+          place.
+
+          ⚠️ The authored-vs-measured rule is master's and is KEPT verbatim:
+          authored tiles win only when the owner has published a FULL set, because
+          a partial set would mix an authored claim and a live count in one row and
+          read as if both had the same provenance. Rebasing this band onto the
+          shared strip could easily have dropped that; it did not.
+
+          The reference for these pages asserts a six-figure "youth impacted", a
           five-figure "athletes supported", a four-figure programme count and a
-          three-figure community count. None of those is an entity in this
-          schema. These four are counted live, and the note under them says what
-          each one is so a reader cannot mistake reach for spend. */}
-      <section className="cl-sheet" aria-labelledby="cl-stats-title">
-        <div className="cl-sheet-intro">
-          <span className="cl-sheet-heart" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8Z" />
-            </svg>
-          </span>
-          <h2 id="cl-stats-title">{cause.impactTitle ?? t('cl.where_support_goes')}</h2>
-          {cause.impactBlurb && <p>{cause.impactBlurb}</p>}
-        </div>
-        <dl className="cl-stat-row">
-          {STAT_ICONS.map((icon, i) => {
-            const measured = [
-              { value: formatStat(stats.liveCampaigns), label: t('cl.stat_live') },
-              { value: formatMoneyStat(stats.raisedCents), label: t('cl.stat_raised') },
-              { value: formatStat(stats.supporters), label: t('cl.stat_gifts') },
-              { value: formatStat(stats.countries), label: t('cl.stat_countries') },
-            ];
-            // Authored wins when the owner has published a full set; a partial
-            // set would mix an authored claim with a live count in one row and
-            // read as if both had the same provenance.
-            const tile = authoredStats.length === measured.length ? authoredStats[i] : measured[i];
-            return (
-              <div className="cl-stat" key={tile.label}>
-                <span className={`cl-stat-ic cl-stat-ic--${i}`} aria-hidden="true">{icon}</span>
-                <dd>{tile.value}</dd>
-                <dt>{tile.label}</dt>
-              </div>
-            );
-          })}
-        </dl>
-        <p className="cl-stats-note">{t('cl.stats_note', { categories: cause.categories.join(', ') })}</p>
-      </section>
+          three-figure community count. None is an entity in this schema, and
+          none is shown. */}
+      <StatStrip
+        label={cause.impactTitle ?? t('cl.where_support_goes')}
+        tiles={(() => {
+          const measured = [
+            { value: formatStat(stats.liveCampaigns), label: t('cl.stat_live') },
+            { value: formatMoneyStat(stats.raisedCents), label: t('cl.stat_raised') },
+            { value: formatStat(stats.supporters), label: t('cl.stat_gifts') },
+            { value: formatStat(stats.countries), label: t('cl.stat_countries') },
+          ];
+          return authoredStats.length === measured.length
+            ? authoredStats.map((a) => ({ value: a.value, label: a.label }))
+            : measured;
+        })()}
+      />
+
 
       {/* ── Two blocks that used to sit here are deliberately gone ────────────
           "Your support goes to" (a per-category count row) and "Ways to help"

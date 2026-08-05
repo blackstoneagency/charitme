@@ -40,15 +40,33 @@ export interface CampaignCardData {
   nonprofit_verified?: boolean | null;
   location?: string | null;
   campaign_health_score?: number | null;
+  /**
+   * `campaigns.featured` — staff- or purchase-promoted. Optional because most
+   * listings do not select it; absent means "not known to be featured", which
+   * renders exactly like false. It must never be inferred from position: a card
+   * that happens to sort first is not a featured campaign.
+   */
+  featured?: boolean | null;
 }
 
 export function CampaignCard({
   campaign: c,
   currency = 'usd',
   variant = 'full',
+  highlightFeatured = true,
 }: {
   campaign: CampaignCardData;
   currency?: string;
+  /**
+   * Whether this card may wear the featured ring and badge.
+   *
+   * Presentation only, and defaulted to `true` so every existing caller is
+   * unchanged. Cause pages pass `false` past the third featured card: a grid
+   * where every card is highlighted distinguishes nothing (see
+   * `lib/featured-cap.ts`). It does NOT mean "not featured" — the campaign's
+   * flag, its position, and its paid placement are all untouched.
+   */
+  highlightFeatured?: boolean;
   /**
    * `full` is the dense listing card: trust score, donor count, goal tiles and
    * the countdown. `feature` is the quieter card from the cause-landing
@@ -72,10 +90,18 @@ export function CampaignCard({
   const trust = calculateTrustScore(c);
   const isVerified = c.trust_status === 'Verified';
   const hasEnded = daysLabel === 'Ended';
+  // `=== true`, not truthiness: the column is `boolean NOT NULL DEFAULT false`,
+  // but most listings do not select it, and `undefined` means "not known" — which
+  // must render identically to false rather than throwing a highlight around
+  // every card on a surface that forgot the column.
+  const isFeatured = c.featured === true && highlightFeatured;
 
   if (variant === 'feature') {
     return (
-      <Link href={`/campaigns/${c.slug}`} className="cc-feature">
+      <Link
+        href={`/campaigns/${c.slug}`}
+        className={isFeatured ? 'cc-feature cc-feature--promoted' : 'cc-feature'}
+      >
         <div className="cc-feature-media">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -85,6 +111,11 @@ export function CampaignCard({
             decoding="async"
           />
           <div className="cc-feature-badges">
+            {/* First, and before the category, because it is the reason this card
+                is where it is. A ring alone would be decoration a screen-reader
+                user never receives — the badge is the accessible half of the
+                highlight, which is why both ship together. */}
+            {isFeatured && <Badge color="green">★ Featured</Badge>}
             {c.category && <Badge color="gray">{c.category}</Badge>}
             {/* The reference shows no status chips. These two are kept anyway:
                 dropping "Verified" removes a signal a donor decides on, and
@@ -124,6 +155,9 @@ export function CampaignCard({
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
           />
           <div style={{ position: 'absolute', top: '10px', left: '10px', display: 'flex', minWidth: 0, gap: 6, flexWrap: 'wrap' }}>
+            {/* Same mark on both variants: one campaign must not read as featured
+                on the cause page and ordinary on /campaigns. */}
+            {isFeatured && <Badge color="green">★ Featured</Badge>}
             {c.category && <Badge color="gray">{c.category}</Badge>}
             {isVerified && <Badge color="green">✓ Verified</Badge>}
             {c.nonprofit_verified && <Badge color="green">💚 Tax Deductible</Badge>}

@@ -43,9 +43,18 @@ export default async function MatchingDetailPage({ params }: PageProps) {
       .eq('employee_id', user.id)
       .order('created_at', { ascending: false }));
     myClaims = (data ?? []) as typeof myClaims;
-    const used = await reservedMatchForEmployee(p.id, user.id);
-    const rem = remainingCap(p.annual_cap_cents, used);
-    remainingCapCents = Number.isFinite(rem) ? rem : null;
+    // If the cap usage cannot be read, leave `remainingCapCents` null rather than
+    // letting the page 500. Null already means "do not state a remaining cap" —
+    // the panel hides that line — which is the honest answer when we do not know.
+    // The SERVER recomputes on submit and refuses outright (503), so a visitor
+    // seeing no cap line here can still not over-claim.
+    try {
+      const used = await reservedMatchForEmployee(p.id, user.id);
+      const rem = remainingCap(p.annual_cap_cents, used);
+      remainingCapCents = Number.isFinite(rem) ? rem : null;
+    } catch {
+      remainingCapCents = null;
+    }
   }
 
   return (

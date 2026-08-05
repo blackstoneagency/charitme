@@ -229,9 +229,13 @@ not your branch. Both facts together are conclusive.
 master run `30750918547` (same signature; master's last 6 runs all failed) →
 **still dead 2026-08-04**, verified on branch run `30832734509`
 (`runner_id: 0`, empty `runner_name`, 8s, 0 billable ms) *and* on master run
-`30873938827` (0 billable ms, 9s; master's last 6 runs all failed). Three days
-into August and it has not come back — consistent with the quota hypothesis
-below, whose falsifiable prediction (return on 1 September) is still open.
+`30873938827` (0 billable ms, 9s; master's last 6 runs all failed) →
+**still dead 2026-08-05**, verified on branch run `31044505428`
+(`runner_id: 0`, empty `runner_name`, 2s, 0 billable ms across both jobs)
+*and* on master run `31043386437` (0 billable ms, 4s; master's last 6 runs all
+failed). Four days into August and it has not come back — consistent with the
+quota hypothesis below, whose falsifiable prediction (return on 1 September) is
+still open.
 
 ### 🔎 LIKELY CAUSE, and it is not random: the private-repo Actions minutes quota
 

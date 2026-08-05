@@ -162,3 +162,62 @@ describe('the donate page does not overclaim tax deductibility', () => {
     expect(faq).toMatch(/not tax-deductible unless/i);
   });
 });
+
+describe('the measured figures strip', () => {
+  const CAUSES_PAGE = read('app/causes/page.tsx');
+  const CAMPAIGNS_PAGE = read('app/campaigns/(list)/page.tsx');
+
+  it('renders the SAME StatStrip as /causes and /campaigns', () => {
+    // Four numbers stated once, from one component, so a visitor cannot be
+    // shown a different total one click away.
+    expect(PAGE).toContain("import { StatStrip, statValue, moneyValue }");
+    expect(PAGE).toContain('<StatStrip');
+    expect(CAUSES_PAGE).toContain('<StatStrip');
+    expect(CAMPAIGNS_PAGE).toContain('<StatStrip');
+  });
+
+  it('reads the SAME loader, so the totals cannot disagree', () => {
+    for (const src of [PAGE, CAUSES_PAGE, CAMPAIGNS_PAGE]) {
+      expect(src).toContain('getCausesIndexData');
+    }
+  });
+
+  it('renders an em dash for an unmeasured figure, never a zero', () => {
+    // On the page that asks for money, "$0 raised" and "we could not read the
+    // total" are very different claims.
+    expect(PAGE).toContain('statValue(platform.activeCampaigns)');
+    expect(PAGE).toContain('moneyValue(platform.raisedTotalCents)');
+    expect(PAGE).not.toMatch(/platform\.\w+ \?\? 0/);
+  });
+});
+
+describe('the star rating nobody ever gave', () => {
+  it('draws no stars anywhere on the page', () => {
+    // There is no reviews or ratings table in this schema, so a five-star
+    // rating is invented. It sat in the hero AND beside every supporter quote.
+    // The identical pair was removed from the homepage; the page that asks for
+    // money is the worse of the two places to keep it.
+    expect(PAGE).not.toContain('<Stars');
+    expect(PAGE).not.toContain('function Stars(');
+  });
+
+  it('drew no cluster of anonymous supporter faces either', () => {
+    expect(PAGE).not.toContain('dn-avatars');
+  });
+
+  it('left no orphaned CSS behind', () => {
+    const css = read('app/globals.css');
+    expect(css).not.toContain('.dn-stars');
+    expect(css).not.toContain('.dn-avatars');
+  });
+
+  it('keeps the measured donation count, which was always real', () => {
+    expect(PAGE).toContain('donationCount === null');
+    expect(PAGE).toContain('donationCount.toLocaleString()');
+  });
+
+  it('still quotes real donations rather than invented supporters', () => {
+    expect(PAGE).toContain('recent.length >= 3');
+    expect(PAGE).toContain('d.campaignTitle');
+  });
+});

@@ -68,7 +68,14 @@ describe('/impact states no figure it cannot measure', () => {
     // The house rule: `null` is "we could not read it", and 0 is a measurement.
     // On a page whose whole subject is impact, a false 0 is the worst possible
     // rounding.
-    expect(pageCode).toMatch(/value \?\? '—'/);
+    // The rule moved rather than went away: the local `Figure` component that
+    // spelled `value ?? '—'` was replaced by the shared strip, and
+    // statValue/moneyValue carry the identical rule for every page that uses
+    // them. Asserting it where it now lives keeps the guard honest.
+    const strip = read('components/IndexHero.tsx');
+    expect(strip).toMatch(/if \(value === null\) return '—';/);
+    expect(strip).toMatch(/if \(cents === null\) return '—';/);
+    expect(pageCode).toContain('statValue(overview.activeCampaigns)');
     expect(dataCode, 'unmeasured causes are excluded, not sorted as zero')
       .toMatch(/filter\(\(a\) => a\.raisedCents !== null && a\.raisedCents > 0\)/);
   });
@@ -99,7 +106,11 @@ describe('the /impact hero keeps dark mode black', () => {
   it('the hero paints its own surface and never the page', () => {
     const from = css.indexOf('.imp-hero {');
     expect(from, 'the hero rule must exist').toBeGreaterThan(-1);
-    const block = css.slice(from, css.indexOf('.imp-stats {'));
+    // Ends at the next rule in the file. This used to slice to `.imp-stats {`,
+    // which the shared strip replaced — `indexOf` then returned -1 and the
+    // "block" ran to the end of globals.css, picking up unrelated body rules
+    // and failing for a reason that had nothing to do with the hero.
+    const block = css.slice(from, css.indexOf('.imp-hero-copy'));
     expect(block).toContain('background:');
     expect(block, 'a band that sets body/html background is how flat black broke before')
       .not.toMatch(/\b(body|html)\s*\{/);
@@ -109,5 +120,57 @@ describe('the /impact hero keeps dark mode black', () => {
     const from = css.indexOf('.imp-hero-art { display: block;');
     expect(from).toBeGreaterThan(-1);
     expect(css.slice(from, from + 600)).toMatch(/::after[\s\S]*?linear-gradient/);
+  });
+});
+
+describe('the /impact figures use the shared strip', () => {
+  const page = read('app/impact/page.tsx');
+  const css = read('app/globals.css');
+
+  it('renders StatStrip rather than a fourth local band', () => {
+    // The numbers were never wrong here — getImpactOverview delegates to
+    // getCausesIndexData, so this page could not disagree with /causes,
+    // /campaigns or /donate about a total. What it had was its own markup and
+    // its own `Figure` component carrying its own em-dash rule. Four
+    // implementations of "render a measured figure or an em dash" is four
+    // places for that rule to drift.
+    expect(page).toContain("import { StatStrip, statValue, moneyValue }");
+    expect(page).toContain('<StatStrip');
+    expect(page).not.toContain('imp-stats');
+    expect(page).not.toContain('imp-stat-value');
+  });
+
+  it('dropped the local figure helpers with the band they served', () => {
+    expect(page).not.toContain('function Figure(');
+    expect(page).not.toMatch(/const num = /);
+    expect(page).not.toMatch(/const money = /);
+  });
+
+  it('left no orphaned CSS behind', () => {
+    expect(css).not.toContain('.imp-stats');
+    expect(css).not.toContain('.imp-stat-value');
+  });
+
+  it('uses the same labels as every other page stating the same figures', () => {
+    // Same number, same words. This page said "Raised for campaigns",
+    // "Donations made" and "Live campaigns" for values the other pages call
+    // something else — which invites a reader to think they are different
+    // measures.
+    for (const label of ['Active campaigns', 'Raised on CharitMe', 'Gifts given', 'Countries supported']) {
+      expect(page, `tile: ${label}`).toContain(label);
+    }
+    const causes = read('app/causes/page.tsx');
+    for (const label of ['Active campaigns', 'Raised on CharitMe', 'Gifts given', 'Countries supported']) {
+      expect(causes, `/causes must use the same label: ${label}`).toContain(label);
+    }
+  });
+
+  it('keeps the fee tile, still derived rather than typed in', () => {
+    // So it follows PLATFORM_FEE_PERCENT instead of continuing to claim 100%
+    // if a platform fee is ever introduced.
+    expect(page).toContain('overview.toCampaignPercent');
+    const loader = read('lib/impact-overview.ts');
+    expect(loader).toContain('PLATFORM_FEE_PERCENT');
+    expect(loader).not.toMatch(/toCampaignPercent:\s*100/);
   });
 });

@@ -1,5 +1,549 @@
 # CharitMe — Execution Tracker
 
+## ⏳ CAUSE PAGES LISTED ENDED CAMPAIGNS — `status = 'active'` is not "still running" (Claude, 2026-08-05)
+
+Asked for two things on every cause page: show **only active, non-expired**
+campaigns, and **highlight Featured** ones inside the top six. The first turned
+out to be a real defect, and it hid behind a filter that looks like it already
+covers it.
+
+### The trap
+
+`applyLiveFilters` pins `status = 'active'`, which reads like "still running".
+It is not. **Nothing in this schema moves a campaign out of `active` when its
+deadline passes** — `lib/campaign-lifecycle.ts` derives that at render time,
+which is why a card could show
+
+```
+Ended            ← campaignTimeLabel, from status + deadline
+```
+
+while its row still said `active` and still occupied one of the six slots a live
+campaign should have had. The card was honest; the grid was not.
+
+### The rule, in one place
+
+`notExpiredFilter(now)` in `lib/campaign-visibility-core.ts` — pure, so it is
+tested without a database — plus `applyNotExpired()` beside `applyLiveFilters`.
+It is deliberately **not folded into** `applyLiveFilters`: an organizer's own
+dashboard, the ledger and the admin console legitimately want a
+finished-but-still-`active` campaign, and quietly hiding rows from those is how
+a fundraiser concludes their campaign has been deleted. Discovery grids opt in.
+
+`gt`, not `gte`, and that boundary is the whole reason the SQL rule and the
+render rule are asserted **against each other** rather than each against itself:
+`campaignDaysLeft` floors at 0 and the lifecycle calls `days <= 0` ended, so
+`gte` would keep a campaign in the grid whose own card said "Ended". A NULL
+deadline runs indefinitely and stays — over-filtering would empty cause pages
+and read as "this cause has no campaigns", which is the opposite lie.
+
+Applied on four surfaces, and the fourth is a deliberate widening:
+
+| surface | why it had to change too |
+|---|---|
+| `/causes/[slug]` first six | the ask |
+| `/api/campaigns` GET | pages 2+ of the same grid — a rule enforced only on the server-rendered page lets ended campaigns back in on the second click |
+| `getCauseStats` "Live campaigns" | the tile sits directly above the grid; counting what the grid refuses to show makes the two disagree, and the grid is the checkable half |
+| `/campaigns` list | ⚠️ **outside the literal ask.** The cause hub links to it as that cause's "All campaigns", so excluding expired from the grid and showing them one click later just moves the problem. Side effect: `sort=ending` becomes genuinely "ending soonest" |
+
+`getCauseStories` was left alone on purpose — it is built from **completed**
+campaigns, and a blanket expiry sweep would have emptied it. That is asserted,
+so the next sweep does not.
+
+### Featured in the top six
+
+Ordering is `featured` desc **then** `raised_amount` desc. Sorting on raised
+alone was the reason featuring did nothing here: a cause's featured campaign is
+usually the newest, which is exactly what a raised-amount sort buries.
+
+The API needed the **same** ordering or the page boundary would duplicate some
+rows and skip others — but as an opt-in `featured_first=1`, because floating
+featured rows to the top of `sort=newest` would silently stop it being newest.
+Both directions are tested.
+
+The mark is two halves that ship together: a `.cc-feature--promoted` ring
+(box-shadow, so the card does not resize and shift its row; plus a
+`forced-colors` outline, since forced colours drops box-shadow entirely) and a
+`★ Featured` badge, which is the half a screen-reader user actually receives.
+`c.featured === true`, not truthiness — most listings do not select the column,
+and `undefined` means "not known", which must render as ordinary rather than
+ringing every card on a surface that forgot the column.
+
+### ✅ SHIPPED AND VERIFIED ON PRODUCTION — all 20 cause pages, before and after
+
+Merged as `711a4cb5`. The deploy was detected by a **data-independent** marker —
+the production stylesheet containing `.cc-feature--promoted` — rather than by
+"the Ended badges are gone", which could just mean the data moved. Then the
+same measurement was re-run on all twenty causes:
+
+```
+sports-youth  people-in-need  community-relief  health-wellness  education
+animals-planet  arts-culture  faith-belief  sports-recreation  youth-development
+food-hunger  disaster-relief  mental-health  medical-research  environment
+veterans-military  human-rights  seniors-elderly  women-girls  lgbtq-support
+
+→ every one:  cards=6   ended=0
+```
+
+Before/after on the two pages that had the defect:
+
+| page | before | after |
+|---|---|---|
+| `/causes/sports-youth` | 1 of 6 Ended | **0 of 6**, still 6 cards |
+| `/causes/people-in-need` | 2 of 6 Ended | **0 of 6**, still 6 cards |
+
+Still six cards each — the ended ones were **replaced by live campaigns**, not
+dropped, so the fix did not thin the grids out.
+
+### ⚠️ THE FEATURED HIGHLIGHT RENDERS ON NOTHING — because no campaign is flagged
+
+Requirement (2) is implemented, mutation-tested and deployed, and it currently
+shows on **zero** campaigns: `featBadge=0` and `ring=0` on all twenty pages.
+
+That is a **data state, not a code gap**, and the deployed behaviour is what
+proves it. Cause pages now sort `featured` desc *before* `raised_amount`, so any
+featured campaign in a cause's categories would be **card #1 with a badge**.
+Twenty causes spanning the category list, zero badges ⇒ no active, non-expired,
+public campaign is currently `featured = true`.
+
+**Owner action, not an agent one:** flag campaigns in Admin → Campaigns (the
+`featured` column, already surfaced there). The moment one is flagged it will
+sort into the top six of its cause page and render the ring + badge.
+
+#### ✅ CLOSED 2026-08-05 22:40 — flags applied, all 20 pages verified live
+
+The owner ran the seed (25 rows). Verified on production, every cause page:
+
+```
+cause                cards ended rings  slots
+people-in-need         6     0     3    [1,2,3]
+sports-youth           6     0     2    [1,2]
+faith-belief           6     0     1    [1]
+…20 pages, FAILURES: none
+```
+
+Seven properties asserted per page, all passing on all 20:
+6 cards · 0 expired · ring count within the cap of 3 · at least 1 ring ·
+**ring and badge always paired** (never one without the other) ·
+featured always in the **leading** slots · **no duplicate titles** among them.
+
+The API agrees: `featured = true` on exactly 25 of 314 live campaigns — precisely
+the 25 predicted before the run. The page boundary holds too: on people-in-need,
+page 1 returns 6 featured, page 2 returns 0, and 18 rows across 3 pages are all
+distinct — no repeats, no skips.
+
+#### 🎯 THE CAP — 6 of 6 highlighted distinguishes nothing
+
+First verification found `/causes/people-in-need` with **all six** cards ringed
+(three categories × two featured). A grid where every card is highlighted is
+visually identical to one where none is. Capped at 3 (`lib/featured-cap.ts`,
+PR #274) — **presentation only**: the fourth featured campaign still renders,
+still holds its position, still has its flag. Nothing unsets
+`campaigns.featured`, because that column is what the Stripe webhook sets for
+**paid** placements; clearing flags to fix a visual problem would take away
+something people bought.
+
+#### ⏸️ (superseded) STILL UNFLAGGED as of 2026-08-05 21:30 — the seed exists, it has not run
+
+`supabase/seed/featured_campaigns.sql` (PRs #272, #273) picks 25 campaigns and
+covers all 20 causes. It **cannot be run from an agent session**: there are no
+Supabase credentials in the sandbox (only `.env.example` exists, and every
+`SUPABASE_*` var is unset). It is one paste into Supabase → SQL Editor.
+
+Verified after a reported run, and it had NOT applied:
+
+```
+curl https://www.charitme.com/api/campaigns?limit=100&featured_first=1
+→ 314 live campaigns, featured=true on ZERO of them
+```
+
+`featured_first=1` sorts featured to position 1, so a single flagged row would
+be the first result. Ruled out on the way:
+- **not caching** — `x-vercel-cache: MISS`, `age: 0`, `cache-control: no-store`;
+- **not eligibility** — applying the seed's own rule to all 314 rows, every one
+  of the 15 categories has 12–22 eligible campaigns;
+- **not a schema gap** — `visibility`, `deleted_at`, `campaign_health_score` and
+  `featured` all exist and are queryable (the API filters on them).
+
+Most likely cause: **Supabase's SQL Editor runs only the highlighted text when
+anything is selected.** Re-run with nothing selected; it should report 25 rows.
+
+#### 🔁 THE LISTING FOUND A REAL BUG — always print the picks before running a seed
+
+Listing the picks before running them is what caught this, and it is worth
+keeping as a habit: **six of the fifteen categories have exactly ONE distinct
+campaign title** among their eligible rows (Sports, Competition, Community,
+Environment, Event, Faith — the data is templated). "Top 2 per category" would
+have promoted **two identically titled cards into slots 1 and 2** of those cause
+pages, both ringed and badged. That reads as a rendering bug, not a promotion.
+
+Fixed in #273 with a per-`(category, title)` pass before the per-category rank,
+so a single-title category contributes one featured campaign instead of a
+duplicate pair. 30 → 25 campaigns, all 20 causes still covered.
+
+I did not pick the campaigns by hand: the rule is `campaign_health_score` desc,
+tie-broken by raised then id. Choosing which fundraiser gets promoted placement
+is platform-editorial, so it is a stated rule the owner can audit, not a
+judgement made silently on their behalf.
+
+### ✅ MEASURED ON PRODUCTION — the defect was live, in 3 of 12 slots
+
+`curl` reaches `www.charitme.com` again (see the correction below), so this was
+checked against the real site rather than argued from the schema. Every cause
+page serves **6 cards** — the "see more" work is confirmed live — and three of
+them were finished campaigns:
+
+| cause page | card | state |
+|---|---|---|
+| `/causes/sports-youth` | "Help our team compete at the national championship" | **Ended** |
+| `/causes/people-in-need` | "Help Lily's family through a difficult time" | **Ended** |
+| `/causes/people-in-need` | "Celebrating the life of Charlotte Taylor" | **Ended** |
+| `/causes/education` | — | 6/6 live |
+
+The badge sits inside `cc-feature-badges`, immediately before `cc-feature-body`
+— i.e. these are cards in the grid, not the word "Ended" appearing elsewhere on
+the page. Three of twelve slots on two pages, given to campaigns nobody can
+donate to.
+
+⚠️ **Not** measured: whether any campaign in those categories is `featured`.
+Production does not select the column, so the rendered HTML cannot answer it —
+"featuring did nothing here" is a claim about the SORT, which is checkable in
+the query, not about how many featured rows exist.
+
+### Verification
+
+18 new tests in `__tests__/cause-active-featured.test.ts`; the API half executes
+the route against a recording chain rather than reading its source, so it fails
+if the filter is moved somewhere it does not run. Five mutations planted, all
+five caught:
+
+| mutation | caught by |
+|---|---|
+| `gt` → `gte` | 4 tests, incl. the lifecycle cross-check |
+| drop `.or()` from the API | "excludes expired campaigns" |
+| `featured_first` always on | "`sort=newest` stays newest-first" |
+| `c.featured === true` → truthiness | "never infers featured from position" |
+| swap the two `.order()` calls | "sorts on featured BEFORE raised_amount" |
+
+Full suite 3131/3131, typecheck and lint clean.
+
+⚠️ One test bug worth recording: `expect(x).toMatch(re, 'message')` **passes
+vitest and fails `tsc`** — the message belongs on `expect()`, not the matcher.
+Vitest ran it green while the assertion message was being silently discarded.
+
+Not verifiable from here: the sandbox has no database, so cause pages render the
+"could not load" EmptyState. The rendering half of this is source-level for the
+usual reason — `vitest.config.ts` collects `__tests__/**/*.test.ts` and importing
+a `.tsx` fails to transform under `jsx: 'preserve'`.
+
+## 🧑‍🤝‍🧑 /about-us — ALREADY BUILT TO THE REFERENCE; the delta was one control (Claude, 2026-08-05)
+
+Asked to recreate the supplied About design. **The page was already built to it**
+— hero, Mission/Values, "Our Impact So Far", Our Story, Our Team, "Be Part of Our
+Mission" — so this was verification, not a rebuild. Measured on production:
+
+| section | live |
+|---|---|
+| About hero, Mission, Values, Impact, Story, CTA | ✅ all render |
+| **Our Team** | ❌ omitted — roster empty |
+| **Watch Our Story** | ❌ omitted — no video URL |
+
+Both omissions are **deliberate and correct**: they are admin-entered content
+(`platform_settings.config.about`), and the section renders from real rows or not
+at all. **That is owner content, not a code gap.**
+
+Every stat tile is live Supabase data — measured on production:
+**352** active campaigns · **$96,850** raised · **592** gifts · **69** countries ·
+**100%** of your gift to the cause.
+
+⚠️ The reference's five figures — *2.3M+ People Helped, 68K+ Lives Transformed,
+1,250+ Programs Funded, 120+ Countries Reached, 98% Funds to Programs* — are
+**not** reproduced, and the existing page already documents why: none is an
+entity in this schema. The layout is identical; the numbers are ours and real.
+The fifth tile is *better* than the reference: 100%, not 98%, because
+`PLATFORM_FEE_PERCENT` is 0.
+
+### The one real delta: the LinkedIn control
+
+The design shows a small "in" control under each face; `TeamMember` had no such
+field. Unlike the six named executives — claims about real humans, correctly not
+shipped — **a LinkedIn URL is administrator-entered data**, so building it invents
+nothing.
+
+Validated as *actually* LinkedIn, by **hostname**, not substring:
+
+```
+https://evil.com/linkedin.com/in/x      ← contains it, is not LinkedIn
+https://linkedin.com.evil.com/in/x      ← the classic suffix trick
+```
+
+A substring match passes both. An arbitrary URL behind a LinkedIn icon tells the
+visitor where they are going and sends them elsewhere — small, but on the page
+whose whole job is looking trustworthy, and reachable by an admin typo. Also
+https-only, `rel="noreferrer noopener"`, and named **per person** (six links all
+called "LinkedIn" are indistinguishable to someone tabbing the row).
+
+A bad link drops the **link**, not the person.
+
+### 🔬 THIS REPO CANNOT RENDER A COMPONENT IN A TEST — worth fixing deliberately
+
+I set out to render-test the populated team section, because the existing 22
+roster assertions are all about **parsing** or **source text**: a render bug in
+the card would pass every one of them.
+
+It cannot be done here. `vitest.config.ts` collects `__tests__/**/*.test.ts`
+only, and importing a `.tsx` fails to transform because Next sets
+`jsx: 'preserve'` in tsconfig. I tried `esbuild.jsx: 'automatic'` and a
+`tsconfigRaw` override; vite's import analysis still refuses. It needs
+`@vitejs/plugin-react`, which is **not installed**.
+
+I did **not** add it: a shared-toolchain dependency affecting all 260+ test files
+should be a deliberate decision, not a side effect of an About-page change. But
+the gap is real and platform-wide — **no component in this repo is render-tested**
+— and it is exactly the "a guard nobody exercises is not a guard" lesson from the
+money-path passes. Recording it as its own item rather than leaving it implied.
+
+
+
+## 🔓 THREE LIMITS THAT STOPPED EXISTING WHEN THE DATABASE HICCUPED (Claude, 2026-08-05)
+
+Eighth triage, narrowing the permissive-fallback lens further: a fallback feeding
+a **gate** (an `if`, a `>=`) rather than a display total. 24 hits, and three were
+the same fail-open bug:
+
+```ts
+const { count } = await supabase.from(x).select('id', { count: 'exact', head: true });
+if ((count ?? 0) >= LIMIT) return 409;     // ← count ?? 0 === 0 on a FAILED read
+```
+
+The `error` was discarded, so a failed count became **zero**, the comparison
+passed, and the insert underneath went ahead. **The limit silently stopped
+existing exactly when the database was unhealthy.**
+
+| check | what a failed count allowed |
+|---|---|
+| `api_keys` | **unlimited API keys.** These are credentials, so the allowance is a security control, not a nicety |
+| `campaign_wizard_drafts` | unlimited drafts — abuse and storage |
+| `support_cases` (admin seed) | reads as "not seeded yet", so the seed **re-runs and duplicates every case** — and re-running is not the fix, it *is* the damage |
+
+All three now answer **503**. **Fail-closed costs a retry; fail-open costs
+credentials.**
+
+One assertion is deliberately not about the status code: on the failure path
+**no `api_keys` row may be written**. A credential minted against an allowance
+nobody could count is the actual harm; the 503 is just how it is reported.
+
+### Same lesson as the last two passes
+
+My first run asserted against `scopes: ['read']`, which is not a real
+`API_SCOPES` value — the schema returns **400 before the count ever runs**. The
+test would have been "measuring" a path it never reached. That is now three
+consecutive passes where my test named a value or a method the route does not
+have, and each time the harness said so immediately. **The routes are better
+documentation than my assumptions about them.**
+
+Mutation-tested: reopening the API-key allowance fails 2, reopening the seed
+guard fails 1, and a positive case pins that a countable allowance still returns
+the real **409 LIMIT_REACHED** — so the 503 branch has not replaced the check it
+was added to protect.
+
+
+
+## 🚦 A CAMPAIGN WITH OPEN FRAUD FLAGS COULD BE REPORTED "READY TO PAY OUT" (Claude, 2026-08-05)
+
+Seventh triage. The previous two money findings shared a shape the
+"unguarded read" sweep does not capture, so I targeted **that** instead: a failed
+read whose fallback is *permissive* — feeding an amount, a limit or a gate.
+Sweeping for `?? 0` / `?? []` on money-gating values returned **50**; most are
+display totals, two were real, and both are in the payout concierge.
+
+| read | what a failure produced |
+|---|---|
+| `payouts` | `?? []` → `alreadyPaidOrPending = 0` → **`availableCents` = the FULL raised amount**. The fundraiser is told they can withdraw money they have already been paid. |
+| `risk_flags` | `?? []` → no risk blockers, **and** `readiness = openFlags && openFlags.length > 0 ? 'blocked' : …` skips the test entirely on `null` → a campaign with **open fraud flags is reported `'ready'`** |
+
+The second is the serious one: **a safety gate that switches itself off when it
+cannot see.** Identical in shape to the reconciliation job returning a clean bill
+of health while blind — and, like that one, the failure direction is the
+reassuring one, so nobody looks twice.
+
+Both now answer **503** (`PAYOUT_BALANCE_UNAVAILABLE`, `RISK_STATUS_UNAVAILABLE`)
+rather than stating a number or a verdict they could not compute.
+
+### The route corrected me twice, both times loudly
+
+Worth recording because each was a wrong assumption that the harness caught, not
+something I reasoned my way out of:
+
+1. I wrote the tests against `POST`. It is a **`GET`** with `?campaignId=` —
+   every test failed with *"POST is not a function"*, which is the harness saying
+   I had not read the route.
+2. My mock's default `data: []` for `connected_accounts` is **truthy**, so
+   `!organizerAccount.details_submitted` fired and every case picked up a stray
+   "finish Stripe onboarding" blocker. That made the ready-path test read
+   `action_needed` — it would have masked exactly what that test exists to check.
+
+Guard: `__tests__/payout-concierge-blind.test.ts`, 5 assertions. Mutation-tested
+both ways, and both directions matter: restoring either fallback fails its test,
+while the two positive cases pin that a campaign with a genuine open flag is
+still **blocked** and a genuinely clean one is still **ready** — over-blocking
+would make the feature useless.
+
+
+
+## 🏢 A DATABASE BLIP COULD OVER-COMMIT AN EMPLOYER'S MATCH BUDGET (Claude, 2026-08-05)
+
+Sixth triage of the money-path queue, found by applying the heuristic the refund
+fix produced: **where one read is guarded, check its neighbours.** A sweep for
+routes containing BOTH a guarded and an unguarded read returned **81**; ranked by
+money, corporate matching came first — a match claim commits *the sponsor's*
+money, up to an annual cap they agreed to.
+
+`reservedMatchForEmployee` dropped its `error`, so `data ?? []` made a failed
+read return **0 used** — identical to an employee who has claimed nothing all
+year. That flows straight into the amount written on the claim:
+
+```
+remaining   = remainingCap(annual_cap_cents, used)   // = the FULL cap
+matchAmount = computeMatchAmount({ remainingCapCents: remaining, … })
+```
+
+So a blip lets a claim be created as though the cap were untouched, and the
+employer's agreed limit is exceeded. **Declining a claim is recoverable;
+over-committing someone else's money is not.**
+
+`listEmployeeClaims` sits directly below it in the same file and already used
+`boundedQuery` — the same one-guarded-one-not tell as the refund route.
+
+| caller | now |
+|---|---|
+| `POST /api/matching/claims` (commits money) | **503 `MATCH_CAP_UNAVAILABLE`**, and **no claim row is written** |
+| `/matching/[id]` (displays remaining cap) | catches → `remainingCapCents` stays `null`, which the panel already renders by *hiding* the cap line. Honest, and the server still refuses on submit |
+
+### The code corrected me twice
+
+Both were my test's errors, not the code's — worth recording because each would
+have shipped a wrong belief:
+
+1. I asserted `pending` claims reserve cap. They do not: `reservesCap` counts
+   **`approved` and `paid` only**. Expectation corrected 8000 → 7000.
+2. My POST used `program_id: 'prog-1'`, which fails the UUID schema and returns
+   **400 before the cap code ever runs** — the test would have "passed" against a
+   path it never reached had I asserted 400.
+
+Guards: `__tests__/match-cap-unavailable.test.ts`, 5 assertions including one
+that asserts **no insert happens** on the failure path (the status code matters
+less than nothing being committed). Mutation-tested both ways — restoring
+"failed read = 0 used" fails 3, and over-throwing on a legitimately empty claim
+list fails 1, so a first-time claimant is not blocked.
+
+
+
+## 💸 A REFUND REQUEST COULD BE TOLD THE DONATION DOES NOT EXIST (Claude, 2026-08-05)
+
+Fifth triage of the money-path queue. A donor asking for their money back must
+never be told the donation is not there. **If the refund path looks broken, the
+alternative they reach for is a chargeback** — expensive for the platform, and
+worse for the fundraiser, whose campaign balance is what gets clawed back.
+
+`.single()` reports **zero rows as an error**, so a missing donation and an
+unreadable database produced the same `fetchErr`:
+
+| handler | before |
+|---|---|
+| `POST` | captured the error, then **collapsed it**: `if (fetchErr \|\| !donation) → 404 "Donation not found"` |
+| `GET` | did not capture the error at all → `donation` null → **404 "Not found"** |
+
+Both now `.maybeSingle()` with the two cases separated: a read failure answers
+**503 `DONATION_LOOKUP_UNAVAILABLE`**, a genuinely missing donation still answers
+404, and someone else's donation still answers 404 (GET) / 403 (POST).
+
+### The tell was inside the same file
+
+The `refunds` read **two blocks below each of these** already answered 503, with a
+comment saying why: *"Never report 'no request' because the lookup failed — the
+donor would file a duplicate."* One guarded read and one unguarded read in the
+same handler is what marks this as an oversight rather than a decision. Worth
+remembering as a search heuristic: **where one read is guarded, check its
+neighbours.**
+
+### Mutation-testing found a hole in my OWN tests
+
+Three mutations, and the third initially **passed**: deleting POST's
+`if (!donation) → 404` broke no test — yet the very next line dereferences
+`donation`, so a genuinely missing donation would have thrown. My tests covered
+POST's 503 and 403 paths but never its plain 404. Added, then re-mutated: caught.
+
+**A guard nobody exercises is not a guard.** That is the third time in this
+session that mutation-testing has caught my own test being weaker than it looked.
+
+Guard: `__tests__/refund-request-read-failures.test.ts`, 6 assertions, executing
+the real handlers — this route had never been run by a test.
+
+
+
+## ✅ CAUSE PAGES: SIX CAMPAIGNS, THEN "SEE MORE" — verified on all 20 (Claude, 2026-08-05)
+
+Every cause page rendered up to **24** campaigns at once. It now renders **six** —
+the 3×2 grid in the reference — then a "See more campaigns" button that loads the
+next six **in place**.
+
+### The old button quietly lost the cause
+
+It was a **link** to `/campaigns`. A cause spans several categories and
+`/campaigns` filters on **one** — so following it showed a different set than the
+page the visitor was reading, and a multi-category cause fell through to an
+*unfiltered* `/campaigns`, i.e. the whole platform. **11 of the 20 causes are
+multi-category**, so this was the majority case, not an edge.
+
+Loading in place is what keeps the cause intact, which is why `/api/campaigns`
+had to learn multi-category filtering first: comma-separated `category` → `.in()`,
+with a single value still taking the `.eq()` path so every existing caller is
+untouched. An unrecognised name is rejected **400 `UNKNOWN_CATEGORY`** rather than
+matching nothing and reading as "this cause has no campaigns".
+
+### Measured on production, not asserted
+
+| check | result |
+|---|---|
+| all **20** cause pages | **6 cards + button on every one**, 0 rendering more |
+| multi-category filter (`Sports,Competition`) | both categories present in results, `total=38` |
+| pages 1–3 | 18 ids, **18 unique** — no duplicate across page boundaries |
+| single category (back-compat) | unchanged, all rows the requested category |
+| unknown category | **400** |
+| badge fields on API rows | `trust_status`, `nonprofit_verified`, `campaign_health_score` all present |
+
+That last row matters: without those columns the cards loaded by the button would
+render without the Verified badge, so page 2 would look subtly different from
+page 1.
+
+### Decisions worth keeping
+
+- The server query asks for `PAGE_SIZE + 1` and renders `PAGE_SIZE`. That extra
+  row is how the page knows a next page exists without paying for a `count(*)`;
+  `length === PAGE_SIZE` would hide the button whenever the total landed exactly
+  on a boundary.
+- The first six are **server-rendered** — indexable, no JS needed for first paint.
+- A failed fetch does **not** hide the button. Hiding it would assert "nothing
+  more to see", the one thing a failed request cannot establish.
+- De-duplicated by id: ordering is `raised_amount`, which a donation can change
+  mid-session, so a row crossing the boundary would otherwise repeat a React key.
+- End-of-list is a **short page**, not a reported total the component cannot
+  verify.
+
+Guard: `__tests__/cause-see-more.test.ts`, 15 assertions, mutation-tested five
+ways (page size back to 12, dropping the +1 probe row, sending only the first
+category, dropping the badge columns, hiding the button on failure) — each caught
+by exactly one test. Two existing tests were **updated rather than loosened**:
+both asserted on the cause *page* source and the grid moved into the new
+component; the claims they pin are unchanged.
+
+⚠️ **CI created no run at all for these commits** — a change from the previous
+signature (run created, `runner_id: 0`, 0 billable ms). Verified locally
+(typecheck, lint, 3077 tests, production build) and then against production.
+
+
+
 ## 🔐 CAMPAIGN READS WITHOUT A VISIBILITY FILTER — 1 fixed, 18 triaged (Claude, 2026-08-04)
 
 `getCampaignResult` — the shared loader behind `/campaigns/[slug]` and its
@@ -21174,7 +21718,35 @@ else. Worth recording because it accidentally proved the degraded path: with the
 database unreachable the page still returns a complete 200 with the design
 intact, rather than erroring.
 
-### ❌ Production *hosting* is not observable from this sandbox — all channels tried
+### ✅ SUPERSEDED 2026-08-05 — `curl` REACHES PRODUCTION AGAIN
+
+The table below is **stale**. Measured 2026-08-05 20:34 UTC:
+
+```
+curl -s -o /dev/null -w "%{http_code} %{time_starttransfer}\n" https://www.charitme.com/causes/sports-youth
+→ 200  ttfb=1.218
+
+curl -s https://www.charitme.com/api/health
+→ {"status":"ok","ts":1785962075206}
+```
+
+So production HTML **can** be fetched and asserted against from here, and the
+cause-page defect above was measured that way rather than argued. Whatever the
+gateway policy was on 2026-08-04, it is not denying this host today.
+
+Two limits that have NOT changed, so do not over-read this:
+- **Playwright still cannot reach it** — chromium does not use the agent proxy,
+  and a failed navigation reports `shifts=0`, CLS 0.000, which is
+  indistinguishable from a clean page. `curl` only.
+- **Vercel PREVIEW deployments are still unreadable**: they 302 to
+  `vercel.com/sso-api` (deployment protection). Only the production alias is
+  open. So a preview URL still cannot verify a PR's rendering.
+
+The original entry follows, kept because its *reasoning* about which channels
+prove what is still correct — a PR's Vercel status still proves the build, not
+the production alias.
+
+### ❌ (2026-08-04) Production *hosting* is not observable from this sandbox — all channels tried
 
 Do not spend another round re-deriving this. Every route was exhausted on
 2026-08-04:

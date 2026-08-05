@@ -9,6 +9,7 @@ import { applyCampaignSearch } from '../../../lib/campaign-search';
 import { totalPages } from '../../../lib/pagination';
 import { PUBLISH_MIN_STORY_CHARS, PUBLISH_MIN_GOAL_CENTS } from '../../../lib/campaign-readiness';
 import { likeTerm } from '../../../lib/campaign-search';
+import { notExpiredFilter } from '../../../lib/campaign-visibility-core';
 
 function slugify(text: string): string {
   return text
@@ -184,17 +185,47 @@ export async function GET(request: NextRequest) {
   const visibility = searchParams.get('visibility') ?? 'public';
   const sort = searchParams.get('sort') ?? 'raised';
   const sortCol = sort === 'newest' ? 'created_at' : sort === 'backers' ? 'backer_count' : 'raised_amount';
+  // Opt-in, not the default: floating featured rows to the top of a `sort=newest`
+  // listing would silently stop it being newest-first. Cause pages pass it
+  // because their server-rendered first page sorts the same way, and a page-2
+  // request with a different sort would duplicate some rows and skip others.
+  const featuredFirst = searchParams.get('featured_first') === '1';
 
-  let query = supabaseAdmin
+  const base = supabaseAdmin
     .from('campaigns')
-    .select('id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, status, location, accept_donations', { count: 'exact' })
+    // `trust_status`, `nonprofit_verified` and `campaign_health_score` are the
+    // fields CampaignCard uses for its Verified badge and countdown. Without
+    // them a card rendered from THIS route looks different from the identical
+    // campaign server-rendered on a cause page — the badge simply vanishes on
+    // everything loaded by "See more campaigns".
+    .select('id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, status, location, accept_donations, trust_status, nonprofit_verified, campaign_health_score, featured', { count: 'exact' })
     .eq('status', 'active')
     .eq('visibility', visibility)
     .is('deleted_at', null)
+    // `status = 'active'` alone is not "still running": nothing moves a campaign
+    // out of `active` when its deadline passes, so this listing returned finished
+    // campaigns whose own cards rendered "Ended". Same rule, same helper, as the
+    // server-rendered first page — see `notExpiredFilter`.
+    .or(notExpiredFilter());
+
+  let query = (featuredFirst ? base.order('featured', { ascending: false }) : base)
     .order(sortCol, { ascending: false })
     .range(offset, offset + limit - 1);
 
-  if (category) query = query.eq('category', category);
+  // A cause spans SEVERAL categories, so this accepts a comma-separated list and
+  // filters with `.in()`. A single value still takes the `.eq()` path, so every
+  // existing caller is unaffected. Unknown names are dropped rather than passed
+  // through — an unrecognised category would otherwise return zero rows and read
+  // as "this cause has no campaigns".
+  if (category) {
+    const wanted = category
+      .split(',')
+      .map((c) => c.trim())
+      .filter((c) => (CAMPAIGN_CATEGORIES as readonly string[]).includes(c));
+    if (wanted.length === 1) query = query.eq('category', wanted[0]);
+    else if (wanted.length > 1) query = query.in('category', wanted);
+    else return NextResponse.json({ error: 'Unknown category', code: 'UNKNOWN_CATEGORY' }, { status: 400 });
+  }
   // Escape LIKE wildcards — the API counterpart of the /campaigns page filter.
   const safeLocation = location ? likeTerm(location) : '';
   if (safeLocation) query = query.ilike('location', `%${safeLocation}%`);
