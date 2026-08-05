@@ -9359,17 +9359,8 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 .dn-trust-txt small { color: #c3cadd; font-size: 13.5px; line-height: 1.5; }
 
 .dn-proof { display: flex; align-items: center; gap: 14px; margin-top: 28px; }
-.dn-avatars { display: inline-flex; }
-.dn-avatars i {
-  width: 34px; height: 34px; border-radius: 50%;
-  border: 2px solid rgba(3,5,16,.9);
-  margin-left: -10px;
-  background: var(--grad-violet);
-}
-.dn-avatars i:first-child { margin-left: 0; }
 .dn-proof-copy { display: flex; flex-direction: column; gap: 2px; }
 .dn-proof-copy small { color: #c3cadd; font-size: 13px; }
-.dn-stars { display: inline-flex; gap: 2px; color: #ffb020; }
 
 /* ── Donation panel ───────────────────────────────────────────────────── */
 

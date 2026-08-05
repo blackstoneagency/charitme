@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { StatStrip, statValue, moneyValue } from '../../components/IndexHero';
+import { getCausesIndexData } from '../../lib/causes-index';
 import Image from 'next/image';
 import type React from 'react';
 import type { Metadata } from 'next';
@@ -107,23 +109,20 @@ function Ic({ name, className = 'dn-ic' }: { name: string; className?: string })
   return <svg {...common}>{paths[name] ?? paths.heart}</svg>;
 }
 
-function Stars() {
-  return (
-    <span className="dn-stars" aria-hidden="true">
-      {[0, 1, 2, 3, 4].map((i) => (
-        <svg key={i} viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-          <path d="m12 3 2.6 5.6 6.1.8-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6L3.3 9.4l6.1-.8L12 3Z" />
-        </svg>
-      ))}
-    </span>
-  );
-}
+/* The `Stars` component is gone with the rating it drew. Nobody has ever rated
+   CharitMe: there is no reviews or ratings table in this schema. */
 
 export default async function DonatePage() {
-  const [targets, donationCount, recent] = await Promise.all([
+  const [targets, donationCount, recent, platform] = await Promise.all([
     getTargets(),
     getDonationCount(),
     getRecentDonations(3).catch(() => []),
+    // The SAME loader /causes, every /causes/<slug> page and /campaigns use.
+    // A separate query here would be a second answer to "how much has been
+    // raised" on the page that asks for money — the worst place for two
+    // figures to disagree. It returns EMPTY rather than throwing, so a failed
+    // read renders em dashes and never takes the donation form with it.
+    getCausesIndexData(),
   ]);
 
   const targetsFailed = targets === null;
@@ -172,18 +171,23 @@ export default async function DonatePage() {
             ))}
           </ul>
 
+          {/* ⚠️ A five-star rating and a cluster of four anonymous "supporter"
+              circles used to sit here. Neither is real: there is no reviews or
+              ratings table in this schema, so nobody has ever rated CharitMe
+              five stars, and the circles stood in for a crowd of faces the
+              page does not have. The identical pair was removed from the
+              homepage; leaving them on the page that ASKS FOR MONEY would be
+              the worse of the two places to keep them.
+
+              What remains is the measured count, which was already correct —
+              and renders a neutral phrase rather than a confident zero when the
+              read fails. */}
           <div className="dn-proof">
-            <span className="dn-avatars" aria-hidden="true">
-              {[0, 1, 2, 3].map((i) => <i key={i} />)}
-            </span>
             <span className="dn-proof-copy">
-              <Stars />
-              {/* Measured, never asserted. A failed count renders a neutral phrase
-                  rather than a confident zero on the page that asks for money. */}
               <small>
                 {donationCount === null
-                  ? 'from supporters across CharitMe'
-                  : `from ${donationCount.toLocaleString()} donation${donationCount === 1 ? '' : 's'}`}
+                  ? 'Trusted by supporters across CharitMe'
+                  : `Trusted by ${donationCount.toLocaleString()} donation${donationCount === 1 ? '' : 's'} and counting`}
               </small>
             </span>
           </div>
@@ -193,6 +197,24 @@ export default async function DonatePage() {
           <DonateForm targets={targets ?? []} loadFailed={targetsFailed} />
         </div>
       </section>
+
+      {/* ── The measured figures ──────────────────────────────────────────────
+          The SAME `StatStrip` /causes, /campaigns and all 20 /causes/<slug>
+          pages render, from the same loader. Four numbers, stated once, so a
+          visitor cannot be shown a different total one click away.
+
+          `statValue`/`moneyValue` render an em dash for a figure that could not
+          be measured — never a zero, which is a different claim entirely on a
+          page asking someone to give. */}
+      <StatStrip
+        label="CharitMe at a glance"
+        tiles={[
+          { value: statValue(platform.activeCampaigns), label: 'Active campaigns' },
+          { value: moneyValue(platform.raisedTotalCents), label: 'Raised on CharitMe' },
+          { value: statValue(platform.gifts), label: 'Gifts given' },
+          { value: statValue(platform.countries), label: 'Countries supported' },
+        ]}
+      />
 
       {/* ── Impact ── */}
       <section className="dn-section" aria-labelledby="dn-impact">
@@ -241,7 +263,6 @@ export default async function DonatePage() {
                   <div>
                     <p>Supported <strong>{d.campaignTitle}</strong> — because it mattered.</p>
                     <b>{d.name}</b>
-                    <Stars />
                   </div>
                 </li>
               ))
@@ -251,7 +272,6 @@ export default async function DonatePage() {
                   <div>
                     <p>{q.quote}</p>
                     <b>{q.name}</b>
-                    <Stars />
                   </div>
                 </li>
               ))}
