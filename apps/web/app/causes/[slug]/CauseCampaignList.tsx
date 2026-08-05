@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { CampaignCard, CampaignGrid, type CampaignCardData } from '../../../components/CampaignCard';
+import { cappedFeaturedIds } from '../../../lib/featured-cap';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Cause pages show SIX campaigns, then a "See more campaigns" button that loads
@@ -78,11 +79,24 @@ export default function CauseCampaignList({
     }
   }
 
+  // Derived from what is on screen rather than held in state: `campaigns` grows
+  // as "See more" loads, and a stale set would let a fourth ring appear.
+  const highlighted = cappedFeaturedIds(campaigns);
+
   return (
     <>
       <CampaignGrid>
         {campaigns.map((c) => (
-          <CampaignCard key={c.id} campaign={c} variant="feature" />
+          <CampaignCard
+            key={c.id}
+            campaign={c}
+            variant="feature"
+            // At most three rings per page. /causes/people-in-need spans three
+            // categories and came back with SIX of six cards highlighted, which
+            // distinguishes nothing. Computed over the whole rendered list, not
+            // per page of six, so loading more never adds a fourth ring.
+            highlightFeatured={highlighted.has(c.id)}
+          />
         ))}
       </CampaignGrid>
 

@@ -53,9 +53,20 @@ export function CampaignCard({
   campaign: c,
   currency = 'usd',
   variant = 'full',
+  highlightFeatured = true,
 }: {
   campaign: CampaignCardData;
   currency?: string;
+  /**
+   * Whether this card may wear the featured ring and badge.
+   *
+   * Presentation only, and defaulted to `true` so every existing caller is
+   * unchanged. Cause pages pass `false` past the third featured card: a grid
+   * where every card is highlighted distinguishes nothing (see
+   * `lib/featured-cap.ts`). It does NOT mean "not featured" — the campaign's
+   * flag, its position, and its paid placement are all untouched.
+   */
+  highlightFeatured?: boolean;
   /**
    * `full` is the dense listing card: trust score, donor count, goal tiles and
    * the countdown. `feature` is the quieter card from the cause-landing
@@ -83,7 +94,7 @@ export function CampaignCard({
   // but most listings do not select it, and `undefined` means "not known" — which
   // must render identically to false rather than throwing a highlight around
   // every card on a surface that forgot the column.
-  const isFeatured = c.featured === true;
+  const isFeatured = c.featured === true && highlightFeatured;
 
   if (variant === 'feature') {
     return (

@@ -197,7 +197,13 @@ describe('the cause page asks for, and marks, featured campaigns', () => {
   it('never infers featured from position', () => {
     // `c.featured === true`, not truthiness: most listings do not select the
     // column, and `undefined` means "not known", which must render as ordinary.
-    expect(card).toMatch(/const isFeatured = c\.featured === true;/);
+    //
+    // Matched loosely at the end so the per-page cap can AND itself on
+    // (`&& highlightFeatured`) without this having to be rewritten — but the
+    // `=== true` comparison itself is still pinned, which is the whole point.
+    expect(card).toMatch(/const isFeatured = c\.featured === true\b/);
+    expect(card, 'truthiness would highlight every card on a listing that omits the column')
+      .not.toMatch(/const isFeatured = (!!|Boolean\()c\.featured/);
   });
 
   it('styles the highlight with tokens, so it reads in both themes', () => {
