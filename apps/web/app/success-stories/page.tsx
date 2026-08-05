@@ -9,6 +9,7 @@ import HelpGlyph from '../../components/HelpGlyph';
 import { getCoverForCampaign } from '../../lib/photo-catalog';
 import { optimizedCoverUrl } from '../../lib/img-optimize';
 import { formatMoneyStat, formatStat } from '../../lib/cause-landing';
+import { StatStrip } from '../../components/IndexHero';
 import StayInformed from '../../components/StayInformed';
 import SortSelect from './SortSelect';
 import { SORT_ORDER, isSortValue, type SortValue } from '../../lib/story-sort';
@@ -380,29 +381,35 @@ export default async function SuccessStoriesPage({
         {/* ── Our Impact in Numbers ──────────────────────────────────────── */}
         <section className="ss-impact" aria-labelledby="ss-impact-title">
           <h2 id="ss-impact-title">Our Impact in Numbers</h2>
-          <dl className="ss-impact-row">
-            {[
-              { k: 'campaigns', v: formatStat(campaigns), l: 'Stories shared' },
-              { k: 'supporters', v: formatStat(supporters), l: 'Supporters' },
-              { k: 'raised', v: formatMoneyStat(raisedCents), l: 'Raised together' },
-              { k: 'countries', v: formatStat(countries), l: 'Countries reached' },
+          {/* The SAME `StatStrip` /causes, /campaigns, /donate, /impact and all
+              20 /causes/<slug> pages render.
+
+              ⚠️ The FIGURES stay this page's own, and the labels are NOT
+              harmonised with the other surfaces — unlike /impact, where they
+              were the same numbers under different words. These count only
+              COMPLETED campaigns: "Stories shared" is not "Active campaigns",
+              and "Raised together" is the total behind finished stories, not
+              the platform total. Relabelling them to match would state
+              something false. The note below says so, and stays for that
+              reason where the cause pages dropped theirs.
+
+              What the swap fixes is presentation: this band drew the SAME heart
+              glyph on all five tiles, and carried its own copy of the em-dash
+              rule. The strip gives five distinct icons and one rule. */}
+          <StatStrip
+            label="Our impact in numbers"
+            tiles={[
+              { value: formatStat(campaigns), label: 'Stories shared' },
+              { value: formatStat(supporters), label: 'Supporters' },
+              { value: formatMoneyStat(raisedCents), label: 'Raised together' },
+              { value: formatStat(countries), label: 'Countries reached' },
               // The one mock figure kept, because it is true and checkable:
               // PLATFORM_FEE_PERCENT = 0. Labelled "platform fee" rather than
               // the mock's "funds to programs" — processing fees are real, so
               // the stronger claim would overstate it.
-              { k: 'fee', v: '0%', l: 'Platform fee' },
-            ].map((t, i) => (
-              <div className="ss-stat" key={t.k}>
-                <span className={`ss-stat-ic ss-stat-ic--${i}`} aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8Z" />
-                  </svg>
-                </span>
-                <dd>{t.v}</dd>
-                <dt>{t.l}</dt>
-              </div>
-            ))}
-          </dl>
+              { value: '0%', label: 'Platform fee' },
+            ]}
+          />
           <p className="ss-impact-note">
             Counted live from published campaigns and the countries CharitMe can take a donation
             in. A dash means the figure could not be read, never that it is zero.

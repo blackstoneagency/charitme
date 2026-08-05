@@ -9144,9 +9144,17 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   .cx-stats { margin-top: -28px; }
 }
 
+/* ⚠️ The -56px pull is OPT-IN, via the adjacency rules below.
+   It exists to lift the strip over the bottom of a photo hero, which is right
+   on /causes, /campaigns, /donate and /impact where the strip is the hero's
+   immediate next sibling. As a DEFAULT it was wrong: /about-us, /contact,
+   /faq and /success-stories put a heading above the strip, and the pull
+   dragged the strip up over it — "Our Impact So Far" was rendered clipped
+   behind the card in both themes. Adjacency states the condition instead of
+   every page having to remember to cancel it. */
 .cx-stats {
   position: relative; z-index: 1;
-  max-width: var(--container, 1200px); margin: -56px auto 44px;
+  max-width: var(--container, 1200px); margin: 0 auto 44px;
   padding: 22px 24px;
   border: 1px solid var(--b1); border-radius: var(--rxl);
   background: var(--s1); box-shadow: var(--shadow-lg, 0 24px 60px rgba(0,0,0,.5));
@@ -10007,17 +10015,6 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 /* ── Impact tiles ── */
 .ss-impact { border: 1px solid var(--b1); border-radius: var(--rxl); background: var(--s1); padding: 26px 24px; }
 .ss-impact h2 { margin: 0 0 20px; font-size: var(--fs-h2); font-weight: 800; letter-spacing: -.02em; color: var(--t1); }
-.ss-impact-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 16px; margin: 0; }
-.ss-stat { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px; text-align: center; }
-.ss-stat-ic { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; margin-bottom: 4px; border-radius: 12px; background: var(--s3); }
-.ss-stat-ic svg { width: 19px; height: 19px; }
-.ss-stat-ic--0 { color: var(--brand-text); }
-.ss-stat-ic--1 { color: var(--red-text); }
-.ss-stat-ic--2 { color: var(--green-text); }
-.ss-stat-ic--3 { color: var(--blue-text, var(--brand-text)); }
-.ss-stat-ic--4 { color: var(--orange-text); }
-.ss-stat dd { margin: 0; font-size: 25px; font-weight: 850; letter-spacing: -.02em; line-height: 1.1; color: var(--t1); }
-.ss-stat dt { font-size: 12.5px; color: var(--t3); }
 .ss-impact-note { margin: 18px 0 0; font-size: 12.5px; line-height: 1.6; color: var(--t3); text-align: center; }
 
 /* ── Share-your-story band ── */
@@ -10429,7 +10426,7 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   .ab-team-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (min-width: 900px) {
-  .ab-mission-band { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 34px; padding: 32px; }
+  .ab-mission-band { grid-template-columns: minmax(0, 0.62fr) minmax(0, 2fr); gap: 34px; padding: 32px; }
   .ab-story { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; padding: 32px; }
   .ab-cta { grid-template-columns: auto minmax(0, 1fr) auto; }
 }
@@ -10950,3 +10947,15 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 }
 .ab-team-in:hover { color: #0a66c2; border-color: #0a66c2; background: var(--s3); }
 .ab-team-in:focus-visible { outline: 2px solid var(--brand-text); outline-offset: 2px; }
+
+/* The strip lifts over a hero only when it directly follows one. */
+.cx-hero + .cx-stats,
+.cbx-hero + .cx-stats,
+.dn-hero + .cx-stats,
+.imp-hero + .cx-stats { margin-top: -56px; }
+
+/* Four across, as the reference sets them, once there is room. The 2-up
+   breakpoint stays for narrow viewports. */
+@media (min-width: 1000px) {
+  .ab-values-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}

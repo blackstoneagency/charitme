@@ -51,8 +51,10 @@ describe('no fabricated statistics', () => {
     // PLATFORM_FEE_PERCENT = 0, so the platform's cut really is 0%. The tile
     // says "Platform fee", NOT the mock's "Funds to Programs" — processing fees
     // are real, so the stronger claim would overstate it.
-    expect(code).toContain("v: '0%'");
-    expect(code).toContain("l: 'Platform fee'");
+    // The tile keys changed from v/l to value/label when the band was swapped
+    // for the shared StatStrip; the claim being guarded did not.
+    expect(code).toContain("value: '0%'");
+    expect(code).toContain("label: 'Platform fee'");
     expect(code).not.toContain('Funds to Programs');
   });
 
