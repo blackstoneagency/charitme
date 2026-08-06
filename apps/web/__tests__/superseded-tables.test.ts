@@ -38,6 +38,15 @@ const SUPERSEDED: Record<string, string> = {
   campaign_payment_exports:
     'Same unshipped payments v2 design. Exports today go through the payouts and ' +
     'ledger surfaces.',
+  marketing_referrals:
+    'NOT a missing reader — a different system. /dashboard/referrals is the ' +
+    'donor-facing referral surface and it already works, off share_events + ' +
+    'donations. marketing_referrals is keyed on referrer_contact_id -> ' +
+    'marketing_contacts, i.e. the marketing CRM, and NOTHING increments its ' +
+    'click_count / signup_count / donation_count / revenue_cents counters. A ' +
+    'reader over counters no writer touches renders a page of permanent zeros, ' +
+    'which reads as "your referrals earned nothing" rather than "this is not ' +
+    'built". The write path has to exist before the read path is worth having.',
   admin_settings:
     'platform_settings is the live singleton config store (13 call sites, ' +
     'CHECK (id = 1), jsonb config). admin_settings is its untyped key/value ' +
