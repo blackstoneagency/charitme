@@ -2690,7 +2690,20 @@ skipped workflow leaves its check pending forever and would deadlock a docs-only
 PR. Nothing is required today, which is why this is safe now — recorded so the
 next person does not find out the hard way.
 
-## 🛑 SUPABASE STAGING — blocked, and the pending count is **29** (Claude, 2026-08-03)
+## 🛑 SUPABASE STAGING — blocked, and the pending count is **30** (Claude, 2026-08-03)
+
+**+1 on 2026-08-02: `20260826000000_platform_reports.sql`.** This is the one that
+closes the last self-inflicted blocker on the transparency page — the
+downloadable impact/financial/annual reports had no table and no storage bucket,
+and were recorded as an open item rather than faked. The migration and its
+rollback are written and reviewed; applying them is now a single owner command
+rather than an engineering task. Two decisions worth reading before applying:
+a published row is **required** to have a file (`platform_reports_published_needs_file`)
+so a Download button can never be dead, and the **rollback deliberately does NOT
+drop the storage bucket** — that would delete the organisation's own published
+PDFs, which are not reconstructible from this schema.
+
+
 
 ⚠️ **Superseded in part — read the correction at the top of this file first.**
 The arithmetic below is sound and the drift guard on it is worth keeping, but the
@@ -2714,8 +2727,8 @@ all 18 in order and proved rollback.
 Nine migrations have been added since. So the count is arithmetic:
 
 ```
-116 local − 87 applied           = 29
-18 audited pending + 11 added    = 29   ✓ reconciles
+117 local − 87 applied           = 30
+18 audited pending + 12 added    = 30   ✓ reconciles
 ```
 
 All 18 audited-pending versions are still on disk under their original names.

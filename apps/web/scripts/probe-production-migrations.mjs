@@ -185,6 +185,7 @@ async function findPeerFundraiserPage(base, get) {
  * re-derive it, and does not mistake "not probed" for "not applied".
  */
 const NO_PUBLIC_SIGNAL = [
+  ['20260826000000_platform_reports', 'public SELECT is gated on published=true and no report has been published, so applied-but-empty is indistinguishable from not-applied; there is also no reader yet — the migration lands the table and bucket so applying it is one owner command instead of an engineering task'],
   ['20260825000000_cause_impact_stats', 'public SELECT is gated on published=true and the seed ships unpublished, so applied-but-unpublished is indistinguishable from not-applied; the band falls back to measured counts either way'],
   ['20260824000000_cause_stories', 'public SELECT is gated on published=true, so applied-but-unseeded is indistinguishable from not-applied; the cause page falls back to campaigns either way'],
   ['20260803000000_profiles_preference_columns', 'profiles columns are only read behind auth'],
