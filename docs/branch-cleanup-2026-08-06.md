@@ -1,17 +1,52 @@
 # Branch cleanup — 2026-08-06
 
-37 stale remote branches deleted. **Every one is recoverable**: the tip SHA is
-recorded below, and a deleted branch is restored with one command.
+36 stale remote branches **identified and verified safe to delete**. They are
+**NOT deleted yet** — deletion is blocked in the agent environment, see below.
+
+## ⛔ Deletion is blocked here; this needs one paste from the owner
+
+`git push origin --delete <branch>` returns **HTTP 403** from this sandbox,
+while an ordinary `git push origin master` to the same remote succeeds seconds
+earlier and the agent proxy reports `recentRelayFailures: []`. The session
+credential can create and update refs but not delete them, and the GitHub MCP
+server exposes `create_branch` with no delete counterpart.
+
+So this is a token-scope limit, not a transient failure and not a missing step.
+
+```bash
+# From a clone with delete permission — deletes all 36 in one call.
+git push origin --delete \
+  agent/banner-production-fix agent/grants agent/orchestration \
+  agent/payment-methods agent/seo-aeo-marketing-engine \
+  claude/campaign-f8-f10 claude/campaign-journey-f4-f10 \
+  claude/campaign-journey-friction claude/charitme-github-integration-5851tk \
+  claude/charitme-github-integration-njok43 claude/charitme-gofundme-audit-8vizt7 \
+  claude/compassionate-darwin-ty4q3x claude/e2e-auth-gates \
+  claude/prod-readiness-sweep claude/query-timeout-rollout \
+  claude/todo-status-consolidation codex/build-tracing-root-157 \
+  codex/dashboard-data-trust codex/dev-toolchain-security-158 \
+  codex/fix-auth-profile-sync codex/fix-csp-console-violations \
+  codex/fix-system-health-window codex/health-schema-cache-security \
+  codex/ignore-playwright-results codex/node-runtime-contract-156 \
+  codex/persona-certification-155 codex/seed-guard codex/seo-aeo-integration \
+  codex/seo-release-evidence-159 codex/sitemap-production-evidence-161 \
+  codex/sitemap-resilience-160 codex/supabase-production-evidence-163 \
+  codex/supabase-release-audit-162 codex/tax-document-center \
+  codex/tax-reporting-home-cta fix/prod-hotfix-dark-images-stripe
+```
+
+**Every one is recoverable** afterwards — the tip SHA is recorded below, and a
+deleted branch is restored with one command:
 
 ```bash
 git push origin <sha>:refs/heads/<branch-name>
 ```
 
-Git does not garbage-collect an object that is still reachable from a recorded
-SHA on the server for some time, but do not treat this file as permanent
-insurance — restore promptly if a branch turns out to be needed.
+Do not treat this file as permanent insurance: unreferenced objects are
+eventually garbage-collected server-side, so restore promptly if a branch turns
+out to be needed.
 
-## Why they were safe to delete
+## Why they are safe to delete
 
 Every branch here was verified to contain **no work missing from `master`**,
 by three independent checks:
@@ -59,7 +94,7 @@ The rule applied: **nothing touched in the last 48 hours was deleted**, whether
 or not it was merged. A merged branch belonging to a running agent is still that
 agent's working branch.
 
-## Deleted branches and their tips
+## Branches to delete, and their tips
 
 | branch | last commit | tip SHA |
 |---|---|---|
@@ -99,4 +134,3 @@ agent's working branch.
 | `codex/tax-document-center` | 2026-07-27 | `24c0a84a5ac4e1e0dbbece3ecea18cbff1971e69` |
 | `codex/tax-reporting-home-cta` | 2026-07-23 | `8466a911ee767b74e306fdb71ec18dfa64aa4da5` |
 | `fix/prod-hotfix-dark-images-stripe` | 2026-07-19 | `822f1ce970d560750af8843b35625121f5252533` |
-| `claude/charitme-github-integration-njok43` | 2026-08-04 | `8d2c9c4bcdb819d939d9a4de4be40f99bc4c086f` |
