@@ -36,7 +36,16 @@ declare
     'commission_requests','contact_messages','donation_forms','embedded_buttons',
     'email_campaigns','sms_campaigns','lead_outreach',
     'marketing_goals','marketing_opportunities','marketing_campaign_plans',
-    'marketing_campaign_plan_assets'
+    'marketing_campaign_plan_assets',
+    -- Added 2026-08-02. Each of these acquired a reader in the application after
+    -- this list was written, so they were being verified by nobody: a table with
+    -- a live reader and no coverage check is exactly the one whose seed shortfall
+    -- shows up as an empty page in production.
+    'analytics_snapshots','admin_notes',
+    -- Created by 20260826000000_platform_reports.sql. Reported as
+    -- "(not present)" until that migration is applied, which is the correct
+    -- answer rather than an error.
+    'platform_reports'
   ];
   t text;
   c bigint;
