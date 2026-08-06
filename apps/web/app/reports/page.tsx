@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { getHomeData } from '../../lib/home-data';
 import { formatHomeCents, shortHomeCount, shouldShowPlatformMetrics } from '../../lib/home-utils';
 import { PageBody, PageHero, Section, CardGrid, InfoCard, StatCard, CtaBand } from '../../components/PageShell';
+import PublishedReports from './PublishedReports';
 
 export const metadata: Metadata = {
   title: 'Reports & Research',
@@ -74,6 +75,11 @@ export default async function ReportsPage() {
           <StatCard value={measured && metrics!.trustAvg > 0 ? `${metrics!.trustAvg}%` : dash} label="Average trust score" />
         </CardGrid>
       </Section>
+
+      {/* Renders nothing until the platform_reports migration is applied and a
+          report is published — a "Reports" heading over an empty list would
+          state that the organisation publishes none. */}
+      <PublishedReports />
 
       <Section id="methodology" heading="How these figures are produced" >
         <CardGrid min={280}>

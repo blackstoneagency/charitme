@@ -31,8 +31,12 @@ function literalPostgrestTables(): Set<string> {
       .map((path) => readFileSync(path, 'utf8'))
       .join('\n'),
   );
+  // `storage.from('bucket')` is a STORAGE BUCKET, not a PostgREST table, and has
+  // no `create table` to find — matching it reported the `reports` bucket as a
+  // table with no migration. The negative lookbehind excludes it while leaving
+  // `supabase.from('table')` and `supabaseAdmin.from('table')` matched.
   return new Set(
-    [...source.matchAll(/\.from\(\s*['"]([a-z_][a-z0-9_]*)['"]\s*\)/gi)]
+    [...source.matchAll(/(?<!storage)\.from\(\s*['"]([a-z_][a-z0-9_]*)['"]\s*\)/gi)]
       .map((match) => match[1]),
   );
 }
