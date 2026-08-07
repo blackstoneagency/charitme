@@ -81,6 +81,53 @@ describe('the hero also serves the visitor who came to RAISE money', () => {
   it('does not leave a second Impact link in the row it replaced', () => {
     expect(heroActionsCode()).not.toMatch(/See Our Impact/);
   });
+
+  it('gets its own purple treatment, not the plain secondary style', () => {
+    expect(heroActions()).toMatch(/mirror-btn-create[^>]*>\s*Create Campaign/);
+  });
+
+  it('does not reuse the brand ramp that belongs to Donate Now', () => {
+    // The two sit side by side. Sharing a background makes the hero look like
+    // it is showing the same button twice.
+    const css = read('app/globals.css');
+    const rule = css.slice(css.indexOf('.mirror-btn-create {'));
+    expect(rule.slice(0, rule.indexOf('}'))).not.toContain('--grad-brand');
+  });
+});
+
+describe('the Create Campaign button stays readable and accessible', () => {
+  const css = read('app/globals.css');
+
+  it('every gradient stop clears 4.5:1 against its white label', () => {
+    // The label is 14px at weight 850 — NOT WCAG "large text" (18.66px bold),
+    // so 3:1 is not enough. The livelier violets all fail this, which is why
+    // the ramp is dark: #8b5cf6 is 4.23, #a855f7 is 3.96, #6366f1 is 4.47.
+    const ramp = /--grad-create:\s*linear-gradient\([^)]*\)/.exec(css)?.[0] ?? '';
+    const stops = ramp.match(/#[0-9a-fA-F]{6}/g) ?? [];
+    expect(stops.length, 'no gradient stops found').toBeGreaterThan(1);
+
+    const lum = (hex: string) => {
+      const n = hex.replace('#', '');
+      const ch = [0, 2, 4].map((i) => parseInt(n.slice(i, i + 2), 16) / 255);
+      const f = (c: number) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+      return 0.2126 * f(ch[0]!) + 0.7152 * f(ch[1]!) + 0.0722 * f(ch[2]!);
+    };
+    for (const stop of stops) {
+      const ratio = (1 + 0.05) / (lum(stop) + 0.05);
+      expect(ratio, `${stop} is ${ratio.toFixed(2)}:1 against white`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it('drops the sheen for people who asked for reduced motion', () => {
+    // A sweeping highlight is exactly what that setting asks not to be shown.
+    const rm = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)'));
+    expect(rm.slice(0, rm.indexOf('\n}'))).toMatch(/\.mirror-btn-create[^{]*\{[^}]*animation: none/);
+  });
+
+  it('cannot let the sheen swallow its own click', () => {
+    const rule = css.slice(css.indexOf('.mirror-btn-create::after'));
+    expect(rule.slice(0, rule.indexOf('}'))).toContain('pointer-events: none');
+  });
 });
 
 describe('removing the Impact button did not orphan /impact', () => {
