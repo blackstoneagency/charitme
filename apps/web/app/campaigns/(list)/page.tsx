@@ -49,6 +49,22 @@ type CampaignRow = {
 const PAGE_SIZE = 12;
 
 /**
+ * The reference's five named tiles, mapped to real cause slugs.
+ *
+ * Each `slug` is verified present in `lib/causes.ts`, and `?cause=` is the
+ * filter this page already applies — so the label is the design's and the
+ * destination is a page with campaigns on it. `icon` names an existing
+ * CAMPAIGN_CATEGORY purely so `CategoryGlyph` has a glyph to draw.
+ */
+const REFERENCE_TILES = [
+  { slug: 'disaster-relief', label: 'Emergency Aid', icon: 'Emergency' },
+  { slug: 'food-hunger', label: 'Food & Hunger', icon: 'Community' },
+  { slug: 'people-in-need', label: 'Shelter & Housing', icon: 'Nonprofit' },
+  { slug: 'youth-development', label: 'Children & Youth', icon: 'Education' },
+  { slug: 'women-girls', label: 'Women & Families', icon: 'Medical' },
+] as const;
+
+/**
  * The design's "Goal Range" select.
  *
  * Bands are in CENTS because `campaigns.goal_amount` is in cents — the single
@@ -507,6 +523,28 @@ export default async function CampaignsPage({ searchParams }: Props) {
           </span>
           <span className="cbx-cat-label">All Campaigns</span>
         </Link>
+        {/* ── The reference's five named tiles ──────────────────────────────
+            "Emergency Aid", "Food & Hunger", "Shelter & Housing", "Children &
+            Youth" and "Women & Families" are not values of `campaigns.category`
+            — filtering on them directly would send every one to an empty page.
+
+            They ARE causes, though, and `?cause=` is a real filter this page
+            already applies: a cause maps to several categories, which is
+            exactly what these broader labels mean. So the reference's wording
+            is reproduced verbatim and each tile lands on populated results. */}
+        {REFERENCE_TILES.map((t) => (
+          <Link
+            key={t.slug}
+            href={`/campaigns?cause=${t.slug}`}
+            className={`cbx-cat${cause?.slug === t.slug ? ' is-active' : ''}`}
+          >
+            <span className="cbx-cat-icon" data-cat={t.icon} aria-hidden="true">
+              <CategoryGlyph category={t.icon} />
+            </span>
+            <span className="cbx-cat-label">{t.label}</span>
+          </Link>
+        ))}
+
         {CAMPAIGN_CATEGORIES.map((c) => (
           <Link key={c} href={catHref(c)} className={`cbx-cat${category === c ? ' is-active' : ''}`}>
             <span className="cbx-cat-icon" data-cat={c} aria-hidden="true">

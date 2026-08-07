@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { PublicIcon } from '../../components/PublicIcon';
 
 const POPULAR_REQUESTS = [
@@ -14,12 +14,29 @@ const POPULAR_REQUESTS = [
 ] as const;
 
 export default function AiCampaignPage() {
+  // `useSearchParams` suspends, and an un-suspended call de-opts the whole route
+  // to client-side rendering at build time.
+  return (
+    <Suspense fallback={null}>
+      <AiCampaignPrompt />
+    </Suspense>
+  );
+}
+
+function AiCampaignPrompt() {
   const router = useRouter();
-  const [prompt, setPrompt] = useState('');
+  const params = useSearchParams();
+  // `?q=` is what /ai-fundraising's chips send. It was READ BY NOTHING: the
+  // page seeded an empty box, so picking "Medical fundraiser for a loved one"
+  // there landed here blank and the choice was silently discarded.
+  const [prompt, setPrompt] = useState(() => params.get('q') ?? '');
 
   const start = () => {
     const q = prompt.trim();
-    router.push(q ? `/create?ai=${encodeURIComponent(q)}` : '/create');
+    // The twelve-step AI flow, not the generic wizard. `/create?ai=` seeded a
+    // form field; `/create/ai?cause=` starts the guided build the button
+    // promises.
+    router.push(q ? `/create/ai?cause=${encodeURIComponent(q)}` : '/create/ai');
   };
 
   return (
