@@ -65,6 +65,34 @@ Three separate clients, never mix them:
   the code. Do not "restore" a percentage platform fee on the strength of the old
   wording, or of the inert helpers noted below.
 
+### The two 12-step flows — one list each, in `lib/*-core.ts`
+- **Donations**: `lib/donation-flow-core.ts`. Steps 6–8 are `hostedByStripe` — rendered
+  by Stripe Checkout, not by us. Building the artwork's raw card form would put this
+  site in PCI-DSS scope.
+- **Campaign creation**: `lib/campaign-flow-core.ts`. `lib/wizard-steps.ts` is a thin
+  **view adapter** over it — do NOT re-declare the step list there, it was duplicated
+  once already and `computeScore` held a third copy that had gone stale.
+- Both share the same rule: **a step must map to something that can actually be
+  stored.** `rewards` → `campaign_rewards`, `verify` → `verification_documents`. The
+  donation model refuses the artwork's "notify the honoree" box for this reason —
+  there is nowhere to put an honoree address.
+- ⚠️ `rewards` and `verify` are **optional** (`required: false`). Rewards are
+  meaningless for a memorial; verification is irrelevant to an individual. Making
+  either mandatory blocks most organizers on a screen that does not apply to them.
+- ⚠️ `publish` and `share` are **`postPublish`**, and `canGoBack` returns false for
+  them. The campaign has a public URL by then, so Back must not reopen the builder —
+  the same rule that stops the donation flow reopening a paid form.
+- ⚠️ **Rewards are written AFTER publish**, because `POST /api/campaigns/[id]/rewards`
+  needs an id that does not exist during the build. So a reward write can fail on a
+  campaign that IS live: `summarizeRewardSync` must never phrase that as a failed
+  publish, or the organizer retries and creates a second campaign.
+- ⚠️ **Draft migration is the part that breaks real users, silently.** Drafts live 7
+  days in localStorage *and* `campaign_wizard_drafts`, so in-flight drafts carry step
+  keys from every earlier shape (9-step `type`/`category`/`location`; 7-step
+  `summary`, `live`). An unmapped key renders no branch — which looks exactly like the
+  organizer's work being deleted. `normalizeStep` is tested to never return a step the
+  wizard cannot render.
+
 ### Auth flow
 1. `middleware.ts` refreshes session on every non-API request; redirects unauthenticated users hitting `/create` or `/dashboard` to `/login?next=<path>`
 2. Login/signup call `createClient()` from `lib/supabase-browser.ts`
