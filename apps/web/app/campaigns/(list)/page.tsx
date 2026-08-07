@@ -753,7 +753,10 @@ export default async function CampaignsPage({ searchParams }: Props) {
                 </Link>
               </li>
               <li>
-                <Link href="/create/choose-path">
+                {/* Was pointing at /create/choose-path — a control labelled
+                    "Share" that started a fundraiser instead. /ambassadors is
+                    the surface that actually exists for spreading the word. */}
+                <Link href="/ambassadors">
                   <strong>Share</strong>
                   <span>Spread the word and inspire others.</span>
                 </Link>
@@ -762,6 +765,13 @@ export default async function CampaignsPage({ searchParams }: Props) {
                 <Link href="/get-involved">
                   <strong>Volunteer</strong>
                   <span>Give your time and skills to help.</span>
+                </Link>
+              </li>
+              {/* The reference's fourth action. It was missing entirely. */}
+              <li>
+                <Link href="/create/choose-path">
+                  <strong>Fundraise</strong>
+                  <span>Start a campaign for a cause you care about.</span>
                 </Link>
               </li>
             </ul>
