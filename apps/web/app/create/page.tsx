@@ -14,7 +14,8 @@ import {
   describePublishFailure,
   type CampaignDraft,
 } from '../../lib/campaign-draft';
-import { WIZARD_STEPS, normalizeStep, minutesRemaining, type WizardStep } from '../../lib/wizard-steps';
+import { WIZARD_STEPS, normalizeStep, minutesRemaining, isOptionalStep, type WizardStep } from '../../lib/wizard-steps';
+import { CAMPAIGN_STEPS, CAMPAIGN_STEP_META, canGoBack, stepPosition } from '../../lib/campaign-flow-core';
 import { evaluateDonorView } from '../../lib/donor-preview';
 
 /** A pristine wizard form — also what "start another campaign" resets to (F8). */
@@ -665,7 +666,7 @@ export default function CreatePage() {
       }
     };
     const onLeave = () => {
-      if (step === 'live' || internalNavRef.current) return;
+      if (step === 'publish' || internalNavRef.current) return;
       trackBuilder('abandon', step);
     };
     document.addEventListener('click', onNavigate, true);
@@ -700,7 +701,7 @@ export default function CreatePage() {
   }, [uploadedImages]);
 
   useEffect(() => {
-    if (step !== 'payout' && step !== 'summary') return;
+    if (step !== 'payout' && step !== 'review') return;
     setPayoutLoading(true);
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -973,7 +974,7 @@ export default function CreatePage() {
       if (typeof window !== 'undefined') localStorage.removeItem('charitme-builder-session');
       setPublishedSlug(typeof data.slug === 'string' ? data.slug : '');
       setPublishedId(typeof data.id === 'string' ? data.id : '');
-      setStep('live');
+      setStep('publish');
     } catch (e: unknown) {
       // Network/transport failure — the draft is still saved locally and remotely.
       setError(describePublishFailure(e instanceof Error ? e.message : '').message);
@@ -1086,7 +1087,7 @@ export default function CreatePage() {
   const journeyState = (i: number): 'done' | 'active' | '' => {
     if (i === 0) return 'done';
     if (i === 1) return stepIdx <= 6 ? 'active' : 'done';
-    if (i === 2) { if (step === 'live') return 'done'; if (step === 'summary') return 'active'; return ''; }
+    if (i === 2) { if (step === 'publish') return 'done'; if (step === 'review') return 'active'; return ''; }
     return '';
   };
 
@@ -1113,7 +1114,7 @@ export default function CreatePage() {
     <CharitMeShell active="My Campaigns" userName={userName} userEmail={userEmail} userAvatarUrl={userAvatarUrl} guestMode={isGuest !== false} hideSidebar>
 
       {/* ── F8: choose among several in-flight drafts ── */}
-      {showDraftPicker && draftList.length > 1 && step !== 'live' && (
+      {showDraftPicker && draftList.length > 1 && step !== 'publish' && (
         <div role="region" aria-label="Choose a draft to continue" style={{ background: 'var(--s2, #f5f7fb)', borderBottom: '1px solid var(--b1, #e8ecf4)', padding: '16px 18px' }}>
           <div style={{ maxWidth: 720, margin: '0 auto' }}>
             <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--t1, #1a1a2e)', marginBottom: 2 }}>
@@ -1161,7 +1162,7 @@ export default function CreatePage() {
       )}
 
       {/* ── Draft recovery banner ── */}
-      {recoverableDraft && step !== 'live' && (
+      {recoverableDraft && step !== 'publish' && (
         <div role="region" aria-label="Resume unfinished campaign" style={{ background: 'linear-gradient(135deg, var(--violet), var(--violet-2))', color: '#fff', padding: '14px 18px', display: 'flex', minWidth: 0, flexWrap: 'wrap', alignItems: 'center', gap: 12, justifyContent: 'center' }}>
           <span style={{ fontSize: 20 }} aria-hidden>↩️</span>
           <span style={{ fontWeight: 700, fontSize: 15 }}>
@@ -1198,7 +1199,7 @@ export default function CreatePage() {
       )}
 
       {/* ── Gradient Hero Banner ── */}
-      {step !== 'live' && (
+      {step !== 'publish' && (
         <div className="cr2-hero">
           <div className="cr2-hero-glow" />
           <div className="cr2-hero-inner">
@@ -1232,7 +1233,7 @@ export default function CreatePage() {
       <div className="cr2-page">
 
         {/* ── Step Progress Track ── */}
-        {step !== 'live' && (
+        {step !== 'publish' && (
           <div className="cr2-track-wrap">
             <div className="cr2-track">
               {WIZARD_STEPS.map((s, i) => {
@@ -1258,7 +1259,7 @@ export default function CreatePage() {
         )}
 
         {/* ── Main Layout ── */}
-        {step !== 'live' ? (
+        {step !== 'publish' ? (
           <div className="cr2-layout">
 
             {/* ─── Left: wizard form card ─── */}
@@ -1943,7 +1944,7 @@ export default function CreatePage() {
               )}
 
               {/* ── Step: Summary / Review & Launch ── */}
-              {step === 'summary' && (
+              {step === 'review' && (
                 <div className="cr2-launch-panel">
                   <div className="cr2-launch-header">
                     <h2>Your Fundraising is Ready to Launch!!</h2>
@@ -2070,12 +2071,12 @@ export default function CreatePage() {
               <div className="cr2-nav">
                 <button type="button" className="cr2-nav-back" onClick={goPrev} disabled={stepIdx === 0}>← Back</button>
                 <div style={{ display: 'flex', minWidth: 0, gap: 10, alignItems: 'center' }}>
-                  {stepIdx >= 1 && step !== 'payout' && step !== 'summary' && (
+                  {stepIdx >= 1 && step !== 'payout' && step !== 'review' && (
                     <button type="button" className="cr2-nav-draft" onClick={() => void saveDraft()} disabled={loading}>
                       {loading ? 'Saving…' : 'Save Draft'}
                     </button>
                   )}
-                  {step !== 'summary' && (
+                  {step !== 'review' && (
                     <button type="button" className="cr2-nav-next" onClick={goNext}>
                       {step === 'payout' && !payoutLinked ? 'Skip — set up later →' : 'Continue →'}
                     </button>
@@ -2329,16 +2330,20 @@ interface ScoreResult {
 }
 
 function computeScore(form: FormState, step: WizardStep, payoutLinked: boolean, isGuest: boolean | null): ScoreResult {
-  const stepOrder: WizardStep[] = ['basics','story','title','goal','media','payout','summary','live'];
-  const si = stepOrder.indexOf(step);
+  // ⚠️ This used to carry its own hand-written copy of the step order, which had
+  // already drifted out of sync with the real one. The thresholds are now named
+  // steps resolved against the single list in campaign-flow-core, so reordering
+  // the flow cannot silently change what this score means.
+  const reached = (target: WizardStep) =>
+    CAMPAIGN_STEPS.indexOf(step) >= CAMPAIGN_STEPS.indexOf(target);
 
-  const identity: ScoreState   = isGuest === false ? 'verified' : (si >= 3 ? 'watch' : 'pending');
+  const identity: ScoreState   = isGuest === false ? 'verified' : (reached('story') ? 'watch' : 'pending');
   const beneficiary: ScoreState = form.description.length > 200 ? 'verified'
     : form.description.length > 50 ? 'watch' : 'pending';
-  const payout: ScoreState     = payoutLinked ? 'verified' : (si >= 7 ? 'watch' : 'pending');
+  const payout: ScoreState     = payoutLinked ? 'verified' : (reached('publish') ? 'watch' : 'pending');
   const storyQuality: ScoreState = form.description.length > 400 ? 'verified'
     : form.description.length > 100 ? 'watch' : 'pending';
-  const evidence: ScoreState   = form.coverImageUrl ? 'verified' : (si >= 6 ? 'watch' : 'pending');
+  const evidence: ScoreState   = form.coverImageUrl ? 'verified' : (reached('review') ? 'watch' : 'pending');
 
   const pts = { pending: 0, watch: 10, verified: 20 };
   const total = pts[identity] + pts[beneficiary] + pts[payout] + pts[storyQuality] + pts[evidence];
