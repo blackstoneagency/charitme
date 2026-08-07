@@ -10,6 +10,7 @@ import { totalPages } from '../../../lib/pagination';
 import { PUBLISH_MIN_STORY_CHARS, PUBLISH_MIN_GOAL_CENTS } from '../../../lib/campaign-readiness';
 import { likeTerm } from '../../../lib/campaign-search';
 import { notExpiredFilter } from '../../../lib/campaign-visibility-core';
+import { insertTolerantOfMissingColumns } from '../../../lib/campaign-insert-columns';
 
 function slugify(text: string): string {
   return text
@@ -37,6 +38,10 @@ const CreateSchema = z.object({
   evidenceNote: z.string().max(1000).optional(),
   location: z.string().max(120).optional(),
   videoUrl: z.string().url().nullable().optional(),
+  // Step 1 of the builder: who is RAISING. Distinct from beneficiary_*, which
+  // record who benefits. Defaulted rather than required so an older client — or
+  // a draft resumed from before step 1 existed — still publishes.
+  campaignPath: z.enum(['personal', 'nonprofit', 'team']).default('personal'),
   // 'draft' saves without publishing; 'active' publishes immediately (default)
   status: z.enum(['draft', 'active']).default('active'),
 }).superRefine((v, ctx) => {
@@ -94,7 +99,7 @@ export async function POST(request: NextRequest) {
   const parsed = CreateSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
-  const { title, tagline, description, goalAmount, deadline, category, coverImageUrl, imageUrls, beneficiaryName, beneficiaryRelationship, evidenceNote, location, videoUrl, status } = parsed.data;
+  const { title, tagline, description, goalAmount, deadline, category, coverImageUrl, imageUrls, beneficiaryName, beneficiaryRelationship, evidenceNote, location, videoUrl, status, campaignPath } = parsed.data;
 
   const baseSlug = slugify(title);
   const slug = `${baseSlug}-${Date.now().toString(36)}`;
@@ -120,27 +125,31 @@ export async function POST(request: NextRequest) {
     visibility: 'public',
   };
 
-  // Try inserting with image_urls; fall back gracefully if column doesn't exist yet
-  // PostgREST schema-cache miss = PGRST204; PostgreSQL undefined_column = 42703
-  const isImageUrlsError = (err: { code?: string; message?: string } | null) =>
-    err != null &&
-    (err.code === 'PGRST204' || err.code === '42703') &&
-    (err.message ?? '').includes('image_urls');
-
-  let result = await supabaseAdmin
-    .from('campaigns')
-    .insert({ ...baseInsert, image_urls: imageUrls ?? [] } as typeof baseInsert)
-    .select('id, slug')
-    .single();
-
-  if (isImageUrlsError(result.error)) {
-    // Column not yet migrated — insert without it
-    result = await supabaseAdmin
-      .from('campaigns')
-      .insert(baseInsert)
-      .select('id, slug')
-      .single();
-  }
+  // Insert with the optional columns, retrying without whichever the database
+  // says it lacks. Migrations here are applied by the owner rather than by
+  // deploy, so `campaign_path` does not exist the moment this code ships —
+  // inserting it unconditionally would fail every campaign creation until
+  // someone ran the SQL. See lib/campaign-insert-columns.ts.
+  //
+  // ⚠️ This replaced a hand-rolled fallback that handled `image_urls` ALONE.
+  // With two independently-missing columns that shape needs four branches; it
+  // would have inserted successfully without images and then failed outright on
+  // campaign_path.
+  const { result } = await insertTolerantOfMissingColumns(
+    {
+      ...baseInsert,
+      image_urls: imageUrls ?? [],
+      campaign_path: campaignPath ?? 'personal',
+    },
+    // `await`ed rather than returned directly: PostgrestBuilder is a thenable,
+    // not a Promise, so returning it loses the result type.
+    async (payload) =>
+      await supabaseAdmin
+        .from('campaigns')
+        .insert(payload as typeof baseInsert)
+        .select('id, slug')
+        .single(),
+  );
 
   const { data, error } = result;
 
