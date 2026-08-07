@@ -49,9 +49,11 @@ const DELIBERATELY_UNREAD: Readonly<Record<string, string>> = {
   // pending; the old wording broke that rule in a comment, which is where nobody
   // was checking it. The absence of a reader is a CODE fact and is verified right
   // here; the migration's state in production is not, so it is no longer claimed.
-  organizations: 'multi-tenancy; no reader in app code (production state unknown)',
-  organization_members: 'multi-tenancy; no reader in app code (production state unknown)',
-  brands: 'multi-tenancy; no reader in app code (production state unknown)',
+  // ── organizations / organization_members / brands: REMOVED from this list.
+  // They gained real readers in `lib/organizations-server.ts`, which is exactly
+  // what this ratchet is for — an entry that stops being true has to come out,
+  // or the list slowly becomes a record of what USED to be unread. The comment
+  // above still applies to the entries that remain.
 
   // Payment observability. Three of the four tables from 20260608020000 have no
   // code on either side; the fourth (campaign_payment_disputes) does.
