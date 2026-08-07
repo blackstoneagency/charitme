@@ -2690,7 +2690,20 @@ skipped workflow leaves its check pending forever and would deadlock a docs-only
 PR. Nothing is required today, which is why this is safe now — recorded so the
 next person does not find out the hard way.
 
-## 🛑 SUPABASE STAGING — blocked, and the pending count is **30** (Claude, 2026-08-03)
+## 🛑 SUPABASE STAGING — blocked, and the pending count is **31** (Claude, 2026-08-03)
+
+**+1 on 2026-08-07: `20260827000000_campaign_path.sql`.** Adds
+`campaigns.campaign_path` for step 1 of the twelve-step builder — who is RAISING
+(personal / nonprofit / team), which is not the same question as the
+`beneficiary_*` columns, which record who BENEFITS.
+
+⚠️ **The application code does NOT wait for this migration.** The campaign insert
+retries without the column when the database says it lacks it
+(`lib/campaign-insert-columns.ts`), because a required insert field for an
+unapplied column would fail *every* campaign creation — the funnel the whole site
+depends on. Until the migration is applied, campaigns are created normally and
+simply record no path, and the campaign page treats an absent value as
+`'personal'`. Applying it is a pure improvement with no coordinated deploy.
 
 **+1 on 2026-08-02: `20260826000000_platform_reports.sql`.** This is the one that
 closes the last self-inflicted blocker on the transparency page — the
@@ -2724,11 +2737,11 @@ that day**:
 dump confirmed the objects were absent, and a restored production clone applied
 all 18 in order and proved rollback.
 
-Nine migrations have been added since. So the count is arithmetic:
+Thirteen migrations have been added since. So the count is arithmetic:
 
 ```
-117 local − 87 applied           = 30
-18 audited pending + 12 added    = 30   ✓ reconciles
+118 local − 87 applied           = 31
+18 audited pending + 13 added    = 31   ✓ reconciles
 ```
 
 All 18 audited-pending versions are still on disk under their original names.

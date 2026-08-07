@@ -1024,6 +1024,10 @@ export default function CreatePage() {
           beneficiaryRelationship: form.beneficiaryRelationship.trim() || undefined,
           location,
           status,
+          // ⚠️ Step 1's answer. This was MISSING: the builder asked who is
+          // raising, used it to word the verification step, and then dropped it
+          // on publish — a question whose answer goes nowhere.
+          campaignPath: form.campaignPath || 'personal',
         }),
       });
       const data = await res.json();

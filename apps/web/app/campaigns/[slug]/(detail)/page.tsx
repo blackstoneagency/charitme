@@ -118,6 +118,36 @@ const getOrganizerCreatorHandle = cache(async (userId: string | null): Promise<s
   }
 });
 
+/**
+ * Is the organizer's identity actually verified?
+ *
+ * ⚠️ The campaign page previously rendered a hardcoded "✓ Verified" chip on
+ * EVERY campaign. Nothing was checked — a brand-new account with no documents
+ * and no review carried the same badge as a verified one, in the place a donor
+ * looks when deciding whether to trust a stranger with money. That is the worst
+ * kind of false trust signal, because it is most persuasive exactly where it is
+ * least earned.
+ *
+ * `profiles.identity_verified` is the real marker. Read separately and
+ * defensively rather than added to the campaign query's profile embed: a
+ * selected column that does not exist errors the whole query, and this page
+ * 404s. Falling back to `false` means an unknown answer shows NO badge, which is
+ * the safe direction — under-claiming trust, never over-claiming it.
+ */
+const getOrganizerVerified = cache(async (userId: string | null): Promise<boolean> => {
+  if (!userId) return false;
+  try {
+    const { data } = await supabaseAdmin
+      .from('profiles')
+      .select('identity_verified')
+      .eq('id', userId)
+      .maybeSingle();
+    return (data as { identity_verified?: boolean } | null)?.identity_verified === true;
+  } catch {
+    return false;
+  }
+});
+
 async function getDonorMessages(campaignId: string) {
   const { data } = await boundedQuery(() => supabaseAdmin
     .from('donor_messages')
@@ -400,6 +430,12 @@ export default async function CampaignPage({ params, searchParams }: Props) {
   // creator" means, and 150 of the 500 profiles do not satisfy it. Linking via a
   // service-role lookup would surface pages that 404 for the visitor who clicks.
   const creatorHandle = await getOrganizerCreatorHandle(campaign.user_id);
+  const organizerVerified = await getOrganizerVerified(campaign.user_id);
+  // Step 1 of the builder. Absent on every campaign created before that step
+  // existed, and on any deployment where the migration has not been applied —
+  // both mean 'personal', which is what the old builder always produced.
+  const campaignPath =
+    (campaign as { campaign_path?: string }).campaign_path ?? 'personal';
 
   const raised = campaign.raised_amount ?? 0;
   const goal = campaign.goal_amount || 1;
@@ -618,10 +654,37 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             ) : (
               <b style={{ color: 'var(--ink)', fontWeight: 650 }}>{organizer.full_name ?? 'CharitMe Organizer'}</b>
             )}
-            {/* `var(--green-text)` comes from master's contrast pass — the
-                hardcoded #15803d it replaced fails AA. Kept over my side of the
-                conflict, which only meant to add the creator link. */}
-            {' '}<span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'rgba(16,185,129,.14)', color: 'var(--green-text)', borderRadius: 999, padding: '2px 8px', fontSize: 11, fontWeight: 650 }}>✓ Verified</span>
+            {/* ⚠️ This chip was UNCONDITIONAL — every campaign claimed "✓ Verified"
+                whether or not anything had been verified. It now renders only when
+                `profiles.identity_verified` is true, and an unknown answer shows
+                nothing. A donor reads this badge as "someone checked"; showing it
+                by default made it worthless at best and misleading at worst.
+
+                `var(--green-text)` comes from master's contrast pass — the
+                hardcoded #15803d it replaced fails AA. */}
+            {organizerVerified && (
+              <>
+                {' '}<span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'rgba(16,185,129,.14)', color: 'var(--green-text)', borderRadius: 999, padding: '2px 8px', fontSize: 11, fontWeight: 650 }}>✓ Verified</span>
+              </>
+            )}
+            {/* Step 1's answer, stated as the SELF-DECLARATION it is. The builder
+                asks who is raising; nobody checks it at that point, so the wording
+                must not borrow the authority of the verified chip above. 'personal'
+                is the default and adds nothing, so it renders nothing. */}
+            {campaignPath === 'nonprofit' && (
+              <>
+                {' '}<span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'var(--s3)', color: 'var(--t2)', borderRadius: 999, padding: '2px 8px', fontSize: 11, fontWeight: 650 }}>
+                  Nonprofit — self-declared
+                </span>
+              </>
+            )}
+            {campaignPath === 'team' && (
+              <>
+                {' '}<span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'var(--s3)', color: 'var(--t2)', borderRadius: 999, padding: '2px 8px', fontSize: 11, fontWeight: 650 }}>
+                  Team fundraiser
+                </span>
+              </>
+            )}
             {' '}· {campaign.location ?? 'New York, USA'}
           </p>
         </div>
