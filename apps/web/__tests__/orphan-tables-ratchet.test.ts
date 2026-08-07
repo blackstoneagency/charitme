@@ -37,21 +37,12 @@ const DELIBERATELY_UNREAD: Readonly<Record<string, string>> = {
   // Deliberate, and pinned in detail by orphan-table-hazards.test.ts.
   trust_scores: 'stale rows; the live computation is used instead',
 
-  // Code-complete but inert: nothing in `app/`, `lib/` or `components/` reads
-  // any of the three.
-  //
-  // ⚠️ The reason here USED to read "migration unapplied in production". That is
-  // not something this repo can know. `20260807000000_organizations_multitenancy`
-  // is one of the migrations `scripts/probe-production-migrations.mjs` lists with
-  // NO public signal — precisely because these tables have no reader, so there is
-  // no route whose success or failure would reveal the answer. The script's own
-  // governing rule is that APPLIED is proof and "no proof" is NOT evidence of
-  // pending; the old wording broke that rule in a comment, which is where nobody
-  // was checking it. The absence of a reader is a CODE fact and is verified right
-  // here; the migration's state in production is not, so it is no longer claimed.
-  organizations: 'multi-tenancy; no reader in app code (production state unknown)',
-  organization_members: 'multi-tenancy; no reader in app code (production state unknown)',
-  brands: 'multi-tenancy; no reader in app code (production state unknown)',
+  // ⚠️ `organizations`, `organization_members` and `brands` USED to be listed
+  // here as having no reader in app code. They now have one —
+  // `lib/organizations-server.ts` reads all three — so they have been removed
+  // rather than left with a reason that is no longer true. This is exactly the
+  // transition the STALE check below exists to force: the ratchet fired, and the
+  // fix is to drop the entry, not to widen the exemption.
 
   // Payment observability. Three of the four tables from 20260608020000 have no
   // code on either side; the fourth (campaign_payment_disputes) does.

@@ -12,6 +12,7 @@ import {
   emptyDraftReward,
   rewardAmountCents,
   summarizeRewardSync,
+  parseDraftRewards,
   toRewardPayloads,
   validateDraftReward,
   validateDraftRewards,
@@ -150,6 +151,39 @@ describe('toRewardPayloads', () => {
   it('trims whitespace so titles are stored clean', () => {
     const [payload] = toRewardPayloads([reward({ title: '  Tote bag  ' })]);
     expect(payload!.title).toBe('Tote bag');
+  });
+});
+
+describe('parseDraftRewards', () => {
+  it('round-trips what the builder stores', () => {
+    const original = [reward({ key: 'a', description: 'Nice', itemLimit: '10' })];
+    expect(parseDraftRewards(JSON.stringify(original))).toEqual(original);
+  });
+
+  it('never throws on junk — an unreadable draft must not cost the campaign', () => {
+    for (const raw of ['', null, undefined, 'not json', '{}', '42', '"a string"', '[null, 3]']) {
+      expect(() => parseDraftRewards(raw)).not.toThrow();
+    }
+    expect(parseDraftRewards('not json')).toEqual([]);
+    expect(parseDraftRewards('{}')).toEqual([]);
+    expect(parseDraftRewards('[null, 3]')).toEqual([]);
+  });
+
+  it('coerces non-string fields rather than trusting the stored shape', () => {
+    const [restored] = parseDraftRewards(JSON.stringify([{ title: 42, amount: null, key: 'k' }]));
+    expect(restored!.title).toBe('');
+    expect(restored!.amount).toBe('');
+  });
+
+  it('gives every row a key, so React does not reuse inputs across rows', () => {
+    const rows = parseDraftRewards(JSON.stringify([{ title: 'a' }, { title: 'b' }]));
+    expect(rows.map((r) => r.key)).toEqual(['restored-0', 'restored-1']);
+    expect(new Set(rows.map((r) => r.key)).size).toBe(rows.length);
+  });
+
+  it('caps a hand-edited draft at the maximum', () => {
+    const many = Array.from({ length: MAX_REWARDS_PER_CAMPAIGN + 10 }, (_, i) => ({ title: `t${i}` }));
+    expect(parseDraftRewards(JSON.stringify(many))).toHaveLength(MAX_REWARDS_PER_CAMPAIGN);
   });
 });
 

@@ -16,6 +16,18 @@ import {
 } from '../../lib/campaign-draft';
 import { WIZARD_STEPS, normalizeStep, minutesRemaining, isOptionalStep, type WizardStep } from '../../lib/wizard-steps';
 import { CAMPAIGN_STEPS, CAMPAIGN_STEP_META, canGoBack, stepPosition } from '../../lib/campaign-flow-core';
+import {
+  parseDraftRewards,
+  draftRewardHasContent,
+  summarizeRewardSync,
+  toRewardPayloads,
+  validateDraftRewards,
+  type DraftReward,
+  type RewardFieldError,
+} from '../../lib/campaign-rewards-draft';
+import StepPath from './StepPath';
+import StepRewards from './StepRewards';
+import StepVerify from './StepVerify';
 import { evaluateDonorView } from '../../lib/donor-preview';
 
 /** A pristine wizard form — also what "start another campaign" resets to (F8). */
@@ -33,6 +45,8 @@ const EMPTY_FORM: FormState = {
   beneficiaryRelationship: '',
   description: '',
   coverImageUrl: '',
+  campaignPath: 'personal',
+  rewardsJson: '',
 };
 
 /** Which of the organizer's drafts this browser is currently editing (F8). */
@@ -99,6 +113,20 @@ interface FormState {
   beneficiaryRelationship: string;
   description: string;
   coverImageUrl: string;
+  /** Step 1 — 'personal' | 'nonprofit' | 'team'. Drives whether step 9 applies. */
+  campaignPath: string;
+  /**
+   * Step 7 rewards, JSON-encoded.
+   *
+   * ⚠️ Stored as a string INSIDE the form rather than as its own draft field on
+   * purpose. `CampaignDraft.form` is persisted verbatim to localStorage and to
+   * `campaign_wizard_drafts.form` (jsonb), so keeping rewards here means drafted
+   * rewards survive a refresh and a device switch with no change to the draft
+   * parser, the draft API or the table. `parseDraft` only copies fields it knows
+   * about, so a new top-level key would have been silently dropped on restore —
+   * losing work the organizer had typed.
+   */
+  rewardsJson: string;
 }
 
 type UploadStatus = 'uploading' | 'done' | 'error';
@@ -352,6 +380,12 @@ export default function CreatePage() {
   const [loading, setLoading]         = useState(false);
   const [aiLoading, setAiLoading]     = useState(false);
   const [storyMode, setStoryMode]     = useState<'freeform' | 'guided'>('freeform');
+  // Step 7. Held here and written after publish, because the rewards API needs a
+  // campaign id that does not exist until then (lib/campaign-rewards-draft.ts).
+  const [draftRewards, setDraftRewards] = useState<DraftReward[]>([]);
+  const [rewardError, setRewardError]   = useState<{ key: string; error: RewardFieldError } | null>(null);
+  /** Set when the campaign published but some rewards did not save — never a publish failure. */
+  const [rewardSyncNotice, setRewardSyncNotice] = useState('');
   const [error, setError]             = useState('');
   // Which field the current error belongs to, so it can be marked aria-invalid
   // and focused. Panel-level banners alone told a keyboard/AT user that
@@ -489,6 +523,18 @@ export default function CreatePage() {
     }
     setActiveDraftId(null);
   }, [setActiveDraftId]);
+
+  // Rehydrate step 7 whenever the form is replaced wholesale — draft recovery,
+  // opening another draft, or the OAuth bounce. Doing it here rather than at each
+  // restore site means a new restore path cannot forget to carry the rewards.
+  // The comparison is what stops this looping: the editor writes both pieces of
+  // state from the same JSON, so on an ordinary keystroke they already agree.
+  useEffect(() => {
+    const serialized = JSON.stringify(draftRewards);
+    if (serialized === form.rewardsJson) return;
+    if (!form.rewardsJson && draftRewards.length === 0) return;
+    setDraftRewards(parseDraftRewards(form.rewardsJson));
+  }, [form.rewardsJson, draftRewards]);
 
   const resumeDraft = useCallback(() => {
     const d = recoverableDraft;
@@ -768,6 +814,14 @@ export default function CreatePage() {
 
   const goalCents = Math.round((parseFloat(form.goal) || 0) * 100);
   const stepIdx   = WIZARD_STEPS.findIndex(s => s.key === step);
+  /**
+   * Whether an optional step has been engaged with, so the primary button can
+   * read "Skip this step" rather than "Continue" when there is nothing to carry
+   * forward. Only the two optional steps can answer this; everything else is
+   * required and always reads "Continue".
+   */
+  const stepHasInput =
+    step === 'rewards' ? draftRewards.some(draftRewardHasContent) : false;
   const hasCover  = uploadedImages.some(img => img.status === 'done');
 
   const autoGoalStart = Math.max(2400, Math.round((parseFloat(form.goal) || 0) * 0.4));
@@ -795,6 +849,14 @@ export default function CreatePage() {
       const stillUploading = uploadedImages.some(img => img.status === 'uploading');
       if (stillUploading) { setError('Please wait for all images to finish uploading.'); return; }
     }
+    // Rewards are validated HERE rather than at publish, so an organizer learns a
+    // title is too long while they are looking at it — not after the campaign is
+    // already live and the write has been rejected.
+    if (step === 'rewards') {
+      const invalid = validateDraftRewards(draftRewards);
+      if (invalid) { setRewardError(invalid); setError(invalid.error.message); return; }
+      setRewardError(null);
+    }
     // Field-targeted validation lives in lib/builder-validation.ts so the rules
     // and their field mapping are unit-tested — the builder itself can't be
     // driven in CI (auth-gated, no database).
@@ -817,6 +879,9 @@ export default function CreatePage() {
 
   const goPrev = () => {
     setError('');
+    // Checked here as well as on the button: once the campaign is live, going
+    // back would reopen the builder on something that already has a public URL.
+    if (!canGoBack(step)) return;
     const prev = WIZARD_STEPS[stepIdx - 1];
     if (prev) setStep(prev.key);
   };
@@ -973,7 +1038,31 @@ export default function CreatePage() {
       if (status === 'draft') { setError(''); window.location.href = '/dashboard/campaigns'; return; }
       if (typeof window !== 'undefined') localStorage.removeItem('charitme-builder-session');
       setPublishedSlug(typeof data.slug === 'string' ? data.slug : '');
-      setPublishedId(typeof data.id === 'string' ? data.id : '');
+      const newId = typeof data.id === 'string' ? data.id : '';
+      setPublishedId(newId);
+      // ── Step 7 rewards, written now that a campaign id exists ──
+      //
+      // ⚠️ Deliberately AFTER the success state is committed and never allowed to
+      // throw into the publish path. The campaign is live at this point; a failed
+      // reward write must not surface as a failed publish, because the obvious
+      // response to that — press Publish again — would create a second campaign.
+      const payloads = toRewardPayloads(draftRewards);
+      if (newId && payloads.length > 0) {
+        const results = await Promise.allSettled(
+          payloads.map((payload) =>
+            fetch(`/api/campaigns/${encodeURIComponent(newId)}/rewards`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            }).then((r) => {
+              if (!r.ok) throw new Error(String(r.status));
+              return r;
+            }),
+          ),
+        );
+        const saved = results.filter((r) => r.status === 'fulfilled').length;
+        setRewardSyncNotice(summarizeRewardSync(payloads.length, saved) ?? '');
+      }
       setStep('publish');
     } catch (e: unknown) {
       // Network/transport failure — the draft is still saved locally and remotely.
@@ -1206,7 +1295,7 @@ export default function CreatePage() {
             <div className="cr2-hero-top">
               <Link href="/dashboard/campaigns" className="cr2-back-link">← My Campaigns</Link>
               <div className="cr2-step-badge">
-                Step {stepIdx + 1} / {WIZARD_STEPS.length}
+                Step {stepPosition(step).index} / {stepPosition(step).total}
                 {stepIdx >= 0 && (
                   // Answer "how much longer?" up front — an unknown remaining
                   // cost is its own reason to abandon.
@@ -1259,7 +1348,7 @@ export default function CreatePage() {
         )}
 
         {/* ── Main Layout ── */}
-        {step !== 'publish' ? (
+        {!CAMPAIGN_STEP_META[step].postPublish ? (
           <div className="cr2-layout">
 
             {/* ─── Left: wizard form card ─── */}
@@ -1277,6 +1366,34 @@ export default function CreatePage() {
                     {aiLoading ? 'Generating…' : '✨ Write with AI'}
                   </button>
                 </div>
+              )}
+
+              {/* ── Step 1: Path ── */}
+              {step === 'path' && (
+                <StepPath
+                  value={form.campaignPath}
+                  onChange={(path) => upd('campaignPath', path)}
+                />
+              )}
+
+              {/* ── Step 7: Rewards (optional) ── */}
+              {step === 'rewards' && (
+                <StepRewards
+                  rewards={draftRewards}
+                  onChange={(next) => {
+                    setDraftRewards(next);
+                    setRewardError(null);
+                    // Mirrored into the form so the wizard's existing draft
+                    // autosave carries them; see FormState.rewardsJson.
+                    upd('rewardsJson', JSON.stringify(next));
+                  }}
+                  fieldError={rewardError}
+                />
+              )}
+
+              {/* ── Step 9: Verify (optional) ── */}
+              {step === 'verify' && (
+                <StepVerify campaignPath={form.campaignPath} signedIn={isGuest === false} />
               )}
 
               {/* ── Step: Type ── */}
@@ -2069,7 +2186,7 @@ export default function CreatePage() {
 
               {/* Navigation */}
               <div className="cr2-nav">
-                <button type="button" className="cr2-nav-back" onClick={goPrev} disabled={stepIdx === 0}>← Back</button>
+                <button type="button" className="cr2-nav-back" onClick={goPrev} disabled={!canGoBack(step)}>← Back</button>
                 <div style={{ display: 'flex', minWidth: 0, gap: 10, alignItems: 'center' }}>
                   {stepIdx >= 1 && step !== 'payout' && step !== 'review' && (
                     <button type="button" className="cr2-nav-draft" onClick={() => void saveDraft()} disabled={loading}>
@@ -2078,7 +2195,11 @@ export default function CreatePage() {
                   )}
                   {step !== 'review' && (
                     <button type="button" className="cr2-nav-next" onClick={goNext}>
-                      {step === 'payout' && !payoutLinked ? 'Skip — set up later →' : 'Continue →'}
+                      {step === 'payout' && !payoutLinked
+                        ? 'Skip — set up later →'
+                        : isOptionalStep(step) && !stepHasInput
+                          ? 'Skip this step →'
+                          : 'Continue →'}
                     </button>
                   )}
                 </div>
@@ -2112,8 +2233,8 @@ export default function CreatePage() {
             </aside>
           </div>
 
-        ) : (
-          /* ── Success / Live screen ── */
+        ) : step === 'publish' ? (
+          /* ── Step 11: Published ── */
           <div className="cr2-success">
             <div className="cr2-success-icon"><KFIcon name="check" /></div>
             <h2>🎉 Your Campaign is Live!</h2>
@@ -2122,6 +2243,16 @@ export default function CreatePage() {
                 ? 'Congratulations! Your fundraiser is now live and ready to receive donations. Share it everywhere to reach your goal faster.'
                 : 'Congratulations! Your fundraiser is now live and shareable. One last step to start receiving donations: connect a payout method.'}
             </p>
+            {/* A reward that did not save. Phrased as a live campaign with an
+                outstanding task, never as a publish to retry. */}
+            {rewardSyncNotice && (
+              <div
+                role="status"
+                style={{ margin: '0 auto 22px', maxWidth: 460, padding: '14px 16px', borderRadius: 14, background: 'rgba(245,158,11,.10)', border: '1px solid rgba(245,158,11,.35)', textAlign: 'left', fontSize: 13.5, lineHeight: 1.5, color: 'var(--t2)' }}
+              >
+                {rewardSyncNotice}
+              </div>
+            )}
             {!payoutLinked && (
               <div style={{ margin: '0 auto 22px', maxWidth: 460, padding: '16px 18px', borderRadius: 14, background: 'rgba(245,158,11,.10)', border: '1px solid rgba(245,158,11,.35)', textAlign: 'left' }}>
                 <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 4, color: 'var(--t1)' }}>🏦 Finish payout setup to get paid</div>
@@ -2145,11 +2276,45 @@ export default function CreatePage() {
                 Manage Campaigns
               </Link>
             </div>
+
+            {/* The one action that most changes whether this campaign raises
+                anything. It is step 12 rather than a panel here because a
+                campaign with no first share reliably raises nothing. */}
             {publishedSlug && (
-              <div style={{ marginTop: 28 }}>
+              <button
+                type="button"
+                className="cr2-btn-launch"
+                style={{ marginTop: 28 }}
+                onClick={() => setStep('share')}
+              >
+                Next: get your first donors →
+              </button>
+            )}
+          </div>
+        ) : (
+          /* ── Step 12: Share ── */
+          <div className="cr2-success">
+            <h2>Get your first donors</h2>
+            <p>
+              Campaigns that get their first donation within 24 hours raise far more than those
+              that do not. Share it with a handful of people who already know you before you post
+              it anywhere public — early donations are what make later ones feel safe.
+            </p>
+            {publishedSlug && (
+              <div style={{ marginTop: 24 }}>
                 <QuickSharePanel slug={publishedSlug} campaignId={publishedId} />
               </div>
             )}
+            <div className="cr2-launch-actions" style={{ marginTop: 28 }}>
+              {publishedSlug && (
+                <Link href={`/campaigns/${publishedSlug}`} className="cr2-launch-view" style={{ textDecoration: 'none' }}>
+                  <KFIcon name="send" /> View Live Campaign
+                </Link>
+              )}
+              <Link href="/dashboard/campaigns" className="cr2-launch-manage" style={{ textDecoration: 'none' }}>
+                Manage Campaigns
+              </Link>
+            </div>
           </div>
         )}
 

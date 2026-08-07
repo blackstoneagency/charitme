@@ -60,6 +60,39 @@ export function rewardAmountCents(raw: string): number | null {
   return Math.round(value * 100);
 }
 
+/**
+ * Restore drafted rewards from the JSON held in `FormState.rewardsJson`.
+ *
+ * Never throws. A draft can be a week old, hand-edited in localStorage, or
+ * written by an older build, and none of those may cost the organizer the rest
+ * of their campaign — an unreadable value simply yields no rewards.
+ */
+export function parseDraftRewards(raw: string | null | undefined): DraftReward[] {
+  if (!raw) return [];
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(parsed)) return [];
+
+  return parsed
+    .filter((entry): entry is Record<string, unknown> => Boolean(entry) && typeof entry === 'object')
+    .slice(0, MAX_REWARDS_PER_CAMPAIGN)
+    .map((entry, index) => {
+      const text = (value: unknown) => (typeof value === 'string' ? value : '');
+      return {
+        key: typeof entry.key === 'string' && entry.key ? entry.key : `restored-${index}`,
+        title: text(entry.title),
+        description: text(entry.description),
+        amount: text(entry.amount),
+        estimatedDelivery: text(entry.estimatedDelivery),
+        itemLimit: text(entry.itemLimit),
+      };
+    });
+}
+
 export interface RewardFieldError {
   field: 'title' | 'amount' | 'description' | 'estimatedDelivery' | 'itemLimit';
   message: string;
