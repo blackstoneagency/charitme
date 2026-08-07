@@ -205,7 +205,7 @@ export default async function HomePage() {
                   ⚠️ This replaced "See Our Impact" → /impact. /impact is still
                   reachable from the header nav ("Our Impact") and the footer, so
                   the page did not lose its only route in. */}
-              <Link href="/create/choose-path" className="mirror-btn mirror-btn-secondary">Create Campaign <Icon name="arrow" /></Link>
+              <Link href="/create/choose-path" className="mirror-btn mirror-btn-create">Create Campaign <Icon name="arrow" /></Link>
             </div>
 
             {/* ⚠️ The reference puts a five-face avatar cluster here with

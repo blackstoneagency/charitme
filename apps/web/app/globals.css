@@ -40,6 +40,17 @@
      so white label text is safe anywhere along the ramp. `__tests__/
      css-single-definition.test.ts` stops a sixteenth variant appearing. */
   --grad-brand: linear-gradient(100deg, #6d28d9, #a21caf, #b45309);
+  /* The "Create Campaign" hero action. Purple all the way through, so it reads
+     as its own thing next to the brand ramp above (which ends amber) — the two
+     sit side by side in the hero and must not look like the same button twice.
+
+     ⚠️ Every stop is chosen for CONTRAST, not for prettiness. The label is 14px
+     at weight 850, which is NOT WCAG "large text" (that needs 18.66px bold), so
+     it needs the full 4.5:1 against white. Measured: #5b21b6 8.98, #7c3aed 5.70,
+     #4f46e5 6.29. The lighter violets that would look livelier all fail —
+     #8b5cf6 is 4.23, #a855f7 is 3.96, #6366f1 is 4.47 — so the energy comes from
+     the glow and the sheen below, not from lightening the ramp. */
+  --grad-create: linear-gradient(100deg, #5b21b6, #7c3aed, #4f46e5);
   /* The violet ramp for surfaces that are NOT the primary action: avatars, step
      numerals, icon tiles, label chips, secondary buttons. Twenty-eight
      hand-written variants of this existed, differing by a few RGB points each —
@@ -2783,6 +2794,38 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 .mirror-btn-primary { color: #fff; background: var(--grad-brand); }
 .mirror-btn-secondary { color: #fff; background: rgba(3, 8, 18, .72); border-color: rgba(255, 255, 255, .38); }
 
+/* Create Campaign — the hero's action for the visitor who came to RAISE money.
+   Deliberately louder than the secondary treatment it replaced, and deliberately
+   not the brand ramp, which belongs to Donate Now. */
+.mirror-btn-create {
+  position: relative;
+  overflow: hidden;
+  color: #fff;
+  background: var(--grad-create);
+  box-shadow: 0 8px 22px rgba(109, 40, 217, .38);
+}
+.mirror-btn-create:hover {
+  box-shadow: 0 12px 28px rgba(109, 40, 217, .52);
+}
+/* A sheen that sweeps across on hover. `::after` rather than a background
+   animation so it cannot affect the label's contrast, and pointer-events:none so
+   it can never intercept the click on its own button. */
+.mirror-btn-create::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, .28) 50%, transparent 70%);
+  transform: translateX(-120%);
+}
+.mirror-btn-create:hover::after,
+.mirror-btn-create:focus-visible::after {
+  animation: mirror-create-sheen .85s ease-out;
+}
+@keyframes mirror-create-sheen {
+  to { transform: translateX(120%); }
+}
+
 .mirror-quick-links { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 14px; }
 .mirror-quick-links a {
   min-height: 44px;
@@ -3066,6 +3109,10 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 @media (prefers-reduced-motion: reduce) {
   .mirror-story-clock span { width: 100%; animation: none; }
   .mirror-btn, .mirror-cause-media img { transition: none; }
+  /* The sheen is decoration; a sweeping highlight is exactly what this setting
+     asks not to be shown. The gradient and glow stay — they are not motion. */
+  .mirror-btn-create:hover::after,
+  .mirror-btn-create:focus-visible::after { animation: none; }
 }
 .task-row em { color: #7a8299; font-size: 12px; font-style: normal; font-weight: 500; }
 .task-row em.today { color: #ff3158; font-weight: 600; }
