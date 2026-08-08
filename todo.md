@@ -10392,8 +10392,8 @@ one replaces it.
 | Accessibility (axe) | ✅ | **0 violations**, 166 public page loads × 2 themes, wcag2a/2aa/21a/21aa/22aa. Campaign detail page separately verified against a REAL campaign: 4 violations → **0**. |
 | Contrast (AA) | ✅ | **0 failures**, 86 pages × 2 themes, plus the member dashboard (21 failures found and fixed, worst 1:1 invisible text). |
 | Keyboard / focus order | ✅ | 0 traps, 0 invisible stops, 0 order breaks — 14,830 focus stops over 87 pages × 2 themes. |
-| Donation flow (12 steps) | ✅ **built** | `/donate` (1) → `/donate/[slug]` (2–7) → **Stripe Checkout** (4/5/8) → `/thank-you` (9) → `/donor/receipt/[id]` (10) → `/campaigns/[slug]/share` (11) → campaign (12). |
-| Tests / build | ✅ | 3202 passing, typecheck clean, lint 0 errors, `next build` EXIT=0. |
+| Donation flow (12 steps) | ✅ **built** | `/donate` (1) → `/donate/[slug]` (2–7) → **Stripe Checkout** (4/5/8) → `/thank-you` (9) → `/thank-you/receipt` (10) → `/thank-you/share` (11) → `/thank-you/done` (12). Steps 10–12 were previously pointed at `/donor/receipt/[id]` and `/campaigns/[slug]/share`, which both require a session — **most donors give signed out**, so for them the flow ended at step 9. All four now resolve from the Stripe checkout session id and work with no account. |
+| Tests / build | ✅ | 3264 passing, typecheck clean, lint 0 errors, `next build` EXIT=0. |
 | Payment methods end-to-end | 🟡 **owner** | unchanged: a real paid flow needs Stripe **test** keys or owner go-ahead (ADR-0003). Not something this sandbox can close. |
 
 ### ⛔ What is genuinely still open, and why it is not code

@@ -3,5 +3,8 @@
   "/campaigns/security-header-fixture/share",
   "/campaigns/security-header-fixture/updates",
   "/campaigns/security-header-fixture/gallery",
-  "/donate/security-header-fixture"
+  "/donate/security-header-fixture",
+  "/thank-you/receipt?session_id=cs_stub_2",
+  "/thank-you/share?session_id=cs_stub_2",
+  "/thank-you/done?session_id=cs_stub_2"
 ]

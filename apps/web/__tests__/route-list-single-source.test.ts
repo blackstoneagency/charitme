@@ -179,6 +179,16 @@ describe('public route list has a single source of truth', () => {
       // Likewise the media gallery: per-campaign, dynamic, canonical points at
       // the real slug's own URL. No place in a static sitemap catalog.
       '/campaigns/security-header-fixture/gallery',
+      // Steps 9–12 of the donation flow. All four are `robots: noindex` and
+      // their URLs carry a Stripe checkout session id, which is the bearer
+      // credential that authorizes reading one donation's own receipt. They are
+      // listed in the public sweep so the audits reach them — before this they
+      // were the only donor-facing screens no sweep had ever measured — and they
+      // must never reach a sitemap.
+      '/thank-you',
+      '/thank-you/receipt?session_id=cs_stub_2',
+      '/thank-you/share?session_id=cs_stub_2',
+      '/thank-you/done?session_id=cs_stub_2',
       '/create/choose-path',
       '/features/fundraising-core',
       '/forgot-password',
@@ -239,7 +249,11 @@ describe('every listed route actually exists', () => {
   const table = routeTable();
 
   function exists(route: string): boolean {
-    const want = route.split('/').filter(Boolean);
+    // A listed entry may carry a query string: the four post-payment screens are
+    // resolved from `?session_id=`, and without one three of them 404 and every
+    // sweep would measure an error page as coverage. The query selects DATA, not
+    // a route, so it is stripped before matching against app/**/page.tsx.
+    const want = route.split('?')[0].split('/').filter(Boolean);
     return table.some((pattern) => {
       if (pattern.length !== want.length) return false;
       return pattern.every((seg, i) => seg.startsWith('[') || seg === want[i]);

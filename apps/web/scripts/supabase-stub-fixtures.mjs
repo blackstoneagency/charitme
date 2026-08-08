@@ -181,6 +181,15 @@ export function buildFixtures() {
           : 'We have been following this since the beginning and could not be prouder of how the whole neighbourhood turned out. Sending love from three states away.',
       anonymous: i % 6 === 0,
       stripe_payment_intent_id: `pi_stub_${i + 1}`,
+      // Steps 9–12 resolve a donation from its CHECKOUT SESSION id, which is the
+      // only thing Stripe hands the returning browser. Without this the four
+      // post-payment screens 404 under every sweep and ship unmeasured.
+      stripe_checkout_session_id: `cs_stub_${i + 1}`,
+      // The receipt adds these back onto the gift to state what was charged. A
+      // fixture of 0 would render the "Total" row identical to "Amount" and hide
+      // whether the breakdown lays out at all.
+      tip_cents: [0, 250, 400, 0, 1000][i % 5],
+      processing_fee_cents: [0, 45, 175, 320, 90][i % 5],
       status: ['completed', 'completed', 'completed', 'completed', 'pending', 'refunded'][i % 6],
       payment_method: ['card', 'card', 'apple_pay', 'google_pay', 'bank'][i % 5],
       source: ['direct', 'share', 'email', 'social'][i % 4],
