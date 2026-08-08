@@ -106,6 +106,7 @@ function NavMenu({
 }) {
   const t = useT();
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Whether the panel currently open was opened by hover rather than by a click.
   //
@@ -145,6 +146,22 @@ function NavMenu({
     return () => document.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
+  // Pointer dismissal covers mouse, touch, and stylus without stealing focus.
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.target instanceof Node && wrapRef.current?.contains(event.target)) return;
+      hoverOpened.current = false;
+      if (closeTimerRef.current) {
+        clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = null;
+      }
+      onClose(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [open, onClose]);
+
   return (
     // Hover here is a pure enhancement layered on top of a fully operable
     // <button> — the menu opens and closes by click, Enter, Space and Escape
@@ -154,6 +171,7 @@ function NavMenu({
     // isn't one.
     // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div
+      ref={wrapRef}
       className="kind-menu-wrap"
       onMouseEnter={() => {
         cancelHoverClose();
