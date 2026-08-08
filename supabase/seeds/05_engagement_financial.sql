@@ -29,7 +29,17 @@ end $$;
 
 do $$
 begin
-  if current_setting('app.charitme_allow_demo_seed', true) <> 'true' then
+  -- ⚠️ `coalesce` is load-bearing. `current_setting(..., true)` returns NULL when
+  -- the setting is absent, and `NULL <> 'true'` is NULL — so `if NULL then` never
+  -- fired and this guard was INERT in exactly the case it exists for: a database
+  -- that was never marked as a disposable demo target. Verified on PostgreSQL 16.
+  --
+  -- Either setting is accepted. The file header documents
+  -- `charitme.allow_demo_seed`, so requiring `app.charitme_allow_demo_seed` alone
+  -- would have made the documented instructions fail once this guard started
+  -- working.
+  if coalesce(current_setting('app.charitme_allow_demo_seed', true), '') <> 'true'
+     and coalesce(current_setting('charitme.allow_demo_seed', true), '') <> 'true' then
     raise exception 'Demo seed blocked. Set app.charitme_allow_demo_seed = true only on a disposable staging/demo project.';
   end if;
 end $$;
