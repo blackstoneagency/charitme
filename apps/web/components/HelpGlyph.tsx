@@ -93,6 +93,23 @@ const PATHS: Record<HelpIcon, React.ReactNode> = {
       <path d="M4.5 20.5c1.6-4.4 4.6-7.8 8.5-9.6" />
     </>
   ),
+  // A capsule — prescriptions and the pharmacy counter.
+  meds: (
+    <>
+      <rect x="2.6" y="8.6" width="18.8" height="6.8" rx="3.4" transform="rotate(-45 12 12)" />
+      <path d="M9.6 9.6 14.4 14.4" />
+    </>
+  ),
+  // A wheel and a route — getting to the appointment.
+  travel: (
+    <>
+      <path d="M3.2 16.4h1.4M19.4 16.4h1.4" />
+      <path d="M4.6 16.4v-3.6l1.9-4.2h9.2l1.9 4.2v3.6" />
+      <circle cx="8" cy="17.4" r="2" />
+      <circle cx="16" cy="17.4" r="2" />
+      <path d="M10 17.4h4" />
+    </>
+  ),
   // Hands under a heart — dignity after a loss.
   hope: (
     <>

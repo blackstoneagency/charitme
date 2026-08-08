@@ -155,6 +155,12 @@ export type HelpIcon =
   | 'home'
   | 'health'
   | 'hope'
+  // Added for Health & Wellness. Reusing the sports glyphs there would have put
+  // a whistle beside "keep prescriptions filled" — the exact failure the note on
+  // `HelpGlyph` describes, where identical or unrelated shapes leave colour
+  // doing work colour cannot do alone.
+  | 'meds'
+  | 'travel'
   // Added for the /success-stories category strip, which needs an "everything"
   // affordance and a nature glyph the cause helps never called for.
   | 'all'
@@ -223,6 +229,15 @@ export const POPULAR_CAUSES: readonly Cause[] = [
     tagline: 'Care should never depend on a balance.',
     intro: 'Treatment, recovery, and the costs that follow. Your support helps patients and families cover what insurance leaves behind.',
     categories: ['Medical'],
+    ctaTitle: 'Help someone get through treatment',
+    ctaBlurb: 'Your donation today covers the bills, the journeys and the aftercare that a diagnosis does not come with.',
+    helps: [
+      { title: 'Cover treatment costs', icon: 'health', body: 'Surgery, therapy and the balance a policy leaves for the patient to find.' },
+      { title: 'Keep prescriptions filled', icon: 'meds', body: 'Medication and supplies, so a course of treatment is not rationed to make it last.' },
+      { title: 'Get patients to care', icon: 'travel', body: 'Fuel, fares and lodging for appointments that are nowhere near home.' },
+      { title: 'Adapt the home', icon: 'home', body: 'Ramps, rails and equipment fitted for a discharge date, not months after it.' },
+      { title: 'Support the whole family', icon: 'community', body: 'Lost income, childcare and the household bills that do not pause for illness.' },
+    ],
   },
   {
     slug: 'education',

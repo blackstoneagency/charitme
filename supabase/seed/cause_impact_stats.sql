@@ -37,5 +37,15 @@ values
   ('people-in-need', '2.3M+','People Helped',       0, 0, false, 'From design mockup — replace with a real source before publishing'),
   ('people-in-need', '68K+', 'Lives Transformed',   1, 1, false, 'From design mockup — replace with a real source before publishing'),
   ('people-in-need', '1,250+','Programs Funded',    2, 2, false, 'From design mockup — replace with a real source before publishing'),
-  ('people-in-need', '120+', 'Countries Reached',   3, 3, false, 'From design mockup — replace with a real source before publishing')
+  ('people-in-need', '120+', 'Countries Reached',   3, 3, false, 'From design mockup — replace with a real source before publishing'),
+  -- Health & Wellness. No mockup exists for this cause, so these are not copied
+  -- from one: they are PLACEHOLDER SHAPES showing the owner what the four tiles
+  -- would hold. They ship `published = false` like every row above, so the page
+  -- keeps rendering measured counts until someone with the standing to make the
+  -- claim fills in `source_note` and flips them on. Do not publish them as they
+  -- stand — the values are illustrative, not measured.
+  ('health-wellness', '—', 'Patients Supported',    0, 0, false, 'PLACEHOLDER — no figure has been measured; set a real value and source before publishing'),
+  ('health-wellness', '—', 'Treatments Funded',     1, 1, false, 'PLACEHOLDER — no figure has been measured; set a real value and source before publishing'),
+  ('health-wellness', '—', 'Families Helped',       2, 2, false, 'PLACEHOLDER — no figure has been measured; set a real value and source before publishing'),
+  ('health-wellness', '—', 'Hospitals Reached',     3, 3, false, 'PLACEHOLDER — no figure has been measured; set a real value and source before publishing')
 on conflict (cause_slug, sort_order) do nothing;
