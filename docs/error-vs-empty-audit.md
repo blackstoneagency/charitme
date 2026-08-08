@@ -16,7 +16,7 @@ it better than a zero does, which is why it survived longer.
 | `lib/grants-server.ts` | No count rendered — cards only | **Not a bug** | deliberate, see below |
 | `lib/home-data.ts` | Feed only — the homepage already degrades deliberately via `loadOrDegrade` | Low, by design | no action |
 | `lib/donor-segments-server.ts` | `loadContacts` → `/dashboard/segments` (authenticated). An outage shows an owner "no contacts" | **Medium** | traced, open |
-| `lib/giving-days-server.ts` | `ownedNonprofitIds` → `/dashboard/segments` (authenticated). An outage tells an owner they own nothing | **Medium** | traced, open |
+| `lib/giving-days-server.ts` | `ownedNonprofitIds` → `/dashboard/segments` **and two API routes that gate WRITES on it** | **High for the owner** | attempted, see below |
 | `lib/privacy.ts` | No public caller found by grep; needs a direct read before grading | Ungraded | open |
 
 ### Traced, so nothing is left as "Unknown"
@@ -27,6 +27,37 @@ it misleads one signed-in owner rather than every visitor — but it is the same
 falsehood: "you have no contacts" / "you own no nonprofits" stated on the
 strength of a read that failed. Worth fixing with the same shape below; not
 worth fixing blind, which is the mistake /grants caught.
+
+### `ownedNonprofitIds` — attempted, reverted, and exactly what it needs
+
+Reading `app/dashboard/segments/page.tsx` showed this is worse than the grep
+suggested: the page short-circuits on `owned.length === 0`, skipping every
+downstream fetch. A failed ownership read therefore renders a real owner a
+completely empty dashboard.
+
+Changing the signature to `Promise<string[] | null>` typechecks cleanly in the
+loader and the page, but surfaces **four** further call sites — and they are
+ownership checks that gate WRITES:
+
+```
+app/api/crm/segments/route.ts:62    if (!ctx.owned.includes(nonprofitId)) -> 403
+app/api/crm/segments/route.ts:110   owned passed as readonly string[]
+app/api/crm/segments/route.ts:131   owned passed as readonly string[]
+app/api/giving-days/route.ts:59     ownedNonprofitIds passed into the actor
+```
+
+The change was **reverted rather than half-landed**, because these are
+authorization paths and a partially-typed edit there is the wrong thing to
+leave in a repository.
+
+What the fix must do, and it is not the same as the /volunteer one: a `null`
+ownership read has to **fail closed**, and it has to say why. Returning 403
+("you do not own this") on a failed read states something false about the
+user's account; the correct response is a 503-class "we could not verify
+ownership". The page keeps the banner treatment; the API routes need the
+explicit deny.
+
+Estimated at well under an hour with the call sites above already located.
 
 ## The fix shape, as applied to volunteers
 
