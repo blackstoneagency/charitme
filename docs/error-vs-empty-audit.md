@@ -13,7 +13,7 @@ it better than a zero does, which is why it survived longer.
 | Loader | Renders a count or claim? | Severity | Status |
 |---|---|---|---|
 | `lib/volunteers-server.ts` | **Yes** — 4 count tiles AND "No volunteer opportunities listed yet" | **High** | **FIXED** (`e4090fa8`) |
-| `lib/grants-server.ts` | No count rendered from the array; caller also `.catch(() => [])` | Medium | open |
+| `lib/grants-server.ts` | No count rendered — cards only | **Not a bug** | deliberate, see below |
 | `lib/home-data.ts` | Feed only; homepage already degrades deliberately | Low | open |
 | `lib/donor-segments-server.ts` | Admin surface, not public | Low | open |
 | `lib/giving-days-server.ts` | Not yet traced to its caller | Unknown | open |
@@ -28,9 +28,18 @@ it better than a zero does, which is why it survived longer.
 3. A test pins both cases so they cannot be collapsed again
    (`__tests__/volunteer-read-failure.test.ts`).
 
-⚠️ `grants` has a second layer: the caller wraps it in `.catch(() => [])`, so
-even a throwing loader becomes "none". Fixing the loader alone would not be
-enough there.
+⚠️ **Correction to an earlier version of this file.** It graded `grants` as a
+Medium-severity instance of the same bug, on the strength of a grep. Reading
+the caller shows the opposite: `app/grants/page.tsx` carries a comment stating
+that an empty list here is an honest "nothing to show" — the page renders
+cards, not statistics, so there is no count to be falsely confident about —
+and that the `.catch(() => [])` exists because the page returned **500 on a
+cold production build with Supabase unreachable**. It is a deliberate,
+reasoned choice, and removing it would reintroduce a measured outage.
+
+The distinction that matters is therefore not "does the loader return `[]` on
+error" but "does the page then STATE the emptiness". /volunteer did, in four
+count tiles and a sentence. /grants does not.
 
 ## Not verifiable from the agent sandbox
 
