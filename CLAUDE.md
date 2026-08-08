@@ -261,9 +261,14 @@ master run `30750918547` (same signature; master's last 6 runs all failed) →
 **still dead 2026-08-05**, verified on branch run `31044505428`
 (`runner_id: 0`, empty `runner_name`, 2s, 0 billable ms across both jobs)
 *and* on master run `31043386437` (0 billable ms, 4s; master's last 6 runs all
-failed). Four days into August and it has not come back — consistent with the
-quota hypothesis below, whose falsifiable prediction (return on 1 September) is
-still open.
+failed) → **ALIVE AGAIN 2026-08-08**, verified on PR #297's run `31274146676`,
+job `93144905213`: `runner_id: 1000002084`, `runner_name: "GitHub Actions
+1000002084"`, and the full step list executing (checkout → setup-node → install →
+typecheck → lint → tests → audit → build → e2e → a11y). That is the ALIVE column
+of the table above on every axis.
+
+⚠️ **So a red check is REAL right now.** Do not carry over the "ignore CI"
+posture from the entries above it — that was measured, and so is this.
 
 ### 🔎 LIKELY CAUSE, and it is not random: the private-repo Actions minutes quota
 
@@ -286,6 +291,20 @@ Actions allowance** looks like. Evidence, all checkable:
 **Falsifiable prediction:** runners return on **1 September** and die again
 shortly after, unless the plan changes or push volume drops. If that does not
 happen, this diagnosis is wrong and should be struck.
+
+⚠️ **THE PREDICTION HAS NOW FAILED, and the honest reading is written here rather
+than quietly dropped.** Runners came back on **2026-08-08**, three weeks before
+the predicted date and not on the first of any month. The prediction had one
+escape clause — "unless the plan changes or push volume drops" — and a plan
+change is the likeliest explanation (raising the spending limit is exactly the
+owner action this section recommends). But that is now a SECOND unfalsifiable
+guess stacked on the first, and this repo has already rewritten this section
+three times by reasoning from a story instead of a measurement.
+
+Treat the quota hypothesis as UNPROVEN, not confirmed and not refuted: it still
+fits the 0-billable-ms signature better than anything else, and it no longer
+predicts anything checkable. The table above remains the authority on whether a
+given red check is real. Run it.
 
 ⚠️ **This does not replace the check.** It is a hypothesis that fits the
 evidence, not something read off a billing page — the API does not expose the
