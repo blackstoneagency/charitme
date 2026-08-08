@@ -60,7 +60,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const amountFormatted = formatCents(totalChargedCents(outcome), outcome.currency);
+  const receiptAmountCents = outcome.taxDeductible
+    ? outcome.taxReceiptAmountCents ?? outcome.amountCents
+    : totalChargedCents(outcome);
+  const amountFormatted = formatCents(receiptAmountCents, outcome.currency);
   const mail = outcome.taxDeductible && outcome.nonprofitName && outcome.nonprofitEin
     ? taxReceiptEmail({
       donorName: outcome.donorName,

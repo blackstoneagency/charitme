@@ -461,6 +461,7 @@ export const de: Dictionary = {
   'thanks.view_receipt': 'Beleg ansehen',
   'thanks.your_receipt': 'Ihr Beleg',
   'thanks.receipt_intro': 'Danke, dass Sie etwas bewirken.',
+  'thanks.tax_deductible_amount': 'Steuerlich absetzbarer Spendenbetrag',
   'thanks.download_receipt': 'Beleg herunterladen',
   'thanks.donor': 'Spenderin oder Spender',
   'thanks.payment_method': 'Zahlungsart',

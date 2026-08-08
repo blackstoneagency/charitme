@@ -175,6 +175,15 @@ describe('the flow is wired end to end', () => {
     expect(page).toContain('campaignId={outcome.campaignId}');
   });
 
+  it('shares and copies the donor-edited message rather than the initial text', () => {
+    const component = read('app/thank-you/share/ShareSupport.tsx');
+    expect(component).toContain('const [shareText, setShareText] = useState(message)');
+    expect(component).toContain('onChange={(event) => setShareText(event.currentTarget.value)}');
+    expect(component).toContain('shareHref(target, campaignUrl, shareText)');
+    expect(component).toContain('navigator.clipboard.writeText(shareText)');
+    expect(component).not.toContain('defaultValue={message}');
+  });
+
   it('the download route refuses a session that has no donation row yet', () => {
     const route = read('app/api/donations/receipt/session/route.ts');
     expect(route).toContain('RECEIPT_PENDING');

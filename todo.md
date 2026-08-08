@@ -2749,8 +2749,8 @@ PDFs, which are not reconstructible from this schema.
 ⚠️ **Superseded in part — read the correction at the top of this file first.**
 The arithmetic below is sound and the drift guard on it is worth keeping, but the
 number it produces is a **file-derived upper bound, not the applied state**. At
-least two of the 27 are demonstrably live in production, measured against the
-running site. Treat 27 as "no more than 27", and establish the real set with
+least two of the 35 are demonstrably live in production, measured against the
+running site. Treat 35 as "no more than 35", and establish the real set with
 `supabase migration list --linked` before planning a release.
 
 **None of the four numbers previously in this file was right**, and the fifth —
@@ -2765,16 +2765,16 @@ that day**:
 dump confirmed the objects were absent, and a restored production clone applied
 all 18 in order and proved rollback.
 
-Fifteen migrations have been added since. So the count is arithmetic:
+Seventeen migrations have been added since. So the count is arithmetic:
 
 ```
-121 local − 87 applied           = 34
-18 audited pending + 16 added    = 34   ✓ reconciles
+122 local − 87 applied           = 35
+18 audited pending + 17 added    = 35   ✓ reconciles
 ```
 
 All 18 audited-pending versions are still on disk under their original names.
 
-### ⚠️ Six of the 27 are SECURITY hardening, not features
+### ⚠️ Six of the 35 are SECURITY hardening, not features
 
 This is the part that changes the priority. Written, reviewed, merged — and
 **not live**:
@@ -2808,7 +2808,7 @@ miscounting, it was adding migrations and leaving the old number in place.
 
 Owner action unchanged: upgrade Supabase, free a project slot, or provision
 staging elsewhere. Do not bypass the gate — the ledger's last line says so, and
-27 unverified migrations including six privilege changes is exactly the case the
+35 unverified migrations including six privilege changes is exactly the case the
 gate exists for.
 
 ## ⚪ `/certificate` — NOT a deferral; building it would require inventing data

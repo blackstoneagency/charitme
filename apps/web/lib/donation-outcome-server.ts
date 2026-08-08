@@ -161,15 +161,23 @@ export const getDonationOutcome = cache(async function getDonationOutcome(
           .maybeSingle(),
         supabaseAdmin
           .from('tax_receipts')
-          .select('receipt_number, nonprofit_name, nonprofit_ein')
+          .select('receipt_number, nonprofit_name, nonprofit_ein, amount_cents')
           .eq('donation_id', row.id)
           .maybeSingle(),
       ]);
 
       const profile = donor.data as { full_name?: string | null; email?: string | null } | null;
       const rec = receipt.data as { receipt_number?: string | null; donor_name?: string | null; donor_email?: string | null } | null;
-      const taxRow = tax.data as { receipt_number?: string | null; nonprofit_name?: string | null; nonprofit_ein?: string | null } | null;
+      const taxRow = tax.data as {
+        receipt_number?: string | null;
+        nonprofit_name?: string | null;
+        nonprofit_ein?: string | null;
+        amount_cents?: number | null;
+      } | null;
       const taxDeductible = Boolean(taxRow?.nonprofit_name && taxRow.nonprofit_ein);
+      const taxReceiptAmountCents = taxDeductible && Number.isInteger(taxRow?.amount_cents) && (taxRow?.amount_cents ?? -1) >= 0
+        ? taxRow?.amount_cents ?? null
+        : null;
 
       return {
         status: 'settled',
@@ -188,6 +196,7 @@ export const getDonationOutcome = cache(async function getDonationOutcome(
         paymentMethodLabel: methodFromSession(session) ?? fallbackMethod(row.payment_method),
         receiptNumber: taxRow?.receipt_number ?? rec?.receipt_number ?? null,
         taxDeductible,
+        taxReceiptAmountCents,
         nonprofitName: taxDeductible ? taxRow!.nonprofit_name! : null,
         nonprofitEin: taxDeductible ? taxRow!.nonprofit_ein! : null,
       };
@@ -227,6 +236,7 @@ export const getDonationOutcome = cache(async function getDonationOutcome(
       // A tax receipt is issued by the webhook. Before that there is no basis
       // for the claim, and "tax deductible" is not a claim to make optimistically.
       taxDeductible: false,
+      taxReceiptAmountCents: null,
       nonprofitName: null,
       nonprofitEin: null,
     };
