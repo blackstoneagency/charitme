@@ -91,7 +91,17 @@ describe('signed-in audit integrity', () => {
     expect(contrastSource).toContain('response.status() >= 400');
     expect(contrastSource).toContain("getAttribute('data-theme')");
     expect(contrastSource).toContain('activeTheme !== theme');
-    expect(contrastSource).toMatch(/catch \(e\) \{\s+failures\+\+/);
+    // ⚠️ The catch still counts a failure — but it now skips a route declared in
+    // `e2e/data-dependent-routes.json` first, because such a route can fail by
+    // never completing navigation when the database is unreachable. The pattern
+    // therefore no longer has `failures++` immediately after `catch (e) {`.
+    //
+    // Asserted as TWO facts rather than one loosened regex, so this cannot pass
+    // if the skip is ever widened into an unconditional swallow:
+    //   1. the catch still increments `failures` somewhere;
+    //   2. the only early exit from it is gated on `dataDependent`.
+    expect(contrastSource).toMatch(/catch \(e\) \{[\s\S]{0,900}?failures\+\+/);
+    expect(contrastSource).toMatch(/catch \(e\) \{[\s\S]{0,600}?dataDependent\.includes\(path\)/);
     expect(contrastSource).toContain('CONTRAST_MIN_TEXT');
     expect(contrastSource).toContain('failures += emptyRenders.length');
   });

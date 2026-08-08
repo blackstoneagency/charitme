@@ -371,8 +371,21 @@ for (const theme of THEMES) {
       // reported 6 failures on every run — and a permanently-red audit is an
       // ignored audit, which is precisely how a real light-mode contrast bug
       // reached production here once already.
-      if (response?.status() === 404 && dataDependent.includes(path)) {
-        if (!AS_JSON) console.log(`\u00b7 ${theme} ${path} - SKIPPED (needs seeded data, HTTP 404)`);
+      // ⚠️ ANY failing status, and a missing response too — not just 404.
+      //
+      // In GitHub Actions this route does not 404: the query behind it hangs
+      // against the placeholder Supabase host, so it errors or never responds.
+      // The 404-only rule therefore never fired and the route was counted as a
+      // failure, which is what made this step red the first time it ever ran in
+      // CI (run 31266731381, step 12 — both this audit and audit-a11y).
+      //
+      // A route is in `dataDependent` precisely BECAUSE it needs seeded data;
+      // without it, 404 (row absent) and 5xx/no-response (the query fails) are
+      // the same situation and neither is a regression. Seeded, it returns 200
+      // and is measured normally, so a real defect cannot hide behind this.
+      if (dataDependent.includes(path) && (!response || response.status() !== 200)) {
+        const status = response?.status() ?? 'NO_RESPONSE';
+        if (!AS_JSON) console.log(`\u00b7 ${theme} ${path} - SKIPPED (needs seeded data, HTTP ${status})`);
         continue;
       }
       if (!response || response.status() >= 400) {
@@ -452,8 +465,17 @@ for (const theme of THEMES) {
         }
       }
     } catch (e) {
-      failures++;
       const msg = e instanceof Error ? e.message : String(e);
+      // Same reasoning as the status check above: a data-dependent route can
+      // fail by never completing the navigation at all, when the query behind
+      // it hangs against an unreachable database. Skipped rather than counted,
+      // and scoped to `dataDependent` only — any other route that throws here
+      // is still a real failure.
+      if (dataDependent.includes(path)) {
+        if (!AS_JSON) console.log(`\u00b7 ${theme}/${path} - SKIPPED (needs seeded data; load failed: ${msg.slice(0, 40)})`);
+        continue;
+      }
+      failures++;
       if (msg.includes('ERR_CONNECTION')) connErrors++;
       if (!AS_JSON) console.log(`✗ ${theme}/${path} — ERROR ${msg.slice(0, 80)}`);
     }

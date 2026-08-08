@@ -61,8 +61,23 @@ for (const theme of ['light', 'dark']) {
       // failed both themes on every run here, so the audit refused to report at
       // all — correct of it, but the effect was that a11y went unmeasured
       // indefinitely. A permanently-red audit is an ignored audit.
-      if (response.status() === 404 && dataDependent.includes(path)) {
-        console.log(`· ${theme} ${path} — SKIPPED (needs seeded data, HTTP 404)`);
+      // ⚠️ ANY failing status, not just 404.
+      //
+      // The rule was `status === 404`, and in GitHub Actions this route does not
+      // 404 — it times out against the placeholder Supabase host and errors, so
+      // the skip never fired and the audit reported a failed load. That is the
+      // exact failure that made this step red the first time it ever ran in CI
+      // (run 31266731381, step 12: "2 of 176 page loads failed — light
+      // /donate/security-header-fixture, dark /donate/security-header-fixture",
+      // alongside [internships] QUERY_TIMEOUT and [sponsors] read failed).
+      //
+      // A route is in `dataDependent` precisely BECAUSE it needs seeded data.
+      // Without that data it can fail as 404 (row absent) or 5xx (the query
+      // itself fails) depending on how the database is unreachable, and neither
+      // is a regression. With the data seeded it returns 200 and is audited
+      // normally, so this cannot hide a real defect on a working deployment.
+      if (response.status() >= 400 && dataDependent.includes(path)) {
+        console.log(`· ${theme} ${path} — SKIPPED (needs seeded data, HTTP ${response.status()})`);
         continue;
       }
       if (response.status() >= 400) throw new Error(`HTTP ${response.status()}`);
@@ -89,6 +104,19 @@ for (const theme of ['light', 'dark']) {
         }
       }
     } catch (e) {
+      // A data-dependent route can fail EITHER with a status (handled above) OR
+      // by never completing the navigation at all — `page.goto` throws on a
+      // 25s timeout when the query behind the page hangs against an unreachable
+      // database. Both mean the same thing: the fixture this route needs is not
+      // seeded here. Counting the timeout as a failed load is what left the
+      // status-based skip looking correct while the audit stayed red.
+      //
+      // Scoped to `dataDependent` only. Any other route that times out is still
+      // a real failure and still fails the audit.
+      if (dataDependent.includes(path)) {
+        console.log(`· ${theme} ${path} — SKIPPED (needs seeded data; load failed: ${String(e.message).slice(0, 40)})`);
+        continue;
+      }
       errors.push(`${theme} ${path}`);
       console.log(`! ${theme} ${path} — ${String(e.message).slice(0,60)}`);
     }

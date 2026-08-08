@@ -105,7 +105,12 @@ for (const vp of VIEWPORTS) {
         // database without the stub fixtures — and a permanently-red audit is an
         // ignored audit, which is exactly how a real light-mode contrast bug
         // once reached production under a passing-by-default spec.
-        if (status === 404 && dataDependent.includes(path)) {
+        // Any failing status, not just 404 — the route can 404 (row absent) or
+        // 5xx (the query behind it fails) depending on how the database is
+        // unreachable, and both mean the fixture is not seeded here. The
+        // 404-only form of this rule made audit-contrast and audit-a11y red on
+        // their first-ever CI run; kept consistent so the three cannot disagree.
+        if (status >= 400 && dataDependent.includes(path)) {
           console.log(`· ${vp.name}/${theme} ${path} — SKIPPED (needs seeded data, HTTP 404)`);
           continue;
         }
