@@ -59,9 +59,7 @@ jobs:
         run: npm ci
 
       - name: Start isolated database for migration replay
-        env:
-          SUPABASE_REPLAY_EXCLUDES: gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
-        run: npx supabase start --exclude "$SUPABASE_REPLAY_EXCLUDES"
+        run: npx supabase db start
 
       - name: Reset database through every migration and seed
         run: npx supabase db reset --local
