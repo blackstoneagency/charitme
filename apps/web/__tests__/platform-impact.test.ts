@@ -109,8 +109,17 @@ describe('the migration keeps the two claims separable', () => {
   });
 
   it('restricts writes to admins on both tables', () => {
-    const adminWrites = MIGRATION.match(/role in \('admin', 'super_admin'\)/g) ?? [];
-    expect(adminWrites.length).toBeGreaterThanOrEqual(4);
+    // This asserted `role in ('admin', 'super_admin')` and so PINNED THE BUG:
+    // `profiles.role` is dropped by 20260828000000, and the predicate raises
+    // 42703 on a database provisioned from scratch. The test passed because it
+    // matched the migration's text, not because the migration worked. It now
+    // asserts the hardened predicate, and that the dropped column is gone.
+    const adminWrites = MIGRATION.match(/using \(public\.is_admin\(\)\)/g) ?? [];
+    expect(adminWrites.length, 'both tables need an is_admin() USING clause').toBe(2);
+    expect(MIGRATION.match(/with check \(public\.is_admin\(\)\)/g) ?? []).toHaveLength(2);
+    // Comments may discuss the old shape; a live predicate may not use it.
+    const sql = MIGRATION.replace(/--[^\n]*/g, '');
+    expect(sql, 'migration still reads the dropped profiles.role').not.toMatch(/\.role\s+in\s*\(/i);
   });
 
   it('keeps one row per slot so a duplicate cannot add a sixth tile', () => {

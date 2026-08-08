@@ -108,21 +108,24 @@ create policy platform_fund_allocation_public_read
   using (published = true);
 
 -- Writes are admin-only. An impact or spending claim is not user-generated content.
+--
+-- ⚠️ `public.is_admin()`, NOT `profiles.role in (...)`. There is no `role` column:
+-- 20260823500000 added one only as a replay bridge and 20260828000000 drops it
+-- again, so a `p.role` predicate raises 42703 on a database provisioned from
+-- scratch — which is precisely how the replay job caught this. Canonical roles
+-- live in `profiles.roles`, and `is_admin()` is the SECURITY DEFINER predicate
+-- the rest of the platform's editorial tables already use.
 drop policy if exists platform_impact_stats_admin_write on public.platform_impact_stats;
 create policy platform_impact_stats_admin_write
   on public.platform_impact_stats for all
-  using (exists (select 1 from public.profiles p
-                 where p.id = auth.uid() and p.role in ('admin', 'super_admin')))
-  with check (exists (select 1 from public.profiles p
-                      where p.id = auth.uid() and p.role in ('admin', 'super_admin')));
+  using (public.is_admin())
+  with check (public.is_admin());
 
 drop policy if exists platform_fund_allocation_admin_write on public.platform_fund_allocation;
 create policy platform_fund_allocation_admin_write
   on public.platform_fund_allocation for all
-  using (exists (select 1 from public.profiles p
-                 where p.id = auth.uid() and p.role in ('admin', 'super_admin')))
-  with check (exists (select 1 from public.profiles p
-                      where p.id = auth.uid() and p.role in ('admin', 'super_admin')));
+  using (public.is_admin())
+  with check (public.is_admin());
 
 -- Reuses the touch function the cause editorial tables already install.
 create or replace function public.touch_platform_editorial_updated_at()
