@@ -3,6 +3,10 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const seed = readFileSync(resolve(process.cwd(), '../../supabase/seed.sql'), 'utf8');
+const operationalSeed = readFileSync(
+  resolve(process.cwd(), '../../supabase/seeds/07_operational_features.sql'),
+  'utf8',
+);
 
 describe('local database seed safety', () => {
   it('uses deterministic synthetic identities that cannot receive email', () => {
@@ -20,5 +24,15 @@ describe('local database seed safety', () => {
   it('keeps sample campaigns within the enforced taxonomy', () => {
     expect(seed).not.toContain("'Disaster Relief'");
     expect(seed).toContain("'Emergency'");
+  });
+
+  it('seeds every live-reader table enforced by the coverage verifier', () => {
+    for (const table of ['analytics_snapshots', 'admin_notes', 'platform_reports']) {
+      const start = operationalSeed.indexOf(`insert into public.${table}`);
+      const end = operationalSeed.indexOf(';', start);
+      expect(start, `${table} seed insert is missing`).toBeGreaterThanOrEqual(0);
+      expect(end, `${table} seed insert is incomplete`).toBeGreaterThan(start);
+      expect(operationalSeed.slice(start, end)).toContain('generate_series(1, 120)');
+    }
   });
 });
