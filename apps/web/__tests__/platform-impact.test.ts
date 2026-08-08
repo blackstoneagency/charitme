@@ -8,7 +8,7 @@ const SEED = readFileSync(
   'utf8',
 );
 const MIGRATION = readFileSync(
-  join(__dirname, '..', '..', '..', 'supabase', 'migrations', '20260829000000_platform_impact_stats.sql'),
+  join(__dirname, '..', '..', '..', 'supabase', 'migrations', '20260829010000_platform_impact_stats.sql'),
   'utf8',
 );
 

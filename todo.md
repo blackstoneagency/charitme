@@ -2697,7 +2697,7 @@ reported 87 production ledger entries against 123 local migration files. The
 36-file gap below is therefore a current measurement, not only historical
 arithmetic.
 
-**+1 on 2026-08-08: `20260829000000_platform_impact_stats.sql`.** Adds
+**+1 on 2026-08-08: `20260829010000_platform_impact_stats.sql`.** Adds
 `platform_impact_stats` and `platform_fund_allocation` — the owner-authored
 figures behind /impact's headline tiles and its Funds Distribution donut.
 
