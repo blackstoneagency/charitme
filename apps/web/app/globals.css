@@ -2688,7 +2688,24 @@ a.task-row { text-decoration: none; }
 a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 
 /* Reference-matched public homepage. The marketing shell supplies the shared
-   header/footer; this block owns the seven compact homepage bands between them. */
+   header/footer; this block owns the seven compact homepage bands between them.
+
+   ⚠️ SAME SHAPE AS `.rp-page`, and the same trap. This is a permanently dark
+   container in BOTH themes with its own token block. A shared component dropped
+   in here — `EmptyState`, `Badge`, `Input` — colours itself with
+   `var(--t1/--t2/--t3)` and `var(--s1/--s2)` via INLINE styles, which in LIGHT
+   mode resolve to dark ink on this dark surface.
+
+   `.rp-page` needed a token remap for exactly this (it measured 1.57:1 on
+   /events). No remap here because the 87-page × 2-theme contrast sweep reports
+   this page clean — there is currently nothing inside using those tokens, so
+   remapping would be speculative churn.
+
+   If you add a shared component to these bands, RE-RUN `audit:contrast` before
+   assuming it is fine, and if it needs a remap, remap the SURFACE tokens
+   alongside the text ones. Doing only the text turned a readable light button
+   into an invisible one on /volunteer (1.03:1) — half a family is worse than
+   none. */
 .mirror-home {
   --mh-bg: #030812;
   --mh-panel: #07101a;
