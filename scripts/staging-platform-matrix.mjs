@@ -17,8 +17,15 @@ if (!['127.0.0.1', 'localhost', '::1'].includes(hostname)) {
   process.exit(1);
 }
 
+class DisabledRealtimeTransport {
+  constructor() {
+    throw new Error('Realtime is not part of the staging platform matrix.');
+  }
+}
+
 const admin = createClient(supabaseUrl, serviceRoleKey, {
   auth: { autoRefreshToken: false, persistSession: false },
+  realtime: { transport: DisabledRealtimeTransport },
 });
 
 const runId = randomUUID().replaceAll('-', '');
@@ -103,6 +110,7 @@ async function expectNoMutation(operation, label) {
 function newBrowserClient() {
   return createClient(supabaseUrl, anonKey, {
     auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
+    realtime: { transport: DisabledRealtimeTransport },
   });
 }
 

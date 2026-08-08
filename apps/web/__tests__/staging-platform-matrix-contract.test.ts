@@ -19,6 +19,7 @@ describe('staging platform matrix contract', () => {
   it('is restricted to disposable loopback environments', () => {
     expect(source).toContain("['127.0.0.1', 'localhost', '::1'].includes(hostname)");
     expect(source).toContain('only runs against a loopback Supabase URL');
+    expect(source).toContain('realtime: { transport: DisabledRealtimeTransport }');
     expect(source).toContain('await cleanup()');
   });
 
