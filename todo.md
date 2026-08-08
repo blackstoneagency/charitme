@@ -22003,6 +22003,43 @@ else. Worth recording because it accidentally proved the degraded path: with the
 database unreachable the page still returns a complete 200 with the design
 intact, rather than erroring.
 
+### ✅ THE DURABLE ANSWER (2026-08-08) — ask the GitHub **Deployments API**, not the site
+
+Every entry below this one records a *verdict* about which channel works, and
+every one of them has since flipped. On 2026-08-04 curl was denied AND the
+Deployments API 403'd. On 2026-08-05 curl worked. On **2026-08-08 curl is denied
+again (`000`) while the Deployments API answers fine** — with the *same token*
+that 403'd four days earlier. So stop recording verdicts and run the check.
+
+**This is the best channel for "is it Production, not Preview?", because it is
+the only one that names the environment as a field** rather than making you
+infer it from a URL:
+
+```bash
+curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+  "https://api.github.com/repos/blackstoneagency/charitme/deployments?environment=Production&per_page=1"
+# → [{ "id": …, "environment": "Production", "sha": "<commit>", … }]
+
+curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+  "https://api.github.com/repos/blackstoneagency/charitme/deployments/<id>/statuses?per_page=1"
+# → [{ "state": "success", "description": "Deployment has completed", … }]
+```
+
+Match `sha` against the commit you merged. That is the whole verification:
+newest Production deployment + `state: success` + your sha = live on production.
+
+Worked example, Health & Wellness (#306): deployment `5813564749`,
+`environment: "Production"`, `sha: 297d32b2`, `state: success` at
+2026-08-08T23:07:21Z.
+
+⚠️ **A `403` from this endpoint is not proof it is blocked forever.** That is the
+mistake this file previously enshrined — a 403 measured once was written up as
+"token scope", generalised to "production is unobservable", and used to justify
+not retrying. Retry it; it costs one call.
+
+⚠️ `pull_request_read get_status` still only reports the PR head's **preview**
+deploy. That limit is real and unchanged — it proves the build, not the alias.
+
 ### ✅ SUPERSEDED 2026-08-05 — `curl` REACHES PRODUCTION AGAIN
 
 The table below is **stale**. Measured 2026-08-05 20:34 UTC:
