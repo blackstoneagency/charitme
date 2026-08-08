@@ -36,7 +36,15 @@ const STEPS = [
 ];
 
 export default async function VolunteerPage() {
-  const [opportunities, categories] = await Promise.all([getPublicOpportunities(48), getVolunteerCategories()]);
+  const [opportunityResult, categories] = await Promise.all([getPublicOpportunities(48), getVolunteerCategories()]);
+
+  // `null` = the read FAILED; `[]` = there genuinely are none. The tiles below
+  // render an em dash for the first and a real 0 for the second, because "we
+  // could not read this" and "there are none" are different claims — and the
+  // page previously made the confident one on an outage.
+  const readFailed = opportunityResult === null;
+  const opportunities = opportunityResult ?? [];
+  const countLabel = (n: number) => (readFailed ? '—' : n.toLocaleString());
   const remoteCount = opportunities.filter((opportunity) => opportunity.is_remote).length;
   const verifiedCount = opportunities.filter((opportunity) => opportunity.verified).length;
   return (
@@ -54,10 +62,10 @@ export default async function VolunteerPage() {
       />
 
       <ReferenceStats items={[
-        { icon: 'hand', value: opportunities.length.toLocaleString(), label: 'Opportunities shown' },
+        { icon: 'hand', value: countLabel(opportunities.length), label: 'Opportunities shown' },
         { icon: 'tag', value: categories.length.toLocaleString(), label: 'Categories available' },
-        { icon: 'globe', value: remoteCount.toLocaleString(), label: 'Remote roles shown' },
-        { icon: 'shield', value: verifiedCount.toLocaleString(), label: 'Verified roles shown' },
+        { icon: 'globe', value: countLabel(remoteCount), label: 'Remote roles shown' },
+        { icon: 'shield', value: countLabel(verifiedCount), label: 'Verified roles shown' },
       ]} />
 
       <div id="opportunities">
