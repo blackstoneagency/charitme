@@ -119,6 +119,39 @@ export function calculateTrustScore(campaign: CampaignTrustInput): number {
   return Math.max(0, Math.min(99, score));
 }
 
+/**
+ * Signals a trust score is meaningless without.
+ *
+ * `calculateTrustScore` treats an ABSENT field exactly like a FALSE one — an
+ * input that omits `identity_verified` scores the same as one where identity
+ * verification failed. That is the same "could not check ≠ checked and clean"
+ * confusion `risk_signal_unavailable` already exists to prevent, applied to the
+ * positive signals instead of the risk deduction.
+ *
+ * Measured on production before this was added: `CampaignCard` passes 5 of the
+ * 15 signals the scorer reads, so the other 10 scored as failures and EVERY
+ * campaign came out 52 or 57 — always "Needs More Info", including the 18 of 18
+ * cards on /supporter-space that carried an admin-set "✓ Verified" badge at the
+ * same time. A chip contradicting the badge beside it, on every card.
+ */
+const SCORE_CRITICAL_SIGNALS = [
+  'identity_verified', 'stripe_onboarded', 'evidence_count', 'admin_review_status',
+] as const;
+
+/**
+ * Whether this input carries enough to produce a trust score worth showing.
+ *
+ * False when NONE of the verification signals is present — that input cannot
+ * distinguish an unverified campaign from one whose verification simply was not
+ * loaded, and a score derived from it is a confident-looking constant.
+ *
+ * Callers that render a score to a visitor must consult this first. Callers that
+ * feed the scorer a full row (the trust-score APIs) always pass.
+ */
+export function trustScoreIsMeasurable(campaign: CampaignTrustInput): boolean {
+  return SCORE_CRITICAL_SIGNALS.some((k) => campaign[k] !== undefined);
+}
+
 export function getTrustStatus(score: number, underReview = false): TrustStatus {
   if (underReview) return 'Under Review';
   if (score >= 88) return 'Verified';

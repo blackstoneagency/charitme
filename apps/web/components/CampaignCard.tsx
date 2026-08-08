@@ -18,7 +18,7 @@ import { formatCents } from '../lib/stripe';
 // helper the rest of the app already uses for compact figures rather than a
 // local copy that would round differently.
 import { formatMoneyCompact } from '@shared/currencies';
-import { calculateTrustScore, getTrustLabel } from '../lib/ai-platform';
+import { STORED_TRUST_TIERS } from '../lib/trust-tiers';
 import { getCoverForCampaign } from '../lib/photo-catalog';
 import { optimizedCoverUrl } from '../lib/img-optimize';
 import { campaignDaysLeft, campaignTimeLabel } from '../lib/campaign-lifecycle';
@@ -87,8 +87,18 @@ export function CampaignCard({
   // label cannot disagree about how much time is left.
   const daysLabel = campaignTimeLabel({ status: c.status, deadline: c.deadline });
   const days = campaignDaysLeft(c.deadline);
-  const trust = calculateTrustScore(c);
   const isVerified = c.trust_status === 'Verified';
+  // ⚠️ The corner chip used to render `getTrustLabel(calculateTrustScore(c))`.
+  // A card carries 5 of the 15 signals that scorer reads, and it treats an
+  // ABSENT signal exactly like a failed one — so every campaign scored 52 or 57
+  // and every chip read "Needs More Info". Measured on production: all 18 cards
+  // on /supporter-space showed that chip beside an admin-set "✓ Verified" badge.
+  // Two labels using the same words to mean different things, contradicting each
+  // other on the same card.
+  //
+  // The stored tier is the platform's actual judgement and IS on the card, so it
+  // is shown directly rather than re-derived from data the card does not have.
+  const tier = STORED_TRUST_TIERS.find((t) => t === c.trust_status);
   const hasEnded = daysLabel === 'Ended';
   // `=== true`, not truthiness: the column is `boolean NOT NULL DEFAULT false`,
   // but most listings do not select it, and `undefined` means "not known" — which
@@ -165,11 +175,14 @@ export function CampaignCard({
               <Badge color="red">⏰ {days}d left</Badge>
             )}
           </div>
-          <div style={{ position: 'absolute', bottom: '10px', right: '10px' }}>
-            <Badge color={trust >= 70 ? 'green' : trust >= 40 ? 'blue' : 'gray'}>
-              {getTrustLabel(trust)} {trust}
-            </Badge>
-          </div>
+          {/* Only when it says something the badge row has not. "Verified" is
+              already a badge above; repeating it here is noise, and there is no
+              honest score to put in its place. */}
+          {tier && !isVerified && (
+            <div style={{ position: 'absolute', bottom: '10px', right: '10px' }}>
+              <Badge color={tier === 'Trusted' ? 'green' : 'gray'}>{tier}</Badge>
+            </div>
+          )}
         </div>
         <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', flex: 1 }}>
           <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '6px', color: 'var(--t1)', lineHeight: 1.35 }}>
@@ -185,7 +198,12 @@ export function CampaignCard({
           )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px', marginBottom: '12px' }}>
             {[
-              { label: 'Trust', value: `${trust}` },
+              // "Trust" here was the same near-constant 52/57 as the corner chip
+              // — a score computed from 5 of the 15 signals it needs, presented
+              // as a per-campaign number. Replaced with `raised`, which the card
+              // genuinely carries and which a donor actually reads next to
+              // Donors and Goal.
+              { label: 'Raised', value: formatCents(c.raised_amount ?? 0, currency) },
               { label: 'Donors', value: `${c.backer_count ?? 0}` },
               { label: 'Goal', value: formatCents(c.goal_amount, currency) },
             ].map((signal) => (

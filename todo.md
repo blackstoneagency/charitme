@@ -1,5 +1,79 @@
 # CharitMe — Execution Tracker
 
+## 🏷️ A CARD SHOWED "✓ Verified" AND "Needs More Info" AT THE SAME TIME (Claude, 2026-08-08)
+
+Measured on production, `/supporter-space`, before the fix:
+
+| | |
+|---|---|
+| cards carrying an admin-set **"✓ Verified"** badge | **18 of 18** |
+| cards simultaneously showing a computed **"Needs More Info"** chip | **18 of 18** |
+| distinct computed scores across all 18 cards | **two**: 52 and 57 |
+
+Same class as "136 days left" above "This campaign has ended": two surfaces
+answering one question differently, on one card, where a donor decides.
+
+### Root cause: the scorer cannot tell ABSENT from FALSE
+
+`calculateTrustScore` reads **15** signals. `CampaignCardData` carries **5**.
+The other ten are `undefined`, and the function treats that exactly like a
+failure, so every campaign scored:
+
+```
+34 base + 6 cover + 4 tagline + 4 deadline + 4 active = 52   (+5 if backers >= 3 = 57)
+```
+
+A confident-looking per-campaign number that was neither per-campaign nor a
+measurement. The repo already had the right idea one line away —
+`risk_signal_unavailable` exists precisely because "could not check" must not
+score as "checked and clean" — but only on the risk deduction, never on the
+positive signals.
+
+**Fixed:** `trustScoreIsMeasurable()` in `lib/ai-platform.ts`. The card stops
+computing a score it cannot compute and shows the STORED tier, which is the
+platform's real judgement and is already on the card. The "Trust" tile became
+"Raised" — real data the card carries.
+
+### ⚠️ MY OWN EARLIER CLAIM HERE WAS WRONG, and the correction is the finding
+
+An earlier entry said "the `TrustStatus` union omits `Trusted`, so anything
+switching on that type is mis-handling the plurality of production data."
+**That was overstated.** `TrustStatus` types the COMPUTED label; nothing types
+the stored column with it (every read is `as string`). There is no bug in the
+union.
+
+The real issue is worse and less visible: **two vocabularies with the same name,
+sharing three words and differing on three.**
+
+| | set by | values |
+|---|---|---|
+| STORED `campaigns.trust_status` | an admin | Verified, **Trusted**, Needs More Info, Under Review, **Flagged** |
+| COMPUTED `TrustStatus` | `getTrustStatus(score)` | Verified, **Strong Trust**, Needs More Info, Under Review |
+
+`Trusted` is the most common stored value (130 of 308) and the scorer never
+produces it. `Strong Trust` is the reverse — production holds **zero** rows,
+because admin cannot set it.
+
+### 🔴 …and that conflation was in code I wrote EARLIER THE SAME DAY
+
+`PROMOTABLE_TRUST_TIERS` listed `'Strong Trust'`. That constant filters the
+STORED column on /success-stories, so the value matched nothing: the query was
+narrowed to two tiers while appearing to allow three. Harmless in effect,
+identical in kind to the bug being fixed. **My own new test caught it**, which is
+the argument for asserting the property rather than the values.
+
+Removed. `STORED_TRUST_TIERS` is now the admin allow-list exactly, and the
+promotable set is a subset of it by construction.
+
+### 🔁 THE COMMENT-MATCHING TRAP, THIRD TIME TODAY
+
+`expect(src).not.toMatch(/calculateTrustScore\(/)` failed on **correct** code,
+because the comment explaining what the card stopped calling names the function.
+Third occurrence today (also on the hero button and the AI flow). It fails safe,
+but the same bug with the comment deleted would pass while the string shipped.
+**Strip comments before every absence assertion.** Written into the helper.
+
+
 ## 🏷️ A "FEATURED STORY" THAT THE PLATFORM ITSELF WOULD NOT VOUCH FOR (Claude, 2026-08-05)
 
 `/success-stories`, headed **"Featured Stories"**, was showcasing a campaign
