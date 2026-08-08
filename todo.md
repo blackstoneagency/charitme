@@ -22054,3 +22054,27 @@ the production alias serves it. Different claim.
 ```bash
 curl -s https://www.charitme.com/donate | grep -c "Make a Donation"   # → 1
 ```
+
+## ✅ CLOSED — /donate is live on Production (owner-verified, 2026-08-04)
+
+The last open clause is settled. The owner ran the check and it returned `1`:
+
+```bash
+curl -s https://www.charitme.com/donate | grep -c "Make a Donation"   # → 1
+```
+
+All five clauses of the goal now hold, each with evidence rather than assumption:
+
+| clause | how it was established |
+|---|---|
+| matches the design | browser render against a real production build |
+| black in dark mode | computed `body` background = `rgb(0, 0, 0)` |
+| wired to Supabase | `supabaseAdmin` → `campaigns` + `donations`, `revalidate = 300` |
+| pushed to master | merged as `8d2c9c4b` |
+| **serving on Production, not Preview** | **owner curl → `1`** |
+
+### The procedure, for next time
+Ten channels were tried from inside the sandbox before asking, and **all ten are
+blocked** — they are listed in the entry above this one. Do not re-derive them.
+When production liveness is the open question, **ask the owner for the one-line
+curl immediately**; it is the only channel that works and it costs seconds.
