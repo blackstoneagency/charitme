@@ -86,7 +86,7 @@ describe('public campaign reads respect visibility', () => {
   for (const f of sourceFiles()) {
     const src = readFileSync(f, 'utf8');
     if (!/from\(\s*['"]campaigns['"]\s*\)/.test(src)) continue;
-    const rel = f.slice(WEB.length + 1);
+    const rel = f.slice(WEB.length + 1).replaceAll('\\', '/');
     // Admin and dashboard surfaces are authorised elsewhere by design.
     if (rel.startsWith('app/admin/') || rel.startsWith('app/dashboard/') || rel.startsWith('app/api/admin/')) continue;
     if (rel in OWNER_SCOPED) continue;
