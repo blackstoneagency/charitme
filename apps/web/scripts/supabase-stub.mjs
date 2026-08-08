@@ -68,7 +68,7 @@ const PORT = Number(argOf('--port', '54321'));
 const VERBOSE = args.includes('--verbose');
 
 /**
- * `--empty` answers every table with zero rows, and every RPC with null.
+ * Empty mode: every table answers with zero rows, every RPC with null.
  *
  * This is the control half of a two-run experiment, and it is the only way to
  * ask "is this page ACTUALLY reading the database?" and get a falsifiable
@@ -77,10 +77,22 @@ const VERBOSE = args.includes('--verbose');
  * it again with the database empty and the two stop looking alike — real reads
  * collapse to their empty state, hardcoded content does not move.
  *
+ * ⚠️ **It is toggled at RUNTIME, on one stub, and it has to be.** The obvious
+ * design — two stubs on two ports, two `next start` instances — CANNOT WORK, and
+ * fails silently in the direction that looks like a passing result. Next inlines
+ * every `NEXT_PUBLIC_*` variable into the bundles at BUILD time, so
+ * `NEXT_PUBLIC_SUPABASE_URL` is a literal in `.next/server/**` (verifiable:
+ * `grep -rl '127.0.0.1:54400' .next/server/`). Passing a different URL to
+ * `next start` changes nothing; both servers read the populated stub and every
+ * route compares as identical — which the audit would report as "the entire site
+ * is hardcoded".
+ *
+ * So the app keeps ONE baked URL and the data underneath it changes.
+ *
  * Auth is deliberately NOT emptied. Signing the user out would redirect every
  * gated route to /login and the comparison would measure the login page twice.
  */
-const EMPTY = args.includes('--empty');
+let EMPTY = args.includes('--empty');
 
 const fixtures = buildFixtures();
 
@@ -232,6 +244,18 @@ const server = createServer(async (req, res) => {
   if (VERBOSE) console.log(`${req.method} ${path}${url.search}`);
 
   if (req.method === 'OPTIONS') return send(res, 204, '');
+
+  // ── harness control ───────────────────────────────────────────────────────
+  //
+  // NOT a Supabase route, and namespaced so it can never collide with one. This
+  // is the smallest surface that makes the two-run wiring experiment possible
+  // (see the note on EMPTY): the app's Supabase URL is baked in at build time,
+  // so the only thing that CAN vary between passes is what this process serves.
+  if (path === '/__stub/mode') {
+    if (req.method === 'GET') return send(res, 200, { empty: EMPTY });
+    EMPTY = url.searchParams.get('empty') === '1';
+    return send(res, 200, { empty: EMPTY });
+  }
 
   // ── auth ──────────────────────────────────────────────────────────────────
   if (path === '/auth/v1/user') {
