@@ -35,6 +35,7 @@ import { getPhotosForCategory, getCoverForCampaign } from '../../../../lib/photo
 import { optimizedCoverUrl } from '../../../../lib/img-optimize';
 import { optimizeAsks, computeImpact } from '../../../../lib/donation-optimizer';
 import { campaignLifecycle, campaignTimeLabel } from '../../../../lib/campaign-lifecycle';
+import { DEMO_BADGE_EXPLANATION, DEMO_BADGE_LABEL, isDemoCampaign } from '../../../../lib/demo-campaign';
 
 export const dynamic = 'force-dynamic';
 
@@ -436,6 +437,10 @@ export default async function CampaignPage({ params, searchParams }: Props) {
   // both mean 'personal', which is what the old builder always produced.
   const campaignPath =
     (campaign as { campaign_path?: string }).campaign_path ?? 'personal';
+  // Seeded demo data. Renders nothing until the owner applies the labelling
+  // migration and runs its reviewed backfill — `select('*')` simply returns no
+  // `is_demo` key before then. See lib/demo-campaign.ts.
+  const isDemo = isDemoCampaign(campaign as { is_demo?: unknown });
 
   const raised = campaign.raised_amount ?? 0;
   const goal = campaign.goal_amount || 1;
@@ -639,6 +644,30 @@ export default async function CampaignPage({ params, searchParams }: Props) {
           <h1 className="pc-title-h1" style={{ margin: 0 }}>{campaign.title}</h1>
           <SaveCampaignButton campaignId={campaign.id} initialSaved={isSaved} isAuthenticated={!!user} loginNext={`/campaigns/${slug}`} />
         </div>
+
+        {/* ⚠️ Seeded demo data, said out loud.
+            ~500 demo campaigns are live and a donor had no way to tell them from
+            real fundraisers. `role="note"` rather than "alert": it is important
+            context, not an emergency, and an alert would interrupt a screen
+            reader mid-heading. Placed ABOVE the organizer row so it is read
+            before the story rather than after it. */}
+        {isDemo && (
+          <div
+            role="note"
+            style={{
+              display: 'flex', minWidth: 0, gap: 10, alignItems: 'flex-start',
+              padding: '12px 14px', marginBottom: 14, borderRadius: 12,
+              background: 'rgba(245,158,11,.12)',
+              border: '1px solid rgba(245,158,11,.38)',
+            }}
+          >
+            <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1.3 }}>⚠️</span>
+            <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.55, color: 'var(--t2)' }}>
+              <b style={{ color: 'var(--orange-text)' }}>{DEMO_BADGE_LABEL}.</b>{' '}
+              {DEMO_BADGE_EXPLANATION}
+            </p>
+          </div>
+        )}
 
         {/* Organizer row */}
         <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>

@@ -464,6 +464,31 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
                         {[l.entity_type, l.state, l.industry].filter(Boolean).join(' · ') || '—'}
                       </div>
                       {l.owner_name && <div style={{ fontSize: 11.5, color: 'var(--t3)' }}>Owner: {l.owner_name}</div>}
+                      {/* ⚠️ Sample leads are INVENTED — `generateSampleFilings` makes up
+                          plausible business names so the pipeline has something to
+                          demonstrate without a paid API.
+
+                          They were indistinguishable from real ones here. The Filing
+                          cell renders `filing_status ?? source`, and the generator sets
+                          `filing_status: 'Active'`, so `source: 'sample'` never showed:
+                          "Riverside Community Foundation · Active · Miami, FL" read
+                          exactly like an OpenCorporates result. Someone could have spent
+                          real outreach effort on a business that does not exist.
+
+                          Labelled on the row itself rather than in the Filing cell,
+                          because that cell is legitimately occupied by a real value. */}
+                      {l.source === 'sample' && (
+                        <div style={{ marginTop: 4 }}>
+                          {/* `--orange-text` and not a literal: it is defined for both
+                              themes (#9a4a06 light, #fbbf24 dark). A hardcoded dark
+                              amber would have been near-invisible on the dark theme
+                              this site ships by default — which is exactly how the
+                              2.56:1 light-mode failure recorded in CLAUDE.md survived. */}
+                          <span style={{ display: 'inline-block', background: 'rgba(245,158,11,.14)', color: 'var(--orange-text)', border: '1px solid rgba(245,158,11,.35)', borderRadius: 999, padding: '1px 8px', fontSize: 10.5, fontWeight: 800, letterSpacing: .3 }}>
+                            SAMPLE — not a real business
+                          </span>
+                        </div>
+                      )}
                     </td>
 
                     {/* Filing */}
