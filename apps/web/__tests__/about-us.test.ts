@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseTeam, parseVideoUrl, initials } from '../lib/about-page';
+import { parseImpactTiles } from '../lib/impact-stats';
 import { VALID_CATEGORIES, DEFAULTS } from '../lib/settings-defaults';
 
 const read = (p: string) => readFileSync(resolve(__dirname, '..', p), 'utf8');
@@ -46,12 +47,16 @@ describe('no fabricated statistics', () => {
   it('has an icon for every tile it renders', () => {
     // STRIP_ICONS is indexed by tile position. A fifth tile without a fifth
     // icon renders an empty span and says nothing about it.
-    // StatStrip is self-closing, so slice on the `tiles` prop itself rather
-    // than a closing tag that is never there — the first version of this
-    // assertion looked for `</StatStrip>`, matched nothing, and "passed" on an
-    // empty string until the >= 5 floor caught it.
-    const start = page.indexOf('tiles={[');
-    const tiles = page.slice(start, page.indexOf(']}', start));
+    // ⚠️ The tiles moved OUT of the JSX when the strip became owner-editable:
+    // the prop is now `tiles={impactTiles}` and the measured defaults are built
+    // above the return. Anchoring on `tiles={[` therefore matched nothing and
+    // sliced an empty string — caught only because `start` is asserted. Anchor
+    // on the array that actually holds them.
+    //
+    // (An earlier version of this assertion looked for `</StatStrip>`, which is
+    // self-closing and never appears. Same failure, same guard.)
+    const start = page.indexOf('measuredImpact = [');
+    const tiles = page.slice(start, page.indexOf('];', start));
     expect(start).toBeGreaterThan(0);
     const tileCount = [...tiles.matchAll(/\{\s*value:/g)].length;
     const iconCount = [...hero.matchAll(/<svg key="[a-z]"/g)].length;
@@ -148,12 +153,17 @@ describe('the loader reads the live config store', () => {
 describe('the settings category is wired end to end', () => {
   it('is a valid category, so the generic settings API accepts a save', () => {
     expect(VALID_CATEGORIES).toContain('about');
-    expect(DEFAULTS.about).toEqual({ teamRoster: '[]', storyVideoUrl: '' });
+    expect(DEFAULTS.about).toEqual({ teamRoster: '[]', storyVideoUrl: '', impactStats: '[]' });
   });
 
   it('ships empty, so nothing renders until someone enters real content', () => {
     expect(parseTeam(DEFAULTS.about.teamRoster)).toEqual([]);
     expect(parseVideoUrl(DEFAULTS.about.storyVideoUrl)).toBeNull();
+    // Empty impact stats mean each page keeps its own MEASURED figures. The
+    // reference designs' "2.3M+ People Helped" and "120+ Countries Reached" are
+    // ~1000x the measured values, so shipping them as defaults would publish
+    // unverifiable impact claims on a fundraising site.
+    expect(parseImpactTiles(DEFAULTS.about.impactStats)).toEqual([]);
   });
 
   it('has an editing surface and a diff label for every field it stores', () => {
