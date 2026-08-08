@@ -34,7 +34,7 @@
  * is. A deny-list would promote it by default — and the tier most likely to be
  * added to a trust vocabulary is a bad one.
  */
-export const PROMOTABLE_TRUST_TIERS = ['Verified', 'Trusted', 'Strong Trust'] as const;
+export const PROMOTABLE_TRUST_TIERS = ['Verified', 'Trusted'] as const;
 
 /**
  * Tiers that must never be promoted, listed explicitly so the test can prove
@@ -55,3 +55,29 @@ export const NON_PROMOTABLE_TRUST_TIERS = ['Needs More Info', 'Under Review', 'F
 export function isPromotableTrustTier(status: string | null | undefined): boolean {
   return (PROMOTABLE_TRUST_TIERS as readonly string[]).includes(status ?? '');
 }
+
+/**
+ * Every tier the stored `campaigns.trust_status` column can actually hold.
+ *
+ * ⚠️ THERE ARE TWO TRUST VOCABULARIES IN THIS PRODUCT AND THEY ARE NOT THE SAME.
+ *
+ * | | set by | values |
+ * |---|---|---|
+ * | this one — STORED | an admin, on `campaigns.trust_status` | Verified, Trusted, Needs More Info, Under Review, Flagged |
+ * | `TrustStatus` (lib/ai-platform.ts) — COMPUTED | `getTrustStatus(score)` | Verified, Strong Trust, Needs More Info, Under Review |
+ *
+ * They share three words and differ on three. `Trusted` is the most common
+ * STORED value in production (130 of 308 measured) and the scorer can never
+ * produce it; `Strong Trust` is the reverse — only the scorer produces it, and
+ * the stored column has **zero** such rows because admin cannot set it.
+ *
+ * ⚠️ `PROMOTABLE_TRUST_TIERS` above listed `Strong Trust` when it was written,
+ * which was this same conflation: that constant filters the STORED column on
+ * /success-stories, so the value matched nothing and quietly narrowed the query
+ * to two tiers while appearing to allow three. Removed — the promotable set is
+ * a subset of what the column can hold, by construction.
+ */
+export const STORED_TRUST_TIERS = [
+  ...PROMOTABLE_TRUST_TIERS,
+  ...NON_PROMOTABLE_TRUST_TIERS,
+] as const;
