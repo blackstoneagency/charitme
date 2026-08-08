@@ -227,3 +227,61 @@ describe('the measured figures strip', () => {
     expect(src).not.toContain('await getCausesIndexData()');
   });
 });
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The category rail must show EVERY option, always.
+//
+// It was `display: flex; overflow-x: auto` with fixed 96px tiles. With 24 tiles
+// that is a ~2,400px row: on desktop everything past "Environment" sat outside
+// the viewport, and on a phone all but three did. A horizontal scroller with no
+// affordance is indistinguishable from a rail that simply ends — so those
+// filters did not exist as far as a visitor was concerned.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('every category is visible without horizontal scrolling', () => {
+  const css = readFileSync(join(__dirname, '..', 'app', 'globals.css'), 'utf8');
+  const railCss = () => {
+    const at = css.indexOf('.cbx-cats {');
+    expect(at, '.cbx-cats rule not found').toBeGreaterThan(-1);
+    return css.slice(at, css.indexOf('}', at));
+  };
+
+  it('wraps to multiple rows instead of scrolling sideways', () => {
+    expect(railCss()).toMatch(/display: grid/);
+    expect(railCss(), 'a sideways scroller hides the tail of the list').not.toMatch(/overflow-x:\s*auto/);
+  });
+
+  it('lets the column count follow the viewport', () => {
+    // auto-fill means one rule serves a 320px phone and a wide desktop; a fixed
+    // column count would need a breakpoint per width and would still overflow
+    // somewhere between them.
+    expect(railCss()).toMatch(/repeat\(auto-fill, minmax\(96px, 1fr\)\)/);
+  });
+
+  it('drops the fixed tile width that forced the overflow', () => {
+    const tile = css.slice(css.indexOf('.cbx-cat {'), css.indexOf('}', css.indexOf('.cbx-cat {')));
+    expect(tile, 'a fixed width cannot participate in a wrapping grid').not.toMatch(/width: 96px/);
+    expect(tile).toMatch(/min-width: 0/);
+  });
+
+  it('wraps long labels rather than overflowing the tile', () => {
+    // "Shelter & Housing" does not fit one line at 96px.
+    const label = css.slice(css.indexOf('.cbx-cat-label {'), css.indexOf('}', css.indexOf('.cbx-cat-label {')));
+    expect(label).toMatch(/overflow-wrap: anywhere/);
+  });
+
+  it('sizes down on a phone instead of shrinking to three per row', () => {
+    const mq = css.slice(css.indexOf('@media (max-width: 480px)', css.indexOf('.cbx-cats {')));
+    expect(mq.slice(0, mq.indexOf('\n}'))).toMatch(/\.cbx-cats \{[^}]*minmax\(78px, 1fr\)/);
+  });
+
+  it('still renders all 24 tiles: All, the five named ones, and every category', () => {
+    // The rail is only "complete" if the markup emits everything the CSS can now
+    // lay out. 1 + 5 + CAMPAIGN_CATEGORIES.
+    expect(code).toMatch(/REFERENCE_TILES\.map/);
+    expect(code).toMatch(/CAMPAIGN_CATEGORIES\.map/);
+    expect(code).toMatch(/All Campaigns/);
+    expect(CAMPAIGN_CATEGORIES.length, 'the rail lays out 18 + 5 + 1 tiles').toBe(18);
+  });
+});
