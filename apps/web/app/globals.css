@@ -262,12 +262,25 @@ input, select, textarea, button { max-width: 100%; }
    68px bar, so the extra height is absorbed by the existing centring and nothing
    moves. */
 .kind-header nav > a { display: inline-flex; align-items: center; gap: 5px; color: #c0c8d2; font-size: 13px; font-weight: 700; white-space: nowrap; min-height: 24px; }
-.kind-header nav > a.active { position: relative; color: #4015e8; }
+/* ⚠️ #4015e8 measured 2.49:1 against the header's `background: #000` — a AA
+   failure (needs 4.5) on the CURRENT page's own nav link, in BOTH themes, since
+   the header is black regardless of theme.
+
+   A literal rather than `--brand-text` or `--violet-ink` on purpose: those flip
+   with the theme (#551cf2 light / #b9a5ff dark), and the light values are darker
+   still against black — the token would fix dark and leave light broken. The
+   header's background is fixed, so its foreground should be too. #c4b5fd is the
+   value already documented in this file as "light violet — AA on dark surfaces"
+   and measures 11.38:1 here. */
+.kind-header nav > a.active { position: relative; color: #c4b5fd; }
 /* -22px, not -24px, because the underline is anchored to the LINK but must land on
    the header's bottom edge. Centred in the 68px bar, the gap below a link of
    height h is (68 - h) / 2; at h = 24 that is exactly 22. It read -24px while the
    links were ~19.5px tall — correct then, 2.25px low once they grew. */
-.kind-header nav > a.active::after { content: ""; position: absolute; left: 0; right: 0; bottom: -22px; height: 2px; background: #5521f1; }
+/* The underline carries the same "you are here" meaning as the colour, so it is
+   held to the 3:1 non-text bar. #5521f1 was 2.87:1 on black — under it. Matched
+   to the link colour above (11.38:1). */
+.kind-header nav > a.active::after { content: ""; position: absolute; left: 0; right: 0; bottom: -22px; height: 2px; background: #c4b5fd; }
 /* ── Header mega-menus ────────────────────────────────────────────────────────
    Two dropdowns (Explore Causes, Resources) replacing what was a flat 8-item
    nav. #98 measured that this bar has NO spare horizontal capacity below
@@ -1069,7 +1082,22 @@ input, select, textarea, button { max-width: 100%; }
    track had no child, so every footer carried ~215px of dead space on the
    right — the empty area beside the link columns. */
 .kind-footer-grid { display: grid; grid-template-columns: 220px minmax(0, 1fr) auto; gap: 40px; align-items: start; }
-.kind-footer .kind-logo strong { font-size: 21px; }
+/* ⚠️ The colour here is NOT cosmetic — without it the footer wordmark is
+   invisible in light mode on every page.
+
+   `.kind-logo strong` sets `color: #f7f8fa` (near-white), which is correct for
+   the HEADER because `.kind-header` has `background: #000`. The footer does not:
+   `.kind-footer` is `rgba(255,255,255,.88)`, so the same near-white text landed
+   at **1.05:1** against it — measured on 43 light-mode pages.
+
+   It survived because the site ships DARK, where the `[data-theme="dark"]`
+   override recolours the wordmark and the footer is dark anyway. This is exactly
+   the failure mode CLAUDE.md warns about: a hand-rolled audit that measures dark
+   twice reports a false all-clear.
+
+   `var(--t1)` rather than a literal, so it stays correct in both themes —
+   #0f1238 on the light footer, #f2f4fa on the dark one. */
+.kind-footer .kind-logo strong { font-size: 21px; color: var(--t1); }
 .kind-footer-brand p { margin: 18px 0 0; color: #65708f; font-size: 13px; line-height: 1.55; font-weight: 750; }
 .kind-footer h3 { margin: 0 0 12px; color: #14193b; font-size: 11px; font-weight: 950; }
 .kind-footer-links { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 38px; }
