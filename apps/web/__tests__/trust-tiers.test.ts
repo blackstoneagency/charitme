@@ -24,7 +24,16 @@ describe('only campaigns the platform vouches for may be promoted', () => {
   it('promotes the affirmative tiers', () => {
     expect(isPromotableTrustTier('Verified')).toBe(true);
     expect(isPromotableTrustTier('Trusted')).toBe(true);
-    expect(isPromotableTrustTier('Strong Trust')).toBe(true);
+  });
+
+  it('does NOT promote "Strong Trust", which is the other vocabulary', () => {
+    // ⚠️ This list originally included it, and that was wrong. `Strong Trust` is
+    // produced by `getTrustStatus(score)` — the COMPUTED label — and cannot be
+    // set on `campaigns.trust_status`: it is absent from the admin allow-list and
+    // production holds zero such rows. Since this constant filters the STORED
+    // column, including it narrowed the query to two tiers while appearing to
+    // allow three. See STORED_TRUST_TIERS for the two vocabularies side by side.
+    expect(isPromotableTrustTier('Strong Trust')).toBe(false);
   });
 
   it('refuses the tiers that withhold trust', () => {
