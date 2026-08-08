@@ -62,6 +62,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { chromium } from '@playwright/test';
+import { resolveBase } from './lib/audit-base.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const argv = process.argv;
@@ -69,7 +70,10 @@ const argOf = (flag, fallback) => {
   const i = argv.indexOf(flag);
   return i === -1 ? fallback : argv[i + 1];
 };
-const BASE = argOf('--base', 'http://127.0.0.1:4141');
+// One resolver for every audit — `--base <url>` or a bare positional URL.
+// Hand-rolling this is what made two earlier sweeps silently audit the wrong
+// port; audit-base-resolution.test.ts fails any script that reintroduces it.
+const BASE = resolveBase(argv, 'http://127.0.0.1:4141');
 const STUB = argOf('--stub', 'http://127.0.0.1:54400');
 const AS_JSON = argv.includes('--json');
 
