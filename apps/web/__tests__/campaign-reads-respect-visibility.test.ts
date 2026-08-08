@@ -49,6 +49,13 @@ const OWNER_SCOPED: Readonly<Record<string, string>> = {
   'lib/marketing-goals.ts': 'internal marketing metrics, admin-gated',
   'app/api/status/route.ts': 'health probe, exposes no campaign fields',
   'app/api/stripe/webhook/route.ts': 'signature-verified by stripe.webhooks.constructEvent',
+  // Steps 9–12 name the campaign the reader has DEMONSTRABLY just paid for: the
+  // id comes from metadata our own server wrote into a Stripe checkout session,
+  // and reaching it requires presenting that session's `cs_...` id for a
+  // payment Stripe reports as paid. A private campaign is still donatable by
+  // direct link, so filtering it out here would blank the title on the receipt
+  // for a donation that really happened. The read selects id/title/slug only.
+  'lib/donation-outcome-server.ts': 'the donor’s own completed payment, keyed by a Stripe session id',
   // AI helpers: generate suggestions for a campaign id supplied by the caller.
   // Rate-limited and non-enumerating, and they return advice rather than the
   // campaign's content. Flagged here as a deliberate, reviewed decision rather

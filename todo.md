@@ -2690,7 +2690,23 @@ skipped workflow leaves its check pending forever and would deadlock a docs-only
 PR. Nothing is required today, which is why this is safe now — recorded so the
 next person does not find out the hard way.
 
-## 🛑 SUPABASE STAGING — blocked, and the pending count is **30** (Claude, 2026-08-03)
+## 🛑 SUPABASE STAGING — blocked, and the pending count is **31** (Claude, 2026-08-03)
+
+**+1 on 2026-08-08: `20260827000000_donations_columns_missing_from_migrations.sql`.**
+This one is not a feature and is not optional. `record_donation` — the single RPC
+every Stripe donation goes through — both reads and writes
+`donations.stripe_checkout_session_id`, and **no migration creates that column**.
+It exists in production only because someone added it by hand. plpgsql bodies are
+not checked against the schema until they run, so on any database provisioned
+from `supabase/migrations/` the function raises `42703` on its first statement,
+re-raises after logging to `webhook_events`, and Stripe retries the delivery
+forever: the donor is charged and the campaign is never credited. Four more
+columns were in the same state, one of which (`offline`) must be `not null
+default false` or `.eq('offline', false)` in `lib/reconciliation.ts` and
+`lib/pricing-analytics.ts` silently excludes every online donation. Applying it
+against production changes nothing — every statement is `add column if not
+exists` — which is exactly why it can be applied without ceremony. See
+`__tests__/record-donation-columns.test.ts` for the guard that now holds it.
 
 **+1 on 2026-08-02: `20260826000000_platform_reports.sql`.** This is the one that
 closes the last self-inflicted blocker on the transparency page — the
@@ -2727,8 +2743,8 @@ all 18 in order and proved rollback.
 Nine migrations have been added since. So the count is arithmetic:
 
 ```
-117 local − 87 applied           = 30
-18 audited pending + 12 added    = 30   ✓ reconciles
+118 local − 87 applied           = 31
+18 audited pending + 13 added    = 31   ✓ reconciles
 ```
 
 All 18 audited-pending versions are still on disk under their original names.

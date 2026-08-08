@@ -185,6 +185,7 @@ async function findPeerFundraiserPage(base, get) {
  * re-derive it, and does not mistake "not probed" for "not applied".
  */
 const NO_PUBLIC_SIGNAL = [
+  ['20260827000000_donations_columns_missing_from_migrations', 'no-op against production BY CONSTRUCTION — all five columns already exist live, which is why it was written; a probe could only confirm what schema-columns.json already records. It matters solely for provisioning a NEW database, where its absence makes record_donation raise 42703 on the first donation'],
   ['20260826000000_platform_reports', 'public SELECT is gated on published=true and no report has been published, so applied-but-empty is indistinguishable from not-applied; there is also no reader yet — the migration lands the table and bucket so applying it is one owner command instead of an engineering task'],
   ['20260825000000_cause_impact_stats', 'public SELECT is gated on published=true and the seed ships unpublished, so applied-but-unpublished is indistinguishable from not-applied; the band falls back to measured counts either way'],
   ['20260824000000_cause_stories', 'public SELECT is gated on published=true, so applied-but-unseeded is indistinguishable from not-applied; the cause page falls back to campaigns either way'],
