@@ -11669,7 +11669,7 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   font-weight: 800;
 }
 .rr-employer-search button .pub-icon { width: 17px; height: 17px; }
-.rr-employer-search small { display: block; margin-top: 10px; color: #717783; font-size: 11px; }
+.rr-employer-search small { display: block; margin-top: 10px; color: #626975; font-size: 11px; }
 .rr-program-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 .rr-program-head h3 { margin: 0; color: #171922; font-size: 17px; }
 .rr-program-head a { color: #6c2abb; font-size: 12px; font-weight: 750; }
