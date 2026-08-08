@@ -47,3 +47,50 @@ The Supabase key available here is rejected (`Unregistered API key`), so
 whether any given table is genuinely empty or merely unreadable cannot be
 checked from this environment. Every finding above is from reading code, not
 from querying data.
+
+---
+
+# Seed-data census (anon key, production project `yanexccimwooursawynm`)
+
+Taken while auditing whether every page pulls real data.
+
+| Table | anon count | Reading |
+|---|---|---|
+| `campaigns` | 352 | seeded, publicly readable |
+| `volunteer_opportunities` | **180** | seeded, publicly readable |
+| `grants` | 180 | seeded, publicly readable |
+| `aeo_entries` | 212 | seeded |
+| `campaign_updates` | 740 | seeded |
+| `supported_countries` | 69 | seeded |
+| `donations` | **0** | **NOT empty — RLS hides them.** Production reports 592 gifts. |
+| `giving_days` | 0 | inconclusive: empty, or RLS, cannot tell |
+| `events`, `teams`, `webinars`, `blog_posts` | `null` | RLS blocks the count outright |
+
+⚠️ **The caveat that makes this census weaker than it looks.** An anon count
+reflects what RLS permits, not what the table holds. `donations` proves it: the
+count is 0 while production reports 592 gifts. So a 0 or `null` here is NOT
+evidence a table is unseeded — only a non-zero count is evidence of anything,
+and it is evidence of two things at once (rows exist AND are publicly
+readable).
+
+Distinguishing "empty" from "hidden" needs a working service-role key. The one
+in the agent sandbox is rejected (`Unregistered API key`).
+
+## What the census settled
+
+`volunteer_opportunities` holds **180 rows**, 120 `open` and 60 `upcoming`,
+none soft-deleted — every one matching `getPublicOpportunities`'s filter. The
+loader's exact query (same columns, filters, ordering, limit) returns 48 rows
+when replayed against this database.
+
+Production nonetheless renders zero, uncached (`x-vercel-cache: MISS`,
+`age: 0`). Deployment markers show production is running a build BEFORE
+`e4090fa8`, so its `0` is the old `if (error) return []` — consistent with the
+read failing and being swallowed.
+
+Leading cause is a `boundedQuery` timeout on the `verified` + `starts_at`
+ordering, ahead of a bad service-role key: an invalid key would break
+/campaigns too, and /campaigns renders fine.
+
+**`e4090fa8` makes this self-diagnosing.** Once deployed, `—` means the read
+errored; `0` means it genuinely returned nothing. One look decides it.
