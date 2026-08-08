@@ -81,9 +81,21 @@ export default async function AboutUsPage() {
         photoCategory="Family"
         photoKey="about-us"
         actions={
-          // The reference's "Watch Our Story" control. Rendered ONLY when an
-          // administrator has set a real URL: a play button that plays nothing
-          // is a dead affordance, and this page has no video of its own.
+          // The design's "Watch Our Story" control.
+          //
+          // It now always renders, because the design calls for it. What it
+          // POINTS AT depends on whether a video exists:
+          //
+          //   · `storyVideoUrl` set → the video, in a new tab.
+          //   · not set → the page's own "Our Story" section, further down.
+          //
+          // The fallback is deliberate and is the honest half of this. A control
+          // that goes nowhere is a dead affordance, and one pointed at an
+          // invented URL is a broken link on the page whose whole job is looking
+          // trustworthy. Scrolling to the story the page already tells is the
+          // only destination available that is neither. Set the URL in
+          // Super Admin → System Settings → About page and it upgrades to the
+          // real video with no code change.
           content.storyVideoUrl ? (
             <a href={content.storyVideoUrl} className="ab-watch" target="_blank" rel="noreferrer">
               <span className="ab-watch-ic" aria-hidden="true">
@@ -91,7 +103,14 @@ export default async function AboutUsPage() {
               </span>
               Watch our story
             </a>
-          ) : undefined
+          ) : (
+            <a href="#ab-story-h" className="ab-watch">
+              <span className="ab-watch-ic" aria-hidden="true">
+                <PublicIcon name="play" />
+              </span>
+              Watch our story
+            </a>
+          )
         }
       />
 

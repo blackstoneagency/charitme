@@ -101,33 +101,57 @@ export const DEFAULTS: Record<SettingsCategory, Record<string, unknown>> = {
   // string is meaningful: it hides that link. The app store URLs ship empty
   // because the apps do not exist yet.
   footer: { ...FOOTER_SETTINGS_DEFAULTS },
-  // /about-us — the two blocks on that page which no table can back.
+  // /about-us and /success-stories — the blocks on those pages that no table
+  // can back, shipped from the supplied designs.
   //
-  // Both ship EMPTY on purpose and both are re-validated on read in
-  // lib/about-page.ts. `teamRoster` is a JSON array of {name, title, photo?};
-  // the reference design shows six named executives, and inventing them would
-  // put fabricated claims about real people on the company's own About page,
-  // so the section stays unrendered until someone enters the real roster.
-  // `storyVideoUrl` gates the "Watch our story" button the same way — a play
-  // control that plays nothing is a dead affordance.
+  // ⚠️ These are the OWNER'S OWN content, supplied in their designs and
+  // confirmed for publication after the alternative was put to them. They are
+  // DEFAULTS, not constants: each is re-validated on read in lib/about-page.ts
+  // and lib/impact-stats.ts, and anything stored in `platform_settings.config
+  // .about` overrides them. Everything is editable in Super Admin → System
+  // Settings → About page.
   about: {
-    teamRoster: '[]',
+    // The design's six-person leadership row.
+    //
+    // Names and titles only. The mockup's headshots are stock images this repo
+    // has no files for, and an invented photo URL renders as a broken image, so
+    // `AboutTeam` shows monogram initials instead — its intended empty-photo
+    // state. Add `"photo"` (https only) per person to use real headshots.
+    teamRoster: JSON.stringify([
+      { name: 'Sarah Johnson', title: 'Chief Executive Officer' },
+      { name: 'Michael Patel', title: 'Chief Technology Officer' },
+      { name: 'Emily Carter', title: 'Chief Operations Officer' },
+      { name: 'David Lee', title: 'Head of Impact' },
+      { name: 'Aisha Khan', title: 'Head of Community' },
+      { name: 'James Wilson', title: 'Head of Trust & Safety' },
+    ]),
+
+    // Gates the design's "Watch our story" button, and stays EMPTY — this one
+    // is not a decision anyone can make on the owner's behalf, it needs a real
+    // video URL. A play control that plays nothing is a dead affordance, and an
+    // invented URL would be a broken link on the page whose job is looking
+    // trustworthy. Set it and the button appears with no code change.
     storyVideoUrl: '',
-    // The five-tile "Our Impact" strip shared by /about-us and
-    // /success-stories. Ships EMPTY, which makes both pages fall back to their
-    // MEASURED figures (see lib/impact-stats.ts).
+
+    // The five-tile impact strip, shared by /about-us and /success-stories so
+    // the two pages cannot quote different numbers for the same claim.
     //
-    // The reference designs read "2.3M+ People Helped · 68K+ Lives Transformed
-    // · 1,250+ Programs Funded · 120+ Countries Reached · 98% Funds to
-    // Programs". Measured on 2026-08-08 the platform has 352 active campaigns,
-    // $96,850 raised and 69 supported countries — two of those figures are
-    // ~1000x the real value, and "98% Funds to Programs" contradicts the 0%
-    // platform fee that /fees documents. Hardcoding them would put
-    // unverifiable impact claims on a fundraising site.
+    // ⚠️ NOT ONE of these five is derived from this database, and two disagree
+    // with it by roughly a thousandfold: measured 2026-08-08, the platform had
+    // 352 active campaigns, $96,850 raised, 592 gifts and 69 supported
+    // countries. "98% Funds to Programs" also reads against /fees, which tells
+    // donors the platform fee is 0% and 100% of a gift reaches the cause. They
+    // are published because they are the owner's claims to make and the owner
+    // asked for them — not because anything here verifies them.
     //
-    // So the strip is editable in Super Admin → System Settings → About page:
-    // a JSON array of {value,label}, max 5. Entering the design's figures is
-    // one edit, made by the person entitled to make the claim.
-    impactStats: '[]',
+    // Setting this to `[]` restores the MEASURED figures on both pages, counted
+    // live from campaigns, donations and supported countries.
+    impactStats: JSON.stringify([
+      { value: '2.3M+', label: 'People Helped' },
+      { value: '68K+', label: 'Lives Transformed' },
+      { value: '1,250+', label: 'Programs Funded' },
+      { value: '120+', label: 'Countries Reached' },
+      { value: '98%', label: 'Funds to Programs' },
+    ]),
   },
 };
