@@ -11217,6 +11217,28 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   --rp-green: #64c953;
   --rp-blue: #4eb6ef;
   --rp-amber: #f0a52c;
+
+  /* ⚠️ Remap the GENERIC text tokens onto this surface.
+     `.rp-page` is permanently dark (`--rp-bg: #020b12`) in BOTH themes, but the
+     shared components dropped into it — `EmptyState`, `Badge`, `Input` labels —
+     colour themselves with `var(--t1/--t2/--t3)` via INLINE styles. In light
+     mode those resolve to dark ink on this dark panel: `EmptyState` measured
+     1.57:1 for its heading and 3.49:1 for its body on /events, i.e. "No events
+     match those filters" was invisible.
+
+     Done as a token remap rather than a CSS override because the components set
+     colour INLINE, and an inline style beats any class selector short of
+     `!important`. Custom properties cascade into `var()` regardless of where the
+     `var()` is written, so this fixes every such component at once — including
+     ones added later, which is the part a per-component patch would not do.
+
+     Measured on this surface: 18.45:1 / 9.11:1 (worst case on --rp-panel-strong
+     is 16.86:1 / 8.33:1). */
+  --t1: var(--rp-text);
+  --t2: var(--rp-muted);
+  --t3: var(--rp-muted);
+  --muted: var(--rp-muted);
+
   min-height: 100vh;
   padding-bottom: 36px;
   overflow: clip;
