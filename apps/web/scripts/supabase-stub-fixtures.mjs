@@ -846,6 +846,31 @@ export function buildFixtures() {
       enabled: i % 2 === 0,
       description: 'Fixture flag.',
     })),
+    // ⚠️ PUBLISHED here on purpose, unlike the SQL seed.
+    //
+    // supabase/seed/platform_impact.sql ships these rows with published = false,
+    // because publishing an impact or spend claim on the real site is a decision
+    // for whoever can source the numbers. The stub is a throwaway fixture
+    // database that exists so the audits can SEE the rendered markup — and the
+    // donut and headline tiles are unreachable while unpublished, so every sweep
+    // would measure a page missing the two sections most likely to have a
+    // contrast bug. That is exactly how a real 1.58:1 defect hid behind a route
+    // that 404s without data.
+    platform_impact_stats: [
+      { id: 'pis-0', value: '2.3M+',  label: 'People Helped',     icon: 0, sort_order: 0, published: true, source_note: 'fixture' },
+      { id: 'pis-1', value: '68K+',   label: 'Lives Transformed', icon: 1, sort_order: 1, published: true, source_note: 'fixture' },
+      { id: 'pis-2', value: '1,250+', label: 'Programs Funded',   icon: 2, sort_order: 2, published: true, source_note: 'fixture' },
+      { id: 'pis-3', value: '120+',   label: 'Countries Reached', icon: 3, sort_order: 3, published: true, source_note: 'fixture' },
+      { id: 'pis-4', value: '98%',    label: 'Funds to Programs', icon: 4, sort_order: 4, published: true, source_note: 'fixture' },
+    ],
+    // Sums to 100 — the reader REFUSES a set that does not, so a fixture that
+    // did not add up would silently render no donut and quietly un-audit it.
+    platform_fund_allocation: [
+      { id: 'pfa-0', label: 'Programs & Services', percent: 82, color_index: 0, sort_order: 0, published: true, source_note: 'fixture' },
+      { id: 'pfa-1', label: 'Fundraising',         percent: 10, color_index: 1, sort_order: 1, published: true, source_note: 'fixture' },
+      { id: 'pfa-2', label: 'Operations',          percent:  6, color_index: 2, sort_order: 2, published: true, source_note: 'fixture' },
+      { id: 'pfa-3', label: 'Other',               percent:  2, color_index: 3, sort_order: 3, published: true, source_note: 'fixture' },
+    ],
     supported_countries: genericRows('ctry', 20, (i) => ({
       code: ['US', 'CA', 'GB', 'AU', 'NZ', 'IE', 'DE', 'FR', 'NL', 'SE'][i % 10],
       name: ['United States', 'Canada', 'United Kingdom', 'Australia', 'New Zealand',
