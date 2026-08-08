@@ -2690,7 +2690,16 @@ skipped workflow leaves its check pending forever and would deadlock a docs-only
 PR. Nothing is required today, which is why this is safe now — recorded so the
 next person does not find out the hard way.
 
-## 🛑 SUPABASE STAGING — blocked, and the pending count is **33** (Claude, 2026-08-03)
+## 🛑 SUPABASE STAGING — blocked, and the pending count is **34** (Claude, 2026-08-03)
+
+**Live ledger rechecked 2026-08-08:** `supabase migration list --linked`
+reported 121 local migration files and 87 production ledger entries. The 34-file
+gap below is therefore a current measurement, not only historical arithmetic.
+
+**+1 on 2026-08-08: `20260829000000_reconcile_live_schema_columns.sql`.**
+Reproduces 49 production columns, their exact types/defaults/nullability, foreign
+keys, checks, uniqueness, and index contract on a fresh provision. It is a no-op
+against production's existing columns and has an ownership-marked rollback.
 
 **+2 on 2026-08-08:** replay compatibility and forward policy repair for the
 three editorial migrations that referenced the removed `profiles.role` shape.
@@ -2743,8 +2752,8 @@ all 18 in order and proved rollback.
 Fifteen migrations have been added since. So the count is arithmetic:
 
 ```
-120 local − 87 applied           = 33
-18 audited pending + 15 added    = 33   ✓ reconciles
+121 local − 87 applied           = 34
+18 audited pending + 16 added    = 34   ✓ reconciles
 ```
 
 All 18 audited-pending versions are still on disk under their original names.

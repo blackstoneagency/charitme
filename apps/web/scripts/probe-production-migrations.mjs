@@ -184,6 +184,7 @@ async function findPeerFundraiserPage(base, get) {
  * re-derive it, and does not mistake "not probed" for "not applied".
  */
 const NO_PUBLIC_SIGNAL = [
+  ['20260829000000_reconcile_live_schema_columns', 'the migration records 49 columns that already exist in production, so every public reader succeeds both before and after the ledger entry is applied; only the migration ledger can distinguish those states'],
   ['20260828000000_repair_editorial_admin_policies', 'RLS policy replacement; a successful public read cannot distinguish the hardened is_admin predicate from the legacy generated-role predicate'],
   ['20260827000000_campaign_path', 'the campaign page selects `*`, which succeeds whether or not the column exists, and no public endpoint names campaign_path — so a read cannot distinguish applied from not. The only rendered difference is a chip that appears solely on a nonprofit/team campaign, and none exist yet. Applying it is safe and uncoordinated: the insert already retries without the column (lib/campaign-insert-columns.ts), so campaigns are created either way'],
   ['20260826000000_platform_reports', 'public SELECT is gated on published=true and no report has been published, so applied-but-empty is indistinguishable from not-applied; there is also no reader yet — the migration lands the table and bucket so applying it is one owner command instead of an engineering task'],

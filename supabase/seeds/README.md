@@ -58,6 +58,7 @@ Run these **in order**, once each, top to bottom:
 | 06 | `06_extended_features.sql` | `creator_profiles`, `membership_tiers`, `member_subscriptions`, `exclusive_posts`, `creator_tips`, `digital_products`, `product_orders`, `auction_items`, `auction_bids`, `livestreams`, `giving_days`, `donor_crm_contacts`, `donor_segments`, `campaign_media`, `transparency_ledger_items` | 120 each |
 | 07 | `07_operational_features.sql` | Role personas, organizations/brands, volunteer shifts/hours, tax-delivery ledgers, teams, beneficiaries, messaging, privacy, embeds, analytics, outreach, and Marketing Engine plans/assets | 120 each |
 | 08 | `08_sponsors.sql` | `sponsors` — the homepage/`/sponsor` logo list, **not** the sponsorship marketplace in 02 | tops up to 120 |
+| 09 | `09_full_platform_volume.sql` | Deterministic campaigns, donations, updates, messages, events, analytics, and two isolated marketing tenants | 500 per CRUD set; 500 contacts/events per tenant |
 | 99 | `99_verify_counts.sql` | *(read-only)* reports row counts + an `ok` flag (≥100) per feature | — |
 
 Each feature file re-reads whatever `profiles`/`campaigns` already exist, so if
@@ -90,6 +91,6 @@ repeatable feature suite.
 
 ## Verifying
 
-After running 00–08, run `99_verify_counts.sql`. Every row should show `ok = true`
+After running 00–09, run `99_verify_counts.sql`. Every row should show `ok = true`
 (≥100). Anything showing `false` on a per-user table means you need more profiles —
 run `00_test_users.sql`.
