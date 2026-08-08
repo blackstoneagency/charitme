@@ -10396,6 +10396,47 @@ one replaces it.
 | Tests / build | ✅ | 3264 passing, typecheck clean, lint 0 errors, `next build` EXIT=0. |
 | Payment methods end-to-end | 🟡 **owner** | unchanged: a real paid flow needs Stripe **test** keys or owner go-ahead (ADR-0003). Not something this sandbox can close. |
 
+### 🔎 Deep dive: is every page actually pulling from Supabase? (Claude, 2026-08-08)
+
+Measured rather than asserted, because source-reading cannot settle it — a
+`supabaseAdmin.from('campaigns')` in a file proves a query exists, not that its
+result reaches the screen. Tooling added: `--empty` mode + a `/__stub/mode`
+control route on the stub, and `npm run audit:data-wiring`, which renders every
+public route twice (populated / empty) and compares visible text.
+
+**The one real defect found: eleven audit fixtures were missing the column their
+page filters on.** Each made a query return nothing, so the page's data half
+rendered empty — and an empty page passes axe and contrast perfectly. Worst was
+`supported_countries`, where every column but `name` was invented; the page
+filters `.eq('active', true)`, so /supported-countries had been reporting
+"fundraisers in 0 countries" to every sweep, and /impact-map and /success-stories
+read the same table. Fixed; the page now renders 15 fundraising / 20 donating.
+
+**Four things checked and found FINE** — recorded so they are not re-investigated:
+
+- *Seed verification.* `99_verify_counts.sql` covers all 93 seeded public tables.
+  (A first measurement said 93 were UNVERIFIED; that was a regex reading a
+  plpgsql `text[]` as SQL `FROM` clauses. Now pinned by
+  `seed-verification-coverage.test.ts`.)
+- *Read-but-unseeded tables.* 42 of them, but only 5 reach a public page, and for
+  all 5 empty is the CORRECT state — `/status` with no incidents, `/create` with
+  no connected account yet.
+- *Pages reaching no table at all.* 50, following imports. All correct: legal
+  text, forms and marketing copy. `/nearby` is wired but client-side (fetches
+  `/api/campaigns/nearby`, which a static scan cannot see through);
+  `/transparency` renders the fee model, which lives in `@shared/fees` by design.
+- *`/blog` is file-based on purpose.* `lib/blog-posts.ts`, 10 posts. **No blog,
+  posts or articles table exists in the schema**, so there is nothing to link it
+  to; wiring it means a table, a migration, RLS and an editor — a feature, not a
+  wiring fix. Left as a decision, not done silently.
+
+**Known limit of `audit:data-wiring`, so its output is not over-read.** The stub
+has fixtures for 36 tables; the app reads 145. A page reading one of the other
+109 cannot change when the database empties, because it had nothing either way —
+so most "identical" results are fixture coverage, not evidence of hardcoding.
+`supported_countries` was the one case where the stub HAD data and the page still
+did not move, which is why that one was a real finding and the rest are not.
+
 ### ⛔ What is genuinely still open, and why it is not code
 
 1. **Apply the `organizations` migration.** Blocks 4 tables. Sandbox cannot apply
