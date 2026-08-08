@@ -113,5 +113,21 @@ export const DEFAULTS: Record<SettingsCategory, Record<string, unknown>> = {
   about: {
     teamRoster: '[]',
     storyVideoUrl: '',
+    // The five-tile "Our Impact" strip shared by /about-us and
+    // /success-stories. Ships EMPTY, which makes both pages fall back to their
+    // MEASURED figures (see lib/impact-stats.ts).
+    //
+    // The reference designs read "2.3M+ People Helped · 68K+ Lives Transformed
+    // · 1,250+ Programs Funded · 120+ Countries Reached · 98% Funds to
+    // Programs". Measured on 2026-08-08 the platform has 352 active campaigns,
+    // $96,850 raised and 69 supported countries — two of those figures are
+    // ~1000x the real value, and "98% Funds to Programs" contradicts the 0%
+    // platform fee that /fees documents. Hardcoding them would put
+    // unverifiable impact claims on a fundraising site.
+    //
+    // So the strip is editable in Super Admin → System Settings → About page:
+    // a JSON array of {value,label}, max 5. Entering the design's figures is
+    // one edit, made by the person entitled to make the claim.
+    impactStats: '[]',
   },
 };

@@ -128,7 +128,12 @@ for (const width of WIDTHS) {
       // passes — which is how a sweep of eighty consoles becomes eighty clean
       // readings of the login page.
       const landed = new URL(page.url()).pathname.replace(/\/$/, '') || '/';
-      const asked = path.replace(/\/$/, '') || '/';
+      // A listed route may carry a query string (`?session_id=…` selects the
+      // donation the post-payment screens describe). Playwright's page.url()
+      // reports only the pathname here, so comparing it against the raw entry
+      // reports every such route as a REDIRECT to itself and measures none of
+      // them — a harness artifact that reads exactly like a real finding.
+      const asked = path.split('?')[0].replace(/\/$/, '') || '/';
       // A member session cannot reach /admin/*, and that redirect is CORRECT
       // behaviour rather than a defect. Counted as failures it made the
       // member-mode run permanently red (~104 of them), which would have made
