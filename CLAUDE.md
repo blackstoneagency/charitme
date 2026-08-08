@@ -275,10 +275,26 @@ posture from the entries above it — that was measured, and so is this.
 The flip-flopping this section keeps recording is what an **exhausted monthly
 Actions allowance** looks like. Evidence, all checkable:
 
-- **This repository is private** (`"private": true` from the API). Private repos
+- **This repository WAS private** (`"private": true` from the API). Private repos
   on a free personal account get a fixed monthly minute allowance; public repos
   get unlimited. Exhausting it creates the job, assigns no runner, and fails in
   seconds with `0` billable ms and no steps — **exactly the signature above**.
+
+  ⚠️ **It is PUBLIC now.** The API returned `"private": false` on 2026-08-08,
+  the same day the runners came back. That is almost certainly the whole story:
+  going public converts a fixed monthly allowance into unlimited minutes, which
+  is one of the three fixes this section recommends below. It is also the
+  prediction's own escape clause ("unless the plan changes") firing — so the
+  quota diagnosis is now **supported**, not refuted, by the very event that
+  broke its date.
+
+  Two consequences worth stating separately from the diagnosis:
+  · **CI is expected to STAY alive.** There is no monthly allowance left to
+    exhaust, so the flip-flopping this section documents should stop. If the
+    dead signature ever returns on a public repo, this explanation is wrong and
+    the cause is something else entirely.
+  · **The repo is world-readable.** Anything committed here is public — worth
+    knowing before writing anything into it that assumed a private audience.
 - **It is not `ci.yml`.** `image-links.yml` has run once ever (`30259517312`,
   2026-07-27) and failed the same way in 3s. Every workflow is affected, which
   rules out anything in a single workflow file. The `ci.yml` config is plain
@@ -301,9 +317,17 @@ owner action this section recommends). But that is now a SECOND unfalsifiable
 guess stacked on the first, and this repo has already rewritten this section
 three times by reasoning from a story instead of a measurement.
 
-Treat the quota hypothesis as UNPROVEN, not confirmed and not refuted: it still
-fits the 0-billable-ms signature better than anything else, and it no longer
-predicts anything checkable. The table above remains the authority on whether a
+Then the cause turned up in the same API response that proved the runners were
+alive: **the repository is now public** (`"private": false`). Going public is
+exactly the "plan changes" escape clause, and it converts the fixed monthly
+allowance into unlimited minutes. So the quota diagnosis is the best explanation
+of the whole timeline after all — it got the DATE wrong because it assumed
+nothing would change, and something did.
+
+What remains genuinely unproven is the billing detail: the API never exposed the
+allowance to this token, so "the allowance was exhausted" is still inference from
+the signature rather than a figure read off a billing page. The table above stays
+the authority on whether a given red check is real. Run it. The table above remains the authority on whether a
 given red check is real. Run it.
 
 ⚠️ **This does not replace the check.** It is a hypothesis that fits the
