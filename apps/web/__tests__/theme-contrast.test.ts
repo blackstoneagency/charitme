@@ -13,6 +13,14 @@ import { join } from 'node:path';
 // ─────────────────────────────────────────────────────────────────────────────
 
 const css = readFileSync(join(__dirname, '../app/globals.css'), 'utf8');
+const adminCampaigns = readFileSync(
+  join(__dirname, '../app/admin/campaigns/_components/AdminCampaignsClient.tsx'),
+  'utf8',
+);
+const campaignControls = readFileSync(
+  join(__dirname, '../app/dashboard/campaigns/[id]/_components/CampaignControls.tsx'),
+  'utf8',
+);
 
 /** Extract `--name: #hex;` declarations from a single CSS block body. */
 function parseTokens(block: string): Record<string, string> {
@@ -85,4 +93,21 @@ describe('theme token contrast (WCAG 2.2 AA)', () => {
       }
     }
   }
+
+  it('keeps neutral campaign actions legible under white text', () => {
+    expect(contrast('#ffffff', light['neutral-btn'])).toBeGreaterThanOrEqual(AA_NORMAL);
+    expect(campaignControls.match(/label:\s*'Close Campaign'[^}\r\n]*color:\s*'var\(--neutral-btn\)'/g)).toHaveLength(2);
+    expect(campaignControls).not.toMatch(/label:\s*'Close Campaign'[^}\r\n]*color:\s*'var\(--t2\)'/);
+  });
+
+  it('uses theme-aware surfaces for the admin carousel badge', () => {
+    const carouselBadge = adminCampaigns.split(/\r?\n/).find((line) => line.includes('>🏠 Carousel<'));
+    expect(carouselBadge).toContain("background: 'var(--s2)'");
+    expect(carouselBadge).toContain("border: '1px solid var(--b1)'");
+    expect(carouselBadge).not.toContain("background: '#eff6ff'");
+  });
+
+  it('gives completed create steps a readable dark-theme label', () => {
+    expect(css).toContain('[data-theme="dark"] .cr2-track-item.done .cr2-track-label { color: var(--violet-ink); }');
+  });
 });

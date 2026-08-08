@@ -9,13 +9,13 @@ const STATUS_ACTIONS: Record<Status, { label: string; next: Status; color: strin
   draft:     [{ label: 'Publish Campaign', next: 'active', color: 'var(--green-btn)' }],
   active:    [
     { label: 'Pause Donations', next: 'paused', color: 'var(--orange-btn)', confirm: 'Pausing stops new donations but keeps the page live. Continue?' },
-    { label: 'Close Campaign',  next: 'completed', color: 'var(--t2)', confirm: 'Closing marks the campaign as completed. Donors will see it as ended. Continue?' },
+    { label: 'Close Campaign',  next: 'completed', color: 'var(--neutral-btn)', confirm: 'Closing marks the campaign as completed. Donors will see it as ended. Continue?' },
   ],
   paused:    [
     { label: 'Resume Donations', next: 'active', color: 'var(--green-btn)' },
-    { label: 'Close Campaign',   next: 'completed', color: 'var(--t2)', confirm: 'Close this campaign permanently?' },
+    { label: 'Close Campaign',   next: 'completed', color: 'var(--neutral-btn)', confirm: 'Close this campaign permanently?' },
   ],
-  completed: [{ label: 'Archive Campaign', next: 'archived', color: 'var(--t2)', confirm: 'Archived campaigns are hidden from search. You can still view them in your dashboard.' }],
+  completed: [{ label: 'Archive Campaign', next: 'archived', color: 'var(--neutral-btn)', confirm: 'Archived campaigns are hidden from search. You can still view them in your dashboard.' }],
   frozen:    [],
   archived:  [],
 };

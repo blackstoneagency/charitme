@@ -667,7 +667,7 @@ export default function AdminCampaignsClient({
                 <span style={{ fontSize: 10, fontWeight: 650, padding: '2px 7px', borderRadius: 6, background: 'var(--tint-amber)', border: '1px solid #fcd34d', color: 'var(--orange-text)' }}>⭐ Featured</span>
               )}
               {c.coverImageUrl?.startsWith('http') && c.status === 'active' && (
-                <span style={{ fontSize: 10, fontWeight: 650, padding: '2px 7px', borderRadius: 6, background: '#eff6ff', border: '1px solid #bfdbfe', color: 'var(--brand-text)' }}>🏠 Carousel</span>
+                <span style={{ fontSize: 10, fontWeight: 650, padding: '2px 7px', borderRadius: 6, background: 'var(--s2)', border: '1px solid var(--b1)', color: 'var(--brand-text)' }}>🏠 Carousel</span>
               )}
             </span>
             <span className="ac-cell ac-date">{fmtDate(c.createdAt)}</span>

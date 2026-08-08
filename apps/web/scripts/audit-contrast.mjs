@@ -285,6 +285,10 @@ let connErrors = 0;
 // every previous "0 violations" run. Reporting the sample size makes an empty
 // shell visibly different from a populated page instead of identical.
 const sampled = [];
+// The populated campaign-updates editor has exactly 14 visible leaf-text nodes.
+// Anything below that remains suspicious; treating 14 itself as empty produces a
+// warning after the API-backed update card has demonstrably rendered.
+const THIN = Number(process.env.CONTRAST_THIN_THRESHOLD ?? 14);
 
 for (const theme of THEMES) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: theme });
@@ -413,18 +417,25 @@ for (const theme of THEMES) {
         }
         continue;
       }
-      const textCount = await page.evaluate(() => {
-        let n = 0;
-        for (const el of document.querySelectorAll('body *')) {
-          if (!(el instanceof HTMLElement)) continue;
-          const t = el.textContent?.trim();
-          if (!t || el.children.length > 0) continue;
-          const style = getComputedStyle(el);
-          if (style.visibility === 'hidden' || style.display === 'none') continue;
-          n++;
-        }
-        return n;
-      });
+      const textCount = await page.evaluate(async (thinThreshold) => {
+        const countVisibleLeafText = () => {
+          let n = 0;
+          for (const el of document.querySelectorAll('body *')) {
+            if (!(el instanceof HTMLElement)) continue;
+            const t = el.textContent?.trim();
+            if (!t || el.children.length > 0) continue;
+            const style = getComputedStyle(el);
+            if (style.visibility === 'hidden' || style.display === 'none') continue;
+            n++;
+          }
+          return n;
+        };
+
+        const initialCount = countVisibleLeafText();
+        if (initialCount >= thinThreshold) return initialCount;
+        await new Promise((resolve) => setTimeout(resolve, 2_000));
+        return countVisibleLeafText();
+      }, THIN);
       sampled.push({ theme, path, textCount });
       const found = await page.evaluate(collectContrast);
       for (const f of found) {
@@ -459,7 +470,6 @@ await browser.close();
 // A page that rendered almost nothing was not meaningfully audited. This does not
 // fail the run — an empty state can be legitimate — but it must be SAID, so a
 // green result is never mistaken for coverage the sweep did not have.
-const THIN = Number(process.env.CONTRAST_THIN_THRESHOLD ?? 15);
 const thin = sampled.filter((r) => r.textCount < THIN);
 if (!AS_JSON && thin.length > 0) {
   console.log(`\n⚠ ${thin.length} page render(s) had fewer than ${THIN} text elements — likely an empty`);

@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 // ─────────────────────────────────────────────────────────────────────────────
 // Which pending migrations are ALREADY LIVE in production?
 //

@@ -48,6 +48,7 @@
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { setTimeout as sleep } from 'node:timers/promises';
+import { assertPortAvailable } from './lib/audit-port.mjs';
 
 const require = createRequire(import.meta.url);
 const nextBin = require.resolve('next/dist/bin/next');
@@ -79,6 +80,10 @@ const USER_NAME = AS_MEMBER ? 'Owen Organizer' : 'Audit Stub';
 // token has to match too — an id and email alone would still resolve to the
 // default admin persona and silently undo the switch.
 const USER_TOKEN = AS_MEMBER ? 'stub-organizer-access-token' : 'stub-access-token';
+
+if (APP_PORT === STUB_PORT) {
+  throw new Error('The Next app and Supabase stub must use different ports.');
+}
 
 /**
  * supabase-js derives the storage key from the first dot-separated label of the
@@ -149,6 +154,10 @@ process.on('exit', cleanup);
 process.on('SIGINT', () => { cleanup(); process.exit(130); });
 
 // ─── 1. stub ────────────────────────────────────────────────────────────────
+await Promise.all([
+  assertPortAvailable(APP_PORT, 'Next app'),
+  assertPortAvailable(STUB_PORT, 'Supabase stub'),
+]);
 spawnChild(process.execPath, ['scripts/supabase-stub.mjs', '--port', String(STUB_PORT)], {
   stdio: ['ignore', 'ignore', 'inherit'],
 });
@@ -187,6 +196,7 @@ if (argv.includes('--build')) {
     stdio: AS_JSON ? ['ignore', 'ignore', 'inherit'] : ['ignore', 'inherit', 'inherit'],
   });
 }
+await assertPortAvailable(APP_PORT, 'Next app');
 spawnChild(process.execPath, [nextBin, 'start', '-p', String(APP_PORT)], {
   env,
   stdio: ['ignore', 'ignore', 'inherit'],
