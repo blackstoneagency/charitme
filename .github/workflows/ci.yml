@@ -48,6 +48,30 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  migration-replay:
+    name: replay migrations and seeds from zero
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start isolated database
+        run: npx supabase db start
+
+      - name: Replay every migration and seed
+        run: npx supabase db reset --local
+
+      - name: Stop isolated database
+        if: always()
+        run: npx supabase stop --no-backup || true
+
   verify:
     name: typecheck · lint · test · build · e2e · a11y
     runs-on: ubuntu-latest
@@ -109,15 +133,9 @@ jobs:
   # `verify`. The comment justifying that said "parallelises with verify" — true,
   # and the right call when Actions minutes were free.
   #
-  # They are not free: this is a private repo on a personal account with a fixed
-  # monthly allowance, and exhausting it is what produced the runner outages
-  # recorded in CLAUDE.md. Two jobs meant TWO `npm ci` and TWO full Next builds
-  # per run, and the build is by far the most expensive step here.
-  #
-  # Minutes are billed per job-minute SUMMED, so merging trades wall-clock (the
-  # two no longer overlap) for roughly a third fewer billed minutes. Wall-clock
-  # is not the scarce resource; the allowance is. Reverse this if the plan
-  # changes and parallel feedback becomes worth more than the minutes.
+  # Browser checks stay in the verify job so they reuse its compiled application.
+  # Database replay is a separate parallel job because it exercises an isolated
+  # Supabase stack and does not benefit from the Next.js build artifacts.
 
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium

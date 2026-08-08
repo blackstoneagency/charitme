@@ -63,7 +63,7 @@ function columnsFromMigrations(): Record<string, Set<string>> {
   const out: Record<string, Set<string>> = {};
   for (const f of readdirSync(dir).filter((f) => f.endsWith('.sql'))) {
     const sql = readFileSync(join(dir, f), 'utf8');
-    const re = /public\.(\w+)\s*\n?\s*add column if not exists (\w+)/gi;
+    const re = /public\.(\w+)\s*\n?\s*add column if not exists "?(\w+)"?/gi;
     for (const m of sql.matchAll(re)) {
       (out[m[1]] ??= new Set()).add(m[2]);
     }

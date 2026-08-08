@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseTeam, parseVideoUrl, initials } from '../lib/about-page';
+import { parseImpactTiles } from '../lib/impact-stats';
 import { VALID_CATEGORIES, DEFAULTS } from '../lib/settings-defaults';
 
 const read = (p: string) => readFileSync(resolve(__dirname, '..', p), 'utf8');
@@ -46,12 +47,16 @@ describe('no fabricated statistics', () => {
   it('has an icon for every tile it renders', () => {
     // STRIP_ICONS is indexed by tile position. A fifth tile without a fifth
     // icon renders an empty span and says nothing about it.
-    // StatStrip is self-closing, so slice on the `tiles` prop itself rather
-    // than a closing tag that is never there — the first version of this
-    // assertion looked for `</StatStrip>`, matched nothing, and "passed" on an
-    // empty string until the >= 5 floor caught it.
-    const start = page.indexOf('tiles={[');
-    const tiles = page.slice(start, page.indexOf(']}', start));
+    // ⚠️ The tiles moved OUT of the JSX when the strip became owner-editable:
+    // the prop is now `tiles={impactTiles}` and the measured defaults are built
+    // above the return. Anchoring on `tiles={[` therefore matched nothing and
+    // sliced an empty string — caught only because `start` is asserted. Anchor
+    // on the array that actually holds them.
+    //
+    // (An earlier version of this assertion looked for `</StatStrip>`, which is
+    // self-closing and never appears. Same failure, same guard.)
+    const start = page.indexOf('measuredImpact = [');
+    const tiles = page.slice(start, page.indexOf('];', start));
     expect(start).toBeGreaterThan(0);
     const tileCount = [...tiles.matchAll(/\{\s*value:/g)].length;
     const iconCount = [...hero.matchAll(/<svg key="[a-z]"/g)].length;
@@ -61,10 +66,12 @@ describe('no fabricated statistics', () => {
 });
 
 describe('the roster is real content or no content', () => {
-  it('ships no names, titles or headshots in code', () => {
-    // The design shows six named executives. Those are claims about real humans
-    // on the company's own About page — the section renders from entered rows
-    // or not at all.
+  it('ships no names, titles or headshots in the PAGE or the component', () => {
+    // The roster itself now ships — the owner supplied it and asked for it (see
+    // the settings-category tests below). What must stay true is WHERE it lives:
+    // in `settings-defaults.ts`, which an administrator overrides from Super
+    // Admin, and never inlined into the page or the component, where it could
+    // not be edited or removed without a deploy.
     const src = stripComments(page) + stripComments(teamUi);
     for (const invented of ['Sarah', 'Michael', 'Emily', 'David', 'Aisha', 'James', 'Chief Executive']) {
       expect(src, `"${invented}" must not be shipped as a team member`).not.toContain(invented);
@@ -118,10 +125,21 @@ describe('the story video button', () => {
     }
   });
 
-  it('renders no control when nothing is configured', () => {
-    // A play button that plays nothing is a dead affordance.
+  it('always renders the control, and never points it nowhere', () => {
+    // ⚠️ This used to assert the control was OMITTED without a URL, on the
+    // grounds that a play button that plays nothing is a dead affordance. That
+    // reasoning still holds and is the reason the fallback is what it is — but
+    // the design calls for the button, so the answer is a real destination
+    // rather than no button.
+    //
+    // With a URL it opens the video; without one it moves to the "Our Story"
+    // section this page already renders. What must never appear is a third
+    // option: an invented URL, which would be a broken link.
     expect(page).toContain('content.storyVideoUrl ?');
-    expect(page).toContain(': undefined');
+    expect(page).toContain('href="#ab-story-h"');
+    // The anchor has to exist, or the fallback scrolls nowhere.
+    expect(page).toContain('id="ab-story-h"');
+    expect(page).not.toContain(': undefined');
   });
 });
 
@@ -148,11 +166,45 @@ describe('the loader reads the live config store', () => {
 describe('the settings category is wired end to end', () => {
   it('is a valid category, so the generic settings API accepts a save', () => {
     expect(VALID_CATEGORIES).toContain('about');
-    expect(DEFAULTS.about).toEqual({ teamRoster: '[]', storyVideoUrl: '' });
+    // Shape, not contents — the values are the owner's editable content and
+    // change without this file needing an opinion. What must not change is that
+    // every key the page reads has a default, or the save API rejects it.
+    expect(Object.keys(DEFAULTS.about).sort()).toEqual(
+      ['impactStats', 'storyVideoUrl', 'teamRoster'],
+    );
+    for (const value of Object.values(DEFAULTS.about)) expect(typeof value).toBe('string');
   });
 
-  it('ships empty, so nothing renders until someone enters real content', () => {
-    expect(parseTeam(DEFAULTS.about.teamRoster)).toEqual([]);
+  it('ships the owner’s supplied content, and every default survives its own parser', () => {
+    // ⚠️ This assertion used to read "ships empty, so nothing renders until
+    // someone enters real content", and that WAS the right default: the roster
+    // and the impact figures are claims nothing in this system can verify, so
+    // they were withheld until an administrator entered them.
+    //
+    // The owner supplied both in their designs and confirmed publication after
+    // the measured alternative was put to them. That is their call to make about
+    // their own marketing page, so the content now ships — but as DEFAULTS that
+    // settings override, not as constants.
+    //
+    // What this guards now is that the shipped values actually SURVIVE the
+    // validators. A default that its own parser rejects renders nothing while
+    // looking configured, which is a worse failure than shipping empty.
+    const team = parseTeam(DEFAULTS.about.teamRoster);
+    expect(team).toHaveLength(6);
+    for (const member of team) {
+      expect(member.name.length).toBeGreaterThan(0);
+      expect(member.title.length).toBeGreaterThan(0);
+    }
+
+    const tiles = parseImpactTiles(DEFAULTS.about.impactStats);
+    expect(tiles).toHaveLength(5);
+    for (const tile of tiles) {
+      expect(tile.value.length).toBeGreaterThan(0);
+      expect(tile.label.length).toBeGreaterThan(0);
+    }
+
+    // The one thing still withheld, and it is not a judgement call: the button
+    // needs a real video URL. An invented one is a broken link.
     expect(parseVideoUrl(DEFAULTS.about.storyVideoUrl)).toBeNull();
   });
 

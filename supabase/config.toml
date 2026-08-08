@@ -25,6 +25,7 @@ sql_paths = [
   "./seeds/06_extended_features.sql",
   "./seeds/07_operational_features.sql",
   "./seeds/08_sponsors.sql",
+  "./seeds/09_full_platform_volume.sql",
   "./seeds/99_verify_counts.sql",
 ]
 

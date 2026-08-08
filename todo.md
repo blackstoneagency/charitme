@@ -2690,7 +2690,12 @@ skipped workflow leaves its check pending forever and would deadlock a docs-only
 PR. Nothing is required today, which is why this is safe now — recorded so the
 next person does not find out the hard way.
 
-## 🛑 SUPABASE STAGING — blocked, and the pending count is **34** (Claude, 2026-08-03)
+## 🛑 SUPABASE STAGING — blocked, and the pending count is **36** (Claude, 2026-08-03)
+
+**Live ledger rechecked 2026-08-08:** `supabase migration list --linked`
+reported 87 production ledger entries against 123 local migration files. The
+36-file gap below is therefore a current measurement, not only historical
+arithmetic.
 
 **+1 on 2026-08-08: `20260829000000_platform_impact_stats.sql`.** Adds
 `platform_impact_stats` and `platform_fund_allocation` — the owner-authored
@@ -2707,6 +2712,26 @@ The seed is idempotent and **never unpublishes** a figure already approved —
 verified against a real PostgreSQL 16: publish a row, re-run the seed, the row
 stays published.
 
+**+1 on 2026-08-08: `20260829000000_reconcile_live_schema_columns.sql`.**
+Reproduces 49 production columns, their exact types/defaults/nullability, foreign
+keys, checks, uniqueness, and index contract on a fresh provision. It is a no-op
+against production's existing columns and has an ownership-marked rollback.
+
+**+1 on 2026-08-08: `20260827010000_donations_columns_missing_from_migrations.sql`.**
+This one is not a feature and is not optional. `record_donation` — the single RPC
+every Stripe donation goes through — both reads and writes
+`donations.stripe_checkout_session_id`, and **no migration creates that column**.
+It exists in production only because someone added it by hand. plpgsql bodies are
+not checked against the schema until they run, so on any database provisioned
+from `supabase/migrations/` the function raises `42703` on its first statement,
+re-raises after logging to `webhook_events`, and Stripe retries the delivery
+forever: the donor is charged and the campaign is never credited. Four more
+columns were in the same state, one of which (`offline`) must be `not null
+default false` or `.eq('offline', false)` in `lib/reconciliation.ts` and
+`lib/pricing-analytics.ts` silently excludes every online donation. Applying it
+against production changes nothing — every statement is `add column if not
+exists` — which is exactly why it can be applied without ceremony. See
+`__tests__/record-donation-columns.test.ts` for the guard that now holds it.
 
 **+2 on 2026-08-08:** replay compatibility and forward policy repair for the
 three editorial migrations that referenced the removed `profiles.role` shape.
@@ -2740,8 +2765,8 @@ PDFs, which are not reconstructible from this schema.
 ⚠️ **Superseded in part — read the correction at the top of this file first.**
 The arithmetic below is sound and the drift guard on it is worth keeping, but the
 number it produces is a **file-derived upper bound, not the applied state**. At
-least two of the 27 are demonstrably live in production, measured against the
-running site. Treat 27 as "no more than 27", and establish the real set with
+least two of the 35 are demonstrably live in production, measured against the
+running site. Treat 35 as "no more than 35", and establish the real set with
 `supabase migration list --linked` before planning a release.
 
 **None of the four numbers previously in this file was right**, and the fifth —
@@ -2756,16 +2781,16 @@ that day**:
 dump confirmed the objects were absent, and a restored production clone applied
 all 18 in order and proved rollback.
 
-Fifteen migrations have been added since. So the count is arithmetic:
+Seventeen migrations have been added since. So the count is arithmetic:
 
 ```
-121 local − 87 applied           = 34
-18 audited pending + 16 added    = 34   ✓ reconciles
+123 local − 87 applied           = 36
+18 audited pending + 18 added    = 36   ✓ reconciles
 ```
 
 All 18 audited-pending versions are still on disk under their original names.
 
-### ⚠️ Six of the 27 are SECURITY hardening, not features
+### ⚠️ Six of the 35 are SECURITY hardening, not features
 
 This is the part that changes the priority. Written, reviewed, merged — and
 **not live**:
@@ -2799,7 +2824,7 @@ miscounting, it was adding migrations and leaving the old number in place.
 
 Owner action unchanged: upgrade Supabase, free a project slot, or provision
 staging elsewhere. Do not bypass the gate — the ledger's last line says so, and
-27 unverified migrations including six privilege changes is exactly the case the
+35 unverified migrations including six privilege changes is exactly the case the
 gate exists for.
 
 ## ⚪ `/certificate` — NOT a deferral; building it would require inventing data
@@ -10407,12 +10432,53 @@ one replaces it.
 | Wired to Supabase | ✅ **closed** | `audit:orphan-tables`: **142 of 162 tables have a reader.** The 11 without one are each decided, not pending — 6 superseded by a shipped table (pinned by `superseded-tables.test.ts`), 4 blocked on the `organizations` migration, 1 (`livestreams`) the deliberate honesty fixture. `trust_scores` is resolved with a note. |
 | Mobile / responsive | ✅ **closed** | **0 horizontal overflow** at 320 and 390 px across public (87 routes), admin (400 loads) and member (300 pages). The member surface had never been measured until `--no-admin` was added this session. |
 | Tap targets (WCAG 2.5.8) | ✅ **closed** | **0 under 24 px** across the whole signed-in surface. 9 routes / 22 controls fixed, worst being 18 × 13×16 px "Dismiss" buttons on `/dashboard/notifications`. |
-| Accessibility (axe) | ✅ | **0 violations**, 166 public page loads × 2 themes, wcag2a/2aa/21a/21aa/22aa. Campaign detail page separately verified against a REAL campaign: 4 violations → **0**. |
-| Contrast (AA) | ✅ | **0 failures**, 86 pages × 2 themes, plus the member dashboard (21 failures found and fixed, worst 1:1 invisible text). |
+| Accessibility (axe) | ✅ | **0 violations**, 184 public page loads (92 routes × 2 themes), wcag2a/2aa/21a/21aa/22aa. Re-measured 2026-08-08 against CORRECTED fixtures — eleven tables previously answered nothing, so those pages were audited in a zero-state. |
+| Contrast (AA) | ✅ | **0 failures**, 91 pages × 2 themes, **12,649 text elements** (was 11,992 — the rise is the post-payment screens plus content that only rendered once the fixtures matched the schema). One real bug found en route: the embed widget drew dark-mode ink on its own light surface, 1.58:1, axe-serious. |
 | Keyboard / focus order | ✅ | 0 traps, 0 invisible stops, 0 order breaks — 14,830 focus stops over 87 pages × 2 themes. |
-| Donation flow (12 steps) | ✅ **built** | `/donate` (1) → `/donate/[slug]` (2–7) → **Stripe Checkout** (4/5/8) → `/thank-you` (9) → `/donor/receipt/[id]` (10) → `/campaigns/[slug]/share` (11) → campaign (12). |
-| Tests / build | ✅ | 3202 passing, typecheck clean, lint 0 errors, `next build` EXIT=0. |
+| Donation flow (12 steps) | ✅ **built** | `/donate` (1) → `/donate/[slug]` (2–7) → **Stripe Checkout** (4/5/8) → `/thank-you` (9) → `/thank-you/receipt` (10) → `/thank-you/share` (11) → `/thank-you/done` (12). Steps 10–12 were previously pointed at `/donor/receipt/[id]` and `/campaigns/[slug]/share`, which both require a session — **most donors give signed out**, so for them the flow ended at step 9. All four now resolve from the Stripe checkout session id and work with no account. |
+| Tests / build | ✅ | 3264 passing, typecheck clean, lint 0 errors, `next build` EXIT=0. |
 | Payment methods end-to-end | 🟡 **owner** | unchanged: a real paid flow needs Stripe **test** keys or owner go-ahead (ADR-0003). Not something this sandbox can close. |
+
+### 🔎 Deep dive: is every page actually pulling from Supabase? (Claude, 2026-08-08)
+
+Measured rather than asserted, because source-reading cannot settle it — a
+`supabaseAdmin.from('campaigns')` in a file proves a query exists, not that its
+result reaches the screen. Tooling added: `--empty` mode + a `/__stub/mode`
+control route on the stub, and `npm run audit:data-wiring`, which renders every
+public route twice (populated / empty) and compares visible text.
+
+**The one real defect found: eleven audit fixtures were missing the column their
+page filters on.** Each made a query return nothing, so the page's data half
+rendered empty — and an empty page passes axe and contrast perfectly. Worst was
+`supported_countries`, where every column but `name` was invented; the page
+filters `.eq('active', true)`, so /supported-countries had been reporting
+"fundraisers in 0 countries" to every sweep, and /impact-map and /success-stories
+read the same table. Fixed; the page now renders 15 fundraising / 20 donating.
+
+**Four things checked and found FINE** — recorded so they are not re-investigated:
+
+- *Seed verification.* `99_verify_counts.sql` covers all 93 seeded public tables.
+  (A first measurement said 93 were UNVERIFIED; that was a regex reading a
+  plpgsql `text[]` as SQL `FROM` clauses. Now pinned by
+  `seed-verification-coverage.test.ts`.)
+- *Read-but-unseeded tables.* 42 of them, but only 5 reach a public page, and for
+  all 5 empty is the CORRECT state — `/status` with no incidents, `/create` with
+  no connected account yet.
+- *Pages reaching no table at all.* 50, following imports. All correct: legal
+  text, forms and marketing copy. `/nearby` is wired but client-side (fetches
+  `/api/campaigns/nearby`, which a static scan cannot see through);
+  `/transparency` renders the fee model, which lives in `@shared/fees` by design.
+- *`/blog` is file-based on purpose.* `lib/blog-posts.ts`, 10 posts. **No blog,
+  posts or articles table exists in the schema**, so there is nothing to link it
+  to; wiring it means a table, a migration, RLS and an editor — a feature, not a
+  wiring fix. Left as a decision, not done silently.
+
+**Known limit of `audit:data-wiring`, so its output is not over-read.** The stub
+has fixtures for 36 tables; the app reads 145. A page reading one of the other
+109 cannot change when the database empties, because it had nothing either way —
+so most "identical" results are fixture coverage, not evidence of hardcoding.
+`supported_countries` was the one case where the stub HAD data and the page still
+did not move, which is why that one was a real finding and the rest are not.
 
 ### ⛔ What is genuinely still open, and why it is not code
 

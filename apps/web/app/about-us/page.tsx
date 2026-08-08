@@ -5,6 +5,7 @@ import CampaignImage from '../../components/CampaignImage';
 import { IndexHero, StatStrip, statValue, moneyValue } from '../../components/IndexHero';
 import { getCausesIndexData } from '../../lib/causes-index';
 import { getAboutPageContent } from '../../lib/about-page';
+import { resolveImpactTiles } from '../../lib/impact-stats';
 import { getCoverForCategory } from '../../lib/photo-catalog';
 import AboutTeam from './AboutTeam';
 
@@ -56,6 +57,19 @@ export default async function AboutUsPage() {
   const [platform, content] = await Promise.all([getCausesIndexData(), getAboutPageContent()]);
   const { companyName } = content;
 
+  // The measured five. An owner-configured strip replaces them wholesale, and is
+  // SHARED with /success-stories so the two pages cannot quote different numbers
+  // for the same claim — see lib/impact-stats.ts.
+  const measuredImpact = [
+    { value: statValue(platform.activeCampaigns), label: 'Active campaigns' },
+    { value: moneyValue(platform.raisedTotalCents), label: 'Raised on CharitMe' },
+    { value: statValue(platform.gifts), label: 'Gifts given' },
+    { value: statValue(platform.countries), label: 'Countries supported' },
+    { value: '100%', label: 'Of your gift to the cause' },
+  ];
+  const impactTiles = await resolveImpactTiles(measuredImpact);
+  const ownerSetImpact = impactTiles !== measuredImpact;
+
   return (
     <div className="ab-page">
       <IndexHero
@@ -67,9 +81,21 @@ export default async function AboutUsPage() {
         photoCategory="Family"
         photoKey="about-us"
         actions={
-          // The reference's "Watch Our Story" control. Rendered ONLY when an
-          // administrator has set a real URL: a play button that plays nothing
-          // is a dead affordance, and this page has no video of its own.
+          // The design's "Watch Our Story" control.
+          //
+          // It now always renders, because the design calls for it. What it
+          // POINTS AT depends on whether a video exists:
+          //
+          //   · `storyVideoUrl` set → the video, in a new tab.
+          //   · not set → the page's own "Our Story" section, further down.
+          //
+          // The fallback is deliberate and is the honest half of this. A control
+          // that goes nowhere is a dead affordance, and one pointed at an
+          // invented URL is a broken link on the page whose whole job is looking
+          // trustworthy. Scrolling to the story the page already tells is the
+          // only destination available that is neither. Set the URL in
+          // Super Admin → System Settings → About page and it upgrades to the
+          // real video with no code change.
           content.storyVideoUrl ? (
             <a href={content.storyVideoUrl} className="ab-watch" target="_blank" rel="noreferrer">
               <span className="ab-watch-ic" aria-hidden="true">
@@ -77,7 +103,14 @@ export default async function AboutUsPage() {
               </span>
               Watch our story
             </a>
-          ) : undefined
+          ) : (
+            <a href="#ab-story-h" className="ab-watch">
+              <span className="ab-watch-ic" aria-hidden="true">
+                <PublicIcon name="play" />
+              </span>
+              Watch our story
+            </a>
+          )
         }
       />
 
@@ -130,19 +163,14 @@ export default async function AboutUsPage() {
             which shows the arithmetic. */}
         <section className="ab-impact" aria-labelledby="ab-impact-h">
           <h2 id="ab-impact-h" className="ab-h2">Our Impact So Far</h2>
-          <StatStrip
-            label={`${companyName} at a glance`}
-            tiles={[
-              { value: statValue(platform.activeCampaigns), label: 'Active campaigns' },
-              { value: moneyValue(platform.raisedTotalCents), label: 'Raised on CharitMe' },
-              { value: statValue(platform.gifts), label: 'Gifts given' },
-              { value: statValue(platform.countries), label: 'Countries supported' },
-              { value: '100%', label: 'Of your gift to the cause' },
-            ]}
-          />
-          <p className="ab-impact-note">
-            Zero platform fee — <Link href="/fees">see exactly how the money moves</Link>.
-          </p>
+          <StatStrip label={`${companyName} at a glance`} tiles={impactTiles} />
+          {/* The zero-fee line is a claim about OUR figures. It must not sit
+              under numbers an administrator typed in. */}
+          {!ownerSetImpact && (
+            <p className="ab-impact-note">
+              Zero platform fee — <Link href="/fees">see exactly how the money moves</Link>.
+            </p>
+          )}
         </section>
 
         {/* ── Our Story ────────────────────────────────────────────────────── */}

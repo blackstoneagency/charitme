@@ -27,6 +27,7 @@
     "audit:a11y": "node scripts/audit-a11y.mjs",
     "audit:authed": "node scripts/audit-authed.mjs",
     "audit:mobile": "node scripts/audit-mobile.mjs",
+    "audit:data-wiring": "node scripts/audit-data-wiring.mjs",
     "audit:mobile:signed-in": "node scripts/audit-signed-in.mjs --build --mobile",
     "audit:scroll-keyboard": "node scripts/audit-scroll-keyboard.mjs",
     "audit:web-vitals": "node scripts/audit-web-vitals.mjs",

@@ -4240,10 +4240,21 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
   --brand-text: #5930d4;
   --green: #08763b;
   --green-dark: #08763b;
+  /* ⚠️ The INK token, not the fill. The widget carries its own palette, so any
+     token it fails to declare resolves from the SITE theme instead — and
+     DonateButton renders `var(--green-text)` inside it. On a dark-themed page a
+     light widget was drawing #4ade80 on #f7f8fc: 1.58:1, effectively invisible,
+     and axe called it serious. Add both halves of every colour pair here, never
+     just the fill. */
+  --green-text: #08763b;
+  --red-text: #c2263c;
+  /* Declared, not just applied below: a descendant using `var(--font)` would
+     otherwise pick up the SITE's stack while the widget claims this one. */
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color-scheme: light;
   background: #ffffff;
   color: var(--t1);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--font);
 }
 
 /* Widget themes. The base .campaign-embed block above is the LIGHT widget and
@@ -4263,6 +4274,9 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
   --brand-text: #b9a4ff;
   --green: #4ade80;
   --green-dark: #4ade80;
+  --green-text: #4ade80;
+  --red-text: #ff8fa0;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color-scheme: dark;
   background: #12141c;
 }
@@ -4281,6 +4295,9 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
     --brand-text: #b9a4ff;
     --green: #4ade80;
     --green-dark: #4ade80;
+    --green-text: #4ade80;
+    --red-text: #ff8fa0;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     color-scheme: dark;
     background: #12141c;
   }
@@ -11357,6 +11374,23 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   --blue-text: #93c5fd;
   --orange-text: #fbbf24;
 
+  /* ⚠️ The INK family, and it is not optional — this is the same defect the
+     embed widget shipped. Redeclaring the SURFACE tokens above without these
+     leaves `var(--blue-text)` and friends resolving from the SITE theme, so a
+     shared component rendered inside this permanently-dark page draws
+     LIGHT-mode ink on a near-black panel. Measured before this line existed:
+     #2164d5 on #1d2b36 = 2.65:1 and #0d783c on #020b12 = 3.56:1, both
+     axe-serious, both on /supporter-space in light mode.
+
+     Rule for any block that overrides a surface family: move the ink family
+     with it. A fill token and its ink are two halves of one decision. */
+  --blue-text: var(--rp-blue);
+  --green-text: var(--rp-green);
+  --brand-text: var(--rp-purple);
+  --orange-text: var(--rp-amber);
+  /* Light enough to read on #020b12 without becoming pink at small sizes. */
+  --red-text: #ff8fa0;
+
   min-height: 100vh;
   padding-bottom: 36px;
   overflow: clip;
@@ -11669,6 +11703,104 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   .rp-live-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
+/* ── /roles — the reference's role cards ─────────────────────────────────────
+   Circular role mark, "Default" pill, a permissions checklist, one card per
+   role. Driven entirely by `lib/role-capabilities.ts`, so a role added there
+   renders here with no CSS change.
+
+   Tokens throughout: the reference is a dark mock, and this site ships both
+   themes — a literal dark slab is unreadable in light mode. */
+.rl-page { max-width: 1120px; }
+.rl-head {
+  display: flex; flex-wrap: wrap; gap: 16px;
+  align-items: flex-start; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.rl-title { margin: 0 0 4px; font-size: 30px; font-weight: 800; color: var(--t1); line-height: 1.2; }
+.rl-sub { margin: 0; font-size: 14px; color: var(--t3); }
+.rl-action {
+  flex: none; min-height: 42px; padding: 10px 18px;
+  display: inline-flex; align-items: center; gap: 7px;
+  border-radius: var(--r, 10px); border: 1px solid transparent;
+  background: var(--grad-brand); color: #fff;
+  font-size: 14px; font-weight: 750; text-decoration: none;
+}
+.rl-action:focus-visible { outline: 2px solid var(--brand-text); outline-offset: 2px; }
+.rl-lede { margin: 0 0 26px; font-size: 15px; line-height: 1.65; color: var(--t2); max-width: 78ch; }
+
+.rl-section { margin-top: 30px; }
+.rl-h2 { margin: 0 0 4px; font-size: 20px; font-weight: 800; color: var(--t1); }
+.rl-section-sub { margin: 0 0 16px; font-size: 14px; line-height: 1.6; color: var(--t3); max-width: 78ch; }
+
+.rl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 258px), 1fr));
+  gap: 16px;
+}
+.rl-card {
+  position: relative;
+  min-width: 0;
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 22px 20px 18px;
+  border: 1px solid var(--b1);
+  border-radius: var(--rl, 16px);
+  background: var(--s1);
+  transition: border-color .16s, box-shadow .16s;
+}
+.rl-card:hover { border-color: var(--b2); box-shadow: var(--shadow-md, 0 14px 34px rgba(16, 10, 44, .12)); }
+@media (prefers-reduced-motion: reduce) { .rl-card { transition: none; } }
+
+.rl-mark {
+  width: 54px; height: 54px; margin-bottom: 4px;
+  display: grid; place-items: center; border-radius: 50%;
+  background: var(--tint-violet); color: var(--brand-text);
+}
+/* One tint per role, so the row reads as five distinct things the way the
+   reference does. `data-role` rather than a class per role: a role added to
+   ROLE_DEFINITIONS falls back to the violet above instead of an unstyled disc. */
+.rl-card[data-role="donor"] .rl-mark { background: var(--tint-rose); color: var(--red-text); }
+.rl-card[data-role="organizer"] .rl-mark { background: var(--tint-amber); color: var(--orange-text); }
+.rl-card[data-role="beneficiary"] .rl-mark { background: var(--tint-green); color: var(--green-text); }
+.rl-card[data-role="nonprofit"] .rl-mark { background: var(--tint-blue); color: var(--blue-text); }
+.rl-card[data-role="admin"] .rl-mark,
+.rl-card[data-role="super_admin"] .rl-mark { background: var(--tint-violet); color: var(--brand-text); }
+
+.rl-default {
+  position: absolute; top: 16px; right: 16px;
+  padding: 3px 9px; border-radius: 999px;
+  background: var(--tint-violet); color: var(--brand-text);
+  font-size: 11px; font-weight: 800; letter-spacing: .01em;
+}
+.rl-name { margin: 0; font-size: 17px; font-weight: 800; color: var(--t1); line-height: 1.3; }
+.rl-desc { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--t3); }
+.rl-perms-title {
+  margin: 6px 0 0; font-size: 12px; font-weight: 750; color: var(--t2);
+}
+.rl-perms { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.rl-perms li {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px;
+  align-items: start;
+  font-size: 13px; line-height: 1.5; color: var(--t2);
+}
+.rl-tick { display: grid; place-items: center; margin-top: 1px; color: var(--green-text); }
+.rl-enforced {
+  align-self: start; padding: 1px 7px; border-radius: 999px;
+  border: 1px solid var(--b2); background: var(--s2);
+  font-size: 10.5px; font-weight: 750; color: var(--t3); white-space: nowrap;
+}
+.rl-foot {
+  margin: auto 0 0; padding-top: 12px; border-top: 1px solid var(--b1);
+  font-size: 12px; font-weight: 700; color: var(--t3);
+}
+
+@media (max-width: 560px) {
+  .rl-title { font-size: 24px; }
+  .rl-card { padding: 18px 16px 14px; }
+  .rl-action { width: 100%; justify-content: center; }
+  .rl-perms li { grid-template-columns: auto minmax(0, 1fr); }
+  .rl-enforced { grid-column: 2; justify-self: start; }
+}
+
 /* Light resource-page compositions from the supplied corporate, matching, and grants references. */
 .rp-hero-highlights {
   display: grid;
@@ -11711,6 +11843,17 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   --t3: #626975;
   --t4: #747b86;
   --muted: #626975;
+  /* ⚠️ The ink family, flipped back with the surfaces above.
+     This band is a WHITE island inside `.rp-page`, which sets its inks light so
+     they read on near-black. Inheriting those here would paint #64c953 green
+     and #4eb6ef blue onto #ffffff — the same failure as the dark page, mirrored.
+     A block that overrides a surface family must override the ink family in the
+     same direction; these are the site's own light-mode values. */
+  --brand-text: #551cf2;
+  --green-text: #08763b;
+  --orange-text: #9a4a06;
+  --red-text: #c2263c;
+  --blue-text: #1d4ed8;
   padding: 4px 0 30px;
   background: #ffffff;
   color: #11131c;
@@ -11793,10 +11936,12 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   font-weight: 800;
 }
 .rr-employer-search button .pub-icon { width: 17px; height: 17px; }
-/* #717783 measured 4.19:1 on this surface — under the 4.5 bar, and 11px text
-   gets no large-text exemption. `--t3` is the token documented as AA on s1–s3
-   and measures 5.29:1 here. A literal could not follow the theme in any case. */
-.rr-employer-search small { display: block; margin-top: 10px; color: var(--t3); font-size: 11px; }
+/* #717783 measured 4.19:1 on this panel's #f8f6fc — under AA for 11px body
+   text, which needs 4.5. A literal, NOT `var(--t3)`: `.rr-employer-panel`
+   hardcodes a light `#f8f6fc` background in both themes, so a theme-following
+   token would turn light-on-light in dark mode. #626975 measures 5.16:1 and
+   stays closer to the design's grey than a heavier darkening would. */
+.rr-employer-search small { display: block; margin-top: 10px; color: #626975; font-size: 11px; }
 .rr-program-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 .rr-program-head h3 { margin: 0; color: #171922; font-size: 17px; }
 .rr-program-head a { color: #6c2abb; font-size: 12px; font-weight: 750; }

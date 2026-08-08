@@ -261,19 +261,40 @@ master run `30750918547` (same signature; master's last 6 runs all failed) →
 **still dead 2026-08-05**, verified on branch run `31044505428`
 (`runner_id: 0`, empty `runner_name`, 2s, 0 billable ms across both jobs)
 *and* on master run `31043386437` (0 billable ms, 4s; master's last 6 runs all
-failed). Four days into August and it has not come back — consistent with the
-quota hypothesis below, whose falsifiable prediction (return on 1 September) is
-still open.
+failed) → **ALIVE AGAIN 2026-08-08**, verified on PR #297's run `31274146676`,
+job `93144905213`: `runner_id: 1000002084`, `runner_name: "GitHub Actions
+1000002084"`, and the full step list executing (checkout → setup-node → install →
+typecheck → lint → tests → audit → build → e2e → a11y). That is the ALIVE column
+of the table above on every axis.
+
+⚠️ **So a red check is REAL right now.** Do not carry over the "ignore CI"
+posture from the entries above it — that was measured, and so is this.
 
 ### 🔎 LIKELY CAUSE, and it is not random: the private-repo Actions minutes quota
 
 The flip-flopping this section keeps recording is what an **exhausted monthly
 Actions allowance** looks like. Evidence, all checkable:
 
-- **This repository is private** (`"private": true` from the API). Private repos
+- **This repository WAS private** (`"private": true` from the API). Private repos
   on a free personal account get a fixed monthly minute allowance; public repos
   get unlimited. Exhausting it creates the job, assigns no runner, and fails in
   seconds with `0` billable ms and no steps — **exactly the signature above**.
+
+  ⚠️ **It is PUBLIC now.** The API returned `"private": false` on 2026-08-08,
+  the same day the runners came back. That is almost certainly the whole story:
+  going public converts a fixed monthly allowance into unlimited minutes, which
+  is one of the three fixes this section recommends below. It is also the
+  prediction's own escape clause ("unless the plan changes") firing — so the
+  quota diagnosis is now **supported**, not refuted, by the very event that
+  broke its date.
+
+  Two consequences worth stating separately from the diagnosis:
+  · **CI is expected to STAY alive.** There is no monthly allowance left to
+    exhaust, so the flip-flopping this section documents should stop. If the
+    dead signature ever returns on a public repo, this explanation is wrong and
+    the cause is something else entirely.
+  · **The repo is world-readable.** Anything committed here is public — worth
+    knowing before writing anything into it that assumed a private audience.
 - **It is not `ci.yml`.** `image-links.yml` has run once ever (`30259517312`,
   2026-07-27) and failed the same way in 3s. Every workflow is affected, which
   rules out anything in a single workflow file. The `ci.yml` config is plain
@@ -286,6 +307,28 @@ Actions allowance** looks like. Evidence, all checkable:
 **Falsifiable prediction:** runners return on **1 September** and die again
 shortly after, unless the plan changes or push volume drops. If that does not
 happen, this diagnosis is wrong and should be struck.
+
+⚠️ **THE PREDICTION HAS NOW FAILED, and the honest reading is written here rather
+than quietly dropped.** Runners came back on **2026-08-08**, three weeks before
+the predicted date and not on the first of any month. The prediction had one
+escape clause — "unless the plan changes or push volume drops" — and a plan
+change is the likeliest explanation (raising the spending limit is exactly the
+owner action this section recommends). But that is now a SECOND unfalsifiable
+guess stacked on the first, and this repo has already rewritten this section
+three times by reasoning from a story instead of a measurement.
+
+Then the cause turned up in the same API response that proved the runners were
+alive: **the repository is now public** (`"private": false`). Going public is
+exactly the "plan changes" escape clause, and it converts the fixed monthly
+allowance into unlimited minutes. So the quota diagnosis is the best explanation
+of the whole timeline after all — it got the DATE wrong because it assumed
+nothing would change, and something did.
+
+What remains genuinely unproven is the billing detail: the API never exposed the
+allowance to this token, so "the allowance was exhausted" is still inference from
+the signature rather than a figure read off a billing page. The table above stays
+the authority on whether a given red check is real. Run it. The table above remains the authority on whether a
+given red check is real. Run it.
 
 ⚠️ **This does not replace the check.** It is a hypothesis that fits the
 evidence, not something read off a billing page — the API does not expose the

@@ -199,6 +199,7 @@ const LABEL_MAPS: Record<string, Record<string, string>> = {
   about: {
     teamRoster: 'Team Roster (JSON)',
     storyVideoUrl: 'Story Video URL',
+    impactStats: 'Impact Stats (JSON)',
   },
 };
 
@@ -882,6 +883,22 @@ export default function SystemClient({ categories, overview, recentActivity, res
     const s = draft.about;
     const roster = String(s.teamRoster ?? '[]');
     const video = String(s.storyVideoUrl ?? '');
+    const impact = String(s.impactStats ?? '[]');
+
+    let impactCount: number | null = null;
+    try {
+      const value: unknown = JSON.parse(impact);
+      impactCount = Array.isArray(value)
+        ? value.filter((r) => {
+            if (!r || typeof r !== 'object' || Array.isArray(r)) return false;
+            const row = r as Record<string, unknown>;
+            return typeof row.value === 'string' && row.value.trim() !== ''
+              && typeof row.label === 'string' && row.label.trim() !== '';
+          }).length
+        : null;
+    } catch {
+      impactCount = null;
+    }
 
     let parsedCount: number | null = null;
     try {
@@ -923,6 +940,36 @@ export default function SystemClient({ categories, overview, recentActivity, res
               : parsedCount === 0
                 ? 'No usable entries yet. The Our Team section stays hidden.'
                 : `${parsedCount} team member${parsedCount === 1 ? '' : 's'} will render on /about-us.`}
+          </p>
+        </div>
+
+        <div className="sys-form-section">
+          <h3>Impact Numbers</h3>
+          <div className="sys-fields">
+            <Field
+              label="Impact stats (JSON)"
+              hint={'A JSON array of {"value", "label"} — up to 5, shown on BOTH /about-us and /success-stories so the two pages cannot disagree. Left empty, each page shows its own MEASURED figures instead.'}
+              full
+            >
+              <textarea
+                className="sys-textarea"
+                rows={8}
+                spellCheck={false}
+                value={impact}
+                onChange={e => setField('about', 'impactStats', e.target.value)}
+              />
+            </Field>
+          </div>
+          <p style={{ margin: '8px 0 0', fontSize: 12.5, color: impactCount === null ? 'var(--red-text)' : 'var(--t3)' }}>
+            {impactCount === null
+              ? 'Not valid JSON, or not an array — the measured figures will keep rendering until this parses.'
+              : impactCount === 0
+                ? 'Empty, so both pages show their own measured figures (counted live from campaigns, donations and supported countries).'
+                : `${impactCount} tile${impactCount === 1 ? '' : 's'} will REPLACE the measured figures on /about-us and /success-stories.`}
+          </p>
+          <p style={{ margin: '6px 0 0', fontSize: 12.5, color: 'var(--t3)' }}>
+            ⚠️ These are published as impact claims on a fundraising site. Nothing verifies them —
+            whatever is typed here is what donors read.
           </p>
         </div>
 
