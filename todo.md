@@ -2690,7 +2690,10 @@ skipped workflow leaves its check pending forever and would deadlock a docs-only
 PR. Nothing is required today, which is why this is safe now — recorded so the
 next person does not find out the hard way.
 
-## 🛑 SUPABASE STAGING — blocked, and the pending count is **31** (Claude, 2026-08-03)
+## 🛑 SUPABASE STAGING — blocked, and the pending count is **33** (Claude, 2026-08-03)
+
+**+2 on 2026-08-08:** replay compatibility and forward policy repair for the
+three editorial migrations that referenced the removed `profiles.role` shape.
 
 **+1 on 2026-08-07: `20260827000000_campaign_path.sql`.** Adds
 `campaigns.campaign_path` for step 1 of the twelve-step builder — who is RAISING
@@ -2737,11 +2740,11 @@ that day**:
 dump confirmed the objects were absent, and a restored production clone applied
 all 18 in order and proved rollback.
 
-Thirteen migrations have been added since. So the count is arithmetic:
+Fifteen migrations have been added since. So the count is arithmetic:
 
 ```
-118 local − 87 applied           = 31
-18 audited pending + 13 added    = 31   ✓ reconciles
+120 local − 87 applied           = 33
+18 audited pending + 15 added    = 33   ✓ reconciles
 ```
 
 All 18 audited-pending versions are still on disk under their original names.
