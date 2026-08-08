@@ -6,6 +6,10 @@ const workflow = readFileSync(
   resolve(process.cwd(), '../../.github/workflows/release.yml'),
   'utf8',
 );
+const rlsSmoke = readFileSync(
+  resolve(process.cwd(), '../../scripts/rls-live-smoke.mjs'),
+  'utf8',
+);
 
 describe('production release workflow', () => {
   it('runs production releases only from semantic version tags', () => {
@@ -19,10 +23,11 @@ describe('production release workflow', () => {
   });
 
   it('starts only the database service needed by migration replay', () => {
-    expect(workflow).toContain('npx supabase db start');
-    expect(workflow).not.toMatch(/npx supabase start(?:\s|$)/);
-    expect(workflow).not.toContain('SUPABASE_REPLAY_EXCLUDES');
-    expect(workflow).not.toContain('--ignore-health-check');
+    const replay = workflow.match(/migration-replay:[\s\S]*?\n  staging:/)?.[0] ?? '';
+    expect(replay).toContain('npx supabase db start');
+    expect(replay).not.toMatch(/npx supabase start(?:\s|$)/);
+    expect(replay).not.toContain('SUPABASE_REPLAY_EXCLUDES');
+    expect(replay).not.toContain('--ignore-health-check');
   });
 
   it('requires staging verification before production', () => {
@@ -33,18 +38,22 @@ describe('production release workflow', () => {
     expect(workflow).toContain("ALLOW_PRODUCTION_DATABASE_PUSH: 'true'");
   });
 
-  it('runs three critical browser specs against the staging deployment', () => {
+  it('runs three critical browser specs against isolated staging', () => {
+    expect(workflow).toContain('npx supabase start');
+    expect(workflow).toContain('npm run build --workspace=apps/web');
+    expect(workflow).toContain('npm start --workspace=apps/web');
     expect(workflow).toContain('e2e/smoke.spec.ts');
     expect(workflow).toContain('e2e/auth-gates.spec.ts');
     expect(workflow).toContain('e2e/security-headers.spec.ts');
-    expect(workflow).toContain('PLAYWRIGHT_BASE_URL: ${{ steps.deploy.outputs.url }}');
+    expect(workflow).toContain('PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000');
   });
 
   it('requires authenticated cross-persona RLS checks in staging', () => {
     expect(workflow).toContain("REQUIRE_AUTHENTICATED_RLS_PERSONAS: 'true'");
-    expect(workflow).toContain(
-      'CHARITME_RLS_TEST_USERS_JSON: ${{ secrets.CHARITME_RLS_TEST_USERS_JSON }}',
-    );
+    expect(workflow).toContain("BOOTSTRAP_LOCAL_RLS_PERSONAS: 'true'");
+    expect(rlsSmoke).toContain("randomBytes(32).toString('base64url')");
+    expect(rlsSmoke).toContain('requireLocalSupabaseUrl(supabaseUrl)');
+    expect(rlsSmoke).toContain('localPersonas.admin.auth.admin.deleteUser(userId)');
   });
 
   it('uses protected GitHub environments and deploys production explicitly', () => {
