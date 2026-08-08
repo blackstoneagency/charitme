@@ -7,6 +7,7 @@ import { EmptyState } from '../../../components/ui';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 import { getCause } from '../../../lib/causes';
 import { getTopDonors } from '../../../lib/leaderboard';
+import { getRecentDonations } from '../../../lib/home-data';
 import { formatCents } from '../../../lib/stripe';
 import { getCoverForCategory } from '../../../lib/photo-catalog';
 import { StatStrip, statValue, moneyValue } from '../../../components/IndexHero';
@@ -347,7 +348,7 @@ export default async function CampaignsPage({ searchParams }: Props) {
   // The sidebar panels and the featured row are supplementary — a failure in any
   // of them must not take the campaign list with it, so each resolves to null
   // and simply renders nothing rather than throwing the page away.
-  const [{ campaigns, total, unavailable }, featured, topDonors, locations, platform] = await Promise.all([
+  const [{ campaigns, total, unavailable }, featured, topDonors, locations, platform, recentGifts] = await Promise.all([
     getCampaigns({
       category, causeCategories: cause?.categories, q, sort, verifiedOnly: verified, location,
       taxDeductibleOnly: tax, endingSoon: ending, goalRange: goal, page,
@@ -366,6 +367,14 @@ export default async function CampaignsPage({ searchParams }: Props) {
     // paginated view `showExtras` is false and the strip is not rendered, so
     // reading it would be a round trip for nothing.
     showExtras ? getCausesIndexData() : Promise.resolve(null),
+    // The supporter quote. Real recorded donations, under the anonymity rules
+    // `mapRecentDonations` already enforces — anonymous gifts are redacted and
+    // private campaigns never surface. Same source /donate and the homepage
+    // quote from, so the site cannot show one visitor an invented supporter and
+    // another a real one.
+    showExtras
+      ? getRecentDonations(3).catch(() => [] as Awaited<ReturnType<typeof getRecentDonations>>)
+      : Promise.resolve([] as Awaited<ReturnType<typeof getRecentDonations>>),
   ]);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -843,12 +852,30 @@ export default async function CampaignsPage({ searchParams }: Props) {
             </section>
           )}
 
-          {/* The reference art also carries a named testimonial ("Jessica M.,
-              Donor"). It is deliberately not reproduced: there is no testimonials
-              table, so the quote and the person would both have to be written by
-              us and presented as a real supporter's words. That is fabricating a
-              review. If real, consented testimonials are collected later, this is
-              where they belong. */}
+          {/* ── Supporter quote ───────────────────────────────────────────────
+              The reference art carries a named testimonial ("Jessica M.,
+              Donor"). That exact card is still not reproduced, and will not be:
+              there is no testimonials table, so the quote AND the person would
+              both be written by us and presented as a real supporter's words.
+
+              What fills the slot instead is a REAL recorded donation — the
+              campaign it supported, the amount, and the donor name the
+              anonymity rules allow. Every word of it is a fact from the
+              database. Renders nothing at all when there is no donation to
+              show, rather than falling back to invented copy. */}
+          {recentGifts.length > 0 && (
+            <section className="cb-panel cb-quote">
+              <span className="cb-quote-mark" aria-hidden="true">&ldquo;</span>
+              <p>
+                Supported <strong>{recentGifts[0].campaignTitle}</strong> with{' '}
+                {formatCents(recentGifts[0].amountCents, 'usd')}.
+              </p>
+              <footer>
+                <b>{recentGifts[0].name}</b>
+                <span>CharitMe supporter</span>
+              </footer>
+            </section>
+          )}
         </aside>
       </div>{/* /.cb-layout */}
     </div>

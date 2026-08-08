@@ -11148,3 +11148,11 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 .aiw-more { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .aiw-more > span { font-size: 13px; color: var(--t3); }
 .aiw-more select { width: auto; min-width: 190px; }
+/* ── /campaigns supporter quote ─────────────────────────────────────────── */
+.cb-quote-mark {
+  display: block; height: 26px;
+  color: var(--brand-text); font-family: Georgia, serif; font-size: 42px; line-height: .9;
+}
+.cb-quote p { margin: 8px 0 14px; color: var(--t2); font-size: 14px; line-height: 1.6; }
+.cb-quote footer b { display: block; color: var(--t1); font-size: 13px; font-weight: 800; }
+.cb-quote footer span { display: block; margin-top: 2px; color: var(--t3); font-size: 12px; }
