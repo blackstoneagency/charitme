@@ -1,5 +1,11 @@
 import 'server-only';
-import { supabaseAdmin } from './supabase';
+import { supabasePublic } from './supabase';
+// ⚠️ Anon key, not service role. `grants` is public data — RLS grants
+// SELECT on it, and anon returns the same rows service role does (180,
+// verified during the outage that revoked the sb_secret_ key and took every
+// supabasePublic read down). Reading public data with the public key keeps this
+// listing alive when that credential breaks. Nothing here counts donations or
+// touches owner-scoped rows, which is the line supabasePublic must not cross.
 import { boundedQuery } from './query-timeout';
 import { GRANT_PUBLIC_COLUMNS, GRANT_DETAIL_COLUMNS, type Grant } from './grants';
 import { sanitizeDemoRow, sanitizeDemoRowAll } from './demo-trust';
@@ -8,7 +14,7 @@ import { sanitizeDemoRow, sanitizeDemoRowAll } from './demo-trust';
 
 export async function getPublicGrants(limit = 24): Promise<Grant[]> {
   const { data, error } = await boundedQuery(() =>
-  supabaseAdmin
+  supabasePublic
       .from('grants')
       .select(GRANT_PUBLIC_COLUMNS)
       .is('deleted_at', null)
@@ -23,7 +29,7 @@ export async function getPublicGrants(limit = 24): Promise<Grant[]> {
 }
 
 export async function getGrantBySlug(slug: string): Promise<Grant | null> {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await supabasePublic
     .from('grants')
     .select(GRANT_DETAIL_COLUMNS)
     .eq('slug', slug)
@@ -42,7 +48,7 @@ export interface GrantDeadline {
 }
 
 export async function getGrantDeadlines(grantId: string): Promise<GrantDeadline[]> {
-  const { data } = await supabaseAdmin
+  const { data } = await supabasePublic
     .from('grant_deadlines')
     .select('id, label, kind, due_at')
     .eq('grant_id', grantId)
@@ -52,7 +58,7 @@ export async function getGrantDeadlines(grantId: string): Promise<GrantDeadline[
 
 /** Distinct categories present among live grants, for filter chips. */
 export async function getGrantCategories(): Promise<string[]> {
-  const { data } = await supabaseAdmin
+  const { data } = await supabasePublic
     .from('grants')
     .select('category')
     .is('deleted_at', null)

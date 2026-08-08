@@ -1,5 +1,11 @@
 import 'server-only';
-import { supabaseAdmin } from './supabase';
+import { supabasePublic } from './supabase';
+// ⚠️ Anon key, not service role. `volunteer_opportunities` is public data — RLS grants
+// SELECT on it, and anon returns the same rows service role does (180,
+// verified during the outage that revoked the sb_secret_ key and took every
+// supabasePublic read down). Reading public data with the public key keeps this
+// listing alive when that credential breaks. Nothing here counts donations or
+// touches owner-scoped rows, which is the line supabasePublic must not cross.
 import { boundedQuery } from './query-timeout';
 import {
   OPPORTUNITY_PUBLIC_COLUMNS,
@@ -22,7 +28,7 @@ import { suppressDemoTrust, suppressDemoTrustAll } from './demo-trust';
  */
 export async function getPublicOpportunities(limit = 24): Promise<VolunteerOpportunity[] | null> {
   const { data, error } = await boundedQuery(() =>
-  supabaseAdmin
+  supabasePublic
       .from('volunteer_opportunities')
       .select(OPPORTUNITY_PUBLIC_COLUMNS)
       .is('deleted_at', null)
@@ -37,7 +43,7 @@ export async function getPublicOpportunities(limit = 24): Promise<VolunteerOppor
 }
 
 export async function getOpportunityBySlug(slug: string): Promise<VolunteerOpportunity | null> {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await supabasePublic
     .from('volunteer_opportunities')
     .select(OPPORTUNITY_DETAIL_COLUMNS)
     .eq('slug', slug)
@@ -49,7 +55,7 @@ export async function getOpportunityBySlug(slug: string): Promise<VolunteerOppor
 }
 
 export async function getVolunteerCategories(): Promise<string[]> {
-  const { data } = await supabaseAdmin
+  const { data } = await supabasePublic
     .from('volunteer_opportunities')
     .select('category')
     .is('deleted_at', null)
