@@ -92,7 +92,14 @@ describe('the checklist distinguishes a rule from a description', () => {
 });
 
 describe('the cards work in both themes and on a phone', () => {
-  const block = css.slice(css.indexOf('.rl-page {'));
+  // Bounded at BOTH ends. Slicing to end-of-file swallowed whatever block was
+  // appended after this one — another lane's resource-page CSS landed there on
+  // a merge, and its colour literals failed the token check below, on rules this
+  // page never touched. An unbounded slice makes a test fail for someone else's
+  // change, which is worse than not having it.
+  const start = css.indexOf('.rl-page {');
+  const nextSection = css.indexOf('\n/* ', css.indexOf('.rl-enforced'));
+  const block = css.slice(start, nextSection > start ? nextSection : undefined);
 
   it('styles with tokens, not the mock\'s literal darks', () => {
     const hardcoded = block.match(/#[0-9a-fA-F]{3,8}/g) ?? [];
