@@ -49,8 +49,8 @@ function Actions({ actions }: { actions: ReferenceAction[] }) {
   );
 }
 
-export function ReferencePage({ children }: { children: ReactNode }) {
-  return <div className="rp-page">{children}</div>;
+export function ReferencePage({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return <div className={`rp-page ${className}`.trim()}>{children}</div>;
 }
 
 export function ReferenceHero({
@@ -63,6 +63,7 @@ export function ReferenceHero({
   imageAlt,
   callout,
   search,
+  highlights = [],
   variant = 'standard',
 }: {
   crumbs: { label: string; href?: string }[];
@@ -74,6 +75,7 @@ export function ReferenceHero({
   imageAlt: string;
   callout?: { icon: string; title: string; body: string };
   search?: ReferenceSearch;
+  highlights?: ReferenceFeature[];
   variant?: 'standard' | 'catalog';
 }) {
   return (
@@ -107,6 +109,16 @@ export function ReferenceHero({
             </form>
           )}
           {actions.length > 0 && <Actions actions={actions} />}
+          {highlights.length > 0 && (
+            <div className="rp-hero-highlights">
+              {highlights.map((highlight) => (
+                <div key={highlight.title}>
+                  <span className="rp-icon rp-icon-sm"><PublicIcon name={highlight.icon} /></span>
+                  <p><strong>{highlight.title}</strong><small>{highlight.body}</small></p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <div className="rp-hero-media">
           <CampaignImage
