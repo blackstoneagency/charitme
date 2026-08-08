@@ -125,10 +125,21 @@ describe('the story video button', () => {
     }
   });
 
-  it('renders no control when nothing is configured', () => {
-    // A play button that plays nothing is a dead affordance.
+  it('always renders the control, and never points it nowhere', () => {
+    // ⚠️ This used to assert the control was OMITTED without a URL, on the
+    // grounds that a play button that plays nothing is a dead affordance. That
+    // reasoning still holds and is the reason the fallback is what it is — but
+    // the design calls for the button, so the answer is a real destination
+    // rather than no button.
+    //
+    // With a URL it opens the video; without one it moves to the "Our Story"
+    // section this page already renders. What must never appear is a third
+    // option: an invented URL, which would be a broken link.
     expect(page).toContain('content.storyVideoUrl ?');
-    expect(page).toContain(': undefined');
+    expect(page).toContain('href="#ab-story-h"');
+    // The anchor has to exist, or the fallback scrolls nowhere.
+    expect(page).toContain('id="ab-story-h"');
+    expect(page).not.toContain(': undefined');
   });
 });
 
