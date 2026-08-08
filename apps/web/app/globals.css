@@ -11314,6 +11314,17 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   --b1: var(--rp-line);
   --b2: var(--rp-line-strong);
   --b3: var(--rp-line-strong);
+  /* ⚠️ THE STATUS COLOURS ARE PART OF THE FAMILY TOO — this is the FOURTH time
+     a subset was remapped and the remainder produced invisible text.
+     Found by sweeping a POPULATED site: /supporter-space renders status badges
+     only when there is data, so every database-less sweep missed them entirely.
+     Measured there: --red-text 2.63:1, --blue-text 2.65:1, --green-text 2.60:1
+     against --rp-line (#1d2b36) — light-theme inks on a dark panel.
+     The dark variants clear the bar on both rp surfaces (6.68–11.88:1). */
+  --green-text: #4ade80;
+  --red-text: #ff8fa0;
+  --blue-text: #93c5fd;
+  --orange-text: #fbbf24;
 
   min-height: 100vh;
   padding-bottom: 36px;
@@ -11751,7 +11762,10 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   font-weight: 800;
 }
 .rr-employer-search button .pub-icon { width: 17px; height: 17px; }
-.rr-employer-search small { display: block; margin-top: 10px; color: #717783; font-size: 11px; }
+/* #717783 measured 4.19:1 on this surface — under the 4.5 bar, and 11px text
+   gets no large-text exemption. `--t3` is the token documented as AA on s1–s3
+   and measures 5.29:1 here. A literal could not follow the theme in any case. */
+.rr-employer-search small { display: block; margin-top: 10px; color: var(--t3); font-size: 11px; }
 .rr-program-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 .rr-program-head h3 { margin: 0; color: #171922; font-size: 17px; }
 .rr-program-head a { color: #6c2abb; font-size: 12px; font-weight: 750; }
