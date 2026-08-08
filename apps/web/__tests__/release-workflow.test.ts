@@ -19,25 +19,9 @@ describe('production release workflow', () => {
   });
 
   it('starts only the database service needed by migration replay', () => {
-    for (const service of [
-      'gotrue',
-      'realtime',
-      'storage-api',
-      'imgproxy',
-      'kong',
-      'mailpit',
-      'postgrest',
-      'postgres-meta',
-      'studio',
-      'edge-runtime',
-      'logflare',
-      'vector',
-      'supavisor',
-    ]) {
-      expect(workflow).toMatch(
-        new RegExp(`SUPABASE_REPLAY_EXCLUDES:.*\\b${service}\\b`),
-      );
-    }
+    expect(workflow).toContain('npx supabase db start');
+    expect(workflow).not.toMatch(/npx supabase start(?:\s|$)/);
+    expect(workflow).not.toContain('SUPABASE_REPLAY_EXCLUDES');
     expect(workflow).not.toContain('--ignore-health-check');
   });
 
