@@ -44,6 +44,8 @@ export type DonationOutcome = {
   receiptNumber: string | null;
   /** True ONLY when a `tax_receipts` row exists for this donation. */
   taxDeductible: boolean;
+  /** The contribution amount stated by the issued tax receipt, excluding tips and fees. */
+  taxReceiptAmountCents: number | null;
   /** Present only when `taxDeductible` — never inferred. */
   nonprofitName: string | null;
   nonprofitEin: string | null;

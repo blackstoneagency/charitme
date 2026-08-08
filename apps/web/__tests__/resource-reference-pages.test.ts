@@ -5,6 +5,20 @@ import { describe, expect, it } from 'vitest';
 const WEB = resolve(__dirname, '..');
 const read = (path: string): string => readFileSync(join(WEB, path), 'utf8');
 
+function luminance(hex: string): number {
+  const channels = [1, 3, 5]
+    .map((index) => Number.parseInt(hex.slice(index, index + 2), 16) / 255)
+    .map((channel) => channel <= 0.03928
+      ? channel / 12.92
+      : ((channel + 0.055) / 1.055) ** 2.4);
+  return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+}
+
+function contrastRatio(first: string, second: string): number {
+  const [lighter, darker] = [luminance(first), luminance(second)].sort((a, b) => b - a);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
 const pages = {
   corporate: read('app/corporate-partnerships/page.tsx'),
   matching: read('app/matching/(list)/page.tsx'),
@@ -48,5 +62,15 @@ describe('reference resource pages', () => {
     expect(component).toContain('highlights?: ReferenceFeature[]');
     expect(css).toContain('.rr-band-light');
     expect(css).toContain('@media (max-width: 619px)');
+  });
+
+  it('keeps the employer-search helper above the WCAG AA contrast threshold', () => {
+    const css = read('app/globals.css');
+    const foreground = css.match(/\.rr-employer-search small \{[^}]*color:\s*(#[0-9a-f]{6})/i)?.[1];
+    const background = css.match(/\.rr-employer-panel \{[^}]*background:\s*(#[0-9a-f]{6})/i)?.[1];
+
+    expect(foreground).toBeDefined();
+    expect(background).toBeDefined();
+    expect(contrastRatio(foreground ?? '#000000', background ?? '#ffffff')).toBeGreaterThanOrEqual(4.5);
   });
 });

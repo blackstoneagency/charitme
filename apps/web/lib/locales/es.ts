@@ -463,6 +463,7 @@ export const es: Dictionary = {
   'thanks.view_receipt': 'Ver recibo',
   'thanks.your_receipt': 'Tu recibo',
   'thanks.receipt_intro': 'Gracias por marcar la diferencia.',
+  'thanks.tax_deductible_amount': 'Contribución deducible de impuestos',
   'thanks.download_receipt': 'Descargar recibo',
   'thanks.donor': 'Donante',
   'thanks.payment_method': 'Método de pago',

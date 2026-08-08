@@ -490,6 +490,7 @@ export const en: Dictionary = {
   'thanks.view_receipt': 'View receipt',
   'thanks.your_receipt': 'Your receipt',
   'thanks.receipt_intro': 'Thank you for making a difference.',
+  'thanks.tax_deductible_amount': 'Tax-deductible contribution',
   'thanks.download_receipt': 'Download receipt',
   'thanks.donor': 'Donor',
   'thanks.payment_method': 'Payment method',

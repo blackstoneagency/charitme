@@ -42,6 +42,7 @@ export default function ShareSupport({
 }) {
   const areaRef = useRef<HTMLTextAreaElement>(null);
   const [copied, setCopied] = useState(false);
+  const [shareText, setShareText] = useState(message);
 
   const record = (channel: ShareTarget) => {
     void fetch('/api/share-events', {
@@ -62,13 +63,13 @@ export default function ShareSupport({
       setTimeout(() => setCopied(false), 2000);
     };
     if (navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(message).then(done).catch(() => {
+      navigator.clipboard.writeText(shareText).then(done).catch(() => {
         areaRef.current?.select();
-        done();
+        if (document.execCommand('copy')) done();
       });
     } else {
       areaRef.current?.select();
-      done();
+      if (document.execCommand('copy')) done();
     }
     record('link');
   };
@@ -84,8 +85,8 @@ export default function ShareSupport({
         <textarea
           id="share-message"
           ref={areaRef}
-          defaultValue={message}
-          onChange={() => { /* editable — the donor's words, not ours */ }}
+          value={shareText}
+          onChange={(event) => setShareText(event.currentTarget.value)}
           aria-describedby="share-message-hint"
           rows={4}
           style={{
@@ -107,7 +108,7 @@ export default function ShareSupport({
       >
         {SHARE_TARGETS.map((target) => {
           const tile = TILE[target];
-          const href = shareHref(target, campaignUrl, message);
+          const href = shareHref(target, campaignUrl, shareText);
           const inner = (
             <>
               <span

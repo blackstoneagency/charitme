@@ -461,6 +461,7 @@ export const nl: Dictionary = {
   'thanks.view_receipt': 'Bekijk het betaalbewijs',
   'thanks.your_receipt': 'Jouw betaalbewijs',
   'thanks.receipt_intro': 'Bedankt dat je het verschil maakt.',
+  'thanks.tax_deductible_amount': 'Fiscaal aftrekbare bijdrage',
   'thanks.download_receipt': 'Betaalbewijs downloaden',
   'thanks.donor': 'Donateur',
   'thanks.payment_method': 'Betaalmethode',

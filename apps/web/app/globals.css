@@ -11814,8 +11814,9 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 .rr-employer-search button .pub-icon { width: 17px; height: 17px; }
 /* #717783 measured 4.19:1 on this panel's #f8f6fc — under AA for 11px body
    text, which needs 4.5. Darkened rather than enlarged: the size is the
-   design's. */
-.rr-employer-search small { display: block; margin-top: 10px; color: #5c6270; font-size: 11px; }
+   design's. #626975 measures 5.16:1 and stays closer to the design's grey than
+   a heavier darkening would. */
+.rr-employer-search small { display: block; margin-top: 10px; color: #626975; font-size: 11px; }
 .rr-program-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 .rr-program-head h3 { margin: 0; color: #171922; font-size: 17px; }
 .rr-program-head a { color: #6c2abb; font-size: 12px; font-weight: 750; }

@@ -122,10 +122,20 @@ export default async function ReceiptPage({
         </div>
 
         {outcome.taxDeductible && outcome.nonprofitName && outcome.nonprofitEin && (
-          <p style={{ margin: '16px 0 0', paddingTop: 14, borderTop: '1px solid var(--b1)', fontSize: 12.5, color: 'var(--t3)', lineHeight: 1.6 }}>
-            {outcome.nonprofitName} is a registered nonprofit (EIN {outcome.nonprofitEin}). No goods or
-            services were provided in exchange for this contribution. Keep this receipt for your records.
-          </p>
+          <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--b1)' }}>
+            {outcome.taxReceiptAmountCents !== null && (
+              <dl style={{ ...dl, marginBottom: 10 }}>
+                <dt style={{ ...dt, fontWeight: 750, color: 'var(--t1)' }}>{t('thanks.tax_deductible_amount')}</dt>
+                <dd style={{ ...dd, fontWeight: 800 }}>
+                  {formatMoneyShort(outcome.taxReceiptAmountCents, outcome.currency)}
+                </dd>
+              </dl>
+            )}
+            <p style={{ margin: 0, fontSize: 12.5, color: 'var(--t3)', lineHeight: 1.6 }}>
+              {outcome.nonprofitName} is a registered nonprofit (EIN {outcome.nonprofitEin}). No goods or
+              services were provided in exchange for this contribution. Keep this receipt for your records.
+            </p>
+          </div>
         )}
       </section>
 

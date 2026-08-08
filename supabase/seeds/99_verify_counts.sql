@@ -1,6 +1,6 @@
 -- =============================================================================
 -- CharitMe seed · 99 · Verify coverage
--- Run after 00–06. Prints one line per feature table with its row count and an
+-- Run after 00–09. Prints one line per feature table with its row count and an
 -- OK / <100 flag. Tables that aren't present on this database (e.g. schema.sql-
 -- only tables) are reported as "(not present)" instead of erroring.
 -- Output appears in the SQL editor "Messages" pane (or psql stderr).
@@ -36,7 +36,7 @@ declare
     'commission_requests','contact_messages','donation_forms','embedded_buttons',
     'email_campaigns','sms_campaigns','lead_outreach',
     'marketing_goals','marketing_opportunities','marketing_campaign_plans',
-    'marketing_campaign_plan_assets',
+    'marketing_campaign_plan_assets','marketing_contacts','marketing_events',
     -- Added 2026-08-02. Each of these acquired a reader in the application after
     -- this list was written, so they were being verified by nobody: a table with
     -- a live reader and no coverage check is exactly the one whose seed shortfall
