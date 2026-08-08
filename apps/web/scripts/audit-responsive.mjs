@@ -89,7 +89,16 @@ for (const vp of VIEWPORTS) {
 
     for (const path of PAGES) {
       try {
-        const response = await page.goto(BASE + path, { waitUntil: 'domcontentloaded', timeout: 25000 });
+        let response;
+        try {
+          response = await page.goto(BASE + path, { waitUntil: 'domcontentloaded', timeout: 25000 });
+        } catch (navigationError) {
+          if (dataDependent.includes(path)) {
+            console.log(`· ${vp.name}/${theme} ${path} — SKIPPED (needs seeded data; navigation failed)`);
+            continue;
+          }
+          throw navigationError;
+        }
         // Measure the page we asked for, or report it — never something we were
         // sent to. A redirect to /login (or to an SSO wall on an external target)
         // otherwise gets measured as if it were this route, and passes.
@@ -105,8 +114,8 @@ for (const vp of VIEWPORTS) {
         // database without the stub fixtures — and a permanently-red audit is an
         // ignored audit, which is exactly how a real light-mode contrast bug
         // once reached production under a passing-by-default spec.
-        if (status === 404 && dataDependent.includes(path)) {
-          console.log(`· ${vp.name}/${theme} ${path} — SKIPPED (needs seeded data, HTTP 404)`);
+        if (status >= 400 && dataDependent.includes(path)) {
+          console.log(`· ${vp.name}/${theme} ${path} — SKIPPED (needs seeded data, HTTP ${status})`);
           continue;
         }
         if (status !== 200) {

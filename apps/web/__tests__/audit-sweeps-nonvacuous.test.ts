@@ -78,6 +78,10 @@ const a11ySource = readFileSync(
   path.join(WEB_ROOT, 'scripts', 'audit-a11y.mjs'),
   'utf8',
 );
+const responsiveSource = readFileSync(
+  path.join(WEB_ROOT, 'scripts', 'audit-responsive.mjs'),
+  'utf8',
+);
 const packageJson = JSON.parse(
   readFileSync(path.join(WEB_ROOT, 'package.json'), 'utf8'),
 ) as { scripts: Record<string, string> };
@@ -94,6 +98,16 @@ describe('signed-in audit integrity', () => {
     expect(contrastSource).toMatch(/catch \(e\) \{\s+failures\+\+/);
     expect(contrastSource).toContain('CONTRAST_MIN_TEXT');
     expect(contrastSource).toContain('failures += emptyRenders.length');
+  });
+
+  it('skips declared data routes only when navigation or the HTTP response fails', () => {
+    for (const source of [contrastSource, a11ySource, responsiveSource]) {
+      expect(source).toMatch(
+        /catch \(navigationError\) \{[\s\S]{0,300}?dataDependent\.includes\(path\)[\s\S]{0,300}?continue/,
+      );
+    }
+    expect(a11ySource).toMatch(/catch \(e\) \{\s+errors\.push/);
+    expect(responsiveSource).toMatch(/catch \(e\) \{\s+findings\+\+/);
   });
 
   it('gives thin client-rendered states one bounded settle retry', () => {

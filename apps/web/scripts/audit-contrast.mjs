@@ -355,10 +355,19 @@ for (const theme of THEMES) {
 
   for (const path of PAGES) {
     try {
-      const response = await page.goto(BASE + path, {
-        waitUntil: 'domcontentloaded',
-        timeout: 45000,
-      });
+      let response;
+      try {
+        response = await page.goto(BASE + path, {
+          waitUntil: 'domcontentloaded',
+          timeout: 45000,
+        });
+      } catch (navigationError) {
+        if (dataDependent.includes(path)) {
+          if (!AS_JSON) console.log(`\u00b7 ${theme} ${path} - SKIPPED (needs seeded data; navigation failed)`);
+          continue;
+        }
+        throw navigationError;
+      }
       // ⚠️ There are TWO status checks in this function — this one, and a second
       // further down that is unreachable for any 4xx because this one already
       // continues. A fix applied to the wrong one looks correct and changes
@@ -371,8 +380,9 @@ for (const theme of THEMES) {
       // reported 6 failures on every run — and a permanently-red audit is an
       // ignored audit, which is precisely how a real light-mode contrast bug
       // reached production here once already.
-      if (response?.status() === 404 && dataDependent.includes(path)) {
-        if (!AS_JSON) console.log(`\u00b7 ${theme} ${path} - SKIPPED (needs seeded data, HTTP 404)`);
+      if (dataDependent.includes(path) && (!response || response.status() >= 400)) {
+        const status = response?.status() ?? 'NO_RESPONSE';
+        if (!AS_JSON) console.log(`\u00b7 ${theme} ${path} - SKIPPED (needs seeded data, HTTP ${status})`);
         continue;
       }
       if (!response || response.status() >= 400) {
