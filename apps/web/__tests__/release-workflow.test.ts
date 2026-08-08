@@ -18,6 +18,29 @@ describe('production release workflow', () => {
     expect(workflow).toMatch(/staging:[\s\S]*needs:\s*\[verify,\s*migration-replay\]/);
   });
 
+  it('starts only the database service needed by migration replay', () => {
+    for (const service of [
+      'gotrue',
+      'realtime',
+      'storage-api',
+      'imgproxy',
+      'kong',
+      'mailpit',
+      'postgrest',
+      'postgres-meta',
+      'studio',
+      'edge-runtime',
+      'logflare',
+      'vector',
+      'supavisor',
+    ]) {
+      expect(workflow).toMatch(
+        new RegExp(`SUPABASE_REPLAY_EXCLUDES:.*\\b${service}\\b`),
+      );
+    }
+    expect(workflow).not.toContain('--ignore-health-check');
+  });
+
   it('requires staging verification before production', () => {
     expect(workflow).toMatch(/production:[\s\S]*needs:\s*staging/);
     expect(workflow).toContain(
