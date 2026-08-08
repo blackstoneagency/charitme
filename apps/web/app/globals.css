@@ -4136,10 +4136,21 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
   --brand-text: #5930d4;
   --green: #08763b;
   --green-dark: #08763b;
+  /* ⚠️ The INK token, not the fill. The widget carries its own palette, so any
+     token it fails to declare resolves from the SITE theme instead — and
+     DonateButton renders `var(--green-text)` inside it. On a dark-themed page a
+     light widget was drawing #4ade80 on #f7f8fc: 1.58:1, effectively invisible,
+     and axe called it serious. Add both halves of every colour pair here, never
+     just the fill. */
+  --green-text: #08763b;
+  --red-text: #c2263c;
+  /* Declared, not just applied below: a descendant using `var(--font)` would
+     otherwise pick up the SITE's stack while the widget claims this one. */
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color-scheme: light;
   background: #ffffff;
   color: var(--t1);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--font);
 }
 
 /* Widget themes. The base .campaign-embed block above is the LIGHT widget and
@@ -4159,6 +4170,9 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
   --brand-text: #b9a4ff;
   --green: #4ade80;
   --green-dark: #4ade80;
+  --green-text: #4ade80;
+  --red-text: #ff8fa0;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color-scheme: dark;
   background: #12141c;
 }
@@ -4177,6 +4191,9 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
     --brand-text: #b9a4ff;
     --green: #4ade80;
     --green-dark: #4ade80;
+    --green-text: #4ade80;
+    --red-text: #ff8fa0;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     color-scheme: dark;
     background: #12141c;
   }

@@ -394,7 +394,12 @@ for (const theme of THEMES) {
         continue;
       }
       const landed = new URL(page.url()).pathname.replace(/\/$/, '') || '/';
-      const asked = path.replace(/\/$/, '') || '/';
+      // A listed route may carry a query string (`?session_id=…` selects the
+      // donation the post-payment screens describe). Playwright's page.url()
+      // reports only the pathname here, so comparing it against the raw entry
+      // reports every such route as a REDIRECT to itself and measures none of
+      // them — a harness artifact that reads exactly like a real finding.
+      const asked = path.split('?')[0].replace(/\/$/, '') || '/';
       if (landed !== asked) {
         failures++;
         if (!AS_JSON) console.log(`\u2717 ${theme} ${path} — REDIRECTED to ${landed}; not measured`);
