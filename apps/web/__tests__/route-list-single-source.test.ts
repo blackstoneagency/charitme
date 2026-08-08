@@ -186,9 +186,9 @@ describe('public route list has a single source of truth', () => {
       // were the only donor-facing screens no sweep had ever measured — and they
       // must never reach a sitemap.
       '/thank-you',
-      '/thank-you/receipt?session_id=cs_stub_2',
-      '/thank-you/share?session_id=cs_stub_2',
-      '/thank-you/done?session_id=cs_stub_2',
+      '/thank-you/receipt?session_id=cs_test_stub2',
+      '/thank-you/share?session_id=cs_test_stub2',
+      '/thank-you/done?session_id=cs_test_stub2',
       '/create/choose-path',
       '/features/fundraising-core',
       '/forgot-password',

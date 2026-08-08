@@ -184,7 +184,7 @@ export function buildFixtures() {
       // Steps 9–12 resolve a donation from its CHECKOUT SESSION id, which is the
       // only thing Stripe hands the returning browser. Without this the four
       // post-payment screens 404 under every sweep and ship unmeasured.
-      stripe_checkout_session_id: `cs_stub_${i + 1}`,
+      stripe_checkout_session_id: `cs_test_stub${i + 1}`,
       // The receipt adds these back onto the gift to state what was charged. A
       // fixture of 0 would render the "Total" row identical to "Amount" and hide
       // whether the breakdown lays out at all.

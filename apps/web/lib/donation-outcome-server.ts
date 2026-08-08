@@ -84,6 +84,17 @@ async function donationBySession(sessionId: string): Promise<DonationRow | null 
   return (data as unknown as DonationRow) ?? null;
 }
 
+/** Fallback for when PostgREST returns the row without its embed. */
+async function campaignById(id: string): Promise<{ id: string; title: string; slug: string } | null> {
+  const { data, error } = await supabaseAdmin
+    .from('campaigns')
+    .select('id, title, slug')
+    .eq('id', id)
+    .maybeSingle();
+  if (error || !data) return null;
+  return data as { id: string; title: string; slug: string };
+}
+
 async function donationByIntent(intentId: string): Promise<DonationRow | null> {
   const { data, error } = await supabaseAdmin
     .from('donations')
@@ -129,7 +140,16 @@ export const getDonationOutcome = cache(async function getDonationOutcome(
       row = intent ? await donationByIntent(intent) : null;
     }
 
-    if (row && row.campaigns) {
+    // ⚠️ The embed is not guaranteed. PostgREST resolves `campaigns:campaign_id(…)`
+    // from its schema cache, and a cache that has not reloaded after a migration
+    // returns the row with the embed simply ABSENT rather than erroring — which
+    // is why this schema ships a `reload_postgrest_schema_cache` RPC at all.
+    // Treating a missing embed as "no donation" would blank a real, paid receipt
+    // over a transient cache state, so the campaign is fetched directly instead.
+    // (`row` is narrowed to DonationRow | null by the branch above.)
+    const campaign = row ? row.campaigns ?? await campaignById(row.campaign_id) : null;
+
+    if (row && campaign) {
       const [donor, receipt, tax] = await Promise.all([
         row.donor_id
           ? supabaseAdmin.from('profiles').select('full_name, email').eq('id', row.donor_id).maybeSingle()
@@ -162,9 +182,9 @@ export const getDonationOutcome = cache(async function getDonationOutcome(
         transactionId: row.stripe_payment_intent_id,
         donorName: profile?.full_name ?? rec?.donor_name ?? session?.customer_details?.name ?? null,
         donorEmail: profile?.email ?? rec?.donor_email ?? session?.customer_details?.email ?? null,
-        campaignId: row.campaigns.id,
-        campaignTitle: row.campaigns.title,
-        campaignSlug: row.campaigns.slug,
+        campaignId: campaign.id,
+        campaignTitle: campaign.title,
+        campaignSlug: campaign.slug,
         paymentMethodLabel: methodFromSession(session) ?? fallbackMethod(row.payment_method),
         receiptNumber: taxRow?.receipt_number ?? rec?.receipt_number ?? null,
         taxDeductible,
@@ -178,12 +198,8 @@ export const getDonationOutcome = cache(async function getDonationOutcome(
 
     const campaignId = session.metadata?.campaignId;
     if (!campaignId) return null;
-    const { data: campaign, error: campaignError } = await supabaseAdmin
-      .from('campaigns')
-      .select('id, title, slug')
-      .eq('id', campaignId)
-      .maybeSingle();
-    if (campaignError || !campaign) return null;
+    const pendingCampaign = await campaignById(campaignId);
+    if (!pendingCampaign) return null;
 
     // From metadata, which OUR server wrote when it created the session — not
     // from the URL, and not from anything the browser can reach.
@@ -203,9 +219,9 @@ export const getDonationOutcome = cache(async function getDonationOutcome(
         : session.payment_intent?.id ?? null,
       donorName: session.customer_details?.name ?? null,
       donorEmail: session.customer_details?.email ?? null,
-      campaignId: campaign.id as string,
-      campaignTitle: campaign.title as string,
-      campaignSlug: campaign.slug as string,
+      campaignId: pendingCampaign.id,
+      campaignTitle: pendingCampaign.title,
+      campaignSlug: pendingCampaign.slug,
       paymentMethodLabel: methodFromSession(session),
       receiptNumber: null,
       // A tax receipt is issued by the webhook. Before that there is no basis
