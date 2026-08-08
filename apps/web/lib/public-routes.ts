@@ -1,3 +1,5 @@
+import { CAUSES } from './causes';
+
 export type SitemapFrequency =
   | 'always'
   | 'hourly'
@@ -153,13 +155,26 @@ export const INDEXABLE_PUBLIC_ROUTES: PublicRoute[] = [
     priority: 0.85,
     changeFrequency: 'daily',
   },
-  {
-    path: '/causes/mental-health',
-    title: 'Mental Health Fundraisers',
-    description: 'Counselling, crisis support, and mental health treatment costs.',
+  // Every cause landing page, DERIVED from the cause list rather than written
+  // out here.
+  //
+  // Only `/causes/mental-health` used to be listed, back when all twenty pages
+  // rendered the same fallback copy and one instantiation was genuinely
+  // representative. They now carry per-cause helps grids and closing copy, so
+  // each is a distinct indexable page — and nineteen hand-copied entries would
+  // be a second list of causes to keep correct. This repo has already paid for
+  // that mistake three times over with the category list.
+  //
+  // `title` and `description` are the exact strings `generateMetadata` emits in
+  // `app/causes/[slug]/page.tsx`; deriving both from the same source is what
+  // stops the sitemap and the page disagreeing about what a page is called.
+  ...CAUSES.map((cause): PublicRoute => ({
+    path: `/causes/${cause.slug}`,
+    title: `${cause.label} Fundraisers`,
+    description: cause.blurb,
     priority: 0.7,
     changeFrequency: 'daily',
-  },
+  })),
   {
     path: '/donate',
     title: 'Donate',

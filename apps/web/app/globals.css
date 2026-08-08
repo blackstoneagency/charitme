@@ -8262,6 +8262,23 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 .cl-programs-ic--learn { background: #1d4ed8; }
 .cl-programs-ic--meds { background: #0891b2; }
 .cl-programs-ic--travel { background: #4f46e5; }
+/* Same hue per icon as the helps grid above — a glyph that changed colour
+   between the hero card and the grid on one page would read as two things. */
+.cl-programs-ic--leaf { background: #4d7c0f; }
+.cl-programs-ic--tools { background: #a16207; }
+.cl-programs-ic--book { background: #0369a1; }
+.cl-programs-ic--laptop { background: #0e7490; }
+.cl-programs-ic--paw { background: #9333ea; }
+.cl-programs-ic--palette { background: #c026d3; }
+.cl-programs-ic--music { background: #9d174d; }
+.cl-programs-ic--medal { background: #b45309; }
+.cl-programs-ic--water { background: #0284c7; }
+.cl-programs-ic--phone { background: #0f766e; }
+.cl-programs-ic--mind { background: #7e22ce; }
+.cl-programs-ic--flask { background: #4338ca; }
+.cl-programs-ic--scales { background: #334155; }
+.cl-programs-ic--shield { background: #b91c1c; }
+.cl-programs-ic--briefcase { background: #78350f; }
 .cl-programs-card .cl-support-link { margin-top: 16px; }
 .cl-visually-hidden {
   position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
@@ -8347,6 +8364,31 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
    one row is the "colour tells you nothing" failure again. */
 .cl-helps-ic--meds { background: #0891b2; border-color: #0891b2; color: #fff; }
 .cl-helps-ic--travel { background: #4f46e5; border-color: #4f46e5; color: #fff; }
+/* The remaining 17 causes. Each icon keeps ONE colour wherever it appears, so a
+   glyph means the same thing on every page — the reason these are keyed by name
+   and not by grid position. Every value is a saturated mid-tone: the glyph is
+   white on top of it, and `.cl-helps-cta` deliberately does not take the accent
+   (an amber link on the light theme's near-white surface is the failure this
+   stylesheet has shipped before). */
+/* `leaf` predates this block — it was drawn for the /success-stories strip and
+   had never appeared on a helps grid, so it had no badge colour at all and
+   would have rendered as an unstyled grey disc. Caught by the guard, not by
+   eye. */
+.cl-helps-ic--leaf { background: #4d7c0f; border-color: #4d7c0f; color: #fff; }
+.cl-helps-ic--tools { background: #a16207; border-color: #a16207; color: #fff; }
+.cl-helps-ic--book { background: #0369a1; border-color: #0369a1; color: #fff; }
+.cl-helps-ic--laptop { background: #0e7490; border-color: #0e7490; color: #fff; }
+.cl-helps-ic--paw { background: #9333ea; border-color: #9333ea; color: #fff; }
+.cl-helps-ic--palette { background: #c026d3; border-color: #c026d3; color: #fff; }
+.cl-helps-ic--music { background: #9d174d; border-color: #9d174d; color: #fff; }
+.cl-helps-ic--medal { background: #b45309; border-color: #b45309; color: #fff; }
+.cl-helps-ic--water { background: #0284c7; border-color: #0284c7; color: #fff; }
+.cl-helps-ic--phone { background: #0f766e; border-color: #0f766e; color: #fff; }
+.cl-helps-ic--mind { background: #7e22ce; border-color: #7e22ce; color: #fff; }
+.cl-helps-ic--flask { background: #4338ca; border-color: #4338ca; color: #fff; }
+.cl-helps-ic--scales { background: #334155; border-color: #334155; color: #fff; }
+.cl-helps-ic--shield { background: #b91c1c; border-color: #b91c1c; color: #fff; }
+.cl-helps-ic--briefcase { background: #78350f; border-color: #78350f; color: #fff; }
 .cl-helps-card h3 { margin: 12px 18px 0; font-size: 15.5px; font-weight: 780; color: var(--t1); line-height: 1.3; }
 .cl-helps-card p { margin: 8px 18px 18px; font-size: 13.5px; line-height: 1.55; color: var(--t3); }
 /* The card is a <li>, not a link, so this is the only interactive thing in it —
