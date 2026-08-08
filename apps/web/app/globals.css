@@ -473,7 +473,23 @@ input, select, textarea, button { max-width: 100%; }
    the active nav link above: the header's background is FIXED black in both
    themes, so a theme-flipping token is exactly wrong here — it would fix dark
    and leave light broken. #f7f8fa matches the wordmark beside it, at 19.76:1. */
-.kind-user-name { font-size: 14px; font-weight: 700; white-space: nowrap; color: #f7f8fa; }
+.kind-user-name { font-size: 14px; font-weight: 700; white-space: nowrap; }
+/* ⚠️ SCOPED TO THE BLACK HEADER, and it must stay scoped.
+   `.kind-user-name` renders in TWO shells on two different surfaces:
+     · AppShell — inside `.kind-header`, which is permanently `background: #000`
+     · ShellAccountControls — the admin/dashboard shell, on a LIGHT surface
+   So there is no single colour that works. Unscoped it inherits `--t1`, which is
+   #0f1238 in light mode: 1.16:1 on the black header, and the signed-in user
+   could not see their own name on any public page.
+
+   A first fix set `color: #f7f8fa` on the BASE rule. That fixed the public
+   header and broke admin — near-white on `#fcfbff`, 1.03:1, measured across ~45
+   admin pages. Fixing ~49 and breaking ~45 is not a fix.
+
+   The base rule therefore keeps inheriting `--t1` (correct on the light admin
+   surface, and it follows the theme), and only the black-header instance is
+   overridden. Measured: 19.76:1 here, and admin returns to its `--t1` value. */
+.kind-header .kind-user-name { color: #f7f8fa; }
 .kind-user-caret { transition: transform .15s; }
 .kind-user-caret.open { transform: rotate(180deg); }
 .kind-user-menu { position: absolute; top: calc(100% + 12px); right: 0; min-width: 280px; background: #fff; border-radius: 16px; box-shadow: 0 12px 40px rgba(33, 30, 70, .16); padding: 10px; z-index: 60; }
