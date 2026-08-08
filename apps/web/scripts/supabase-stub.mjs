@@ -291,6 +291,11 @@ const server = createServer(async (req, res) => {
     }
 
     const { rows, total } = EMPTY ? { rows: [], total: 0 } : query(table, url.searchParams);
+    // Row COUNT, not just the request. A query that is issued and answers zero
+    // rows is the interesting case: the page renders its empty state and every
+    // look-and-feel sweep passes over content that was never there. Without the
+    // count in the log, "the page queried the table" reads as success.
+    if (VERBOSE) console.log(`  → ${table}: ${rows.length} rows (of ${total})`);
     const single = (req.headers.accept ?? '').includes('vnd.pgrst.object');
     if (single) {
       if (!rows.length) {
