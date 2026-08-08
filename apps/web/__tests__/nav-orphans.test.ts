@@ -27,7 +27,7 @@ const APP_SHELL = readFileSync(join(__dirname, '..', 'components', 'AppShell.tsx
  */
 const EXEMPT: Record<string, string> = {
   '/': 'reached by the logo in the header, which is not part of MAIN_NAV',
-  '/search': 'reached by the header search button in AppShell.tsx (asserted below)',
+  '/search': 'reached by the header search form in AppShell.tsx (asserted below)',
   '/causes/mental-health':
     'a cause detail page — reached from /causes, which IS in the menu. Linking all 20 individually would bury the menu.',
 };
@@ -62,7 +62,7 @@ describe('every indexable public route is reachable from the global chrome', () 
   it('checks the /search exemption instead of trusting it', () => {
     // The exemption above claims the header button links to /search. If someone
     // points it back at /campaigns, the exemption becomes a lie and this fails.
-    expect(APP_SHELL).toMatch(/href="\/search"[^>]*className="kind-search-btn"/);
+    expect(APP_SHELL).toMatch(/action="\/search"[^>]*method="get"[^>]*className="kind-header-search"/);
   });
 
   it('exempts nothing that is already linked', () => {

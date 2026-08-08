@@ -28,7 +28,9 @@ const flowCode = stripComments(flow);
 const entryCode = stripComments(entry);
 
 /** The `.aiw` block only — globals.css has six `max-width: 560px` queries. */
-const aiwCss = css.slice(css.indexOf('.aiw {'));
+const aiwStart = css.indexOf('.aiw {');
+const aiwEnd = css.indexOf('/* Reference public pages:', aiwStart);
+const aiwCss = css.slice(aiwStart, aiwEnd);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Source-level, and the limit is worth naming: this repo cannot render a

@@ -1,73 +1,49 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../lib/supabase';
-import { boundedQuery } from '\.\./\.\./lib/query-timeout';
+import { boundedQuery } from '../../lib/query-timeout';
 import { campaignColumns, applyLiveFilters } from '../../lib/campaign-visibility';
 import { campaignDaysLeft } from '../../lib/campaign-lifecycle';
 import { CampaignCard, CampaignGrid, type CampaignCardData } from '../../components/CampaignCard';
-import { PageBody, PageHero, Section, CardGrid, InfoCard, CtaBand } from '../../components/PageShell';
+import {
+  ReferenceCardGrid,
+  ReferenceCta,
+  ReferenceHero,
+  ReferenceIconGrid,
+  ReferencePage,
+  ReferenceSection,
+  ReferenceStats,
+} from '../../components/ReferenceMarketing';
 import { EmptyState } from '../../components/ui';
 
 export const metadata: Metadata = {
-  title: 'Supporter Space',
-  description:
-    'Where should you give? Answered from live campaign data — what is closing soonest, what is verified, and what is furthest from its goal right now.',
+  title: 'Where to Give',
+  description: 'Explore live CharitMe campaigns by urgency, verification, and funding progress, then choose where your gift can make a difference.',
   alternates: { canonical: 'https://www.charitme.com/supporter-space' },
 };
 
 export const revalidate = 300;
 
-const SELECT =
-  'id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, status, trust_status, nonprofit_verified, location, campaign_health_score';
+const SELECT = 'id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, status, trust_status, nonprofit_verified, location, campaign_health_score';
 
-interface Buckets {
+type Buckets = {
   closingSoon: CampaignCardData[];
   verified: CampaignCardData[];
   furthest: CampaignCardData[];
-}
+};
 
-/**
- * The three answers to "where should I give?", derived from live data.
- *
- * `null` on failure — deliberately distinct from empty buckets. Telling a donor
- * there is nothing urgent to fund when the database was simply unreachable is
- * the same lie as the homepage's "Raised on CharitMe $0".
- *
- * One read, bucketed in memory, rather than three round-trips. Bounded by
- * `.limit()`, which is what `__tests__/unbounded-reads.test.ts` requires — the
- * obvious "select every active campaign and sort in JS" is free at 500 rows and
- * a timeout at 500,000.
- */
 async function getBuckets(): Promise<Buckets | null> {
   try {
     const cols = await campaignColumns();
-
     const [closing, verified, needing] = await Promise.all([
-      boundedQuery(() =>
-        applyLiveFilters(supabaseAdmin.from('campaigns').select(SELECT), cols)
-          .not('deadline', 'is', null)
-          .gte('deadline', new Date().toISOString())
-          .order('deadline', { ascending: true })
-          .limit(6)
-      ),
-      boundedQuery(() =>
-        applyLiveFilters(supabaseAdmin.from('campaigns').select(SELECT), cols)
-          .eq('trust_status', 'Verified')
-          .order('raised_amount', { ascending: false })
-          .limit(6)
-      ),
-      // "Furthest from its goal" is the honest read of most-needed: sorted by
-      // least raised, so the campaigns nobody has found yet surface instead of
-      // the ones already succeeding.
-      boundedQuery(() =>
-        applyLiveFilters(supabaseAdmin.from('campaigns').select(SELECT), cols)
-          .order('raised_amount', { ascending: true })
-          .limit(6)
-      ),
+      boundedQuery(() => applyLiveFilters(supabaseAdmin.from('campaigns').select(SELECT), cols)
+        .not('deadline', 'is', null).gte('deadline', new Date().toISOString()).order('deadline', { ascending: true }).limit(6)),
+      boundedQuery(() => applyLiveFilters(supabaseAdmin.from('campaigns').select(SELECT), cols)
+        .eq('trust_status', 'Verified').order('raised_amount', { ascending: false }).limit(6)),
+      boundedQuery(() => applyLiveFilters(supabaseAdmin.from('campaigns').select(SELECT), cols)
+        .order('raised_amount', { ascending: true }).limit(6)),
     ]);
-
     if (closing.error || verified.error || needing.error) return null;
-
     return {
       closingSoon: (closing.data ?? []) as CampaignCardData[],
       verified: (verified.data ?? []) as CampaignCardData[],
@@ -79,163 +55,112 @@ async function getBuckets(): Promise<Buckets | null> {
 }
 
 const HOW_TO_CHOOSE = [
-  {
-    title: 'Urgency is a real signal',
-    body: 'A campaign days from its deadline with a gap left is where a gift changes the outcome rather than adding to a total that was already going to be reached.',
-  },
-  {
-    title: 'Verification tells you who, not whether',
-    body: 'A verified badge means we confirmed the identity receiving the money. It is not an endorsement of the cause, and it is not a promise the money will be spent as described.',
-  },
-  {
-    title: 'Small campaigns move further per dollar',
-    body: 'The same $50 is a rounding error on a $100,000 appeal and a meaningful fraction of a $1,200 one. Both matter; they do different things.',
-  },
-  {
-    title: 'Recurring beats one-off',
-    body: 'A predictable $10 a month can be planned against in a way an unpredictable $120 cannot. It is also how most people end up giving more overall.',
-  },
+  { icon: 'clock', title: 'Urgency Is a Real Signal', body: 'A campaign near its deadline with a gap left is one place a gift can change the outcome.' },
+  { icon: 'shield', title: 'Understand Verification', body: 'Verification confirms who receives funds. It is not an endorsement or guarantee.' },
+  { icon: 'target', title: 'Small Goals Move Faster', body: 'The same amount can cover a larger share of a smaller, clearly explained need.' },
+  { icon: 'refresh', title: 'Recurring Support Adds Up', body: 'Predictable giving can help an organization plan beyond one urgent moment.' },
 ];
 
 const DONOR_TOOLS = [
-  { title: 'Your giving impact', body: 'Everything you have funded, what it went to, and updates from the campaigns you backed.', href: '/donor' },
-  { title: 'Achievements', body: 'Giving streaks, levels, and badges earned across your donation history.', href: '/achievements' },
-  { title: 'Recurring gifts', body: 'Review, change, or cancel monthly donations at any time.', href: '/dashboard/recurring' },
-  { title: 'Tax statements', body: 'Annual giving statements and official receipts for tax-deductible gifts.', href: '/donor' },
+  { icon: 'chart', title: 'Your Giving Impact', body: 'See what you funded and read updates from campaigns you supported.', action: 'View impact', href: '/donor' },
+  { icon: 'award', title: 'Achievements', body: 'Track giving streaks, levels, and badges across your history.', action: 'View achievements', href: '/achievements' },
+  { icon: 'refresh', title: 'Recurring Gifts', body: 'Review, change, pause, or cancel recurring donations.', action: 'Manage gifts', href: '/dashboard/recurring' },
+  { icon: 'document', title: 'Tax Statements', body: 'Generate annual statements and access qualifying receipts.', action: 'Open tax files', href: '/donor' },
 ];
 
 const LEARN = [
-  { title: 'How to read a campaign', body: 'What to look for, and the warning signs worth taking seriously.', href: '/impact-education' },
-  { title: 'How verification works', body: 'What we check before money moves — and what we cannot check.', href: '/verification' },
-  { title: 'Where your money goes', body: 'The full fee breakdown, including the parts that are unflattering.', href: '/fees' },
-  { title: 'Give to many at once', body: 'Split one gift across several campaigns with a single receipt.', href: '/give' },
+  { icon: 'search', title: 'Read a Campaign', body: 'Know what to look for and which warning signs deserve attention.', action: 'Start learning', href: '/impact-education' },
+  { icon: 'shield', title: 'Verification Process', body: 'See what CharitMe checks before money moves.', action: 'How verification works', href: '/verification' },
+  { icon: 'dollar', title: 'Where Money Goes', body: 'Read the full fee and payment-processing breakdown.', action: 'View fees', href: '/fees' },
+  { icon: 'heart', title: 'Give to Many', body: 'Split one gift across several campaigns with one checkout.', action: 'Build a giving bundle', href: '/give' },
 ];
 
-function Bucket({
-  id,
-  heading,
-  intro,
-  campaigns,
-  emptyBody,
-}: {
-  id: string;
-  heading: string;
-  intro: string;
-  campaigns: CampaignCardData[];
-  emptyBody: string;
-}) {
+const CAUSES = [
+  { icon: 'heart', title: 'All Causes', body: 'See every active campaign.', href: '/causes' },
+  { icon: 'graduation', title: 'Education', body: 'Learning and youth opportunity.', href: '/causes/education' },
+  { icon: 'home', title: 'Community', body: 'Local relief and shared spaces.', href: '/causes/community-relief' },
+  { icon: 'heart', title: 'Health & Wellness', body: 'Care, treatment, and wellbeing.', href: '/causes/health-wellness' },
+  { icon: 'paw', title: 'Animals', body: 'Animal care and wildlife protection.', href: '/causes/animals-planet' },
+  { icon: 'leaf', title: 'Environment', body: 'Climate and conservation action.', href: '/causes/environment' },
+];
+
+function Bucket({ heading, intro, campaigns, emptyBody }: { heading: string; intro: string; campaigns: CampaignCardData[]; emptyBody: string }) {
   return (
-    <Section id={id} heading={heading} intro={intro}>
+    <ReferenceSection title={heading} intro={intro}>
       {campaigns.length === 0 ? (
-        <EmptyState
-          icon="🌱"
-          title="Nothing here right now"
-          body={emptyBody}
-          action={<Link href="/campaigns" style={{ fontSize: '14px', color: 'var(--green-text)', fontWeight: 600 }}>Browse all campaigns</Link>}
-        />
+        <EmptyState icon="♡" title="Nothing here right now" body={emptyBody} action={<Link href="/campaigns" className="rp-text-link">Browse all campaigns</Link>} />
       ) : (
-        <CampaignGrid>
-          {campaigns.map((c) => <CampaignCard key={c.id} campaign={c} />)}
-        </CampaignGrid>
+        <CampaignGrid>{campaigns.map((campaign) => <CampaignCard key={campaign.id} campaign={campaign} />)}</CampaignGrid>
       )}
-    </Section>
+    </ReferenceSection>
   );
 }
 
 export default async function SupporterSpacePage() {
   const buckets = await getBuckets();
-
-  // The countdown for the lede comes from the shared helper, so this page cannot
-  // claim "3 days left" about a campaign another surface calls ended.
   const soonest = buckets?.closingSoon[0];
   const soonestDays = soonest ? campaignDaysLeft(soonest.deadline) : null;
+  const visibleCampaigns = buckets
+    ? Array.from(new Map([...buckets.closingSoon, ...buckets.verified, ...buckets.furthest].map((campaign) => [campaign.id, campaign])).values())
+    : [];
+  const visibleCategories = new Set(visibleCampaigns.map((campaign) => campaign.category).filter(Boolean));
 
   return (
-    <PageBody>
-      <PageHero
-        eyebrow="SUPPORTER SPACE"
-        title="Where should you give?"
-        lede={
-          soonestDays !== null && soonestDays >= 0
-            ? `Answered from live campaign data rather than an inspiration page. Right now the most urgent campaign on CharitMe has ${soonestDays === 1 ? '1 day' : `${soonestDays} days`} left.`
-            : 'Answered from live campaign data rather than an inspiration page — what is closing soonest, what is verified, and what is furthest from its goal right now.'
-        }
-        actions={
-          <>
-            <Link href="/campaigns" className="cta-primary" style={{ display: 'inline-flex' }}>
-              Browse all campaigns
-            </Link>
-            <Link
-              href="/causes"
-              style={{ display: 'inline-flex', alignItems: 'center', padding: '11px 22px', borderRadius: 'var(--r)', border: '1px solid var(--b2)', color: 'var(--t1)', fontSize: '14px', fontWeight: 700, textDecoration: 'none' }}
-            >
-              Explore by cause
-            </Link>
-          </>
-        }
+    <ReferencePage>
+      <ReferenceHero
+        crumbs={[{ label: 'Home', href: '/' }, { label: 'Explore Causes', href: '/causes' }, { label: 'Where to Give' }]}
+        eyebrow=""
+        title={<>Where to Give</>}
+        lede="Discover trusted causes and organizations making a real difference. Your support can change lives and create a better tomorrow."
+        search={{ action: '/campaigns', placeholder: 'Search causes, charities, or keywords...' }}
+        image="/images/reference/supporter-space-hero.jpg"
+        imageAlt="Hands holding a heart in support of a cause"
+        callout={{ icon: 'search', title: 'Find the Right Cause', body: 'Explore causes you care about and support verified organizations.' }}
+        variant="catalog"
       />
 
+      <ReferenceStats items={[
+        { icon: 'megaphone', value: visibleCampaigns.length.toLocaleString(), label: 'Active campaigns loaded' },
+        { icon: 'shield', value: (buckets?.verified.length ?? 0).toLocaleString(), label: 'Verified campaigns shown' },
+        { icon: 'globe', value: visibleCategories.size.toLocaleString(), label: 'Cause areas represented' },
+        { icon: 'clock', value: soonestDays !== null && soonestDays >= 0 ? `${soonestDays}d` : 'Live', label: 'Most urgent deadline' },
+      ]} />
+
+      <ReferenceSection title="Browse by Cause" compact action={{ label: 'View all causes', href: '/causes' }}>
+        <ReferenceIconGrid items={CAUSES} />
+      </ReferenceSection>
+
       {buckets === null ? (
-        <EmptyState
-          icon="⚠️"
-          title="We couldn't load campaigns just now"
-          body="This is a problem on our side, not an empty platform. Please refresh in a moment."
-          action={<Link href="/supporter-space" style={{ fontSize: '14px', color: 'var(--green-text)', fontWeight: 600 }}>Try again</Link>}
-        />
+        <div className="rp-section"><EmptyState icon="!" title="We couldn't load campaigns just now" body="This is a temporary data problem, not an empty platform." action={<Link href="/supporter-space" className="rp-text-link">Try again</Link>} /></div>
       ) : (
         <>
-          <Bucket
-            id="closing-soon"
-            heading="Closing soonest"
-            intro="Campaigns with a deadline approaching. A gift here changes whether the goal is reached, rather than adding to one that was already going to be."
-            campaigns={buckets.closingSoon}
-            emptyBody="No campaigns are closing in the near future."
-          />
-          <Bucket
-            id="verified"
-            heading="Identity verified"
-            intro="The fundraiser's identity has been confirmed and payouts are enabled. That tells you who receives the money — not that we endorse the cause."
-            campaigns={buckets.verified}
-            emptyBody="No verified campaigns to show right now."
-          />
-          <Bucket
-            id="furthest"
-            heading="Furthest from their goal"
-            intro="The campaigns fewest people have found. The same amount goes further here than on an appeal that is already close."
-            campaigns={buckets.furthest}
-            emptyBody="No campaigns to show right now."
-          />
+          <Bucket heading="Closing Soonest" intro="Campaigns with an approaching deadline, ordered from live campaign data." campaigns={buckets.closingSoon} emptyBody="No campaigns are closing in the near future." />
+          <Bucket heading="Identity Verified" intro="The fundraiser's identity has been confirmed and payouts are enabled." campaigns={buckets.verified} emptyBody="No verified campaigns are available right now." />
+          <Bucket heading="Furthest From Their Goal" intro="Campaigns that have raised the least and may not have reached many supporters yet." campaigns={buckets.furthest} emptyBody="No campaigns are available right now." />
         </>
       )}
 
-      <Section
-        id="how-to-choose"
-        heading="How to choose between them"
-        intro="Four things that genuinely change what a gift does. None of them is about which story moved you most."
-      >
-        <CardGrid min={270}>
-          {HOW_TO_CHOOSE.map((h) => <InfoCard key={h.title} title={h.title} body={h.body} />)}
-        </CardGrid>
-      </Section>
+      <ReferenceSection title="How to Choose Between Them" intro="Four things that genuinely change what a gift does.">
+        <ReferenceCardGrid items={HOW_TO_CHOOSE} />
+      </ReferenceSection>
 
-      <Section id="your-giving" heading="Your giving" intro="Sign in to see your own history, impact, and receipts.">
-        <CardGrid min={250}>
-          {DONOR_TOOLS.map((d) => <InfoCard key={d.href} title={d.title} body={d.body} href={d.href} />)}
-        </CardGrid>
-      </Section>
+      <ReferenceSection title="Your Giving Tools" intro="Sign in to see your history, impact, recurring support, and tax files.">
+        <ReferenceCardGrid items={DONOR_TOOLS} />
+      </ReferenceSection>
 
-      <Section id="learn" heading="Before you give">
-        <CardGrid min={250}>
-          {LEARN.map((l) => <InfoCard key={l.href} title={l.title} body={l.body} href={l.href} />)}
-        </CardGrid>
-      </Section>
+      <ReferenceSection title="Before You Give">
+        <ReferenceCardGrid items={LEARN} />
+      </ReferenceSection>
 
-      <CtaBand
-        heading="Give once, fund several"
-        body="Split a single amount across several campaigns and get one receipt for all of it."
-        primary={{ label: 'Give to many causes', href: '/give' }}
-        secondary={{ label: 'Get involved another way', href: '/get-involved' }}
+      <ReferenceCta
+        icon="heart"
+        title="Give Once, Support Several Causes"
+        body="Split one amount across multiple campaigns and keep the experience simple."
+        actions={[
+          { label: 'Give to Many Causes', href: '/give' },
+          { label: 'Other Ways to Help', href: '/get-involved', variant: 'secondary' },
+        ]}
       />
-    </PageBody>
+    </ReferencePage>
   );
 }
