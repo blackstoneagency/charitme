@@ -261,9 +261,31 @@ master run `30750918547` (same signature; master's last 6 runs all failed) →
 **still dead 2026-08-05**, verified on branch run `31044505428`
 (`runner_id: 0`, empty `runner_name`, 2s, 0 billable ms across both jobs)
 *and* on master run `31043386437` (0 billable ms, 4s; master's last 6 runs all
-failed). Four days into August and it has not come back — consistent with the
-quota hypothesis below, whose falsifiable prediction (return on 1 September) is
-still open.
+failed) → **ALIVE AGAIN 2026-08-08**, and this one is not marginal: run
+`31262659820` assigned `runner_id: 1000002044` (`"GitHub Actions 1000002044"`)
+and executed **all 14 steps over 51 minutes**, with logs. Subsequent runs
+(`31265861036`, `31266731381`, `31269548871`) all drew real runners too.
+
+⚠️ **So a red check is REAL SIGNAL again, and dismissing one now costs you.**
+The 2026-08-08 return immediately caught three genuine defects that had been
+sitting behind the dead-runner assumption: a header dropdown with no
+outside-click dismissal, an axe `color-contrast` violation on the /volunteer
+search input, and a latent audit bug (below) that had never surfaced because
+step 12 had never run. **Re-verify per run using the table above — but start
+from "this is probably real", not "this is probably the outage".**
+
+Note the quota hypothesis's falsifiable prediction was **return on 1 September**.
+It came back on **8 August** instead, so that prediction is wrong as stated. The
+allowance may have been raised, or the billing behaviour differs from the guess.
+Do not treat the September date as load-bearing.
+
+⚠️ **Steps 12 and 13 had NEVER executed in CI until 2026-08-08**, because every
+prior run failed at e2e (step 11) first and the later steps were skipped. The
+first time step 12 ran it failed on `/donate/security-header-fixture` — a route
+already declared in `e2e/data-dependent-routes.json`, whose skip only matched
+`status === 404` while CI produces a timeout. Expect more first-run surprises
+from steps 12–13 for the same reason: they are the least-exercised part of the
+pipeline.
 
 ### 🔎 LIKELY CAUSE, and it is not random: the private-repo Actions minutes quota
 
