@@ -106,6 +106,8 @@ function NavMenu({
 }) {
   const t = useT();
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+  // Scopes the outside-click check across BOTH the trigger and its panel.
+  const wrapRef = useRef<HTMLDivElement | null>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Whether the panel currently open was opened by hover rather than by a click.
   //
@@ -145,6 +147,35 @@ function NavMenu({
     return () => document.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
+  // Dismiss on a click outside the trigger+panel.
+  //
+  // ⚠️ A CLICK PINS THE MENU OPEN (that is the whole point of `hoverOpened`),
+  // and nothing dismissed a pinned menu except Escape or clicking the trigger
+  // again. So a mouse user who opened "Explore Causes" and then clicked anywhere
+  // else on the page was left with a full-width panel covering the content, with
+  // no obvious way to shut it. `e2e/header-nav.spec.ts` asserts exactly this and
+  // was failing in CI on both chromium and mobile.
+  //
+  // `mousedown`, not `click`: the panel closing on mousedown means a click that
+  // begins outside cannot also activate something underneath on mouseup.
+  //
+  // `onClose(false)` — no focus return. Focus belongs wherever the user just
+  // clicked; yanking it back to the trigger would fight them. That is the
+  // opposite of the Escape case above, where the trigger IS where focus should
+  // land because the keyboard user never left it.
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      const target = e.target as Node | null;
+      if (target && wrapRef.current?.contains(target)) return;
+      hoverOpened.current = false;
+      cancelHoverClose();
+      onClose(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [open, onClose]);
+
   return (
     // Hover here is a pure enhancement layered on top of a fully operable
     // <button> — the menu opens and closes by click, Enter, Space and Escape
@@ -154,6 +185,7 @@ function NavMenu({
     // isn't one.
     // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div
+      ref={wrapRef}
       className="kind-menu-wrap"
       onMouseEnter={() => {
         cancelHoverClose();

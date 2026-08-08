@@ -141,12 +141,37 @@ test('a click pins the dropdown open until an explicit dismissal', async ({ page
   await trigger.click();
   await expect(page.locator('.kind-menu-panel')).toBeVisible();
 
-  await page.mouse.move(4, 500);
-  await expect(page.locator('.kind-menu-panel')).toBeVisible();
+  // ⚠️ This used to move to (4, 500) and click, believing that was OUTSIDE the
+  // menu. It is not: the panel is a full-width mega-menu measuring x:0–1440,
+  // y:80–795 at this viewport, so (4, 500) lands INSIDE it — on
+  // `.kind-menu-panel` itself. The test was asserting that clicking inside a
+  // menu dismisses it, which is the opposite of what a menu should do, and it
+  // failed on both chromium and mobile.
+  //
+  // The click point is now DERIVED from the panel's own box, so a change to the
+  // menu's size cannot silently move the point back inside it.
+  const panel = page.locator('.kind-menu-panel');
+  const box = await panel.boundingBox();
+  expect(box, 'panel should be laid out').not.toBeNull();
+
+  const outsideY = box!.y + box!.height + 20;
+  expect(outsideY, 'the click point must fit in the viewport').toBeLessThan(900);
+
+  // Self-check: assert the point really is outside before relying on it. Without
+  // this the test could silently go back to clicking inside the menu and start
+  // asserting the wrong thing again.
+  const isOutside = await page.evaluate(
+    (y) => !document.elementFromPoint(720, y)?.closest('.kind-menu-wrap'),
+    outsideY,
+  );
+  expect(isOutside, 'click point must be outside .kind-menu-wrap').toBe(true);
+
+  await page.mouse.move(720, outsideY);
+  await expect(panel).toBeVisible();
 
   await page.mouse.down();
   await page.mouse.up();
-  await expect(page.locator('.kind-menu-panel')).toHaveCount(0);
+  await expect(panel).toHaveCount(0);
 });
 
 test('a hover-opened dropdown survives the gap into its panel', async ({ page }) => {
