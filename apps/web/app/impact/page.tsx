@@ -10,6 +10,8 @@ import { getCoverForCategory } from '../../lib/photo-catalog';
 import { safeJsonLd } from '../../lib/json-ld';
 import { CHARITME_ORIGIN } from '../../lib/public-routes';
 import { seoMetadata } from '../../lib/seo';
+import { listPublishedImpactSummaries } from '../../lib/impact';
+import { getPublishedFundAllocation, getPublishedImpactStats } from '../../lib/platform-impact';
 
 export async function generateMetadata(): Promise<Metadata> {
   return seoMetadata('/impact', {
@@ -70,10 +72,15 @@ function AreaCard({ area }: { area: ImpactArea }) {
 }
 
 export default async function ImpactPage() {
-  // The published-report read went with the Impact Stories row it fed. Left as
-  // a single await rather than a one-element Promise.all so nothing suggests a
-  // second fetch is still expected here.
-  const overview = await getImpactOverview();
+  const [overview, authoredStats, fundSlices, stories] = await Promise.all([
+    getImpactOverview(),
+    // Owner-authored headline figures. Empty until an admin publishes them, and
+    // empty is the normal state — see lib/platform-impact.ts.
+    getPublishedImpactStats(),
+    getPublishedFundAllocation(),
+    // Restored, exactly as the removal note above the section describes.
+    listPublishedImpactSummaries(3),
+  ]);
 
   const areas = overview.areas.length > 0 ? overview.areas : fallbackAreas();
 
@@ -151,15 +158,33 @@ export default async function ImpactPage() {
             donation that reaches the campaign, DERIVED from
             `PLATFORM_FEE_PERCENT` rather than typed in, so it follows the fee
             instead of continuing to claim 100% if one is ever introduced. */}
+        {/* ⚠️ TWO SOURCES, and which one is live is the owner's decision, not a
+            code path anyone should change casually.
+
+            The reference draws "2.3M+ People Helped", "68K+ Lives Transformed",
+            "1,250+ Programs Funded", "120+ Countries Reached", "98% Funds to
+            Programs". None of those is derivable here — nothing in this schema
+            records a person helped or a life transformed — so they are NOT typed
+            into this file. They live in `platform_impact_stats`, seeded
+            unpublished by supabase/seed/platform_impact.sql, and this page
+            renders them the moment an admin publishes them with a source.
+
+            Until then the measured tiles below stay, so an unseeded deployment
+            shows figures that are true rather than an empty band. That is why
+            the fallback is the full five-tile set and not a placeholder. */}
         <StatStrip
           label="Platform totals"
-          tiles={[
-            { value: statValue(overview.activeCampaigns), label: 'Active campaigns' },
-            { value: moneyValue(overview.raisedTotalCents), label: 'Raised on CharitMe' },
-            { value: statValue(overview.gifts), label: 'Gifts given' },
-            { value: statValue(overview.countries), label: 'Countries supported' },
-            { value: `${overview.toCampaignPercent}%`, label: 'Of your donation reaches the campaign' },
-          ]}
+          tiles={
+            authoredStats.length > 0
+              ? authoredStats.map((s) => ({ value: s.value, label: s.label }))
+              : [
+                  { value: statValue(overview.activeCampaigns), label: 'Active campaigns' },
+                  { value: moneyValue(overview.raisedTotalCents), label: 'Raised on CharitMe' },
+                  { value: statValue(overview.gifts), label: 'Gifts given' },
+                  { value: statValue(overview.countries), label: 'Countries supported' },
+                  { value: `${overview.toCampaignPercent}%`, label: 'Of your donation reaches the campaign' },
+                ]
+          }
         />
 
         {/* ── Impact areas ──────────────────────────────────────────────── */}
@@ -175,19 +200,51 @@ export default async function ImpactPage() {
           </div>
         </section>
 
-        {/* ── Impact stories: REMOVED ───────────────────────────────────────
-            The "Impact Stories" row (heading, "View All Stories →" and the
-            published-report cards) was removed on request.
+        {/* ── Impact Stories ────────────────────────────────────────────────
+            RESTORED. The removal note that stood here said re-adding it means
+            putting `listPublishedImpactSummaries(3)` back into the fetch and
+            this block, and nothing else — which is exactly what was done.
 
-            Kept as a note rather than a silent deletion because the section was
-            not decorative: it was the only public surface that linked to
-            `/impact/<slug>` report pages. Those pages, `lib/impact.ts` and the
-            whole `/impact/manage` authoring flow are all still live — a
-            fundraiser can still publish a report and it is still readable at its
-            own URL. What is gone is the discovery row on this page.
+            ⚠️ These are REAL published impact reports, not the reference's three
+            invented vignettes ("A New Home, A New Beginning", "From Dreaming to
+            Achieving", "Healing Little Hearts"). Those name specific children
+            and describe things that happened to them; writing them into a
+            fundraising page would be fabricated testimony about identifiable
+            people, which is a different order of wrong from a made-up total.
 
-            Re-adding it means restoring `listPublishedImpactSummaries(3)` to the
-            `Promise.all` in ImpactPage and this block; nothing else was touched. */}
+            The row renders only when a fundraiser has actually published a
+            report. No reports, no section — rather than three placeholder cards
+            implying stories that do not exist. */}
+        {stories.length > 0 && (
+          <section aria-labelledby="imp-stories">
+            <div className="cb-section-head">
+              <h2 id="imp-stories">Impact Stories</h2>
+              <Link href="/success-stories">View All Stories <span aria-hidden="true">&rarr;</span></Link>
+            </div>
+            <div className="imp-stories">
+              {stories.map((s) => (
+                <article className="imp-story" key={s.plan.id}>
+                  <Link href={`/impact/${s.campaign.slug}`} className="imp-story-media" aria-hidden="true" tabIndex={-1}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={getCoverForCategory(s.campaign.title)} alt="" loading="lazy" />
+                  </Link>
+                  <div className="imp-story-body">
+                    <h3><Link href={`/impact/${s.campaign.slug}`}>{s.plan.title || s.campaign.title}</Link></h3>
+                    {s.plan.summary && <p>{s.plan.summary}</p>}
+                    <p className="imp-story-meta">
+                      {/* Counts, not adjectives. Both are read from the report. */}
+                      {s.publishedUpdateCount} update{s.publishedUpdateCount === 1 ? '' : 's'}
+                      {s.metricCount > 0 && <> · {s.metricCount} metric{s.metricCount === 1 ? '' : 's'}</>}
+                    </p>
+                    <Link href={`/impact/${s.campaign.slug}`} className="imp-story-cta">
+                      Read Their Story <span aria-hidden="true">&rarr;</span>
+                    </Link>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* ── Numbers ───────────────────────────────────────────────────── */}
         <section aria-labelledby="imp-numbers">
@@ -204,6 +261,55 @@ export default async function ImpactPage() {
                 What IS knowable, exactly, is what happens to a donation, so the
                 panel states that instead. Every figure below is read from
                 @shared/fees rather than typed here. */}
+            {/* ⚠️ The donut renders ONLY when a complete published breakdown
+                exists in `platform_fund_allocation`.
+
+                The reference draws "Programs & Services 82% / Fundraising 10% /
+                Operations 6% / Other 2%". That is a statement about how this
+                organisation spends donated money — a financial disclosure, not a
+                marketing number — and no such accounting exists in this product.
+                `getPublishedFundAllocation` additionally REFUSES a set that does
+                not sum to ~100%, because a donut reads as "this is all of the
+                money" and a partial one looks complete while being wrong.
+
+                Until it is published, the panel below states what IS exactly
+                knowable — what happens to a donation, read from @shared/fees. */}
+            {fundSlices.length > 0 && (
+              <div className="imp-panel imp-donut-panel">
+                <h3>Funds Distribution</h3>
+                <div className="imp-donut-row">
+                  <div
+                    className="imp-donut"
+                    role="img"
+                    aria-label={`Funds distribution: ${fundSlices.map((f) => `${f.label} ${f.percent}%`).join(', ')}`}
+                    style={{
+                      // One conic-gradient built from the published rows. The
+                      // running offset is what makes the arcs contiguous.
+                      background: `conic-gradient(${
+                        fundSlices
+                          .reduce<{ stops: string[]; at: number }>((acc, f) => {
+                            const start = acc.at;
+                            const end = acc.at + f.percent;
+                            acc.stops.push(`var(--imp-slice-${f.colorIndex}) ${start}% ${end}%`);
+                            return { stops: acc.stops, at: end };
+                          }, { stops: [], at: 0 })
+                          .stops.join(', ')
+                      })`,
+                    }}
+                  />
+                  <ul className="imp-donut-key">
+                    {fundSlices.map((f) => (
+                      <li key={f.label}>
+                        <span className="imp-donut-dot" data-slice={f.colorIndex} aria-hidden="true" />
+                        <span className="imp-donut-label">{f.label}</span>
+                        <b>{f.percent}%</b>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+
             <div className="imp-panel">
               <h3>Where your money goes</h3>
               <ul className="imp-split">

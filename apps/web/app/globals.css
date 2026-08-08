@@ -156,6 +156,14 @@
      var(--bg). Must be defined in BOTH themes — an undefined --bg silently
      falls back to a light value even in dark mode (light-on-light text). */
   --bg: #f8f7ff;
+  /* Funds Distribution donut slices. Defined for BOTH themes — the dark values
+     are lighter so the ring stays legible on the flat-black dark background. */
+  --imp-slice-0: #8b5cf6;
+  --imp-slice-1: #f59e0b;
+  --imp-slice-2: #10b981;
+  --imp-slice-3: #ec4899;
+  --imp-slice-4: #3b82f6;
+  --imp-slice-5: #64748b;
   --shadow: 0 22px 70px rgba(55, 42, 130, .12);
   --shadow-sm: 0 10px 32px rgba(55, 42, 130, .10);
   --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -5425,6 +5433,14 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
      reads: a card has to be visibly lifted off the page, and #121530 on #000 is
      a clearer step than it was on #0b0d24. */
   --bg: #000000;
+  /* Lighter slice colours: the dark theme's page background is flat black, so
+     the light-theme violets and blues lose definition against it. */
+  --imp-slice-0: #a78bfa;
+  --imp-slice-1: #fbbf24;
+  --imp-slice-2: #34d399;
+  --imp-slice-3: #f472b6;
+  --imp-slice-4: #60a5fa;
+  --imp-slice-5: #94a3b8;
   --shadow: 0 22px 70px rgba(0,0,0,.5);
   --shadow-sm: 0 10px 32px rgba(0,0,0,.35);
   --shadow-lg: 0 24px 80px rgba(0,0,0,.55);
@@ -10157,6 +10173,72 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
    background: dark mode's <body> is flat black by request, and a band that
    leaked a colour onto it is exactly how that was broken before.
    ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   /impact — Impact Stories row and the Funds Distribution donut.
+
+   ⚠️ Dark mode is FLAT BLACK by request (`--bg: #000000`). Every surface here
+   therefore paints an explicit panel colour rather than leaning on the page
+   background: a band that inherits `transparent` reads as a hole punched in the
+   page, and one that hardcodes a near-black leaks a colour onto the black. Both
+   were broken this way before.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.imp-stories {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 4px;
+}
+.imp-story {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--b1);
+  border-radius: var(--rl, 18px);
+  background: var(--s1);
+}
+.imp-story-media { display: block; aspect-ratio: 16 / 9; overflow: hidden; }
+.imp-story-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.imp-story-body { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.imp-story-body h3 { margin: 0; font-size: 16.5px; font-weight: 800; line-height: 1.3; }
+.imp-story-body h3 a { color: var(--t1); text-decoration: none; }
+.imp-story-body h3 a:hover { text-decoration: underline; }
+.imp-story-body p { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--t2); }
+.imp-story-meta { font-size: 12.5px; color: var(--t3); }
+.imp-story-cta { font-size: 13.5px; font-weight: 800; color: var(--brand-text); text-decoration: none; }
+.imp-story-cta:hover { text-decoration: underline; }
+
+/* Donut. Drawn with one conic-gradient built in the page from PUBLISHED rows,
+   so the palette lives here and the numbers stay in the database. */
+.imp-donut-panel { min-width: 0; }
+.imp-donut-row { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; min-width: 0; }
+.imp-donut {
+  width: 148px;
+  height: 148px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  /* The hole. A mask rather than an overlaid circle, so the panel colour behind
+     it shows through and the ring stays correct on any surface. */
+  -webkit-mask: radial-gradient(circle, transparent 54%, #000 55%);
+  mask: radial-gradient(circle, transparent 54%, #000 55%);
+}
+.imp-donut-key { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; min-width: 0; flex: 1 1 200px; }
+.imp-donut-key li { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; align-items: center; gap: 10px; font-size: 13.5px; color: var(--t2); }
+.imp-donut-key b { color: var(--t1); font-weight: 800; }
+.imp-donut-dot { width: 10px; height: 10px; border-radius: 50%; }
+.imp-donut-dot[data-slice="0"] { background: var(--imp-slice-0); }
+.imp-donut-dot[data-slice="1"] { background: var(--imp-slice-1); }
+.imp-donut-dot[data-slice="2"] { background: var(--imp-slice-2); }
+.imp-donut-dot[data-slice="3"] { background: var(--imp-slice-3); }
+.imp-donut-dot[data-slice="4"] { background: var(--imp-slice-4); }
+.imp-donut-dot[data-slice="5"] { background: var(--imp-slice-5); }
+
+@media (max-width: 900px) {
+  .imp-stories { grid-template-columns: minmax(0, 1fr); }
+  .imp-donut-row { justify-content: center; }
+}
 
 .imp-hero {
   position: relative;

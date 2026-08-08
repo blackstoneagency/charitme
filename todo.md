@@ -2690,7 +2690,23 @@ skipped workflow leaves its check pending forever and would deadlock a docs-only
 PR. Nothing is required today, which is why this is safe now — recorded so the
 next person does not find out the hard way.
 
-## 🛑 SUPABASE STAGING — blocked, and the pending count is **33** (Claude, 2026-08-03)
+## 🛑 SUPABASE STAGING — blocked, and the pending count is **34** (Claude, 2026-08-03)
+
+**+1 on 2026-08-08: `20260829000000_platform_impact_stats.sql`.** Adds
+`platform_impact_stats` and `platform_fund_allocation` — the owner-authored
+figures behind /impact's headline tiles and its Funds Distribution donut.
+
+⚠️ **Applying it changes nothing a visitor sees.** Both tables default to
+`published = false`, and `supabase/seed/platform_impact.sql` seeds the reference
+design's exact values UNPUBLISHED. /impact keeps rendering measured figures until
+an admin publishes a row and records its `source_note`. The donut additionally
+refuses to draw a set that does not sum to ~100%, because a partial breakdown
+looks complete while being wrong.
+
+The seed is idempotent and **never unpublishes** a figure already approved —
+verified against a real PostgreSQL 16: publish a row, re-run the seed, the row
+stays published.
+
 
 **+2 on 2026-08-08:** replay compatibility and forward policy repair for the
 three editorial migrations that referenced the removed `profiles.role` shape.
@@ -2743,8 +2759,8 @@ all 18 in order and proved rollback.
 Fifteen migrations have been added since. So the count is arithmetic:
 
 ```
-120 local − 87 applied           = 33
-18 audited pending + 15 added    = 33   ✓ reconciles
+121 local − 87 applied           = 34
+18 audited pending + 16 added    = 34   ✓ reconciles
 ```
 
 All 18 audited-pending versions are still on disk under their original names.
