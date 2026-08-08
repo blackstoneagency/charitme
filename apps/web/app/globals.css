@@ -27,6 +27,7 @@
   --pink-btn: #ca36aa;
   --pink-text: #a32188;
   --orange-btn: #b45309;
+  --neutral-btn: #35405c;
 
   /* ── The one primary-CTA gradient ──────────────────────────────────────────
      A sweep of every page measured FIFTEEN distinct primary-CTA treatments,
@@ -6122,6 +6123,8 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 [data-theme="dark"] .cr2-track-wrap { background: var(--s1); border-bottom-color: var(--line); }
 [data-theme="dark"] .cr2-track-dot { background: var(--s2); color: var(--t3); border-color: var(--b1); }
 [data-theme="dark"] .cr2-track-label { color: var(--t3); }
+[data-theme="dark"] .cr2-track-item.active .cr2-track-label,
+[data-theme="dark"] .cr2-track-item.done .cr2-track-label { color: var(--violet-ink); }
 [data-theme="dark"] .cr2-cat-tile { background: var(--s2); }
 [data-theme="dark"] .cr2-cat-tile:hover { background: var(--s1); border-color: #c4b5fd; }
 [data-theme="dark"] .cr2-cat-tile strong { color: var(--t1); }

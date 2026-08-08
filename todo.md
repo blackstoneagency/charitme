@@ -5329,7 +5329,7 @@ need the owner.
 
 ### ✅ CODEX lane — theme/contrast (closed)
 
-| C1 | **CLOSED — zero WCAG AA contrast failures.** Re-certified current `master` across 181 public and signed-in routes × light/dark = 362 renders. The two historical real failures were already fixed in `62ace39f`; the signed-in sweep is now a required CI gate and refuses occupied ports rather than auditing a stale process. |
+| C1 | **CLOSED — zero WCAG AA contrast failures.** Re-certified the current release candidate across 203 public and signed-in routes × light/dark = 406 renders. The required CI sweep now refuses occupied ports rather than auditing a stale process, and caught three new dark-theme regressions introduced by the latest campaign work before release. |
 
 ### 🟢 CLAUDE lane — 2 done, 2 genuinely gated (was "actionable now (4)")
 
@@ -6049,7 +6049,7 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
   returned `x-vercel-cache: PRERENDER` in 440 ms, followed by four cache hits in
   61-122 ms; `/api/health` also returned HTTP 200.
 
-## SIGNED-IN PAGE CERTIFICATION - contrast gate complete (Codex, 2026-08-01)
+## SIGNED-IN PAGE CERTIFICATION - contrast gate complete (Codex, 2026-08-08)
 
 - [x] Reconciled the route manifest with the app tree: 10 standalone gated
   routes, 68 renderable console pages, eight exact redirect aliases, and 19
@@ -6065,8 +6065,8 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
 - [x] Verified the route contract with 24 focused tests and a targeted
   production-build browser run in both themes.
 - [x] Remediated the historical signed-in contrast failures and re-certified
-  current `master`: **0 WCAG AA failures across 181 routes × 2 themes = 362
-  renders**. CI now runs the complete Supabase-stub-backed signed-in sweep and
+  the current release candidate: **0 WCAG AA failures across 203 routes × 2
+  themes = 406 renders**. CI now runs the complete Supabase-stub-backed signed-in sweep and
   fails before launch when either audit port is occupied, preventing stale-build
   false passes.
 - [x] Added six independent token-aware Supabase stub sessions and certified
