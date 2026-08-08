@@ -1,105 +1,127 @@
-import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Badge, EmptyState } from '../../../components/ui';
+import type { Metadata } from 'next';
+import { EmptyState } from '../../../components/ui';
+import CampaignImage from '../../../components/CampaignImage';
+import {
+  ReferenceCta,
+  ReferenceHero,
+  ReferenceIconGrid,
+  ReferencePage,
+  ReferenceSection,
+  ReferenceStats,
+} from '../../../components/ReferenceMarketing';
 import { listPublishedEvents } from '../../../lib/events';
 import { getCause } from '../../../lib/causes';
 import { remainingCapacity } from '../../../lib/events-core';
+import { getPhotosForCategory } from '../../../lib/photo-catalog';
 
 export const metadata: Metadata = {
-  title: 'Events — Fundraising Events & Galas',
-  description: 'Discover upcoming fundraising events, galas, and giving days on CharitMe. RSVP in one click.',
+  title: 'Events - Gather for Good',
+  description: 'Discover upcoming fundraising events, community gatherings, galas, and virtual events on CharitMe, then RSVP in one click.',
   alternates: { canonical: 'https://www.charitme.com/events' },
 };
+
 export const dynamic = 'force-dynamic';
 
 function dateLabel(iso: string): string {
   return new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 }
 
-export default async function EventsPage({
-  searchParams,
-}: {
-  searchParams?: Promise<{ cause?: string }>;
-}) {
-  // `?cause=` scopes the list to one cause's campaign categories, which is how
-  // a cause hub links to "its" events without a second page that would drift.
-  // An unknown slug is ignored rather than 404'd — a stale link should still
-  // land on the full list.
+const EVENT_BENEFITS = [
+  { icon: 'people', title: 'Meet Your Community', body: 'Gather with people who care about the same causes.' },
+  { icon: 'heart', title: 'Support a Mission', body: 'Every registration and share helps a campaign move.' },
+  { icon: 'calendar', title: 'Join Your Way', body: 'Choose local, hybrid, or fully virtual experiences.' },
+  { icon: 'megaphone', title: 'Host an Event', body: 'Create an event and manage registrations from your dashboard.' },
+];
+
+export default async function EventsPage({ searchParams }: { searchParams?: Promise<{ cause?: string; q?: string; type?: string; location?: string }> }) {
   const sp = (await searchParams) ?? {};
   const cause = typeof sp.cause === 'string' ? getCause(sp.cause) : undefined;
-  const events = await listPublishedEvents(60, cause?.categories);
+  const query = typeof sp.q === 'string' ? sp.q.trim().toLowerCase() : '';
+  const eventType = typeof sp.type === 'string' ? sp.type : '';
+  const location = typeof sp.location === 'string' ? sp.location : '';
+  const allEvents = await listPublishedEvents(60, cause?.categories);
+  const eventTypes = [...new Set(allEvents.map((event) => event.event_type))].sort();
+  const locations = [...new Set(allEvents.map((event) => event.location).filter((value): value is string => Boolean(value)))].sort();
+  const events = allEvents.filter((event) => {
+    if (eventType && event.event_type !== eventType) return false;
+    if (location && event.location !== location) return false;
+    if (!query) return true;
+    return `${event.title} ${event.description ?? ''} ${event.location ?? ''}`.toLowerCase().includes(query);
+  });
+  const virtualCount = allEvents.filter((event) => Boolean(event.virtual_url)).length;
+  const photos = getPhotosForCategory('Event', Math.max(events.length + 1, 6));
 
   return (
-    <div className="container" style={{ padding: '40px 24px' }}>
-      <div style={{ marginBottom: 28 }}>
-        {cause && (
-          <nav aria-label="Breadcrumb" style={{ marginBottom: 10 }}>
-            <Link href={`/causes/${cause.slug}`} style={{ fontSize: 13, fontWeight: 650, color: 'var(--t3)' }}>
-              ← {cause.label}
-            </Link>
-          </nav>
-        )}
-        <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 8 }}>
-          📅 {cause ? `${cause.label} events` : 'Events'}
-        </h1>
-        <p style={{ color: 'var(--t3)', fontSize: 15, maxWidth: 640 }}>
-          Upcoming fundraising events, galas, and giving days. RSVP in one click — organizers can
-          host an event and check attendees in from their dashboard.
-        </p>
+    <ReferencePage>
+      <ReferenceHero
+        crumbs={[{ label: 'Home', href: '/' }, { label: 'Get Involved', href: '/get-involved' }, { label: 'Events' }]}
+        eyebrow="Events"
+        title={<>Come Together.<br /><span className="rp-accent">Create Change.</span></>}
+        lede="Discover impactful events in your community and around the world. Whether you want to attend, volunteer, or host your own, every event brings us closer to a better tomorrow."
+        search={{ action: '/events', placeholder: 'Search events, causes, or locations...', defaultValue: sp.q }}
+        image="/images/reference/events-hero.jpg"
+        imageAlt="People gathering at a community fundraising event"
+        callout={{ icon: 'heart', title: 'Your presence matters.', body: 'Find events that inspire you and help make a difference in your community and beyond.' }}
+        variant="catalog"
+      />
+
+      <ReferenceStats items={[
+        { icon: 'calendar', value: allEvents.length.toLocaleString(), label: 'Upcoming events shown' },
+        { icon: 'globe', value: virtualCount.toLocaleString(), label: 'Virtual events shown' },
+        { icon: 'location', value: locations.length.toLocaleString(), label: 'Locations represented' },
+        { icon: 'tag', value: eventTypes.length.toLocaleString(), label: 'Event types available' },
+      ]} />
+
+      <div id="events">
+        <ReferenceSection title={cause ? `${cause.label} Events` : 'Upcoming Events'} intro="Search and filter live events, then open an event to RSVP.">
+          <form className="rp-filters" method="GET" action="/events" role="search">
+            {cause && <input type="hidden" name="cause" value={cause.slug} />}
+            <label><span>Search</span><input name="q" defaultValue={sp.q} placeholder="Search events" /></label>
+            <label><span>Type</span><select name="type" defaultValue={eventType}><option value="">All types</option>{eventTypes.map((type) => <option key={type} value={type}>{type.replaceAll('_', ' ')}</option>)}</select></label>
+            <label><span>Location</span><select name="location" defaultValue={location}><option value="">All locations</option>{locations.map((place) => <option key={place} value={place}>{place}</option>)}</select></label>
+            <button type="submit">Apply Filters</button>
+            {(query || eventType || location) && <Link href={cause ? `/events?cause=${cause.slug}` : '/events'}>Clear</Link>}
+          </form>
+
+          {events.length === 0 ? (
+            <EmptyState icon="♡" title="No events match those filters" body="Try a broader search or clear the filters to see every upcoming event." action={<Link href={cause ? `/events?cause=${cause.slug}` : '/events'} className="rp-text-link">Clear filters</Link>} />
+          ) : (
+            <div className="rp-live-grid rp-live-grid-events">
+              {events.map((event, index) => {
+                const remaining = remainingCapacity(event.capacity, event.registered_qty);
+                const full = Number.isFinite(remaining) && remaining <= 0;
+                return (
+                  <article className="rp-live-card" key={event.id}>
+                    <Link href={`/events/${event.slug}`} className="rp-live-media"><CampaignImage src={photos[index + 1] ?? photos[0]} category="Event" campaignKey={event.slug} alt="" width={520} height={300} loading="lazy" /></Link>
+                    <div className="rp-live-body">
+                      <div className="rp-live-tags"><span>{event.event_type.replaceAll('_', ' ')}</span>{event.virtual_url && <span>Virtual</span>}{full && <span>Full</span>}</div>
+                      <h3><Link href={`/events/${event.slug}`}>{event.title}</Link></h3>
+                      <p>{dateLabel(event.starts_at)}{event.location ? ` · ${event.location}` : ''}</p>
+                      {event.description && <div className="rp-live-copy">{event.description}</div>}
+                      <Link className="rp-text-link" href={`/events/${event.slug}`}>{full ? 'View event' : 'View details and RSVP'}</Link>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </ReferenceSection>
       </div>
 
-      {events.length === 0 ? (
-        <EmptyState
-          icon="📅"
-          title={cause ? `No upcoming ${cause.label} events` : 'No upcoming events yet'}
-          body={
-            cause
-              ? 'Nothing scheduled under this cause right now. Browse every upcoming event instead.'
-              : 'Check back soon, or host the first event from the manage page.'
-          }
-          // ⚠️ The UNFILTERED case used to pass `undefined` here, so the more
-          // common empty state offered no action at all — and the body told the
-          // visitor to "host the first event from the manage page" without ever
-          // linking to it. Measured: 0 links inside <main> on this route.
-          action={
-            cause ? (
-              <Link className="cta-primary" href="/events" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '0 18px', borderRadius: 'var(--r)', textDecoration: 'none', fontWeight: 700 }}>All events</Link>
-            ) : (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
-                <Link className="cta-primary" href="/events/manage" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '0 18px', borderRadius: 'var(--r)', textDecoration: 'none', fontWeight: 700 }}>Host an event</Link>
-                <Link className="vol-btn-secondary" href="/campaigns">Browse campaigns</Link>
-              </div>
-            )
-          }
-        />
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: 18 }}>
-          {events.map((e) => {
-            const remaining = remainingCapacity(e.capacity, e.registered_qty);
-            const full = Number.isFinite(remaining) && remaining <= 0;
-            return (
-              <Link
-                key={e.id}
-                href={`/events/${e.slug}`}
-                style={{ display: 'block', border: '1px solid var(--b2)', borderRadius: 'var(--rl)', padding: 18, background: 'var(--s1)', textDecoration: 'none', color: 'inherit' }}
-              >
-                <div style={{ display: 'flex', minWidth: 0, gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
-                  <Badge color="blue">{e.event_type.replace('_', ' ')}</Badge>
-                  {e.virtual_url ? <Badge color="green">Virtual</Badge> : e.location ? <Badge color="gray">{e.location}</Badge> : null}
-                  {full ? <Badge color="red">Full</Badge> : Number.isFinite(remaining) ? <Badge color="green">{remaining} spots left</Badge> : null}
-                </div>
-                <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 6 }}>{e.title}</h2>
-                <div style={{ fontSize: 13, color: 'var(--t4)', marginBottom: 8 }}>{dateLabel(e.starts_at)}</div>
-                {e.description && (
-                  <p style={{ color: 'var(--t3)', fontSize: 14, lineHeight: 1.5, margin: 0 }}>
-                    {e.description.length > 130 ? `${e.description.slice(0, 130)}…` : e.description}
-                  </p>
-                )}
-              </Link>
-            );
-          })}
-        </div>
-      )}
-    </div>
+      <ReferenceSection title="Why Join a CharitMe Event">
+        <ReferenceIconGrid items={EVENT_BENEFITS} columns={4} />
+      </ReferenceSection>
+
+      <ReferenceCta
+        icon="calendar"
+        title="Bring People Together for a Cause"
+        body="Create an event, invite your community, and manage every registration from CharitMe."
+        actions={[
+          { label: 'Host an Event', href: '/events/manage' },
+          { label: 'Browse Campaigns', href: '/campaigns', variant: 'secondary' },
+        ]}
+      />
+    </ReferencePage>
   );
 }
