@@ -67,6 +67,21 @@ const argOf = (flag, fallback) => {
 const PORT = Number(argOf('--port', '54321'));
 const VERBOSE = args.includes('--verbose');
 
+/**
+ * `--empty` answers every table with zero rows, and every RPC with null.
+ *
+ * This is the control half of a two-run experiment, and it is the only way to
+ * ask "is this page ACTUALLY reading the database?" and get a falsifiable
+ * answer. A page rendered against populated fixtures looks convincing whether
+ * its content came from a query or from an array literal in the component; run
+ * it again with the database empty and the two stop looking alike — real reads
+ * collapse to their empty state, hardcoded content does not move.
+ *
+ * Auth is deliberately NOT emptied. Signing the user out would redirect every
+ * gated route to /login and the comparison would measure the login page twice.
+ */
+const EMPTY = args.includes('--empty');
+
 const fixtures = buildFixtures();
 
 const USER = fixtures._user;
@@ -231,7 +246,7 @@ const server = createServer(async (req, res) => {
   // ── postgrest ─────────────────────────────────────────────────────────────
   if (path.startsWith('/rest/v1/rpc/')) {
     const fn = path.slice('/rest/v1/rpc/'.length);
-    const value = fixtures._rpc?.[fn];
+    const value = EMPTY ? undefined : fixtures._rpc?.[fn];
     return send(res, 200, value === undefined ? null : value);
   }
 
@@ -251,7 +266,7 @@ const server = createServer(async (req, res) => {
       return send(res, 201, [], { 'content-range': '*/1' });
     }
 
-    const { rows, total } = query(table, url.searchParams);
+    const { rows, total } = EMPTY ? { rows: [], total: 0 } : query(table, url.searchParams);
     const single = (req.headers.accept ?? '').includes('vnd.pgrst.object');
     if (single) {
       if (!rows.length) {
