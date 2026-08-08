@@ -11258,10 +11258,23 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
      `color: var(--t1)`, so it kept its LIGHT surface while its text turned
      near-white — 1.03:1, measured. Half a token family is worse than none,
      because it converts a readable light component into an invisible one.
-     Surfaces and text move together or not at all. */
+     Surfaces and text move together or not at all.
+
+     ⚠️ THE WHOLE FAMILY, not a subset. This has now bitten twice: remapping
+     --t* alone broke `.vol-btn-secondary` (1.03:1), and leaving `--bg` out broke
+     the /volunteer search input, which axe caught as a serious color-contrast
+     violation — near-white --rp-text on the near-white --bg (#f8f7ff) it had
+     kept. Any token left behind pairs a dark-system value with a light-system
+     one, and the result is invisible text.
+
+     The family is: --bg, --t1..--t4, --muted, --s1..--s3, --b1..--b3. If a new
+     surface or text token is added to the light block above, it belongs here
+     too. */
+  --bg: var(--rp-bg);
   --t1: var(--rp-text);
   --t2: var(--rp-muted);
   --t3: var(--rp-muted);
+  --t4: var(--rp-muted);
   --muted: var(--rp-muted);
   --s1: var(--rp-panel);
   --s2: var(--rp-panel-strong);
