@@ -11233,11 +11233,25 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
      ones added later, which is the part a per-component patch would not do.
 
      Measured on this surface: 18.45:1 / 9.11:1 (worst case on --rp-panel-strong
-     is 16.86:1 / 8.33:1). */
+     is 16.86:1 / 8.33:1).
+
+     ⚠️ REMAP THE SURFACES TOO, and never only the text.
+     A first version of this remapped --t* alone, which broke `.vol-btn-secondary`
+     on /volunteer: that button paints `background: var(--s1)` and
+     `color: var(--t1)`, so it kept its LIGHT surface while its text turned
+     near-white — 1.03:1, measured. Half a token family is worse than none,
+     because it converts a readable light component into an invisible one.
+     Surfaces and text move together or not at all. */
   --t1: var(--rp-text);
   --t2: var(--rp-muted);
   --t3: var(--rp-muted);
   --muted: var(--rp-muted);
+  --s1: var(--rp-panel);
+  --s2: var(--rp-panel-strong);
+  --s3: var(--rp-line);
+  --b1: var(--rp-line);
+  --b2: var(--rp-line-strong);
+  --b3: var(--rp-line-strong);
 
   min-height: 100vh;
   padding-bottom: 36px;
