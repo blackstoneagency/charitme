@@ -1,5 +1,11 @@
 import Link from 'next/link';
-import { supabaseAdmin } from '../../../lib/supabase';
+import { supabaseAdmin, supabasePublic } from '../../../lib/supabase';
+// ⚠️ The three PUBLIC campaign reads below use `supabasePublic` (anon key), not
+// `supabaseAdmin`. Live campaigns are public — RLS grants SELECT on them, and
+// anon returns the same 352 rows service role does. This keeps the browse page
+// working when the service-role key is revoked, which is exactly what took the
+// whole site down. Counts over `donations` deliberately do NOT move here: anon
+// sees 0 of them, and a false "0 gifts" is worse than an honest em dash.
 import { boundedQuery } from '../../../lib/query-timeout';
 import { campaignColumns, applyLiveFilters, applyNotExpired } from '../../../lib/campaign-visibility';
 import { applyCampaignSearch, likeTerm } from '../../../lib/campaign-search';
@@ -97,7 +103,7 @@ async function getLocations(): Promise<string[] | null> {
   try {
     const cols = await campaignColumns();
     const { data, error } = await boundedQuery(() =>
-      applyLiveFilters(supabaseAdmin.from('campaigns').select('location'), cols)
+      applyLiveFilters(supabasePublic.from('campaigns').select('location'), cols)
         .not('location', 'is', null)
         .limit(2000),
     );
@@ -160,7 +166,7 @@ async function getCampaigns(opts: {
     // the problem. `sort=ending` becomes genuinely "ending soonest" as a result.
     let query = applyNotExpired(
       applyLiveFilters(
-        supabaseAdmin
+        supabasePublic
           .from('campaigns')
           .select(CAMPAIGN_SELECT, { count: 'exact' }),
         cols,
@@ -248,7 +254,7 @@ async function getFeatured(): Promise<CampaignRow[] | null> {
   try {
     const cols = await campaignColumns();
     const { data, error } = await applyLiveFilters(
-      supabaseAdmin
+      supabasePublic
         .from('campaigns')
         .select(CAMPAIGN_SELECT),
       cols,
