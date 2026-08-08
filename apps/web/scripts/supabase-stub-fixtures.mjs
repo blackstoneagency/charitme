@@ -180,7 +180,23 @@ export function buildFixtures() {
           ? 'Thinking of you.'
           : 'We have been following this since the beginning and could not be prouder of how the whole neighbourhood turned out. Sending love from three states away.',
       anonymous: i % 6 === 0,
+      // lib/reconciliation.ts and lib/pricing-analytics.ts both filter
+      // `.eq('offline', false)` to mean "came through Stripe". SQL equality
+      // excludes NULL, so an absent column made both surfaces report zero over a
+      // table of 400 rows. This is the same defect the 20260827010000 migration fixes
+      // in the database — the fixture was reproducing it.
+      offline: i % 25 === 0,
+      offline_method: i % 25 === 0 ? ['cash', 'cheque', 'bank transfer'][i % 3] : null,
       stripe_payment_intent_id: `pi_stub_${i + 1}`,
+      // Steps 9–12 resolve a donation from its CHECKOUT SESSION id, which is the
+      // only thing Stripe hands the returning browser. Without this the four
+      // post-payment screens 404 under every sweep and ship unmeasured.
+      stripe_checkout_session_id: `cs_test_stub${i + 1}`,
+      // The receipt adds these back onto the gift to state what was charged. A
+      // fixture of 0 would render the "Total" row identical to "Amount" and hide
+      // whether the breakdown lays out at all.
+      tip_cents: [0, 250, 400, 0, 1000][i % 5],
+      processing_fee_cents: [0, 45, 175, 320, 90][i % 5],
       status: ['completed', 'completed', 'completed', 'completed', 'pending', 'refunded'][i % 6],
       payment_method: ['card', 'card', 'apple_pay', 'google_pay', 'bank'][i % 5],
       source: ['direct', 'share', 'email', 'social'][i % 4],
@@ -267,6 +283,12 @@ export function buildFixtures() {
       'to share where things stand, what the money has paid for so far, and what ' +
       'is still ahead of us.',
     ai_generated: i % 4 === 0,
+    // /campaigns/[slug]/updates admits a row only when it is published or its
+    // scheduled time has passed (`published_at.not.is.null,scheduled_at.lte.…`).
+    // Neither column existed here, so the public updates page rendered empty
+    // under every sweep. A few stay scheduled so both branches are exercised.
+    published_at: i % 5 === 0 ? null : daysAgo(i * 3),
+    scheduled_at: i % 5 === 0 ? daysAgo(-(i + 2)) : null,
     created_at: daysAgo(i * 3),
   }));
 
@@ -348,6 +370,9 @@ export function buildFixtures() {
   const volunteer_hours = [
     {
       id: uuid('vhour', 1),
+      // The seed verifier joins hours to shifts on this column and the app
+      // filters on it; without it the row belongs to no shift.
+      shift_id: volunteer_shifts[0].id,
       opportunity_id: volunteer_opportunities[0].id,
       volunteer_user_id: USER_ID,
       checked_in_at: daysAgo(2),
@@ -755,6 +780,8 @@ export function buildFixtures() {
       metadata: {},
     })),
     support_cases: genericRows('supp', 30, (i) => ({
+      // The queue scopes to the person who filed it.
+      submitter_id: USER_ID,
       subject: `Case ${i + 1}: donor cannot download a receipt`,
       body: 'Opened by the audit stub so the queue renders with rows.',
       priority: ['low', 'normal', 'high', 'urgent'][i % 4],
@@ -776,6 +803,8 @@ export function buildFixtures() {
       amount_cents: (i + 1) * 1_500,
       reason: 'Donor requested',
       donation_id: uuid('dona', i + 1),
+      // Reconciliation matches refunds to Stripe by this id.
+      stripe_refund_id: `re_stub_${i + 1}`,
     })),
     // Column names must match supabase/schema.sql exactly. These were `interval`
     // and `next_charge_at`, which exist nowhere in the schema — the real columns
@@ -789,6 +818,9 @@ export function buildFixtures() {
       status: ['active', 'active', 'paused', 'cancelled'][i % 4],
       next_bill_at: daysAgo(-((i % 28) + 1)),
       donor_id: USER_ID,
+      // Six call sites look a subscription up by this id — cancel, pause,
+      // resume and the webhook reconciliation all key on it.
+      stripe_subscription_id: `sub_stub_${i + 1}`,
     })),
     donor_messages: genericRows('dmsg', 25, (i) => ({
       body: 'Thank you for the update — is there anything else the family needs?',
@@ -807,15 +839,31 @@ export function buildFixtures() {
     risk_flags: genericRows('risk', 15, (i) => ({
       severity: ['low', 'medium', 'high'][i % 3],
       reason: 'Velocity above the configured threshold.',
+      // The trust queue filters on `resolved`; without it every flag was
+      // invisible. Mixed so both the open queue and the resolved history render.
+      resolved: i % 3 === 0,
+      resolved_at: i % 3 === 0 ? daysAgo(i) : null,
+      flag_type: ['velocity', 'chargeback', 'identity'][i % 3],
+      description: 'Raised by the audit stub.',
     })),
+    // `published` does not exist on this table — the column is `active`, and
+    // GET /api/announcements filters on it, so the public banner never had a row
+    // to render.
     announcements: genericRows('annc', 8, (i) => ({
       title: `Platform notice ${i + 1}`,
       body: 'Scheduled maintenance window this weekend.',
-      published: true,
+      level: ['info', 'warning', 'success'][i % 3],
+      active: i % 4 !== 3,
+      starts_at: daysAgo(i + 1),
+      ends_at: daysAgo(-(i + 30)),
     })),
+    // Scoped by `owner_id` (5 call sites), not `user_id`, and `connected` is not
+    // a column — the real one is `status`.
     integration_connections: genericRows('intg', 10, (i) => ({
+      owner_id: USER_ID,
       provider: ['mailchimp', 'slack', 'salesforce', 'zapier'][i % 4],
-      connected: i % 2 === 0,
+      status: ['connected', 'connected', 'error', 'disconnected'][i % 4],
+      config: {},
     })),
     platform_settings: [
       {
@@ -846,12 +894,30 @@ export function buildFixtures() {
       enabled: i % 2 === 0,
       description: 'Fixture flag.',
     })),
+    // ⚠️ Every column here except `name` was invented. The real table has
+    // `iso_code`/`can_fundraise`/`can_donate`/`currency_code`/`active`/
+    // `sort_order`; this had `code`/`payouts_supported`/`currency`. The page
+    // filters `.eq('active', true)`, which matched NOTHING, so
+    // /supported-countries has been rendering "CharitMe supports fundraisers in
+    // 0 countries and accepts donations from 0 countries" under every audit —
+    // and /impact-map and /success-stories read the same table. A zero-state
+    // page passes axe and contrast perfectly, which is exactly why this kind of
+    // mismatch survives: the sweep is green and measured nothing.
+    //
+    // `can_fundraise` is false for a few rows on purpose — the page splits the
+    // list into fundraising countries and donate-only ones, and a fixture where
+    // every row is identical never renders the second group.
     supported_countries: genericRows('ctry', 20, (i) => ({
-      code: ['US', 'CA', 'GB', 'AU', 'NZ', 'IE', 'DE', 'FR', 'NL', 'SE'][i % 10],
       name: ['United States', 'Canada', 'United Kingdom', 'Australia', 'New Zealand',
         'Ireland', 'Germany', 'France', 'Netherlands', 'Sweden'][i % 10],
-      payouts_supported: true,
-      currency: 'usd',
+      iso_code: ['US', 'CA', 'GB', 'AU', 'NZ', 'IE', 'DE', 'FR', 'NL', 'SE'][i % 10],
+      flag_emoji: ['🇺🇸', '🇨🇦', '🇬🇧', '🇦🇺', '🇳🇿', '🇮🇪', '🇩🇪', '🇫🇷', '🇳🇱', '🇸🇪'][i % 10],
+      can_fundraise: i % 4 !== 3,
+      can_donate: true,
+      currency_code: ['usd', 'cad', 'gbp', 'aud', 'nzd', 'eur', 'eur', 'eur', 'eur', 'sek'][i % 10],
+      notes: i % 5 === 0 ? 'Payouts settle in three business days.' : null,
+      active: true,
+      sort_order: i,
     })),
   };
 }

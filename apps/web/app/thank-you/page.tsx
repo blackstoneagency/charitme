@@ -1,91 +1,45 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { stripe } from '../../lib/stripe';
-import { supabaseAdmin } from '../../lib/supabase';
 import { getTranslator } from '../../lib/locale-server';
+import { getDonationOutcome } from '../../lib/donation-outcome-server';
+import { totalChargedCents } from '../../lib/donation-outcome-core';
 import { formatMoneyShort } from '@shared/currencies';
+import CopyField from './CopyField';
+import { flowShell, panel, primaryAction, outlineAction, quietLink, dl, dt, dd } from './flow-ui';
 
 export const metadata: Metadata = {
   title: 'Thank you',
   // A receipt page has no business in search results, and the URL carries a
-  // Stripe session id.
+  // Stripe session id that authorizes reading one.
   robots: { index: false, follow: false },
 };
 
 export const dynamic = 'force-dynamic';
 
-type Receipt = {
-  amountCents: number;
-  createdAt: string;
-  campaignTitle: string;
-  campaignSlug: string;
-  reference: string;
-};
-
 /**
- * Resolve the real donation behind a Stripe checkout session.
+ * Step 9 of 12 — donation successful.
  *
- * `donations` has `stripe_payment_intent_id` but no session-id column, and DDL is
- * blocked, so the session is exchanged for its payment intent through Stripe and
- * the donation is looked up by that. A read-only Stripe call — it retrieves, it
- * never charges.
- *
- * Returns null on ANY failure, and the page then shows a confirmation without a
- * summary. That matters more than it looks: the old success URL carried
- * `?amount=` in the query string, which is visitor-editable. Rendering a
- * "Donation Summary" from a URL parameter would produce an official-looking
- * receipt for a number nobody verified. Verified data or no data.
+ * Everything shown here is resolved server-side from the Stripe checkout session
+ * id in the URL (see `donation-outcome-server.ts`). Nothing is read from any
+ * other query parameter: the old version of this page took `?amount=`, which is
+ * visitor-editable, and rendered an official-looking confirmation for a number
+ * nobody had verified.
  */
-async function resolveReceipt(sessionId: string | undefined): Promise<Receipt | null> {
-  if (!sessionId || !sessionId.startsWith('cs_')) return null;
-  if (!process.env.STRIPE_SECRET_KEY?.trim()) return null;
-
-  try {
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
-    const intent = typeof session.payment_intent === 'string'
-      ? session.payment_intent
-      : session.payment_intent?.id;
-    if (!intent) return null;
-
-    const { data, error } = await supabaseAdmin
-      .from('donations')
-      .select('amount_cents, created_at, campaigns:campaign_id(title, slug)')
-      .eq('stripe_payment_intent_id', intent)
-      .eq('status', 'completed')
-      .maybeSingle();
-    // supabase-js resolves rather than throws, so the error must be read; an
-    // unchecked failure would look identical to "this donation does not exist".
-    if (error || !data) return null;
-
-    const campaign = Array.isArray(data.campaigns) ? data.campaigns[0] : data.campaigns;
-    if (!campaign) return null;
-
-    return {
-      amountCents: data.amount_cents as number,
-      createdAt: data.created_at as string,
-      campaignTitle: campaign.title as string,
-      campaignSlug: campaign.slug as string,
-      // Derived from the intent id, not invented: the same value appears on the
-      // emailed receipt, so support can match them.
-      reference: intent.slice(-12).toUpperCase(),
-    };
-  } catch {
-    // A Stripe outage must not turn a successful donation into an error page.
-    return null;
-  }
-}
-
 export default async function ThankYouPage({
   searchParams,
 }: {
   searchParams?: Promise<{ session_id?: string; campaign?: string }>;
 }) {
   const sp = (await searchParams) ?? {};
-  const [t, receipt] = await Promise.all([getTranslator(), resolveReceipt(sp.session_id)]);
-  const backHref = receipt ? `/campaigns/${receipt.campaignSlug}` : sp.campaign ? `/campaigns/${sp.campaign}` : '/campaigns';
+  const [t, outcome] = await Promise.all([getTranslator(), getDonationOutcome(sp.session_id)]);
+
+  const session = sp.session_id ?? '';
+  const campaignHref = outcome
+    ? `/campaigns/${outcome.campaignSlug}`
+    : sp.campaign ? `/campaigns/${sp.campaign}` : '/campaigns';
 
   return (
-    <main id="main-content" style={{ maxWidth: 640, margin: '0 auto', padding: '56px 24px 72px', textAlign: 'center' }}>
+    <main id="main-content" style={flowShell}>
       <span
         aria-hidden="true"
         style={{
@@ -101,60 +55,80 @@ export default async function ThankYouPage({
         {t('thanks.title')}
       </h1>
       <p style={{ fontSize: 17, color: 'var(--t2)', margin: '0 0 8px' }}>{t('thanks.subtitle')}</p>
-      <p style={{ fontSize: 14.5, color: 'var(--t3)', margin: '0 0 30px', lineHeight: 1.55 }}>
-        {t('thanks.receipt_sent')}
-      </p>
 
-      {receipt && (
-        <section
-          aria-label={t('thanks.summary')}
-          style={{
-            textAlign: 'left', padding: 20, marginBottom: 26,
-            border: '1px solid var(--b1)', borderRadius: 'var(--rl)', background: 'var(--s1)',
-          }}
-        >
-          <h2 style={{ fontSize: 15, fontWeight: 750, color: 'var(--t1)', margin: '0 0 14px' }}>
-            {t('thanks.summary')}
-          </h2>
-          <dl style={{ margin: 0, display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr)', rowGap: 10, columnGap: 16, fontSize: 14 }}>
-            <dt style={{ color: 'var(--t3)' }}>{t('thanks.cause')}</dt>
-            <dd style={{ margin: 0, color: 'var(--t1)', fontWeight: 650, textAlign: 'right' }}>{receipt.campaignTitle}</dd>
-            <dt style={{ color: 'var(--t3)' }}>{t('donate.amount')}</dt>
-            <dd style={{ margin: 0, color: 'var(--t1)', fontWeight: 700, textAlign: 'right' }}>{formatMoneyShort(receipt.amountCents)}</dd>
-            <dt style={{ color: 'var(--t3)' }}>{t('thanks.date')}</dt>
-            <dd style={{ margin: 0, color: 'var(--t1)', textAlign: 'right' }}>
-              {new Date(receipt.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+      {outcome?.status === 'pending' ? (
+        <p style={{ fontSize: 14.5, color: 'var(--t3)', margin: '0 0 30px', lineHeight: 1.55 }}>
+          {t('thanks.finalising')}
+        </p>
+      ) : (
+        <p style={{ fontSize: 14.5, color: 'var(--t3)', margin: '0 0 30px', lineHeight: 1.55 }}>
+          {outcome?.donorEmail
+            ? <>{t('thanks.sent_to')} <strong style={{ color: 'var(--t2)' }}>{outcome.donorEmail}</strong></>
+            : t('thanks.receipt_sent')}
+        </p>
+      )}
+
+      {outcome && (
+        <section aria-label={t('thanks.summary')} style={{ ...panel, marginBottom: 26 }}>
+          <dl style={dl}>
+            <dt style={dt}>{t('thanks.cause')}</dt>
+            <dd style={dd}>{outcome.campaignTitle}</dd>
+            <dt style={dt}>{t('donate.amount')}</dt>
+            <dd style={{ ...dd, fontWeight: 750, fontSize: 17 }}>
+              {formatMoneyShort(outcome.amountCents, outcome.currency)}
             </dd>
-            <dt style={{ color: 'var(--t3)' }}>{t('thanks.reference')}</dt>
-            <dd style={{ margin: 0, color: 'var(--t2)', textAlign: 'right', fontFamily: 'var(--mono, monospace)', fontSize: 13 }}>
-              {receipt.reference}
-            </dd>
+            {totalChargedCents(outcome) !== outcome.amountCents && (
+              <>
+                <dt style={dt}>{t('donate.total')}</dt>
+                <dd style={dd}>{formatMoneyShort(totalChargedCents(outcome), outcome.currency)}</dd>
+              </>
+            )}
+            {outcome.createdAt && (
+              <>
+                <dt style={dt}>{t('thanks.date')}</dt>
+                <dd style={dd}>
+                  {new Date(outcome.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                </dd>
+              </>
+            )}
           </dl>
+
+          {outcome.transactionId && (
+            <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--b1)' }}>
+              <CopyField
+                label={t('thanks.transaction_id')}
+                value={outcome.transactionId}
+                copyLabel={t('action.copy')}
+                copiedLabel={t('action.copied')}
+              />
+            </div>
+          )}
         </section>
       )}
 
       <div style={{ display: 'flex', minWidth: 0, gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-        <Link
-          href={backHref}
-          style={{
-            display: 'inline-flex', alignItems: 'center', minHeight: 46, padding: '0 22px',
-            borderRadius: 12, background: 'var(--fill-brand)', color: '#fff',
-            fontWeight: 700, fontSize: 15, textDecoration: 'none',
-          }}
-        >
-          {t('thanks.back_to_cause')}
-        </Link>
-        <Link
-          href="/causes"
-          style={{
-            display: 'inline-flex', alignItems: 'center', minHeight: 46, padding: '0 22px',
-            borderRadius: 12, border: '1px solid var(--b2)', background: 'var(--s1)',
-            color: 'var(--t1)', fontWeight: 650, fontSize: 15, textDecoration: 'none',
-          }}
-        >
-          {t('causes.browse_all')}
-        </Link>
+        {/* Hidden while pending: there is no donation row yet, so the receipt
+            screen would have nothing to address. It appears on reload. */}
+        {outcome?.donationId && (
+          <Link href={`/thank-you/receipt?session_id=${encodeURIComponent(session)}`} style={primaryAction}>
+            {t('thanks.view_receipt')}
+          </Link>
+        )}
+        {outcome && (
+          <Link href={`/thank-you/share?session_id=${encodeURIComponent(session)}`} style={outlineAction}>
+            {t('thanks.share_title')}
+          </Link>
+        )}
+        {!outcome && (
+          <Link href={campaignHref} style={primaryAction}>{t('thanks.back_to_cause')}</Link>
+        )}
       </div>
+
+      {outcome && (
+        <p style={{ margin: '18px 0 0' }}>
+          <Link href={campaignHref} style={quietLink}>{t('thanks.back_to_cause')}</Link>
+        </p>
+      )}
     </main>
   );
 }

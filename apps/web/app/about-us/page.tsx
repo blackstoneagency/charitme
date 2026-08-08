@@ -5,6 +5,7 @@ import CampaignImage from '../../components/CampaignImage';
 import { IndexHero, StatStrip, statValue, moneyValue } from '../../components/IndexHero';
 import { getCausesIndexData } from '../../lib/causes-index';
 import { getAboutPageContent } from '../../lib/about-page';
+import { resolveImpactTiles } from '../../lib/impact-stats';
 import { getCoverForCategory } from '../../lib/photo-catalog';
 import AboutTeam from './AboutTeam';
 
@@ -55,6 +56,19 @@ export default async function AboutUsPage() {
   // Independent reads, so they run together rather than in series.
   const [platform, content] = await Promise.all([getCausesIndexData(), getAboutPageContent()]);
   const { companyName } = content;
+
+  // The measured five. An owner-configured strip replaces them wholesale, and is
+  // SHARED with /success-stories so the two pages cannot quote different numbers
+  // for the same claim — see lib/impact-stats.ts.
+  const measuredImpact = [
+    { value: statValue(platform.activeCampaigns), label: 'Active campaigns' },
+    { value: moneyValue(platform.raisedTotalCents), label: 'Raised on CharitMe' },
+    { value: statValue(platform.gifts), label: 'Gifts given' },
+    { value: statValue(platform.countries), label: 'Countries supported' },
+    { value: '100%', label: 'Of your gift to the cause' },
+  ];
+  const impactTiles = await resolveImpactTiles(measuredImpact);
+  const ownerSetImpact = impactTiles !== measuredImpact;
 
   return (
     <div className="ab-page">
@@ -130,19 +144,14 @@ export default async function AboutUsPage() {
             which shows the arithmetic. */}
         <section className="ab-impact" aria-labelledby="ab-impact-h">
           <h2 id="ab-impact-h" className="ab-h2">Our Impact So Far</h2>
-          <StatStrip
-            label={`${companyName} at a glance`}
-            tiles={[
-              { value: statValue(platform.activeCampaigns), label: 'Active campaigns' },
-              { value: moneyValue(platform.raisedTotalCents), label: 'Raised on CharitMe' },
-              { value: statValue(platform.gifts), label: 'Gifts given' },
-              { value: statValue(platform.countries), label: 'Countries supported' },
-              { value: '100%', label: 'Of your gift to the cause' },
-            ]}
-          />
-          <p className="ab-impact-note">
-            Zero platform fee — <Link href="/fees">see exactly how the money moves</Link>.
-          </p>
+          <StatStrip label={`${companyName} at a glance`} tiles={impactTiles} />
+          {/* The zero-fee line is a claim about OUR figures. It must not sit
+              under numbers an administrator typed in. */}
+          {!ownerSetImpact && (
+            <p className="ab-impact-note">
+              Zero platform fee — <Link href="/fees">see exactly how the money moves</Link>.
+            </p>
+          )}
         </section>
 
         {/* ── Our Story ────────────────────────────────────────────────────── */}

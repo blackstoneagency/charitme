@@ -10,6 +10,7 @@ import { getCoverForCampaign } from '../../lib/photo-catalog';
 import { optimizedCoverUrl } from '../../lib/img-optimize';
 import { formatMoneyStat, formatStat } from '../../lib/cause-landing';
 import { StatStrip } from '../../components/IndexHero';
+import { resolveImpactTiles } from '../../lib/impact-stats';
 import StayInformed from '../../components/StayInformed';
 import SortSelect from './SortSelect';
 import { SORT_ORDER, isSortValue, type SortValue } from '../../lib/story-sort';
@@ -211,6 +212,22 @@ export default async function SuccessStoriesPage({
     sort,
   );
 
+  // The measured five, which the owner's configured tiles override wholesale.
+  const measuredImpact = [
+    { value: formatStat(campaigns), label: 'Stories shared' },
+    { value: formatStat(supporters), label: 'Supporters' },
+    { value: formatMoneyStat(raisedCents), label: 'Raised together' },
+    { value: formatStat(countries), label: 'Countries reached' },
+    // Kept because it is true and checkable: PLATFORM_FEE_PERCENT = 0.
+    // Labelled "platform fee" rather than the reference's "funds to programs" —
+    // processing fees are real, so the stronger claim would overstate it.
+    { value: '0%', label: 'Platform fee' },
+  ];
+  const impactTiles = await resolveImpactTiles(measuredImpact);
+  // The footnote describes how the MEASURED figures are counted, so it must not
+  // sit under numbers an administrator typed in.
+  const ownerSetImpact = impactTiles !== measuredImpact;
+
   const featured = stories.slice(0, 3);
   const more = stories.slice(3, 8);
   const href = (causeSlug?: string) => {
@@ -396,24 +413,17 @@ export default async function SuccessStoriesPage({
               What the swap fixes is presentation: this band drew the SAME heart
               glyph on all five tiles, and carried its own copy of the em-dash
               rule. The strip gives five distinct icons and one rule. */}
-          <StatStrip
-            label="Our impact in numbers"
-            tiles={[
-              { value: formatStat(campaigns), label: 'Stories shared' },
-              { value: formatStat(supporters), label: 'Supporters' },
-              { value: formatMoneyStat(raisedCents), label: 'Raised together' },
-              { value: formatStat(countries), label: 'Countries reached' },
-              // The one mock figure kept, because it is true and checkable:
-              // PLATFORM_FEE_PERCENT = 0. Labelled "platform fee" rather than
-              // the mock's "funds to programs" — processing fees are real, so
-              // the stronger claim would overstate it.
-              { value: '0%', label: 'Platform fee' },
-            ]}
-          />
-          <p className="ss-impact-note">
-            Counted live from published campaigns and the countries CharitMe can take a donation
-            in. A dash means the figure could not be read, never that it is zero.
-          </p>
+          {/* Owner-editable, shared with /about-us so the two pages cannot quote
+              different numbers for the same claim. Falls back to the measured
+              figures below when nothing is configured — see lib/impact-stats.ts
+              for why the reference's five numbers are not hardcoded. */}
+          <StatStrip label="Our impact in numbers" tiles={impactTiles} />
+          {!ownerSetImpact && (
+            <p className="ss-impact-note">
+              Counted live from published campaigns and the countries CharitMe can take a donation
+              in. A dash means the figure could not be read, never that it is zero.
+            </p>
+          )}
         </section>
 
         {/* ── Share-your-story band ──────────────────────────────────────── */}

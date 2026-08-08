@@ -484,6 +484,23 @@ export const en: Dictionary = {
   'thanks.date': 'Date',
   'thanks.reference': 'Reference',
   'thanks.back_to_cause': 'Back to the cause',
+  // ── steps 9–12: success → receipt → share → return ─────────────────────────
+  'thanks.transaction_id': 'Transaction ID',
+  'thanks.sent_to': 'A receipt has been sent to',
+  'thanks.view_receipt': 'View receipt',
+  'thanks.your_receipt': 'Your receipt',
+  'thanks.receipt_intro': 'Thank you for making a difference.',
+  'thanks.download_receipt': 'Download receipt',
+  'thanks.donor': 'Donor',
+  'thanks.payment_method': 'Payment method',
+  'thanks.share_title': 'Share your support',
+  'thanks.share_body': 'Your support can inspire others to give.',
+  'thanks.share_skip': 'Skip',
+  'thanks.share_done': 'Done',
+  'thanks.support_matters': 'Your support matters',
+  'thanks.support_matters_body': 'See how your donation is making an impact.',
+  'thanks.view_campaign': 'View campaign',
+  'thanks.finalising': 'Your payment went through. We are still writing the record, so the receipt will be ready in a moment.',
 
   // ── /verify-email ──────────────────────────────────────────────────────────
   'verify.title': 'Verify your email',

@@ -31,13 +31,6 @@
   "connected_accounts": [
     "first_payout_hold_until"
   ],
-  "donations": [
-    "offline",
-    "offline_donor_email",
-    "offline_donor_name",
-    "offline_method",
-    "stripe_checkout_session_id"
-  ],
   "donor_crm_contacts": [
     "donor_id",
     "notes"
