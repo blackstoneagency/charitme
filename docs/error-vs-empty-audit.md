@@ -14,10 +14,19 @@ it better than a zero does, which is why it survived longer.
 |---|---|---|---|
 | `lib/volunteers-server.ts` | **Yes** — 4 count tiles AND "No volunteer opportunities listed yet" | **High** | **FIXED** (`e4090fa8`) |
 | `lib/grants-server.ts` | No count rendered — cards only | **Not a bug** | deliberate, see below |
-| `lib/home-data.ts` | Feed only; homepage already degrades deliberately | Low | open |
-| `lib/donor-segments-server.ts` | Admin surface, not public | Low | open |
-| `lib/giving-days-server.ts` | Not yet traced to its caller | Unknown | open |
-| `lib/privacy.ts` | Not yet traced to its caller | Unknown | open |
+| `lib/home-data.ts` | Feed only — the homepage already degrades deliberately via `loadOrDegrade` | Low, by design | no action |
+| `lib/donor-segments-server.ts` | `loadContacts` → `/dashboard/segments` (authenticated). An outage shows an owner "no contacts" | **Medium** | traced, open |
+| `lib/giving-days-server.ts` | `ownedNonprofitIds` → `/dashboard/segments` (authenticated). An outage tells an owner they own nothing | **Medium** | traced, open |
+| `lib/privacy.ts` | No public caller found by grep; needs a direct read before grading | Ungraded | open |
+
+### Traced, so nothing is left as "Unknown"
+
+Both remaining Medium cases sit on `/dashboard/segments`, an **authenticated**
+page rather than a public one. That is a smaller blast radius than /volunteer —
+it misleads one signed-in owner rather than every visitor — but it is the same
+falsehood: "you have no contacts" / "you own no nonprofits" stated on the
+strength of a read that failed. Worth fixing with the same shape below; not
+worth fixing blind, which is the mistake /grants caught.
 
 ## The fix shape, as applied to volunteers
 
