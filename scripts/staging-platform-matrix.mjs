@@ -453,6 +453,7 @@ async function verifyCampaignData() {
     nonprofit.client.from('verification_documents').insert({
       user_id: nonprofit.id,
       document_type: 'nonprofit_registration',
+      doc_type: 'nonprofit',
       storage_path: `${nonprofit.id}/malicious.png`,
       status: 'approved',
       verified: true,
@@ -465,6 +466,7 @@ async function verifyCampaignData() {
     nonprofit.client.from('verification_documents').insert({
       user_id: nonprofit.id,
       document_type: 'nonprofit_registration',
+      doc_type: 'nonprofit',
       storage_path: `${nonprofit.id}/registration.png`,
     }).select('id, status, verified, is_public').single(),
     'verification document pending create',

@@ -48,6 +48,7 @@ describe('staging platform matrix contract', () => {
       "from('tax_receipts')",
       "from('direct_messages')",
       "from('tasks')",
+      "doc_type: 'nonprofit'",
     ]) {
       expect(source).toContain(operation);
     }
