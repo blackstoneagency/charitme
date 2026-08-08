@@ -73,6 +73,11 @@ describe('per-campaign covers never use the per-category helper', () => {
     const src = read('components/CampaignImage.tsx');
     expect(src).toMatch(/campaignKey\s*\n?\s*\?\s*getCoverForCampaign\(category, campaignKey\)/);
   });
+
+  it('CampaignImage accepts optimized project-local artwork', () => {
+    const src = read('components/CampaignImage.tsx');
+    expect(src).toMatch(/src\?\.startsWith\('\/'\)/);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

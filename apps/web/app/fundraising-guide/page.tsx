@@ -1,123 +1,109 @@
-import Link from 'next/link';
 import type { Metadata } from 'next';
-import { PageBody, PageHero, Section, CardGrid, InfoCard, CtaBand } from '../../components/PageShell';
-import { PROCESSING_FEE_COPY, PLATFORM_FEE_COPY } from '../../lib/fee-copy';
+import Link from 'next/link';
+import {
+  ReferenceCardGrid,
+  ReferenceChecklist,
+  ReferenceCta,
+  ReferenceHero,
+  ReferencePage,
+  ReferenceSection,
+  ReferenceStats,
+  ReferenceSteps,
+} from '../../components/ReferenceMarketing';
+import { PLATFORM_FEE_COPY, PROCESSING_FEE_COPY } from '../../lib/fee-copy';
 
 export const metadata: Metadata = {
   title: 'Fundraising Guide',
-  description:
-    'A step-by-step guide to running a successful fundraiser on CharitMe — writing your story, setting a goal, sharing it, and keeping donors engaged.',
+  description: 'Build a trusted fundraising campaign with practical guidance for your story, goal, evidence, launch, updates, and donor follow-through.',
   alternates: { canonical: 'https://www.charitme.com/fundraising-guide' },
 };
 
-const STEPS = [
-  {
-    step: 'STEP 01',
-    title: 'Set a goal you can explain',
-    body: 'Work out what you actually need and add the processing fee on top. A goal you can break down line by line — “$2,400 covers eight weeks of treatment” — raises more than a round number, because donors can see what their gift does.',
-  },
-  {
-    step: 'STEP 02',
-    title: 'Write the story only you can tell',
-    body: 'Open with the person, not the problem. Say who this is for, what happened, and what changes if it is funded. Two hundred honest words beat a thousand polished ones. The AI Copilot can turn rough notes into a first draft you then make yours.',
-  },
-  {
-    step: 'STEP 03',
-    title: 'Add proof before you share',
-    body: 'Connect Stripe to verify your identity, and upload whatever evidence you have — receipts, letters, photos. Every signal you add raises your trust score, and campaigns with a visible trust score convert markedly better than ones without.',
-  },
-  {
-    step: 'STEP 04',
-    title: 'Share with your closest circle first',
-    body: 'Do not start with a public post. Message twenty people directly and ask them personally. Early donations make a campaign look alive, and a page with momentum is far easier to share than an empty one.',
-  },
-  {
-    step: 'STEP 05',
-    title: 'Post updates while it is running',
-    body: 'An update every few days keeps a campaign in people’s feeds and gives past donors a reason to share it again. Say what has changed, what the money has covered, and what is still needed.',
-  },
-  {
-    step: 'STEP 06',
-    title: 'Close the loop when it ends',
-    body: 'Thank every donor and show them the outcome. This is the step most people skip, and it is the one that decides whether those donors give again next time.',
-  },
+const TOPICS = [
+  { icon: 'edit', title: 'Tell Your Story', body: 'Write a clear, human story that explains the need and why it matters.', action: 'Learn storytelling', href: '/blog/write-a-campaign-story-donors-trust' },
+  { icon: 'target', title: 'Set the Right Goal', body: 'Build a goal from real costs so supporters can understand the amount.', action: 'Plan your goal', href: '/create' },
+  { icon: 'image', title: 'Choose Strong Media', body: 'Use clear photos and evidence that make the campaign feel real.', action: 'Media guidance', href: '/help' },
+  { icon: 'shield', title: 'Build Trust', body: 'Complete verification and explain exactly how the money will be used.', action: 'Verification guide', href: '/verification' },
+  { icon: 'share', title: 'Plan Your Launch', body: 'Start with the people closest to you and create early momentum.', action: 'Launch plan', href: '/blog/five-updates-that-keep-donations-moving' },
+  { icon: 'megaphone', title: 'Share Consistently', body: 'Use personal messages, social posts, and timely reminders.', action: 'Growth ideas', href: '/blog' },
+  { icon: 'refresh', title: 'Post Updates', body: 'Keep donors informed about milestones, progress, and changing needs.', action: 'Update playbook', href: '/blog/five-updates-that-keep-donations-moving' },
+  { icon: 'heart', title: 'Thank Supporters', body: 'Close the loop and show donors what their contribution changed.', action: 'Donor care', href: '/resources' },
 ];
 
-const MISTAKES = [
-  { title: 'A goal with no breakdown', body: 'A bare number reads as a guess. Show the arithmetic.' },
-  { title: 'No cover photo', body: 'A real photo of the person or project outperforms stock imagery every time.' },
-  { title: 'Sharing once and stopping', body: 'Most campaigns fail from silence, not rejection. Keep posting.' },
-  { title: 'Waiting to be perfect', body: 'A live campaign you improve beats a draft you never publish.' },
+const JOURNEY = [
+  { icon: 'target', title: 'Plan', body: 'Define the need, audience, costs, and timeline.' },
+  { icon: 'edit', title: 'Create', body: 'Build the page, story, media, and proof.' },
+  { icon: 'shield', title: 'Verify', body: 'Connect payouts and complete trust checks.' },
+  { icon: 'megaphone', title: 'Launch', body: 'Share personally, then expand your reach.' },
+  { icon: 'chart', title: 'Grow', body: 'Update, thank, measure, and keep momentum.' },
 ];
 
 export default function FundraisingGuidePage() {
   return (
-    <PageBody>
-      <PageHero
-        eyebrow="LEARN"
-        title="The fundraising guide"
-        lede="Everything we have learned about what makes a campaign work — written as the six steps you actually take, in the order you take them."
-        actions={
-          <>
-            <Link href="/create" className="cta-primary" style={{ display: 'inline-flex' }}>
-              Start a fundraiser
-            </Link>
-            <Link
-              href="/campaigns"
-              style={{ display: 'inline-flex', alignItems: 'center', padding: '11px 22px', borderRadius: 'var(--r)', border: '1px solid var(--b2)', color: 'var(--t1)', fontSize: '14px', fontWeight: 700, textDecoration: 'none' }}
-            >
-              See live campaigns
-            </Link>
-          </>
-        }
+    <ReferencePage>
+      <ReferenceHero
+        crumbs={[{ label: 'Home', href: '/' }, { label: 'Resources', href: '/resources' }, { label: 'Fundraising Guide' }]}
+        eyebrow="Fundraising Guide"
+        title={<>Your Guide to<br />Fundraising Success</>}
+        lede="Practical tips, proven strategies, and expert advice to help you raise more and make a bigger impact."
+        search={{ action: '/search', placeholder: 'Search fundraising topics...', hidden: [{ name: 'type', value: 'resources' }] }}
+        image="/images/reference/fundraising-guide-hero.jpg"
+        imageAlt="A team planning a community fundraising campaign"
+        callout={{ icon: 'quote', title: 'Plan With Purpose', body: 'Great campaigns start with a plan, a purpose, and the right guidance.' }}
+        variant="catalog"
       />
 
-      <Section
-        id="steps"
-        heading="Six steps to a funded campaign"
-        intro="In order. Most campaigns that stall have skipped step three or step four."
-      >
-        <CardGrid min={300}>
-          {STEPS.map((s) => (
-            <InfoCard key={s.step} step={s.step} title={s.title} body={s.body} />
-          ))}
-        </CardGrid>
-      </Section>
+      <ReferenceStats items={[
+        { icon: 'document', value: '8', label: 'Core campaign topics' },
+        { icon: 'target', value: '5', label: 'Launch stages' },
+        { icon: 'dollar', value: '0%', label: 'Mandatory platform fee' },
+        { icon: 'shield', value: '1', label: 'Visible trust score' },
+      ]} />
 
-      <Section
-        id="mistakes"
-        heading="What goes wrong most often"
-        intro="None of these are about writing ability. They are all about follow-through."
-      >
-        <CardGrid min={250}>
-          {MISTAKES.map((m) => (
-            <InfoCard key={m.title} title={m.title} body={m.body} />
-          ))}
-        </CardGrid>
-      </Section>
+      <ReferenceSection title="Browse by Topic">
+        <div className="rp-content-rail">
+          <ReferenceCardGrid items={TOPICS} />
+          <aside className="rp-side-panel" aria-label="Popular fundraising guides">
+            <h3>Popular Guides</h3>
+            <ol>
+              {TOPICS.slice(0, 5).map((topic, index) => (
+                <li key={topic.title}><Link href={topic.href}><span>{index + 1}. {topic.title}</span><small>{topic.action}</small></Link></li>
+              ))}
+            </ol>
+            <Link className="rp-text-link" href="/resources">Explore all resources</Link>
+          </aside>
+        </div>
+      </ReferenceSection>
 
-      <Section
-        id="costs"
-        heading="What it costs"
-        intro="CharitMe charges no mandatory platform fee. Donors are offered an optional tip, which is always reducible to zero, and payment processing is charged at cost."
-      >
-        <CardGrid min={250}>
-          <InfoCard title="Platform fee" body={`${PLATFORM_FEE_COPY}. There is no percentage cut of your donations, and no monthly charge to run a campaign.`} />
-          <InfoCard title="Processing" body={`Card payments are ${PROCESSING_FEE_COPY}, charged by the payment processor. Other methods differ — the exact rate is shown to donors before they pay.`} />
-          <InfoCard title="Payouts" body="Standard payouts arrive on a two-business-day schedule once your Stripe account is connected and verified." />
-        </CardGrid>
-        <p style={{ fontSize: '13px', color: 'var(--t4)', marginTop: '14px' }}>
-          Full detail on the <Link href="/pricing" style={{ color: 'var(--green-text)', fontWeight: 650 }}>pricing page</Link> and{' '}
-          <Link href="/fees" style={{ color: 'var(--green-text)', fontWeight: 650 }}>fee breakdown</Link>.
-        </p>
-      </Section>
+      <ReferenceSection title="Your Fundraising Journey" intro="Five stages keep the work focused and make progress visible.">
+        <ReferenceSteps items={JOURNEY} />
+      </ReferenceSection>
 
-      <CtaBand
-        heading="Ready to start?"
-        body="It takes about five minutes to publish, and you can keep editing after it goes live."
-        primary={{ label: 'Start a fundraiser', href: '/create' }}
-        secondary={{ label: 'How it works', href: '/how-it-works' }}
+      <ReferenceSection title="Know the Costs Before You Launch">
+        <div className="rp-split">
+          <ReferenceChecklist title="Transparent by Design" items={[
+            `${PLATFORM_FEE_COPY}.`,
+            `Card processing is ${PROCESSING_FEE_COPY}.`,
+            'Every charge is shown before a donor confirms payment.',
+            'Standard payout status is visible from the organizer dashboard.',
+          ]} action={{ label: 'Read the full fee breakdown', href: '/fees' }} />
+          <ReferenceChecklist title="Campaign Readiness Check" items={[
+            'The first paragraph explains who needs help and why.',
+            'The goal is tied to specific, understandable costs.',
+            'The campaign includes a clear photo and supporting evidence.',
+            'Twenty close contacts are ready to receive the first message.',
+          ]} action={{ label: 'Create your campaign', href: '/create' }} />
+        </div>
+      </ReferenceSection>
+
+      <ReferenceCta
+        icon="megaphone"
+        title="Ready to Tell Your Story?"
+        body="Build your campaign now and use the guide as your launch checklist."
+        actions={[
+          { label: 'Start a Fundraiser', href: '/create' },
+          { label: 'How It Works', href: '/how-it-works', variant: 'secondary' },
+        ]}
       />
-    </PageBody>
+    </ReferencePage>
   );
 }

@@ -1,120 +1,86 @@
-import Link from 'next/link';
 import type { Metadata } from 'next';
-import { PageBody, PageHero, Section, CardGrid, InfoCard, CtaBand } from '../../components/PageShell';
+import {
+  ReferenceCardGrid,
+  ReferenceChecklist,
+  ReferenceCta,
+  ReferenceHero,
+  ReferencePage,
+  ReferenceSection,
+  ReferenceSteps,
+} from '../../components/ReferenceMarketing';
 
 export const metadata: Metadata = {
   title: 'Verification Process',
-  description:
-    'How CharitMe verifies fundraisers and nonprofit organisations — what we check, what each badge means, and what verification does and does not guarantee.',
+  description: 'See how CharitMe verifies nonprofit organizations, reviews supporting documents, and helps donors give with confidence.',
   alternates: { canonical: 'https://www.charitme.com/verification' },
 };
 
-const STAGES = [
-  {
-    step: 'STEP 01',
-    title: 'Identity',
-    body: 'Every fundraiser who receives a payout connects a Stripe account, which confirms their legal identity and bank details. This happens before any money can leave the platform, not after.',
-  },
-  {
-    step: 'STEP 02',
-    title: 'Organisation status',
-    body: 'For charities we check registration against public registries and, where available, third-party company data. A campaign is only marked tax deductible once that check passes.',
-  },
-  {
-    step: 'STEP 03',
-    title: 'Campaign evidence',
-    body: 'Fundraisers can attach supporting documents — medical letters, invoices, receipts, photos. Evidence is reviewed rather than simply displayed, and it raises the campaign trust score.',
-  },
-  {
-    step: 'STEP 04',
-    title: 'Ongoing monitoring',
-    body: 'Verification is not a one-off. Campaigns are re-checked as they grow, when they are reported, and when their stated purpose changes materially.',
-  },
+const PROCESS = [
+  { icon: 'edit', title: 'Submit Application', body: 'Provide basic information about your organization and mission.' },
+  { icon: 'document', title: 'Provide Documents', body: 'Submit your EIN, governing documents, and current financial information.' },
+  { icon: 'search', title: 'Our Review', body: 'Our team verifies your information and checks your organization status.' },
+  { icon: 'shield', title: 'Verification Decision', body: 'Receive a decision and any next steps, normally within 5-7 business days.' },
+  { icon: 'award', title: 'Verified & Live', body: 'Once verified, you can fundraise and display trust signals to supporters.' },
 ];
 
-const BADGES = [
-  {
-    title: 'Verified fundraiser',
-    body: 'Identity confirmed and payouts enabled. It means we know who is receiving the money — not that we endorse the campaign.',
-  },
-  {
-    title: 'Tax deductible',
-    body: 'The recipient is a verified nonprofit, so donations are generally tax deductible and receive an official receipt. Consult your own tax advice for your situation.',
-  },
-  {
-    title: 'Trust score',
-    body: 'A 0–99 score computed from verification status, evidence attached, update frequency, and campaign history. Higher is more complete, not more deserving.',
-  },
+const BENEFITS = [
+  { icon: 'people', title: 'Builds Donor Trust', body: 'Verified nonprofits inspire confidence and encourage more giving.' },
+  { icon: 'shield', title: 'Ensures Transparency', body: 'Clear standards promote accountable, responsible fundraising.' },
+  { icon: 'search', title: 'Protects Our Community', body: 'Review helps protect donors and fundraisers from fraud and misuse.' },
+  { icon: 'award', title: 'Recognizes Legitimate Work', body: 'Verification highlights organizations making a real difference.' },
 ];
 
-const LIMITS = [
-  {
-    title: 'What verification does not mean',
-    body: 'It is not a guarantee that a campaign will succeed, that funds will be spent exactly as described, or that we endorse the cause. It confirms identity and, for nonprofits, registration.',
-  },
-  {
-    title: 'What we cannot check',
-    body: 'We cannot independently confirm every claim in a personal story. Where a claim is central and unverifiable, the campaign carries a lower trust score rather than a badge.',
-  },
-  {
-    title: 'If something looks wrong',
-    body: 'Report it. Reported campaigns are reviewed by a person, and we can pause payouts while a review is open.',
-  },
+const REQUIREMENTS = [
+  'Proof of nonprofit or charitable registration.',
+  'Employer Identification Number or applicable tax identifier.',
+  'Articles of incorporation, bylaws, or equivalent governing documents.',
+  'Recent financial information or annual filing.',
+  'Contact information for an authorized representative.',
+];
+
+const TIPS = [
+  'Make sure every document is clear, current, and complete.',
+  'Use the same legal organization name across every document.',
+  'Reply promptly if the review team requests more information.',
 ];
 
 export default function VerificationPage() {
   return (
-    <PageBody>
-      <PageHero
-        eyebrow="TRUST"
-        title="How verification works"
-        lede="What we check before money moves, what each badge on a campaign actually means, and — just as importantly — what verification does not guarantee."
+    <ReferencePage>
+      <ReferenceHero
+        crumbs={[{ label: 'Home', href: '/' }, { label: 'Resources', href: '/resources' }, { label: 'Verification Process' }]}
+        eyebrow="Verification Process"
+        title={<>Trust is Earned.<br /><span className="rp-accent">We Verify.</span></>}
+        lede="Our verification process ensures that nonprofit organizations on CharitMe are legitimate, transparent, and committed to making a real impact."
+        actions={[
+          { label: 'Start Verification', href: '/dashboard/nonprofit' },
+          { label: 'Watch How It Works', href: '/how-it-works', variant: 'secondary' },
+        ]}
+        image="/images/reference/verification-hero.jpg"
+        imageAlt="A reviewer completing an organization verification checklist"
       />
 
-      <Section id="stages" heading="The four checks" intro="In the order they happen.">
-        <CardGrid min={280}>
-          {STAGES.map((s) => (
-            <InfoCard key={s.step} step={s.step} title={s.title} body={s.body} />
-          ))}
-        </CardGrid>
-      </Section>
+      <ReferenceSection title="How Our Verification Process Works" intro="A thorough, fair process checks every nonprofit against the same published standards.">
+        <ReferenceSteps items={PROCESS} />
+      </ReferenceSection>
 
-      <Section id="badges" heading="What each badge means" intro="Every signal on a campaign card corresponds to something specific.">
-        <CardGrid min={270}>
-          {BADGES.map((b) => (
-            <InfoCard key={b.title} title={b.title} body={b.body} />
-          ))}
-        </CardGrid>
-      </Section>
+      <ReferenceSection title="Why Verification Matters">
+        <ReferenceCardGrid items={BENEFITS} />
+      </ReferenceSection>
 
-      <Section
-        id="limits"
-        heading="The honest limits"
-        intro="A verification page that only lists strengths is not much use to someone deciding whether to give."
-      >
-        <CardGrid min={270}>
-          {LIMITS.map((l) => (
-            <InfoCard key={l.title} title={l.title} body={l.body} />
-          ))}
-        </CardGrid>
-      </Section>
+      <ReferenceSection title="Prepare Your Application" compact>
+        <div className="rp-split">
+          <ReferenceChecklist title="What You'll Need to Apply" items={REQUIREMENTS} action={{ label: 'View full requirements checklist', href: '/help' }} />
+          <ReferenceChecklist title="Tips for a Smooth Process" items={TIPS} action={{ label: 'Contact support', href: '/contact' }} />
+        </div>
+      </ReferenceSection>
 
-      <Section id="get-verified" heading="Getting verified">
-        <p style={{ fontSize: '15px', color: 'var(--t3)', lineHeight: 1.65, maxWidth: '680px' }}>
-          Individuals are verified by connecting Stripe from the campaign payout settings — it takes
-          a few minutes. Organisations should start on the{' '}
-          <Link href="/for-nonprofits" style={{ color: 'var(--green-text)', fontWeight: 650 }}>nonprofit page</Link>,
-          which covers registration checks and team access, or contact us through{' '}
-          <Link href="/partner" style={{ color: 'var(--green-text)', fontWeight: 650 }}>partnerships</Link>.
-        </p>
-      </Section>
-
-      <CtaBand
-        heading="Read the wider trust policy"
-        body="How campaigns are reviewed, what gets one removed, and how to report a concern."
-        primary={{ label: 'Trust & safety', href: '/trust-safety' }}
-        secondary={{ label: 'Report a campaign', href: '/contact' }}
+      <ReferenceCta
+        icon="shield"
+        title="Ready to Get Verified?"
+        body="Join a trusted community of nonprofits and start making an even bigger impact."
+        actions={[{ label: 'Start Verification', href: '/dashboard/nonprofit' }]}
       />
-    </PageBody>
+    </ReferencePage>
   );
 }

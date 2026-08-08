@@ -1,109 +1,91 @@
 import type { Metadata } from 'next';
-import { PageBody, PageHero, Section, CardGrid, InfoCard, CtaBand } from '../../components/PageShell';
+import {
+  ReferenceCardGrid,
+  ReferenceCta,
+  ReferenceHero,
+  ReferencePage,
+  ReferenceSection,
+  ReferenceStats,
+} from '../../components/ReferenceMarketing';
+import { getPhotosForCategory } from '../../lib/photo-catalog';
 
 export const metadata: Metadata = {
   title: 'Impact Education',
-  description:
-    'How charitable giving actually works — where your money goes, how to tell a well-run campaign from a risky one, and how impact is measured honestly.',
+  description: 'Learn how charitable giving works, how to evaluate a campaign, and how responsible organizations measure and report real impact.',
   alternates: { canonical: 'https://www.charitme.com/impact-education' },
 };
 
-const LESSONS = [
-  {
-    title: 'Where your money actually goes',
-    body: 'A donation on CharitMe splits three ways: the campaign, the payment processor, and an optional tip you choose. There is no mandatory platform cut. The exact split is shown before you confirm, not after.',
-  },
-  {
-    title: 'Why “% to programmes” is a weak signal',
-    body: 'Overhead ratios are easy to game and punish organisations that invest in staff and systems. A charity spending 20% on operations may deliver far more than one spending 5% and achieving little. Ask what changed, not what percentage was spent.',
-  },
-  {
-    title: 'Reading a campaign critically',
-    body: 'Look for a specific goal with a breakdown, a real name and face, evidence attached, and updates posted after launch. Vagueness about what the money is for is the single most useful warning sign.',
-  },
-  {
-    title: 'Restricted vs unrestricted giving',
-    body: 'Money earmarked for one purpose cannot be moved when circumstances change. Unrestricted gifts are less satisfying to picture and usually more useful to the recipient.',
-  },
-  {
-    title: 'Recurring beats one-off',
-    body: 'A predictable $10 a month is worth more to an organisation than an unpredictable $120 once, because it can be planned against. Recurring donors also stay engaged far longer.',
-  },
-  {
-    title: 'Tax deductibility is not automatic',
-    body: 'Gifts to individuals are generally not tax deductible; gifts to verified nonprofits usually are. CharitMe marks verified nonprofit campaigns explicitly, and issues receipts for those gifts.',
-  },
+const TOPICS = [
+  { icon: 'heart', title: 'Poverty & Economic Equity', body: 'Understand poverty, inequality, and how community-led solutions create opportunity.', action: 'Explore articles', href: '/causes/people-in-need' },
+  { icon: 'leaf', title: 'Environment & Sustainability', body: 'Explore climate action, conservation, and durable local solutions.', action: 'Explore articles', href: '/causes/environment' },
+  { icon: 'heart', title: 'Health & Wellness', body: 'Learn about global health challenges and accountable care programs.', action: 'Explore articles', href: '/causes/health-wellness' },
+  { icon: 'graduation', title: 'Education & Youth', body: 'Access education research, youth programs, and learning outcomes.', action: 'Explore articles', href: '/causes/education' },
+  { icon: 'people', title: 'Communities & Human Rights', body: 'Study dignity, equity, local leadership, and rights-based impact.', action: 'Explore articles', href: '/causes/community-relief' },
+  { icon: 'paw', title: 'Animals & Wildlife', body: 'Protect animals and habitats through evidence-led initiatives.', action: 'Explore articles', href: '/causes/animals-planet' },
+  { icon: 'palette', title: 'Arts, Culture & Heritage', body: 'See how creative programs strengthen identity and belonging.', action: 'Explore articles', href: '/causes/arts-culture' },
+  { icon: 'hand', title: 'Disaster Relief & Humanitarian Aid', body: 'Understand rapid response, recovery, and responsible emergency giving.', action: 'Explore articles', href: '/causes/disaster-relief' },
 ];
 
-const MEASURING = [
-  { title: 'Outputs', body: 'What was delivered — meals served, nights of shelter, treatments funded. Easy to count, and only the first step.' },
-  { title: 'Outcomes', body: 'What changed for the people involved. Harder to measure, and the thing that actually matters.' },
-  { title: 'Counterfactual', body: 'What would have happened anyway without the donation. The honest question, and the one most impact reporting avoids.' },
+const WHY = [
+  { icon: 'eye', title: 'Give With Confidence', body: 'Better questions make it easier to recognize clear, accountable campaigns.' },
+  { icon: 'target', title: 'Focus on Outcomes', body: 'Move beyond activity counts and look for the change a project creates.' },
+  { icon: 'shield', title: 'Protect Your Trust', body: 'Understand what verification proves and where healthy caution still matters.' },
+  { icon: 'megaphone', title: 'Share Responsibly', body: 'Help strong campaigns travel further without repeating unverified claims.' },
 ];
 
 export default function ImpactEducationPage() {
+  const photos = getPhotosForCategory('Education', 6);
+  const whyCards = WHY.map((item, index) => ({ ...item, image: photos[index + 1] ?? photos[0] }));
+
   return (
-    <PageBody>
-      <PageHero
-        eyebrow="LEARN"
-        title="Impact education"
-        lede="Giving well is a skill. This is what we think is worth understanding about where donations go, how to read a campaign, and what impact claims are actually worth."
+    <ReferencePage>
+      <ReferenceHero
+        crumbs={[{ label: 'Home', href: '/' }, { label: 'Resources', href: '/resources' }, { label: 'Impact Education' }]}
+        eyebrow=""
+        title={<>Impact Education</>}
+        lede="Knowledge creates change. Explore resources, insights, and real-world data to understand the issues that matter and how your support drives lasting impact."
+        search={{ action: '/search', placeholder: 'Search impact topics, guides, and resources...', hidden: [{ name: 'type', value: 'resources' }] }}
+        image="/images/reference/impact-education-hero.jpg"
+        imageAlt="Students learning together in a bright classroom"
+        callout={{ icon: 'graduation', title: 'Educate. Empower. Create Change.', body: 'Learning today builds a better tomorrow.' }}
+        variant="catalog"
       />
 
-      <Section
-        id="lessons"
-        heading="Six things worth knowing"
-        intro="Written for donors, but useful to anyone running a campaign too."
-      >
-        <CardGrid min={300}>
-          {LESSONS.map((l) => (
-            <InfoCard key={l.title} title={l.title} body={l.body} />
-          ))}
-        </CardGrid>
-      </Section>
+      <ReferenceStats items={[
+        { icon: 'book', value: String(TOPICS.length), label: 'Core learning topics' },
+        { icon: 'chart', value: '3', label: 'Levels of impact measurement' },
+        { icon: 'shield', value: '4', label: 'Trust questions to ask' },
+        { icon: 'heart', value: '1', label: 'Goal: meaningful change' },
+      ]} />
 
-      <Section
-        id="measuring"
-        heading="How impact is measured"
-        intro="Three levels, in increasing order of difficulty and decreasing order of how often you will see them reported."
-      >
-        <CardGrid min={260}>
-          {MEASURING.map((m) => (
-            <InfoCard key={m.title} title={m.title} body={m.body} />
-          ))}
-        </CardGrid>
-      </Section>
+      <div id="topics">
+        <ReferenceSection title="Learn by Topic" action={{ label: 'View all topics', href: '/causes' }}>
+          <ReferenceCardGrid items={TOPICS} />
+        </ReferenceSection>
+      </div>
 
-      <Section
-        id="on-this-site"
-        heading="What we publish about ourselves"
-        intro="We hold ourselves to the same standard this page asks of everyone else."
-      >
-        <CardGrid min={280}>
-          <InfoCard
-            title="Transparency reporting"
-            body="Our fee model, payout timing, and how donations are handled are documented in full, including the parts that are unflattering."
-            href="/transparency"
-          />
-          <InfoCard
-            title="Trust & safety"
-            body="How campaigns are reviewed, what gets a campaign removed, and how to report one that concerns you."
-            href="/trust-safety"
-          />
-          <InfoCard
-            title="Platform reports"
-            body="Aggregate figures on what has been raised and where it went."
-            href="/reports"
-          />
-        </CardGrid>
-      </Section>
+      <ReferenceSection title="Why Impact Education Matters">
+        <ReferenceCardGrid items={whyCards} />
+      </ReferenceSection>
 
-      <CtaBand
-        heading="Put it into practice"
-        body="Browse live campaigns and apply the questions on this page to a few of them."
-        primary={{ label: 'Browse campaigns', href: '/campaigns' }}
-        secondary={{ label: 'Explore causes', href: '/causes' }}
+      <ReferenceSection title="Choose a Learning Path" intro="Start with the role closest to the decision you are making.">
+        <ReferenceCardGrid items={[
+          { icon: 'heart', title: 'For Donors', body: 'Evaluate campaigns, understand fees, and follow impact after a gift.', action: 'Donor resources', href: '/for-donors' },
+          { icon: 'megaphone', title: 'For Fundraisers', body: 'Make specific claims, publish evidence, and report honestly.', action: 'Fundraising guide', href: '/fundraising-guide' },
+          { icon: 'people', title: 'For Nonprofits', body: 'Build accountable systems for campaigns, receipts, and reporting.', action: 'Nonprofit tools', href: '/for-nonprofits' },
+          { icon: 'graduation', title: 'For Communities', body: 'Learn together and direct resources toward local priorities.', action: 'Community resources', href: '/community' },
+        ]} />
+      </ReferenceSection>
+
+      <ReferenceCta
+        icon="book"
+        title="Turn Knowledge Into Action"
+        body="Explore a live campaign and apply what you learned before you give or share."
+        actions={[
+          { label: 'Browse Campaigns', href: '/campaigns' },
+          { label: 'View Reports', href: '/reports', variant: 'secondary' },
+        ]}
       />
-    </PageBody>
+    </ReferencePage>
   );
 }

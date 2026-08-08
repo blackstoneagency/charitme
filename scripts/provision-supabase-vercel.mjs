@@ -52,10 +52,8 @@ function readVercelProjectId() {
   return JSON.parse(readFileSync(vercelProject, 'utf8')).projectId ?? null;
 }
 
-function databaseUrl() {
-  if (process.env.SUPABASE_DB_URL) return process.env.SUPABASE_DB_URL;
-  if (!process.env.SUPABASE_DB_PASSWORD) return null;
-  return `postgresql://postgres:${encodeURIComponent(process.env.SUPABASE_DB_PASSWORD)}@db.${projectRef}.supabase.co:5432/postgres`;
+function configuredDatabaseUrl() {
+  return process.env.SUPABASE_DB_URL ?? null;
 }
 
 function parseApiKeys(jsonText) {
@@ -161,7 +159,7 @@ async function main() {
     ?? process.env.VERCEL_PROJECT_NAME
     ?? 'charitme';
 
-  const dbUrl = databaseUrl();
+  const dbUrl = configuredDatabaseUrl();
   if (dbUrl) {
     run(supabase, ['db', 'push', '--db-url', dbUrl, '--include-all', '--yes']);
   } else {
@@ -193,7 +191,7 @@ async function main() {
     { key: 'SUPABASE_SERVICE_ROLE_KEY', value: keys.serviceRole, type: 'encrypted', target: targets },
   ];
 
-  const dbConnection = databaseUrl();
+  const dbConnection = configuredDatabaseUrl();
   if (dbConnection) {
     env.push({ key: 'DATABASE_URL', value: dbConnection, type: 'encrypted', target: targets });
   }

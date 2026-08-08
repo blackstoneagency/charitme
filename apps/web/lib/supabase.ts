@@ -30,3 +30,31 @@ export const supabaseAdmin: SupabaseAdminClient = supabaseUrl && serviceRoleKey
       return missingSupabaseEnv();
     },
   });
+
+
+/**
+ * Anon-key client for reads of data that is ALREADY PUBLIC.
+ *
+ * ⚠️ Added during a live outage: the `sb_secret_` service-role key was revoked
+ * in the Supabase dashboard, so every `supabaseAdmin` read failed and the whole
+ * site rendered em dashes. The anon key was unaffected and returns 352
+ * campaigns — the same number the healthy site reported — because RLS grants
+ * public SELECT on live campaigns.
+ *
+ * ⚠️⚠️ USE THIS ONLY WHERE ANON SEES THE SAME ROWS AS SERVICE ROLE.
+ * It is NOT a general fallback. `donations` returns 0 under anon (RLS hides
+ * them) while the true figure is 592 — so routing a COUNT through here would
+ * publish "0 gifts given" on a donation platform. An em dash means "we could
+ * not measure"; a zero means "nobody ever gave". Never trade the first for the
+ * second.
+ *
+ * Safe: public campaign listings, volunteer opportunities, supported countries.
+ * Unsafe: anything counting donations, or any owner-scoped or private data.
+ */
+const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+export const supabasePublic: SupabaseAdminClient = supabaseUrl && anonKey
+  ? createClient(supabaseUrl as string, anonKey as string, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    })
+  : supabaseAdmin;

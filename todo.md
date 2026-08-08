@@ -2690,7 +2690,23 @@ skipped workflow leaves its check pending forever and would deadlock a docs-only
 PR. Nothing is required today, which is why this is safe now — recorded so the
 next person does not find out the hard way.
 
-## 🛑 SUPABASE STAGING — blocked, and the pending count is **30** (Claude, 2026-08-03)
+## 🛑 SUPABASE STAGING — blocked, and the pending count is **33** (Claude, 2026-08-03)
+
+**+2 on 2026-08-08:** replay compatibility and forward policy repair for the
+three editorial migrations that referenced the removed `profiles.role` shape.
+
+**+1 on 2026-08-07: `20260827000000_campaign_path.sql`.** Adds
+`campaigns.campaign_path` for step 1 of the twelve-step builder — who is RAISING
+(personal / nonprofit / team), which is not the same question as the
+`beneficiary_*` columns, which record who BENEFITS.
+
+⚠️ **The application code does NOT wait for this migration.** The campaign insert
+retries without the column when the database says it lacks it
+(`lib/campaign-insert-columns.ts`), because a required insert field for an
+unapplied column would fail *every* campaign creation — the funnel the whole site
+depends on. Until the migration is applied, campaigns are created normally and
+simply record no path, and the campaign page treats an absent value as
+`'personal'`. Applying it is a pure improvement with no coordinated deploy.
 
 **+1 on 2026-08-02: `20260826000000_platform_reports.sql`.** This is the one that
 closes the last self-inflicted blocker on the transparency page — the
@@ -2724,11 +2740,11 @@ that day**:
 dump confirmed the objects were absent, and a restored production clone applied
 all 18 in order and proved rollback.
 
-Nine migrations have been added since. So the count is arithmetic:
+Fifteen migrations have been added since. So the count is arithmetic:
 
 ```
-117 local − 87 applied           = 30
-18 audited pending + 12 added    = 30   ✓ reconciles
+120 local − 87 applied           = 33
+18 audited pending + 15 added    = 33   ✓ reconciles
 ```
 
 All 18 audited-pending versions are still on disk under their original names.
@@ -5294,7 +5310,7 @@ Proposed split, claim before starting:
 
 ## 📌 THE WORKING QUEUE — one backlog for a 13,800-line file (Claude, 2026-07-29)
 
-This file has **154 `##` sections and 22 open checkboxes** scattered across it, so
+This file has **154 `##` sections and 21 open checkboxes** scattered across it, so
 "read todo.md and keep going" had no single place to read. This is that place.
 Every item below is classified by **who can actually clear it** — the distinction
 that has mattered most this session, because three separate "blockers" turned out
@@ -5314,9 +5330,9 @@ need the owner.
 | O7 | **Donor-guarantee decision** — will CharitMe underwrite fraud losses? | The ToS currently disclaims it; this is a financial commitment, not content |
 | O8 | **Reduced fee for verified nonprofits** — GoFundMe charges them 2.2% + $0.30, CharitMe charges all 2.9% + $0.30, so a nonprofit keeps **$0.70 more per $100 on GoFundMe** | Pricing decision, not a code change. The branch itself is trivial (`nonprofit_verified` is known at donation time in `app/api/donations/route.ts`) — what CharitMe *charges* is the owner's call. **The only place a competitor is measurably better on money.** |
 
-### 🟣 CODEX lane — theme/contrast (1, but it is the biggest single item)
+### ✅ CODEX lane — theme/contrast (closed)
 
-| C1 | **355 WCAG AA contrast failures** (line ~285). Root causes already located and handed over: 271 hardcoded literals across admin (`PayoutsClient`/`DonationsClient` hold 75), the `#94a3b8`/`#8c9ab5` muted-text pair, and the green/orange/red status-badge palette. The theme-pinning shortcut is **disproved** — admin fails AA in *both* themes. |
+| C1 | **CLOSED — zero WCAG AA contrast failures.** Re-certified the current release candidate across 203 public and signed-in routes × light/dark = 406 renders. The required CI sweep now refuses occupied ports rather than auditing a stale process, and caught three new dark-theme regressions introduced by the latest campaign work before release. |
 
 ### 🟢 CLAUDE lane — 2 done, 2 genuinely gated (was "actionable now (4)")
 
@@ -6036,7 +6052,7 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
   returned `x-vercel-cache: PRERENDER` in 440 ms, followed by four cache hits in
   61-122 ms; `/api/health` also returned HTTP 200.
 
-## SIGNED-IN PAGE CERTIFICATION - audit infrastructure complete, contrast remediation active (Codex, 2026-07-28)
+## SIGNED-IN PAGE CERTIFICATION - contrast gate complete (Codex, 2026-08-08)
 
 - [x] Reconciled the route manifest with the app tree: 10 standalone gated
   routes, 68 renderable console pages, eight exact redirect aliases, and 19
@@ -6051,9 +6067,11 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
   redirects, and near-empty signed-in renders fail the audit.
 - [x] Verified the route contract with 24 focused tests and a targeted
   production-build browser run in both themes.
-- [ ] Remediate the **355 WCAG AA contrast failures** exposed by the first honest
-  signed-in sweep across 136 pages and both themes. These were previously hidden
-  because only public routes were audited; do not waive or baseline them.
+- [x] Remediated the historical signed-in contrast failures and re-certified
+  the current release candidate: **0 WCAG AA failures across 203 routes × 2
+  themes = 406 renders**. CI now runs the complete Supabase-stub-backed signed-in sweep and
+  fails before launch when either audit port is occupied, preventing stale-build
+  false passes.
 - [x] Added six independent token-aware Supabase stub sessions and certified
   each persona's displayed role, exact navigation, campaign creation access,
   admin boundary, and super-admin boundary in a production Chromium build.

@@ -58,15 +58,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Start local Supabase without Edge Functions
-        run: npx supabase start --exclude edge-runtime
+      - name: Start isolated database for migration replay
+        run: npx supabase db start
 
       - name: Reset database through every migration and seed
         run: npx supabase db reset --local
 
       - name: Stop local Supabase
         if: always()
-        run: npx supabase stop --no-backup
+        run: npx supabase stop --no-backup || true
 
   staging:
     name: Apply and smoke test staging
@@ -75,17 +75,6 @@ jobs:
     environment: staging
     outputs:
       commit: ${{ steps.candidate.outputs.commit }}
-      url: ${{ steps.deploy.outputs.url }}
-    env:
-      DEPLOY_ENVIRONMENT: staging
-      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
-      SUPABASE_PRODUCTION_PROJECT_REF: ${{ secrets.SUPABASE_PRODUCTION_PROJECT_REF }}
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-      VERCEL_APP_URL: ${{ vars.APP_URL }}
     steps:
       - uses: actions/checkout@v4
 
@@ -97,26 +86,49 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Apply migrations and configure staging
-        run: npm run provision
+      - name: Start isolated Supabase staging stack
+        run: npx supabase start
+
+      - name: Export staging runtime configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx supabase status --output env > "$RUNNER_TEMP/supabase.env"
+          set -a
+          source "$RUNNER_TEMP/supabase.env"
+          set +a
+          echo "::add-mask::$SERVICE_ROLE_KEY"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "APP_URL=http://127.0.0.1:3000"
+            echo "NEXT_PUBLIC_APP_URL=http://127.0.0.1:3000"
+          } >> "$GITHUB_ENV"
 
       - name: Verify staging RLS
         run: npm run test:rls-live
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          CHARITME_RLS_TEST_USERS_JSON: ${{ secrets.CHARITME_RLS_TEST_USERS_JSON }}
+          BOOTSTRAP_LOCAL_RLS_PERSONAS: 'true'
           REQUIRE_AUTHENTICATED_RLS_PERSONAS: 'true'
 
-      - name: Deploy staging
-        id: deploy
+      - name: Build staging application
+        run: npm run build --workspace=apps/web
+
+      - name: Start staging application
         shell: bash
         run: |
           set -euo pipefail
-          output="$(npx vercel deploy --yes --token "$VERCEL_TOKEN")"
-          url="$(printf '%s\n' "$output" | grep -E '^https://' | tail -n 1)"
-          test -n "$url"
-          echo "url=$url" >> "$GITHUB_OUTPUT"
+          npm start --workspace=apps/web > apps/web/staging-server.log 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/charitme-staging.pid"
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:3000/api/health > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat apps/web/staging-server.log
+          exit 1
 
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
@@ -131,7 +143,7 @@ jobs:
           --project=chromium
         working-directory: apps/web
         env:
-          PLAYWRIGHT_BASE_URL: ${{ steps.deploy.outputs.url }}
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
 
       - name: Record staging-verified commit
         id: candidate
@@ -142,8 +154,19 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: staging-playwright-report
-          path: apps/web/playwright-report/
+          path: |
+            apps/web/playwright-report/
+            apps/web/staging-server.log
           retention-days: 14
+
+      - name: Stop isolated staging services
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f "$RUNNER_TEMP/charitme-staging.pid" ]]; then
+            kill "$(cat "$RUNNER_TEMP/charitme-staging.pid")" 2>/dev/null || true
+          fi
+          npx supabase stop --no-backup || true
 
   production:
     name: Apply and deploy production

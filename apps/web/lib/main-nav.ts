@@ -76,6 +76,8 @@ export const RESOURCES: NavItem = {
         { label: 'Fundraising Guide', href: '/fundraising-guide', labelKey: 'nav.resource.fundraising_guide', description: 'A step-by-step playbook for your first campaign.' },
         { label: 'Impact Education', href: '/impact-education', labelKey: 'nav.resource.impact_education', description: 'How giving works, and how to measure what it changes.' },
         { label: 'Reports & Research', href: '/reports', labelKey: 'nav.resource.reports', description: 'Platform transparency reports and giving data.' },
+        { label: 'Success Stories', href: '/success-stories', labelKey: 'footer.link.success_stories', description: 'Real campaigns, lessons learned, and outcomes shared by organizers.' },
+        { label: 'Our Impact', href: '/impact', labelKey: 'footer.link.impact', description: 'How generosity moves through CharitMe and what it helps create.' },
         { label: 'Account Roles', href: '/roles', labelKey: 'nav.resource.roles', description: 'What donor, organizer, nonprofit and admin actually mean.' },
         { label: 'Where to Give', href: '/supporter-space', labelKey: 'nav.resource.supporter_space', description: 'Answered from live data: what is closing soonest and furthest from goal.' },
       ],
@@ -110,19 +112,14 @@ export const RESOURCES: NavItem = {
 /**
  * The desktop bar, in order.
  *
- * Deliberately SIX items where the old flat nav had eight. #98 measured that the
- * header has no spare horizontal capacity below 1366px — three links became
- * unclickable under `.kind-auth` — so the dropdowns are not free real estate.
- * Two menus absorbing twenty destinations is what makes the new structure fit at
- * all; adding a seventh top-level item needs re-measuring, not eyeballing.
+ * Four items match the public reference navigation. The two mega-menus retain
+ * every previous destination without crowding out the global search field.
  */
 export const MAIN_NAV: readonly NavItem[] = [
   EXPLORE_CAUSES,
   { kind: 'link', label: 'How It Works', href: '/how-it-works', labelKey: 'nav.how_it_works' },
-  { kind: 'link', label: 'Impact', href: '/impact', labelKey: 'footer.link.impact' },
-  { kind: 'link', label: 'Stories', href: '/success-stories', labelKey: 'footer.link.success_stories' },
-  { kind: 'link', label: 'About Us', href: '/about-us', labelKey: 'nav.about' },
   RESOURCES,
+  { kind: 'link', label: 'About Us', href: '/about-us', labelKey: 'nav.about' },
 ];
 
 /**

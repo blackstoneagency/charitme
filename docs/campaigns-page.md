@@ -135,20 +135,27 @@ Deploy: Vercel, auto-deploying from `master` (**not** `main` — no such branch)
 
 ## 6. Deviations from the reference, and why
 
-Both are recorded in the code at the point of use.
+⚠️ This section previously listed the category labels and the testimonial as
+"not reproduced". **Both have since been built** (see §7). It said so for
+several commits after they shipped — a document that contradicts the code is
+worse than no document, so it is corrected here rather than quietly rewritten.
 
-- **Category labels.** The reference tiles read "Emergency Aid", "Food &
-  Hunger", "Shelter & Housing", "Children & Youth", "Women & Families". None
-  exists in `CAMPAIGN_CATEGORIES`, which is what `campaigns.category` is
-  filtered on, so each would land on an empty page. The strip's shape is
-  reproduced exactly and filled with categories that really filter.
-- **The named testimonial** ("Jessica M., Donor"). There is no testimonials
-  table, so the quote and the person would both be written by us and presented
-  as a real supporter's words. That is fabricating a review. The place it
-  belongs is marked in `page.tsx` for when consented testimonials exist.
+What is genuinely NOT reproduced:
 
-Its mock figures ("Showing 1-12 of 248", per-card amounts) are likewise not
-reproduced; the page states its measured counts.
+- **The reference's mock figures.** "Showing 1-12 of 248" and the per-card
+  amounts are invented. The page states its own measured counts.
+- **A testimonial attributed to a named person with a photograph.** The slot
+  IS filled — with a real recorded donation (§7) — but not with "Jessica M.,
+  Donor". There is no testimonials table, so that quote and that person would
+  both be written by us and shown as a real supporter's words.
+
+How the category labels were resolved, since it is the interesting case:
+"Emergency Aid", "Food & Hunger", "Shelter & Housing", "Children & Youth" and
+"Women & Families" are not values of `campaigns.category`, so a `?category=`
+tile carrying one lands on an empty page. They ARE causes, and `?cause=` is a
+filter this page already applies — one cause spans several categories, which
+is exactly what those broader labels mean. Verified against production: 20,
+40, 42, 33 and 35 campaigns respectively.
 
 ## 7. What this brief actually changed
 
@@ -156,3 +163,8 @@ reproduced; the page states its measured counts.
 - The rail's fourth action, **Fundraise**, which was missing.
 - **Share** pointed at `/create/choose-path` — a control labelled "spread the
   word" that started a fundraiser. It now points at `/ambassadors`.
+- The reference's **five named category tiles**, routed through `?cause=` so
+  each lands on real results rather than an empty page (`6b89852f`).
+- The **supporter quote**, filled with a REAL recorded donation — campaign,
+  amount, and the donor name the anonymity rules allow — from the same
+  `getRecentDonations` loader /donate and the homepage use (`ea4dea7a`).

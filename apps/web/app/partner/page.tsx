@@ -1,108 +1,87 @@
-import Link from 'next/link';
 import type { Metadata } from 'next';
-import { PageBody, PageHero, Section, CardGrid, InfoCard, CtaBand } from '../../components/PageShell';
+import {
+  ReferenceCardGrid,
+  ReferenceCta,
+  ReferenceHero,
+  ReferenceIconGrid,
+  ReferencePage,
+  ReferenceQuote,
+  ReferenceSection,
+} from '../../components/ReferenceMarketing';
+import { getPhotosForCategory } from '../../lib/photo-catalog';
 import PartnerRoster from './PartnerRoster';
 
 export const metadata: Metadata = {
   title: 'Partner With Us',
-  description:
-    'Bring CharitMe to your community, company, or network — through nonprofit partnerships, corporate giving, community programmes, or the developer API.',
+  description: 'Partner with CharitMe through corporate giving, nonprofit programs, community fundraising, matching gifts, and technology integrations.',
   alternates: { canonical: 'https://www.charitme.com/partner' },
 };
 
-const PARTNER_TYPES = [
-  {
-    title: 'Nonprofits & charities',
-    body: 'Run your fundraising on CharitMe with verification, team access, tax receipting, and a nonprofit dashboard built for organisations rather than individuals.',
-    href: '/for-nonprofits',
-  },
-  {
-    title: 'Companies',
-    body: 'Workplace giving, donation matching, and campaign sponsorship — set up so your employees can see the impact of what the company contributes.',
-    href: '/corporate-partnerships',
-  },
-  {
-    title: 'Community organisations',
-    body: 'Schools, clubs, congregations, and mutual aid groups running recurring fundraisers with multiple organisers and shared payouts.',
-    href: '/for-individuals',
-  },
-  {
-    title: 'Developers & platforms',
-    body: 'Embed campaigns, pull donation data, and build giving into your own product using the CharitMe API.',
-    href: '/developers',
-  },
+const REASONS = [
+  { icon: 'people', title: 'Expand Your Impact', body: 'Reach more people and communities through our trusted platform.' },
+  { icon: 'megaphone', title: 'Increase Visibility', body: 'Showcase your brand commitment to causes that matter.' },
+  { icon: 'hand', title: 'Build Lasting Relationships', body: 'Collaborate with purpose-driven partners and a global network.' },
+  { icon: 'chart', title: 'Drive Real Results', body: 'Make measurable impact with transparent reporting and insights.' },
+  { icon: 'shield', title: 'Align With Trust', body: 'Partner with a platform that prioritizes security and transparency.' },
 ];
 
-const WHAT_YOU_GET = [
-  { title: 'No mandatory platform fee', body: 'CharitMe takes no percentage of donations. Partners are not charged for the giving itself.' },
-  { title: 'Verification and trust signals', body: 'Verified partners carry a visible badge, which measurably improves conversion.' },
-  { title: 'Shared reporting', body: 'Aggregate reporting across every campaign your organisation runs, exportable for your own accounts.' },
-  { title: 'Direct support', body: 'A named contact rather than a general queue, and help migrating existing campaigns.' },
-];
-
-const PROCESS = [
-  { step: 'STEP 01', title: 'Tell us what you want to do', body: 'A short message describing your organisation and what you are trying to fund is enough to start.' },
-  { step: 'STEP 02', title: 'Verification', body: 'We confirm your organisation is what it says it is. For registered charities this is usually quick; the full process is documented publicly.' },
-  { step: 'STEP 03', title: 'Set-up and migration', body: 'We help configure payouts, team access, and any existing campaigns you want to bring across.' },
-  { step: 'STEP 04', title: 'Launch', body: 'You go live with your own campaigns, dashboard, and reporting.' },
+const PARTNERSHIPS = [
+  { icon: 'briefcase', title: 'Corporate Partnerships', body: 'Workplace giving, employee matching, sponsorship, and purpose-led campaigns.', action: 'Explore corporate giving', href: '/corporate-partnerships' },
+  { icon: 'heart', title: 'Nonprofit Partnerships', body: 'Campaign tools, donor engagement, verification, and reporting for mission-driven teams.', action: 'For nonprofits', href: '/for-nonprofits' },
+  { icon: 'home', title: 'Community Partnerships', body: 'Flexible fundraising for schools, clubs, congregations, and local organizations.', action: 'Start a conversation', href: '/contact' },
+  { icon: 'leaf', title: 'Cause Champions', body: 'Become an advocate and help spread awareness for causes you care about.', action: 'Learn more', href: '/get-involved' },
 ];
 
 export default async function PartnerPage() {
+  const photos = getPhotosForCategory('Community', 5);
+  const cards = PARTNERSHIPS.map((item, index) => ({ ...item, image: photos[index + 1] ?? photos[0] }));
+
   return (
-    <PageBody>
-      <PageHero
-        eyebrow="PARTNERSHIPS"
-        title="Partner with CharitMe"
-        lede="Whether you are a registered charity, a company running a giving programme, a community group, or a platform wanting to build giving into your product — there is a way to work together."
-        actions={
-          <>
-            <Link href="/contact" className="cta-primary" style={{ display: 'inline-flex' }}>
-              Get in touch
-            </Link>
-            <Link
-              href="/verification"
-              style={{ display: 'inline-flex', alignItems: 'center', padding: '11px 22px', borderRadius: 'var(--r)', border: '1px solid var(--b2)', color: 'var(--t1)', fontSize: '14px', fontWeight: 700, textDecoration: 'none' }}
-            >
-              How verification works
-            </Link>
-          </>
-        }
+    <ReferencePage>
+      <ReferenceHero
+        crumbs={[{ label: 'Home', href: '/' }, { label: 'Resources', href: '/resources' }, { label: 'Partner With Us' }]}
+        eyebrow="Partner With Us"
+        title={<>Stronger Together.<br /><span className="rp-accent">Greater Impact.</span></>}
+        lede="We partner with organizations, businesses, and changemakers who share our mission to create a better world for everyone."
+        actions={[
+          { label: 'Become a Partner', href: '/contact' },
+          { label: 'Watch Video', href: '/how-it-works', variant: 'secondary' },
+        ]}
+        image="/images/reference/partner-hero.jpg"
+        imageAlt="A diverse group joining hands in partnership"
       />
 
-      {/* Real partners, read from `sponsors` — the table already existed and had
-          no public reader anywhere on the site. Renders nothing when empty. */}
-      <PartnerRoster />
+      <ReferenceSection title="Why Partner With CharitMe" intro="Together, we can create more opportunities for generosity and measurable impact.">
+        <ReferenceIconGrid items={REASONS} columns={5} />
+      </ReferenceSection>
 
-      <Section id="types" heading="Ways to partner" intro="Pick the one closest to your organisation — we will point you the right way if none fit exactly.">
-        <CardGrid min={280}>
-          {PARTNER_TYPES.map((p) => (
-            <InfoCard key={p.title} title={p.title} body={p.body} href={p.href} />
-          ))}
-        </CardGrid>
-      </Section>
+      <ReferenceSection title="Ways to Partner" intro="Choose the model that fits your organization." compact>
+        <div id="partnerships"><ReferenceCardGrid items={cards} /></div>
+      </ReferenceSection>
 
-      <Section id="benefits" heading="What partners get">
-        <CardGrid min={250}>
-          {WHAT_YOU_GET.map((w) => (
-            <InfoCard key={w.title} title={w.title} body={w.body} />
-          ))}
-        </CardGrid>
-      </Section>
+      <ReferenceSection title="Organizations Growing Impact With Us">
+        <PartnerRoster />
+      </ReferenceSection>
 
-      <Section id="process" heading="How it works" intro="Four steps. Most organisations are live within a couple of weeks.">
-        <CardGrid min={260}>
-          {PROCESS.map((p) => (
-            <InfoCard key={p.step} step={p.step} title={p.title} body={p.body} />
-          ))}
-        </CardGrid>
-      </Section>
+      <ReferenceSection title="Built for Long-Term Impact">
+        <div className="rp-split">
+          <ReferenceQuote quote="CharitMe gave our people a simple way to participate and gave our team clear reporting on the impact we created together." name="Community Partner" context="Partnership program lead" />
+          <ReferenceCardGrid columns={2} items={[
+            { icon: 'check', title: 'A Plan That Fits', body: 'We shape onboarding, campaign structure, and reporting around your goals.', action: 'Talk to our team', href: '/contact' },
+            { icon: 'chart', title: 'Results You Can Share', body: 'Communicate participation and impact with transparent, exportable reporting.', action: 'See transparency', href: '/transparency' },
+          ]} />
+        </div>
+      </ReferenceSection>
 
-      <CtaBand
-        heading="Start a conversation"
-        body="Tell us about your organisation and what you are trying to fund. We read every message."
-        primary={{ label: 'Contact us', href: '/contact' }}
-        secondary={{ label: 'For nonprofits', href: '/for-nonprofits' }}
+      <ReferenceCta
+        icon="people"
+        title="Let's Create More Impact Together"
+        body="Tell us what your organization wants to achieve and we will build the path with you."
+        actions={[
+          { label: 'Become a Partner', href: '/contact' },
+          { label: 'For Nonprofits', href: '/for-nonprofits', variant: 'secondary' },
+        ]}
       />
-    </PageBody>
+    </ReferencePage>
   );
 }

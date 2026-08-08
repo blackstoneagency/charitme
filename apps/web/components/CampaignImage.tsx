@@ -39,7 +39,11 @@ export default function CampaignImage({
     ? getCoverForCampaign(category, campaignKey)
     : getCoverForCategory(category);
   const fallback = optimizedCoverUrl(rawFallback, targetW);
-  const initial = src && src.startsWith('http') ? optimizedCoverUrl(src, targetW) : fallback;
+  const initial = src?.startsWith('/')
+    ? src
+    : src?.startsWith('http')
+      ? optimizedCoverUrl(src, targetW)
+      : fallback;
   const [current, setCurrent] = useState(initial);
   const [stage, setStage] = useState<0 | 1 | 2>(initial === fallback ? 1 : 0);
 

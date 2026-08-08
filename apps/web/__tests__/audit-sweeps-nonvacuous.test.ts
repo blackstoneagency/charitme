@@ -78,9 +78,17 @@ const a11ySource = readFileSync(
   path.join(WEB_ROOT, 'scripts', 'audit-a11y.mjs'),
   'utf8',
 );
+const responsiveSource = readFileSync(
+  path.join(WEB_ROOT, 'scripts', 'audit-responsive.mjs'),
+  'utf8',
+);
 const packageJson = JSON.parse(
   readFileSync(path.join(WEB_ROOT, 'package.json'), 'utf8'),
 ) as { scripts: Record<string, string> };
+const ciWorkflow = readFileSync(
+  path.resolve(WEB_ROOT, '../..', '.github', 'workflows', 'ci.yml'),
+  'utf8',
+);
 
 describe('signed-in audit integrity', () => {
   it('fails pages that return errors, revert themes, throw, or render empty', () => {
@@ -90,6 +98,23 @@ describe('signed-in audit integrity', () => {
     expect(contrastSource).toMatch(/catch \(e\) \{\s+failures\+\+/);
     expect(contrastSource).toContain('CONTRAST_MIN_TEXT');
     expect(contrastSource).toContain('failures += emptyRenders.length');
+  });
+
+  it('skips declared data routes only when navigation or the HTTP response fails', () => {
+    for (const source of [contrastSource, a11ySource, responsiveSource]) {
+      expect(source).toMatch(
+        /catch \(navigationError\) \{[\s\S]{0,300}?dataDependent\.includes\(path\)[\s\S]{0,300}?continue/,
+      );
+    }
+    expect(a11ySource).toMatch(/catch \(e\) \{\s+errors\.push/);
+    expect(responsiveSource).toMatch(/catch \(e\) \{\s+findings\+\+/);
+  });
+
+  it('gives thin client-rendered states one bounded settle retry', () => {
+    expect(contrastSource).toContain('CONTRAST_THIN_THRESHOLD ?? 14');
+    expect(contrastSource).toContain('initialCount >= thinThreshold');
+    expect(contrastSource).toContain('setTimeout(resolve, 2_000)');
+    expect(contrastSource).toContain('return countVisibleLeafText()');
   });
 
   it('uses Playwright browser discovery unless an explicit override is supplied', () => {
@@ -138,6 +163,14 @@ describe('signed-in audit integrity', () => {
     expect(signedInSource).toContain("const USER_TOKEN = AS_MEMBER ? 'stub-organizer-access-token'");
   });
 
+  it('refuses occupied app and stub ports before launching either service', () => {
+    expect(signedInSource).toContain("from './lib/audit-port.mjs'");
+    expect(signedInSource).toContain("assertPortAvailable(APP_PORT, 'Next app')");
+    expect(signedInSource).toContain("assertPortAvailable(STUB_PORT, 'Supabase stub')");
+    expect(signedInSource.indexOf('await Promise.all(['))
+      .toBeLessThan(signedInSource.indexOf("spawnChild(process.execPath, ['scripts/supabase-stub.mjs'"));
+  });
+
   it('passes machine-readable output through without orchestration text', () => {
     expect(signedInSource).toContain("const AS_JSON = argv.includes('--json')");
     expect(signedInSource).toContain("...(AS_JSON ? ['--json'] : [])");
@@ -153,6 +186,11 @@ describe('signed-in audit integrity', () => {
   it('exposes the complete build-and-sweep command', () => {
     expect(packageJson.scripts['audit:signed-in']).toContain('--build');
     expect(packageJson.scripts['audit:signed-in']).toContain('--strict-gradients');
+  });
+
+  it('enforces the signed-in contrast sweep in CI', () => {
+    expect(ciWorkflow).toContain('Signed-in contrast audit (WCAG AA, both themes)');
+    expect(ciWorkflow).toContain('npm run audit:signed-in -- --port 3310 --stub-port 55432');
   });
 
   it('makes the live authenticated axe sweep fail on broken pages or theme drift', () => {

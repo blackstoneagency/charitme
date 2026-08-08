@@ -259,6 +259,48 @@ begin
     now() - (g || ' hours')::interval
   from generate_series(1, 120) g;
 
+  insert into public.analytics_snapshots
+    (owner_id, campaign_id, snapshot_date, metrics, created_at)
+  select
+    c.user_id,
+    c.id,
+    current_date - mod(g, 30),
+    jsonb_build_object(
+      'raisedCents', g * 10000,
+      'backerCount', 10 + g,
+      'goalCents', 500000 + (g * 1000),
+      'donationCount', 5 + g
+    ),
+    now() - (g || ' days')::interval
+  from generate_series(1, 120) g
+  join public.campaigns c on c.id = v_camps[g];
+
+  insert into public.admin_notes
+    (author_id, target_type, target_id, body, internal, pinned, created_at, updated_at)
+  select
+    v_users[1],
+    'campaign',
+    v_camps[g],
+    'Disposable internal campaign note ' || g || '.',
+    true,
+    mod(g, 12) = 0,
+    now() - (g || ' hours')::interval,
+    now() - (g || ' hours')::interval
+  from generate_series(1, 120) g;
+
+  insert into public.platform_reports
+    (title, kind, period_label, summary, published, sort_order, created_at, updated_at)
+  select
+    'Seed Platform Report ' || g,
+    (array['impact', 'financial', 'annual'])[1 + mod(g, 3)],
+    'FY ' || (2026 - mod(g, 10)),
+    'Disposable draft report fixture ' || g || '.',
+    false,
+    g,
+    now() - (g || ' days')::interval,
+    now() - (g || ' days')::interval
+  from generate_series(1, 120) g;
+
   insert into public.campaign_builder_events
     (session_id, user_id, path, step, event, meta, created_at)
   select

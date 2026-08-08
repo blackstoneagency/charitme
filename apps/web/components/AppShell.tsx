@@ -106,6 +106,7 @@ function NavMenu({
 }) {
   const t = useT();
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Whether the panel currently open was opened by hover rather than by a click.
   //
@@ -145,6 +146,22 @@ function NavMenu({
     return () => document.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
+  // Pointer dismissal covers mouse, touch, and stylus without stealing focus.
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.target instanceof Node && wrapRef.current?.contains(event.target)) return;
+      hoverOpened.current = false;
+      if (closeTimerRef.current) {
+        clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = null;
+      }
+      onClose(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [open, onClose]);
+
   return (
     // Hover here is a pure enhancement layered on top of a fully operable
     // <button> — the menu opens and closes by click, Enter, Space and Escape
@@ -154,6 +171,7 @@ function NavMenu({
     // isn't one.
     // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div
+      ref={wrapRef}
       className="kind-menu-wrap"
       onMouseEnter={() => {
         cancelHoverClose();
@@ -507,11 +525,15 @@ export function AppShell({
                 labelled "search" did not reach /search — which already supports
                 query, cause, location and sort — so the search page was
                 crawlable and unreachable by a human. */}
-            <Link href="/search" className="kind-search-btn" aria-label="Search campaigns">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.3-4.3" />
-              </svg>
-            </Link>
+            <form action="/search" method="get" className="kind-header-search" role="search">
+              <label htmlFor="kind-global-search" className="sr-only">Search campaigns, events, or resources</label>
+              <input id="kind-global-search" name="q" type="search" placeholder="Search campaigns, events, or resources..." />
+              <button type="submit" className="kind-search-btn" aria-label="Search">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.3-4.3" />
+                </svg>
+              </button>
+            </form>
             <Link
               href={user ? '/dashboard/notifications' : '/login'}
               className="kind-bell"
@@ -556,7 +578,7 @@ export function AppShell({
             ) : (
               <>
                 <Link href="/login" className="kind-signin">Sign in</Link>
-                <Link href="/login?mode=signup" className="kind-start-pill">Start a CharitMe</Link>
+                <Link href="/create" className="kind-start-pill">Start a Campaign</Link>
               </>
             )}
             {/* Last control in the bar, per the design: hard right, after the
@@ -566,14 +588,20 @@ export function AppShell({
                 logged in would be worse than one in an odd position. */}
             <ThemeToggle />
           </div>
-          <button className="kind-menu" onClick={() => setMenuOpen((open) => !open)} aria-label="Toggle navigation">
+          <button
+            className="kind-menu"
+            onClick={() => setMenuOpen((open) => !open)}
+            aria-label="Toggle navigation"
+            aria-expanded={menuOpen}
+            aria-controls="mobile-navigation"
+          >
             <span />
             <span />
             <span />
           </button>
         </div>
         {menuOpen && (
-          <div className="kind-mobile">
+          <div className="kind-mobile" id="mobile-navigation">
             {/* Derived from MAIN_NAV, not a second hand-kept list. The headings
                 come through so the twenty cause links and twelve resource links
                 are not one undifferentiated column. */}
@@ -605,7 +633,7 @@ export function AppShell({
             ) : (
               <>
                 <Link href="/login" onClick={() => setMenuOpen(false)}>Sign in</Link>
-                <Link href="/login?mode=signup" onClick={() => setMenuOpen(false)}>Start a CharitMe</Link>
+                <Link href="/create" onClick={() => setMenuOpen(false)}>Start a Campaign</Link>
               </>
             )}
             {/* The desktop toggle now lives in `.kind-auth`, which is

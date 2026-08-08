@@ -616,6 +616,12 @@ export function buildFixtures() {
   // non-member must both see the two gated posts as locked.
   const member_subscriptions = [];
 
+  const saved_campaigns = campaigns.slice(0, 12).map((campaign, i) => ({
+    user_id: USER_ID,
+    campaign_id: campaign.id,
+    created_at: daysAgo(i),
+  }));
+
   return {
     _user: defaultUser,
     _access_token: 'stub-access-token',
@@ -640,6 +646,7 @@ export function buildFixtures() {
     membership_tiers,
     exclusive_posts,
     member_subscriptions,
+    saved_campaigns,
     campaign_updates,
     campaign_payments,
     campaign_payment_events: [

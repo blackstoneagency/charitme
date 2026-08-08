@@ -464,6 +464,13 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
                         {[l.entity_type, l.state, l.industry].filter(Boolean).join(' · ') || '—'}
                       </div>
                       {l.owner_name && <div style={{ fontSize: 11.5, color: 'var(--t3)' }}>Owner: {l.owner_name}</div>}
+                      {l.source === 'sample' && (
+                        <div style={{ marginTop: 4 }}>
+                          <span style={{ display: 'inline-block', background: 'rgba(245,158,11,.14)', color: 'var(--orange-text)', border: '1px solid rgba(245,158,11,.35)', borderRadius: 8, padding: '1px 8px', fontSize: 10.5, fontWeight: 800, letterSpacing: 0 }}>
+                            SAMPLE: not a real business
+                          </span>
+                        </div>
+                      )}
                     </td>
 
                     {/* Filing */}

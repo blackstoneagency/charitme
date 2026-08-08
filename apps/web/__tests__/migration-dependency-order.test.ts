@@ -3,7 +3,9 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const migrationsRoot = resolve(process.cwd(), '../../supabase/migrations');
+const rollbacksRoot = resolve(process.cwd(), '../../supabase/rollbacks');
 const files = readdirSync(migrationsRoot).filter((file) => file.endsWith('.sql')).sort();
+const rollbackFiles = readdirSync(rollbacksRoot).filter((file) => file.endsWith('.sql')).sort();
 const migrations = files.map((file) => ({
   file,
   sql: readFileSync(resolve(migrationsRoot, file), 'utf8').toLowerCase(),
@@ -69,5 +71,43 @@ describe('ordered migration dependencies', () => {
     expect(compatibility?.sql).toContain("where version = '20260608000000'");
     expect(compatibility?.sql).toContain('drop policy if exists support_own_read');
     expect(compatibility?.sql).toContain('drop policy if exists support_own_insert');
+  });
+
+  it('bridges legacy profile-role policies and replaces them with is_admin', () => {
+    const compatibilityFile = '20260823500000_profiles_role_replay_compatibility.sql';
+    const repairFile = '20260828000000_repair_editorial_admin_policies.sql';
+    const compatibility = migrations.find(({ file }) => file === compatibilityFile);
+    const repair = migrations.find(({ file }) => file === repairFile);
+
+    expect(files.indexOf(compatibilityFile)).toBeGreaterThan(
+      files.indexOf('20260823000000_custom_domains.sql'),
+    );
+    expect(files.indexOf(compatibilityFile)).toBeLessThan(
+      files.indexOf('20260824000000_cause_stories.sql'),
+    );
+    expect(files.indexOf(repairFile)).toBeGreaterThan(
+      files.indexOf('20260827000000_campaign_path.sql'),
+    );
+
+    expect(compatibility?.sql).toContain("when roles ? 'super_admin' then 'super_admin'");
+    expect(compatibility?.sql).toContain("when roles ? 'admin' then 'admin'");
+    expect(compatibility?.sql).toContain('generated always as');
+
+    for (const policy of [
+      'cause_stories_admin_write',
+      'cause_impact_stats_admin_write',
+      'platform_reports_admin_write',
+      'reports_admin_write',
+    ]) {
+      expect(repair?.sql).toContain(policy);
+    }
+    expect(repair?.sql.match(/public\.is_admin\(\)/g)).toHaveLength(8);
+    expect(repair?.sql).not.toMatch(/profiles\s+profile|profile\.role|p\.role/);
+    expect(rollbackFiles).toContain(
+      '20260823500000_rollback_profiles_role_replay_compatibility.sql',
+    );
+    expect(rollbackFiles).toContain(
+      '20260828000000_rollback_repair_editorial_admin_policies.sql',
+    );
   });
 });

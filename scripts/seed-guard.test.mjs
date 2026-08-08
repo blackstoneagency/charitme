@@ -36,6 +36,25 @@ test('all mutating SQL seed files require the database session guard', () => {
   }
 });
 
+test('legacy duplicate seed guards fail closed and accept the documented opt-in', () => {
+  const files = [
+    '00_test_users.sql',
+    '01_campaigns_core.sql',
+    '02_marketplaces.sql',
+    '03_events.sql',
+    '04_impact_gamification.sql',
+    '05_engagement_financial.sql',
+    '06_extended_features.sql',
+    'super_admin_console_seed.sql',
+  ];
+  const failClosedGuard = /if coalesce\(current_setting\('app\.charitme_allow_demo_seed',\s*true\),\s*''\) <> 'true'\s+and coalesce\(current_setting\('charitme\.allow_demo_seed',\s*true\),\s*''\) <> 'true' then/;
+
+  for (const file of files) {
+    const sql = readFileSync(new URL(`../supabase/seeds/${file}`, import.meta.url), 'utf8');
+    assert.match(sql, failClosedGuard, file);
+  }
+});
+
 test('seed coverage verification fails when any expected table is incomplete', () => {
   const sql = readFileSync(new URL('../supabase/seeds/99_verify_counts.sql', import.meta.url), 'utf8');
   assert.match(sql, /if n_missing > 0 or n_ok <> n_total then/);

@@ -26,6 +26,7 @@ import { join } from 'node:path';
 // ─────────────────────────────────────────────────────────────────────────────
 
 const APP = join(__dirname, '..', 'app');
+const normalizedPath = (file: string): string => file.replaceAll('\\', '/');
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const e of readdirSync(dir)) {
@@ -136,7 +137,8 @@ export function findUnguardedReads(files: string[]): Unguarded[] {
       if (inside(tries, i) || inside(thunks, i)) continue;
       const fn = enclosingFnName(code, i);
       if (fn && guardedNames.has(fn)) continue;
-      bad.push({ file: file.slice(file.indexOf('/app/') + 1), line: code.slice(0, i).split('\n').length, fn });
+      const normalizedFile = normalizedPath(file);
+      bad.push({ file: normalizedFile.slice(normalizedFile.indexOf('/app/') + 1), line: code.slice(0, i).split('\n').length, fn });
     }
   }
   return bad;
@@ -152,7 +154,7 @@ describe('pages survive a degraded Supabase', () => {
   });
 
   it('has no unguarded supabaseAdmin read on any non-admin page', () => {
-    const bad = findUnguardedReads(pages.filter((p) => !p.includes('/admin/')));
+    const bad = findUnguardedReads(pages.filter((p) => !normalizedPath(p).includes('/admin/')));
     expect(
       bad.map((b) => `${b.file}:${b.line}${b.fn ? ` (in ${b.fn})` : ''}`),
       'A synchronous throw from the supabaseAdmin Proxy here 500s the page. Wrap the read in boundedQuery(() => …) or a try/catch that renders a degraded state.',
@@ -171,7 +173,7 @@ describe('pages survive a degraded Supabase', () => {
    * quietly grow to cover a read.
    */
   it('has no unguarded supabaseAdmin READ on any admin page either', () => {
-    const bad = findUnguardedReads(pages.filter((p) => p.includes('/admin/')));
+    const bad = findUnguardedReads(pages.filter((p) => normalizedPath(p).includes('/admin/')));
     const unexpected = bad.filter((b) => {
       if (!b.file.endsWith('app/admin/countries/page.tsx')) return true;
       const line = readFileSync(join(APP, 'admin', 'countries', 'page.tsx'), 'utf8').split('\n')[b.line - 1];
