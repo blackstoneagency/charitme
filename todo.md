@@ -2690,11 +2690,17 @@ skipped workflow leaves its check pending forever and would deadlock a docs-only
 PR. Nothing is required today, which is why this is safe now — recorded so the
 next person does not find out the hard way.
 
-## 🛑 SUPABASE STAGING — blocked, and the pending count is **35** (Claude, 2026-08-03)
+## 🛑 SUPABASE STAGING — blocked, and the pending count is **36** (Claude, 2026-08-03)
 
 **Live ledger rechecked 2026-08-08:** `supabase migration list --linked`
-reported 122 local migration files and 87 production ledger entries. The 35-file
+reported 123 local migration files and 87 production ledger entries. The 36-file
 gap below is therefore a current measurement, not only historical arithmetic.
+
+**+1 on 2026-08-08: `20260830000000_protect_verification_and_campaign_integrity.sql`.**
+Prevents browser sessions from self-verifying nonprofit profiles or uploaded
+documents, spoofing campaign money and trust fields, publishing directly, or
+turning on paid featured placement. The isolated staging platform matrix proves
+the denied and service-role paths before release.
 
 **+1 on 2026-08-08: `20260829000000_reconcile_live_schema_columns.sql`.**
 Reproduces 49 production columns, their exact types/defaults/nullability, foreign
@@ -2749,8 +2755,8 @@ PDFs, which are not reconstructible from this schema.
 ⚠️ **Superseded in part — read the correction at the top of this file first.**
 The arithmetic below is sound and the drift guard on it is worth keeping, but the
 number it produces is a **file-derived upper bound, not the applied state**. At
-least two of the 35 are demonstrably live in production, measured against the
-running site. Treat 35 as "no more than 35", and establish the real set with
+least two of the 36 are demonstrably live in production, measured against the
+running site. Treat 36 as "no more than 36", and establish the real set with
 `supabase migration list --linked` before planning a release.
 
 **None of the four numbers previously in this file was right**, and the fifth —
@@ -2765,16 +2771,16 @@ that day**:
 dump confirmed the objects were absent, and a restored production clone applied
 all 18 in order and proved rollback.
 
-Seventeen migrations have been added since. So the count is arithmetic:
+Eighteen migrations have been added since. So the count is arithmetic:
 
 ```
-122 local − 87 applied           = 35
-18 audited pending + 17 added    = 35   ✓ reconciles
+123 local − 87 applied           = 36
+18 audited pending + 18 added    = 36   ✓ reconciles
 ```
 
 All 18 audited-pending versions are still on disk under their original names.
 
-### ⚠️ Six of the 35 are SECURITY hardening, not features
+### ⚠️ Seven of the 36 are SECURITY hardening, not features
 
 This is the part that changes the priority. Written, reviewed, merged — and
 **not live**:
@@ -2785,6 +2791,7 @@ This is the part that changes the priority. Written, reviewed, merged — and
 - `20260812010000_creator_tips_not_world_readable`
 - `20260813000000_donor_message_anonymity_contract`
 - `20260814010000_harden_role_and_team_boundaries`
+- `20260830000000_protect_verification_and_campaign_integrity`
 
 The staging blocker is not only holding back features; it is holding back RLS and
 privilege hardening in production. Several others (`tasks`, `custom_domains`,
@@ -2808,7 +2815,7 @@ miscounting, it was adding migrations and leaving the old number in place.
 
 Owner action unchanged: upgrade Supabase, free a project slot, or provision
 staging elsewhere. Do not bypass the gate — the ledger's last line says so, and
-35 unverified migrations including six privilege changes is exactly the case the
+36 unverified migrations including seven privilege changes is exactly the case the
 gate exists for.
 
 ## ⚪ `/certificate` — NOT a deferral; building it would require inventing data
