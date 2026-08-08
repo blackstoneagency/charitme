@@ -262,12 +262,13 @@ input, select, textarea, button { max-width: 100%; }
    68px bar, so the extra height is absorbed by the existing centring and nothing
    moves. */
 .kind-header nav > a { display: inline-flex; align-items: center; gap: 5px; color: #c0c8d2; font-size: 13px; font-weight: 700; white-space: nowrap; min-height: 24px; }
-.kind-header nav > a.active { position: relative; color: #4015e8; }
+/* The header is always black, so its active foreground must not flip by theme. */
+.kind-header nav > a.active { position: relative; color: #c4b5fd; }
 /* -22px, not -24px, because the underline is anchored to the LINK but must land on
    the header's bottom edge. Centred in the 68px bar, the gap below a link of
    height h is (68 - h) / 2; at h = 24 that is exactly 22. It read -24px while the
    links were ~19.5px tall — correct then, 2.25px low once they grew. */
-.kind-header nav > a.active::after { content: ""; position: absolute; left: 0; right: 0; bottom: -22px; height: 2px; background: #5521f1; }
+.kind-header nav > a.active::after { content: ""; position: absolute; left: 0; right: 0; bottom: -22px; height: 2px; background: #c4b5fd; }
 /* ── Header mega-menus ────────────────────────────────────────────────────────
    Two dropdowns (Explore Causes, Resources) replacing what was a flat 8-item
    nav. #98 measured that this bar has NO spare horizontal capacity below
@@ -1069,7 +1070,7 @@ input, select, textarea, button { max-width: 100%; }
    track had no child, so every footer carried ~215px of dead space on the
    right — the empty area beside the link columns. */
 .kind-footer-grid { display: grid; grid-template-columns: 220px minmax(0, 1fr) auto; gap: 40px; align-items: start; }
-.kind-footer .kind-logo strong { font-size: 21px; }
+.kind-footer .kind-logo strong { font-size: 21px; color: var(--t1); }
 .kind-footer-brand p { margin: 18px 0 0; color: #65708f; font-size: 13px; line-height: 1.55; font-weight: 750; }
 .kind-footer h3 { margin: 0 0 12px; color: #14193b; font-size: 11px; font-weight: 950; }
 .kind-footer-links { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 38px; }
@@ -11189,6 +11190,22 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   --rp-green: #64c953;
   --rp-blue: #4eb6ef;
   --rp-amber: #f0a52c;
+
+  /* Shared components use generic tokens inline, so the complete text, surface,
+     and border family must move together on this permanently dark surface. */
+  --bg: var(--rp-bg);
+  --t1: var(--rp-text);
+  --t2: var(--rp-muted);
+  --t3: var(--rp-muted);
+  --t4: var(--rp-muted);
+  --muted: var(--rp-muted);
+  --s1: var(--rp-panel);
+  --s2: var(--rp-panel-strong);
+  --s3: var(--rp-line);
+  --b1: var(--rp-line);
+  --b2: var(--rp-line-strong);
+  --b3: var(--rp-line-strong);
+
   min-height: 100vh;
   padding-bottom: 36px;
   overflow: clip;

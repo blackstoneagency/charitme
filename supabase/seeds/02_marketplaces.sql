@@ -31,8 +31,9 @@ end $$;
 
 do $$
 begin
-  if current_setting('app.charitme_allow_demo_seed', true) <> 'true' then
-    raise exception 'Demo seed blocked. Set app.charitme_allow_demo_seed = true only on a disposable staging/demo project.';
+  if coalesce(current_setting('app.charitme_allow_demo_seed', true), '') <> 'true'
+     and coalesce(current_setting('charitme.allow_demo_seed', true), '') <> 'true' then
+    raise exception 'Demo seed blocked. Mark only a disposable staging/demo project before seeding.';
   end if;
 end $$;
 
