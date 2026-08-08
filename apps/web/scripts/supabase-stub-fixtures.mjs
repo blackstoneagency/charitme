@@ -183,7 +183,7 @@ export function buildFixtures() {
       // lib/reconciliation.ts and lib/pricing-analytics.ts both filter
       // `.eq('offline', false)` to mean "came through Stripe". SQL equality
       // excludes NULL, so an absent column made both surfaces report zero over a
-      // table of 400 rows. This is the same defect the 20260827 migration fixes
+      // table of 400 rows. This is the same defect the 20260827010000 migration fixes
       // in the database — the fixture was reproducing it.
       offline: i % 25 === 0,
       offline_method: i % 25 === 0 ? ['cash', 'cheque', 'bank transfer'][i % 3] : null,
@@ -641,6 +641,12 @@ export function buildFixtures() {
   // non-member must both see the two gated posts as locked.
   const member_subscriptions = [];
 
+  const saved_campaigns = campaigns.slice(0, 12).map((campaign, i) => ({
+    user_id: USER_ID,
+    campaign_id: campaign.id,
+    created_at: daysAgo(i),
+  }));
+
   return {
     _user: defaultUser,
     _access_token: 'stub-access-token',
@@ -665,6 +671,7 @@ export function buildFixtures() {
     membership_tiers,
     exclusive_posts,
     member_subscriptions,
+    saved_campaigns,
     campaign_updates,
     campaign_payments,
     campaign_payment_events: [

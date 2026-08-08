@@ -1,5 +1,15 @@
 import 'server-only';
-import { supabaseAdmin } from './supabase';
+import { supabaseAdmin, supabasePublic } from './supabase';
+// ⚠️ Three of these four reads use `supabasePublic` (anon key) so the strip
+// survives a service-role outage — which took the whole site down once. Anon
+// returns EXACTLY the same values for them: 352 live campaigns and $96,850
+// raised, both matching what the healthy site reported.
+//
+// The donations count stays on `supabaseAdmin` on purpose. Anon sees 0 of them
+// because RLS hides them, while the real figure is 592 — and `sum(backer_count)`
+// is NOT a substitute either: it comes to 392, a different measure. So that one
+// tile renders an honest em dash during an outage rather than a false zero on a
+// donation platform.
 import { boundedQuery } from './query-timeout';
 import { campaignColumns, applyLiveFilters } from './campaign-visibility';
 import { CAUSES } from './causes';
@@ -73,13 +83,13 @@ export async function getCausesIndexData(): Promise<CausesIndexData> {
       // below. Eighteen head-counts would give the counts but not the sums.
       boundedQuery(() =>
         applyLiveFilters(
-          supabaseAdmin.from('campaigns').select('category, raised_amount'),
+          supabasePublic.from('campaigns').select('category, raised_amount'),
           cols,
         ).limit(TALLY_LIMIT),
       ),
       boundedQuery(() =>
         applyLiveFilters(
-          supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true }),
+          supabasePublic.from('campaigns').select('id', { count: 'exact', head: true }),
           cols,
         ),
       ),
@@ -90,7 +100,7 @@ export async function getCausesIndexData(): Promise<CausesIndexData> {
           .eq('status', 'completed'),
       ),
       boundedQuery(() =>
-        supabaseAdmin
+        supabasePublic
           .from('supported_countries')
           .select('id', { count: 'exact', head: true })
           .eq('active', true)

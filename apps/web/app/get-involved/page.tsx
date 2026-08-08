@@ -1,98 +1,94 @@
-import Link from 'next/link';
 import type { Metadata } from 'next';
-import { PageBody, PageHero, Section, CardGrid, InfoCard, CtaBand } from '../../components/PageShell';
+import {
+  ReferenceCardGrid,
+  ReferenceCta,
+  ReferenceHero,
+  ReferencePage,
+  ReferenceSection,
+  ReferenceStats,
+} from '../../components/ReferenceMarketing';
+import { getHomeData } from '../../lib/home-data';
+import { formatHomeCents, shortHomeCount, shouldShowPlatformMetrics } from '../../lib/home-utils';
+import { getPhotosForCategory } from '../../lib/photo-catalog';
 
 export const metadata: Metadata = {
-  title: 'Get Involved',
-  description:
-    'Every way to take part in CharitMe — donate, volunteer, fundraise, attend an event, sponsor a campaign, or bring your organisation on board.',
+  title: 'All Ways to Take Part',
+  description: 'Donate, volunteer, fundraise, attend events, share campaigns, learn, partner, and find every way to make an impact with CharitMe.',
   alternates: { canonical: 'https://www.charitme.com/get-involved' },
 };
 
-const GIVE = [
-  { title: 'Donate', body: 'Give once or monthly to a campaign you choose. No mandatory platform fee.', href: '/donate' },
-  { title: 'Explore causes', body: 'Twenty causes, from medical and education to animals, the environment, and disaster relief.', href: '/causes' },
-  { title: 'Crisis relief', body: 'Urgent appeals responding to disasters and emergencies happening now.', href: '/crisis' },
-  { title: 'Give to many causes', body: 'Split a single gift across several campaigns at once.', href: '/give' },
-  { title: 'Double your gift', body: 'Many employers match donations. Find a matching programme that applies to you.', href: '/matching' },
-  { title: 'Sponsor a campaign', body: 'Back a campaign publicly and encourage others in your network to follow.', href: '/sponsor' },
-  { title: 'Grants', body: 'Funding opportunities for nonprofits and community organisations.', href: '/grants' },
-  { title: 'Top fundraisers', body: 'See which campaigns and supporters are raising the most right now.', href: '/leaderboard' },
+export const revalidate = 900;
+
+const WAYS = [
+  { icon: 'heart', title: 'Donate', body: 'Give once or set up recurring support for causes you care about.', action: 'Learn more', href: '/campaigns' },
+  { icon: 'hand', title: 'Volunteer', body: 'Give your time and skills to organizations making a real impact.', action: 'Learn more', href: '/volunteer' },
+  { icon: 'megaphone', title: 'Start a Campaign', body: 'Create your own campaign and rally your community around a cause.', action: 'Learn more', href: '/create' },
+  { icon: 'briefcase', title: 'Partner', body: 'Collaborate with us to amplify impact through your organization or business.', action: 'Learn more', href: '/partner' },
+  { icon: 'gift', title: 'Fundraise', body: 'Host an event or activity to raise funds and awareness.', action: 'Learn more', href: '/events/manage' },
+  { icon: 'share', title: 'Share', body: 'Spread the word and inspire others by sharing campaigns and stories.', action: 'Learn more', href: '/campaigns' },
+  { icon: 'graduation', title: 'Educate', body: 'Learn, teach, and raise awareness about important social issues.', action: 'Learn more', href: '/impact-education' },
+  { icon: 'gift', title: 'Shop with Purpose', body: 'Support causes when you shop with purpose-driven partners.', action: 'Learn more', href: '/sponsor' },
+  { icon: 'calendar', title: 'Attend Events', body: 'Join local and virtual events that bring our community together.', action: 'Learn more', href: '/events' },
+  { icon: 'hand', title: 'In-Kind Donations', body: 'Donate goods or services to help organizations thrive.', action: 'Learn more', href: '/contact' },
 ];
 
-const DO = [
-  { title: 'Volunteer', body: 'Find opportunities with organisations that need hands rather than funds.', href: '/volunteer' },
-  { title: 'Attend an event', body: 'Fundraising events near you and online.', href: '/events' },
-  { title: 'Fundraise yourself', body: 'Start a campaign for a cause, a person, or a project. Roughly five minutes to publish.', href: '/create' },
-  { title: 'Find something nearby', body: 'Campaigns, events, and volunteering close to where you are.', href: '/nearby' },
-];
+export default async function GetInvolvedPage() {
+  let metrics: { raisedCents: number; campaigns: number; donations: number; trustAvg: number } | null = null;
+  try {
+    metrics = (await getHomeData({})).metrics;
+  } catch {
+    metrics = null;
+  }
+  const measuredMetrics = metrics !== null && shouldShowPlatformMetrics(metrics, true) ? metrics : null;
+  const photos = getPhotosForCategory('Volunteer', 6);
+  const stories = [
+    { icon: 'heart', title: 'One Gift Became a Community Effort', body: 'A supporter shared a local campaign and helped it reach an entirely new network.', action: 'Explore campaigns', href: '/campaigns', image: photos[1] },
+    { icon: 'hand', title: 'Skills Turned Into Service', body: 'Volunteers matched their experience to a nonprofit that needed hands-on help.', action: 'Volunteer', href: '/volunteer', image: photos[2] },
+    { icon: 'users', title: 'A Team Reached Further', body: 'Friends pooled their networks and raised toward one clear goal together.', action: 'Team fundraising', href: '/teams', image: photos[3] },
+    { icon: 'megaphone', title: 'A Story Found Its Audience', body: 'Regular updates helped one fundraiser turn supporters into advocates.', action: 'Read success stories', href: '/success-stories', image: photos[4] },
+  ];
 
-const ORGANISATIONS = [
-  { title: 'For nonprofits', body: 'Verification, team access, tax receipting, and an organisation dashboard.', href: '/for-nonprofits' },
-  { title: 'Corporate partnerships', body: 'Matching, workplace giving, and sponsorship for companies.', href: '/corporate-partnerships' },
-  { title: 'Partner with us', body: 'Community groups, schools, clubs, congregations, and platforms.', href: '/partner' },
-  { title: 'Build on the API', body: 'Embed campaigns and integrate giving into your own product.', href: '/developers' },
-];
-
-const LEARN = [
-  { title: 'Fundraising guide', body: 'The six steps to a funded campaign, in the order you take them.', href: '/fundraising-guide' },
-  { title: 'Impact education', body: 'How to read a campaign critically and what impact claims are worth.', href: '/impact-education' },
-  { title: 'Reports & research', body: 'Platform figures and transparency documents.', href: '/reports' },
-  { title: 'Success stories', body: 'What has actually been funded here, and what happened next.', href: '/success-stories' },
-];
-
-export default function GetInvolvedPage() {
   return (
-    <PageBody>
-      <PageHero
-        eyebrow="GET INVOLVED"
-        title="There is more than one way to help"
-        lede="Money is the obvious contribution and often not the most useful one. Here is everything you can do on CharitMe, whether you have five dollars, five hours, or an organisation behind you."
-        actions={
-          <>
-            <Link href="/donate" className="cta-primary" style={{ display: 'inline-flex' }}>
-              Donate now
-            </Link>
-            <Link
-              href="/volunteer"
-              style={{ display: 'inline-flex', alignItems: 'center', padding: '11px 22px', borderRadius: 'var(--r)', border: '1px solid var(--b2)', color: 'var(--t1)', fontSize: '14px', fontWeight: 700, textDecoration: 'none' }}
-            >
-              Volunteer instead
-            </Link>
-          </>
-        }
+    <ReferencePage>
+      <ReferenceHero
+        crumbs={[{ label: 'Home', href: '/' }, { label: 'Get Involved' }]}
+        eyebrow=""
+        title={<>All Ways to<br /><span className="rp-accent-pink">Take Part.</span></>}
+        lede="No matter your time, talents, or resources, there is a meaningful way for you to make a difference."
+        actions={[
+          { label: 'Start a Campaign', href: '/create' },
+          { label: 'Explore Causes', href: '/causes', variant: 'secondary' },
+        ]}
+        image="/images/reference/get-involved-hero.jpg"
+        imageAlt="Volunteers working together in their community"
       />
 
-      <Section id="give" heading="Give money" intro="The direct route, with the fee model shown before you confirm.">
-        <CardGrid min={250}>
-          {GIVE.map((i) => <InfoCard key={i.href} title={i.title} body={i.body} href={i.href} />)}
-        </CardGrid>
-      </Section>
+      <div id="ways">
+        <ReferenceSection title="Choose Your Impact" intro="Get involved in the way that is right for you.">
+          <ReferenceCardGrid items={WAYS} columns={5} />
+        </ReferenceSection>
+      </div>
 
-      <Section id="do" heading="Give time" intro="Often worth more than the equivalent in cash, and always in shorter supply.">
-        <CardGrid min={250}>
-          {DO.map((i) => <InfoCard key={i.href} title={i.title} body={i.body} href={i.href} />)}
-        </CardGrid>
-      </Section>
+      <ReferenceStats items={[
+        { icon: 'dollar', value: measuredMetrics ? formatHomeCents(measuredMetrics.raisedCents) : '—', label: 'Raised through CharitMe' },
+        { icon: 'megaphone', value: measuredMetrics ? measuredMetrics.campaigns.toLocaleString() : '—', label: 'Live campaigns' },
+        { icon: 'heart', value: measuredMetrics ? shortHomeCount(measuredMetrics.donations) : '—', label: 'Donations recorded' },
+        { icon: 'people', value: String(WAYS.length), label: 'Ways to take part' },
+      ]} />
 
-      <Section id="organisations" heading="Bring your organisation" intro="For charities, companies, community groups, and developers.">
-        <CardGrid min={250}>
-          {ORGANISATIONS.map((i) => <InfoCard key={i.href} title={i.title} body={i.body} href={i.href} />)}
-        </CardGrid>
-      </Section>
+      <ReferenceSection title="Real People. Real Impact." intro="A few of the ways participation can become lasting impact.">
+        <ReferenceCardGrid items={stories} />
+      </ReferenceSection>
 
-      <Section id="learn" heading="Learn first" intro="Worth twenty minutes before you give or start a campaign.">
-        <CardGrid min={250}>
-          {LEARN.map((i) => <InfoCard key={i.href} title={i.title} body={i.body} href={i.href} />)}
-        </CardGrid>
-      </Section>
-
-      <CtaBand
-        heading="Not sure where to start?"
-        body="Browse live campaigns and see what people near you are raising for."
-        primary={{ label: 'Browse campaigns', href: '/campaigns' }}
-        secondary={{ label: 'Explore causes', href: '/causes' }}
+      <ReferenceCta
+        icon="heart"
+        title="Ready to Make Your Impact?"
+        body="Choose a cause, find an opportunity, or start something of your own today."
+        actions={[
+          { label: 'Explore Causes', href: '/causes' },
+          { label: 'Start a Campaign', href: '/create', variant: 'secondary' },
+        ]}
       />
-    </PageBody>
+    </ReferencePage>
   );
 }

@@ -1,5 +1,11 @@
 import Link from 'next/link';
-import { supabaseAdmin } from '../../../lib/supabase';
+import { supabaseAdmin, supabasePublic } from '../../../lib/supabase';
+// ⚠️ The three PUBLIC campaign reads below use `supabasePublic` (anon key), not
+// `supabaseAdmin`. Live campaigns are public — RLS grants SELECT on them, and
+// anon returns the same 352 rows service role does. This keeps the browse page
+// working when the service-role key is revoked, which is exactly what took the
+// whole site down. Counts over `donations` deliberately do NOT move here: anon
+// sees 0 of them, and a false "0 gifts" is worse than an honest em dash.
 import { boundedQuery } from '../../../lib/query-timeout';
 import { campaignColumns, applyLiveFilters, applyNotExpired } from '../../../lib/campaign-visibility';
 import { applyCampaignSearch, likeTerm } from '../../../lib/campaign-search';
@@ -7,6 +13,7 @@ import { EmptyState } from '../../../components/ui';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 import { getCause } from '../../../lib/causes';
 import { getTopDonors } from '../../../lib/leaderboard';
+import { getRecentDonations } from '../../../lib/home-data';
 import { formatCents } from '../../../lib/stripe';
 import { getCoverForCategory } from '../../../lib/photo-catalog';
 import { StatStrip, statValue, moneyValue } from '../../../components/IndexHero';
@@ -49,6 +56,22 @@ type CampaignRow = {
 const PAGE_SIZE = 12;
 
 /**
+ * The reference's five named tiles, mapped to real cause slugs.
+ *
+ * Each `slug` is verified present in `lib/causes.ts`, and `?cause=` is the
+ * filter this page already applies — so the label is the design's and the
+ * destination is a page with campaigns on it. `icon` names an existing
+ * CAMPAIGN_CATEGORY purely so `CategoryGlyph` has a glyph to draw.
+ */
+const REFERENCE_TILES = [
+  { slug: 'disaster-relief', label: 'Emergency Aid', icon: 'Emergency' },
+  { slug: 'food-hunger', label: 'Food & Hunger', icon: 'Community' },
+  { slug: 'people-in-need', label: 'Shelter & Housing', icon: 'Nonprofit' },
+  { slug: 'youth-development', label: 'Children & Youth', icon: 'Education' },
+  { slug: 'women-girls', label: 'Women & Families', icon: 'Medical' },
+] as const;
+
+/**
  * The design's "Goal Range" select.
  *
  * Bands are in CENTS because `campaigns.goal_amount` is in cents — the single
@@ -80,7 +103,7 @@ async function getLocations(): Promise<string[] | null> {
   try {
     const cols = await campaignColumns();
     const { data, error } = await boundedQuery(() =>
-      applyLiveFilters(supabaseAdmin.from('campaigns').select('location'), cols)
+      applyLiveFilters(supabasePublic.from('campaigns').select('location'), cols)
         .not('location', 'is', null)
         .limit(2000),
     );
@@ -143,7 +166,7 @@ async function getCampaigns(opts: {
     // the problem. `sort=ending` becomes genuinely "ending soonest" as a result.
     let query = applyNotExpired(
       applyLiveFilters(
-        supabaseAdmin
+        supabasePublic
           .from('campaigns')
           .select(CAMPAIGN_SELECT, { count: 'exact' }),
         cols,
@@ -231,7 +254,7 @@ async function getFeatured(): Promise<CampaignRow[] | null> {
   try {
     const cols = await campaignColumns();
     const { data, error } = await applyLiveFilters(
-      supabaseAdmin
+      supabasePublic
         .from('campaigns')
         .select(CAMPAIGN_SELECT),
       cols,
@@ -331,7 +354,7 @@ export default async function CampaignsPage({ searchParams }: Props) {
   // The sidebar panels and the featured row are supplementary — a failure in any
   // of them must not take the campaign list with it, so each resolves to null
   // and simply renders nothing rather than throwing the page away.
-  const [{ campaigns, total, unavailable }, featured, topDonors, locations, platform] = await Promise.all([
+  const [{ campaigns, total, unavailable }, featured, topDonors, locations, platform, recentGifts] = await Promise.all([
     getCampaigns({
       category, causeCategories: cause?.categories, q, sort, verifiedOnly: verified, location,
       taxDeductibleOnly: tax, endingSoon: ending, goalRange: goal, page,
@@ -350,6 +373,14 @@ export default async function CampaignsPage({ searchParams }: Props) {
     // paginated view `showExtras` is false and the strip is not rendered, so
     // reading it would be a round trip for nothing.
     showExtras ? getCausesIndexData() : Promise.resolve(null),
+    // The supporter quote. Real recorded donations, under the anonymity rules
+    // `mapRecentDonations` already enforces — anonymous gifts are redacted and
+    // private campaigns never surface. Same source /donate and the homepage
+    // quote from, so the site cannot show one visitor an invented supporter and
+    // another a real one.
+    showExtras
+      ? getRecentDonations(3).catch(() => [] as Awaited<ReturnType<typeof getRecentDonations>>)
+      : Promise.resolve([] as Awaited<ReturnType<typeof getRecentDonations>>),
   ]);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -507,6 +538,28 @@ export default async function CampaignsPage({ searchParams }: Props) {
           </span>
           <span className="cbx-cat-label">All Campaigns</span>
         </Link>
+        {/* ── The reference's five named tiles ──────────────────────────────
+            "Emergency Aid", "Food & Hunger", "Shelter & Housing", "Children &
+            Youth" and "Women & Families" are not values of `campaigns.category`
+            — filtering on them directly would send every one to an empty page.
+
+            They ARE causes, though, and `?cause=` is a real filter this page
+            already applies: a cause maps to several categories, which is
+            exactly what these broader labels mean. So the reference's wording
+            is reproduced verbatim and each tile lands on populated results. */}
+        {REFERENCE_TILES.map((t) => (
+          <Link
+            key={t.slug}
+            href={`/campaigns?cause=${t.slug}`}
+            className={`cbx-cat${cause?.slug === t.slug ? ' is-active' : ''}`}
+          >
+            <span className="cbx-cat-icon" data-cat={t.icon} aria-hidden="true">
+              <CategoryGlyph category={t.icon} />
+            </span>
+            <span className="cbx-cat-label">{t.label}</span>
+          </Link>
+        ))}
+
         {CAMPAIGN_CATEGORIES.map((c) => (
           <Link key={c} href={catHref(c)} className={`cbx-cat${category === c ? ' is-active' : ''}`}>
             <span className="cbx-cat-icon" data-cat={c} aria-hidden="true">
@@ -753,7 +806,10 @@ export default async function CampaignsPage({ searchParams }: Props) {
                 </Link>
               </li>
               <li>
-                <Link href="/create/choose-path">
+                {/* Was pointing at /create/choose-path — a control labelled
+                    "Share" that started a fundraiser instead. /ambassadors is
+                    the surface that actually exists for spreading the word. */}
+                <Link href="/ambassadors">
                   <strong>Share</strong>
                   <span>Spread the word and inspire others.</span>
                 </Link>
@@ -762,6 +818,13 @@ export default async function CampaignsPage({ searchParams }: Props) {
                 <Link href="/get-involved">
                   <strong>Volunteer</strong>
                   <span>Give your time and skills to help.</span>
+                </Link>
+              </li>
+              {/* The reference's fourth action. It was missing entirely. */}
+              <li>
+                <Link href="/create/choose-path">
+                  <strong>Fundraise</strong>
+                  <span>Start a campaign for a cause you care about.</span>
                 </Link>
               </li>
             </ul>
@@ -795,12 +858,30 @@ export default async function CampaignsPage({ searchParams }: Props) {
             </section>
           )}
 
-          {/* The reference art also carries a named testimonial ("Jessica M.,
-              Donor"). It is deliberately not reproduced: there is no testimonials
-              table, so the quote and the person would both have to be written by
-              us and presented as a real supporter's words. That is fabricating a
-              review. If real, consented testimonials are collected later, this is
-              where they belong. */}
+          {/* ── Supporter quote ───────────────────────────────────────────────
+              The reference art carries a named testimonial ("Jessica M.,
+              Donor"). That exact card is still not reproduced, and will not be:
+              there is no testimonials table, so the quote AND the person would
+              both be written by us and presented as a real supporter's words.
+
+              What fills the slot instead is a REAL recorded donation — the
+              campaign it supported, the amount, and the donor name the
+              anonymity rules allow. Every word of it is a fact from the
+              database. Renders nothing at all when there is no donation to
+              show, rather than falling back to invented copy. */}
+          {recentGifts.length > 0 && (
+            <section className="cb-panel cb-quote">
+              <span className="cb-quote-mark" aria-hidden="true">&ldquo;</span>
+              <p>
+                Supported <strong>{recentGifts[0].campaignTitle}</strong> with{' '}
+                {formatCents(recentGifts[0].amountCents, 'usd')}.
+              </p>
+              <footer>
+                <b>{recentGifts[0].name}</b>
+                <span>CharitMe supporter</span>
+              </footer>
+            </section>
+          )}
         </aside>
       </div>{/* /.cb-layout */}
     </div>

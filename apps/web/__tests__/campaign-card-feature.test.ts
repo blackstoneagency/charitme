@@ -7,7 +7,7 @@ import { resolve } from 'node:path';
 // information a donor decides on. These tests pin what may and may not go.
 
 const read = (p: string) => readFileSync(resolve(__dirname, '..', p), 'utf8');
-const card = read('components/CampaignCard.tsx');
+const card = read('components/CampaignCard.tsx').replace(/\r\n/g, '\n');
 const feature = card.slice(card.indexOf("if (variant === 'feature')"), card.indexOf('  return (\n    <Link href={`/campaigns/${c.slug}`} style'));
 
 describe('the feature card is one component, not a copy', () => {

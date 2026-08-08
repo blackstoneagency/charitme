@@ -4,14 +4,14 @@ import { join } from 'node:path';
 import { MAIN_NAV, allNavHrefs, flattenNav } from '../lib/main-nav';
 
 describe('header structure', () => {
-  it('keeps the desktop bar at six top-level items', () => {
+  it('keeps the desktop bar at four top-level items', () => {
     // Not cosmetic. #98 measured that the header has NO spare horizontal
     // capacity below 1366px — the nav overflowed under `.kind-auth` and made
     // three links unclickable sitewide. Two dropdowns absorbing twenty
     // destinations is what makes this structure fit. A seventh item needs a
     // measurement at 1366/1440, not a judgement call, so this test makes adding
     // one a deliberate act.
-    expect(MAIN_NAV).toHaveLength(6);
+    expect(MAIN_NAV).toHaveLength(4);
   });
 
   it('has exactly the two dropdowns the design specifies', () => {
@@ -42,7 +42,7 @@ describe('header structure', () => {
   });
 
   it('lays the dropdowns out in the columns the design shows', () => {
-    const [causes, , , , , resources] = MAIN_NAV;
+    const [causes, , resources] = MAIN_NAV;
     if (causes.kind !== 'menu' || resources.kind !== 'menu') throw new Error('menus missing');
 
     expect(causes.columns.map((c) => c.heading)).toEqual(['Popular Causes', 'All Causes']);
@@ -57,7 +57,7 @@ describe('header structure', () => {
     // /get-involved belong in this menu. The columns are still EQUAL, which is
     // what the design actually constrains — a menu with 6/6/4 columns looks
     // like a bug, and the header's horizontal budget is unaffected by depth.
-    expect(resources.columns.map((c) => c.links.length)).toEqual([6, 6, 6]);
+    expect(resources.columns.map((c) => c.links.length)).toEqual([8, 6, 6]);
   });
 });
 

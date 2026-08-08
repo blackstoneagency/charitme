@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 // ─────────────────────────────────────────────────────────────────────────────
 // Co-equal entry for the two campaign-creation paths (CHAR-0017 gap #1).
 // Both converge on the same /create wizard + /api/campaigns model:
-//   • AI path      → /ai-campaign (prompt) → /create?ai=<prompt> (seeds + drafts)
+//   • AI path      → /ai-campaign (prompt) → /create/ai?cause=<prompt> (12 steps)
 //   • Guided path  → /create (step-by-step wizard)
 // Theme-aware (CSS-variable colours) and mobile-first (cards stack < 720px).
 // ─────────────────────────────────────────────────────────────────────────────

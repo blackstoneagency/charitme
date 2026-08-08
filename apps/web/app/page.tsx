@@ -192,13 +192,20 @@ export default async function HomePage() {
                   donation is always to a specific campaign. */}
               <Link href="/campaigns" className="mirror-btn mirror-btn-primary">Donate Now <Icon name="heart" /></Link>
               <Link href="#causes" className="mirror-btn mirror-btn-secondary">Explore Causes <Icon name="arrow" /></Link>
-              {/* The reference labels this "Watch Our Impact" with a play
-                  control. There is no film to start: every `campaign_media`
-                  video row points at a reserved `.example` host, which cannot
-                  resolve by construction. A play triangle that navigates to a
-                  page is a fake affordance — the same one already removed from
-                  /contact and the cause pages — so this says what it does. */}
-              <Link href="/impact" className="mirror-btn mirror-btn-secondary">See Our Impact <Icon name="arrow" /></Link>
+              {/* The third hero action is for the OTHER visitor — the one who
+                  came to raise money rather than to give it. The first two both
+                  serve donors ("Donate Now", "Explore Causes"), so before this
+                  the top of the homepage offered a fundraiser no entry point at
+                  all.
+
+                  It goes to /create/choose-path rather than straight to /create:
+                  that page offers both the AI-guided build and the manual
+                  wizard, and sending everyone down one of them decides for them.
+
+                  ⚠️ This replaced "See Our Impact" → /impact. /impact is still
+                  reachable from the header nav ("Our Impact") and the footer, so
+                  the page did not lose its only route in. */}
+              <Link href="/create/choose-path" className="mirror-btn mirror-btn-create">Create Campaign <Icon name="arrow" /></Link>
             </div>
 
             {/* ⚠️ The reference puts a five-face avatar cluster here with

@@ -1,10 +1,13 @@
 #!/usr/bin/env node
+import { randomBytes, randomUUID } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const personaJson = process.env.CHARITME_RLS_TEST_USERS_JSON;
 const requireAuthenticatedPersonas = process.env.REQUIRE_AUTHENTICATED_RLS_PERSONAS === 'true';
+const bootstrapLocalPersonas = process.env.BOOTSTRAP_LOCAL_RLS_PERSONAS === 'true';
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !anonKey) {
   console.error('Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.');
@@ -34,6 +37,51 @@ function parsePersonas(value) {
     }
     return { name, accessToken, email, password, userId };
   });
+}
+
+function requireLocalSupabaseUrl(value) {
+  const hostname = new URL(value).hostname;
+  if (!['127.0.0.1', 'localhost', '::1'].includes(hostname)) {
+    throw new Error('Local RLS persona bootstrap requires a loopback Supabase URL.');
+  }
+}
+
+async function createLocalPersonas() {
+  if (!serviceRoleKey) throw new Error('SUPABASE_SERVICE_ROLE_KEY is required for local RLS bootstrap.');
+  requireLocalSupabaseUrl(supabaseUrl);
+
+  const admin = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const personas = [];
+  const userIds = [];
+
+  try {
+    for (let index = 0; index < 2; index += 1) {
+      const email = `rls-persona-${randomUUID()}@example.test`;
+      const password = randomBytes(32).toString('base64url');
+      const { data, error } = await admin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { full_name: `RLS Persona ${index + 1}` },
+      });
+      if (error || !data.user) throw new Error(`Could not create local RLS persona ${index + 1}.`);
+      userIds.push(data.user.id);
+      personas.push({
+        name: `persona-${index + 1}`,
+        email,
+        password,
+        userId: data.user.id,
+        accessToken: '',
+      });
+    }
+  } catch (error) {
+    await Promise.all(userIds.map((userId) => admin.auth.admin.deleteUser(userId)));
+    throw error;
+  }
+
+  return { admin, personas, userIds };
 }
 
 async function clientFor(persona, personaIndex) {
@@ -83,7 +131,15 @@ async function run() {
     console.log(`PASS anon ${table}: 0 rows`);
   }
 
-  const personas = parsePersonas(personaJson);
+  let personas = parsePersonas(personaJson);
+  let localPersonas = null;
+  if (bootstrapLocalPersonas) {
+    if (personas.length > 0) {
+      throw new Error('Do not combine local RLS bootstrap with supplied personas.');
+    }
+    localPersonas = await createLocalPersonas();
+    personas = localPersonas.personas;
+  }
   if (requireAuthenticatedPersonas && personas.length < 2) {
     throw new Error('At least two authenticated staging personas are required.');
   }
@@ -92,25 +148,33 @@ async function run() {
     return;
   }
 
-  const knownUserIds = new Set(personas.map((persona) => persona.userId));
-  for (const [personaIndex, persona] of personas.entries()) {
-    const client = await clientFor(persona, personaIndex);
-    const own = await readIds(client, 'profiles', persona.userId);
-    if (own.length !== 1) {
-      throw new Error(
-        `Persona ${personaIndex + 1}: expected one own profile row, received ${own.length}.`,
+  try {
+    const knownUserIds = new Set(personas.map((persona) => persona.userId));
+    for (const [personaIndex, persona] of personas.entries()) {
+      const client = await clientFor(persona, personaIndex);
+      const own = await readIds(client, 'profiles', persona.userId);
+      if (own.length !== 1) {
+        throw new Error(
+          `Persona ${personaIndex + 1}: expected one own profile row, received ${own.length}.`,
+        );
+      }
+      console.log(`PASS persona ${personaIndex + 1} own profile: 1 row`);
+
+      for (const otherUserId of knownUserIds) {
+        if (otherUserId === persona.userId) continue;
+        const other = await readIds(client, 'profiles', otherUserId);
+        if (other.length !== 0) {
+          throw new Error(`Persona ${personaIndex + 1}: another profile was readable.`);
+        }
+      }
+      console.log(`PASS persona ${personaIndex + 1} cross-persona profile isolation`);
+    }
+  } finally {
+    if (localPersonas) {
+      await Promise.all(
+        localPersonas.userIds.map((userId) => localPersonas.admin.auth.admin.deleteUser(userId)),
       );
     }
-    console.log(`PASS persona ${personaIndex + 1} own profile: 1 row`);
-
-    for (const otherUserId of knownUserIds) {
-      if (otherUserId === persona.userId) continue;
-      const other = await readIds(client, 'profiles', otherUserId);
-      if (other.length !== 0) {
-        throw new Error(`Persona ${personaIndex + 1}: another profile was readable.`);
-      }
-    }
-    console.log(`PASS persona ${personaIndex + 1} cross-persona profile isolation`);
   }
 }
 

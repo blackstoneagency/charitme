@@ -2,13 +2,13 @@ name: CI
 
 # ⚠️ `paths-ignore` here is a COST control, not a preference.
 #
-# This repository is private, so Actions minutes are a finite monthly allowance,
-# and exhausting it is the most likely cause of the runner outages recorded in
-# CLAUDE.md (jobs created, no runner assigned, 0 billable ms, no steps). Measured
+# This repository is public, so standard hosted-runner minutes are not metered.
+# The ignore list remains an efficiency control: documentation-only changes do
+# not need to run the full build matrix twice. Measured
 # on this repo: 5 of the last 15 commits changed only narrative markdown, and
 # each one ran the full ~9-minute matrix — typecheck, lint, 2762 tests, audit,
 # build, plus e2e — twice, once for the PR and once for the merge to master.
-# About a third of the allowance was being spent on changes that cannot alter a
+# About a third of those runs were spent on changes that cannot alter a
 # test result.
 #
 # ⚠️ The list is EXPLICIT and must stay that way. `'**.md'` looks equivalent and
@@ -173,6 +173,10 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
           NEXT_PUBLIC_APP_URL: https://www.charitme.com
           SUPABASE_SERVICE_ROLE_KEY: placeholder-service-role-key
+
+      - name: Signed-in contrast audit (WCAG AA, both themes)
+        run: npm run audit:signed-in -- --port 3310 --stub-port 55432
+        working-directory: apps/web
 
       - name: Upload Playwright report on failure
         if: failure()

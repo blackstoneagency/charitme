@@ -1,4 +1,4 @@
--- Rollback for 20260827000000_donations_columns_missing_from_migrations.sql
+-- Rollback for 20260827010000_donations_columns_missing_from_migrations.sql
 --
 -- ⚠️ READ THIS BEFORE RUNNING IT ANYWHERE THAT HAS TAKEN A DONATION.
 --

@@ -38,4 +38,11 @@ describe('Supabase provisioning release guard', () => {
     expect(source).toContain('redactArgs(args).join');
     expect(source).not.toContain("console.log(`> ${command} ${args.join(' ')}`)");
   });
+
+  it('uses the linked project when only a database password is configured', () => {
+    expect(source).toContain("return process.env.SUPABASE_DB_URL ?? null");
+    expect(source).toContain("['link', '--project-ref', projectRef, '--yes']");
+    expect(source).toContain("['db', 'push', '--linked', '--include-all', '--yes']");
+    expect(source).not.toContain('@db.${projectRef}.supabase.co:5432/postgres');
+  });
 });

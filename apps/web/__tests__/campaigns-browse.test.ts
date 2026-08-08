@@ -38,16 +38,38 @@ describe('campaigns browse page is wired to real data', () => {
     expect(code).not.toMatch(/const\s+\w*CATEGORIES\w*\s*=\s*\[/);
   });
 
-  it('does not ship a category tile that cannot filter', () => {
-    const invented = [
-      'Emergency Aid', 'Food & Hunger', 'Shelter & Housing',
-      'Health & Care', 'Children & Youth', 'Women & Families',
-    ];
-    const real = new Set<string>(CAMPAIGN_CATEGORIES);
-    for (const label of invented) {
-      expect(real.has(label), `${label} is not a real category — the guard's premise changed`).toBe(false);
-      expect(code, `"${label}" would render a tile that returns no campaigns`).not.toContain(label);
+  it('does not ship a tile that cannot filter', () => {
+    // ⚠️ The guard's PREMISE changed, so the guard did too — carefully.
+    //
+    // It used to say: these six labels are not in CAMPAIGN_CATEGORIES, so they
+    // must not appear anywhere in the page. That was right while the only
+    // filter was `?category=`. The page now also filters by `?cause=`, and a
+    // cause maps to SEVERAL categories — which is exactly what a broad label
+    // like "Food & Hunger" means.
+    //
+    // So the real invariant is not "the label is a category". It is "every
+    // tile leads somewhere that filters". That is what is asserted now, and it
+    // still catches the original bug: a label that is neither a category nor a
+    // cause fails here.
+    const realCategories = new Set<string>(CAMPAIGN_CATEGORIES);
+    const causeSlugs = new Set(
+      [...readFileSync(join(__dirname, '..', 'lib/causes.ts'), 'utf8')
+        .matchAll(/slug: '([a-z0-9-]+)'/g)].map((m) => m[1]),
+    );
+    expect(causeSlugs.size).toBeGreaterThan(15);
+
+    // Every reference tile must name a cause slug that really exists.
+    const tiles = [...code.matchAll(/\{ slug: '([a-z0-9-]+)', label: '([^']+)'/g)];
+    expect(tiles.length, 'the reference tiles must still be present').toBe(5);
+    for (const [, slug, label] of tiles) {
+      expect(causeSlugs.has(slug), `tile "${label}" points at cause "${slug}", which does not exist`).toBe(true);
+      // And the label is deliberately NOT a category — that is the whole point
+      // of routing it through ?cause= instead of ?category=.
+      expect(realCategories.has(label)).toBe(false);
     }
+
+    // "Health & Care" is in neither set, so it must still be absent entirely.
+    expect(code).not.toContain('Health & Care');
   });
 
   it('compares the goal filter in CENTS, because goal_amount is in cents', () => {

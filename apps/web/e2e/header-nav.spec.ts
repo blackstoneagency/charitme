@@ -141,12 +141,25 @@ test('a click pins the dropdown open until an explicit dismissal', async ({ page
   await trigger.click();
   await expect(page.locator('.kind-menu-panel')).toBeVisible();
 
-  await page.mouse.move(4, 500);
-  await expect(page.locator('.kind-menu-panel')).toBeVisible();
+  const panel = page.locator('.kind-menu-panel');
+  const box = await panel.boundingBox();
+  if (!box) throw new Error('Explore Causes panel was not laid out');
+
+  const outsideY = box.y + box.height + 20;
+  expect(outsideY, 'the click point must fit in the viewport').toBeLessThan(900);
+
+  const isOutside = await page.evaluate(
+    (y) => !document.elementFromPoint(720, y)?.closest('.kind-menu-wrap'),
+    outsideY,
+  );
+  expect(isOutside, 'click point must be outside .kind-menu-wrap').toBe(true);
+
+  await page.mouse.move(720, outsideY);
+  await expect(panel).toBeVisible();
 
   await page.mouse.down();
   await page.mouse.up();
-  await expect(page.locator('.kind-menu-panel')).toHaveCount(0);
+  await expect(panel).toHaveCount(0);
 });
 
 test('a hover-opened dropdown survives the gap into its panel', async ({ page }) => {
