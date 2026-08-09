@@ -1,5 +1,44 @@
 # CharitMe — Execution Tracker
 
+## 📋 OPEN ITEMS — the whole list, as of 2026-08-09 (Claude)
+
+**Everything below this section is a record of work already DONE.** ~230 of the
+276 sections are closed defects, kept because they are what stops this codebase
+re-introducing bugs it has already paid for — the category-drift guard and the
+comment-matching trap were each caught by reading them back. Do not mistake the
+file's length for a backlog. This index is the backlog.
+
+### Owner-gated — verified as blocked, not assumed
+
+| item | evidence it is blocked | what unblocks it |
+|---|---|---|
+| GitHub Actions runners | flip-flopping documented in CLAUDE.md; signature is `runner_id: 0`, 0 billable ms | billing/plan — owner action. **Currently ALIVE** (2026-08-08), so a red check is REAL |
+| Staging Supabase project | no credentials exist in this sandbox | owner provisions + supplies env vars |
+| Delete 36 stale branches | token returns **403** on ref deletion | owner runs the command in `docs/branch-cleanup-2026-08-06.md` |
+
+### Awaiting a decision that is not mine to make
+
+- **`/donate/[slug]` dedication step.** The campaign-page dedication field was
+  removed on request; this one remains, so the two donation surfaces now differ.
+  ⚠️ It is **not** a stray field: `dedicate` is step 4 of the canonical
+  `DONATION_STEPS` in `lib/donation-flow-core.ts`, which drives `stepPosition`
+  ("Step 4 of 12"), `previousStep` and the screen-reader announcements. Removing
+  it edits the shared 12-step model on the payment path. Needs an explicit call.
+- **Two homepage entry points to `/create/choose-path`** — the "Create Campaign"
+  hero button and the pre-existing "Start a Fundraiser". Keep both, or drop one.
+
+### Known coverage gap
+
+- The **signed-in** surface has no mobile audit. `audit:mobile --auth` needs a
+  stub session, which needs a database this sandbox does not have.
+
+### ⚠️ Why this file is not truncated
+
+`todo.md` is **shared space** — Codex and Claude lanes both append here, and a
+merge conflict between two lanes in this file was resolved on 2026-08-08.
+Rewriting or archiving it wholesale would land on whatever another lane has
+in flight. Sections are APPEND-only for that reason; this index is additive.
+
 ## 📱 MOBILE READINESS AUDIT — swept, and the headline is that it is CLEAN (Claude, 2026-08-09)
 
 End-to-end mobile audit against a production build. **The result is negative,
