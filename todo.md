@@ -69,6 +69,62 @@ merge conflict between two lanes in this file was resolved on 2026-08-08.
 Rewriting or archiving it wholesale would land on whatever another lane has
 in flight. Sections are APPEND-only for that reason; this index is additive.
 
+## 📐 /campaigns BROWSE STRIP — regrouped, and the height trade is measured (Claude, 2026-08-09)
+
+The strip drove **two different filters** in one undifferentiated wall.
+"Emergency Aid" is `?cause=disaster-relief`; "Emergency" is
+`?category=Emergency`, and they sat seven tiles apart. "Women & Families" sat
+near "Family". Pairs that read as duplicates, look interchangeable, and return
+different result sets — with nothing on screen explaining why.
+
+Now two labelled groups, **Browse by cause** and **Browse by category**, so the
+distinction is visible instead of living in a code comment. A cause is editorial
+and spans several categories; a category is the `campaigns.category` value
+itself. Every tile still resolves to a real filter — `CAMPAIGN_CATEGORIES` for
+the second group, existing cause slugs for the first.
+
+The CSS is now **mobile-first**. The old rules were desktop-first with a
+`@media (max-width: 480px)` block that took the icon DOWN to 38px, so the
+smallest screen got the smallest touch target. 44px (WCAG 2.5.5) is now the
+floor in the base rule, and the media queries only add room at 560px and 900px.
+`campaigns-browse.test.ts` pins that every declared icon width is >= 44 in the
+base rule *and* every media query.
+
+### ⚠️ The strip got TALLER on a phone, and that is the honest number
+
+Measured in Chromium, `.cbx-browse` height:
+
+| width | columns | strip height |
+|---|---|---|
+| 320px | 3 | **789px** |
+| 390px | 4 | 721px |
+| 768px | 7 | 471px |
+| 1280px | 11 | 401px |
+
+Master's version was ~700px at 320px. The two group headings and the larger
+icons each cost height, so this trades ~90px of vertical space for a real
+accessibility floor and for killing the duplicate-label confusion. Worth it, but
+it is a trade and not a pure win.
+
+Two attempts to buy the height back both FAILED and are recorded so they are not
+retried blind:
+
+- **74px columns "for 4 across at 320px" gave THREE**, and an 874px strip. The
+  arithmetic forgot the page gutter, the panel padding and the inter-tile gaps —
+  the usable width is ~250px, not 320px. 64px was tried next and still gives
+  three; four needs ~58px, at which "Shelter & Housing" wraps to four lines and
+  the rows grow back.
+- **11px labels** bought no column and cost readability. Reverted to 12px.
+
+The lever that would actually work is not rendering 24 tiles at once on a phone
+— a collapse or a per-group scroller. Both were left alone deliberately: PR #298
+moved this strip OFF horizontal scrolling six days ago because 21 of 24
+categories sat outside the viewport with no affordance, and re-litigating a
+measured fix on a preference is how that bug comes back.
+
+**Verified after the change**: 0 AA contrast failures (110 pages x 2 themes,
+15,866 elements), 0 axe violations (222 loads), 0 horizontal overflow, 0 tap
+targets under 24px, 3625 tests.
 ## 📱 MOBILE READINESS AUDIT — swept, and the headline is that it is CLEAN (Claude, 2026-08-09)
 
 End-to-end mobile audit against a production build. **The result is negative,
@@ -147,7 +203,6 @@ The release branch also remains green for typecheck, lint, focused unit/contract
 tests, and the zero-state nine-persona Supabase platform matrix. PR #303 remains
 the release vehicle; production is not claimed until its exact head passes CI,
 is merged, and the tagged release workflow completes.
-
 ## 🏷️ A CARD SHOWED "✓ Verified" AND "Needs More Info" AT THE SAME TIME (Claude, 2026-08-08)
 
 Measured on production, `/supporter-space`, before the fix:
@@ -22466,3 +22521,97 @@ why it survived every screenshot taken at 390px.
 
 Confirmed in both directions: 324px reproduced twice before the change, 320px
 after, using the audit's own harness rather than a hand-rolled check.
+### ✅ Round 3 shipped — three screens to publishable (2026-08-09)
+
+Reordered `CAMPAIGN_STEPS` so the three fields the publish gate actually wants
+come first, and opened the builder on the first of them.
+
+The wizard used to *start* on `basics` — `path` was only ever reached by
+pressing Back — so the lived order was basics → title → story → **media** →
+goal. Five screens, with an upload wedged between the story and the goal,
+before a draft was publishable at all.
+
+| | before | after |
+|---|---|---|
+| screens before publishable | 5 (then walk to review to publish) | **3** |
+| account required to start | yes | no |
+
+Measured in a browser: screen 1 "Name Your Campaign", screen 2 "Tell Your
+Story", screen 3 "Set Your Goal" → **Publish now appears**. 0 page errors.
+
+⚠️ **No step KEY changed, only the order.** Keys are what `normalizeStep`
+migrates and what live drafts hold, so a draft saved mid-flow still resolves to
+the screen it was on. A test pins every current key round-tripping plus the two
+legacy generations (`category`→`basics`, `summary`→`review`, `live`→`publish`).
+
+### Contrast of the new button — and a correction
+First measurement reported 9.49:1 in "both themes". **That was wrong**: the app
+re-applies its stored theme on load, so `setAttribute('data-theme','light')`
+was overwritten and the light run measured dark twice — the same false all-clear
+`audit:contrast` exists to prevent.
+
+Setting `localStorage['charitme-theme-v2']` before load instead:
+
+| theme | fg on bg | ratio |
+|---|---|---|
+| dark | `rgb(74,222,128)` on `rgb(24,28,60)` | **9.49:1** |
+| light | `rgb(13,120,60)` on `rgb(250,251,255)` | **5.39:1** |
+
+Both pass AA. ⚠️ For anyone theming this app in a browser: set the
+localStorage key, not the attribute.
+
+### ✅ Round 4 — one screen, two clicks, and the interstitial is out of the way (2026-08-09)
+
+**`title`, `story` and `goal` are now ONE step, `essentials`**, and it is where
+the builder opens. Three Continue presses and two page transitions to enter
+three fields is not a flow, it is a queue.
+
+This is the same merge that produced `basics` (`type`/`category`/`location` were
+three near-empty screens once), and it is migrated the same way — through
+`LEGACY_STEP_MAP`. That map is not historical debt; it is the mechanism that
+lets this flow keep improving without stranding drafts already in flight.
+
+⚠️ **Drafts live 7 days**, so people are holding `title`, `story` and `goal`
+right now. All three map to `essentials`, and a test asserts every current key
+round-trips plus all three legacy generations. An unmapped key renders no
+branch — a blank screen that looks exactly like their work being deleted.
+
+The step count went 12 → 10, so the hardcoded `toHaveLength(12)` assertions
+were rewritten to derive from the model. The path has been 9, 7, 12 and now 10
+steps; pinning a number just means editing it again next time.
+
+### The homepage no longer routes through a chooser
+`/create/choose-path` existed so the AI-vs-manual choice was not made for the
+visitor. That reasoning stopped holding: the builder's FIRST screen now carries
+both "✨ Write with AI" beside the story field and its own link to
+`/ai-campaign`. Nothing is decided by going straight there — the choice is made
+one screen later, in context, next to the field it affects.
+
+The chooser is still a page and still reachable; it is just no longer in the
+way. `/ai-campaign` keeps links from the footer, `/ai-fundraising` and the
+builder, so the AI path did not lose a route in. The test that REQUIRED the
+chooser was inverted, with its reasoning rewritten rather than deleted.
+
+### End to end, measured
+
+```
+homepage → click "Create Campaign" → /create → fill three fields → Publish
+```
+
+| | |
+|---|---|
+| screens visited | **2** |
+| clicks to publish | **2** |
+| seconds, end to end | **7.7** |
+| POST /api/campaigns | **201** |
+| page errors | 0 |
+
+**Where this started:** homepage → chooser → `/create` → 307 to `/login` →
+sign up → basics → title → story → media → goal → rewards → payout → verify →
+review → launch.
+
+### Still open, and honestly out of scope for "frictionless"
+- A real charge has still never run (owner-blocked on Stripe test keys).
+- Nine other pages still link to the chooser (`/fast-payouts`, `/features`,
+  `/ai-fundraising`, …). The homepage is the entry point that mattered; the
+  rest are secondary CTAs on pages a visitor reached deliberately.

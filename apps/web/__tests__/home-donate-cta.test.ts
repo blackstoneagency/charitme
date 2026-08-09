@@ -70,12 +70,28 @@ describe('the hero also serves the visitor who came to RAISE money', () => {
     expect(heroActions()).toMatch(/>\s*Create Campaign/);
   });
 
-  it('sends it to the path chooser, not straight into one builder', () => {
-    // /create/choose-path offers the AI-guided build AND the manual wizard.
-    // Linking either one directly makes that choice on the visitor's behalf.
+  it('sends it straight into the builder, not through a chooser first', () => {
+    // ⚠️ This assertion is INVERTED from what it used to say. It required
+    // /create/choose-path, on the reasoning that linking one builder directly
+    // makes the AI-vs-manual choice for the visitor.
+    //
+    // That reasoning stopped being true when the builder's first screen gained
+    // both "Write with AI" beside the story field and its own link to
+    // /ai-campaign. Nothing is decided by going there — the choice is made one
+    // screen later, in context. What the chooser still cost was a whole screen
+    // between someone and the thing they clicked to do, which is the friction
+    // this flow was re-engineered to remove.
     const create = /<Link href="([^"]+)"[^>]*>\s*Create Campaign/.exec(heroActions());
     expect(create, 'Create Campaign is not a Link').not.toBeNull();
-    expect(create![1]).toBe('/create/choose-path');
+    expect(create![1]).toBe('/create');
+  });
+
+  it('does not strand the AI build — it is still linked from the builder itself', () => {
+    // The chooser's real job was offering the AI path. Removing it from the
+    // hero must not remove that route, so this checks the replacement exists.
+    const builder = read('app/create/page.tsx');
+    expect(builder).toContain('href="/ai-campaign"');
+    expect(builder).toContain('Write with AI');
   });
 
   it('does not leave a second Impact link in the row it replaced', () => {

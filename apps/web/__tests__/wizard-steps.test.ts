@@ -17,10 +17,16 @@ import { CAMPAIGN_STEPS, CAMPAIGN_STEP_META } from '../lib/campaign-flow-core';
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('WIZARD_STEPS', () => {
-  it('is the 12-step path with unique, sequential numbering', () => {
-    expect(WIZARD_STEPS).toHaveLength(12);
-    expect(WIZARD_STEPS.map((s) => s.num)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
-    expect(new Set(WIZARD_STEPS.map((s) => s.key)).size).toBe(12);
+  it('numbers every step once, sequentially, however long the path is', () => {
+    // Deliberately derived rather than a hardcoded 12: the path has been 9, 7
+    // and 12 steps, and is 10 now that title/story/goal share one screen. The
+    // property worth pinning is that the numbering matches the model, not that
+    // the model has a particular length.
+    expect(WIZARD_STEPS).toHaveLength(CAMPAIGN_STEPS.length);
+    expect(WIZARD_STEPS.map((s) => s.num)).toEqual(
+      CAMPAIGN_STEPS.map((_, i) => i + 1),
+    );
+    expect(new Set(WIZARD_STEPS.map((s) => s.key)).size).toBe(CAMPAIGN_STEPS.length);
   });
 
   it('opens on the path question and ends on Share', () => {
@@ -88,7 +94,7 @@ describe('normalizeStep — in-flight drafts must survive the step changes', () 
 describe('minutesRemaining', () => {
   it('counts down as the organizer advances', () => {
     const first = minutesRemaining('path');
-    const later = minutesRemaining('goal');
+    const later = minutesRemaining('basics');
     expect(first).toBeGreaterThan(later);
     expect(later).toBeGreaterThan(0);
   });
