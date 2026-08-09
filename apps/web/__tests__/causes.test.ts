@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 import {
   ALL_CAUSES_COLUMN,
@@ -177,5 +179,33 @@ describe('getCause', () => {
   it('returns undefined for an unknown slug so the route can 404', () => {
     expect(getCause('not-a-cause')).toBeUndefined();
     expect(getCause('')).toBeUndefined();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// `blurb` IS the meta description of /causes/[slug] — it is passed straight to
+// `metadata.description`, `openGraph.description` and the Twitter card. That is
+// not obvious from the field name, and it cost a CI failure: `animals-planet`
+// was 48 characters, two short of the 50 the e2e quality spec requires of every
+// indexable page, and the only signal was a 59-minute Playwright run failing on
+// a number.
+//
+// A unit test costs milliseconds and names the actual constraint. The e2e spec
+// still owns the rendered check — this stops the same defect reaching it.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('every cause blurb is a usable meta description', () => {
+  it.each(CAUSES.map((c) => [c.slug, c.blurb] as const))(
+    '%s is between 50 and 180 characters',
+    (_slug, blurb) => {
+      expect(blurb.length).toBeGreaterThanOrEqual(50);
+      expect(blurb.length).toBeLessThanOrEqual(180);
+    },
+  );
+
+  it('is still what the page publishes, so this test is not measuring a dead field', () => {
+    const page = readFileSync(join(__dirname, '..', 'app', 'causes', '[slug]', 'page.tsx'), 'utf8');
+    expect(page, 'the cause page stopped using blurb as its description').toMatch(
+      /description:\s*cause\.blurb/,
+    );
   });
 });

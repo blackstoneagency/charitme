@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+// Imported, not text-matched. These two lists were parsed out of the file by
+// `startsWith('const PUBLIC_EXCEPTIONS')`, which broke the moment they gained an
+// `export` keyword — a test that fails on a change with no behavioural meaning,
+// while a real edit to the VALUES would have slipped past a line-prefix match
+// just as easily. The e2e auth-gate spec now imports them too, so the boundary
+// has exactly one definition and both of its tests read it.
+import { PROTECTED, PUBLIC_EXCEPTIONS } from '../middleware';
 
 const read = (p: string) => readFileSync(resolve(__dirname, '..', p), 'utf8');
 const middleware = read('middleware.ts');
@@ -28,9 +35,8 @@ const builderCode = builder
  */
 describe('a guest can reach the builder', () => {
   it('/create is exempt from the protected-route redirect', () => {
-    const line = middleware.split('\n').find((l) => l.startsWith('const PUBLIC_EXCEPTIONS'));
-    expect(line, 'PUBLIC_EXCEPTIONS is gone').toBeTruthy();
-    expect(line).toContain("'/create'");
+    expect(PUBLIC_EXCEPTIONS, 'PUBLIC_EXCEPTIONS is gone').toBeTruthy();
+    expect(PUBLIC_EXCEPTIONS).toContain('/create');
   });
 
   it('exempts /create EXACTLY, so nothing under it is opened by accident', () => {
@@ -42,9 +48,8 @@ describe('a guest can reach the builder', () => {
   });
 
   it('still protects the rest of the console', () => {
-    const line = middleware.split('\n').find((l) => l.startsWith('const PROTECTED'));
     for (const p of ['/create', '/dashboard', '/profile', '/admin']) {
-      expect(line, `${p} left the protected list`).toContain(`'${p}'`);
+      expect(PROTECTED, `${p} left the protected list`).toContain(p);
     }
   });
 });
