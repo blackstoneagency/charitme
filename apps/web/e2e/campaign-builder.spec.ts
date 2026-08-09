@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test';
 
 test('campaign creation offers exactly two working paths', async ({ page }) => {
-  await page.goto('/create/choose-path', { waitUntil: 'domcontentloaded' });
+  await page.goto('/create', { waitUntil: 'domcontentloaded' });
+  expect(new URL(page.url()).pathname).toBe('/create');
 
   const cards = page.locator('.cm-choose-card');
   await expect(cards).toHaveCount(2);
@@ -10,6 +11,10 @@ test('campaign creation offers exactly two working paths', async ({ page }) => {
 
   const horizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(horizontalOverflow).toBeLessThanOrEqual(0);
+
+  await page.getByRole('link', { name: /Step by step About 8 minutes/i }).click();
+  await expect(page).toHaveURL(/\/create\?path=guided/);
+  await expect(page.getByRole('heading', { name: 'Name Your Campaign' })).toBeVisible();
 });
 
 test('AI intake explains invalid input before authentication', async ({ page }) => {

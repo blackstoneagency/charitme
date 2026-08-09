@@ -1,8 +1,8 @@
 'use client';
 
-import { Suspense, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { PublicIcon } from '../../components/PublicIcon';
 import { createClient } from '../../lib/supabase-browser';
 import {
@@ -23,17 +23,12 @@ const POPULAR_REQUESTS = [
 ] as const;
 
 export default function AiCampaignPage() {
-  return (
-    <Suspense fallback={null}>
-      <AiCampaignPrompt />
-    </Suspense>
-  );
+  return <AiCampaignPrompt />;
 }
 
 function AiCampaignPrompt() {
   const router = useRouter();
-  const params = useSearchParams();
-  const [prompt, setPrompt] = useState(() => params.get('q') ?? '');
+  const [prompt, setPrompt] = useState('');
   const [linkDraft, setLinkDraft] = useState('');
   const [links, setLinks] = useState<string[]>([]);
   const [files, setFiles] = useState<File[]>([]);
@@ -46,8 +41,10 @@ function AiCampaignPrompt() {
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   useEffect(() => {
+    const queryPrompt = new URLSearchParams(window.location.search).get('q')?.trim();
     const speechWindow = window as Window & SpeechRecognitionWindow;
     const availabilityCheck = window.setTimeout(() => {
+      if (queryPrompt) setPrompt((current) => current || queryPrompt.slice(0, 4000));
       setHydrated(true);
       setVoiceAvailable(Boolean(speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition));
     }, 0);

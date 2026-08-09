@@ -6,7 +6,10 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const read = (path: string): string => readFileSync(join(here, '..', path), 'utf8');
 
-const chooser = read('app/create/choose-path/page.tsx');
+const chooser = [
+  read('app/create/choose-path/page.tsx'),
+  read('app/create/CampaignPathChoice.tsx'),
+].join('\n');
 const aiIntake = read('app/ai-campaign/page.tsx');
 const sharedBuilder = read('app/create/page.tsx');
 const legacyAiRoute = read('app/create/ai/page.tsx');

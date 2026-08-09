@@ -29,6 +29,7 @@ import StepRewards from './StepRewards';
 import StepVerify from './StepVerify';
 import CampaignPlanEditor from './CampaignPlanEditor';
 import CampaignSettingsEditor from './CampaignSettingsEditor';
+import CampaignPathChoice from './CampaignPathChoice';
 import { evaluateDonorView } from '../../lib/donor-preview';
 import { parseCampaignVideoUrl } from '../../lib/campaign-video';
 
@@ -693,7 +694,7 @@ export default function CreatePage() {
         : { ...previous, title: suggestCampaignTitle(previous) });
       setBuilderPath('guided');
     }
-    else window.location.replace('/create/choose-path');
+    else setBuilderPath(null);
   }, []);
 
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
@@ -1665,11 +1666,16 @@ export default function CreatePage() {
 
   if (builderPath === null) {
     return (
-      <CharitMeShell active="My Campaigns" guestMode hideSidebar>
-        <main className="cr2-route-loading" role="status" aria-busy="true" aria-label="Preparing campaign builder">
-          <span className="cr2-route-loading-spinner" aria-hidden="true" />
-        </main>
-      </CharitMeShell>
+      <CampaignPathChoice
+        onGuidedStart={() => {
+          titleSeededRef.current = true;
+          setForm((previous) => previous.title.trim()
+            ? previous
+            : { ...previous, title: suggestCampaignTitle(previous) });
+          window.history.replaceState({}, '', '/create?path=guided');
+          setBuilderPath('guided');
+        }}
+      />
     );
   }
 

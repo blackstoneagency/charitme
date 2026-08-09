@@ -5,7 +5,10 @@ import { builderSteps, normalizeStep } from '../lib/campaign-flow-core';
 
 const read = (path: string) => readFileSync(resolve(__dirname, '..', path), 'utf8');
 const builder = read('app/create/page.tsx');
-const chooser = read('app/create/choose-path/page.tsx');
+const chooser = [
+  read('app/create/choose-path/page.tsx'),
+  read('app/create/CampaignPathChoice.tsx'),
+].join('\n');
 const aiIntake = read('app/ai-campaign/page.tsx');
 
 describe('two paths, one campaign builder', () => {
