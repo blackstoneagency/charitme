@@ -435,13 +435,24 @@ export default function DonateButton({
         {(() => {
           const sel = PAY_OPTIONS.find((o) => o.id === preferredMethod) ?? PAY_OPTIONS[0];
           const selFee = checkout.methodFees[sel.id];
+          // ⚠️ Collapsed, this row carries BOTH charges. Hiding the CharitMe fee
+          // behind this dropdown is only acceptable while the summary still
+          // states it. Expanded, the two are itemised separately — each method
+          // shows its own processor rate, and the CharitMe row shows ours — so
+          // the combined form appears ONLY where nothing else is visible.
+          //
+          // A custom amount is shown in currency rather than as a percent:
+          // "+ $7.50" is what the donor actually chose, and re-deriving a
+          // percentage would round and disagree with the breakdown below.
+          const feeRate = customTipCents != null ? `+ ${money(customTipCents)}` : `+ ${tipPercent}%`;
+          const collapsedRate = methodOpen ? selFee.label : `${selFee.label} ${feeRate}`;
           return (
             <button
               type="button"
               onClick={() => setMethodOpen((o) => !o)}
               aria-expanded={methodOpen}
               aria-controls="payment-method-panel"
-              aria-label={`Payment method: ${sel.label}, ${selFee.label}. Tap to ${methodOpen ? 'collapse' : 'expand'} the options.`}
+              aria-label={`Payment method: ${sel.label}, ${collapsedRate}. Tap to ${methodOpen ? 'collapse' : 'expand'} the options, including the CharitMe fee.`}
               style={{
                 width: '100%', display: 'flex', minWidth: 0, alignItems: 'center', gap: 12,
                 padding: '13px 16px', background: 'var(--s1, #fff)',
@@ -453,7 +464,7 @@ export default function DonateButton({
                 {sel.icon}
               </span>
               <span style={{ flex: 1, fontSize: 14, fontWeight: 800, color: INK }}>{sel.label}</span>
-              <span style={{ fontSize: 11, color: MU, fontWeight: 600, whiteSpace: 'nowrap' }}>{selFee.label}</span>
+              <span style={{ fontSize: 11, color: MU, fontWeight: 600, whiteSpace: 'nowrap' }}>{collapsedRate}</span>
               <svg viewBox="0 0 24 24" width={18} height={18} aria-hidden style={{ ...(ICON_STROKE as React.CSSProperties), color: MU, flexShrink: 0, transform: methodOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>
                 <polyline points="6 9 12 15 18 9" />
               </svg>
@@ -504,132 +515,146 @@ export default function DonateButton({
         )}
       </div>
 
-      {/* ── Optional CharitMe fee — labeled dropdown ── */}
-      <div>
-        <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 700, color: MU, textTransform: 'uppercase', letterSpacing: 0 }}>
-          CharitMe fee
-        </p>
-        <button
-          type="button"
-          onClick={() => setServiceOpen((o) => !o)}
-          aria-expanded={serviceOpen}
-          aria-controls="service-fee-panel"
-          aria-label={`CharitMe fee: ${customTipCents != null ? money(customTipCents) : `${tipPercent}%`}. Tap to ${serviceOpen ? 'collapse' : 'expand'} the options.`}
-          style={{
-            width: '100%', display: 'flex', minWidth: 0, alignItems: 'center', gap: 12,
-            padding: '13px 16px', background: 'var(--s1, #fff)',
-            border: `1.5px solid ${serviceOpen ? V : BD}`, borderRadius: 14,
-            cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'border-color .15s',
-          }}
-        >
-          <span style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--s2, #f5f5f5)', display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            {/* CharitMe brand mark — transparent-background PNG that reads on the
-                theme-adaptive (--s2) chip in both dark and light mode. */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="CharitMe" width={20} height={20} style={{ display: 'block' }} />
-          </span>
-          <span style={{ flex: 1, fontSize: 14, fontWeight: 800, color: INK }}>CharitMe</span>
-          <span style={{ fontSize: 13, color: MU, fontWeight: 700, whiteSpace: 'nowrap' }}>{customTipCents != null ? money(customTipCents) : `${tipPercent}%`}</span>
-          <svg viewBox="0 0 24 24" width={18} height={18} aria-hidden style={{ ...(ICON_STROKE as React.CSSProperties), color: MU, flexShrink: 0, transform: serviceOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </button>
-        {serviceOpen && (
-          <div id="service-fee-panel" style={{ marginTop: 8, border: `1px solid ${BD}`, borderRadius: 16, padding: '16px 18px', background: 'var(--s1, #fff)' }}>
-            <span style={{ fontSize: 16, fontWeight: 800, color: INK }}>Tip CharitMe services</span>
-            <p style={{ margin: '8px 0 12px', fontSize: 12.5, color: MU, lineHeight: 1.5 }}>
-              CharitMe has a 0% platform fee for organizers and relies on the generosity of donors like you to operate our service. Support is optional!
-            </p>
+      {/* ── Optional CharitMe fee — revealed by the payment dropdown ───────
 
-            {/* Suggested tiers — icon + % + label */}
-            <div role="radiogroup" aria-label="Optional CharitMe fee" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 6 }}>
-              {checkout.supportTierPercents.map((p, index) => {
-                const active = customTip === null && tipPercent === p;
-                const meta = TIP_TIER_PRESENTATION[index] ?? TIP_TIER_PRESENTATION[TIP_TIER_PRESENTATION.length - 1];
-                return (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => { setCustomTip(null); setTipPercent(p); }}
-                    role="radio"
-                    aria-checked={active}
-                    aria-label={`Set support to ${p} percent (${meta.label})`}
-                    style={{
-                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                      padding: '9px 2px', borderRadius: 12,
-                      border: `1.5px solid ${active ? V : BD}`,
-                      background: active ? VL : 'var(--s1, #fff)',
-                      color: active ? VT : MU, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .12s',
-                    }}
-                  >
-                    <span style={{ width: 20, height: 20 }}><TipIcon name={meta.icon} /></span>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: active ? VT : INK }}>{p}%</span>
-                    {active
-                      ? <span style={{ fontSize: 8, fontWeight: 800, color: '#fff', background: V, padding: '1px 5px', borderRadius: 999, whiteSpace: 'nowrap' }}>{meta.label}</span>
-                      : <span style={{ fontSize: 9, fontWeight: 600, lineHeight: 1.15, textAlign: 'center' }}>{meta.label}</span>}
-                  </button>
-                );
-              })}
-            </div>
+          Gated on `methodOpen`, so it appears when a donor opens the payment
+          selector rather than sitting beneath it as a second, always-open
+          accordion. Two peer accordions read as two unrelated charges; one
+          disclosure that expands into "here is the processor's fee, and here is
+          ours" reads as a single breakdown.
 
-            {/* ── Custom support amount ──
-                A percentage ladder can't express "I want to give exactly $7". The
-                entered figure is charged to the cent (sent as tipCents), and the
-                equivalent % is shown so the donor can sanity-check it. */}
-            {customTip == null ? (
-              <button
-                type="button"
-                onClick={() => { setCustomTip(''); requestAnimationFrame(() => customTipRef.current?.focus()); }}
-                style={{
-                  display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', gap: 7,
-                  width: '100%', padding: '10px 8px', marginTop: 10,
-                  border: `1.5px dashed ${BD}`, borderRadius: 12, background: 'transparent',
-                  color: VT, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
-                }}
-              >
-                <svg viewBox="0 0 24 24" width={14} height={14} style={ICON_STROKE as React.CSSProperties} aria-hidden>
-                  <path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                </svg>
-                Enter Custom Amount
-              </button>
-            ) : (
-              <div style={{ marginTop: 10 }}>
-                <label htmlFor="custom-tip-amount" style={{ display: 'block', fontSize: 12, fontWeight: 700, color: MU, marginBottom: 6 }}>
-                  Custom support amount
-                </label>
-                <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, border: `1.5px solid ${V}`, borderRadius: 12, padding: '9px 12px', background: 'var(--s1, #fff)' }}>
-                  <span style={{ fontSize: 17, fontWeight: 800, color: INK }}>{symbol}</span>
-                  <input
-                    id="custom-tip-amount"
-                    ref={customTipRef}
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    inputMode="decimal"
-                    value={customTip}
-                    onChange={(e) => setCustomTip(e.target.value)}
-                    placeholder="0.00"
-                    aria-describedby="custom-tip-equiv"
-                    style={{ flex: 1, minWidth: 0, border: 0, outline: 'none', background: 'transparent', color: INK, fontFamily: 'inherit', fontSize: 17, fontWeight: 800, padding: 0 }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setCustomTip(null)}
-                    style={{ border: 0, background: 'transparent', color: MU, fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
-                  >
-                    Use %
-                  </button>
-                </div>
-                <p id="custom-tip-equiv" style={{ margin: '6px 0 0', fontSize: 11.5, color: MU }}>
-                  {customTipCents != null && amountCents > 0
-                    ? `${money(customTipCents)} — about ${(Math.round((customTipCents / amountCents) * 1000) / 10)}% of your ${money(amountCents)} gift.`
-                    : 'Enter any amount you like — support is always optional.'}
-                </p>
+          ⚠️ This is NOT a way to bury the fee, and the collapsed payment row is
+          what makes that true: it states the combined rate INCLUDING this one
+          ("2.9% + $0.30 + 15%"), and the breakdown below itemises it in real
+          currency. It stays one click from 0% — support is optional and never
+          forced, the rule this file already carried. */}
+      {methodOpen && (
+        <div>
+          <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 700, color: MU, textTransform: 'uppercase', letterSpacing: 0 }}>
+            CharitMe fee
+          </p>
+          <button
+            type="button"
+            onClick={() => setServiceOpen((o) => !o)}
+            aria-expanded={serviceOpen}
+            aria-controls="service-fee-panel"
+            aria-label={`CharitMe fee: ${customTipCents != null ? money(customTipCents) : `${tipPercent}%`}. Tap to ${serviceOpen ? 'collapse' : 'expand'} the options.`}
+            style={{
+              width: '100%', display: 'flex', minWidth: 0, alignItems: 'center', gap: 12,
+              padding: '13px 16px', background: 'var(--s1, #fff)',
+              border: `1.5px solid ${serviceOpen ? V : BD}`, borderRadius: 14,
+              cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'border-color .15s',
+            }}
+          >
+            <span style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--s2, #f5f5f5)', display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              {/* CharitMe brand mark — transparent-background PNG that reads on the
+                  theme-adaptive (--s2) chip in both dark and light mode. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.png" alt="CharitMe" width={20} height={20} style={{ display: 'block' }} />
+            </span>
+            <span style={{ flex: 1, fontSize: 14, fontWeight: 800, color: INK }}>CharitMe</span>
+            <span style={{ fontSize: 13, color: MU, fontWeight: 700, whiteSpace: 'nowrap' }}>{customTipCents != null ? money(customTipCents) : `${tipPercent}%`}</span>
+            <svg viewBox="0 0 24 24" width={18} height={18} aria-hidden style={{ ...(ICON_STROKE as React.CSSProperties), color: MU, flexShrink: 0, transform: serviceOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+          {serviceOpen && (
+            <div id="service-fee-panel" style={{ marginTop: 8, border: `1px solid ${BD}`, borderRadius: 16, padding: '16px 18px', background: 'var(--s1, #fff)' }}>
+              <span style={{ fontSize: 16, fontWeight: 800, color: INK }}>Tip CharitMe services</span>
+              <p style={{ margin: '8px 0 12px', fontSize: 12.5, color: MU, lineHeight: 1.5 }}>
+                CharitMe has a 0% platform fee for organizers and relies on the generosity of donors like you to operate our service. Support is optional!
+              </p>
+
+              {/* Suggested tiers — icon + % + label */}
+              <div role="radiogroup" aria-label="Optional CharitMe fee" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 6 }}>
+                {checkout.supportTierPercents.map((p, index) => {
+                  const active = customTip === null && tipPercent === p;
+                  const meta = TIP_TIER_PRESENTATION[index] ?? TIP_TIER_PRESENTATION[TIP_TIER_PRESENTATION.length - 1];
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => { setCustomTip(null); setTipPercent(p); }}
+                      role="radio"
+                      aria-checked={active}
+                      aria-label={`Set support to ${p} percent (${meta.label})`}
+                      style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                        padding: '9px 2px', borderRadius: 12,
+                        border: `1.5px solid ${active ? V : BD}`,
+                        background: active ? VL : 'var(--s1, #fff)',
+                        color: active ? VT : MU, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .12s',
+                      }}
+                    >
+                      <span style={{ width: 20, height: 20 }}><TipIcon name={meta.icon} /></span>
+                      <span style={{ fontSize: 14, fontWeight: 800, color: active ? VT : INK }}>{p}%</span>
+                      {active
+                        ? <span style={{ fontSize: 8, fontWeight: 800, color: '#fff', background: V, padding: '1px 5px', borderRadius: 999, whiteSpace: 'nowrap' }}>{meta.label}</span>
+                        : <span style={{ fontSize: 9, fontWeight: 600, lineHeight: 1.15, textAlign: 'center' }}>{meta.label}</span>}
+                    </button>
+                  );
+                })}
               </div>
-            )}
-          </div>
-        )}
-      </div>
+
+              {/* ── Custom support amount ──
+                  A percentage ladder can't express "I want to give exactly $7". The
+                  entered figure is charged to the cent (sent as tipCents), and the
+                  equivalent % is shown so the donor can sanity-check it. */}
+              {customTip == null ? (
+                <button
+                  type="button"
+                  onClick={() => { setCustomTip(''); requestAnimationFrame(() => customTipRef.current?.focus()); }}
+                  style={{
+                    display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', gap: 7,
+                    width: '100%', padding: '10px 8px', marginTop: 10,
+                    border: `1.5px dashed ${BD}`, borderRadius: 12, background: 'transparent',
+                    color: VT, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" width={14} height={14} style={ICON_STROKE as React.CSSProperties} aria-hidden>
+                    <path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                  </svg>
+                  Enter Custom Amount
+                </button>
+              ) : (
+                <div style={{ marginTop: 10 }}>
+                  <label htmlFor="custom-tip-amount" style={{ display: 'block', fontSize: 12, fontWeight: 700, color: MU, marginBottom: 6 }}>
+                    Custom support amount
+                  </label>
+                  <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, border: `1.5px solid ${V}`, borderRadius: 12, padding: '9px 12px', background: 'var(--s1, #fff)' }}>
+                    <span style={{ fontSize: 17, fontWeight: 800, color: INK }}>{symbol}</span>
+                    <input
+                      id="custom-tip-amount"
+                      ref={customTipRef}
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      inputMode="decimal"
+                      value={customTip}
+                      onChange={(e) => setCustomTip(e.target.value)}
+                      placeholder="0.00"
+                      aria-describedby="custom-tip-equiv"
+                      style={{ flex: 1, minWidth: 0, border: 0, outline: 'none', background: 'transparent', color: INK, fontFamily: 'inherit', fontSize: 17, fontWeight: 800, padding: 0 }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setCustomTip(null)}
+                      style={{ border: 0, background: 'transparent', color: MU, fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+                    >
+                      Use %
+                    </button>
+                  </div>
+                  <p id="custom-tip-equiv" style={{ margin: '6px 0 0', fontSize: 11.5, color: MU }}>
+                    {customTipCents != null && amountCents > 0
+                      ? `${money(customTipCents)} — about ${(Math.round((customTipCents / amountCents) * 1000) / 10)}% of your ${money(amountCents)} gift.`
+                      : 'Enter any amount you like — support is always optional.'}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Dedicate this donation: REMOVED ──────────────────────────────
           The "Dedicate this donation (optional)" select and its honoree-name
