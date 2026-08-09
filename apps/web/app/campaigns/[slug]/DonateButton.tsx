@@ -734,29 +734,36 @@ export default function DonateButton({
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
           <BRow label={isMonthly ? 'Monthly donation' : 'Donation'} value={money(amountCents)} />
-          {/* ⚠️ The CharitMe fee is its OWN row and must never be folded into the
-              processing line, however much simpler that looks.
+          {/* ── ONE fees line, and the label is the whole point ──────────────
+              The requested breakdown is three rows, so the CharitMe fee and the
+              processing estimate are summed into a single line here.
 
-              Measured from a real screenshot of a build that merged them: a $50
-              donation with a $122.00 custom CharitMe fee and $5.29 of Stripe
-              processing rendered as a single line reading
+              ⚠️ That line is called "Fees (estimated)", NOT "Processing fee".
+              Measured from a build that used the latter: a $50 donation with a
+              $122.00 custom CharitMe fee and $5.29 of Stripe processing rendered
+              as
 
                   Processing Fee (Estimated)      $127.29
 
-              The total was right and the recipient still received $50, so nothing
-              looked broken — but it told the donor the PAYMENT PROCESSOR charged
-              $127.29 when Stripe charged $5.29 and the other $122 was our
-              optional, donor-set fee. Attributing our fee to Stripe is a
-              misstatement of who is taking the money.
+              Every figure was arithmetically right and the recipient still
+              received $50, so nothing looked broken. It simply told the donor
+              that STRIPE charged $127.29, when Stripe charged $5.29 and the
+              other $122.00 was our own optional, donor-set fee — 24x the
+              processor's actual charge, attributed to the wrong party.
 
-              It is hidden only when it is exactly zero, which is also what makes
-              the zero-fee case render as the clean three-row breakdown. */}
-          {breakdown.tip > 0 && (
-            <BRow label="CharitMe fee (optional)" value={money(breakdown.tip)} />
-          )}
+              Summing is fine; naming the sum after one of its parts is not. The
+              split stays available to anyone who wants it: the CharitMe fee has
+              its own adjustable row in the payment disclosure directly above,
+              and `title`/`aria-label` carry the itemisation here for pointer and
+              screen-reader users alike. */}
           <BRow
-            label={`Processing fee (estimated)${isMonthly ? ' — covered by CharitMe' : ''}`}
-            value={money(breakdown.processing)}
+            label={isMonthly ? 'Fees (estimated) — covered by CharitMe' : 'Fees (estimated)'}
+            value={money(breakdown.tip + breakdown.processing)}
+            detail={
+              breakdown.tip > 0
+                ? `CharitMe fee ${money(breakdown.tip)} + processing ${money(breakdown.processing)}`
+                : `Processing only — no CharitMe fee`
+            }
           />
           {amountCents > 0 && !isMonthly && (
             <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', fontSize: 13, fontWeight: 700, color: GRT }}>
@@ -832,9 +839,21 @@ export default function DonateButton({
   );
 }
 
-function BRow({ label, value }: { label: string; value: string }) {
+/**
+ * One line of the breakdown.
+ *
+ * `detail` itemises a summed row. It is exposed through BOTH `title` (pointer)
+ * and `aria-label` (assistive tech) rather than `title` alone, because a
+ * tooltip-only disclosure is invisible to keyboard and screen-reader users —
+ * and the row it exists for is the one that combines our fee with the
+ * processor's. Whoever is reading, the split is available.
+ */
+function BRow({ label, value, detail }: { label: string; value: string; detail?: string }) {
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', fontSize: 14, color: MU }}>
+    <div
+      style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', fontSize: 14, color: MU }}
+      {...(detail ? { title: detail, 'aria-label': `${label}: ${value}. ${detail}.` } : {})}
+    >
       <span>{label}</span>
       <span style={{ fontWeight: 650, color: INK }}>{value}</span>
     </div>
