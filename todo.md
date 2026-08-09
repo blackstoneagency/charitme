@@ -26,22 +26,40 @@ first. Fixing only the reported colour would have left the button failing.
 Verified with the same tool CI uses, `--strict-gradients --only /create`:
 170 text elements examined per theme, **0 failures**.
 
-### 🚧 A static scan of the stylesheet disagrees with the audit, and the AUDIT is right
+### 🔴 THE 19 THE AUDIT NEVER REPORTED WERE REAL — a sweep cannot click
 
-Scanning `globals.css` for "gradient background + white text + font-size" finds
-**19 more** stops below their threshold (`.cr2-btn-launch`, `.cr2-btn-preview`,
-`.kf-nav-launch`, …). The runtime audit reports none of them.
+A stylesheet scan found **19 more** stops below threshold that the audit had
+never mentioned. My first instinct was that the scan was over-reporting, since
+static analysis has produced four separate rounds of false findings in this
+file. **It was not.** Two checked by hand:
 
-**No static guard was added, deliberately.** A declaration is not a rendered
-pixel: most of those controls sit on wizard steps or states the sweep never
-reaches, and a test that flags 19 things the browser cannot see is the
-false-finding pattern this file already records four times over. The
-`--strict-gradients` audit in CI is the guard, and it measures.
+| control | measured | why the audit never saw it |
+|---|---|---|
+| `.ado-donor-avatar` — white 20px/800 initials on `#efe8ff` | **1.19:1** | admin donation detail panel opens **on click** |
+| `.cr2-btn-preview` "Preview" | **1.67:1** | a **later wizard step** of /create |
+| `.cr2-btn-launch` "Launch" | **2.28:1** | same |
 
-What the gap DOES indicate is a coverage question worth someone's time: if
-`.cr2-btn-launch` is genuinely reachable by an organiser and genuinely fails,
-the defect is real and the SWEEP is what needs extending — not the stylesheet
-linted from a distance.
+The audit is not wrong — it measures rendered pixels and cannot press a button.
+**A sweep of initial renders cannot see a control that only exists after an
+interaction**, which is the same structural blind spot this file records for the
+mobile sweeps. Two independent tools, each blind where the other sees.
+
+All 19 stops fixed across 12 rules, each darkened within its own hue. Verified
+by the real audit afterwards: **226 pages × 2 themes, 32,908 / 32,857 text
+elements, 0 failures** — no regression on anything it *can* see.
+
+### ⚠️ AND THE GUARD I WROTE FOR IT FAILED 17 TESTS THAT WERE ALL MY OWN BUG
+
+`__tests__/gradient-text-contrast.test.ts` first swept hex codes from
+`linear-gradient(` to the end of the rule — which picked up the `color: #fff`
+that follows it, so every rule "failed" at **1.00:1 against itself**. Seventeen
+confident, specific, entirely fictional defects. Fixed by balancing the
+gradient's own parentheses; 22 pass, mutation-tested.
+
+That is the **fifth** static-analysis false finding recorded here, and it is why
+the guard was added only once the count was genuinely zero: a test that ships
+with a backlog of 19 failures is a test someone switches off. It pins the class
+now instead of describing it.
 
 ## 📱 MOBILE READINESS — the class of defect NO audit in this repo can see (Claude, 2026-08-09)
 
