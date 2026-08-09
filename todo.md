@@ -242,6 +242,37 @@ fix, not a note to file — the absent surface is exactly where defects survive.
       first measurement claimed. ⚠️ Ratio thresholds on images must be computed in DEVICE
       pixels, or you will chase phantom savings and ship blur.
 
+### ✅ /corporate-partnerships WAS SHOWING INVENTED FIGURES AND INVENTED PEOPLE
+
+Found while re-checking the audit's own findings rather than the tracker — it was
+flagged in the data sweep and never actioned. The page rendered, to prospective
+corporate partners, four figures that exist nowhere in the data:
+
+    $48M+ Raised by corporate partners · 2,100+ Corporate partners worldwide
+    6.2M+ Lives positively impacted    · 1.8M+ Volunteer hours contributed
+
+and three testimonials attributed to named individuals with job titles — "Erin W.,
+Director of Corporate Responsibility", "David L., VP, Global Impact", "Maria G.,
+Head of Social Impact". There is no testimonials table and no such partners.
+
+Both are removed. The figures follow the call already made for /about-us and
+/impact — **a page may show what it can MEASURE, or nothing; never what it made
+up** — and there is no measurable equivalent here (`matching_programs` holds
+programs, not attributed totals), so the band is gone rather than relabelled into
+a number that means something different from its caption. The quotes are a
+different order of wrong: fabricated testimony about identifiable people reads as
+verifiable and is not, which is why /impact already has a test asserting its
+invented vignettes never appear in page source.
+
+`__tests__/no-fabricated-partner-claims.test.ts` guards the literals and is
+mutation-tested — planting one figure and one name fails it. It asserts on the
+CONTENT, not the file's shape, so a future owner-authored, `source_note`-carrying
+stats band can legitimately return.
+
+Verified on a populated render: `/corporate-partnerships` returns 200, 59,537
+bytes, "Ways to Partner" intact, and **zero** occurrences of any of the eight
+fabricated strings.
+
 ### ⚠️ A PR CAN END UP WITH NO CI RUN AND NO WAY TO GET ONE
 
 Two rules interact badly, and the result looks like "CI is just slow":
