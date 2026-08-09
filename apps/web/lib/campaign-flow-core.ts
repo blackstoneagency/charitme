@@ -41,32 +41,29 @@
  */
 
 /**
- * ⚠️ ORDER CHANGED, and the reason is the whole point of this list.
+ * ⚠️ `title`, `story` and `goal` are ONE step now, and that is the point of this
+ * list.
  *
  * The publish gate wants exactly three things — a title, a story of 20
  * characters, and a goal of at least $1 (`campaign-readiness.ts`, which the
- * server's schema shares). Those three used to sit at positions 3, 4 and 6,
- * behind `basics` and with `media` wedged between story and goal, so an
- * organizer passed five screens before their draft was publishable at all.
+ * server's schema shares). They were three separate screens, which is three
+ * Continue presses and two full page transitions to enter three fields.
  *
- * They now come first, which makes "Publish now" reachable on screen three
- * instead of screen six. Everything after them is what it always was —
- * optional strengthening — and now looks like it.
+ * They are now one screen, `essentials`, and it is where the builder opens. A
+ * draft becomes publishable without leaving the first screen.
  *
- * ⚠️ No step KEY changed, only the order, and that is deliberate: keys are what
- * `normalizeStep` migrates and what live drafts hold. A draft saved mid-flow
- * still resolves to the same screen it was on. Reordering is safe here in a way
- * that renaming would not be.
+ * This is the SAME merge that produced `basics` — `type`, `category` and
+ * `location` were three near-empty screens before they became one — and it is
+ * migrated the same way, through `LEGACY_STEP_MAP` below. That map is not
+ * historical debt; it is the mechanism that lets this flow keep improving
+ * without stranding the drafts already in flight.
  *
  * `path` stays first in the list but is not where the wizard starts — the
- * builder opens on `title` and `path` is reached by going Back, exactly as it
- * was reached from `basics` before.
+ * builder opens on `essentials`, and `path` is reached by going Back.
  */
 export const CAMPAIGN_STEPS = [
   'path',
-  'title',
-  'story',
-  'goal',
+  'essentials',
   'basics',
   'media',
   'rewards',
@@ -102,21 +99,13 @@ export const CAMPAIGN_STEP_META: Readonly<Record<CampaignStep, CampaignStepMeta>
     id: 'basics', label: 'Basics', title: 'The essentials',
     minutes: 1, required: true, postPublish: false,
   },
-  title: {
-    id: 'title', label: 'Title', title: 'Name your campaign',
-    minutes: 1, required: true, postPublish: false,
-  },
-  story: {
-    id: 'story', label: 'Story', title: 'Tell your story',
-    minutes: 4, required: true, postPublish: false,
+  essentials: {
+    id: 'essentials', label: 'Essentials', title: 'The three things a campaign needs',
+    minutes: 5, required: true, postPublish: false,
   },
   media: {
     id: 'media', label: 'Media', title: 'Add photos',
     minutes: 2, required: true, postPublish: false,
-  },
-  goal: {
-    id: 'goal', label: 'Goal', title: 'Set your goal',
-    minutes: 1, required: true, postPublish: false,
   },
   rewards: {
     id: 'rewards', label: 'Rewards', title: 'Offer rewards (optional)',
@@ -215,6 +204,13 @@ const LEGACY_STEP_MAP: Record<string, CampaignStep> = {
   // 7-step flow: renamed for the 12-step model.
   summary: 'review',
   live: 'publish',
+  // The title/story/goal merge. Drafts live 7 days, so at the moment this ships
+  // there are organizers holding each of these three keys; without these entries
+  // they would land on a step that no longer renders — a blank screen that looks
+  // exactly like their work having been deleted.
+  title: 'essentials',
+  story: 'essentials',
+  goal: 'essentials',
 };
 
 /**

@@ -22445,3 +22445,59 @@ Setting `localStorage['charitme-theme-v2']` before load instead:
 
 Both pass AA. ⚠️ For anyone theming this app in a browser: set the
 localStorage key, not the attribute.
+
+### ✅ Round 4 — one screen, two clicks, and the interstitial is out of the way (2026-08-09)
+
+**`title`, `story` and `goal` are now ONE step, `essentials`**, and it is where
+the builder opens. Three Continue presses and two page transitions to enter
+three fields is not a flow, it is a queue.
+
+This is the same merge that produced `basics` (`type`/`category`/`location` were
+three near-empty screens once), and it is migrated the same way — through
+`LEGACY_STEP_MAP`. That map is not historical debt; it is the mechanism that
+lets this flow keep improving without stranding drafts already in flight.
+
+⚠️ **Drafts live 7 days**, so people are holding `title`, `story` and `goal`
+right now. All three map to `essentials`, and a test asserts every current key
+round-trips plus all three legacy generations. An unmapped key renders no
+branch — a blank screen that looks exactly like their work being deleted.
+
+The step count went 12 → 10, so the hardcoded `toHaveLength(12)` assertions
+were rewritten to derive from the model. The path has been 9, 7, 12 and now 10
+steps; pinning a number just means editing it again next time.
+
+### The homepage no longer routes through a chooser
+`/create/choose-path` existed so the AI-vs-manual choice was not made for the
+visitor. That reasoning stopped holding: the builder's FIRST screen now carries
+both "✨ Write with AI" beside the story field and its own link to
+`/ai-campaign`. Nothing is decided by going straight there — the choice is made
+one screen later, in context, next to the field it affects.
+
+The chooser is still a page and still reachable; it is just no longer in the
+way. `/ai-campaign` keeps links from the footer, `/ai-fundraising` and the
+builder, so the AI path did not lose a route in. The test that REQUIRED the
+chooser was inverted, with its reasoning rewritten rather than deleted.
+
+### End to end, measured
+
+```
+homepage → click "Create Campaign" → /create → fill three fields → Publish
+```
+
+| | |
+|---|---|
+| screens visited | **2** |
+| clicks to publish | **2** |
+| seconds, end to end | **7.7** |
+| POST /api/campaigns | **201** |
+| page errors | 0 |
+
+**Where this started:** homepage → chooser → `/create` → 307 to `/login` →
+sign up → basics → title → story → media → goal → rewards → payout → verify →
+review → launch.
+
+### Still open, and honestly out of scope for "frictionless"
+- A real charge has still never run (owner-blocked on Stripe test keys).
+- Nine other pages still link to the chooser (`/fast-payouts`, `/features`,
+  `/ai-fundraising`, …). The homepage is the entry point that mattered; the
+  rest are secondary CTAs on pages a visitor reached deliberately.
