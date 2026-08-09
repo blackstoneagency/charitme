@@ -79,6 +79,9 @@ function toSessionCookie(options: CookieOptions): CookieOptions {
 
 const MFA_CHALLENGE_PATH = '/login/mfa';
 
+/** Request header carrying "is there a session", set below. Boolean only. */
+export const SESSION_HINT_HEADER = 'x-has-session';
+
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
@@ -165,6 +168,33 @@ export async function middleware(request: NextRequest) {
   );
 
   const { user, timedOut: authTimedOut } = await getUserWithTimeout(supabase);
+
+  // Hand the session's EXISTENCE (never its contents) to the render tree.
+  //
+  // `AppShell` decides whether to draw the public header, and some pages —
+  // /resources is the first — draw the dashboard shell themselves when the
+  // visitor is signed in. Without this, AppShell only learns about the session
+  // from a client-side `supabase.auth.getUser()` in an effect, so the public
+  // header renders first and is removed a moment later: a visible flash of two
+  // navigations and two logos.
+  //
+  // This costs nothing. The lookup above already ran, unconditionally, on every
+  // non-API request; this only stops the answer being thrown away. It is a
+  // REQUEST header, so it reaches the server components and never the browser,
+  // and it carries a boolean rather than any identity.
+  requestHeaders.set(SESSION_HINT_HEADER, user ? '1' : '0');
+  // ⚠️ REBUILD the response after setting it. `NextResponse.next({ request })`
+  // snapshots the headers at CALL time, and the first call happens above —
+  // before the session is known. Mutating `requestHeaders` afterwards changes
+  // nothing on a response already constructed, which is exactly how the first
+  // attempt at this silently did nothing: the header was set, and the render
+  // tree never saw it. Cookies already written by the Supabase client are
+  // carried across rather than dropped.
+  {
+    const carried = response.cookies.getAll();
+    response = nextResponse();
+    for (const c of carried) response.cookies.set(c);
+  }
 
   const isProtected =
     PROTECTED.some((p) => path.startsWith(p)) && !PUBLIC_EXCEPTIONS.some((p) => path === p);

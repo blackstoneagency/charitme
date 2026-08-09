@@ -20,6 +20,7 @@ where roles ? 'super_admin'
 
 drop policy if exists team_members_admin_owner_write on public.team_members;
 drop policy if exists team_members_visible_to_team on public.team_members;
+drop policy if exists team_members_read_own on public.team_members;
 
 create policy team_members_read_own
 on public.team_members

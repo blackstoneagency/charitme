@@ -1,4 +1,5 @@
 import { requireUser } from '../../lib/auth';
+import { CharitMeShell } from '../../components/CharitMeShellServer';
 import { supabaseAdmin } from '../../lib/supabase';
 import { formatCents } from '../../lib/stripe';
 import { parseRoles } from '../../lib/roles';
@@ -114,7 +115,35 @@ export default async function ProfilePage() {
   const earnedBadgeIds = new Set(DONOR_BADGES.filter((b) => b.earned(gamificationStats)).map((b) => b.id));
 
   return (
-    <div className="mktg-page min-h-screen">
+    // ⚠️ `mktg-page` is KEPT, deliberately, even though this page now lives
+    // inside the signed-in shell rather than the marketing site.
+    //
+    // 47 of this stylesheet's dark-theme rules are scoped to `.mktg-page`, and 8
+    // of the 12 utilities used below (`text-slate-950`, `border-slate-200`,
+    // `text-slate-700`, `bg-red-50`, `border-slate-100`, `bg-slate-300`,
+    // `text-emerald-700`, `text-red-700`) have NO unscoped dark rule at all.
+    // Dropping the wrapper would paint near-black text on `var(--s1)` — and this
+    // site ships DARK, so that is the default rendering, not an edge case.
+    //
+    // Its white page background is cancelled by `.kf-main .mktg-page` in
+    // globals.css, so the shell's own surface shows through.
+    <CharitMeShell active="Settings">
+      {/* Profile form FIRST: this is the top of the page, and the account
+          summary below is context for it rather than a preamble to it. */}
+      <div className="mktg-page">
+        <ProfileForm
+          profile={{
+            full_name: profile?.full_name ?? null,
+            bio: profile?.bio ?? null,
+            avatar_url: profile?.avatar_url ?? null,
+            roles,
+            notification_email: profile?.notification_email ?? true,
+            notification_updates: profile?.notification_updates ?? true,
+            notification_marketing: profile?.notification_marketing ?? false,
+          }}
+          email={user.email ?? ''}
+        />
+
       {/* Stats banner */}
       <section className="border-b border-slate-100 bg-slate-50 py-8">
         <div className="container">
@@ -199,7 +228,12 @@ export default async function ProfilePage() {
         </section>
       )}
 
-      {/* Quick links */}
+      {/* Quick links.
+          ⚠️ NOT removed just because the left nav now covers most of them.
+          `Dashboard` and `Giving History` are duplicated by the sidebar, but
+          `/roles` is NOT in any persona's navigation — deleting this row would
+          orphan it from the one page that explains what a role is. Orphaned
+          routes are a tracked defect class in this repo. */}
       <section className="border-b border-slate-100 py-4">
         <div className="container">
           <div className="flex flex-wrap gap-3">
@@ -220,20 +254,7 @@ export default async function ProfilePage() {
           </div>
         </div>
       </section>
-
-      {/* Profile form */}
-      <ProfileForm
-        profile={{
-          full_name: profile?.full_name ?? null,
-          bio: profile?.bio ?? null,
-          avatar_url: profile?.avatar_url ?? null,
-          roles,
-          notification_email: profile?.notification_email ?? true,
-          notification_updates: profile?.notification_updates ?? true,
-          notification_marketing: profile?.notification_marketing ?? false,
-        }}
-        email={user.email ?? ''}
-      />
-    </div>
+      </div>
+    </CharitMeShell>
   );
 }

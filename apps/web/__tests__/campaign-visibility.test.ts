@@ -95,7 +95,13 @@ describe('the caller wires the decision correctly', () => {
   });
 
   it('caches only when both answers are definitive', () => {
-    expect(src).toMatch(/if \(isCacheable\(visibility\) && isCacheable\(deletedAt\)\)/);
+    // Every probed column must be definitive before the answer is frozen for the
+    // process — including payoutReady. Caching an `unknown` for that one would
+    // pin the filter OFF until the instance recycled, quietly re-listing
+    // campaigns that cannot take a donation.
+    expect(src).toMatch(
+      /if \(isCacheable\(visibility\) && isCacheable\(deletedAt\) && isCacheable\(payoutReady\)\)/,
+    );
   });
 });
 
@@ -119,12 +125,35 @@ describe('the visibility probe is bounded, and its timeout fails toward privacy'
     expect(src).toMatch(/withQueryTimeout\(/);
   });
 
-  it('the timeout fallback applies BOTH filters', () => {
-    // The literal must be true/true. A `false` here would publicly list private
-    // and soft-deleted campaigns whenever the database was merely slow.
+  it('the timeout fallback applies BOTH privacy filters', () => {
+    // The privacy literals must be true/true. A `false` here would publicly list
+    // private and soft-deleted campaigns whenever the database was merely slow.
     expect(src).toMatch(
-      /FAIL_TOWARD_PRIVACY:\s*CampaignCols\s*=\s*\{\s*visibility:\s*true,\s*deletedAt:\s*true\s*\}/,
+      /FAIL_TOWARD_PRIVACY:\s*CampaignCols\s*=\s*\{\s*visibility:\s*true,\s*deletedAt:\s*true,/,
     );
+  });
+
+  it('but leaves payoutReady OFF in that fallback, which is the opposite rule', () => {
+    // ⚠️ Deliberate asymmetry, and the reason this is its own test rather than a
+    // widened regex on the one above.
+    //
+    // For visibility/deleted_at, "filter when unsure" protects privacy and costs
+    // at most a missing card. For payout_ready the cost inverts: the column
+    // arrives in an owner-applied migration, so filtering on it before that
+    // migration runs is Postgres 42703 — which fails the whole query and renders
+    // EVERY discovery page empty. Not filtering just leaves the status quo.
+    expect(src).toMatch(
+      /FAIL_TOWARD_PRIVACY:\s*CampaignCols\s*=\s*\{[^}]*payoutReady:\s*false\s*\}/,
+    );
+  });
+
+  it('enables the payout filter only on a DEFINITIVE present', () => {
+    // `shouldFilter` resolves `unknown` to true. Using it here would turn a
+    // transient probe blip into "filter on a column that may not exist" — 42703
+    // again, on every discovery page at once.
+    expect(src).toMatch(/payoutReady:\s*payoutReady === 'present'/);
+    expect(src, 'shouldFilter() would let an `unknown` probe empty the site')
+      .not.toMatch(/payoutReady:\s*shouldFilter\(/);
   });
 
   it('does not cache the timeout answer', () => {

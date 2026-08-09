@@ -3214,10 +3214,11 @@ skipped workflow leaves its check pending forever and would deadlock a docs-only
 PR. Nothing is required today, which is why this is safe now — recorded so the
 next person does not find out the hard way.
 
-## 🛑 SUPABASE STAGING — blocked, and the pending count is **37** (Claude, 2026-08-03)
+## 🛑 SUPABASE STAGING — blocked, and the pending count is **38** (Claude, 2026-08-03)
 
 **Live ledger rechecked 2026-08-08:** `supabase migration list --linked`
-reported 124 local migration files and 87 production ledger entries. The 37-file
+reported 124 local migration files and 87 production ledger entries (125 local as of
+2026-08-09). The 38-file
 gap below is therefore a current measurement, not only historical arithmetic.
 
 **+1 on 2026-08-08: `20260830000000_protect_verification_and_campaign_integrity.sql`.**
@@ -3295,16 +3296,16 @@ that day**:
 dump confirmed the objects were absent, and a restored production clone applied
 all 18 in order and proved rollback.
 
-Eighteen migrations have been added since. So the count is arithmetic:
+Twenty migrations have been added since. So the count is arithmetic:
 
 ```
-124 local − 87 applied           = 37
-18 audited pending + 19 added    = 37   ✓ reconciles
+125 local − 87 applied           = 38
+18 audited pending + 20 added    = 38   ✓ reconciles
 ```
 
 All 18 audited-pending versions are still on disk under their original names.
 
-### ⚠️ Seven of the 37 are SECURITY hardening, not features
+### ⚠️ Seven of the 38 are SECURITY hardening, not features
 
 This is the part that changes the priority. Written, reviewed, merged — and
 **not live**:
@@ -22889,6 +22890,60 @@ review → launch.
   `/ai-fundraising`, …). The homepage is the entry point that mattered; the
   rest are secondary CTAs on pages a visitor reached deliberately.
 
+## 🧭 Dashboard page gutter — /dashboard/payment-methods and two others (2026-08-09)
+
+Reported on `/dashboard/payment-methods`: the "+ Add New Method" button sat at
+the far right of the window, ~700px from the sentence it was paired with, while
+the explanatory line under the title started 32px to the LEFT of that title.
+
+### One root cause, measured across all 55 dashboard routes
+`.kf-main` has **no horizontal padding**; `.kf-topbar` carries its own 32px. So
+any page rendering content straight into `.kf-main` — or overriding a
+container's padding shorthand — hangs outside the page's own margin on both
+sides.
+
+A browser sweep of every dashboard route found **3 pages** doing it:
+
+| page | why |
+|---|---|
+| `/dashboard/payment-methods` | body rendered directly into `.kf-main` |
+| `/dashboard/grants` | `padding: '4px 0'` on a `.kf-admin-dash` |
+| `/dashboard/volunteer` | same shorthand, same class |
+
+34 were already fine. **After the fix: 0.**
+
+⚠️ `padding: '4px 0'` is the interesting one. `.kf-admin-dash` already carries
+the correct gutter at all four breakpoints; the shorthand replaced it wholesale
+with 0. It is invisible in review — the class is right there in the same
+attribute — so a test now scans every dashboard page for that pattern.
+
+### The button moved into the TopBar's own slot
+Not a nudge: `TopBar` has an `actions` prop that `/grants`, `/volunteer` and
+`/donations` all use. Payment Methods had built a full-width `space-between`
+row below the topbar instead, which is what threw the button to the window
+edge. It now uses the same slot as every other page — and stays hidden when the
+read failed, because "Add a method" beside "we couldn't load your methods"
+invites acting on a page that just said it does not know the current state.
+
+### ⚠️ Two measurement mistakes worth recording
+My first sweep reported **37 of 37 pages misaligned**. It was measuring
+CONTAINER boxes, so a wrapper with internal padding looked broken while its
+content was fine. The second attempt still flagged `/recurring/cancel`, whose
+`padding: 32px` insets its text perfectly — fixed by measuring
+`rect.left + paddingLeft` rather than the border box. Only the third metric —
+*text whose content edge touches the content column* — was stable across runs.
+
+Three different numbers (37, 13, 3) from three metrics on unchanged code. The
+last one is the real one.
+
+### Wiring (what "wired to Supabase" means here, precisely)
+- `profiles.stripe_customer_id` ← Supabase, behind `requireUser()`
+- brand / last4 / expiry / default flag ← **Stripe at request time**, never stored
+- Add → `POST /api/stripe/portal` (401 without a session)
+- Remove → `DELETE /api/stripe/payment-methods` (401 without a session)
+
+The card of record deliberately lives at Stripe; only the pointer is ours. That
+is what keeps this page out of PCI scope, and it is not something to "fix".
 ## 🔴 MASTER'S CI SIGNAL IS STRUCTURALLY ABSENT — 7 of 8 runs cancelled, none completed (Claude, 2026-08-09)
 
 **Nobody would notice if master went red.** Measured, not inferred.
@@ -23124,3 +23179,91 @@ on the facts rather than on the inconsistency.
 None of these is fixable from inside this repo. Writing them out of this file
 would make it read empty while the system stayed identical — which is the one
 outcome that would make this file worse than useless.
+
+## 🧭 /resources inside the dashboard shell (2026-08-09)
+
+`/resources` is in the sidebar for **every** persona (`RESOURCE_NAV` in
+`lib/persona-navigation.ts`) but rendered in the public marketing shell — so a
+signed-in person clicking it lost the left navigation entirely, with no way back
+into the product but the browser's Back button.
+
+Now the CONTENT is unchanged and the FRAME follows the session: dashboard chrome
+when signed in, the public page when not. The signed-out render — what search
+engines and share links see — is byte-identical, canonical included.
+
+### ⚠️ Two things this took that were not obvious
+
+**1. The public header has to step aside, or the page has TWO of everything.**
+`AppShell` learns about the session from a client-side `getUser()` in an effect,
+so deciding there renders the public header and strips it a moment later — a
+visible flash of two navigations and two logos. The session is instead resolved
+where it already was: middleware runs `getUserWithTimeout` unconditionally on
+every non-API request, so it now sets `x-has-session` (a boolean, request-side
+only, never the browser) which the root layout reads — it already calls
+`headers()`, so no new cost and no extra auth round-trip.
+
+**2. `NextResponse.next({ request })` snapshots headers at CALL time.** The
+first call happens ~35 lines BEFORE the session is known, so setting the header
+afterwards changed nothing. The first attempt looked correct, built clean, and
+did **absolutely nothing** — the page still had both navigations. The response
+is now rebuilt after the header is set, carrying across any cookies the Supabase
+client had already written (dropping those would sign people out on any request
+that refreshed a token).
+
+### No second `<h1>`
+`TopBar` requires a title and renders it as an `<h1>`; the page's hero already
+has one. The account controls (theme, search, notifications, account) are
+rendered on their own via `ShellAccountControls` under a
+`.kf-topbar--controls-only` header, so the strip is there without a duplicate
+heading.
+
+### Measured, signed out → signed in
+| | signed out | signed in |
+|---|---|---|
+| dashboard shell | no | **yes** |
+| `<h1>` count | 1 | **1** |
+| "CharitMe" wordmarks | 2 | **1** (was 3) |
+| account controls | — | present |
+| active sidebar item | — | **`/resources`** |
+| page errors | 0 | 0 |
+
+### On "100% wired to Supabase" — precisely
+The shell decision is now session-driven (Supabase auth, via middleware). The
+CARDS are not database content and should not be: they are an index of internal
+routes, and there is no resources table — `aeo_entries` is the Q&A store behind
+/faq and /how-it-works, and no `blog_posts` table exists (the page's own comment
+records a first draft that queried one). "Latest from the blog" reads
+`lib/blog-posts.ts`, the same module `/blog` renders, so the two cannot drift.
+
+What was missing was ENFORCEMENT: the file claimed "every card here points at a
+page that EXISTS" and nothing checked it. A test now resolves all 20 hrefs
+against `app/**/page.tsx`, honouring route groups and dynamic segments.
+
+### 🔀 Merged with master's identical fix for /fundraising-guide
+
+While this was in flight, master landed the SAME mechanism for
+`/fundraising-guide` — `SHELL_WHEN_SIGNED_IN` plus an `authResolved` flag. The
+merge kept **master's name and list** and added `/resources` to it, rather than
+shipping two lists that do the same job.
+
+The two differed in how they learn about the session, and the resolution takes
+the better half of each:
+
+| | master's rule | this branch | merged |
+|---|---|---|---|
+| signed-in flash | prevented | prevented | prevented |
+| signed-OUT flash | header suppressed until the client auth call returns | none — server knows | **none** |
+
+`hasSession === undefined ? (!authResolved || !!user) : hasSession` — trust the
+server when it answered, fall back to master's conservative client rule when it
+did not. ⚠️ The prop deliberately has **no default**: `false` would be
+indistinguishable from "definitely signed out" and would reintroduce the flash
+for any caller that does not pass it.
+
+Master's own test pinned its exact expression, so it was updated to assert the
+property (membership in the list, the anti-flash fallback surviving) rather than
+the literal array and condition — the next resource page should not require
+editing it.
+
+Verified on both routes, signed out and in: shell no/yes, `<h1>` 1/1, wordmarks
+2/1, 0 page errors on all four.

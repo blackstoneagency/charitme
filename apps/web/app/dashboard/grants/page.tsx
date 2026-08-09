@@ -24,7 +24,12 @@ export default async function DashboardGrantsPage() {
           </Link>
         }
       />
-      <div className="kf-admin-dash" style={{ padding: '4px 0' }}>
+      {/* `paddingTop` only. This was `padding: '4px 0'`, which overrode the
+          class's horizontal gutter with 0 — so every card sat flush against
+          both edges of the window while the title above kept its 32px margin.
+          `.kf-admin-dash` already carries the right gutter at all four
+          breakpoints; the shorthand was silently discarding it. */}
+      <div className="kf-admin-dash" style={{ paddingTop: '4px' }}>
         {/* Surfaces POST /api/ai/grant-match, which was fully built with zero callers. */}
         <GrantMatchClient />
         <GrantApplicationsClient />
