@@ -709,9 +709,28 @@ export default function DonateButton({
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
           <BRow label={isMonthly ? 'Monthly donation' : 'Donation'} value={money(amountCents)} />
-          <BRow label="CharitMe fee (optional)" value={money(breakdown.tip)} />
+          {/* ⚠️ The CharitMe fee is its OWN row and must never be folded into the
+              processing line, however much simpler that looks.
+
+              Measured from a real screenshot of a build that merged them: a $50
+              donation with a $122.00 custom CharitMe fee and $5.29 of Stripe
+              processing rendered as a single line reading
+
+                  Processing Fee (Estimated)      $127.29
+
+              The total was right and the recipient still received $50, so nothing
+              looked broken — but it told the donor the PAYMENT PROCESSOR charged
+              $127.29 when Stripe charged $5.29 and the other $122 was our
+              optional, donor-set fee. Attributing our fee to Stripe is a
+              misstatement of who is taking the money.
+
+              It is hidden only when it is exactly zero, which is also what makes
+              the zero-fee case render as the clean three-row breakdown. */}
+          {breakdown.tip > 0 && (
+            <BRow label="CharitMe fee (optional)" value={money(breakdown.tip)} />
+          )}
           <BRow
-            label={`${PAY_OPTIONS.find((option) => option.id === preferredMethod)?.label ?? 'Stripe'} processing estimate${isMonthly ? ' (covered by CharitMe)' : ''}`}
+            label={`Processing fee (estimated)${isMonthly ? ' — covered by CharitMe' : ''}`}
             value={money(breakdown.processing)}
           />
           {amountCents > 0 && !isMonthly && (
