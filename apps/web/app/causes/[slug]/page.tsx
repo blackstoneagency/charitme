@@ -11,10 +11,13 @@ import { EmptyState } from '../../../components/ui';
 import { getTranslator } from '../../../lib/locale-server';
 import { getCauseStats, getCauseStories, getAuthoredStats } from '../../../lib/cause-landing';
 import CampaignImage from '../../../components/CampaignImage';
-import { getPhotosForCategory } from '../../../lib/photo-catalog';
+import { getCoverForCategory, getPhotosForCategory } from '../../../lib/photo-catalog';
 import { formatMoneyCompact } from '@shared/currencies';
 import CauseLanding, { CauseCtaBand } from './CauseLanding';
 import HelpGlyph from '../../../components/HelpGlyph';
+import JsonLd from '../../../components/JsonLd';
+import { safeJsonLd } from '../../../lib/json-ld';
+import { getPublishedAeoEntries } from '../../../lib/aeo';
 
 // Six per page, matching the reference design: a 3x2 grid, then the button.
 // The query asks for ONE MORE than it renders — that extra row is how the page
@@ -30,10 +33,30 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const cause = getCause(slug);
   if (!cause) return { title: 'Cause not found' };
 
+  const canonical = `https://www.charitme.com/causes/${cause.slug}`;
+  const image = getCoverForCategory(cause.categories[0]);
+  const title = `${cause.label} Fundraisers`;
+
   return {
-    title: `${cause.label} Fundraisers`,
+    title,
     description: cause.blurb,
-    alternates: { canonical: `https://www.charitme.com/causes/${cause.slug}` },
+    keywords: [cause.label, `${cause.label} fundraising`, `${cause.label} donations`, 'CharitMe causes'],
+    alternates: { canonical },
+    openGraph: {
+      title,
+      description: cause.blurb,
+      url: canonical,
+      siteName: 'CharitMe',
+      type: 'website',
+      images: [{ url: image, width: 1200, height: 630, alt: `${cause.label} fundraisers on CharitMe` }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description: cause.blurb,
+      images: [image],
+    },
+    robots: { index: true, follow: true },
   };
 }
 
@@ -78,7 +101,7 @@ async function getCampaigns(cause: Cause): Promise<CampaignCardData[] | null> {
           supabaseAdmin
             .from('campaigns')
             .select(
-              'id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, status, trust_status, nonprofit_verified, location, campaign_health_score, featured',
+              'id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, status, trust_status, nonprofit_verified, location, campaign_health_score, featured, is_demo',
             ),
           cols,
         ),
@@ -97,6 +120,8 @@ async function getCampaigns(cause: Cause): Promise<CampaignCardData[] | null> {
         // boundary duplicate some rows and skip others.
         .order('featured', { ascending: false })
         .order('raised_amount', { ascending: false })
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: true })
         .limit(PAGE_SIZE + 1),
     );
 
@@ -107,6 +132,16 @@ async function getCampaigns(cause: Cause): Promise<CampaignCardData[] | null> {
   }
 }
 
+type CauseFaq = { question: string; answer: string };
+
+async function getCauseFaqs(cause: Cause): Promise<readonly CauseFaq[]> {
+  const published = await getPublishedAeoEntries(`/causes/${cause.slug}`, 'FAQPage', 5);
+  if (published.length > 0) {
+    return published.map(({ question, answer }) => ({ question, answer }));
+  }
+  return cause.faqs ?? [];
+}
+
 export default async function CausePage({ params }: { params: Promise<{ slug: string }> }) {
   const t = await getTranslator();
   const { slug } = await params;
@@ -115,15 +150,65 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
 
   // Stats are fetched alongside the campaigns rather than after them: they are
   // independent queries and this page is a common entry point from a share.
-  const [campaigns, stats, stories, authoredStats] = await Promise.all([
+  const [campaigns, stats, stories, authoredStats, faqs] = await Promise.all([
     getCampaigns(cause),
     getCauseStats(cause),
     getCauseStories(cause),
     getAuthoredStats(cause),
+    getCauseFaqs(cause),
   ]);
+
+  const origin = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com';
+  const canonical = `${origin}/causes/${cause.slug}`;
+  const visibleCampaigns = campaigns?.slice(0, PAGE_SIZE) ?? [];
+  const indexableCampaigns = visibleCampaigns.filter((campaign) => campaign.is_demo !== true);
+  const hasExampleCatalog = ['health-wellness', 'education', 'faith-belief'].includes(cause.slug)
+    || visibleCampaigns.some((campaign) => campaign.is_demo === true);
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'CollectionPage',
+        '@id': `${canonical}#page`,
+        url: canonical,
+        name: `${cause.label} Fundraisers`,
+        description: cause.blurb,
+        isPartOf: { '@id': `${origin}/#website` },
+        mainEntity: {
+          '@type': 'ItemList',
+          numberOfItems: indexableCampaigns.length,
+          itemListElement: indexableCampaigns.map((campaign, index) => ({
+            '@type': 'ListItem',
+            position: index + 1,
+            name: campaign.title,
+            url: `${origin}/campaigns/${campaign.slug}`,
+          })),
+        },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: origin },
+          { '@type': 'ListItem', position: 2, name: 'Causes', item: `${origin}/causes` },
+          { '@type': 'ListItem', position: 3, name: cause.label, item: canonical },
+        ],
+      },
+      ...(faqs.length > 0
+        ? [{
+            '@type': 'FAQPage',
+            mainEntity: faqs.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+            })),
+          }]
+        : []),
+    ],
+  };
 
   return (
     <div className="cause-landing">
+      <JsonLd json={safeJsonLd(structuredData)} />
       <CauseLanding cause={cause} stats={stats} authoredStats={authoredStats} />
 
       <div className="container" style={{ padding: '8px 0 72px' }}>
@@ -196,6 +281,12 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
           </Link>
         ))}
       </nav>
+
+      {hasExampleCatalog && (
+        <p className="cl-catalog-note">
+          Explore 50 CharitMe campaign examples alongside live fundraisers. Example cards are clearly labeled and cannot accept donations.
+        </p>
+      )}
 
       {campaigns === null ? (
         <EmptyState
@@ -361,6 +452,27 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
               );
             })}
           </ul>
+        </section>
+      )}
+
+      {faqs.length > 0 && (
+        <section className="cl-faq" aria-labelledby="cause-faq-title">
+          <header className="cl-faq-head">
+            <p>{cause.label}</p>
+            <h2 id="cause-faq-title">Frequently Asked Questions</h2>
+          </header>
+          <div className="cl-faq-list">
+            {faqs.map((faq, index) => (
+              <details key={faq.question} open={index === 0}>
+                <summary>{faq.question}</summary>
+                <p>{faq.answer}</p>
+              </details>
+            ))}
+          </div>
+          <p className="cl-faq-more">
+            Need another answer? <Link href="/help">Visit the Help Center</Link> or{' '}
+            <Link href="/contact">contact support</Link>.
+          </p>
         </section>
       )}
       </div>

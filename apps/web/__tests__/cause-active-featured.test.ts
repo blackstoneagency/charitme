@@ -135,6 +135,14 @@ describe('/api/campaigns serves the same rule the cause page renders', () => {
     expect(applied.eq).toContainEqual(['visibility', 'public']);
   });
 
+  it('never lets a caller enumerate private campaigns', async () => {
+    const { GET } = await import('../app/api/campaigns/route');
+    await GET(get('category=Sports&visibility=private'));
+
+    expect(applied.eq).toContainEqual(['visibility', 'public']);
+    expect(applied.eq).not.toContainEqual(['visibility', 'private']);
+  });
+
   it('orders featured first when the cause grid asks for it', async () => {
     const { GET } = await import('../app/api/campaigns/route');
     await GET(get('category=Sports&limit=6&sort=raised&featured_first=1'));
@@ -142,6 +150,8 @@ describe('/api/campaigns serves the same rule the cause page renders', () => {
     expect(applied.order[0], 'featured must be the FIRST sort key or it decides nothing')
       .toEqual(['featured', false]);
     expect(applied.order[1]).toEqual(['raised_amount', false]);
+    expect(applied.order[2]).toEqual(['created_at', false]);
+    expect(applied.order[3]).toEqual(['id', true]);
   });
 
   it('leaves other callers alone — `sort=newest` stays newest-first', async () => {
@@ -151,12 +161,14 @@ describe('/api/campaigns serves the same rule the cause page renders', () => {
     await GET(get('limit=6&sort=newest'));
 
     expect(applied.order[0]).toEqual(['created_at', false]);
+    expect(applied.order[1]).toEqual(['id', true]);
     expect(applied.order.some(([col]) => col === 'featured')).toBe(false);
   });
 
   it('returns `featured`, so a loaded card can be marked like a rendered one', async () => {
     const api = read('app/api/campaigns/route.ts');
     expect(api).toMatch(/select\('[^']*featured/);
+    expect(api).toMatch(/select\('[^']*is_demo/);
   });
 });
 

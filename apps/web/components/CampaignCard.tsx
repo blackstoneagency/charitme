@@ -22,6 +22,7 @@ import { STORED_TRUST_TIERS } from '../lib/trust-tiers';
 import { getCoverForCampaign } from '../lib/photo-catalog';
 import { optimizedCoverUrl } from '../lib/img-optimize';
 import { campaignDaysLeft, campaignTimeLabel } from '../lib/campaign-lifecycle';
+import { DEMO_BADGE_LABEL } from '../lib/demo-campaign';
 
 export interface CampaignCardData {
   id: string;
@@ -47,6 +48,8 @@ export interface CampaignCardData {
    * that happens to sort first is not a featured campaign.
    */
   featured?: boolean | null;
+  /** Seeded catalog/example row. It must be visibly distinguished from a fundraiser. */
+  is_demo?: boolean | null;
 }
 
 export function CampaignCard({
@@ -87,7 +90,8 @@ export function CampaignCard({
   // label cannot disagree about how much time is left.
   const daysLabel = campaignTimeLabel({ status: c.status, deadline: c.deadline });
   const days = campaignDaysLeft(c.deadline);
-  const isVerified = c.trust_status === 'Verified';
+  const isDemo = c.is_demo === true;
+  const isVerified = !isDemo && c.trust_status === 'Verified';
   // ⚠️ The corner chip used to render `getTrustLabel(calculateTrustScore(c))`.
   // A card carries 5 of the 15 signals that scorer reads, and it treats an
   // ABSENT signal exactly like a failed one — so every campaign scored 52 or 57
@@ -98,7 +102,7 @@ export function CampaignCard({
   //
   // The stored tier is the platform's actual judgement and IS on the card, so it
   // is shown directly rather than re-derived from data the card does not have.
-  const tier = STORED_TRUST_TIERS.find((t) => t === c.trust_status);
+  const tier = isDemo ? undefined : STORED_TRUST_TIERS.find((t) => t === c.trust_status);
   const hasEnded = daysLabel === 'Ended';
   // `=== true`, not truthiness: the column is `boolean NOT NULL DEFAULT false`,
   // but most listings do not select it, and `undefined` means "not known" — which
@@ -126,6 +130,7 @@ export function CampaignCard({
                 user never receives — the badge is the accessible half of the
                 highlight, which is why both ship together. */}
             {isFeatured && <Badge color="green">★ Featured</Badge>}
+            {isDemo && <Badge color="blue">{DEMO_BADGE_LABEL}</Badge>}
             {c.category && <Badge color="gray">{c.category}</Badge>}
             {/* The reference shows no status chips. These two are kept anyway:
                 dropping "Verified" removes a signal a donor decides on, and
@@ -168,9 +173,10 @@ export function CampaignCard({
             {/* Same mark on both variants: one campaign must not read as featured
                 on the cause page and ordinary on /campaigns. */}
             {isFeatured && <Badge color="green">★ Featured</Badge>}
+            {isDemo && <Badge color="blue">{DEMO_BADGE_LABEL}</Badge>}
             {c.category && <Badge color="gray">{c.category}</Badge>}
             {isVerified && <Badge color="green">✓ Verified</Badge>}
-            {c.nonprofit_verified && <Badge color="green">💚 Tax Deductible</Badge>}
+            {!isDemo && c.nonprofit_verified && <Badge color="green">💚 Tax Deductible</Badge>}
             {days !== null && days <= 5 && days > 0 && daysLabel !== 'Ended' && (
               <Badge color="red">⏰ {days}d left</Badge>
             )}

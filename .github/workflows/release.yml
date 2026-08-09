@@ -112,6 +112,9 @@ jobs:
           BOOTSTRAP_LOCAL_RLS_PERSONAS: 'true'
           REQUIRE_AUTHENTICATED_RLS_PERSONAS: 'true'
 
+      - name: Verify staging personas, tenants, data, and storage
+        run: npm run test:platform-matrix
+
       - name: Build staging application
         run: npm run build --workspace=apps/web
 
