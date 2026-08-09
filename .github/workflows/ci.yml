@@ -86,6 +86,25 @@ jobs:
       - name: Verify staging personas, tenants, data, and storage
         run: npm run test:platform-matrix
 
+      # Authenticated RLS smoke, against the database this job just built from
+      # zero. todo.md carried five near-identical open items reading "apply the
+      # migration to staging and run authenticated RLS/payment smoke tests" —
+      # all five waiting on an owner-provisioned staging project that does not
+      # exist yet, so NOTHING ran an authenticated RLS check on any commit.
+      #
+      # This does not replace that project: an isolated replay is not a
+      # production-shaped environment, and the pre-production gate still belongs
+      # to the release workflow. What it does is make the *verification* half
+      # real and continuous — anon must read zero rows from profiles, donations
+      # and privacy_requests, and two freshly-created personas must each see
+      # their own profile and never each other's. The script bootstraps and
+      # deletes those personas itself and refuses any non-loopback URL.
+      - name: Authenticated RLS smoke (isolated replay)
+        env:
+          BOOTSTRAP_LOCAL_RLS_PERSONAS: 'true'
+          REQUIRE_AUTHENTICATED_RLS_PERSONAS: 'true'
+        run: npm run test:rls-live
+
       - name: Stop isolated database
         if: always()
         run: npx supabase stop --no-backup || true

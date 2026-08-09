@@ -6223,6 +6223,20 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
 - [ ] Apply the new compatibility migrations to staging and run authenticated
   RLS/payment smoke tests. Production remains gated on that exact staging commit
   and the external release blockers above.
+
+> ⚙️ **Partially closed 2026-08-09 — the RLS half now runs on every commit.**
+> Five items in this file were near-identical: "apply migration X to staging and
+> run authenticated RLS/payment smoke tests". All five waited on a staging
+> project that does not exist (CHAR-0016), so **no authenticated RLS check ran
+> on any commit at all**. `scripts/rls-live-smoke.mjs` already had a
+> `BOOTSTRAP_LOCAL_RLS_PERSONAS` mode built for a loopback database, and CI's
+> `migration-replay` job already builds exactly that from zero — the two had
+> simply never been connected. They are now (`.github/workflows/ci.yml`).
+> **This does not tick these boxes.** An isolated replay is not a
+> production-shaped staging project, and the pre-production gate still belongs
+> to the release workflow. What changed is that the *verification* is real and
+> continuous instead of hypothetical and pending.
+
 - [x] Added a tag-only release workflow that verifies a zero-state migration
   replay, provisions staging, runs live RLS and three Playwright smoke suites,
   then gates production on the exact staging-verified commit and protected
