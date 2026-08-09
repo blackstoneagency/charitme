@@ -61,7 +61,11 @@ describe('the page decides from the SERVER session', () => {
 
 describe('AppShell gets out of the way without flashing first', () => {
   it('lists the route as shell-when-signed-in', () => {
-    expect(shell).toMatch(/const SHELL_WHEN_SIGNED_IN = \['\/fundraising-guide'\]/);
+    // The list has since grown — /resources needed the identical treatment and
+    // was merged into THIS mechanism rather than shipping a second one. Pinned
+    // by membership, not by the exact array, so adding the next resource page
+    // does not require editing this assertion.
+    expect(shell).toMatch(/SHELL_WHEN_SIGNED_IN = \[[^\]]*'\/fundraising-guide'/);
   });
 
   it('tracks whether auth has RESOLVED, not merely whether a user exists', () => {
@@ -73,9 +77,19 @@ describe('AppShell gets out of the way without flashing first', () => {
   });
 
   it('suppresses marketing chrome while the answer is UNKNOWN as well', () => {
-    // The `!authResolved ||` half is the anti-flash. Dropping it renders the
-    // marketing header above the server-rendered shell on every load.
-    expect(shell).toMatch(/shellWhenSignedIn && \(!authResolved \|\| !!user\)/);
+    // The `!authResolved ||` half is the anti-flash, and it survives — but only
+    // as the FALLBACK. The server now answers this question before the first
+    // byte: middleware already resolves the session on every non-API request and
+    // passes it through the root layout as `hasSession`, so when it is present
+    // the first render is correct in BOTH directions. That is strictly better
+    // than this rule, which suppresses the marketing header for a signed-OUT
+    // visitor too until the client auth call returns.
+    //
+    // `undefined` (no server answer) is what keeps the old behaviour, which is
+    // why the prop has no default — `false` would be indistinguishable from
+    // "definitely signed out".
+    expect(shell).toContain('hasSession === undefined ? (!authResolved || !!user) : hasSession');
+    expect(shell).toMatch(/shellWhenSignedIn && signedInForShell/);
   });
 
   it('leaves every other route on the old, purely path-based rule', () => {

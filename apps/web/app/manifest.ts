@@ -6,10 +6,17 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: 'CharitMe',
     description: 'Create trusted fundraising campaigns in seconds with CharitMe AI. 0% platform fees.',
     start_url: '/',
+    // Pins app identity to '/' explicitly. Without `id`, identity is DERIVED from
+    // start_url, so ever changing start_url would mint a second installable app
+    // rather than update the installed one.
+    id: '/',
     display: 'standalone',
     background_color: '#fbfaff',
     theme_color: '#6d35ff',
-    orientation: 'portrait-primary',
+    // `portrait-primary` locked the installed app out of landscape entirely,
+    // including on tablets. `portrait` still prefers portrait but permits
+    // portrait-secondary, and does not fight a user who rotates the device.
+    orientation: 'portrait',
     categories: ['finance', 'social', 'lifestyle'],
     icons: [
       { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },

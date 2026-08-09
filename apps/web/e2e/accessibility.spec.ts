@@ -57,7 +57,12 @@ for (const theme of ['light', 'dark'] as const) {
     }, theme);
 
     for (const route of usable) {
-      await page.goto(route, { waitUntil: 'domcontentloaded' });
+      const response = await page.goto(route, { waitUntil: 'domcontentloaded' });
+
+      if (!response || response.status() >= 400) {
+        failures.push(`${route} [${theme}] HTTP ${response?.status() ?? 'NO_RESPONSE'} - route did not render`);
+        continue;
+      }
 
       // Scan the page we asked for, or fail — never something we were sent to.
       // (Shared with the other public sweeps; see public-routes.ts for why.)
@@ -66,6 +71,11 @@ for (const theme of ['light', 'dark'] as const) {
       // Belt and braces: the init script above is what actually holds, but assert
       // the page really is in the requested theme at scan time. A silent revert
       // is precisely the failure this test could not see before.
+      await page.waitForFunction(
+        (expectedTheme) => document.documentElement.getAttribute('data-theme') === expectedTheme,
+        theme,
+        { timeout: 2_000 },
+      ).catch(() => undefined);
       const active = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
       if (active !== theme) {
         failures.push(`${route} [${theme}] THEME-NOT-APPLIED — scanned as "${active}"; result would not describe ${theme} mode`);

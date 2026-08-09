@@ -4,6 +4,7 @@ import ShellAccountControls from './ShellAccountControls';
 import CampaignsSidebarNav from './CampaignsSidebarNav';
 import SuperAdminNav from './SuperAdminNav';
 import { dashboardNavigationFor } from '../lib/persona-navigation';
+import { composeNavigation, type NavOverride, type NavOverrideMap } from '../lib/nav-customization-core';
 import type { UserRole } from '../lib/roles-shared';
 
 export type Metric = {
@@ -40,6 +41,10 @@ export type ShellProps = {
   hideSidebar?: boolean;
   sidebarCampaigns?: SidebarCampaign[];
   sidebarCampaignsHasMore?: boolean;
+  /** Super Admin's platform-wide sidebar shape, keyed by role. */
+  platformNavOverrides?: NavOverrideMap;
+  /** This person's own sidebar customization. */
+  userNavOverride?: NavOverride;
 };
 
 export type ShellVariant = 'dashboard' | 'admin';
@@ -119,8 +124,11 @@ export function Logo() {
   );
 }
 
-export function CharitMeShell({ active, children, mode = 'dashboard', hasAdminAccess: _hasAdminAccess = false, userName, userEmail, userRole, navRole = 'donor', userAvatarUrl, guestMode = false, hideSidebar = false, sidebarCampaigns = [], sidebarCampaignsHasMore = false }: ShellProps) {
-  const dashboardNav = dashboardNavigationFor(navRole);
+export function CharitMeShell({ active, children, mode = 'dashboard', hasAdminAccess: _hasAdminAccess = false, userName, userEmail, userRole, navRole = 'donor', userAvatarUrl, guestMode = false, hideSidebar = false, sidebarCampaigns = [], sidebarCampaignsHasMore = false, platformNavOverrides, userNavOverride }: ShellProps) {
+  // Persona defaults → Super Admin's platform template → this person's own
+  // customization. Composition (including the rule that refuses an override
+  // hiding every item) lives in lib/nav-customization-core.ts and is tested there.
+  const dashboardNav = composeNavigation(dashboardNavigationFor(navRole), navRole, platformNavOverrides, userNavOverride);
 
   if (hideSidebar) {
     return (

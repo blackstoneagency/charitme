@@ -13,6 +13,7 @@
     "schema:snapshot": "node scripts/schema-snapshot.mjs",
     "test:seed-guard": "node --test scripts/seed-guard.test.mjs",
     "test:rls-live": "node scripts/rls-live-smoke.mjs",
+    "test:campaign-builder-db": "node scripts/campaign-builder-db-smoke.mjs",
     "test:platform-matrix": "node scripts/staging-platform-matrix.mjs",
     "provision": "node scripts/provision-supabase-vercel.mjs"
   },

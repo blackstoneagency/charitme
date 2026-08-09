@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '../../../../lib/supabase-server';
 import { MAX_DRAFTS_PER_USER } from '../../../../lib/campaign-draft';
+import { CAMPAIGN_BUILDER_SCHEMA_VERSION } from '../../../../lib/campaign-builder-model';
+import { checkRateLimitDurable } from '../../../../lib/rate-limit-durable';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,8 +18,15 @@ const DraftInput = z.object({
   title: z.string().max(200).optional(),
   step: z.string().max(40).default('basics'),
   storyMode: z.string().max(40).default('guided'),
-  form: z.record(z.unknown()),
-  images: z.array(z.object({ url: z.string().url().max(2000), name: z.string().max(300).default('') })).max(20).default([]),
+  builderPath: z.enum(['ai', 'guided']).default('guided'),
+  schemaVersion: z.number().int().min(1).max(1000).default(CAMPAIGN_BUILDER_SCHEMA_VERSION),
+  sourceContext: z.record(z.string(), z.unknown()).default({}),
+  form: z.record(z.string(), z.unknown()),
+  images: z.array(z.object({
+    url: z.string().url().max(2000),
+    name: z.string().max(300).default(''),
+    storagePath: z.string().max(500).default(''),
+  })).max(20).default([]),
   ts: z.number().finite().nonnegative().default(0),
 });
 
@@ -27,13 +36,16 @@ export async function GET(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!(await checkRateLimitDurable(`campaign-draft-read:${user.id}`, 120, 60_000))) {
+    return NextResponse.json({ error: 'Too many requests', code: 'RATE_LIMITED' }, { status: 429 });
+  }
 
   const id = req.nextUrl.searchParams.get('id');
 
   if (id) {
     const { data, error } = await supabase
       .from('campaign_wizard_drafts')
-      .select('id, title, step, story_mode, form, images, client_ts, updated_at')
+      .select('id, title, step, story_mode, builder_path, schema_version, source_context, form, images, client_ts, updated_at')
       .eq('id', id)
       .maybeSingle();
     if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
@@ -43,7 +55,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabase
     .from('campaign_wizard_drafts')
-    .select('id, title, step, form, images, client_ts, updated_at')
+    .select('id, title, step, story_mode, builder_path, schema_version, source_context, form, images, client_ts, updated_at')
     .order('updated_at', { ascending: false })
     .limit(MAX_DRAFTS_PER_USER);
   if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
@@ -69,6 +81,9 @@ export async function PUT(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!(await checkRateLimitDurable(`campaign-draft:${user.id}`, 120, 60_000))) {
+    return NextResponse.json({ error: 'Too many requests', code: 'RATE_LIMITED' }, { status: 429 });
+  }
 
   const parsed = DraftInput.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
@@ -82,6 +97,9 @@ export async function PUT(req: NextRequest) {
     title: derivedTitle,
     step: d.step,
     story_mode: d.storyMode,
+    builder_path: d.builderPath,
+    schema_version: d.schemaVersion,
+    source_context: d.sourceContext,
     form: d.form,
     images: d.images,
     client_ts: Math.round(d.ts),
@@ -95,10 +113,19 @@ export async function PUT(req: NextRequest) {
       .update(row)
       .eq('id', d.id)
       .eq('user_id', user.id)
+      .lte('client_ts', row.client_ts)
       .select('id')
       .maybeSingle();
     if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
     if (data) return NextResponse.json({ ok: true, id: data.id });
+    const { data: existing, error: existingError } = await supabase
+      .from('campaign_wizard_drafts')
+      .select('id, client_ts')
+      .eq('id', d.id)
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (existingError) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
+    if (existing) return NextResponse.json({ ok: true, id: existing.id, stale: true });
     // Fall through: the id no longer exists (e.g. deleted on another device), so
     // create a fresh draft rather than silently dropping the user's work.
   }
@@ -136,6 +163,9 @@ export async function DELETE(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!(await checkRateLimitDurable(`campaign-draft-delete:${user.id}`, 60, 60_000))) {
+    return NextResponse.json({ error: 'Too many requests', code: 'RATE_LIMITED' }, { status: 429 });
+  }
 
   const id = req.nextUrl.searchParams.get('id');
   if (!id) return NextResponse.json({ error: 'id required', code: 'ID_REQUIRED' }, { status: 400 });

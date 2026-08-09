@@ -201,6 +201,9 @@ const LABEL_MAPS: Record<string, Record<string, string>> = {
     storyVideoUrl: 'Story Video URL',
     impactStats: 'Impact Stats (JSON)',
   },
+  navigation: {
+    byRole: 'Sidebar Overrides by Role (JSON)',
+  },
 };
 
 function formatValue(v: unknown): string {
@@ -996,9 +999,65 @@ export default function SystemClient({ categories, overview, recentActivity, res
     );
   }
 
+  /**
+   * The signed-in shell's left navigation, shaped per role for EVERYONE.
+   *
+   * ⚠️ An override can only REORDER or HIDE items the role's persona navigation
+   * already contains — lib/nav-customization-core.ts refuses to introduce a
+   * link, because a sidebar that could point at routes a role does not grant
+   * would imply an authorization it does not have. It also refuses an override
+   * that hides every item, which would leave that role with no navigation at
+   * all (on mobile the sidebar is the ONLY navigation).
+   *
+   * Stored stringified, like every other structured setting here.
+   */
+  function renderNavigationForm() {
+    const raw = String(draft.navigation?.byRole ?? '{}');
+    let roleCount: number | null = null;
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      roleCount = parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+        ? Object.keys(parsed as Record<string, unknown>).length
+        : null;
+    } catch {
+      roleCount = null;
+    }
+
+    return (
+      <div className="sys-form">
+        <div className="sys-form-section">
+          <h3>Left navigation</h3>
+          <div className="sys-fields">
+            <Field
+              label="Sidebar overrides by role (JSON)"
+              hint={'Keyed by role (donor, organizer, beneficiary, nonprofit, admin, super_admin). Each value takes {"hidden": ["/dashboard/saved"], "order": ["/dashboard", "/donor"]}. Overrides can only reorder or hide items the role already has — they cannot add a link, and hiding every item is ignored.'}
+              full
+            >
+              <textarea
+                className="sys-textarea"
+                rows={12}
+                spellCheck={false}
+                value={raw}
+                onChange={e => setField('navigation', 'byRole', e.target.value)}
+              />
+            </Field>
+          </div>
+          <p style={{ margin: '8px 0 0', fontSize: 12.5, color: roleCount === null ? 'var(--red-text)' : 'var(--t3)' }}>
+            {roleCount === null
+              ? 'Not valid JSON, or not an object — the platform override is ignored until this parses, and every role keeps its default sidebar.'
+              : roleCount === 0
+                ? 'No overrides. Every role uses its default sidebar.'
+                : `${roleCount} role${roleCount === 1 ? '' : 's'} customized. Each person can still adjust their own sidebar in Settings.`}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   function renderCategoryForm(key: string) {
     switch (key) {
       case 'about': return renderAboutForm();
+      case 'navigation': return renderNavigationForm();
       case 'general': return renderGeneralForm();
       case 'security': return renderSecurityForm();
       case 'email': return renderEmailForm();

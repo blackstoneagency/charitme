@@ -3,9 +3,9 @@
 import React, { useMemo, useState } from 'react';
 import {
   donationBreakdown,
-  SUPPORT_TIER_PERCENTS,
-  METHOD_FEES,
-  type PaymentMethod,
+  normalizeDonationCheckoutSettings,
+  type CheckoutPaymentMethod,
+  type DonationCheckoutSettings,
 } from '@shared/fees';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -34,27 +34,44 @@ const SURF2 = 'var(--s2, #f5f0ff)';
 // "cover the processing fee" contribution off a Venmo rate they would never be
 // charged at. Re-add these once the capability is active in the Stripe
 // Dashboard and listed in ONE_TIME_PAYMENT_METHOD_TYPES.
-const METHODS: { id: PaymentMethod; label: string }[] = [
-  { id: 'card', label: 'Card' },
-  { id: 'bank', label: 'Bank (ACH)' },
+const METHODS: { id: CheckoutPaymentMethod; label: string }[] = [
+  { id: 'stripe', label: 'Stripe' },
+  { id: 'gpay', label: 'Google Pay' },
+  { id: 'bank', label: 'Bank transfer' },
+  { id: 'card', label: 'Credit or debit' },
 ];
 
 function money(cents: number): string {
   return `$${(cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export default function MoneyCalculator() {
+type MoneyCalculatorProps = {
+  checkoutSettings: DonationCheckoutSettings;
+};
+
+export default function MoneyCalculator({ checkoutSettings }: MoneyCalculatorProps) {
+  const checkout = useMemo(
+    () => normalizeDonationCheckoutSettings(checkoutSettings),
+    [checkoutSettings],
+  );
   const [amount, setAmount] = useState('100');
-  const [supportPercent, setSupportPercent] = useState(15);
-  const [method, setMethod] = useState<PaymentMethod>('card');
+  const [supportPercent, setSupportPercent] = useState(checkout.defaultSupportPercent);
+  const [method, setMethod] = useState<CheckoutPaymentMethod>('stripe');
   const [coverProcessing, setCoverProcessing] = useState(true);
 
   const amountCents = Math.max(0, Math.round((Number.parseFloat(amount) || 0) * 100));
 
   const b = useMemo(
-    () => donationBreakdown({ amountCents, supportPercent, method, coverProcessing }),
-    [amountCents, supportPercent, method, coverProcessing],
+    () => donationBreakdown({
+      amountCents,
+      supportPercent,
+      method,
+      coverProcessing,
+      methodFees: checkout.methodFees,
+    }),
+    [amountCents, supportPercent, method, coverProcessing, checkout.methodFees],
   );
+  const methodFee = checkout.methodFees[method];
 
   // Stacked-bar segments over the total the donor pays.
   const total = Math.max(1, b.totalChargedCents);
@@ -118,7 +135,7 @@ export default function MoneyCalculator() {
         CharitMe support (optional — always reducible to 0%)
       </span>
       <div style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 6, marginBottom: 18 }} role="group" aria-labelledby="mc-support-label">
-        {SUPPORT_TIER_PERCENTS.map((p) => {
+        {checkout.supportTierPercents.map((p) => {
           const active = supportPercent === p;
           return (
             <button
@@ -219,7 +236,7 @@ export default function MoneyCalculator() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
         <Row label="Your donation" value={money(amountCents)} />
         <Row label={`CharitMe support (${supportPercent}%)`} value={supportPercent === 0 ? '$0.00' : money(b.supportCents)} muted={supportPercent === 0} />
-        <Row label={`Processing fee (${METHOD_FEES[method].label})`} value={money(b.processingCents)} />
+        <Row label={`Processing fee (${methodFee.label})`} value={money(b.processingCents)} />
         <div style={{ borderTop: `1px solid ${BD}`, marginTop: 4, paddingTop: 12 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', fontSize: 16, fontWeight: 800, color: GRT }}>
             <span>Recipient receives</span>
@@ -236,12 +253,12 @@ export default function MoneyCalculator() {
         {coverProcessing ? (
           <>
             <strong style={{ color: GRT }}>100% of your donation</strong> reaches the recipient — you&apos;ve
-            covered the {METHOD_FEES[method].label} processor fee. CharitMe&apos;s platform fee is{' '}
+            covered the {methodFee.label} processor fee. CharitMe&apos;s platform fee is{' '}
             <strong>always 0%</strong>.
           </>
         ) : (
           <>
-            The recipient receives your donation minus the {METHOD_FEES[method].label} processor fee that
+            The recipient receives your donation minus the {methodFee.label} processor fee that
             Stripe charges. CharitMe&apos;s platform fee is <strong>always 0%</strong> — none of this goes to us.
           </>
         )}

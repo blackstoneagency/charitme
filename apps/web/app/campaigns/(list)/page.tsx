@@ -15,6 +15,7 @@ import { getCause } from '../../../lib/causes';
 import { getTopDonors } from '../../../lib/leaderboard';
 import { getRecentDonations } from '../../../lib/home-data';
 import { formatCents } from '../../../lib/stripe';
+import { optimizedCoverUrl } from '../../../lib/img-optimize';
 import { getCoverForCategory } from '../../../lib/photo-catalog';
 import { StatStrip, statValue, moneyValue } from '../../../components/IndexHero';
 import { getCausesIndexData } from '../../../lib/causes-index';
@@ -697,7 +698,7 @@ export default async function CampaignsPage({ searchParams }: Props) {
                       <Link href={`/campaigns/${c.slug}`} className="cbx-feat-media">
                         {c.cover_image_url
                           // eslint-disable-next-line @next/next/no-img-element
-                          ? <img src={c.cover_image_url} alt="" loading="lazy" />
+                          ? <img src={optimizedCoverUrl(c.cover_image_url, 700)} alt="" loading="lazy" />
                           : <span className="cbx-feat-ph" aria-hidden="true" />}
                         {c.category && <span className="cbx-feat-badge">{c.category}</span>}
                       </Link>
@@ -769,7 +770,7 @@ export default async function CampaignsPage({ searchParams }: Props) {
                     <Link href={`/campaigns/${c.slug}`} className="cbx-row-media" aria-hidden="true" tabIndex={-1}>
                       {c.cover_image_url
                         // eslint-disable-next-line @next/next/no-img-element
-                        ? <img src={c.cover_image_url} alt="" loading="lazy" />
+                        ? <img src={optimizedCoverUrl(c.cover_image_url, 200)} alt="" loading="lazy" />
                         : <span className="cbx-feat-ph" />}
                     </Link>
                     <div className="cbx-row-body">

@@ -37,7 +37,7 @@ describe('buildDraft / serializeDraft / parseDraft round-trip', () => {
 
   it('drops malformed image entries defensively', () => {
     const raw = JSON.stringify({ v: 1, ts: 5, form, images: [{ url: 'ok', name: 'n' }, { name: 'bad' }, null] });
-    expect(parseDraft(raw, 5)!.images).toEqual([{ url: 'ok', name: 'n' }]);
+    expect(parseDraft(raw, 5)!.images).toEqual([{ url: 'ok', name: 'n', storagePath: '' }]);
   });
 });
 

@@ -101,16 +101,37 @@ describe('/impact states no figure it cannot measure', () => {
   // because a deleted section with no test is a section that quietly comes back
   // the next time somebody works from the reference design.
   // ───────────────────────────────────────────────────────────────────────────
-  it('no longer renders an Impact Stories row', () => {
-    expect(pageCode).not.toContain('Impact Stories');
-    expect(pageCode).not.toContain('View All Stories');
-    expect(pageCode).not.toMatch(/aria-labelledby="imp-stories"/);
+  // ⚠️ REVERSAL, recorded rather than quietly rewritten.
+  //
+  // These three assertions used to require the Impact Stories row to be ABSENT —
+  // it had been removed on request. The reference design for /impact shows the
+  // row, so it is back, and the tests now guard the property that actually
+  // matters: it renders REAL published reports, and never the design's invented
+  // vignettes.
+  it('renders an Impact Stories row from published reports', () => {
+    expect(pageCode).toContain('Impact Stories');
+    expect(pageCode).toMatch(/aria-labelledby="imp-stories"/);
+    expect(pageCode).toContain('listPublishedImpactSummaries');
   });
 
-  it('does not read published reports it no longer displays', () => {
-    // The row was the only consumer. Leaving the fetch would pay for a query on
-    // every /impact request and discard the result.
-    expect(pageCode).not.toContain('listPublishedImpactSummaries');
+  it('renders the row ONLY when a report actually exists', () => {
+    // No published reports means no section — three placeholder cards would imply
+    // stories that have not been written.
+    expect(pageCode).toMatch(/\{stories\.length > 0 && \(/);
+  });
+
+  it('never hardcodes the reference design\'s invented stories', () => {
+    // These name specific children and describe things that happened to them.
+    // Writing them into a fundraising page is fabricated testimony about
+    // identifiable people — a different order of wrong from a made-up total.
+    for (const invented of [
+      'A New Home, A New Beginning',
+      'From Dreaming to Achieving',
+      'Healing Little Hearts',
+      'the Rahman family',
+    ]) {
+      expect(pageCode, `invented story text: ${invented}`).not.toContain(invented);
+    }
   });
 
   it('leaves the report pages themselves alone', () => {
@@ -121,8 +142,10 @@ describe('/impact states no figure it cannot measure', () => {
     expect(read('app/impact/manage/page.tsx')).toContain('listOwnedCampaigns');
   });
 
-  it('ships no orphaned styles for the removed row', () => {
-    expect(read('app/globals.css'), 'dead rules for a deleted section').not.toContain('.imp-story');
+  it('ships the styles the restored row needs', () => {
+    const css = read('app/globals.css');
+    expect(css, 'the restored row needs its rules').toContain('.imp-story');
+    expect(css).toContain('.imp-stories');
   });
 });
 

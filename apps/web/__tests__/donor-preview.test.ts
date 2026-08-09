@@ -68,7 +68,7 @@ describe('evaluateDonorView', () => {
   });
 
   it('every failing check names a real wizard step to fix it', () => {
-    const valid = new Set(['basics', 'story', 'title', 'goal', 'media']);
+    const valid = new Set(['beneficiary', 'story', 'purpose', 'goal', 'media']);
     const r = evaluateDonorView({
       title: '', description: '', goalCents: 0, coverImageUrl: '', imageCount: 0,
       forSelf: 'false', beneficiaryName: '', category: '', country: '',

@@ -1,7 +1,7 @@
 'use client';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Step 7 — Rewards (optional).
+// Optional donor rewards.
 //
 // Rewards are held in wizard state and written after publish, because
 // POST /api/campaigns/[id]/rewards needs a campaign id that does not exist yet.
@@ -21,9 +21,11 @@ import {
   type DraftReward,
   type RewardFieldError,
 } from '../../lib/campaign-rewards-draft';
+import { currencySymbol, formatMoney } from '@shared/currencies';
 
 export interface StepRewardsProps {
   rewards: DraftReward[];
+  currency: string;
   onChange: (rewards: DraftReward[]) => void;
   /** Which row failed validation, and why — set by the builder on Continue. */
   fieldError: { key: string; error: RewardFieldError } | null;
@@ -58,7 +60,7 @@ function newKey(): string {
     : `r-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
-export default function StepRewards({ rewards, onChange, fieldError }: StepRewardsProps) {
+export default function StepRewards({ rewards, currency, onChange, fieldError }: StepRewardsProps) {
   const rows = rewards.length > 0 ? rewards : [emptyDraftReward(newKey())];
   const filledCount = rows.filter(draftRewardHasContent).length;
   const canAdd = rows.length < MAX_REWARDS_PER_CAMPAIGN;
@@ -136,7 +138,7 @@ export default function StepRewards({ rewards, onChange, fieldError }: StepRewar
                   value={reward.amount}
                   onChange={(e) => update(reward.key, { amount: e.target.value })}
                   inputMode="decimal"
-                  placeholder="$25"
+                  placeholder={`${currencySymbol(currency)}25`}
                   aria-invalid={amountError ? true : undefined}
                   aria-describedby={amountError ? `reward-amount-err-${reward.key}` : undefined}
                 />
@@ -146,7 +148,7 @@ export default function StepRewards({ rewards, onChange, fieldError }: StepRewar
                   </p>
                 ) : cents !== null ? (
                   <p style={{ color: 'var(--t3)', fontSize: 12.5, margin: '6px 0 0' }}>
-                    ${(cents / 100).toFixed(2)} or more
+                    {formatMoney(cents, currency)} or more
                   </p>
                 ) : null}
               </div>

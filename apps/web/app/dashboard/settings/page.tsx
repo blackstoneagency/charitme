@@ -1,5 +1,8 @@
 import 'server-only';
 import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
+import NavigationPreferences from './NavigationPreferences';
+import { loadShellSession } from '../../../lib/shell-session-server';
+import { dashboardNavigationFor } from '../../../lib/persona-navigation';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { getUserEntitlements } from '../../../lib/entitlements';
@@ -81,6 +84,9 @@ async function fetchCampaignCount(userId: string): Promise<number | null> {
 
 export default async function SettingsPage({ searchParams }: PageProps) {
   const user = await requireUser();
+  // The caller's own persona navigation, for the customization control below.
+  const session = await loadShellSession();
+  const navItems = dashboardNavigationFor(session.navRole).map(({ label, href }) => ({ label, href }));
   const [profile, sp, campaignsCount, entitlements] = await Promise.all([
     fetchProfile(user.id),
     searchParams,
@@ -122,6 +128,10 @@ export default async function SettingsPage({ searchParams }: PageProps) {
       ) : null}
       <div style={{ padding: '0 32px' }}>
         <PlanFeaturesCard entitlements={entitlements} activeCampaigns={campaignsCount} />
+        {/* The item list is server-rendered from the caller's OWN persona
+            navigation, so the control can only ever reorder or hide what the
+            role already grants — it cannot be used to surface another route. */}
+        <NavigationPreferences items={navItems} />
       </div>
       <SettingsClient
         initialProfile={profile}

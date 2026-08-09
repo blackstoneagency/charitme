@@ -32,9 +32,10 @@ import SaveCampaignButton from '../SaveCampaignButton';
 import CampaignAssistant from '../CampaignAssistant';
 import { getPhotosForCategory, getCoverForCampaign } from '../../../../lib/photo-catalog';
 import { optimizedCoverUrl } from '../../../../lib/img-optimize';
-import { optimizeAsks, computeImpact } from '../../../../lib/donation-optimizer';
+import { computeImpact } from '../../../../lib/donation-optimizer';
 import { campaignLifecycle, campaignTimeLabel } from '../../../../lib/campaign-lifecycle';
 import { DEMO_BADGE_EXPLANATION, DEMO_BADGE_LABEL, isDemoCampaign } from '../../../../lib/demo-campaign';
+import { getDonationCheckoutSnapshot } from '../../../../lib/donation-checkout-settings';
 
 export const dynamic = 'force-dynamic';
 
@@ -167,16 +168,6 @@ async function getFAQs(campaignId: string) {
     .order('sort_order', { ascending: true })
     .limit(10));
   return (data ?? []) as { id: string; question: string; answer: string; sort_order: number }[];
-}
-
-async function getRewards(campaignId: string) {
-  const { data } = await boundedQuery(() => supabaseAdmin
-    .from('campaign_rewards')
-    .select('id, title, description, amount_cents, estimated_delivery, item_limit, claimed_count, sort_order')
-    .eq('campaign_id', campaignId)
-    .order('sort_order', { ascending: true })
-    .order('amount_cents', { ascending: true }));
-  return (data ?? []) as { id: string; title: string; description: string | null; amount_cents: number; estimated_delivery: string | null; item_limit: number | null; claimed_count: number; sort_order: number }[];
 }
 
 type PeerRow = {
@@ -405,18 +396,18 @@ export default async function CampaignPage({ params, searchParams }: Props) {
     referrerId,
   };
 
-  const [donations, updates, updatesCount, faqs, donorMessages, teamFundraisers, rewards, currency, payoutDestination, trustInput, similarCampaigns] = await Promise.all([
+  const [donations, updates, updatesCount, faqs, donorMessages, teamFundraisers, currency, payoutDestination, trustInput, similarCampaigns, checkout] = await Promise.all([
     getRecentDonations(campaign.id),
     getUpdates(campaign.id),
     getUpdatesCount(campaign.id),
     getFAQs(campaign.id),
     getDonorMessages(campaign.id),
     getTeamFundraisers(campaign.id),
-    getRewards(campaign.id),
     getCampaignCurrency(campaign.id),
     resolvePayoutDestination(campaign),
     buildCampaignTrustInput(campaign),
     getSimilarCampaigns(campaign.id, campaign.category),
+    getDonationCheckoutSnapshot(),
   ]);
   const payoutReady = !!payoutDestination;
 
@@ -563,14 +554,13 @@ export default async function CampaignPage({ params, searchParams }: Props) {
       ? rawImageUrls
       : getPhotosForCategory(campaign.category, 4);
 
-  // AI Donation Optimizer — campaign-tuned ask amounts + impact projection
+  // AI impact projection
   const campaignStats = {
     goalCents: goal,
     raisedCents: raised,
     backerCount: campaign.backer_count ?? donations.length,
     createdAt: campaign.created_at as string,
   };
-  const asks = optimizeAsks(campaignStats);
   const impact = computeImpact(campaignStats);
 
   // Arc SVG for Impact Tracker donut
@@ -663,10 +653,10 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             Organized by{' '}
             {creatorHandle ? (
               <Link href={`/creators/${creatorHandle}`} style={{ color: 'var(--ink)', fontWeight: 650, textDecoration: 'underline' }}>
-                {organizer.full_name ?? 'CharitMe Organizer'}
+                {organizer.full_name ?? 'Campaign organizer'}
               </Link>
             ) : (
-              <b style={{ color: 'var(--ink)', fontWeight: 650 }}>{organizer.full_name ?? 'CharitMe Organizer'}</b>
+              <b style={{ color: 'var(--ink)', fontWeight: 650 }}>{organizer.full_name ?? 'Campaign organizer'}</b>
             )}
             {/* ⚠️ This chip was UNCONDITIONAL — every campaign claimed "✓ Verified"
                 whether or not anything had been verified. It now renders only when
@@ -854,7 +844,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
                 {!organizer.avatar_url && (organizer.full_name?.[0] ?? 'C')}
               </div>
               <div className="pc-org-info">
-                <b>{organizer.full_name ?? 'CharitMe Organizer'}</b>
+                <b>{organizer.full_name ?? 'Campaign organizer'}</b>
                 <small>Organizer · {campaign.location ?? 'New York, USA'}</small>
               </div>
               {user ? (
@@ -943,10 +933,9 @@ export default async function CampaignPage({ params, searchParams }: Props) {
                 campaignId={campaign.id}
                 campaignTitle={campaign.title}
                 utm={utm}
-                rewards={rewards}
                 currency={currency}
-                smartPresets={asks.presets}
-                recommendedAmount={asks.recommended}
+                checkoutSettings={checkout.settings}
+                checkoutRevision={checkout.revision}
               />
             ) : isActive && !payoutReady ? (
               <div className="pc-ended">

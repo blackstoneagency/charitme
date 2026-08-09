@@ -74,4 +74,15 @@ describe('peer attribution distinguishes "not valid" from "could not check"', ()
       'and it must scope the check to the campaign being donated to, not just the id',
     ).toContain('parent_campaign_id = p_campaign_id');
   });
+
+  it('keeps the replacement donation RPC service-role only', () => {
+    const sql = readFileSync(MIGRATION, 'utf8').toLowerCase();
+    expect(sql).toContain('create or replace function public.record_donation(');
+    expect(sql).toMatch(
+      /revoke all on function public\.record_donation\([\s\S]{0,200}\) from public, anon, authenticated/,
+    );
+    expect(sql).toMatch(
+      /grant execute on function public\.record_donation\([\s\S]{0,200}\) to service_role/,
+    );
+  });
 });

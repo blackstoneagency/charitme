@@ -18,6 +18,7 @@
  */
 
 import { PUBLISH_MIN_STORY_CHARS, PUBLISH_MIN_GOAL_CENTS } from './campaign-readiness';
+import { formatMoneyShort } from '@shared/currencies';
 
 /** Builder fields that can carry an inline validation error. */
 export type BuilderField = 'title' | 'description' | 'goal';
@@ -32,36 +33,36 @@ export type BuilderValidationInput = {
   goalCents: number;
   /** Raw goal text — an empty box is allowed through; a too-small number is not. */
   goalRaw: string;
+  currency?: string;
 };
 
 /**
  * Returns the field-targeted error for the current step, or null if it passes.
  *
- * Deliberately mirrors the builder's "don't nag about empty optional fields"
- * behaviour: story and goal only complain once the user has actually typed
- * something, so someone deferring them can still move on.
+ * Required fields fail on their owning screen so the organizer fixes them in
+ * context instead of discovering them only at publish time.
  */
 export function validateBuilderStep(input: BuilderValidationInput): BuilderStepError | null {
   const { step, title, description, goalCents, goalRaw } = input;
 
-  if (step === 'title' && title.trim().length < 3) {
+  if ((step === 'title' || step === 'purpose') && title.trim().length < 3) {
     return { field: 'title', message: 'Please enter a campaign title (min 3 characters).' };
   }
 
   // Caught at the step that owns it rather than at Publish, which used to bounce
   // the organizer back several steps to fix something they thought was done.
-  if (step === 'story' && description.trim().length > 0 && description.trim().length < PUBLISH_MIN_STORY_CHARS) {
+  if (step === 'story' && description.trim().length < PUBLISH_MIN_STORY_CHARS) {
     return {
       field: 'description',
       message:
-        `Please add a bit more to your story (at least ${PUBLISH_MIN_STORY_CHARS} characters) — or leave it empty for now and finish it later.`,
+        `Please add a bit more to your story (at least ${PUBLISH_MIN_STORY_CHARS} characters).`,
     };
   }
 
-  if (step === 'goal' && goalRaw.trim().length > 0 && goalCents < PUBLISH_MIN_GOAL_CENTS) {
+  if (step === 'goal' && (goalRaw.trim().length === 0 || goalCents < PUBLISH_MIN_GOAL_CENTS)) {
     return {
       field: 'goal',
-      message: `Please set a fundraising goal of at least $${(PUBLISH_MIN_GOAL_CENTS / 100).toFixed(0)}.`,
+      message: `Please set a fundraising goal of at least ${formatMoneyShort(PUBLISH_MIN_GOAL_CENTS, input.currency)}.`,
     };
   }
 

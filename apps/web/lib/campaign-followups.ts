@@ -16,7 +16,7 @@ export interface FollowUpForm {
   beneficiaryName: string;
   beneficiaryRelationship: string;
   category: string;
-  goal: string;                    // dollar string
+  goal: string;                    // amount in the campaign currency
   deadline: string;                // ISO date or ''
 }
 

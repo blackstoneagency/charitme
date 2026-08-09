@@ -1,8 +1,12 @@
 import { FOOTER_SETTINGS_DEFAULTS } from './footer-nav';
+import { DEFAULT_DONATION_CHECKOUT_SETTINGS } from '@shared/fees';
 
 export const VALID_CATEGORIES = [
   'general', 'security', 'email', 'payment', 'integrations',
   'notifications', 'storage', 'maintenance', 'flags', 'advanced', 'footer', 'about',
+  // The signed-in shell's left navigation, shaped per role by the Super Admin.
+  // Read by lib/nav-customization-server.ts; composed in nav-customization-core.
+  'navigation',
 ] as const;
 
 export type SettingsCategory = typeof VALID_CATEGORIES[number];
@@ -49,6 +53,17 @@ export const DEFAULTS: Record<SettingsCategory, Record<string, unknown>> = {
     // One-time fee (in cents) a creator pays to feature their campaign in the
     // homepage rotator. Editable in Super Admin → Settings → Payment.
     featuredCampaignPriceCents: 500,
+    donationCheckout: {
+      ...DEFAULT_DONATION_CHECKOUT_SETTINGS,
+      amountPresetsCents: [...DEFAULT_DONATION_CHECKOUT_SETTINGS.amountPresetsCents],
+      supportTierPercents: [...DEFAULT_DONATION_CHECKOUT_SETTINGS.supportTierPercents],
+      methodFees: {
+        stripe: { ...DEFAULT_DONATION_CHECKOUT_SETTINGS.methodFees.stripe },
+        gpay: { ...DEFAULT_DONATION_CHECKOUT_SETTINGS.methodFees.gpay },
+        bank: { ...DEFAULT_DONATION_CHECKOUT_SETTINGS.methodFees.bank },
+        card: { ...DEFAULT_DONATION_CHECKOUT_SETTINGS.methodFees.card },
+      },
+    },
   },
   integrations: {
     googleAnalyticsEnabled: false,
@@ -153,5 +168,15 @@ export const DEFAULTS: Record<SettingsCategory, Record<string, unknown>> = {
       { value: '120+', label: 'Countries Reached' },
       { value: '98%', label: 'Funds to Programs' },
     ]),
+  },
+  // The signed-in shell's left navigation, shaped per role by the Super Admin.
+  //
+  // Empty by default ON PURPOSE: with no entry here every persona gets the
+  // navigation lib/persona-navigation.ts defines, which is the behaviour that
+  // shipped before this setting existed. An override can only REORDER or HIDE
+  // items the role already has — see lib/nav-customization-core.ts — so this
+  // setting cannot be used to surface a route a role does not grant.
+  navigation: {
+    byRole: JSON.stringify({}),
   },
 };

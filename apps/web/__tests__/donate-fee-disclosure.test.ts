@@ -31,7 +31,12 @@ const code = src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ');
 describe('the payment selector leads, and reveals the service fee', () => {
   it('renders the payment method block BEFORE the service fee block', () => {
     const pay = code.indexOf('Payment method &amp; processing fee estimate');
-    const svc = code.indexOf('Service fee');
+    // ⚠️ Anchored on the panel wiring, which appears ONLY in the JSX section.
+    // Two earlier anchors were wrong and both silently measured the wrong
+    // thing: "CharitMe fee" also occurs in the payment row's aria-label, and
+    // `setServiceOpen` also occurs in the useState declaration at the top of
+    // the component — each sits before the gate and inverted the comparison.
+    const svc = code.indexOf('aria-controls="service-fee-panel"');
     expect(pay).toBeGreaterThan(-1);
     expect(svc).toBeGreaterThan(-1);
     expect(pay, 'the payment selector is the entry point and must come first').toBeLessThan(svc);
@@ -47,15 +52,27 @@ describe('the payment selector leads, and reveals the service fee', () => {
     expect(gates.length, 'expected a gate for the method list AND one for the service fee')
       .toBe(2);
 
-    const svc = code.indexOf('Service fee');
+    // Same anchoring trap as above — see that comment.
+    const svc = code.indexOf('aria-controls="service-fee-panel"');
     const gateBeforeService = gates.filter((i) => i < svc).pop();
     expect(gateBeforeService, 'no methodOpen gate precedes the service fee block').toBeDefined();
 
-    // Nothing may close that gate between it and the service fee heading —
-    // otherwise the gate belongs to the radio list and the fee is ungated.
-    const between = code.slice(gateBeforeService!, svc);
-    expect(between.includes(')}'), 'the gate closes before the service fee — it wraps something else')
-      .toBe(false);
+    // The gate must not CLOSE before the service fee, or it wraps the radio list
+    // instead and the fee is ungated.
+    //
+    // ⚠️ Checked against the gate's own closing LINE (`      )}` at its
+    // indentation), not a bare `)}` substring. The first version used the
+    // substring and failed on correct code, because the section's own button
+    // contains `setServiceOpen((o) => !o)}` — a `)}` that closes an arrow
+    // function, not the gate.
+    const between = src.slice(
+      src.indexOf('{methodOpen && (', src.indexOf('CharitMe fee — revealed')),
+      src.indexOf('aria-controls="service-fee-panel"'),
+    );
+    expect(
+      /\n {6}\)\}/.test(between),
+      'the gate closes before the service fee — it wraps something else',
+    ).toBe(false);
   });
 
   it('still lets the donor expand the service fee itself', () => {
@@ -69,7 +86,7 @@ describe('the payment selector leads, and reveals the service fee', () => {
 describe('the collapsed summary states BOTH charges — the whole bargain', () => {
   it('combines the processor rate and the service fee when collapsed', () => {
     expect(code).toMatch(
-      /const collapsedRate = methodOpen \? selFee\.label : `\$\{selFee\.label\} \$\{serviceRate\}`/,
+      /const collapsedRate = methodOpen \? selFee\.label : `\$\{selFee\.label\} \$\{feeRate\}`/,
     );
   });
 
@@ -77,7 +94,7 @@ describe('the collapsed summary states BOTH charges — the whole bargain', () =
     // Re-deriving a percentage from a typed amount rounds, and would disagree
     // with the itemised breakdown directly below it.
     expect(code).toMatch(
-      /const serviceRate = customTipCents != null \? `\+ \$\{money\(customTipCents\)\}` : `\+ \$\{tipPercent\}%`/,
+      /const feeRate = customTipCents != null \? `\+ \$\{money\(customTipCents\)\}` : `\+ \$\{tipPercent\}%`/,
     );
   });
 

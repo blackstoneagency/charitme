@@ -4,14 +4,13 @@ import { z } from 'zod';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { boundedQuery } from '../../../lib/query-timeout';
 import { createClient } from '../../../lib/supabase-server';
-import { createCheckoutSession, ONE_TIME_PAYMENT_METHOD_TYPES } from '../../../lib/stripe';
+import { createCheckoutSession, checkoutPaymentMethodTypes } from '../../../lib/stripe';
 import {
   donorTip,
   supportPercentFromCents,
   methodProcessingFee,
   MIN_DONATION_CENTS,
   MAX_DONATION_CENTS,
-  DEFAULT_DONOR_TIP_PERCENT,
   type PaymentMethod,
 } from '@shared/fees';
 import { normalizeCurrency } from '@shared/currencies';
@@ -21,6 +20,7 @@ import { checkRateLimit } from '../../../lib/rate-limit';
 import { getSuspensionState } from '../../../lib/roles';
 import { resolveContact, trackEvent } from '../../../lib/marketing-engine';
 import { marketingStatusForOptIn } from '../../../lib/marketing-core';
+import { getDonationCheckoutSnapshot } from '../../../lib/donation-checkout-settings';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Schema
@@ -38,6 +38,7 @@ const DonateSchema = z.object({
   // crafted request can't submit an absurd tip.
   tipCents:           z.number().int().min(0).max(MAX_DONATION_CENTS).optional(),
   paymentMethod:      z.enum(['stripe','paypal','venmo','gpay','bank','card']).optional(),
+  checkoutRevision:   z.string().trim().min(1).max(100).optional(),
   donorEmail:         z.string().email().optional(),
   // "Subscribe to receive emails" checkbox — opts the donor into campaign update emails
   subscribeToUpdates: z.boolean().optional(),
@@ -104,7 +105,16 @@ export async function POST(request: NextRequest) {
     rewardId,
     subscribeToUpdates,
     peerFundraiserId,
+    checkoutRevision,
   } = parsed.data;
+
+  const checkout = await getDonationCheckoutSnapshot();
+  if (checkoutRevision && checkoutRevision !== checkout.revision) {
+    return NextResponse.json(
+      { error: 'Donation pricing changed while this page was open. Refresh to review the current total.', code: 'CHECKOUT_CONFIG_CHANGED' },
+      { status: 409 },
+    );
+  }
 
   // Normalise to a method Checkout actually offers, so the processing fee the
   // donor is quoted matches what they will really pay with.
@@ -129,15 +139,17 @@ export async function POST(request: NextRequest) {
   const usingCustomTip = customTipCents != null;
   const tipCents = usingCustomTip
     ? customTipCents
-    : donorTip(amountCents, parsed.data.tipPercent ?? Number(process.env.DEFAULT_DONOR_TIP_PERCENT ?? DEFAULT_DONOR_TIP_PERCENT));
+    : donorTip(amountCents, parsed.data.tipPercent ?? checkout.settings.defaultSupportPercent);
   // Display/metadata only — never used to recompute the charge.
   const tipPercent = usingCustomTip
     ? supportPercentFromCents(amountCents, tipCents)
-    : (parsed.data.tipPercent ?? Number(process.env.DEFAULT_DONOR_TIP_PERCENT ?? DEFAULT_DONOR_TIP_PERCENT));
+    : (parsed.data.tipPercent ?? checkout.settings.defaultSupportPercent);
 
   // Use per-method fee on (donation + tip) sub-total
   const subTotalCents      = amountCents + tipCents;
-  const processingFeeCents = coverProcessingFee ? methodProcessingFee(subTotalCents, paymentMethod) : 0;
+  const processingFeeCents = coverProcessingFee
+    ? methodProcessingFee(subTotalCents, paymentMethod, checkout.settings.methodFees)
+    : 0;
 
   // ── Fetch campaign ──────────────────────────────────────────────────────────
   // `.maybeSingle()`, not `.single()`: `.single()` reports "no rows" AS AN ERROR,
@@ -372,7 +384,7 @@ export async function POST(request: NextRequest) {
       price_data: {
         currency,
         product_data: {
-          name: 'CharitMe platform tip',
+          name: 'CharitMe fee',
           description: usingCustomTip
             ? 'Custom optional tip to support CharitMe'
             : `${tipPercent}% optional tip to support CharitMe`,
@@ -407,8 +419,7 @@ export async function POST(request: NextRequest) {
   //
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
     mode: 'payment',
-    // Apple Pay / Google Pay (via card), Link, Cash App, US bank transfer (ACH), Amazon Pay
-    payment_method_types: ONE_TIME_PAYMENT_METHOD_TYPES,
+    payment_method_types: checkoutPaymentMethodTypes(paymentMethod, 'payment'),
     line_items: lineItems,
     ...(stripeEmail ? { customer_email: stripeEmail } : {}),
     // Routed to /thank-you with the SESSION id, not the amount. The old URL
@@ -430,6 +441,7 @@ export async function POST(request: NextRequest) {
       processingFeeCents:   String(processingFeeCents),
       platformFeeCents:     String(tipCents),            // CharitMe's actual revenue
       paymentMethod,
+      checkoutRevision: checkout.revision,
       // '' rather than omitted: Stripe metadata values must be strings, and the
       // webhook reads `meta.peerFundraiserId || null`.
       peerFundraiserId:     peerIdToRecord ?? '',
@@ -490,7 +502,10 @@ export async function POST(request: NextRequest) {
         { status: 409 },
       );
     }
-    return NextResponse.json({ error: msg }, { status: 502 });
+    return NextResponse.json(
+      { error: 'Could not start secure checkout. Please try again.', code: 'STRIPE_ERROR' },
+      { status: 502 },
+    );
   }
 
   // Marketing capture: donation_started event for abandoned-donation automations (non-blocking).

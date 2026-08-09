@@ -156,6 +156,14 @@
      var(--bg). Must be defined in BOTH themes — an undefined --bg silently
      falls back to a light value even in dark mode (light-on-light text). */
   --bg: #f8f7ff;
+  /* Funds Distribution donut slices. Defined for BOTH themes — the dark values
+     are lighter so the ring stays legible on the flat-black dark background. */
+  --imp-slice-0: #8b5cf6;
+  --imp-slice-1: #f59e0b;
+  --imp-slice-2: #10b981;
+  --imp-slice-3: #ec4899;
+  --imp-slice-4: #3b82f6;
+  --imp-slice-5: #64748b;
   --shadow: 0 22px 70px rgba(55, 42, 130, .12);
   --shadow-sm: 0 10px 32px rgba(55, 42, 130, .10);
   --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -233,6 +241,17 @@ input, select, textarea, button { max-width: 100%; }
   background: #000;
   backdrop-filter: none;
 }
+/* ⚠️ Sticky ONLY below the hamburger breakpoint, deliberately.
+   Measured on a 390x844 phone: after scrolling 2500px down a 10,571px page the
+   hamburger sat at y:-2224 and there was no other nav affordance on screen —
+   the only way back to navigation was BackToTop. On desktop the full nav bar is
+   always visible, so there is no equivalent defect, and pinning the header
+   sitewide would change what every contrast/focus sweep measures on 200+ pages
+   for no user benefit. Keeping it scoped puts the change where the evidence is. */
+@media (max-width: 1100px) {
+  .kind-header { position: sticky; top: 0; }
+}
+
 .kind-header > .container { height: 70px; display: flex; align-items: center; gap: 0; max-width: 1380px; padding-left: 24px; padding-right: 24px; }
 .kind-logo { display: inline-flex; align-items: center; gap: 9px; flex: 0 0 auto; margin-right: 18px; }
 .kind-logo > .kind-logo-img { width: 34px; height: 34px; display: block; flex: 0 0 auto; }
@@ -377,6 +396,33 @@ input, select, textarea, button { max-width: 100%; }
 
 /* Group labels in the mobile sheet — without them the flattened list is 30+
    undifferentiated links. */
+/* The mobile-panel search form. 16px on the input so iOS does not zoom the page
+   on focus; 44px controls so both are comfortable touch targets. */
+/* Collapsed nav groups in the mobile panel. The summary is a real touch target
+   (44px) and carries a count so the group's size is visible before opening. */
+.kind-mobile-group { border-top: 1px solid var(--b1); }
+/* Explicit rather than relying on the UA's closed-<details> behaviour: the panel
+   is a grid container and several author rules target `.kind-mobile a`, so the
+   default hiding is not something to take on trust here. */
+.kind-mobile-group:not([open]) > a { display: none; }
+.kind-mobile-group > summary {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  min-height: 44px; cursor: pointer; list-style: none;
+}
+.kind-mobile-group > summary::-webkit-details-marker { display: none; }
+.kind-mobile-group > summary::after {
+  content: '\203A'; margin-left: auto; font-size: 18px; line-height: 1;
+  transform: rotate(90deg); transition: transform .15s;
+}
+.kind-mobile-group[open] > summary::after { transform: rotate(-90deg); }
+.kind-mobile-group > summary > span {
+  min-width: 22px; padding: 1px 7px; border-radius: 999px;
+  background: var(--s3); color: var(--t2); font-size: 12px; font-weight: 700;
+}
+.kind-mobile-search { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; margin-bottom: 6px; }
+.kind-mobile-search .kind-mobile-heading { grid-column: 1 / -1; margin-bottom: 0; }
+.kind-mobile-search input { min-width: 0; min-height: 44px; padding: 0 12px; border: 1px solid var(--b2); border-radius: 10px; background: var(--s1); color: var(--t1); font-size: 16px; }
+.kind-mobile-search button { min-height: 44px; padding: 0 16px; border: 0; border-radius: 10px; background: var(--violet); color: #fff; font-weight: 700; font-size: 14px; cursor: pointer; }
 .kind-mobile-heading {
   margin-top: 6px;
   font-size: 11px; font-weight: 850; letter-spacing: .07em; text-transform: uppercase;
@@ -451,7 +497,38 @@ input, select, textarea, button { max-width: 100%; }
 .kind-user-btn { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 4px; border: none; background: transparent; cursor: pointer; font: inherit; color: var(--ink, #0f1238); }
 .kind-header .kind-user-btn { color: #d8dee5; }
 .kind-avatar-sm { width: 30px; height: 30px; border-radius: 50%; background: #e8590c; color: #fff; display: inline-grid; place-items: center; font-size: 14px; font-weight: 800; }
+/* ⚠️ The colour is the whole point of this rule, and it was missing.
+   Without it the span inherited `--t1`, which is #0f1238 in LIGHT mode — dark
+   ink on `.kind-header`'s permanent `background: #000`, measuring 1.16:1. The
+   signed-in user's own name was invisible on every page of the site in light
+   mode.
+
+   Found by the signed-in contrast audit (CI step 13) on its first-ever
+   execution: 103 failures on master, ~one per page, all this element. It could
+   not have been caught before — every other sweep in this repo runs signed OUT,
+   and this span only exists when someone is logged in.
+
+   A literal rather than a token, for the same reason as `.kind-logo strong` and
+   the active nav link above: the header's background is FIXED black in both
+   themes, so a theme-flipping token is exactly wrong here — it would fix dark
+   and leave light broken. #f7f8fa matches the wordmark beside it, at 19.76:1. */
 .kind-user-name { font-size: 14px; font-weight: 700; white-space: nowrap; }
+/* ⚠️ SCOPED TO THE BLACK HEADER, and it must stay scoped.
+   `.kind-user-name` renders in TWO shells on two different surfaces:
+     · AppShell — inside `.kind-header`, which is permanently `background: #000`
+     · ShellAccountControls — the admin/dashboard shell, on a LIGHT surface
+   So there is no single colour that works. Unscoped it inherits `--t1`, which is
+   #0f1238 in light mode: 1.16:1 on the black header, and the signed-in user
+   could not see their own name on any public page.
+
+   A first fix set `color: #f7f8fa` on the BASE rule. That fixed the public
+   header and broke admin — near-white on `#fcfbff`, 1.03:1, measured across ~45
+   admin pages. Fixing ~49 and breaking ~45 is not a fix.
+
+   The base rule therefore keeps inheriting `--t1` (correct on the light admin
+   surface, and it follows the theme), and only the black-header instance is
+   overridden. Measured: 19.76:1 here, and admin returns to its `--t1` value. */
+.kind-header .kind-user-name { color: #f7f8fa; }
 .kind-user-caret { transition: transform .15s; }
 .kind-user-caret.open { transform: rotate(180deg); }
 .kind-user-menu { position: absolute; top: calc(100% + 12px); right: 0; min-width: 280px; background: #fff; border-radius: 16px; box-shadow: 0 12px 40px rgba(33, 30, 70, .16); padding: 10px; z-index: 60; }
@@ -1772,6 +1849,12 @@ input, select, textarea, button { max-width: 100%; }
    A shared class rather than another inline `margin: '0 32px'`: those inline
    copies are why the gutter is 32/18/16 in three places and why four pages
    missed it entirely. */
+/* A topbar carrying only the account controls, for a page that supplies its own
+   heading (e.g. /resources renders its marketing hero inside the dashboard
+   shell). Without this the empty title block still reserves the full 124px and
+   pushes the hero down by a blank row. */
+.kf-topbar--controls-only { min-height: 0; padding-top: 20px; padding-bottom: 0; justify-content: flex-end; }
+
 .kf-body { padding: 0 32px 32px; min-width: 0; }
 @media (max-width: 1100px) { .kf-body { padding: 0 18px 24px; } }
 @media (max-width: 900px)  { .kf-body { padding-left: 16px; padding-right: 16px; } }
@@ -2124,7 +2207,11 @@ input, select, textarea, button { max-width: 100%; }
 .auth-separator { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 12px; font-weight: 650; text-transform: uppercase; letter-spacing: .08em; }
 .auth-separator::before, .auth-separator::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .auth-card label { display: grid; gap: 8px; color: #252c5c; font-size: 13px; font-weight: 700; }
-.auth-card input { width: 100%; border: 1px solid var(--line); border-radius: 14px; background: var(--s1); min-height: 48px; padding: 0 14px; color: var(--ink); outline: none; }
+/* ⚠️ 16px MINIMUM ON FOCUSABLE FIELDS — iOS Safari zooms the page in on focus
+   for anything smaller and never zooms back out, leaving the rest of the form
+   off-screen mid-task. Measured on a real 390x844 iPhone context; these were
+   12-15px. Font size here is a functional constraint, not styling. */
+.auth-card input { width: 100%; border: 1px solid var(--line); border-radius: 14px; background: var(--s1); min-height: 48px; padding: 0 14px; color: var(--ink); outline: none; font-size: 16px; }
 .auth-card input:focus { border-color: var(--brand-text); box-shadow: 0 0 0 4px rgba(109,53,255,.10); }
 .auth-error, .auth-success { border-radius: 14px; padding: 12px 14px; font-weight: 650; }
 .auth-error { background: var(--tint-rose); color: var(--red-text) !important; }
@@ -2207,6 +2294,7 @@ input, select, textarea, button { max-width: 100%; }
 
 /* Breadcrumb */
 .pc-breadcrumb { color: var(--muted); font-size: 13px; display: flex; align-items: center; flex-wrap: wrap; gap: 2px; }
+.pc-breadcrumb a, .dn-crumb a { display: inline-flex; align-items: center; min-height: 24px; }
 .pc-breadcrumb a { color: var(--muted); text-decoration: none; transition: color .15s; }
 .pc-breadcrumb a:hover { color: var(--green-text); text-decoration: underline; }
 .pc-breadcrumb span[aria-current="page"] { color: var(--ink); font-weight: 600; }
@@ -2281,7 +2369,9 @@ input, select, textarea, button { max-width: 100%; }
 /* Collapsible "how it works" / embed helper — shared by the share/embed section */
 .pc-match-note { margin: 10px 0 0; font-size: 12px; line-height: 1.5; color: var(--muted); }
 .pc-match-howto { margin-top: 12px; font-size: 12px; color: var(--muted); }
-.pc-match-howto summary { cursor: pointer; font-weight: 800; color: var(--brand-text); }
+/* Measured 290.2x18 — a disclosure control below the 24px target minimum,
+   on 4 pages including the campaign page and the share page. */
+.pc-match-howto summary { cursor: pointer; font-weight: 800; color: var(--brand-text); display: flex; align-items: center; min-height: 24px; }
 .pc-match-howto ol { margin: 8px 0 0; padding-left: 18px; line-height: 1.6; }
 
 /* ── Campaign CTA row: Donate (primary) + Share (secondary) ───────────────── */
@@ -2353,7 +2443,11 @@ input, select, textarea, button { max-width: 100%; }
 
 /* Story card */
 .pc-story { padding: 28px; border: 1px solid var(--line); border-radius: 18px; background: rgba(255,255,255,.92); box-shadow: var(--shadow-sm); }
-.pc-story nav { display: flex; gap: 36px; border-bottom: 1px solid var(--line); margin: -4px -28px 28px; padding: 0 28px; }
+/* The only nested horizontal scroller on this page. Without containment a swipe
+   that reaches the end of the strip chains to the browser's back gesture, so a
+   donor flicking through tabs can leave the campaign. Measured scrollWidth 457
+   vs clientWidth 356 at 390px. Sibling strips already do this. */
+.pc-story nav { display: flex; gap: 36px; border-bottom: 1px solid var(--line); margin: -4px -28px 28px; padding: 0 28px; overscroll-behavior-inline: contain; }
 .pc-story nav a { padding: 16px 0; color: #4d567a; font-weight: 650; text-decoration: none; display: inline-block; }
 .pc-story nav .active { color: var(--brand-text); border-bottom: 3px solid var(--violet); }
 .pc-story h2 { margin: 0 0 18px; font-size: var(--fs-h3); letter-spacing: -.02em; }
@@ -2365,7 +2459,7 @@ input, select, textarea, button { max-width: 100%; }
 .pc-quick-share { border: 1px solid var(--b2); border-radius: 16px; padding: 20px; background: #fff; margin: 24px 0; }
 .pc-quick-share-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .pc-share-copy { display: flex; gap: 8px; margin-bottom: 16px; }
-.pc-share-copy input { flex: 1; padding: 9px 12px; border: 1px solid var(--b2); border-radius: 9px; font-size: 12px; color: var(--t3); background: var(--s1); }
+.pc-share-copy input { flex: 1; padding: 9px 12px; border: 1px solid var(--b2); border-radius: 9px; font-size: 16px; color: var(--t3); background: var(--s1); }
 .pc-share-copy button { padding: 9px 16px; border: none; border-radius: 9px; background: var(--violet); color: #fff; font-size: 12px; font-weight: 650; cursor: pointer; white-space: nowrap; }
 .pc-share-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
 .pc-share-tile { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--b2); border-radius: 12px; text-decoration: none; color: var(--t1); font-size: 13px; font-weight: 700; transition: background .15s; }
@@ -3157,6 +3251,11 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
      asks not to be shown. The gradient and glow stay — they are not motion. */
   .mirror-btn-create:hover::after,
   .mirror-btn-create:focus-visible::after { animation: none; }
+  /* The mobile nav group's disclosure chevron. Folded into this block rather
+     than given its own: home-donate-cta.test.ts asserts on the FIRST
+     prefers-reduced-motion block in this file, so a second one above it makes
+     that guard read the wrong rules. */
+  .kind-mobile-group > summary::after { transition: none; }
 }
 .task-row em { color: #7a8299; font-size: 12px; font-style: normal; font-weight: 500; }
 .task-row em.today { color: #ff3158; font-weight: 600; }
@@ -3302,7 +3401,7 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 .ai-builder-chips button { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border: 1px solid #e6e9f2; border-radius: 14px; background: #fff; color: #20254a; font-size: 13px; font-weight: 800; line-height: 1.45; text-align: left; cursor: pointer; transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
 .ai-builder-chips button:hover { border-color: #c9bcfb; box-shadow: 0 14px 34px rgba(108,53,255,.12); transform: translateY(-1px); }
 .ai-builder-chips .pub-icon { width: 20px; height: 20px; color: var(--brand-text); flex: 0 0 auto; }
-.ai-builder-secure { display: flex; align-items: center; gap: 8px; margin: 34px 0 0; color: #6b7591; font-size: 13px; font-weight: 700; }
+.ai-builder-secure { display: flex; align-items: center; gap: 8px; margin: 34px 0 0; color: #66708c; font-size: 13px; font-weight: 700; }
 .ai-builder-secure .pub-icon { width: 16px; height: 16px; }
 @media (max-width: 720px) {
   .ai-builder-card { padding: 40px 22px 36px; }
@@ -4881,6 +4980,8 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .cr2-page { max-width: 1200px; margin: 0 auto; padding: 0 28px 64px; }
+.cr2-route-loading { min-height: calc(100vh - 72px); display: grid; place-items: center; background: var(--s2); }
+.cr2-route-loading-spinner { width: 40px; height: 40px; border: 3px solid var(--b2); border-top-color: var(--brand-text); border-radius: 50%; animation: spin .7s linear infinite; }
 
 /* Hero */
 .cr2-hero { position: relative; background: linear-gradient(135deg, #0e0627 0%, #1e0e5a 35%, #0d2260 65%, #07355a 100%); overflow: hidden; padding: 32px 32px 40px; }
@@ -5140,7 +5241,7 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 .cr2-goal-input-row:focus-within { border-color: var(--brand-text); box-shadow: 0 0 0 3px rgba(108,53,255,.1); }
 .cr2-goal-prefix { padding: 14px 18px; font-size: 20px; font-weight: 800; color: var(--t2); background: var(--s1); border-right: 1.5px solid #e2e8f0; flex-shrink: 0; }
 .cr2-goal-input { flex: 1; padding: 14px 16px; border: none; outline: none; font-size: 20px; font-weight: 650; color: var(--t1); font-family: var(--font); background: var(--s1); }
-.cr2-goal-suffix { padding: 14px 18px; font-size: 13px; font-weight: 650; color: var(--t3); background: #f8f9fc; border-left: 1.5px solid #e2e8f0; flex-shrink: 0; }
+.cr2-goal-suffix { min-height: 52px; padding: 0 16px; font: 700 13px var(--font); color: var(--t2); background: #f8f9fc; border: 0; border-left: 1.5px solid #e2e8f0; flex-shrink: 0; cursor: pointer; }
 .cr2-auto-goal-box { border: 1.5px solid #86efac; background: #f0fdf4; border-radius: 16px; padding: 20px; }
 .cr2-auto-goal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .cr2-auto-goal-title { font-size: 15px; font-weight: 700; color: var(--green-text); }
@@ -5195,9 +5296,29 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 .cr2-preview-scroll { flex: 1; overflow-y: auto; }
 .cr2-preview-page { max-width: 820px; margin: 0 auto; padding: 32px 24px 64px; }
 .cr2-preview-hero { width: 100%; height: 380px; border-radius: 20px; overflow: hidden; margin-bottom: 32px; background: linear-gradient(135deg, #c4b5fd 0%, #818cf8 50%, #6366f1 100%); display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,.5); font-size: 14px; font-weight: 700; }
-.cr2-preview-hero img { width: 100%; height: 100%; object-fit: cover; }
+.cr2-preview-hero img, .cr2-preview-hero iframe, .cr2-preview-hero video { width: 100%; height: 100%; border: 0; object-fit: cover; }
+.cr2-video-field { margin-top: 18px; }
+.cr2-field-help, .cr2-field-error, .cr2-field-success { font-size: 12px; line-height: 1.5; }
+.cr2-field-help { color: var(--t3); }
+.cr2-field-error { color: var(--red-text); font-weight: 700; }
+.cr2-field-success { color: var(--green-text); font-weight: 700; }
 .cr2-preview-content { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 32px; align-items: start; }
 .cr2-preview-main h1 { font-size: 28px; font-weight: 800; color: #1a1a2e; margin: 0 0 10px; letter-spacing: -.02em; line-height: 1.2; }
+.cb-preview-edit { min-height: 44px; padding: 8px 4px; border: 0; background: transparent; color: var(--violet, #6c35ff); font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+.cb-preview-section { margin-top: 22px; padding-top: 22px; border-top: 1px solid var(--b1, #e8ecf4); }
+.cb-preview-section-head { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 12px; }
+.cb-preview-section-head h2 { margin: 0; color: var(--t1, #1a1a2e); font-size: 17px; line-height: 1.3; }
+.cb-preview-section p { margin: 8px 0 0; color: var(--t2, #334064); line-height: 1.65; }
+.cb-preview-fund-list { display: grid; gap: 10px; margin: 12px 0 0; padding: 0; list-style: none; }
+.cb-preview-fund-list li { display: flex; min-width: 0; justify-content: space-between; gap: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--b1, #e8ecf4); color: var(--t2, #334064); }
+.cb-preview-fund-list li:last-child { border-bottom: 0; }
+.cb-preview-fund-list span { min-width: 0; overflow-wrap: anywhere; }
+.cb-preview-trust { margin-top: 14px; padding: 18px; border: 1px solid var(--b1, #e8ecf4); border-radius: 8px; background: var(--s1, #fff); }
+.cb-preview-trust ul { display: grid; gap: 10px; margin: 10px 0 0; padding: 0; list-style: none; }
+.cb-preview-trust li { display: flex; min-width: 0; align-items: flex-start; gap: 8px; color: var(--t3, #64748b); font-size: 12.5px; line-height: 1.45; }
+.cb-preview-trust li.is-ready { color: var(--green-dark, #047857); }
+.cb-preview-trust li span { width: 16px; flex: 0 0 16px; font-weight: 900; }
+.cb-preview-media-edit { width: 100%; margin-top: 4px; }
 .cr2-preview-by { font-size: 13px; color: var(--t3, #64748b); margin: 0 0 20px; display: flex; align-items: center; gap: 8px; }
 .cr2-preview-cat-pill { display: inline-flex; padding: 4px 12px; background: var(--tint-violet); color: var(--brand-text); border-radius: 999px; font-size: 11px; font-weight: 650; }
 .cr2-preview-story-text { font-size: 15px; line-height: 1.8; color: #374151; white-space: pre-wrap; word-break: break-word; }
@@ -5279,7 +5400,7 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 .cr2-payout-subform-head p { margin: 0; font-size: 13px; color: var(--t3); line-height: 1.5; }
 .cr2-payout-trust-row { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: rgba(108,53,255,.06); border: 1px solid rgba(108,53,255,.15); border-radius: 10px; font-size: 12px; color: var(--brand-text); font-weight: 700; margin-bottom: 18px; }
 .cr2-payout-field-label { display: block; font-size: 12px; font-weight: 650; color: var(--t2); margin-bottom: 6px; }
-.cr2-payout-input { width: 100%; height: 44px; border: 1.5px solid var(--b2); border-radius: 10px; padding: 0 14px; font-size: 14px; background: var(--bg); color: var(--t1); box-sizing: border-box; margin-bottom: 14px; }
+.cr2-payout-input { width: 100%; height: 44px; border: 1.5px solid var(--b2); border-radius: 10px; padding: 0 14px; font-size: 16px; background: var(--bg); color: var(--t1); box-sizing: border-box; margin-bottom: 14px; }
 .cr2-payout-input:focus { outline: none; border-color: var(--brand-text); }
 .cr2-payout-input-prefix-wrap { position: relative; margin-bottom: 14px; }
 .cr2-payout-input-prefix { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 15px; font-weight: 700; color: var(--t3); pointer-events: none; }
@@ -5510,6 +5631,14 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
      reads: a card has to be visibly lifted off the page, and #121530 on #000 is
      a clearer step than it was on #0b0d24. */
   --bg: #000000;
+  /* Lighter slice colours: the dark theme's page background is flat black, so
+     the light-theme violets and blues lose definition against it. */
+  --imp-slice-0: #a78bfa;
+  --imp-slice-1: #fbbf24;
+  --imp-slice-2: #34d399;
+  --imp-slice-3: #f472b6;
+  --imp-slice-4: #60a5fa;
+  --imp-slice-5: #94a3b8;
   --shadow: 0 22px 70px rgba(0,0,0,.5);
   --shadow-sm: 0 10px 32px rgba(0,0,0,.35);
   --shadow-lg: 0 24px 80px rgba(0,0,0,.55);
@@ -6612,6 +6741,375 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
   box-shadow: 0 8px 24px rgba(108,53,255,.2);
 }
 [data-theme="dark"] .ai-builder-secure { color: var(--t2); }
+
+/* Unified AI campaign intake. */
+.ai-intake-shell {
+  width: min(100%, 920px);
+  margin: 20px auto 0;
+  padding: 42px 24px 64px;
+  text-align: center;
+}
+.ai-intake-mark {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 14px;
+  border-radius: 8px;
+  color: #fff;
+  background: #5b21b6;
+}
+.ai-intake-mark .pub-icon { width: 24px; height: 24px; }
+.ai-intake-kicker {
+  margin: 0 0 8px;
+  color: var(--violet-ink);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+.ai-intake-shell .ai-builder-greeting {
+  max-width: 720px;
+  margin: 0 auto;
+  color: var(--t1);
+  font-size: clamp(30px, 4vw, 48px);
+  line-height: 1.08;
+  letter-spacing: 0;
+}
+.ai-intake-shell .ai-builder-sub {
+  max-width: 620px;
+  margin: 14px auto 0;
+  color: var(--t2);
+  font-size: 17px;
+  line-height: 1.6;
+}
+.ai-builder-form {
+  width: min(100%, 760px);
+  margin: 30px auto 0;
+  text-align: left;
+}
+.ai-intake-shell .ai-builder-input {
+  position: relative;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 16px 16px 34px;
+  border: 2px solid var(--b2);
+  border-radius: 8px;
+  background: var(--s1);
+  box-shadow: var(--shadow-md);
+}
+.ai-intake-shell .ai-builder-input:focus-within { border-color: var(--violet); }
+.ai-intake-shell .ai-builder-input textarea {
+  min-height: 148px;
+  color: var(--t1);
+  font-size: 16px;
+  line-height: 1.55;
+}
+.ai-intake-shell .ai-builder-input textarea::placeholder { color: var(--t3); }
+.ai-intake-count {
+  position: absolute;
+  right: 14px;
+  bottom: 10px;
+  color: var(--t3);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.ai-intake-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.ai-intake-tools button,
+.ai-intake-link-row button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border: 1px solid var(--b2);
+  border-radius: 8px;
+  color: var(--t1);
+  background: var(--s1);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 750;
+  cursor: pointer;
+}
+.ai-intake-tools button.is-active { border-color: var(--red); color: var(--red); }
+.ai-intake-tools .pub-icon { width: 18px; height: 18px; }
+.ai-intake-link-row {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 8px 8px 8px 14px;
+  border: 1px solid var(--b1);
+  border-radius: 8px;
+  color: var(--t3);
+  background: var(--s1);
+}
+.ai-intake-link-row .pub-icon { width: 18px; height: 18px; }
+.ai-intake-link-row input {
+  min-width: 0;
+  min-height: 44px;
+  border: 0;
+  outline: 0;
+  color: var(--t1);
+  background: transparent;
+  font: inherit;
+  font-size: 15px;
+}
+.ai-intake-link-row button:disabled { cursor: not-allowed; opacity: .5; }
+.ai-intake-attachments {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.ai-intake-attachments li {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 2px 2px 2px 14px;
+  border: 1px solid var(--b1);
+  border-radius: 8px;
+  color: var(--t2);
+  background: var(--s2);
+}
+.ai-intake-attachments li > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ai-intake-attachments .pub-icon { width: 18px; height: 18px; }
+.ai-intake-attachments button {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  color: var(--t3);
+  background: transparent;
+  cursor: pointer;
+}
+.ai-intake-error {
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #991b1b;
+  background: #fff1f2;
+  font-size: 14px;
+  font-weight: 700;
+}
+.ai-intake-submit {
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 12px 18px;
+  border: 0;
+  border-radius: 8px;
+  color: #fff;
+  background: #5b21b6;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.ai-intake-submit:hover { background: #4c1d95; }
+.ai-intake-submit:disabled { cursor: wait; opacity: .7; }
+.ai-intake-submit .pub-icon { width: 19px; height: 19px; }
+.ai-intake-save {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin: 10px 0 0;
+  color: var(--t3);
+  font-size: 12.5px;
+  text-align: center;
+}
+.ai-intake-save .pub-icon { width: 15px; height: 15px; flex: 0 0 auto; }
+.ai-intake-shell .ai-builder-popular { margin-top: 42px; color: var(--t1); letter-spacing: 0; }
+.ai-intake-shell .ai-builder-chips button { border-radius: 8px; letter-spacing: 0; }
+
+[data-theme="dark"] .ai-intake-error {
+  border-color: #7f1d1d;
+  color: #fecaca;
+  background: #3f111b;
+}
+
+@media (max-width: 639px) {
+  .ai-builder-page { padding: 18px 16px 48px; }
+  .ai-intake-shell { margin-top: 4px; padding: 30px 0 44px; }
+  .ai-intake-shell .ai-builder-greeting { font-size: 32px; }
+  .ai-intake-shell .ai-builder-sub { font-size: 15px; }
+  .ai-intake-tools { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .ai-intake-tools button { width: 100%; }
+  .ai-intake-link-row { grid-template-columns: 20px minmax(0, 1fr); }
+  .ai-intake-link-row button { grid-column: 1 / -1; width: 100%; }
+}
+
+.cb-plan,
+.cb-settings { display: grid; gap: 18px; }
+.cb-plan-lines,
+.cb-disclosure-body { display: grid; gap: 12px; }
+.cb-plan-line,
+.cb-inline-editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(140px, .6fr) 44px;
+  gap: 10px;
+  align-items: end;
+}
+.cb-plan-line label,
+.cb-inline-editor label,
+.cb-stack-editor label,
+.cb-checkout-summary label { display: grid; gap: 6px; color: var(--t2); font-size: 12px; font-weight: 750; }
+.cb-plan-line input,
+.cb-inline-editor input,
+.cb-stack-editor input,
+.cb-stack-editor textarea,
+.cb-settings input,
+.cb-settings textarea,
+.cb-settings select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--b2);
+  border-radius: 7px;
+  background: var(--s1);
+  font: inherit;
+}
+.cb-money-input,
+.cb-checkout-input { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; border: 1px solid var(--b2); border-radius: 7px; background: var(--s1); }
+.cb-money-input > span,
+.cb-checkout-input > span { padding-left: 12px; color: var(--t3); font-weight: 800; }
+.cb-money-input input,
+.cb-checkout-input input { border: 0; background: transparent; }
+.cb-icon-command {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--b2);
+  border-radius: 7px;
+  background: var(--s1);
+  color: var(--t2);
+  cursor: pointer;
+}
+.cb-icon-command .pub-icon { width: 18px; height: 18px; }
+.cb-plan-summary,
+.cb-payout-ready,
+.cb-verification-status {
+  gap: 8px 16px;
+  padding: 13px 14px;
+  border: 1px solid var(--b1);
+  border-radius: 8px;
+  background: var(--s2);
+  color: var(--t2);
+  font-size: 13px;
+}
+.cb-plan-summary { display: flex; flex-wrap: wrap; justify-content: space-between; }
+.cb-plan-summary .is-ready,
+.cb-payout-ready,
+.cb-verification-status.is-ready { color: var(--green-text); border-color: color-mix(in srgb, var(--green-text) 35%, var(--b1)); }
+.cb-plan-summary .is-open { color: var(--orange-text); }
+.cb-payout-ready,
+.cb-verification-status { display: grid; justify-content: stretch; }
+.cb-payout-ready span,
+.cb-verification-status span { color: var(--t3); line-height: 1.5; }
+.cb-verification-status + .cb-verification-status { margin-top: 14px; }
+.cb-verification-action {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  margin: 10px 0 14px;
+  padding: 10px 16px;
+  border: 1px solid var(--violet);
+  border-radius: 8px;
+  color: var(--violet-ink);
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+}
+.cb-verification-action:focus-visible { outline: 3px solid var(--violet); outline-offset: 2px; }
+.cb-verification-note { margin: 14px 0 0; color: var(--t3); font-size: 13px; line-height: 1.5; }
+.cb-command-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.cb-secondary-command,
+.cb-text-command {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border: 1px solid var(--b2);
+  border-radius: 7px;
+  background: var(--s1);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.cb-secondary-command { color: var(--t1); }
+.cb-secondary-command:disabled { cursor: not-allowed; opacity: .55; }
+.cb-secondary-command .pub-icon { width: 17px; height: 17px; }
+.cb-settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.cb-segment-field { min-width: 0; margin: 0; padding: 0; border: 0; }
+.cb-segment-field legend { margin-bottom: 7px; color: var(--t2); font-size: 12px; font-weight: 750; }
+.cb-segment { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 3px; border: 1px solid var(--b2); border-radius: 7px; background: var(--s2); }
+.cb-segment button { min-height: 38px; border: 0; border-radius: 5px; background: transparent; color: var(--t3); font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+.cb-segment button.is-selected { background: var(--s1); color: var(--brand-text); box-shadow: var(--shadow); }
+.cb-toggle-list { display: grid; gap: 9px; }
+.cb-toggle-list > label,
+.cb-policy-check { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; align-items: start; padding: 12px 14px; border: 1px solid var(--b1); border-radius: 7px; color: var(--t2); }
+.cb-toggle-list input,
+.cb-policy-check input { width: 20px; height: 20px; min-height: 20px; padding: 0; }
+.cb-toggle-list span { display: grid; gap: 3px; }
+.cb-toggle-list small { color: var(--t3); font-size: 12px; font-weight: 500; }
+.cb-disclosure { border: 1px solid var(--b1); border-radius: 8px; background: var(--s1); }
+.cb-disclosure > summary { min-height: 48px; padding: 13px 15px; color: var(--t1); font-size: 13px; font-weight: 800; cursor: pointer; }
+.cb-disclosure > summary span { float: right; color: var(--t3); }
+.cb-disclosure-body { padding: 4px 15px 15px; }
+.cb-stack-editor { display: grid; gap: 10px; padding: 12px; border: 1px solid var(--b1); border-radius: 7px; background: var(--s2); }
+.cb-text-command { justify-self: start; color: var(--red-text); }
+.cb-policy-check { font-size: 13px; line-height: 1.55; font-weight: 650; }
+.cb-social-preview { width: min(100%, 620px); margin: 40px auto; overflow: hidden; border: 1px solid var(--b1); border-radius: 8px; background: var(--s1); box-shadow: var(--shadow-lg); }
+.cb-social-preview-image { aspect-ratio: 1.91 / 1; display: grid; place-items: center; overflow: hidden; background: var(--s3); color: var(--t3); }
+.cb-social-preview-image img { width: 100%; height: 100%; object-fit: cover; }
+.cb-social-preview-copy { padding: 16px 18px 18px; }
+.cb-social-preview-copy > span { color: var(--t3); font-size: 12px; text-transform: uppercase; }
+.cb-social-preview-copy h2 { margin: 5px 0 6px; color: var(--t1); font-size: 21px; letter-spacing: 0; }
+.cb-social-preview-copy p { margin: 0; color: var(--t2); font-size: 14px; line-height: 1.5; }
+.cb-checkout-preview { width: min(100%, 520px); margin: 40px auto; padding: 22px; border: 1px solid var(--b1); border-radius: 8px; background: var(--s1); box-shadow: var(--shadow-lg); }
+.cb-checkout-summary { display: grid; gap: 15px; }
+.cb-checkout-summary h2,
+.cb-checkout-summary p { margin: 0; color: var(--t1); letter-spacing: 0; }
+.cb-checkout-summary p,
+.cb-checkout-summary small { color: var(--t3); }
+.cb-checkout-amounts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.cb-checkout-amounts button { min-height: 44px; border: 1px solid var(--b2); border-radius: 7px; background: var(--s2); color: var(--t1); font: inherit; font-weight: 800; }
+
+@media (max-width: 639px) {
+  .cb-plan-line,
+  .cb-inline-editor,
+  .cb-settings-grid { grid-template-columns: minmax(0, 1fr); }
+  .cb-plan-line .cb-icon-command,
+  .cb-inline-editor .cb-icon-command { justify-self: end; }
+  .cb-checkout-amounts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cb-social-preview,
+  .cb-checkout-preview { margin: 18px auto; }
+}
 
 /* ── Pricing page ── */
 [data-theme="dark"] .pricing-promises {
@@ -9261,7 +9759,7 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 }
 .cbx-checks { display: grid; gap: 9px; }
 .cbx-checks label { display: flex; align-items: center; gap: 9px; cursor: pointer; }
-.cbx-checks input { width: 15px; height: 15px; accent-color: var(--violet); cursor: pointer; flex: none; }
+.cbx-checks input { width: 20px; height: 20px; accent-color: var(--violet); cursor: pointer; flex: none; }
 .cbx-checks span { font-size: 13px; font-weight: 600; color: var(--t2); }
 
 .cbx-apply {
@@ -9815,23 +10313,27 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 }
 .dn-money input {
   flex: 1; min-width: 0; border: 0; background: none; color: var(--t1);
-  font: inherit; font-size: 15px; font-weight: 700;
+  font: inherit; font-size: 16px; font-weight: 700;
+  /* The 44px target belongs to .dn-money, the wrapper. Without stretching, the
+     input was centred inside it and measured 22.5px tall — half the hit area a
+     donor is actually aiming at. */
+  align-self: stretch; height: 100%;
 }
 .dn-money input:focus { outline: none; }
 .dn-select {
   min-width: 0; max-width: 100%;
   min-height: 44px; padding: 0 12px; border-radius: 11px;
   border: 1px solid var(--b2, #ddd7ee); background: var(--s1, #fff);
-  color: var(--t1); font: inherit; font-size: 14px;
+  color: var(--t1); font: inherit; font-size: 16px;
 }
 .dn-load-error { font-size: 13px; color: var(--red-text); line-height: 1.5; }
 
 .dn-check { display: flex; align-items: flex-start; gap: 9px; font-size: 13px; color: var(--t2); cursor: pointer; }
-.dn-check input { margin-top: 2px; flex: none; }
+.dn-check input { width: 20px; height: 20px; accent-color: var(--violet); margin-top: 1px; flex: none; }
 .dn-dedicate {
   min-height: 42px; padding: 0 12px; border-radius: 11px;
   border: 1px solid var(--b2, #ddd7ee); background: var(--s1, #fff);
-  color: var(--t1); font: inherit; font-size: 14px;
+  color: var(--t1); font: inherit; font-size: 16px;
 }
 .dn-error { margin: 0; font-size: 13px; font-weight: 650; color: var(--red-text); }
 
@@ -10461,6 +10963,72 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
    background: dark mode's <body> is flat black by request, and a band that
    leaked a colour onto it is exactly how that was broken before.
    ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   /impact — Impact Stories row and the Funds Distribution donut.
+
+   ⚠️ Dark mode is FLAT BLACK by request (`--bg: #000000`). Every surface here
+   therefore paints an explicit panel colour rather than leaning on the page
+   background: a band that inherits `transparent` reads as a hole punched in the
+   page, and one that hardcodes a near-black leaks a colour onto the black. Both
+   were broken this way before.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.imp-stories {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 4px;
+}
+.imp-story {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--b1);
+  border-radius: var(--rl, 18px);
+  background: var(--s1);
+}
+.imp-story-media { display: block; aspect-ratio: 16 / 9; overflow: hidden; }
+.imp-story-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.imp-story-body { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.imp-story-body h3 { margin: 0; font-size: 16.5px; font-weight: 800; line-height: 1.3; }
+.imp-story-body h3 a { color: var(--t1); text-decoration: none; }
+.imp-story-body h3 a:hover { text-decoration: underline; }
+.imp-story-body p { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--t2); }
+.imp-story-meta { font-size: 12.5px; color: var(--t3); }
+.imp-story-cta { font-size: 13.5px; font-weight: 800; color: var(--brand-text); text-decoration: none; }
+.imp-story-cta:hover { text-decoration: underline; }
+
+/* Donut. Drawn with one conic-gradient built in the page from PUBLISHED rows,
+   so the palette lives here and the numbers stay in the database. */
+.imp-donut-panel { min-width: 0; }
+.imp-donut-row { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; min-width: 0; }
+.imp-donut {
+  width: 148px;
+  height: 148px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  /* The hole. A mask rather than an overlaid circle, so the panel colour behind
+     it shows through and the ring stays correct on any surface. */
+  -webkit-mask: radial-gradient(circle, transparent 54%, #000 55%);
+  mask: radial-gradient(circle, transparent 54%, #000 55%);
+}
+.imp-donut-key { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; min-width: 0; flex: 1 1 200px; }
+.imp-donut-key li { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; align-items: center; gap: 10px; font-size: 13.5px; color: var(--t2); }
+.imp-donut-key b { color: var(--t1); font-weight: 800; }
+.imp-donut-dot { width: 10px; height: 10px; border-radius: 50%; }
+.imp-donut-dot[data-slice="0"] { background: var(--imp-slice-0); }
+.imp-donut-dot[data-slice="1"] { background: var(--imp-slice-1); }
+.imp-donut-dot[data-slice="2"] { background: var(--imp-slice-2); }
+.imp-donut-dot[data-slice="3"] { background: var(--imp-slice-3); }
+.imp-donut-dot[data-slice="4"] { background: var(--imp-slice-4); }
+.imp-donut-dot[data-slice="5"] { background: var(--imp-slice-5); }
+
+@media (max-width: 900px) {
+  .imp-stories { grid-template-columns: minmax(0, 1fr); }
+  .imp-donut-row { justify-content: center; }
+}
 
 .imp-hero {
   position: relative;
@@ -11517,6 +12085,17 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   --b1: var(--rp-line);
   --b2: var(--rp-line-strong);
   --b3: var(--rp-line-strong);
+  /* ⚠️ THE STATUS COLOURS ARE PART OF THE FAMILY TOO — this is the FOURTH time
+     a subset was remapped and the remainder produced invisible text.
+     Found by sweeping a POPULATED site: /supporter-space renders status badges
+     only when there is data, so every database-less sweep missed them entirely.
+     Measured there: --red-text 2.63:1, --blue-text 2.65:1, --green-text 2.60:1
+     against --rp-line (#1d2b36) — light-theme inks on a dark panel.
+     The dark variants clear the bar on both rp surfaces (6.68–11.88:1). */
+  --green-text: #4ade80;
+  --red-text: #ff8fa0;
+  --blue-text: #93c5fd;
+  --orange-text: #fbbf24;
 
   /* ⚠️ The INK family, and it is not optional — this is the same defect the
      embed widget shipped. Redeclaring the SURFACE tokens above without these
@@ -12082,9 +12661,10 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 }
 .rr-employer-search button .pub-icon { width: 17px; height: 17px; }
 /* #717783 measured 4.19:1 on this panel's #f8f6fc — under AA for 11px body
-   text, which needs 4.5. Darkened rather than enlarged: the size is the
-   design's. #626975 measures 5.16:1 and stays closer to the design's grey than
-   a heavier darkening would. */
+   text, which needs 4.5. A literal, NOT `var(--t3)`: `.rr-employer-panel`
+   hardcodes a light `#f8f6fc` background in both themes, so a theme-following
+   token would turn light-on-light in dark mode. #626975 measures 5.16:1 and
+   stays closer to the design's grey than a heavier darkening would. */
 .rr-employer-search small { display: block; margin-top: 10px; color: #626975; font-size: 11px; }
 .rr-program-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 .rr-program-head h3 { margin: 0; color: #171922; font-size: 17px; }
@@ -12205,4 +12785,41 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   .rr-help-panel > .rp-icon { order: 0; width: 64px; height: 64px; }
   .rr-steps-band .rp-section { padding-inline: 18px; }
   .rr-grants-live { padding: 14px; }
+}
+
+/* ── Mobile text floor ──────────────────────────────────────────────────────
+   Measured at 390x844: `.kind-footer h3` and `.kind-footer-links a` render at
+   11px on 109 of 113 pages, the app-store links at 10px on 104, and
+   `.foot-badge-sub` at 9px. That is the site's most-repeated text and the
+   hardest to read on a phone.
+
+   Raising the FLOOR here rather than editing the 129 `font-size: 10px|11px`
+   declarations in this file: those sizes are deliberate in dense desktop
+   chrome, and changing them globally would reflow tables and badge rows that
+   are fine at a desktop viewing distance. 12px is the floor going forward. */
+@media (max-width: 760px) {
+  .kind-footer h3,
+  .kind-footer-links a,
+  .kind-footer-apps a,
+  .foot-badge-sub { font-size: 12px; }
+}
+
+/* ── WCAG 2.2 §2.5.8 target size: the measured sub-24px links ────────────────
+   Each selector below was MEASURED at 390x844 (heights in comments), not
+   guessed. A blanket `a { min-height: 24px }` was rejected deliberately: most
+   links on this site are inline text inside sentences, where WCAG's inline
+   exception applies and a min-height would break the line box. These are the
+   block-level ones that are real, standalone tap targets.
+   `inline-flex` + `align-items: center` grows the hit area without moving the
+   text, so nothing shifts visually. */
+.cbx-feat-body > h3 > a,        /* /campaigns card titles — 18px */
+.pc-donor-name > a,             /* campaign donor wall — 21px */
+.pc-organizer > a,              /* campaign organizer link — 18px */
+.pc-ai > ul > li > a,           /* campaign AI list — 19px */
+.sc-info-link,                  /* /supported-countries — 15px */
+.rr-program-empty > a,          /* /matching empty state — 16.5px */
+.imp-area-body > h3 > a {       /* /impact area cards — 18px */
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
 }
