@@ -215,14 +215,32 @@ rebuild of `/campaigns/stub-campaign-2`: `Choose an amount` ✓, `Give Once` ✓
 unmatchable fixture removes a whole surface from the sweep, and the sweep reports
 green.** When a component "never mounts in the stub", treat that as a coverage bug to
 fix, not a note to file — the absent surface is exactly where defects survive.
-- [ ] **Campaign covers: the worst three sites are FIXED, the long tail is not.**
+- [x] **Campaign covers — the three real offenders are FIXED, and the "long tail" was
+      MEASURED AND IS NOT A DEFECT.**
       `/campaigns` row thumbs, its featured cards and the campaign carousel thumb strip
-      now route through the existing pure `optimizedCoverUrl()` helper (200 / 700 / 160
-      px requests) rather than serving the 1200 px original. Measured after: **0 raw
-      1200-wide covers left on /campaigns**, featured cards request 700×525.
-      ⚠️ Still open: the remaining `<img>` on other routes carry no `srcset`, so they
-      serve one fixed width to every device. `next.config.js` already whitelists the
-      hosts, so `next/image` needs no config change.
+      now route through the pure `optimizedCoverUrl()` helper (200 / 700 / 160 px)
+      rather than serving the 1200 px original. **0 raw 1200-wide covers left on
+      /campaigns.**
+
+      ⚠️ **THE OVER-FETCH RATIOS IN THE ORIGINAL AUDIT WERE OVERSTATED — they divided by
+      CSS pixels and ignored devicePixelRatio.** A 1200 px source in a 308 px box is not
+      3.9× over; on a DPR-3 phone that box needs **924 device pixels**, so it is 1.3×.
+      Re-measured on the remaining routes with the DPR correction applied:
+
+      | route | DPR 2 worst | DPR 3 worst | images ≥2× |
+      |---|---|---|---|
+      | `/` | 2.17× | 1.45× | 1 at DPR2, 0 at DPR3 |
+      | `/donate` | 1.69× | 1.12× | 0 |
+
+      `/search`, `/supporter-space`, `/success-stories`, `/gallery`, `/leaderboard` and
+      `/crisis` showed **zero** over-fetching images at either DPR. **Do not "optimise"
+      these** — shrinking a source already close to the device requirement makes the
+      image blurry on a retina phone, which is a worse outcome than a few surplus KB.
+
+      The three that WERE fixed remain justified: a 1200 px source in a 92 px thumb needs
+      276 device pixels at DPR 3, i.e. **4.3× over** — real, just not the "13–18×" the
+      first measurement claimed. ⚠️ Ratio thresholds on images must be computed in DEVICE
+      pixels, or you will chase phantom savings and ship blur.
 
 ### ⚠️ HARNESS TRAP THAT INVALIDATED A WHOLE SWEEP
 
