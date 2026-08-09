@@ -7491,6 +7491,26 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 .mktg-page { background: #fff; overflow-x: clip; }
 [data-theme="dark"] .mktg-page { background: var(--bg); color: var(--t1); }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   `mktg-page` INSIDE the signed-in shell (`/profile`).
+
+   The wrapper is carried into the shell for one reason: 47 dark-theme rules in
+   this file are scoped to `.mktg-page`, and 8 of the utilities `/profile` uses
+   — text-slate-950, text-slate-700, text-emerald-700, text-red-700,
+   border-slate-200, border-slate-100, bg-red-50, bg-slate-300 — have no
+   unscoped dark rule. Without the wrapper they keep their LIGHT values on the
+   shell's dark surface, which is the site's default theme.
+
+   What the wrapper must NOT bring with it is its page background: inside
+   `.kf-main` that painted an opaque slab over the shell's own surface. Only the
+   background is cancelled; every colour rule above still applies.
+   ───────────────────────────────────────────────────────────────────────────── */
+.kf-main .mktg-page,
+[data-theme="dark"] .kf-main .mktg-page { background: transparent; }
+/* The shell already owns the page's horizontal padding and scroll container. */
+.kf-main .mktg-page > section > .container,
+.kf-main .mktg-page > .container { padding-left: 0; padding-right: 0; }
+
 /* surfaces */
 [data-theme="dark"] .mktg-page .bg-white { background: var(--s1) !important; }
 [data-theme="dark"] .mktg-page .bg-slate-50,
