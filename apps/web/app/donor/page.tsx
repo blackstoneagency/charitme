@@ -7,6 +7,7 @@ import { formatCents } from '../../lib/stripe';
 import RecommendedCampaigns from './RecommendedCampaigns';
 import SavedCampaigns from './SavedCampaigns';
 import DonationHistoryList from './DonationHistoryList';
+import { CharitMeShell, TopBar } from '../../components/CharitMeShellServer';
 
 export const dynamic = 'force-dynamic';
 
@@ -149,14 +150,16 @@ export default async function DonorPortalPage() {
 
   const statsColors = ['var(--brand-text)', 'var(--green-text)', 'var(--orange-text)', 'var(--brand-text)'];
 
+  // "Giving History" is a top-level item in the donor sidebar, and this page —
+  // the one that item points at — rendered outside the shell entirely: no left
+  // navigation, no identity chip, no way back. `active` must match the label in
+  // lib/persona-navigation.ts exactly, because CharitMeApp compares
+  // `active === label`. The page's own h1/subtitle are replaced by TopBar
+  // rather than duplicated beneath it.
   return (
+    <CharitMeShell active="Giving History">
+      <TopBar title="Your Giving History" subtitle="All your donations, receipts, and recurring giving in one place." />
     <div style={{ maxWidth: 800, margin: '0 auto', padding: '32px 24px' }}>
-      <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: 26, fontWeight: 800, margin: '0 0 4px' }}>Your Giving History</h1>
-        <p style={{ color: 'var(--t3)', fontSize: 15, margin: 0 }}>
-          All your donations, receipts, and recurring giving in one place.
-        </p>
-      </div>
 
       {unavailable && (
         <div
@@ -287,5 +290,6 @@ export default async function DonorPortalPage() {
         Need help with a donation? <Link href="/contact" style={{ color: 'var(--brand-text)', fontWeight: 700 }}>Contact support</Link>
       </div>
     </div>
+    </CharitMeShell>
   );
 }

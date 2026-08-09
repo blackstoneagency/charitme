@@ -369,6 +369,18 @@ export function buildFixtures() {
       // and the manage page, check-in codes and all, was never measured by
       // anything. Owned by the organizer it renders for BOTH: the member by
       // ownership, the admin by the admin bypass on the line above the redirect.
+      // ⚠️ Every column OPPORTUNITY_PUBLIC_COLUMNS selects must be present, and
+      // the NOT NULL ones must carry a real value. `skills` is
+      // `text[] NOT NULL DEFAULT '{}'`, and VolunteerClient reads
+      // `opp.skills.length` directly — correctly, given that contract. Omitting
+      // it here made the row arrive as `undefined` and crashed /volunteer in both
+      // themes the moment the list stopped being empty.
+      skills: ['Packing', 'Logistics', 'Community outreach'],
+      country: 'US',
+      slots: 20,
+      slots_filled: 4,
+      time_commitment: '3 hours',
+      verified: true,
       created_by: ORGANIZER_ID,
       // ⚠️ 'open', not 'active'. `volunteer_opportunities.status` allows only
       // open | upcoming | closed, and every LIST reader filters
