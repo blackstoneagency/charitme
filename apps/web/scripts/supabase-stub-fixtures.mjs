@@ -937,6 +937,23 @@ export function buildFixtures() {
         updated_at: daysAgo(1),
       },
     ],
+    // ⚠️ Load-bearing for the campaign page's donate surface. `payoutReady` is
+    // `!!resolvePayoutDestination(...)`, which needs a row here with
+    // verification_status 'verified' AND charges/payouts/details all true. With
+    // no rows at all, every campaign rendered the "payout setup in progress"
+    // branch instead of DonateButton + MobileDonateCTA — so the donate card and
+    // the sticky mobile CTA were absent from every sweep, and looked fine.
+    connected_accounts: [USER_ID, ORGANIZER_ID].filter(Boolean).map((userId, i) => ({
+      id: uuid('cacc', i + 1),
+      user_id: userId,
+      stripe_account_id: `acct_stub_${i + 1}`,
+      charges_enabled: true,
+      payouts_enabled: true,
+      details_submitted: true,
+      verification_status: 'verified',
+      created_at: daysAgo(300),
+      updated_at: daysAgo(2),
+    })),
     feature_flags: genericRows('flag', 10, (i) => ({
       key: `flag_${i + 1}`,
       enabled: i % 2 === 0,

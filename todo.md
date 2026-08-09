@@ -1,6 +1,6 @@
 # CharitMe — Execution Tracker
 
-## 📱 END-TO-END MOBILE APP READINESS AUDIT — 4 parallel agents, 27 fixed, 1 RETRACTED, 3 open (Claude, 2026-08-09)
+## 📱 END-TO-END MOBILE APP READINESS AUDIT — 4 parallel agents, 29 fixed, 1 RETRACTED, 1 open (Claude, 2026-08-09)
 
 This is a PWA, not a native shell (`app/manifest.ts` + `public/sw.js` +
 `components/PWARegister.tsx`; no Capacitor/Expo in any package.json). So "mobile app
@@ -154,12 +154,26 @@ what makes the outside-tap dismissal reachable at all.
       matched **nothing** — I had guessed the class names. A selector that matches
       nothing passes every check while fixing nothing; always assert the match COUNT,
       not just the absence of failures.
-- [ ] **`MobileDonateCTA` is still UNVERIFIED at runtime.** It is gated on
-      `isActive && payoutReady`, and no stub campaign has a connected Stripe account,
-      so `.mobile-donate-bar` never mounts here — measured `null` on every attempt.
-      Its 72px height is cleared by a hardcoded `.public-campaign { padding-bottom:
-      80px }` guess that does not track a wrapping title, and it now needs the
-      safe-area inset too. Re-measure against a campaign with `payoutReady === true`.
+### ✅ THE CAMPAIGN PAGE'S ENTIRE DONATE SURFACE WAS ABSENT FROM EVERY SWEEP
+
+`MobileDonateCTA` was recorded as "unverified — never mounts in the stub". The cause
+turned out to be bigger than the CTA: **`connected_accounts` had no fixture rows at
+all.** `payoutReady` is `!!resolvePayoutDestination(...)`, which needs a row with
+`verification_status = 'verified'` AND `charges_enabled`/`payouts_enabled`/
+`details_submitted` all true. With no rows, every campaign took the "payout setup in
+progress" branch — so **`DonateButton` AND the sticky `MobileDonateCTA` were missing
+from every campaign detail page in every audit**, and the page passed cleanly. It is
+why the donate card had to be measured via `/campaigns/[slug]/embed` instead.
+
+Fixed by seeding `connected_accounts` for the two personas. Measured on a populated
+rebuild of `/campaigns/stub-campaign-2`: `Choose an amount` ✓, `Give Once` ✓,
+`.mobile-donate-bar` ✓, and **zero** occurrences of the "payout setup" fallback.
+
+⚠️ This is the third instance of the same class in this audit (`supported_countries`,
+`volunteer_opportunities.status`, now `connected_accounts`): **a missing or
+unmatchable fixture removes a whole surface from the sweep, and the sweep reports
+green.** When a component "never mounts in the stub", treat that as a coverage bug to
+fix, not a note to file — the absent surface is exactly where defects survive.
 - [ ] **Campaign covers: the worst three sites are FIXED, the long tail is not.**
       `/campaigns` row thumbs, its featured cards and the campaign carousel thumb strip
       now route through the existing pure `optimizedCoverUrl()` helper (200 / 700 / 160
