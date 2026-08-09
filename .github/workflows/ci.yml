@@ -47,8 +47,10 @@ on:
 #
 # ⚠️ Measured 2026-08-09: master's post-merge CI could not finish AT ALL. Eight
 # merges landed between 00:56 and 02:07 (mean gap 10.2 min, largest 17.7), while
-# a full run needs ~55-75 min — the e2e step alone took 51.9m once and 70m+ on
-# the next. Result: 7 runs cancelled, 1 still running, ZERO completed. Every
+# a full run needs upwards of an hour — the one e2e step that ever COMPLETED took
+# 51.9m, and later ones were still running at 64m and 71m when observed (those
+# are lower bounds, not durations; see the note above `timeout-minutes` below).
+# Result: 7 runs cancelled, 1 still running, ZERO completed. Every
 # master run was killed by the next merge before it cleared the build step, so a
 # red master would have been invisible and "green on master" was not a claim
 # anyone could substantiate.
@@ -122,12 +124,25 @@ jobs:
     # GitHub's default 360-minute cap, holding a runner and delaying the verdict
     # by six hours.
     #
-    # 180 min against observed durations: the whole job has run ~60 min, and the
-    # e2e step alone has been measured at 51.9m, 70m and 95m+ on successive
-    # commits. That growth is why the bound is generous rather than tight — it is
-    # here to catch a HANG, not to police a slow suite. If a run ever trips this,
-    # the e2e suite has outgrown a single job and should be split, not given a
-    # bigger number.
+    # 180 min against what has actually been MEASURED. Being precise about that,
+    # because the first version of this comment was not:
+    #
+    #   · e2e, completed:  51.9m  (run 31286083199, 00:29:49 -> 01:21:41)
+    #   · e2e, lower bounds on runs that had not finished when observed:
+    #                     >=71m  (run 31289682235)  ~64m  (run 31292380747)
+    #
+    # ⚠️ Only the first is a duration. The other two are "still running when I
+    # looked", which is a lower bound, not a measurement — an earlier draft of
+    # this comment read "51.9m, 70m and 95m+ on successive commits" and called
+    # that GROWTH. It is not: you cannot trend three numbers when two of them are
+    # lower bounds on runs that never completed, and the 95m figure was simply
+    # wrong. Do not cite a trend here until two runs have finished and been
+    # compared.
+    #
+    # The bound is generous because the honest spread is wide, not because the
+    # suite is known to be growing. It is here to catch a HANG, not to police a
+    # slow suite. If a run ever trips it, the e2e suite has outgrown a single job
+    # and should be split, not given a bigger number.
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
