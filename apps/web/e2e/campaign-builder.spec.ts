@@ -19,6 +19,15 @@ test('AI intake explains invalid input before authentication', async ({ page }) 
   await expect(page).toHaveURL(/\/ai-campaign/);
 });
 
+test.describe('without JavaScript', () => {
+  test.use({ javaScriptEnabled: false });
+
+  test('AI intake cannot submit before hydration', async ({ page }) => {
+    await page.goto('/ai-campaign', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('button', { name: /Build my campaign/i })).toBeDisabled();
+  });
+});
+
 test('guided creation autosaves and resumes the current question', async ({ page }) => {
   await page.goto('/create?path=guided', { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('heading', { name: 'Name Your Campaign' })).toBeVisible();

@@ -41,12 +41,14 @@ function AiCampaignPrompt() {
   const [starting, setStarting] = useState(false);
   const [listening, setListening] = useState(false);
   const [voiceAvailable, setVoiceAvailable] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   useEffect(() => {
     const speechWindow = window as Window & SpeechRecognitionWindow;
     const availabilityCheck = window.setTimeout(() => {
+      setHydrated(true);
       setVoiceAvailable(Boolean(speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition));
     }, 0);
     return () => {
@@ -216,7 +218,7 @@ function AiCampaignPrompt() {
 
           {error && <p className="ai-intake-error" role="alert">{error}</p>}
 
-          <button type="submit" className="ai-intake-submit" disabled={starting}>
+          <button type="submit" className="ai-intake-submit" disabled={!hydrated || starting}>
             <PublicIcon name="ai" /> {starting ? 'Building your draft...' : 'Build my campaign'} <PublicIcon name="arrow" />
           </button>
           <p className="ai-intake-save"><PublicIcon name="refresh" /> Your campaign autosaves after it is built, so you can resume on any device.</p>
