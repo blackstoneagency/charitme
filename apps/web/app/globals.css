@@ -4887,6 +4887,8 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .cr2-page { max-width: 1200px; margin: 0 auto; padding: 0 28px 64px; }
+.cr2-route-loading { min-height: calc(100vh - 72px); display: grid; place-items: center; background: var(--s2); }
+.cr2-route-loading-spinner { width: 40px; height: 40px; border: 3px solid var(--b2); border-top-color: var(--brand-text); border-radius: 50%; animation: spin .7s linear infinite; }
 
 /* Hero */
 .cr2-hero { position: relative; background: linear-gradient(135deg, #0e0627 0%, #1e0e5a 35%, #0d2260 65%, #07355a 100%); overflow: hidden; padding: 32px 32px 40px; }

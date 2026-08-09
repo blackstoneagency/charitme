@@ -576,6 +576,7 @@ export default function CreatePage() {
   // *something* was wrong but not *which* input, leaving focus on the button.
   const [errorField, setErrorField]   = useState<BuilderField | null>(null);
   const titleInputRef                 = useRef<HTMLInputElement>(null);
+  const titleSeededRef                = useRef(false);
   const storyInputRef                 = useRef<HTMLTextAreaElement>(null);
   const goalInputRef                  = useRef<HTMLInputElement>(null);
   const [publishedSlug, setPublishedSlug] = useState('');
@@ -683,8 +684,15 @@ export default function CreatePage() {
     const params = new URLSearchParams(window.location.search);
     const requested = params.get('path');
     if (requested === 'ai' || params.has('ai') || params.has('intake')) setBuilderPath('ai');
-    else if (requested === 'guided') setBuilderPath('guided');
-    else if (sessionStorage.getItem('cm_wizard') || localStorage.getItem(CAMPAIGN_DRAFT_KEY)) setBuilderPath('guided');
+    else if (requested === 'guided'
+      || sessionStorage.getItem('cm_wizard')
+      || localStorage.getItem(CAMPAIGN_DRAFT_KEY)) {
+      titleSeededRef.current = true;
+      setForm((previous) => previous.title.trim()
+        ? previous
+        : { ...previous, title: suggestCampaignTitle(previous) });
+      setBuilderPath('guided');
+    }
     else window.location.replace('/create/choose-path');
   }, []);
 
@@ -901,14 +909,18 @@ export default function CreatePage() {
     draftSaveSequenceRef.current += 1;
     setActiveDraftId(null);
     if (typeof window !== 'undefined') localStorage.removeItem(CAMPAIGN_DRAFT_KEY);
-    setForm(EMPTY_FORM);
+    const nextForm = builderPath === 'guided'
+      ? { ...EMPTY_FORM, title: suggestCampaignTitle(EMPTY_FORM) }
+      : EMPTY_FORM;
+    titleSeededRef.current = builderPath === 'guided';
+    setForm(nextForm);
     setUploadedImages([]);
     setStep('purpose');
     setSaveState('idle');
     draftDecided.current = true;
     setRecoverableDraft(null);
     setShowDraftPicker(false);
-  }, [setActiveDraftId]);
+  }, [builderPath, setActiveDraftId]);
 
   const dismissDraft = useCallback(() => {
     clearDraft();
@@ -1017,7 +1029,6 @@ export default function CreatePage() {
   // the Title step with no title yet, seed a smart suggestion from what they've
   // already entered (category / beneficiary / self). Instant + editable; they can
   // also hit "AI improve". Seeds once so it never fights the user's edits.
-  const titleSeededRef = useRef(false);
   useEffect(() => {
     if (step !== 'purpose' || builderPath !== 'guided' || titleSeededRef.current) return;
     titleSeededRef.current = true;
@@ -1651,6 +1662,16 @@ export default function CreatePage() {
   const currentHero = heroCopy[step] ?? { title: 'Create Your Campaign', sub: '' };
 
   const suggestedPhotos = SUGGESTED_PHOTOS[form.category] ?? SUGGESTED_PHOTOS.default ?? [];
+
+  if (builderPath === null) {
+    return (
+      <CharitMeShell active="My Campaigns" guestMode hideSidebar>
+        <main className="cr2-route-loading" role="status" aria-busy="true" aria-label="Preparing campaign builder">
+          <span className="cr2-route-loading-spinner" aria-hidden="true" />
+        </main>
+      </CharitMeShell>
+    );
+  }
 
   // ─────────────────────────────────────────────
   return (
