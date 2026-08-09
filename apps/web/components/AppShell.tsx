@@ -68,6 +68,22 @@ function MenuLinkIcon({ index }: { index: number }) {
 // NOTE: /create is intentionally NOT bypassed — it now shows the global nav above its wizard
 const SHELL_BYPASS = ['/dashboard', '/admin', '/profile', '/maintenance'];
 
+/**
+ * Bypassed at the EXACT path only, never for the subtree beneath it.
+ *
+ * `/donor` renders the same left-navigation shell the dashboard does, so it must
+ * not also get the marketing header — two stacked headers, with the account menu
+ * appearing twice.
+ *
+ * ⚠️ It cannot go in SHELL_BYPASS above, because that list matches
+ * `path.startsWith(p + '/')` and would take the chrome away from
+ * `/donor/receipt/[id]` and `/donor/tax-statement/[year]` as well. Those two are
+ * deliberately `pub-page simple-public` — printable financial documents, not app
+ * screens — and they are reached from emailed links, so their own header is the
+ * only navigation a visitor arriving cold actually has.
+ */
+const SHELL_BYPASS_EXACT = ['/donor'];
+
 // Campaign embed widgets (/campaigns/[slug]/embed) are designed to run inside an
 // <iframe> on third-party sites — they render their own minimal layout and must
 // never include the site nav/footer.
@@ -410,7 +426,10 @@ export function AppShell({
   const accountRef = useRef<HTMLDivElement | null>(null);
   const navRef = useRef<HTMLElement | null>(null);
   const supabase = useMemo(() => createClient(), []);
-  const bypass = SHELL_BYPASS.some((p) => path === p || path.startsWith(p + '/')) || isEmbedRoute(path);
+  const bypass =
+    SHELL_BYPASS.some((p) => path === p || path.startsWith(p + '/')) ||
+    SHELL_BYPASS_EXACT.includes(path) ||
+    isEmbedRoute(path);
 
   const displayName = ((user?.user_metadata?.full_name as string | undefined) ?? user?.email?.split('@')[0] ?? 'Account').split(' ')[0];
   const avatarInitial = (displayName[0] ?? 'A').toUpperCase();
