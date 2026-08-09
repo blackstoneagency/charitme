@@ -150,6 +150,12 @@ export default async function DonorPortalPage() {
 
   const statsColors = ['var(--brand-text)', 'var(--green-text)', 'var(--orange-text)', 'var(--brand-text)'];
 
+  // "Giving History" is a top-level item in the donor sidebar, and this page —
+  // the one that item points at — rendered outside the shell entirely: no left
+  // navigation, no identity chip, no way back. `active` must match the label in
+  // lib/persona-navigation.ts exactly, because CharitMeApp compares
+  // `active === label`. The page's own h1/subtitle are replaced by TopBar
+  // rather than duplicated beneath it.
   return (
     // ── Rendered INSIDE the app shell, with the left navigation ───────────────
     //
@@ -169,11 +175,11 @@ export default async function DonorPortalPage() {
         subtitle="All your donations, receipts, and recurring giving in one place."
       />
 
-      {/* The shell owns the page gutter, so this only bounds the reading
-          measure. The old `margin: '0 auto'` centred the column against the
-          viewport — inside a shell that has a 264px sidebar, that reads as
-          off-centre, so the column is left-aligned within the content area. */}
-      <div className="kf-content-grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)', maxWidth: 860 }}>
+       {/* The shell owns the page gutter, so this only bounds the reading
+           measure. The old `margin: '0 auto'` centred the column against the
+           viewport — inside a shell that has a 264px sidebar, that reads as
+           off-centre, so the column is left-aligned within the content area. */}
+       <div className="kf-content-grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)', maxWidth: 860 }}>
 
       {unavailable && (
         <div
@@ -303,7 +309,7 @@ export default async function DonorPortalPage() {
       <div style={{ marginTop: 24, textAlign: 'center', fontSize: 13, color: 'var(--t3)' }}>
         Need help with a donation? <Link href="/contact" style={{ color: 'var(--brand-text)', fontWeight: 700 }}>Contact support</Link>
       </div>
-      </div>
+       </div>
     </CharitMeShell>
   );
 }

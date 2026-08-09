@@ -156,6 +156,14 @@
      var(--bg). Must be defined in BOTH themes — an undefined --bg silently
      falls back to a light value even in dark mode (light-on-light text). */
   --bg: #f8f7ff;
+  /* Funds Distribution donut slices. Defined for BOTH themes — the dark values
+     are lighter so the ring stays legible on the flat-black dark background. */
+  --imp-slice-0: #8b5cf6;
+  --imp-slice-1: #f59e0b;
+  --imp-slice-2: #10b981;
+  --imp-slice-3: #ec4899;
+  --imp-slice-4: #3b82f6;
+  --imp-slice-5: #64748b;
   --shadow: 0 22px 70px rgba(55, 42, 130, .12);
   --shadow-sm: 0 10px 32px rgba(55, 42, 130, .10);
   --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -233,6 +241,17 @@ input, select, textarea, button { max-width: 100%; }
   background: #000;
   backdrop-filter: none;
 }
+/* ⚠️ Sticky ONLY below the hamburger breakpoint, deliberately.
+   Measured on a 390x844 phone: after scrolling 2500px down a 10,571px page the
+   hamburger sat at y:-2224 and there was no other nav affordance on screen —
+   the only way back to navigation was BackToTop. On desktop the full nav bar is
+   always visible, so there is no equivalent defect, and pinning the header
+   sitewide would change what every contrast/focus sweep measures on 200+ pages
+   for no user benefit. Keeping it scoped puts the change where the evidence is. */
+@media (max-width: 1100px) {
+  .kind-header { position: sticky; top: 0; }
+}
+
 .kind-header > .container { height: 70px; display: flex; align-items: center; gap: 0; max-width: 1380px; padding-left: 24px; padding-right: 24px; }
 .kind-logo { display: inline-flex; align-items: center; gap: 9px; flex: 0 0 auto; margin-right: 18px; }
 .kind-logo > .kind-logo-img { width: 34px; height: 34px; display: block; flex: 0 0 auto; }
@@ -377,6 +396,33 @@ input, select, textarea, button { max-width: 100%; }
 
 /* Group labels in the mobile sheet — without them the flattened list is 30+
    undifferentiated links. */
+/* The mobile-panel search form. 16px on the input so iOS does not zoom the page
+   on focus; 44px controls so both are comfortable touch targets. */
+/* Collapsed nav groups in the mobile panel. The summary is a real touch target
+   (44px) and carries a count so the group's size is visible before opening. */
+.kind-mobile-group { border-top: 1px solid var(--b1); }
+/* Explicit rather than relying on the UA's closed-<details> behaviour: the panel
+   is a grid container and several author rules target `.kind-mobile a`, so the
+   default hiding is not something to take on trust here. */
+.kind-mobile-group:not([open]) > a { display: none; }
+.kind-mobile-group > summary {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  min-height: 44px; cursor: pointer; list-style: none;
+}
+.kind-mobile-group > summary::-webkit-details-marker { display: none; }
+.kind-mobile-group > summary::after {
+  content: '\203A'; margin-left: auto; font-size: 18px; line-height: 1;
+  transform: rotate(90deg); transition: transform .15s;
+}
+.kind-mobile-group[open] > summary::after { transform: rotate(-90deg); }
+.kind-mobile-group > summary > span {
+  min-width: 22px; padding: 1px 7px; border-radius: 999px;
+  background: var(--s3); color: var(--t2); font-size: 12px; font-weight: 700;
+}
+.kind-mobile-search { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; margin-bottom: 6px; }
+.kind-mobile-search .kind-mobile-heading { grid-column: 1 / -1; margin-bottom: 0; }
+.kind-mobile-search input { min-width: 0; min-height: 44px; padding: 0 12px; border: 1px solid var(--b2); border-radius: 10px; background: var(--s1); color: var(--t1); font-size: 16px; }
+.kind-mobile-search button { min-height: 44px; padding: 0 16px; border: 0; border-radius: 10px; background: var(--violet); color: #fff; font-weight: 700; font-size: 14px; cursor: pointer; }
 .kind-mobile-heading {
   margin-top: 6px;
   font-size: 11px; font-weight: 850; letter-spacing: .07em; text-transform: uppercase;
@@ -451,7 +497,38 @@ input, select, textarea, button { max-width: 100%; }
 .kind-user-btn { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 4px; border: none; background: transparent; cursor: pointer; font: inherit; color: var(--ink, #0f1238); }
 .kind-header .kind-user-btn { color: #d8dee5; }
 .kind-avatar-sm { width: 30px; height: 30px; border-radius: 50%; background: #e8590c; color: #fff; display: inline-grid; place-items: center; font-size: 14px; font-weight: 800; }
+/* ⚠️ The colour is the whole point of this rule, and it was missing.
+   Without it the span inherited `--t1`, which is #0f1238 in LIGHT mode — dark
+   ink on `.kind-header`'s permanent `background: #000`, measuring 1.16:1. The
+   signed-in user's own name was invisible on every page of the site in light
+   mode.
+
+   Found by the signed-in contrast audit (CI step 13) on its first-ever
+   execution: 103 failures on master, ~one per page, all this element. It could
+   not have been caught before — every other sweep in this repo runs signed OUT,
+   and this span only exists when someone is logged in.
+
+   A literal rather than a token, for the same reason as `.kind-logo strong` and
+   the active nav link above: the header's background is FIXED black in both
+   themes, so a theme-flipping token is exactly wrong here — it would fix dark
+   and leave light broken. #f7f8fa matches the wordmark beside it, at 19.76:1. */
 .kind-user-name { font-size: 14px; font-weight: 700; white-space: nowrap; }
+/* ⚠️ SCOPED TO THE BLACK HEADER, and it must stay scoped.
+   `.kind-user-name` renders in TWO shells on two different surfaces:
+     · AppShell — inside `.kind-header`, which is permanently `background: #000`
+     · ShellAccountControls — the admin/dashboard shell, on a LIGHT surface
+   So there is no single colour that works. Unscoped it inherits `--t1`, which is
+   #0f1238 in light mode: 1.16:1 on the black header, and the signed-in user
+   could not see their own name on any public page.
+
+   A first fix set `color: #f7f8fa` on the BASE rule. That fixed the public
+   header and broke admin — near-white on `#fcfbff`, 1.03:1, measured across ~45
+   admin pages. Fixing ~49 and breaking ~45 is not a fix.
+
+   The base rule therefore keeps inheriting `--t1` (correct on the light admin
+   surface, and it follows the theme), and only the black-header instance is
+   overridden. Measured: 19.76:1 here, and admin returns to its `--t1` value. */
+.kind-header .kind-user-name { color: #f7f8fa; }
 .kind-user-caret { transition: transform .15s; }
 .kind-user-caret.open { transform: rotate(180deg); }
 .kind-user-menu { position: absolute; top: calc(100% + 12px); right: 0; min-width: 280px; background: #fff; border-radius: 16px; box-shadow: 0 12px 40px rgba(33, 30, 70, .16); padding: 10px; z-index: 60; }
@@ -2130,7 +2207,11 @@ input, select, textarea, button { max-width: 100%; }
 .auth-separator { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 12px; font-weight: 650; text-transform: uppercase; letter-spacing: .08em; }
 .auth-separator::before, .auth-separator::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .auth-card label { display: grid; gap: 8px; color: #252c5c; font-size: 13px; font-weight: 700; }
-.auth-card input { width: 100%; border: 1px solid var(--line); border-radius: 14px; background: var(--s1); min-height: 48px; padding: 0 14px; color: var(--ink); outline: none; }
+/* ⚠️ 16px MINIMUM ON FOCUSABLE FIELDS — iOS Safari zooms the page in on focus
+   for anything smaller and never zooms back out, leaving the rest of the form
+   off-screen mid-task. Measured on a real 390x844 iPhone context; these were
+   12-15px. Font size here is a functional constraint, not styling. */
+.auth-card input { width: 100%; border: 1px solid var(--line); border-radius: 14px; background: var(--s1); min-height: 48px; padding: 0 14px; color: var(--ink); outline: none; font-size: 16px; }
 .auth-card input:focus { border-color: var(--brand-text); box-shadow: 0 0 0 4px rgba(109,53,255,.10); }
 .auth-error, .auth-success { border-radius: 14px; padding: 12px 14px; font-weight: 650; }
 .auth-error { background: var(--tint-rose); color: var(--red-text) !important; }
@@ -2213,6 +2294,7 @@ input, select, textarea, button { max-width: 100%; }
 
 /* Breadcrumb */
 .pc-breadcrumb { color: var(--muted); font-size: 13px; display: flex; align-items: center; flex-wrap: wrap; gap: 2px; }
+.pc-breadcrumb a, .dn-crumb a { display: inline-flex; align-items: center; min-height: 24px; }
 .pc-breadcrumb a { color: var(--muted); text-decoration: none; transition: color .15s; }
 .pc-breadcrumb a:hover { color: var(--green-text); text-decoration: underline; }
 .pc-breadcrumb span[aria-current="page"] { color: var(--ink); font-weight: 600; }
@@ -2287,7 +2369,9 @@ input, select, textarea, button { max-width: 100%; }
 /* Collapsible "how it works" / embed helper — shared by the share/embed section */
 .pc-match-note { margin: 10px 0 0; font-size: 12px; line-height: 1.5; color: var(--muted); }
 .pc-match-howto { margin-top: 12px; font-size: 12px; color: var(--muted); }
-.pc-match-howto summary { cursor: pointer; font-weight: 800; color: var(--brand-text); }
+/* Measured 290.2x18 — a disclosure control below the 24px target minimum,
+   on 4 pages including the campaign page and the share page. */
+.pc-match-howto summary { cursor: pointer; font-weight: 800; color: var(--brand-text); display: flex; align-items: center; min-height: 24px; }
 .pc-match-howto ol { margin: 8px 0 0; padding-left: 18px; line-height: 1.6; }
 
 /* ── Campaign CTA row: Donate (primary) + Share (secondary) ───────────────── */
@@ -2359,7 +2443,11 @@ input, select, textarea, button { max-width: 100%; }
 
 /* Story card */
 .pc-story { padding: 28px; border: 1px solid var(--line); border-radius: 18px; background: rgba(255,255,255,.92); box-shadow: var(--shadow-sm); }
-.pc-story nav { display: flex; gap: 36px; border-bottom: 1px solid var(--line); margin: -4px -28px 28px; padding: 0 28px; }
+/* The only nested horizontal scroller on this page. Without containment a swipe
+   that reaches the end of the strip chains to the browser's back gesture, so a
+   donor flicking through tabs can leave the campaign. Measured scrollWidth 457
+   vs clientWidth 356 at 390px. Sibling strips already do this. */
+.pc-story nav { display: flex; gap: 36px; border-bottom: 1px solid var(--line); margin: -4px -28px 28px; padding: 0 28px; overscroll-behavior-inline: contain; }
 .pc-story nav a { padding: 16px 0; color: #4d567a; font-weight: 650; text-decoration: none; display: inline-block; }
 .pc-story nav .active { color: var(--brand-text); border-bottom: 3px solid var(--violet); }
 .pc-story h2 { margin: 0 0 18px; font-size: var(--fs-h3); letter-spacing: -.02em; }
@@ -2371,7 +2459,7 @@ input, select, textarea, button { max-width: 100%; }
 .pc-quick-share { border: 1px solid var(--b2); border-radius: 16px; padding: 20px; background: #fff; margin: 24px 0; }
 .pc-quick-share-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .pc-share-copy { display: flex; gap: 8px; margin-bottom: 16px; }
-.pc-share-copy input { flex: 1; padding: 9px 12px; border: 1px solid var(--b2); border-radius: 9px; font-size: 12px; color: var(--t3); background: var(--s1); }
+.pc-share-copy input { flex: 1; padding: 9px 12px; border: 1px solid var(--b2); border-radius: 9px; font-size: 16px; color: var(--t3); background: var(--s1); }
 .pc-share-copy button { padding: 9px 16px; border: none; border-radius: 9px; background: var(--violet); color: #fff; font-size: 12px; font-weight: 650; cursor: pointer; white-space: nowrap; }
 .pc-share-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
 .pc-share-tile { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--b2); border-radius: 12px; text-decoration: none; color: var(--t1); font-size: 13px; font-weight: 700; transition: background .15s; }
@@ -3163,6 +3251,11 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
      asks not to be shown. The gradient and glow stay — they are not motion. */
   .mirror-btn-create:hover::after,
   .mirror-btn-create:focus-visible::after { animation: none; }
+  /* The mobile nav group's disclosure chevron. Folded into this block rather
+     than given its own: home-donate-cta.test.ts asserts on the FIRST
+     prefers-reduced-motion block in this file, so a second one above it makes
+     that guard read the wrong rules. */
+  .kind-mobile-group > summary::after { transition: none; }
 }
 .task-row em { color: #7a8299; font-size: 12px; font-style: normal; font-weight: 500; }
 .task-row em.today { color: #ff3158; font-weight: 600; }
@@ -5285,7 +5378,7 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 .cr2-payout-subform-head p { margin: 0; font-size: 13px; color: var(--t3); line-height: 1.5; }
 .cr2-payout-trust-row { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: rgba(108,53,255,.06); border: 1px solid rgba(108,53,255,.15); border-radius: 10px; font-size: 12px; color: var(--brand-text); font-weight: 700; margin-bottom: 18px; }
 .cr2-payout-field-label { display: block; font-size: 12px; font-weight: 650; color: var(--t2); margin-bottom: 6px; }
-.cr2-payout-input { width: 100%; height: 44px; border: 1.5px solid var(--b2); border-radius: 10px; padding: 0 14px; font-size: 14px; background: var(--bg); color: var(--t1); box-sizing: border-box; margin-bottom: 14px; }
+.cr2-payout-input { width: 100%; height: 44px; border: 1.5px solid var(--b2); border-radius: 10px; padding: 0 14px; font-size: 16px; background: var(--bg); color: var(--t1); box-sizing: border-box; margin-bottom: 14px; }
 .cr2-payout-input:focus { outline: none; border-color: var(--brand-text); }
 .cr2-payout-input-prefix-wrap { position: relative; margin-bottom: 14px; }
 .cr2-payout-input-prefix { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 15px; font-weight: 700; color: var(--t3); pointer-events: none; }
@@ -5516,6 +5609,14 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
      reads: a card has to be visibly lifted off the page, and #121530 on #000 is
      a clearer step than it was on #0b0d24. */
   --bg: #000000;
+  /* Lighter slice colours: the dark theme's page background is flat black, so
+     the light-theme violets and blues lose definition against it. */
+  --imp-slice-0: #a78bfa;
+  --imp-slice-1: #fbbf24;
+  --imp-slice-2: #34d399;
+  --imp-slice-3: #f472b6;
+  --imp-slice-4: #60a5fa;
+  --imp-slice-5: #94a3b8;
   --shadow: 0 22px 70px rgba(0,0,0,.5);
   --shadow-sm: 0 10px 32px rgba(0,0,0,.35);
   --shadow-lg: 0 24px 80px rgba(0,0,0,.55);
@@ -9267,7 +9368,7 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 }
 .cbx-checks { display: grid; gap: 9px; }
 .cbx-checks label { display: flex; align-items: center; gap: 9px; cursor: pointer; }
-.cbx-checks input { width: 15px; height: 15px; accent-color: var(--violet); cursor: pointer; flex: none; }
+.cbx-checks input { width: 20px; height: 20px; accent-color: var(--violet); cursor: pointer; flex: none; }
 .cbx-checks span { font-size: 13px; font-weight: 600; color: var(--t2); }
 
 .cbx-apply {
@@ -9821,23 +9922,27 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 }
 .dn-money input {
   flex: 1; min-width: 0; border: 0; background: none; color: var(--t1);
-  font: inherit; font-size: 15px; font-weight: 700;
+  font: inherit; font-size: 16px; font-weight: 700;
+  /* The 44px target belongs to .dn-money, the wrapper. Without stretching, the
+     input was centred inside it and measured 22.5px tall — half the hit area a
+     donor is actually aiming at. */
+  align-self: stretch; height: 100%;
 }
 .dn-money input:focus { outline: none; }
 .dn-select {
   min-width: 0; max-width: 100%;
   min-height: 44px; padding: 0 12px; border-radius: 11px;
   border: 1px solid var(--b2, #ddd7ee); background: var(--s1, #fff);
-  color: var(--t1); font: inherit; font-size: 14px;
+  color: var(--t1); font: inherit; font-size: 16px;
 }
 .dn-load-error { font-size: 13px; color: var(--red-text); line-height: 1.5; }
 
 .dn-check { display: flex; align-items: flex-start; gap: 9px; font-size: 13px; color: var(--t2); cursor: pointer; }
-.dn-check input { margin-top: 2px; flex: none; }
+.dn-check input { width: 20px; height: 20px; accent-color: var(--violet); margin-top: 1px; flex: none; }
 .dn-dedicate {
   min-height: 42px; padding: 0 12px; border-radius: 11px;
   border: 1px solid var(--b2, #ddd7ee); background: var(--s1, #fff);
-  color: var(--t1); font: inherit; font-size: 14px;
+  color: var(--t1); font: inherit; font-size: 16px;
 }
 .dn-error { margin: 0; font-size: 13px; font-weight: 650; color: var(--red-text); }
 
@@ -10467,6 +10572,72 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
    background: dark mode's <body> is flat black by request, and a band that
    leaked a colour onto it is exactly how that was broken before.
    ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   /impact — Impact Stories row and the Funds Distribution donut.
+
+   ⚠️ Dark mode is FLAT BLACK by request (`--bg: #000000`). Every surface here
+   therefore paints an explicit panel colour rather than leaning on the page
+   background: a band that inherits `transparent` reads as a hole punched in the
+   page, and one that hardcodes a near-black leaks a colour onto the black. Both
+   were broken this way before.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.imp-stories {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 4px;
+}
+.imp-story {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--b1);
+  border-radius: var(--rl, 18px);
+  background: var(--s1);
+}
+.imp-story-media { display: block; aspect-ratio: 16 / 9; overflow: hidden; }
+.imp-story-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.imp-story-body { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.imp-story-body h3 { margin: 0; font-size: 16.5px; font-weight: 800; line-height: 1.3; }
+.imp-story-body h3 a { color: var(--t1); text-decoration: none; }
+.imp-story-body h3 a:hover { text-decoration: underline; }
+.imp-story-body p { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--t2); }
+.imp-story-meta { font-size: 12.5px; color: var(--t3); }
+.imp-story-cta { font-size: 13.5px; font-weight: 800; color: var(--brand-text); text-decoration: none; }
+.imp-story-cta:hover { text-decoration: underline; }
+
+/* Donut. Drawn with one conic-gradient built in the page from PUBLISHED rows,
+   so the palette lives here and the numbers stay in the database. */
+.imp-donut-panel { min-width: 0; }
+.imp-donut-row { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; min-width: 0; }
+.imp-donut {
+  width: 148px;
+  height: 148px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  /* The hole. A mask rather than an overlaid circle, so the panel colour behind
+     it shows through and the ring stays correct on any surface. */
+  -webkit-mask: radial-gradient(circle, transparent 54%, #000 55%);
+  mask: radial-gradient(circle, transparent 54%, #000 55%);
+}
+.imp-donut-key { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; min-width: 0; flex: 1 1 200px; }
+.imp-donut-key li { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; align-items: center; gap: 10px; font-size: 13.5px; color: var(--t2); }
+.imp-donut-key b { color: var(--t1); font-weight: 800; }
+.imp-donut-dot { width: 10px; height: 10px; border-radius: 50%; }
+.imp-donut-dot[data-slice="0"] { background: var(--imp-slice-0); }
+.imp-donut-dot[data-slice="1"] { background: var(--imp-slice-1); }
+.imp-donut-dot[data-slice="2"] { background: var(--imp-slice-2); }
+.imp-donut-dot[data-slice="3"] { background: var(--imp-slice-3); }
+.imp-donut-dot[data-slice="4"] { background: var(--imp-slice-4); }
+.imp-donut-dot[data-slice="5"] { background: var(--imp-slice-5); }
+
+@media (max-width: 900px) {
+  .imp-stories { grid-template-columns: minmax(0, 1fr); }
+  .imp-donut-row { justify-content: center; }
+}
 
 .imp-hero {
   position: relative;
@@ -11523,6 +11694,17 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   --b1: var(--rp-line);
   --b2: var(--rp-line-strong);
   --b3: var(--rp-line-strong);
+  /* ⚠️ THE STATUS COLOURS ARE PART OF THE FAMILY TOO — this is the FOURTH time
+     a subset was remapped and the remainder produced invisible text.
+     Found by sweeping a POPULATED site: /supporter-space renders status badges
+     only when there is data, so every database-less sweep missed them entirely.
+     Measured there: --red-text 2.63:1, --blue-text 2.65:1, --green-text 2.60:1
+     against --rp-line (#1d2b36) — light-theme inks on a dark panel.
+     The dark variants clear the bar on both rp surfaces (6.68–11.88:1). */
+  --green-text: #4ade80;
+  --red-text: #ff8fa0;
+  --blue-text: #93c5fd;
+  --orange-text: #fbbf24;
 
   /* ⚠️ The INK family, and it is not optional — this is the same defect the
      embed widget shipped. Redeclaring the SURFACE tokens above without these
@@ -12088,9 +12270,10 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 }
 .rr-employer-search button .pub-icon { width: 17px; height: 17px; }
 /* #717783 measured 4.19:1 on this panel's #f8f6fc — under AA for 11px body
-   text, which needs 4.5. Darkened rather than enlarged: the size is the
-   design's. #626975 measures 5.16:1 and stays closer to the design's grey than
-   a heavier darkening would. */
+   text, which needs 4.5. A literal, NOT `var(--t3)`: `.rr-employer-panel`
+   hardcodes a light `#f8f6fc` background in both themes, so a theme-following
+   token would turn light-on-light in dark mode. #626975 measures 5.16:1 and
+   stays closer to the design's grey than a heavier darkening would. */
 .rr-employer-search small { display: block; margin-top: 10px; color: #626975; font-size: 11px; }
 .rr-program-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 .rr-program-head h3 { margin: 0; color: #171922; font-size: 17px; }
@@ -12211,4 +12394,41 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   .rr-help-panel > .rp-icon { order: 0; width: 64px; height: 64px; }
   .rr-steps-band .rp-section { padding-inline: 18px; }
   .rr-grants-live { padding: 14px; }
+}
+
+/* ── Mobile text floor ──────────────────────────────────────────────────────
+   Measured at 390x844: `.kind-footer h3` and `.kind-footer-links a` render at
+   11px on 109 of 113 pages, the app-store links at 10px on 104, and
+   `.foot-badge-sub` at 9px. That is the site's most-repeated text and the
+   hardest to read on a phone.
+
+   Raising the FLOOR here rather than editing the 129 `font-size: 10px|11px`
+   declarations in this file: those sizes are deliberate in dense desktop
+   chrome, and changing them globally would reflow tables and badge rows that
+   are fine at a desktop viewing distance. 12px is the floor going forward. */
+@media (max-width: 760px) {
+  .kind-footer h3,
+  .kind-footer-links a,
+  .kind-footer-apps a,
+  .foot-badge-sub { font-size: 12px; }
+}
+
+/* ── WCAG 2.2 §2.5.8 target size: the measured sub-24px links ────────────────
+   Each selector below was MEASURED at 390x844 (heights in comments), not
+   guessed. A blanket `a { min-height: 24px }` was rejected deliberately: most
+   links on this site are inline text inside sentences, where WCAG's inline
+   exception applies and a min-height would break the line box. These are the
+   block-level ones that are real, standalone tap targets.
+   `inline-flex` + `align-items: center` grows the hit area without moving the
+   text, so nothing shifts visually. */
+.cbx-feat-body > h3 > a,        /* /campaigns card titles — 18px */
+.pc-donor-name > a,             /* campaign donor wall — 21px */
+.pc-organizer > a,              /* campaign organizer link — 18px */
+.pc-ai > ul > li > a,           /* campaign AI list — 19px */
+.sc-info-link,                  /* /supported-countries — 15px */
+.rr-program-empty > a,          /* /matching empty state — 16.5px */
+.imp-area-body > h3 > a {       /* /impact area cards — 18px */
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
 }

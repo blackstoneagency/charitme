@@ -119,7 +119,7 @@ export default function CampaignAssistant({ campaignId }: Props) {
           // Explicit ink and surface: with neither set this inherited the
           // browser default and measured 1.22:1 in dark mode — text all but
           // invisible in the field a donor types their question into.
-          style={{ flex: '1 1 180px', minWidth: 0, padding: '10px 14px', border: '1px solid var(--b1, #e2e8f0)', borderRadius: 10, fontSize: 13.5, outline: 'none', color: 'var(--t1)', background: 'var(--s1)' }}
+          style={{ flex: '1 1 180px', minWidth: 0, padding: '10px 14px', border: '1px solid var(--b1, #e2e8f0)', borderRadius: 10, /* 16px minimum — iOS zooms on focus below it */ fontSize: 16, outline: 'none', color: 'var(--t1)', background: 'var(--s1)' }}
         />
         <button
           type="submit"

@@ -169,16 +169,6 @@ async function getFAQs(campaignId: string) {
   return (data ?? []) as { id: string; question: string; answer: string; sort_order: number }[];
 }
 
-async function getRewards(campaignId: string) {
-  const { data } = await boundedQuery(() => supabaseAdmin
-    .from('campaign_rewards')
-    .select('id, title, description, amount_cents, estimated_delivery, item_limit, claimed_count, sort_order')
-    .eq('campaign_id', campaignId)
-    .order('sort_order', { ascending: true })
-    .order('amount_cents', { ascending: true }));
-  return (data ?? []) as { id: string; title: string; description: string | null; amount_cents: number; estimated_delivery: string | null; item_limit: number | null; claimed_count: number; sort_order: number }[];
-}
-
 type PeerRow = {
   id: string;
   slug: string;
@@ -405,14 +395,13 @@ export default async function CampaignPage({ params, searchParams }: Props) {
     referrerId,
   };
 
-  const [donations, updates, updatesCount, faqs, donorMessages, teamFundraisers, rewards, currency, payoutDestination, trustInput, similarCampaigns] = await Promise.all([
+  const [donations, updates, updatesCount, faqs, donorMessages, teamFundraisers, currency, payoutDestination, trustInput, similarCampaigns] = await Promise.all([
     getRecentDonations(campaign.id),
     getUpdates(campaign.id),
     getUpdatesCount(campaign.id),
     getFAQs(campaign.id),
     getDonorMessages(campaign.id),
     getTeamFundraisers(campaign.id),
-    getRewards(campaign.id),
     getCampaignCurrency(campaign.id),
     resolvePayoutDestination(campaign),
     buildCampaignTrustInput(campaign),
@@ -663,10 +652,10 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             Organized by{' '}
             {creatorHandle ? (
               <Link href={`/creators/${creatorHandle}`} style={{ color: 'var(--ink)', fontWeight: 650, textDecoration: 'underline' }}>
-                {organizer.full_name ?? 'CharitMe Organizer'}
+                {organizer.full_name ?? 'Campaign organizer'}
               </Link>
             ) : (
-              <b style={{ color: 'var(--ink)', fontWeight: 650 }}>{organizer.full_name ?? 'CharitMe Organizer'}</b>
+              <b style={{ color: 'var(--ink)', fontWeight: 650 }}>{organizer.full_name ?? 'Campaign organizer'}</b>
             )}
             {/* ⚠️ This chip was UNCONDITIONAL — every campaign claimed "✓ Verified"
                 whether or not anything had been verified. It now renders only when
@@ -854,7 +843,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
                 {!organizer.avatar_url && (organizer.full_name?.[0] ?? 'C')}
               </div>
               <div className="pc-org-info">
-                <b>{organizer.full_name ?? 'CharitMe Organizer'}</b>
+                <b>{organizer.full_name ?? 'Campaign organizer'}</b>
                 <small>Organizer · {campaign.location ?? 'New York, USA'}</small>
               </div>
               {user ? (
@@ -943,7 +932,6 @@ export default async function CampaignPage({ params, searchParams }: Props) {
                 campaignId={campaign.id}
                 campaignTitle={campaign.title}
                 utm={utm}
-                rewards={rewards}
                 currency={currency}
                 smartPresets={asks.presets}
                 recommendedAmount={asks.recommended}

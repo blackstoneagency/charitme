@@ -27,7 +27,7 @@ function categoryGroup(value: StoryFilterValue): string[] {
 
 export function profileName(value: HomeCampaign['profiles']): string {
   const profile = Array.isArray(value) ? value[0] : value;
-  return profile?.full_name ?? 'CharitMe Organizer';
+  return profile?.full_name ?? 'Campaign organizer';
 }
 
 // Schema-resilient "live public campaign" filtering (shared — see the module

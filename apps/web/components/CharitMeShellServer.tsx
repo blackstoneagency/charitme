@@ -1,6 +1,7 @@
 import 'server-only';
 import { supabaseAdmin } from '../lib/supabase';
 import { loadShellSession } from '../lib/shell-session-server';
+import { loadPlatformNavOverrides, loadUserNavOverride } from '../lib/nav-customization-server';
 import {
   CharitMeShell as _CharitMeShell,
   type ShellProps,
@@ -62,14 +63,22 @@ async function fetchSidebarCampaigns(userId: string | null): Promise<{ campaigns
 export async function CharitMeShell(props: ShellProps) {
   const session = await loadShellSession();
   const showCampaignsNav = (props.mode ?? 'dashboard') !== 'admin' && !props.guestMode && !props.hideSidebar;
-  const { campaigns, hasMore } = showCampaignsNav
-    ? await fetchSidebarCampaigns(session.id)
-    : { campaigns: [], hasMore: false };
+  // In parallel: the sidebar campaign list and the two customization layers.
+  // Each loader degrades to "no customization" on any failure, so an unapplied
+  // migration or a database blip yields the persona default sidebar rather than
+  // an error inside the shell that wraps every signed-in page.
+  const [{ campaigns, hasMore }, platformNavOverrides, userNavOverride] = await Promise.all([
+    showCampaignsNav ? fetchSidebarCampaigns(session.id) : Promise.resolve({ campaigns: [], hasMore: false }),
+    loadPlatformNavOverrides(),
+    loadUserNavOverride(session.id),
+  ]);
   return (
     <_CharitMeShell
       {...props}
       sidebarCampaigns={campaigns}
       sidebarCampaignsHasMore={hasMore}
+      platformNavOverrides={platformNavOverrides}
+      userNavOverride={userNavOverride}
       userName={session.userName ?? session.userEmail}
       userEmail={session.userEmail}
       userRole={session.userRole}

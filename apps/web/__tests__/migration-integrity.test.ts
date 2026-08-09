@@ -25,6 +25,13 @@ function stripBlockComments(source: string): string {
   return source.replace(/\/\*[\s\S]*?\*\//g, '');
 }
 
+// SQL comments only. `--` starts a comment to end of line and `/* */` blocks
+// nest in Postgres, but a single non-nested pass is enough for these files and
+// keeps a documented `p.role` in prose from reading as a live predicate.
+function stripSqlComments(sql: string): string {
+  return sql.replace(/\/\*[\s\S]*?\*\//g, '').replace(/--[^\n]*/g, '');
+}
+
 function literalPostgrestTables(): Set<string> {
   const source = stripBlockComments(
     SOURCE_ROOTS.flatMap(sourceFiles)
@@ -62,6 +69,41 @@ describe('migration integrity', () => {
       expect(found.has(table), `scanner lost ${table}`).toBe(true);
     }
     expect(found.size).toBeGreaterThan(20);
+  });
+
+  // `profiles.role` does not exist. 20260823500000 adds one purely as a replay
+  // bridge for three older migrations, and 20260828000000 drops it again — so any
+  // migration ordered AFTER the repair that checks `p.role` raises 42703 on a
+  // database provisioned from scratch, while working fine against a production
+  // database that still carries a hand-added column. That asymmetry is why it
+  // reaches CI rather than a local run: it only fails on a replay from zero, and
+  // it failed exactly that way once (20260829010000_platform_impact_stats).
+  it('checks admin rights with is_admin(), not the removed profiles.role column', () => {
+    const REPAIR = '20260828000000';
+    const offenders = files
+      .filter((name) => name.slice(0, 14) > REPAIR)
+      .filter((name) => {
+        const sql = stripSqlComments(readFileSync(join(MIGRATIONS_ROOT, name), 'utf8'));
+        return /\b[a-z_]+\.role\s+in\s*\(/i.test(sql) || /\bprofiles\.role\b/i.test(sql);
+      });
+
+    expect(
+      offenders,
+      `Migrations after ${REPAIR} that read the dropped profiles.role: ${offenders.join(', ')}. `
+        + 'Use public.is_admin() instead.',
+    ).toEqual([]);
+  });
+
+  // Proves the scanner above can actually see a violation — the same predicate,
+  // taken from the migration that really did fail, must be detected.
+  it('would catch a role-column predicate if one were reintroduced', () => {
+    const planted = stripSqlComments(
+      "-- p.role in ('admin') in a comment must NOT count\n"
+        + "create policy x on public.y for all using (exists (select 1 from public.profiles p\n"
+        + "  where p.id = auth.uid() and p.role in ('admin', 'super_admin')));",
+    );
+    expect(/\b[a-z_]+\.role\s+in\s*\(/i.test(planted)).toBe(true);
+    expect(stripSqlComments("-- p.role in ('admin')\nselect 1;")).not.toMatch(/role\s+in\s*\(/i);
   });
 
   it('defines every table used by a literal PostgREST query', () => {

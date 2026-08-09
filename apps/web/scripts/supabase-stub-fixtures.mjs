@@ -135,6 +135,11 @@ export function buildFixtures() {
   const defaultUser = personaUsers.find((user) => user.id === USER_ID);
   if (!defaultUser) throw new Error('The default audit persona is missing.');
 
+  const CAMPAIGN_LOCATIONS = [
+    'Austin, TX', 'Portland, OR', 'Chicago, IL', 'Toronto, ON', 'London, UK',
+    'Manchester, UK', 'Sydney, NSW', 'Auckland, NZ', 'Dublin, IE', 'Berlin, DE',
+  ];
+
   const campaigns = Array.from({ length: 120 }, (_, i) => {
     const goal = (Math.floor(rand() * 90) + 10) * 100_000;
     // Deliberately spread across the progress bar: some barely started, some
@@ -152,6 +157,13 @@ export function buildFixtures() {
         'enough to wrap across several lines so that line-height, truncation and ' +
         'text contrast are all exercised the way real body copy would exercise them.',
       category: CATEGORIES[i % CATEGORIES.length],
+      // `campaigns.location` exists in the schema and /impact-map, /search and
+      // /campaigns all read or filter on it, but no fixture carried one — so the
+      // map's primary section rendered "No locations recorded yet", "Distinct
+      // places" rendered "—", and the location filter could never match. Spread
+      // across several places so grouping and faceting actually have something
+      // to group.
+      location: CAMPAIGN_LOCATIONS[i % CAMPAIGN_LOCATIONS.length],
       goal_amount: goal,
       raised_amount: Math.round(goal * ratio),
       backer_count: Math.floor(rand() * 300),
@@ -357,8 +369,28 @@ export function buildFixtures() {
       // and the manage page, check-in codes and all, was never measured by
       // anything. Owned by the organizer it renders for BOTH: the member by
       // ownership, the admin by the admin bypass on the line above the redirect.
+      // ⚠️ Every column OPPORTUNITY_PUBLIC_COLUMNS selects must be present, and
+      // the NOT NULL ones must carry a real value. `skills` is
+      // `text[] NOT NULL DEFAULT '{}'`, and VolunteerClient reads
+      // `opp.skills.length` directly — correctly, given that contract. Omitting
+      // it here made the row arrive as `undefined` and crashed /volunteer in both
+      // themes the moment the list stopped being empty.
+      skills: ['Packing', 'Logistics', 'Community outreach'],
+      country: 'US',
+      slots: 20,
+      slots_filled: 4,
+      time_commitment: '3 hours',
+      verified: true,
       created_by: ORGANIZER_ID,
-      status: 'active',
+      // ⚠️ 'open', not 'active'. `volunteer_opportunities.status` allows only
+      // open | upcoming | closed, and every LIST reader filters
+      // `.in('status', ['open','upcoming'])`. With 'active' that filter matched
+      // NOTHING, so /volunteer, /volunteer/[slug], the categories facet and the
+      // opportunity cards rendered a permanent zero-state and passed every audit
+      // having measured none of them. Same shape as the supported_countries bug.
+      // Orthogonal to the ownership fix above — that one is about the manage
+      // page, which is reached by id and never goes through this filter.
+      status: 'open',
       deleted_at: null,
       created_at: daysAgo(20),
       updated_at: daysAgo(1),
@@ -923,11 +955,53 @@ export function buildFixtures() {
         updated_at: daysAgo(1),
       },
     ],
+    // ⚠️ Load-bearing for the campaign page's donate surface. `payoutReady` is
+    // `!!resolvePayoutDestination(...)`, which needs a row here with
+    // verification_status 'verified' AND charges/payouts/details all true. With
+    // no rows at all, every campaign rendered the "payout setup in progress"
+    // branch instead of DonateButton + MobileDonateCTA — so the donate card and
+    // the sticky mobile CTA were absent from every sweep, and looked fine.
+    connected_accounts: [USER_ID, ORGANIZER_ID].filter(Boolean).map((userId, i) => ({
+      id: uuid('cacc', i + 1),
+      user_id: userId,
+      stripe_account_id: `acct_stub_${i + 1}`,
+      charges_enabled: true,
+      payouts_enabled: true,
+      details_submitted: true,
+      verification_status: 'verified',
+      created_at: daysAgo(300),
+      updated_at: daysAgo(2),
+    })),
     feature_flags: genericRows('flag', 10, (i) => ({
       key: `flag_${i + 1}`,
       enabled: i % 2 === 0,
       description: 'Fixture flag.',
     })),
+    // ⚠️ PUBLISHED here on purpose, unlike the SQL seed.
+    //
+    // supabase/seed/platform_impact.sql ships these rows with published = false,
+    // because publishing an impact or spend claim on the real site is a decision
+    // for whoever can source the numbers. The stub is a throwaway fixture
+    // database that exists so the audits can SEE the rendered markup — and the
+    // donut and headline tiles are unreachable while unpublished, so every sweep
+    // would measure a page missing the two sections most likely to have a
+    // contrast bug. That is exactly how a real 1.58:1 defect hid behind a route
+    // that 404s without data.
+    platform_impact_stats: [
+      { id: 'pis-0', value: '2.3M+',  label: 'People Helped',     icon: 0, sort_order: 0, published: true, source_note: 'fixture' },
+      { id: 'pis-1', value: '68K+',   label: 'Lives Transformed', icon: 1, sort_order: 1, published: true, source_note: 'fixture' },
+      { id: 'pis-2', value: '1,250+', label: 'Programs Funded',   icon: 2, sort_order: 2, published: true, source_note: 'fixture' },
+      { id: 'pis-3', value: '120+',   label: 'Countries Reached', icon: 3, sort_order: 3, published: true, source_note: 'fixture' },
+      { id: 'pis-4', value: '98%',    label: 'Funds to Programs', icon: 4, sort_order: 4, published: true, source_note: 'fixture' },
+    ],
+    // Sums to 100 — the reader REFUSES a set that does not, so a fixture that
+    // did not add up would silently render no donut and quietly un-audit it.
+    platform_fund_allocation: [
+      { id: 'pfa-0', label: 'Programs & Services', percent: 82, color_index: 0, sort_order: 0, published: true, source_note: 'fixture' },
+      { id: 'pfa-1', label: 'Fundraising',         percent: 10, color_index: 1, sort_order: 1, published: true, source_note: 'fixture' },
+      { id: 'pfa-2', label: 'Operations',          percent:  6, color_index: 2, sort_order: 2, published: true, source_note: 'fixture' },
+      { id: 'pfa-3', label: 'Other',               percent:  2, color_index: 3, sort_order: 3, published: true, source_note: 'fixture' },
+    ],
     // ⚠️ Every column here except `name` was invented. The real table has
     // `iso_code`/`can_fundraise`/`can_donate`/`currency_code`/`active`/
     // `sort_order`; this had `code`/`payouts_supported`/`currency`. The page

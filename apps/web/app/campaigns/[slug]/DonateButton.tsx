@@ -59,16 +59,6 @@ interface UtmProps {
   referrerId?: string;
 }
 
-export interface RewardTier {
-  id: string;
-  title: string;
-  description: string | null;
-  amount_cents: number;
-  estimated_delivery: string | null;
-  item_limit: number | null;
-  claimed_count: number;
-}
-
 /* ── Tip tier presentation: icon + label per support % (matches design) ── */
 const ICON_STROKE = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
 function TipIcon({ name }: { name: string }) {
@@ -104,7 +94,6 @@ export default function DonateButton({
   campaignId,
   campaignTitle,
   utm,
-  rewards,
   currency = DEFAULT_CURRENCY,
   smartPresets,
   recommendedAmount,
@@ -113,7 +102,6 @@ export default function DonateButton({
   campaignId: string;
   campaignTitle: string;
   utm?: UtmProps;
-  rewards?: RewardTier[];
   currency?: string;
   /** Campaign-tuned ask amounts from the donation optimizer (dollars, ascending). */
   smartPresets?: number[];
@@ -154,9 +142,7 @@ export default function DonateButton({
   const [preferredMethod, setPreferredMethod] = useState<PaymentMethod>('stripe');
   const [serviceOpen, setServiceOpen] = useState(false);
   const [methodOpen, setMethodOpen] = useState(false);
-  const [selectedRewardId, setSelectedRewardId] = useState<string | null>(null);
   const [presets, setPresets] = useState<number[]>(smartPresets && smartPresets.length === 6 ? smartPresets : DEFAULT_PRESETS);
-  const [aiNudge, setAiNudge] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -166,9 +152,6 @@ export default function DonateButton({
         if (cancelled || !data) return;
         if (Array.isArray(data.suggestedAmounts) && data.suggestedAmounts.length > 0) {
           setPresets(data.suggestedAmounts);
-        }
-        if (typeof data.message === 'string' && data.message.trim()) {
-          setAiNudge(data.message.trim());
         }
       })
       .catch(() => {});
@@ -255,7 +238,6 @@ export default function DonateButton({
           ...(utm?.utmContent   ? { utmContent:   utm.utmContent }   : {}),
           ...(utm?.shareEventId ? { shareEventId: utm.shareEventId } : {}),
           ...(utm?.referrerId   ? { referrerId:   utm.referrerId }   : {}),
-          ...(!isMonthly && selectedRewardId ? { rewardId: selectedRewardId } : {}),
           ...(peerFundraiserId ? { peerFundraiserId } : {}),
         }),
       });
@@ -299,7 +281,7 @@ export default function DonateButton({
           <button
             key={f}
             type="button"
-            onClick={() => { setFrequency(f); setError(''); if (f === 'monthly') setSelectedRewardId(null); }}
+            onClick={() => { setFrequency(f); setError(''); }}
             style={{
               padding: '11px 4px',
               border: 0,
@@ -324,97 +306,12 @@ export default function DonateButton({
         ))}
       </div>
 
-      {/* ── Monthly boost nudge ── */}
-      {isMonthly && (
-        <div style={{ background: `${GR}12`, borderRadius: 10, padding: '10px 14px', border: `1px solid ${GR}30` }}>
-          <div style={{ fontWeight: 700, fontSize: 13, color: GR }}>
-            💚 0% platform fee · 100% reaches the campaign
-          </div>
-          <div style={{ fontSize: 12, color: GR, marginTop: 3, opacity: .85 }}>
-            Cancel any time.
-          </div>
-        </div>
-      )}
-      {!isMonthly && (
-        <div style={{ background: 'rgba(16,185,129,.10)', borderRadius: 10, padding: '10px 14px', border: '1px solid #bbf7d0' }}>
-          <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--green-text)' }}>0% mandatory platform fee</div>
-          <div style={{ fontSize: 12, color: 'var(--green-text)', marginTop: 3 }}>
-            CharitMe is supported by optional donor tips. Every fee is shown before checkout.
-          </div>
-        </div>
-      )}
-
-      {/* ── Reward / perk tiers (Kickstarter-style, one-time only) ── */}
-      {!isMonthly && rewards && rewards.length > 0 && (
-        <div>
-          <p style={{ margin: '0 0 10px', fontSize: 12, fontWeight: 900, color: MU, textTransform: 'uppercase', letterSpacing: '.06em' }}>
-            🎁 Select a reward (optional)
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {rewards.map((r) => {
-              const soldOut = r.item_limit != null && r.claimed_count >= r.item_limit;
-              const active = selectedRewardId === r.id;
-              return (
-                <button
-                  key={r.id}
-                  type="button"
-                  disabled={soldOut}
-                  onClick={() => {
-                    setSelectedRewardId(r.id);
-                    setAmount(String(r.amount_cents / 100));
-                    setError('');
-                  }}
-                  style={{
-                    textAlign: 'left',
-                    border: `2px solid ${active ? V : BD}`,
-                    borderRadius: 12,
-                    background: soldOut ? 'var(--s2, #f5f5f5)' : active ? VL : 'var(--s1, #fff)',
-                    padding: '12px 14px',
-                    cursor: soldOut ? 'not-allowed' : 'pointer',
-                    opacity: soldOut ? 0.55 : 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 4,
-                    fontFamily: 'inherit',
-                    transition: 'border-color .15s, background .15s',
-                  }}
-                >
-                  <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
-                    <span style={{ fontWeight: 900, fontSize: 14, color: active ? V : INK }}>{moneyShort(r.amount_cents)} or more</span>
-                    {soldOut && <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--red-text)' }}>Sold out</span>}
-                  </div>
-                  <span style={{ fontWeight: 800, fontSize: 13, color: INK }}>{r.title}</span>
-                  {r.description && <span style={{ fontSize: 12, color: MU, lineHeight: 1.5 }}>{r.description}</span>}
-                  {(r.estimated_delivery || r.item_limit != null || r.claimed_count > 0) && (
-                    <div style={{ display: 'flex', minWidth: 0, gap: 12, fontSize: 11, color: MU, fontWeight: 700, marginTop: 2, flexWrap: 'wrap' }}>
-                      {r.estimated_delivery && <span>📦 Est. delivery: {r.estimated_delivery}</span>}
-                      {r.item_limit != null
-                        ? <span>{Math.max(0, r.item_limit - r.claimed_count)} of {r.item_limit} left</span>
-                        : r.claimed_count > 0 ? <span>{r.claimed_count} claimed</span> : null}
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-            {selectedRewardId && (
-              <button
-                type="button"
-                onClick={() => setSelectedRewardId(null)}
-                style={{ background: 'none', border: 'none', color: VT, fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: '2px 0', textAlign: 'left', fontFamily: 'inherit' }}
-              >
-                Remove reward — donate without a perk
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ── AI donor conversion nudge ── */}
-      {aiNudge && (
-        <div style={{ background: 'var(--s2, #f5f3ff)', border: `1px solid ${BD}`, borderRadius: 10, padding: '10px 14px', fontSize: 12.5, color: 'var(--t2, #4338ca)', lineHeight: 1.5 }}>
-          ✨ {aiNudge}
-        </div>
-      )}
+      {/* The fee reassurance, the reward-tier picker and the AI donor nudge all
+          used to sit here, between the frequency toggle and the preset amounts.
+          They were removed deliberately: the block is now toggle → amount, with
+          nothing in between. The reward tiers went with them, which is why this
+          component no longer takes a `rewards` prop and the campaign page no
+          longer queries `campaign_rewards` — nothing else consumed either. */}
 
       {/* ── Preset amounts — 3×2 grid, personalized via AI Donor Conversion Engine + donation optimizer ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12, marginTop: 4 }}>
@@ -427,10 +324,6 @@ export default function DonateButton({
               type="button"
               onClick={() => {
                 setAmount(String(preset));
-                if (selectedRewardId) {
-                  const reward = rewards?.find((r) => r.id === selectedRewardId);
-                  if (reward && preset * 100 < reward.amount_cents) setSelectedRewardId(null);
-                }
               }}
               style={{
                 position: 'relative',
@@ -506,11 +399,6 @@ export default function DonateButton({
               onChange={(e) => {
                 const val = e.target.value;
                 setAmount(val);
-                if (selectedRewardId) {
-                  const reward = rewards?.find((r) => r.id === selectedRewardId);
-                  const cents = Math.round((Number.parseFloat(val) || 0) * 100);
-                  if (reward && cents < reward.amount_cents) setSelectedRewardId(null);
-                }
               }}
               placeholder="0.00"
               style={{ flex: 1, minWidth: 0, border: 0, outline: 'none', background: 'transparent', color: INK, fontFamily: 'inherit', fontSize: 20, fontWeight: 800, padding: 0 }}
@@ -535,17 +423,13 @@ export default function DonateButton({
               <span style={{ fontSize: 34, fontWeight: 800, color: INK }}>{symbol}</span>
               <input
                 type="number"
+                inputMode="decimal"
                 min="1"
                 step="1"
                 value={amount}
                 onChange={(e) => {
                   const val = e.target.value;
                   setAmount(val);
-                  if (selectedRewardId) {
-                    const reward = rewards?.find((r) => r.id === selectedRewardId);
-                    const cents = Math.round((Number.parseFloat(val) || 0) * 100);
-                    if (reward && cents < reward.amount_cents) setSelectedRewardId(null);
-                  }
                 }}
                 placeholder="0"
                 aria-label="Donation amount"
@@ -790,7 +674,8 @@ export default function DonateButton({
           maxLength={500}
           style={{
             width: '100%', boxSizing: 'border-box', border: `1.5px solid ${BD}`, borderRadius: 12,
-            padding: '12px 14px', fontSize: 14, fontFamily: 'inherit', outline: 'none', resize: 'vertical',
+            // 16px minimum: below it iOS zooms the page on focus and never zooms back.
+            padding: '12px 14px', fontSize: 16, fontFamily: 'inherit', outline: 'none', resize: 'vertical',
             background: 'var(--s1, #fff)', color: INK,
           }}
         />
