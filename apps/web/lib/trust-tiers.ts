@@ -81,3 +81,6 @@ export const STORED_TRUST_TIERS = [
   ...PROMOTABLE_TRUST_TIERS,
   ...NON_PROMOTABLE_TRUST_TIERS,
 ] as const;
+
+/** The stored vocabulary as a type, so a writer cannot invent a fifth copy. */
+export type StoredTrustTier = (typeof STORED_TRUST_TIERS)[number];

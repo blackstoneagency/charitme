@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 import {
   ALL_CAUSES_COLUMN,
@@ -179,5 +181,22 @@ describe('getCause', () => {
   it('returns undefined for an unknown slug so the route can 404', () => {
     expect(getCause('not-a-cause')).toBeUndefined();
     expect(getCause('')).toBeUndefined();
+  });
+});
+
+// `blurb` IS the meta description of /causes/[slug] — passed straight to
+// `metadata.description`, `openGraph.description` and the Twitter card. The
+// LENGTH bounds live in `cause-blurb-seo.test.ts` (written concurrently in
+// another lane, and more thorough: it also catches whitespace padding and two
+// causes sharing one description). Only the anchor is kept here, because a
+// bounds test is worth nothing if the page stops publishing the field it
+// measures — that is the failure mode where a guard passes forever while the
+// thing it guards is gone.
+describe('the blurb bounds are measuring a field the page actually publishes', () => {
+  it('the cause page still uses cause.blurb as its description', () => {
+    const page = readFileSync(join(__dirname, '..', 'app', 'causes', '[slug]', 'page.tsx'), 'utf8');
+    expect(page, 'the cause page stopped using blurb as its description').toMatch(
+      /description:\s*cause\.blurb/,
+    );
   });
 });

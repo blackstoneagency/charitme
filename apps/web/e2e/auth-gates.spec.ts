@@ -17,18 +17,26 @@ import { expect, test } from '@playwright/test';
 
 test.setTimeout(120_000);
 
-/** Mirrors PROTECTED in middleware.ts, plus deeper paths under each prefix. */
+// ⚠️ These two lists used to be hand-copied here with the comment "Mirrors
+// PROTECTED in middleware.ts". They drifted, exactly as every other hand-kept
+// copy in this repo has: `/create` was deliberately opened to signed-out
+// visitors (the builder has a guest mode, and every write still calls
+// requireUser()), and this spec went on demanding a redirect — failing CI for
+// ~59 minutes per run over a change that was correct. IMPORTED now, so the
+// boundary and its test cannot disagree again.
+import { PROTECTED, PUBLIC_EXCEPTIONS } from '../middleware';
+
+/**
+ * Every protected prefix that is NOT itself a public exception, plus deeper
+ * paths under each — a prefix guard that only checked exact matches would pass
+ * the first list and leak the second.
+ */
 const PROTECTED_PATHS = [
-  '/dashboard',
+  ...PROTECTED.filter((p) => !PUBLIC_EXCEPTIONS.includes(p)),
   '/dashboard/campaigns',
-  '/profile',
-  '/admin',
   '/admin/marketing',
   '/admin/marketing/goals',
-] as const;
-
-/** Mirrors PUBLIC_EXCEPTIONS — public despite sitting under a protected prefix. */
-const PUBLIC_EXCEPTIONS = ['/create', '/create/choose-path'] as const;
+];
 
 test('protected routes redirect an unauthenticated visitor to login', async ({ page }) => {
   for (const path of PROTECTED_PATHS) {

@@ -1,5 +1,150 @@
 # CharitMe — Execution Tracker
 
+## 🎨 FOUR AA CONTRAST FAILURES ON /create — caught by CI, on both themes (Claude, 2026-08-09)
+
+The signed-in contrast audit runs with `--strict-gradients`, which scores the
+**least favourable stop** of a gradient rather than waving gradients through.
+Two buttons on the campaign builder failed it, identically in light and dark:
+
+| control | measured | needed |
+|---|---|---|
+| `.cr2-ai-banner-btn` "✨ Write with AI" — white on `#0ea5e9` | **2.77:1** | 4.5 |
+| `.cr2-strengthen-btn` "Enhance" — white on `#f59e0b` | **2.15:1** | 4.5 |
+
+Both are 13px/650, so the large-text 3:1 allowance does not apply.
+
+Fixed by darkening each gradient within its own hue rather than switching to
+dark text, which would have read as a different control:
+
+- `#6c35ff → #0ea5e9` becomes `#6c35ff → #0369a1` (5.85 / **5.93**)
+- `#f59e0b → #d97706` becomes `#b45309 → #92400e` (**5.02** / 7.09)
+
+⚠️ `#d97706` was **also** failing at 3.19:1 and was never reported — the audit
+prints only the worst stop per element, so a second failure hides behind the
+first. Fixing only the reported colour would have left the button failing.
+
+Verified with the same tool CI uses, `--strict-gradients --only /create`:
+170 text elements examined per theme, **0 failures**.
+
+### 🔴 THE 19 THE AUDIT NEVER REPORTED WERE REAL — a sweep cannot click
+
+A stylesheet scan found **19 more** stops below threshold that the audit had
+never mentioned. My first instinct was that the scan was over-reporting, since
+static analysis has produced four separate rounds of false findings in this
+file. **It was not.** Two checked by hand:
+
+| control | measured | why the audit never saw it |
+|---|---|---|
+| `.ado-donor-avatar` — white 20px/800 initials on `#efe8ff` | **1.19:1** | admin donation detail panel opens **on click** |
+| `.cr2-btn-preview` "Preview" | **1.67:1** | a **later wizard step** of /create |
+| `.cr2-btn-launch` "Launch" | **2.28:1** | same |
+
+The audit is not wrong — it measures rendered pixels and cannot press a button.
+**A sweep of initial renders cannot see a control that only exists after an
+interaction**, which is the same structural blind spot this file records for the
+mobile sweeps. Two independent tools, each blind where the other sees.
+
+All 19 stops fixed across 12 rules, each darkened within its own hue. Verified
+by the real audit afterwards: **226 pages × 2 themes, 32,908 / 32,857 text
+elements, 0 failures** — no regression on anything it *can* see.
+
+⚠️ **CORRECTION: 18 were live, not 19.** `.contact-form-card-v2 button` reads
+`var(--pink-btn, #ec39c3)`, and `--pink-btn` is defined at `:root` as `#ca36aa`
+— **4.55:1, which passes**. Only the unreachable FALLBACK was failing at 3.54:1.
+It was still darkened (a fallback that fails the moment the variable is removed
+is a latent defect) but it was never rendering, and calling it a live failure
+would have been wrong.
+
+🚧 **Known limit of the static guard: it cannot see through `var()`.** It reads
+hex literals inside the gradient, so `.auth-submit`
+(`--violet`, `--violet-2`, `--pink-btn`) is skipped entirely. Those three
+resolve to 5.83 / 4.69 / 4.55 today — all passing, checked by hand — but
+`--violet` is REDEFINED to `#a78bfa` (**2.72:1**) in a nested scope, so a
+white-on-gradient control rendered inside that scope would fail and neither tool
+would say so. The runtime audit covers the pages where these render today and
+reports nothing; that is the evidence, and it is page-specific rather than
+structural.
+
+### ⚠️ AND THE GUARD I WROTE FOR IT FAILED 17 TESTS THAT WERE ALL MY OWN BUG
+
+`__tests__/gradient-text-contrast.test.ts` first swept hex codes from
+`linear-gradient(` to the end of the rule — which picked up the `color: #fff`
+that follows it, so every rule "failed" at **1.00:1 against itself**. Seventeen
+confident, specific, entirely fictional defects. Fixed by balancing the
+gradient's own parentheses; 22 pass, mutation-tested.
+
+That is the **fifth** static-analysis false finding recorded here, and it is why
+the guard was added only once the count was genuinely zero: a test that ships
+with a backlog of 19 failures is a test someone switches off. It pins the class
+now instead of describing it.
+
+## 📱 MOBILE READINESS — the class of defect NO audit in this repo can see (Claude, 2026-08-09)
+
+Six runtime sweeps run headless Chromium at a fixed viewport. That viewport has
+**no URL bar, no home indicator, no notch and no dynamic chrome**, so an entire
+family of real mobile defects is invisible to every one of them — and the sweeps
+are green on exactly the pages affected. These were found by reading the
+stylesheet and the layout, not by measuring, and that is the point.
+
+### ✅ FIXED — `100vh` is the wrong unit on iOS Safari
+
+Nine declarations, now each carrying a `100dvh` companion (the `100vh` line
+stays above as the fallback).
+
+On iOS Safari `100vh` is the LARGE viewport — the height with the URL bar
+HIDDEN. A `min-height: 100vh` section is taller than the visible area whenever
+the bar shows, which is most of the time, so the page gains ~60–100px of dead
+scroll and a first tap often just collapses the bar instead of hitting the
+control under the thumb. Affects `.auth-page`, `.dash-home`, `.sc-page` and the
+shell containers — i.e. sign-in, the member dashboard and the supported-countries
+page.
+
+### ❌ WITHDRAWN — the "toast under the home indicator" finding was mine and it was WRONG
+
+I recorded `.kf-set-toast` (`position: fixed; bottom: 28px`) as overlapping the
+~34px iPhone home indicator, and proposed `viewportFit: 'cover'` +
+`env(safe-area-inset-*)` as the fix. **That fix would have CREATED the defect it
+was meant to repair**, and the reason is the setting I was pointing at.
+
+The `viewport-fit` default is `contain`: iOS lays the page out inside the largest
+rectangle that fits the display's **safe area**. Nothing renders under the home
+indicator, the notch or the rounded corners in the first place, so `bottom: 28px`
+is 28px above the safe area's own edge — clear of the indicator. `env()`
+returning 0 is not a missing feature here; it is the correct answer, because
+there is nothing to inset past.
+
+`viewport-fit=cover` opts *out* of that and hands every edge-anchored and
+full-bleed element to the author at once. So the previous entry had it exactly
+backwards: the app is safe **because** it does not set `cover`, and the
+"❌ 0 uses / ❌ absent" rows in the table below are a consistent pair, not two
+gaps.
+
+**Pinned, since the two settings are one change and were nearly split:**
+`__tests__/viewport-safe-area.test.ts` permits `cover` but fails if it lands
+without all four `env(safe-area-inset-*)` sides — and fails if the insets appear
+without `cover`, where they would silently do nothing. Mutation-tested: planting
+`viewportFit: 'cover'` alone turns it red.
+
+The `100vh` → `100dvh` fix above is **unaffected** and stands. `100vh` is the
+large viewport on iOS whatever `viewport-fit` says — that one is about the URL
+bar, not the safe area, which is why only one of the two survived checking.
+
+### Measured state of the rest
+
+| check | result |
+|---|---|
+| PWA manifest | ✅ `app/manifest.ts` (Next injects the link) |
+| `themeColor` | ✅ set |
+| `overscroll-behavior` | ✅ present |
+| `prefers-reduced-motion` | ✅ 10 blocks |
+| `env(safe-area-inset-*)` | ❌ 0 uses |
+| `viewport-fit=cover` | ❌ absent |
+| `-webkit-tap-highlight-color` | ❌ unset (default grey flash on iOS tap) |
+| `touch-action` | ❌ 0 declarations |
+| user-scalable / maximum-scale | ✅ not set — pinch-zoom is NOT blocked, which is correct |
+
+The last row is worth keeping: blocking zoom is a common and serious mobile
+accessibility failure, and this app has never done it.
 ## 📋 OPEN ITEMS — the whole list, as of 2026-08-09 (Claude)
 
 **Everything below this section is a record of work already DONE.** ~230 of the
@@ -146,6 +291,32 @@ and a negative result recorded is worth more than a fabricated finding.**
 | viewport meta | `app/layout.tsx` | `width=device-width, initialScale: 1`, and **no `maximumScale` / `userScalable:false`** — pinch-zoom is not blocked |
 | grid tracks (`minmax` vs bare `1fr`) | `mobile-grid-tracks.test.ts` | 10/10 pass |
 | tap targets < 24×24, 390px | new probe, 21 routes | 5 raw → **1 genuine** |
+| **SIGNED-IN** overflow + taps, 320/390px | `audit:mobile --auth --no-admin`, 227 routes | **0 findings, 356 page loads** — first clean run this sweep has ever produced, see below |
+
+### 🔴 THE SIGNED-IN MOBILE SWEEP HAD NEVER REPORTED CLEAN — for two harness reasons
+
+It exited 1 on every run, so it was never read. Neither cause was a defect in
+the product, and both hid real coverage:
+
+1. **`/login` and `/signup` counted as failures.** A signed-in visitor is
+   redirected to `/dashboard`, and the redirect check — which exists so a gated
+   route cannot be measured AS the login page — has no way to tell that apart
+   from a genuine misroute. `audit-contrast.mjs` already subtracted them via the
+   shared route file's `signedOutOnly`; `audit-mobile.mjs` had no equivalent.
+   Now it reads the same key, and `route-list-single-source.test.ts` asserts it
+   for **every** `--auth`-capable sweep rather than the two that exist today.
+2. **`/volunteer/manage/[id]` was measured by NOTHING.** The fixture opportunity
+   was owned by the super-admin persona, so under `--no-admin` (which runs as
+   the organizer, …0012) the page correctly redirected a non-owner to
+   `/volunteer` — and a page that renders **check-in codes** was never rendered
+   in any sweep at either width. Reassigned to the organizer persona it renders
+   for both: the member by ownership, the admin by the admin bypass one line
+   above the redirect. The id is looked up from `STUB_PERSONAS`, not written a
+   second time.
+
+Both are the same shape as the defect class this file keeps recording: **a
+permanently-red audit is an ignored audit**, and a route that always redirects
+looks identical to a route that is fine.
 
 ### ⚠️ 4 OF 5 TAP FINDINGS WERE ARTIFACTS — check the EFFECTIVE target, not the element
 
@@ -318,9 +489,34 @@ alone would have excluded **133 legitimate campaigns** and nearly emptied the pa
 **allow-list** so a tier invented later is not promotable by default. A test
 fails if the admin dropdown gains a value it does not classify.
 
-🔴 **STILL OPEN — the `TrustStatus` union itself is wrong.** Anything switching
-on that type is mis-handling the plurality of production data. Not widened into
-unasked; it needs its own pass.
+✅ **CLOSED 2026-08-09, and the claim above was half wrong — the correction is
+the finding.** "The `TrustStatus` union itself is wrong" assumed the two
+vocabularies should be one list. They should not.
+
+`TrustStatus` is the **COMPUTED** vocabulary: what `getTrustStatus(score)`
+returns. `'Trusted'` is absent from it because the scorer genuinely cannot
+produce `'Trusted'` — it is an admin's stored judgement. **Widening the union
+would have been the actual mistake**: the added member would be permanently
+unreachable while telling every `switch` over the type the opposite. And nothing
+switches on it against stored data — its only two consumers are the trust-score
+routes, which compute from a score.
+
+The real defect was the missing **barrier**, which is also what produced the
+`'Strong Trust'` bug recorded above (a computed-only tier used to filter the
+stored column, quietly matching nothing). Three changes:
+
+- **The fourth copy is gone.** `app/api/admin/campaigns/[id]/route.ts` hardcoded
+  its own five-value Set — and it is the ONLY writer of `campaigns.trust_status`,
+  which carries **no CHECK constraint in any migration**, so that Set *is* the
+  column's constraint. It now derives from `STORED_TRUST_TIERS`, the same list
+  `/success-stories` filters on. A tier can no longer become settable without
+  being classified promotable or not.
+- `StoredTrustTier` exported, and `TrustStatus` documented as computed-only with
+  the reason widening it is wrong.
+- Two guards in `__tests__/trust-tiers.test.ts`, both mutation-tested: a
+  re-hardcoded literal in the admin route fails, and writing a computed status
+  into `trust_status` fails. The old guard parsed the route's literal to prove it
+  agreed; agreement is structural now, so it asserts the derivation instead.
 
 ### `Flagged` was promotable until now
 
@@ -6182,6 +6378,20 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
 - [ ] Apply the new compatibility migrations to staging and run authenticated
   RLS/payment smoke tests. Production remains gated on that exact staging commit
   and the external release blockers above.
+
+> ⚙️ **Partially closed 2026-08-09 — the RLS half now runs on every commit.**
+> Five items in this file were near-identical: "apply migration X to staging and
+> run authenticated RLS/payment smoke tests". All five waited on a staging
+> project that does not exist (CHAR-0016), so **no authenticated RLS check ran
+> on any commit at all**. `scripts/rls-live-smoke.mjs` already had a
+> `BOOTSTRAP_LOCAL_RLS_PERSONAS` mode built for a loopback database, and CI's
+> `migration-replay` job already builds exactly that from zero — the two had
+> simply never been connected. They are now (`.github/workflows/ci.yml`).
+> **This does not tick these boxes.** An isolated replay is not a
+> production-shaped staging project, and the pre-production gate still belongs
+> to the release workflow. What changed is that the *verification* is real and
+> continuous instead of hypothetical and pending.
+
 - [x] Added a tag-only release workflow that verifies a zero-state migration
   replay, provisions staging, runs live RLS and three Playwright smoke suites,
   then gates production on the exact staging-verified commit and protected
@@ -13190,7 +13400,19 @@ AI platform, admin, lead-gen — **plus all eight domains above**.
   - Database: reads/writes `campaigns.featured`, reads `platform_settings.config.payment.featuredCampaignPriceCents`
   - API: `POST /api/campaigns/[id]/feature`, `GET /api/campaigns/rotator`, `stripe/webhook`
   - UI: `/dashboard/campaigns/[id]` (Feature button), `/admin/settings` (price), homepage `HeroRotator`
-  - Tests: `__tests__/featured.test.ts` 8/8 pass (price resolution + rotator selection). **Pending manual/staging:** Stripe checkout → webhook → featured flip; rotator featured-only cycling; 403 ownership; 400 double-purchase.
+  - Tests: `__tests__/featured.test.ts` 21 assertions (price resolution + rotator selection, both pure).
+    **Checks (5) and (6) no longer need staging and are now covered by executed-handler
+    tests** — `__tests__/feature-route-gating.test.ts`, 11 assertions running GET/POST
+    against a fake PostgREST and a fake Stripe. Both gates decide BEFORE any Stripe call,
+    so nothing about them ever required credentials; they were simply untested, and
+    `featured.test.ts` never runs the handler — nothing established that this route
+    checked ownership at all. Mutation-tested: deleting the 403 branch fails the
+    non-owner test, deleting the 400 branch fails the double-purchase test. Also pinned:
+    401/404/500, `metadata.type = 'feature_campaign'` (the webhook's only hook), the
+    per-request admin price rather than the $5 default, and `returnTo` staying on a known
+    set instead of accepting a URL (an open returnTo on a payment route is a redirect gadget).
+    **Still genuinely staging-gated:** (1) price persistence through the admin UI, (2) the
+    creator's checkout redirect, (3) the webhook flipping `featured`, (4) the live rotator.
   - Completion Evidence: (to fill in during QA — Stripe test session id, webhook event id, `campaigns.featured` DB record, homepage rotator screenshot)
   - Commit: 586fc3a (feature merged via #27)
 
