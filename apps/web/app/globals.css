@@ -4900,7 +4900,13 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 .cr2-ai-banner-text { flex: 1; min-width: 0; }
 .cr2-ai-banner-text strong { display: block; font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 3px; }
 .cr2-ai-banner-text p { margin: 0; font-size: 12px; color: rgba(255,255,255,.92); line-height: 1.4; }
-.cr2-ai-banner-btn { padding: 10px 22px; background: linear-gradient(135deg, #6c35ff, #0ea5e9); color: #fff; border: none; border-radius: 12px; font-size: 13px; font-weight: 650; cursor: pointer; white-space: nowrap; transition: opacity .15s, transform .15s; flex-shrink: 0; box-shadow: 0 4px 14px rgba(108,53,255,.4); }
+/* ⚠️ The blue end was #0ea5e9, which is 2.77:1 against the white label — a WCAG
+   AA failure in BOTH themes, caught by `audit:signed-in --strict-gradients`
+   (that flag scores the WORST gradient stop, which is the point: a label is
+   unreadable wherever the gradient is lightest, not on average). #0369a1 is
+   5.93:1 and keeps the purple→blue identity. The #6c35ff end was already fine
+   at 5.85:1 and is unchanged. */
+.cr2-ai-banner-btn { padding: 10px 22px; background: linear-gradient(135deg, #6c35ff, #0369a1); color: #fff; border: none; border-radius: 12px; font-size: 13px; font-weight: 650; cursor: pointer; white-space: nowrap; transition: opacity .15s, transform .15s; flex-shrink: 0; box-shadow: 0 4px 14px rgba(108,53,255,.4); }
 .cr2-ai-banner-btn:hover:not(:disabled) { opacity: .9; transform: translateY(-1px); }
 .cr2-ai-banner-btn:disabled { opacity: .5; cursor: not-allowed; }
 
@@ -5091,7 +5097,11 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 .cr2-strengthen-body { font-size: 13px; color: var(--orange-text); line-height: 1.5; margin-bottom: 12px; }
 .cr2-strengthen-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
 .cr2-strengthen-tag { padding: 4px 11px; border-radius: 999px; font-size: 11px; font-weight: 650; }
-.cr2-strengthen-btn { height: 38px; padding: 0 20px; background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; border: none; border-radius: 10px; font-size: 13px; font-weight: 650; cursor: pointer; transition: opacity .15s; }
+/* ⚠️ Was #f59e0b → #d97706: 2.15:1 and 3.19:1 against the white label, so BOTH
+   ends failed AA — amber is the classic trap, it looks solid and is one of the
+   lightest hues at full saturation. #b45309 → #92400e is 5.02:1 and 7.09:1 and
+   still reads as amber. */
+.cr2-strengthen-btn { height: 38px; padding: 0 20px; background: linear-gradient(135deg, #b45309, #92400e); color: #fff; border: none; border-radius: 10px; font-size: 13px; font-weight: 650; cursor: pointer; transition: opacity .15s; }
 .cr2-strengthen-btn:hover:not(:disabled) { opacity: .9; }
 .cr2-strengthen-btn:disabled { opacity: .5; cursor: not-allowed; }
 
