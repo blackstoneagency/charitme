@@ -12412,3 +12412,23 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   .kind-footer-apps a,
   .foot-badge-sub { font-size: 12px; }
 }
+
+/* ── WCAG 2.2 §2.5.8 target size: the measured sub-24px links ────────────────
+   Each selector below was MEASURED at 390x844 (heights in comments), not
+   guessed. A blanket `a { min-height: 24px }` was rejected deliberately: most
+   links on this site are inline text inside sentences, where WCAG's inline
+   exception applies and a min-height would break the line box. These are the
+   block-level ones that are real, standalone tap targets.
+   `inline-flex` + `align-items: center` grows the hit area without moving the
+   text, so nothing shifts visually. */
+.cbx-feat-body > h3 > a,        /* /campaigns card titles — 18px */
+.pc-donor-name > a,             /* campaign donor wall — 21px */
+.pc-organizer > a,              /* campaign organizer link — 18px */
+.pc-ai > ul > li > a,           /* campaign AI list — 19px */
+.sc-info-link,                  /* /supported-countries — 15px */
+.rr-program-empty > a,          /* /matching empty state — 16.5px */
+.imp-area-body > h3 > a {       /* /impact area cards — 18px */
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+}

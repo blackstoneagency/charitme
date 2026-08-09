@@ -136,13 +136,24 @@ what makes the outside-tap dismissal reachable at all.
       dashboard blocks ride along on every public page (`.admin-*` 152 selectors,
       `.users-*` 176, `.cr2-*` 457). Route-scoping this is the single biggest mobile win
       available, and it is a real refactor — not a change to slip in beside a merge.
-- [ ] **~25 of 113 pages carry 15–21px link/button targets** — `/campaigns` card
-      titles (18px), `/glossary` (16 links at 18px), `/impact` (6 at 18px),
-      `/for-donors`, `/matching`, `/supported-countries`. Worth one shared rule, not
-      20 patches. ⚠️ **NOT the `/login`+`/signup` auth switch** — the parallel audit
-      already fixed that one (`.auth-switch button` is now `min-height: 32px` with a
-      focus ring), and it is exempt from WCAG 2.5.8 anyway under the inline
-      exception since it sits inside a sentence. Do not re-fix it.
+- [ ] **Small tap targets: the measured block-level ones are FIXED; `/glossary` is not.**
+      `.cbx-feat-body > h3 > a`, `.pc-donor-name > a`, `.pc-organizer > a`,
+      `.pc-ai > ul > li > a`, `.sc-info-link`, `.rr-program-empty > a` and
+      `.imp-area-body > h3 > a` now use `inline-flex` + `min-height: 24px`, which grows
+      the hit area without moving the text. Measured after, at 390×844 across
+      /campaigns, a campaign page, /supported-countries, /matching and /impact:
+      **13 elements matched, 0 still under 24px.**
+      ⚠️ A blanket `a { min-height: 24px }` was rejected deliberately — most links here
+      are inline text inside sentences, where WCAG's inline exception applies and a
+      min-height would break the line box.
+      ⚠️ **Still open: `/glossary`** — `dt > a` at 18px and the "Read more" `dd > a` at
+      16px. Its markup is entirely inline-styled with no class names, so scoping needs a
+      class added to the page first; a bare `dt > a` rule would reach every definition
+      list on the site.
+      ⚠️ Two selectors in my first draft (`.glossary-term > a`, `.imp-story-body > h3 > a`)
+      matched **nothing** — I had guessed the class names. A selector that matches
+      nothing passes every check while fixing nothing; always assert the match COUNT,
+      not just the absence of failures.
 - [ ] **`MobileDonateCTA` is still UNVERIFIED at runtime.** It is gated on
       `isActive && payoutReady`, and no stub campaign has a connected Stripe account,
       so `.mobile-donate-bar` never mounts here — measured `null` on every attempt.
