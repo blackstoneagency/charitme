@@ -22624,3 +22624,52 @@ review → launch.
 - Nine other pages still link to the chooser (`/fast-payouts`, `/features`,
   `/ai-fundraising`, …). The homepage is the entry point that mattered; the
   rest are secondary CTAs on pages a visitor reached deliberately.
+
+## 🔴 MASTER'S CI SIGNAL IS STRUCTURALLY ABSENT — 7 of 8 runs cancelled, none completed (Claude, 2026-08-09)
+
+**Nobody would notice if master went red.** Measured, not inferred.
+
+`.github/workflows/ci.yml` sets `cancel-in-progress: true` on
+`group: ci-${{ github.workflow }}-${{ github.ref }}`, so each push to master
+cancels the previous master run. That is the right setting for a busy PR branch.
+On master, with several agent lanes merging, it means the run never survives:
+
+| | measured |
+|---|---|
+| master merges, 00:56 → 02:07 | **8** |
+| mean gap between merges | **10.2 min** |
+| largest gap | **17.7 min** |
+| time a full run needs | **~55–75 min** (e2e step alone: 51.9m, 70m+) |
+| completed master runs in that window | **0** — 7 cancelled, 1 still running |
+
+The largest gap observed is still **3–4× too short** for a run to finish. This is
+arithmetic, not bad luck: while merge cadence stays under ~an hour, master's
+post-merge CI cannot produce a verdict.
+
+### Why this matters more than it looks
+
+- **A red master would be invisible.** The runs that would have caught it are
+  cancelled before they get past the build step.
+- **"Verified green on master" is currently not deliverable by anyone** — agent
+  or human. Do not accept it as a claim without a run id whose conclusion is
+  `success`; there have been none today.
+- ⚠️ It is **not** the runner outage documented in CLAUDE.md. These runs have
+  real runners (`runner_id: 1000002201`, populated `runner_name`, full step
+  lists, minutes of real execution). `cancelled` ≠ `failure` ≠ dead runner, and
+  conflating them is how a real failure would get waved through.
+- **PR runs are unaffected** — a PR's `github.ref` differs, so it gets its own
+  concurrency group. The gap is specifically master's post-merge signal.
+
+### Owner-actionable, cheapest first
+
+1. **Drop `cancel-in-progress` for master only** (keep it for PR refs) — e.g.
+   `cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}`. Costs more
+   minutes; the repo is public, so minutes are unlimited.
+2. **Split the slow steps** (e2e + the two audits, ~50 of the ~60 min) into a
+   scheduled or nightly workflow, leaving a fast post-merge gate.
+3. **Batch merges.** Eight merges in 71 minutes from parallel lanes is the input
+   driving this; fewer, larger merges would let runs land.
+
+Verified locally in place of the missing signal (branch = master at `e9814c9c`):
+typecheck clean, lint clean, 3697 tests, `public-quality.spec.ts` passing on
+both the chromium and mobile projects.
