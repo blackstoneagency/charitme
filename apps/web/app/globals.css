@@ -8914,30 +8914,70 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
    of columns follows the width, so the same rule serves a 320px phone (3 across)
    and a wide desktop (12+) without a breakpoint for each. It is `minmax(96px,
    1fr)`, never a bare `1fr` — see `__tests__/mobile-grid-tracks.test.ts`. */
-.cbx-cats {
+/* ── Browse strip ──────────────────────────────────────────────────────────
+   MOBILE FIRST. Every rule here is the PHONE rule; the media queries below only
+   add room as it appears. Written the other way round, the phone inherits
+   desktop sizing and gets whatever is left after the shrinking — which is how
+   the tiles ended up at 38px, below a comfortable thumb.
+
+   The two groups are separate `.cbx-cats` grids inside one `.cbx-browse` panel,
+   so a cause tile and a category tile can never sit adjacent looking like
+   alternatives to each other. */
+.cbx-browse {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
-  gap: 6px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
   padding: 12px;
-  margin-bottom: 26px;
+  margin-bottom: 22px;
   border: 1px solid var(--b1);
   border-radius: var(--rl, 16px);
   background: var(--s1);
+  min-width: 0;
+}
+.cbx-browse-group { min-width: 0; }
+.cbx-browse-h {
+  margin: 0 0 8px;
+  padding: 0 4px;
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--t3);
+}
+.cbx-cats {
+  display: grid;
+  /* ⚠️ MEASURED, not reasoned. 74px was chosen as "4 across at 320px" and gave
+     THREE — 320 minus the page gutter, the panel padding and the gaps leaves
+     ~264px, which fits 3×74 and not 4. Three columns put the strip at 874px
+     tall on a phone: eight rows, nearly three screens before the first
+     campaign. 64px fits four and takes it to six rows.
+     A 44px icon inside a 64px tile still leaves 10px each side, so the target
+     floor below is untouched. */
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 2px;
+  min-width: 0;
 }
 .cbx-cat {
   min-width: 0;
   display: grid;
   justify-items: center;
   align-content: start;
-  gap: 8px;
-  padding: 10px 6px;
+  gap: 6px;
+  /* The whole tile is the target, not just the circle — a 44px icon plus this
+     padding and the label clears 44px in both axes at every width. */
+  padding: 8px 3px;
   border-radius: 12px;
   text-decoration: none;
-  transition: background .15s;
+  transition: background .15s, transform .15s;
 }
 .cbx-cat:hover { background: var(--s2); }
+@media (hover: hover) {
+  .cbx-cat:hover .cbx-cat-icon { transform: translateY(-1px); }
+}
 .cbx-cat:focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; }
 .cbx-cat-icon {
+  /* 44px is the WCAG 2.5.5 target size, and it is the FLOOR here rather than
+     something the phone scales below. */
   width: 44px;
   height: 44px;
   display: grid;
@@ -8945,6 +8985,7 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   border-radius: 50%;
   background: var(--tint-violet);
   color: var(--brand-text);
+  transition: transform .15s;
 }
 .cbx-cat-label {
   font-size: 12px;
@@ -8960,13 +9001,20 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 .cbx-cat.is-active .cbx-cat-icon { background: var(--grad-brand); color: #fff; }
 .cbx-cat.is-active .cbx-cat-label { color: var(--t1); }
 
-/* Below ~480px, 96px columns leave 3 across with wide gutters. Slightly smaller
-   tiles fit 4 and keep the labels readable rather than shrinking the type. */
-@media (max-width: 480px) {
-  .cbx-cats { grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 4px; padding: 10px; }
-  .cbx-cat { padding: 8px 4px; gap: 6px; }
-  .cbx-cat-icon { width: 38px; height: 38px; }
-  .cbx-cat-label { font-size: 11px; }
+/* Room appears — spend it on breathing space, never on shrinking the target.
+   ⚠️ The previous rule went the other way: a `max-width: 480px` block took the
+   icon DOWN to 38px, so the smallest screen got the smallest touch target. */
+@media (min-width: 560px) {
+  .cbx-browse { padding: 16px; gap: 18px; }
+  .cbx-cats { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 4px; }
+  .cbx-cat { padding: 10px 6px; }
+  .cbx-cat-icon { width: 46px; height: 46px; }
+}
+@media (min-width: 900px) {
+  .cbx-browse { padding: 18px; }
+  .cbx-cats { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; }
+  .cbx-cat-icon { width: 48px; height: 48px; }
+  .cbx-cat-label { font-size: 12.5px; }
 }
 
 /* Per-category tints. `data-cat` rather than a class per category so adding a

@@ -520,54 +520,66 @@ export default async function CampaignsPage({ searchParams }: Props) {
         />
       )}
 
-      {/* ── Category strip ────────────────────────────────────────────────────
-          The reference art labels these tiles "Emergency Aid", "Food & Hunger",
-          "Shelter & Housing", "Children & Youth", "Women & Families". NONE of
-          those exist in `CAMPAIGN_CATEGORIES`, which is the single source of
-          truth and what `campaigns.category` is actually filtered on. Tiles with
-          those labels would each land on an empty page.
-          So the STRIP is reproduced exactly — circular tinted icon over a label —
-          and filled with the real categories, every one of which filters. */}
-      <nav aria-label="Browse by category" className="cbx-cats">
-        <Link href={catHref(null)} className={`cbx-cat${!category ? ' is-active' : ''}`}>
-          <span className="cbx-cat-icon" data-cat="All" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" />
-              <rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" />
-            </svg>
-          </span>
-          <span className="cbx-cat-label">All Campaigns</span>
-        </Link>
-        {/* ── The reference's five named tiles ──────────────────────────────
-            "Emergency Aid", "Food & Hunger", "Shelter & Housing", "Children &
-            Youth" and "Women & Families" are not values of `campaigns.category`
-            — filtering on them directly would send every one to an empty page.
+      {/* ── Browse strip ──────────────────────────────────────────────────────
+          ⚠️ These tiles drive TWO DIFFERENT FILTERS, and rendering them as one
+          undifferentiated wall was a real defect rather than a cosmetic one.
+          "Emergency Aid" (`?cause=disaster-relief`) sat seven tiles from
+          "Emergency" (`?category=Emergency`), and "Women & Families" beside
+          "Family" — pairs that read as duplicates, look interchangeable, and go
+          somewhere different. A visitor who tried one and got a different result
+          set had no way to tell why.
 
-            They ARE causes, though, and `?cause=` is a real filter this page
-            already applies: a cause maps to several categories, which is
-            exactly what these broader labels mean. So the reference's wording
-            is reproduced verbatim and each tile lands on populated results. */}
-        {REFERENCE_TILES.map((t) => (
-          <Link
-            key={t.slug}
-            href={`/campaigns?cause=${t.slug}`}
-            className={`cbx-cat${cause?.slug === t.slug ? ' is-active' : ''}`}
-          >
-            <span className="cbx-cat-icon" data-cat={t.icon} aria-hidden="true">
-              <CategoryGlyph category={t.icon} />
-            </span>
-            <span className="cbx-cat-label">{t.label}</span>
-          </Link>
-        ))}
+          They are now two labelled groups, so the distinction is on the screen
+          instead of in this comment: a CAUSE is editorial and spans several
+          categories; a CATEGORY is the `campaigns.category` value itself.
 
-        {CAMPAIGN_CATEGORIES.map((c) => (
-          <Link key={c} href={catHref(c)} className={`cbx-cat${category === c ? ' is-active' : ''}`}>
-            <span className="cbx-cat-icon" data-cat={c} aria-hidden="true">
-              <CategoryGlyph category={c} />
-            </span>
-            <span className="cbx-cat-label">{c}</span>
-          </Link>
-        ))}
+          Both halves still come from real data. `CAMPAIGN_CATEGORIES` is the
+          single source of truth for the category column — the design's own
+          labels ("Food & Hunger", "Shelter & Housing") are not values of it, so
+          tiles carrying them would each land on an empty page. They map to
+          causes instead, which is a filter this page already applies. */}
+      <nav aria-label="Browse campaigns" className="cbx-browse">
+        <div className="cbx-browse-group">
+          <h2 className="cbx-browse-h" id="cbx-causes-h">Browse by cause</h2>
+          <div className="cbx-cats" role="list" aria-labelledby="cbx-causes-h">
+            <Link href={catHref(null)} role="listitem" className={`cbx-cat${!category && !cause ? ' is-active' : ''}`}>
+              <span className="cbx-cat-icon" data-cat="All" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" />
+                  <rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" />
+                </svg>
+              </span>
+              <span className="cbx-cat-label">All Campaigns</span>
+            </Link>
+            {REFERENCE_TILES.map((t) => (
+              <Link
+                key={t.slug}
+                role="listitem"
+                href={`/campaigns?cause=${t.slug}`}
+                className={`cbx-cat${cause?.slug === t.slug ? ' is-active' : ''}`}
+              >
+                <span className="cbx-cat-icon" data-cat={t.icon} aria-hidden="true">
+                  <CategoryGlyph category={t.icon} />
+                </span>
+                <span className="cbx-cat-label">{t.label}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div className="cbx-browse-group">
+          <h2 className="cbx-browse-h" id="cbx-cats-h">Browse by category</h2>
+          <div className="cbx-cats" role="list" aria-labelledby="cbx-cats-h">
+            {CAMPAIGN_CATEGORIES.map((c) => (
+              <Link key={c} role="listitem" href={catHref(c)} className={`cbx-cat${category === c ? ' is-active' : ''}`}>
+                <span className="cbx-cat-icon" data-cat={c} aria-hidden="true">
+                  <CategoryGlyph category={c} />
+                </span>
+                <span className="cbx-cat-label">{c}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
       </nav>
 
       <div className="cbx-layout">

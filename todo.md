@@ -1,5 +1,62 @@
 # CharitMe — Execution Tracker
 
+## 📐 /campaigns BROWSE STRIP — regrouped, and the height trade is measured (Claude, 2026-08-09)
+
+The strip drove **two different filters** in one undifferentiated wall.
+"Emergency Aid" is `?cause=disaster-relief`; "Emergency" is
+`?category=Emergency`, and they sat seven tiles apart. "Women & Families" sat
+near "Family". Pairs that read as duplicates, look interchangeable, and return
+different result sets — with nothing on screen explaining why.
+
+Now two labelled groups, **Browse by cause** and **Browse by category**, so the
+distinction is visible instead of living in a code comment. A cause is editorial
+and spans several categories; a category is the `campaigns.category` value
+itself. Every tile still resolves to a real filter — `CAMPAIGN_CATEGORIES` for
+the second group, existing cause slugs for the first.
+
+The CSS is now **mobile-first**. The old rules were desktop-first with a
+`@media (max-width: 480px)` block that took the icon DOWN to 38px, so the
+smallest screen got the smallest touch target. 44px (WCAG 2.5.5) is now the
+floor in the base rule, and the media queries only add room at 560px and 900px.
+`campaigns-browse.test.ts` pins that every declared icon width is >= 44 in the
+base rule *and* every media query.
+
+### ⚠️ The strip got TALLER on a phone, and that is the honest number
+
+Measured in Chromium, `.cbx-browse` height:
+
+| width | columns | strip height |
+|---|---|---|
+| 320px | 3 | **789px** |
+| 390px | 4 | 721px |
+| 768px | 7 | 471px |
+| 1280px | 11 | 401px |
+
+Master's version was ~700px at 320px. The two group headings and the larger
+icons each cost height, so this trades ~90px of vertical space for a real
+accessibility floor and for killing the duplicate-label confusion. Worth it, but
+it is a trade and not a pure win.
+
+Two attempts to buy the height back both FAILED and are recorded so they are not
+retried blind:
+
+- **74px columns "for 4 across at 320px" gave THREE**, and an 874px strip. The
+  arithmetic forgot the page gutter, the panel padding and the inter-tile gaps —
+  the usable width is ~250px, not 320px. 64px was tried next and still gives
+  three; four needs ~58px, at which "Shelter & Housing" wraps to four lines and
+  the rows grow back.
+- **11px labels** bought no column and cost readability. Reverted to 12px.
+
+The lever that would actually work is not rendering 24 tiles at once on a phone
+— a collapse or a per-group scroller. Both were left alone deliberately: PR #298
+moved this strip OFF horizontal scrolling six days ago because 21 of 24
+categories sat outside the viewport with no affordance, and re-litigating a
+measured fix on a preference is how that bug comes back.
+
+**Verified after the change**: 0 AA contrast failures (110 pages x 2 themes,
+15,866 elements), 0 axe violations (222 loads), 0 horizontal overflow, 0 tap
+targets under 24px, 3625 tests.
+
 ## 🏷️ A CARD SHOWED "✓ Verified" AND "Needs More Info" AT THE SAME TIME (Claude, 2026-08-08)
 
 Measured on production, `/supporter-space`, before the fix:
