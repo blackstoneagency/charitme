@@ -3,7 +3,9 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const WEB_ROOT = join(__dirname, '..');
-const SCHEMA = join(WEB_ROOT, '..', '..', 'supabase', 'schema.sql');
+const SUPABASE_ROOT = join(WEB_ROOT, '..', '..', 'supabase');
+const SCHEMA = join(SUPABASE_ROOT, 'schema.sql');
+const MIGRATIONS = join(SUPABASE_ROOT, 'migrations');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // `upsert(row, { onConflict: 'a,b' })` compiles to `ON CONFLICT (a, b)`, which
@@ -65,9 +67,15 @@ function collectSites(): Site[] {
   return sites;
 }
 
-/** Unique column-sets per table, from the generated mirror. Partial indexes excluded. */
+/** Unique column-sets per table, from the mirror and migration ledger. Partial indexes excluded. */
 function uniqueSets(): Map<string, string[][]> {
-  const sql = readFileSync(SCHEMA, 'utf8');
+  const sql = [
+    readFileSync(SCHEMA, 'utf8'),
+    ...readdirSync(MIGRATIONS)
+      .filter((file) => file.endsWith('.sql'))
+      .sort()
+      .map((file) => readFileSync(join(MIGRATIONS, file), 'utf8')),
+  ].join('\n');
   const byTable = new Map<string, string[][]>();
   const add = (table: string, cols: string) =>
     byTable.set(table, [
@@ -77,12 +85,24 @@ function uniqueSets(): Map<string, string[][]> {
 
   // CREATE UNIQUE INDEX x ON public.t USING btree (a, b);  — the trailing `;`
   // matters: an index with a WHERE clause is deliberately NOT matched.
-  const idx = /CREATE UNIQUE INDEX \w+ ON public\.(\w+) USING btree \(([^)]+)\);/g;
+  const idx = /CREATE UNIQUE INDEX(?: IF NOT EXISTS)? \w+ ON public\.(\w+)(?: USING \w+)? \(([^)]+)\)\s*;/gi;
   for (let m = idx.exec(sql); m; m = idx.exec(sql)) add(m[1], m[2]);
 
   // ALTER TABLE ONLY public.t ADD CONSTRAINT c UNIQUE (a, b);  /  PRIMARY KEY (a)
-  const con = /ALTER TABLE ONLY public\.(\w+)\s+ADD CONSTRAINT \w+ (?:UNIQUE|PRIMARY KEY) \(([^)]+)\)/g;
+  const con = /ALTER TABLE(?: ONLY)? public\.(\w+)\s+ADD CONSTRAINT \w+ (?:UNIQUE|PRIMARY KEY) \(([^)]+)\)/gi;
   for (let m = con.exec(sql); m; m = con.exec(sql)) add(m[1], m[2]);
+
+  const table = /CREATE TABLE(?: IF NOT EXISTS)? public\.(\w+)\s*\(([\s\S]*?)\);/gi;
+  for (let m = table.exec(sql); m; m = table.exec(sql)) {
+    const tableName = m[1];
+    const body = m[2];
+    const tableConstraint = /(?:CONSTRAINT \w+\s+)?(?:UNIQUE|PRIMARY KEY)\s*\(([^)]+)\)/gi;
+    for (let c = tableConstraint.exec(body); c; c = tableConstraint.exec(body)) add(tableName, c[1]);
+    for (const line of body.split('\n')) {
+      const inline = /^\s*"?(\w+)"?\s+[^,]*\b(?:UNIQUE|PRIMARY KEY)\b/i.exec(line);
+      if (inline && !['constraint', 'primary', 'unique'].includes(inline[1].toLowerCase())) add(tableName, inline[1]);
+    }
+  }
 
   return byTable;
 }

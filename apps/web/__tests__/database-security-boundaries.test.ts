@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 const migration = readFileSync(
   resolve(process.cwd(), '../../supabase/migrations/20260809000000_harden_privileged_database_boundaries.sql'),
   'utf8',
-).toLowerCase();
+).replace(/\r\n/g, '\n').toLowerCase();
 const profileSync = readFileSync(resolve(process.cwd(), 'lib/profile-sync.ts'), 'utf8').toLowerCase();
 const retiredApplySchema = readFileSync(
   resolve(process.cwd(), 'app/api/admin/apply-schema/route.ts'),

@@ -69,6 +69,28 @@ function MenuLinkIcon({ index }: { index: number }) {
 const SHELL_BYPASS = ['/dashboard', '/admin', '/profile', '/maintenance'];
 
 /**
+ * Bypassed at the EXACT path only, never for the subtree beneath it.
+ *
+ * `/donor` renders the same left-navigation shell the dashboard does, so it must
+ * not also get the marketing header — two stacked headers, with the account menu
+ * appearing twice.
+ *
+ * ⚠️ It cannot go in SHELL_BYPASS above, because that list matches
+ * `path.startsWith(p + '/')` and would take the chrome away from
+ * `/donor/receipt/[id]` and `/donor/tax-statement/[year]` as well. Those two are
+ * deliberately `pub-page simple-public` — printable financial documents, not app
+ * screens — and they are reached from emailed links, so their own header is the
+ * only navigation a visitor arriving cold actually has.
+ *
+ * ⚠️ Nor can it go in SHELL_WHEN_SIGNED_IN below, for the same prefix reason AND
+ * because that list is for PUBLIC pages that switch on session. `/donor` is
+ * gated — it redirects a signed-out visitor to /login — so there is no
+ * signed-out rendering of it to keep the marketing chrome for. The two lists
+ * answer different questions and both are needed.
+ */
+const SHELL_BYPASS_EXACT = ['/donor'];
+
+/**
  * Public routes that render the SIGNED-IN app shell (sidebar + top bar) once you
  * have a session, and the public marketing chrome when you do not.
  *
@@ -455,6 +477,7 @@ export function AppShell({
   const [unreadCount, setUnreadCount] = useState(0);
   const accountRef = useRef<HTMLDivElement | null>(null);
   const navRef = useRef<HTMLElement | null>(null);
+  const headerRef = useRef<HTMLElement | null>(null);
   const supabase = useMemo(() => createClient(), []);
   const shellWhenSignedIn = SHELL_WHEN_SIGNED_IN.some((p) => path === p || path.startsWith(p + '/'));
   // Prefer the SERVER's answer. `hasSession` comes from middleware via the root
@@ -469,6 +492,7 @@ export function AppShell({
   const signedInForShell = hasSession === undefined ? (!authResolved || !!user) : hasSession;
   const bypass =
     SHELL_BYPASS.some((p) => path === p || path.startsWith(p + '/'))
+    || SHELL_BYPASS_EXACT.includes(path)
     || isEmbedRoute(path)
     || (shellWhenSignedIn && signedInForShell);
 
@@ -526,6 +550,29 @@ export function AppShell({
     return () => document.removeEventListener('mousedown', onDown);
   }, [openMenu]);
 
+  // Close the MOBILE panel on Escape or an outside tap.
+  //
+  // Measured on a 390x844 touch context: with the panel open, Escape left it
+  // visible and a tap at the first non-interactive point outside it left it
+  // visible too. The two effects around this one cover `openMenu` (mega-menu)
+  // and `accountOpen`; `menuOpen` was in neither, so the only ways out were
+  // re-tapping the hamburger or navigating. `pointerdown` rather than
+  // `mousedown` so a touch dismisses it without waiting for the emulated mouse
+  // event, and the header itself defines "outside" — the panel renders inside it.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false); };
+    const onDown = (e: PointerEvent) => {
+      if (headerRef.current && !headerRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('pointerdown', onDown);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('pointerdown', onDown);
+    };
+  }, [menuOpen]);
+
   // Close the account dropdown on outside click
   useEffect(() => {
     if (!accountOpen) return;
@@ -545,7 +592,7 @@ export function AppShell({
           focused — it is the first thing Tab reaches. */}
       <a href="#main-content" className="skip-link">Skip to main content</a>
       <AnnouncementBanner initial={initialAnnouncements} appearance={bannerAppearance} />
-      <header className="kind-header">
+      <header className="kind-header" ref={headerRef}>
         <div className="container">
           <Logo />
           {/*
@@ -665,17 +712,61 @@ export function AppShell({
         </div>
         {menuOpen && (
           <div className="kind-mobile" id="mobile-navigation">
-            {/* Derived from MAIN_NAV, not a second hand-kept list. The headings
-                come through so the twenty cause links and twelve resource links
-                are not one undifferentiated column. */}
-            {flattenNav().map((link, i, all) => (
-              <React.Fragment key={`${link.heading ?? ''}-${link.href}-${link.label}`}>
-                {link.heading && link.heading !== all[i - 1]?.heading && (
-                  <span className="kind-mobile-heading">{link.headingKey ? t(link.headingKey) : link.heading}</span>
-                )}
-                <Link href={link.href} onClick={() => setMenuOpen(false)}>{link.labelKey ? t(link.labelKey) : link.label}</Link>
-              </React.Fragment>
-            ))}
+            {/* ⚠️ Search's ONLY mobile entry point. `.kind-header-search` lives
+                inside `.kind-auth`, which is hidden below 1100px — measured
+                `display: grid` but bounding width 0, with the input reporting
+                visible:false. So /search, which supports query, cause, location
+                and sort, had no way in from a phone at all. A real form rather
+                than a link, so the first tap is already the search. */}
+            <form action="/search" method="get" role="search" className="kind-mobile-search">
+              <label htmlFor="kind-mobile-search-input" className="kind-mobile-heading">Search</label>
+              <input
+                id="kind-mobile-search-input"
+                type="search"
+                name="q"
+                placeholder="Search campaigns"
+                autoComplete="off"
+              />
+              <button type="submit">Search</button>
+            </form>
+            {/* Derived from MAIN_NAV, not a second hand-kept list.
+                ⚠️ HEADED GROUPS ARE COLLAPSED. Measured at 390x844 with every link
+                expanded: `.kind-header`'s bottom edge sat at y=2303 on an 844px
+                viewport — the panel was nearly 3x the screen, so reaching the
+                account links meant scrolling three screens, and "tap outside to
+                close" was structurally unreachable because no on-screen point was
+                outside the panel. The twenty cause links and twelve resource links
+                are the bulk of that.
+                `<details>` rather than JS state: it is keyboard-operable and
+                screen-reader-announced for free, and it survives hydration. */}
+            {(() => {
+              const flat = flattenNav();
+              type Group = { heading: string | null; headingKey?: string; links: typeof flat };
+              const groups: Group[] = [];
+              for (const link of flat) {
+                const last = groups[groups.length - 1];
+                if (last && last.heading === (link.heading ?? null)) last.links.push(link);
+                else groups.push({ heading: link.heading ?? null, headingKey: link.headingKey, links: [link] });
+              }
+              return groups.map((group) => {
+                const links = group.links.map((link) => (
+                  <Link key={`${link.href}-${link.label}`} href={link.href} onClick={() => setMenuOpen(false)}>
+                    {link.labelKey ? t(link.labelKey) : link.label}
+                  </Link>
+                ));
+                // Ungrouped links stay top-level: they are the short, primary set.
+                if (!group.heading) return <React.Fragment key={`top-${group.links[0].href}`}>{links}</React.Fragment>;
+                return (
+                  <details key={`group-${group.heading}`} className="kind-mobile-group">
+                    <summary className="kind-mobile-heading">
+                      {group.headingKey ? t(group.headingKey) : group.heading}
+                      <span aria-hidden="true">{group.links.length}</span>
+                    </summary>
+                    {links}
+                  </details>
+                );
+              });
+            })()}
             {user ? (
               <>
                 {ACCOUNT_MENU.map(([label, href]) => (

@@ -248,6 +248,12 @@ export default async function TrustSafetyPage() {
 }
 
 function ResolveFlag({ id }: { id: string }) {
+  // ⚠️ Both colours come from the same token family. The hardcoded `#f0fff4`
+  // background that used to sit here paired a fixed LIGHT surface with a
+  // theme-following `var(--green-text)`, so in dark mode it painted #4ade80 on
+  // #f0fff4 — 1.69:1, the one failure left in the signed-in sweep. `--green-light`
+  // is the surface `--green-text` is toned against in both themes, and is what
+  // STATUS_TONE.resolved above already uses for the same green pairing.
   return (
     <form action={`/api/admin/trust/flags/${id}/resolve`} method="POST" style={{ display: 'inline' }}>
       <button type="submit" style={{ fontSize: 12, padding: '5px 12px', background: 'var(--green-light)', color: 'var(--green-text)', borderRadius: 8, fontWeight: 700, border: '1px solid var(--green-dark)', cursor: 'pointer' }}>
