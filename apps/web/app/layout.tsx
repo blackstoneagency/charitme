@@ -49,6 +49,13 @@ export const viewport: Viewport = {
   themeColor: '#6d35ff',
   width: 'device-width',
   initialScale: 1,
+  // ⚠️ Load-bearing for the safe-area insets below. Without `viewport-fit: cover`
+  // every `env(safe-area-inset-*)` resolves to 0, so the calc() offsets on the
+  // bottom-anchored controls would silently do nothing. Measured: nothing in this
+  // repo referenced safe-area at all, and every bottom-fixed control (back-to-top,
+  // the mobile donate bar, the dashboard bottom nav, the locale menu, the install
+  // prompt) sat under the ~34px iOS home indicator.
+  viewportFit: 'cover',
 };
 
 // Inline script runs before React hydration to apply the saved theme with no flash.

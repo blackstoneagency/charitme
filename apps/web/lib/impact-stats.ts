@@ -1,7 +1,6 @@
 import 'server-only';
 import { unstable_cache } from 'next/cache';
 import { supabaseAdmin } from './supabase';
-import { DEFAULTS } from './settings-defaults';
 
 /**
  * The "Our Impact" / "Our Impact in Numbers" strip, owner-controlled.
@@ -123,7 +122,9 @@ const fetchImpactTiles = unstable_cache(
       // three orders of magnitude apart — and "98% to programs" contradicts /fees,
       // which correctly says 0% platform fee.
       //
-      // DEFAULTS stays as the seed the admin UI offers, which is what it is for.
+      // DEFAULTS remains the seed the admin settings UI offers (app/admin/system,
+      // /api/admin/settings, lib/about-page) — which is what it is for. It is just
+      // no longer a silent fallback for a page that shows numbers to donors.
       return parseImpactTiles(about.impactStats ?? []);
     } catch {
       // supabaseAdmin throws on property access when its env is unset.

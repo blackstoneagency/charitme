@@ -2223,6 +2223,7 @@ input, select, textarea, button { max-width: 100%; }
 
 /* Breadcrumb */
 .pc-breadcrumb { color: var(--muted); font-size: 13px; display: flex; align-items: center; flex-wrap: wrap; gap: 2px; }
+.pc-breadcrumb a, .dn-crumb a { display: inline-flex; align-items: center; min-height: 24px; }
 .pc-breadcrumb a { color: var(--muted); text-decoration: none; transition: color .15s; }
 .pc-breadcrumb a:hover { color: var(--green-text); text-decoration: underline; }
 .pc-breadcrumb span[aria-current="page"] { color: var(--ink); font-weight: 600; }
@@ -2297,7 +2298,9 @@ input, select, textarea, button { max-width: 100%; }
 /* Collapsible "how it works" / embed helper — shared by the share/embed section */
 .pc-match-note { margin: 10px 0 0; font-size: 12px; line-height: 1.5; color: var(--muted); }
 .pc-match-howto { margin-top: 12px; font-size: 12px; color: var(--muted); }
-.pc-match-howto summary { cursor: pointer; font-weight: 800; color: var(--brand-text); }
+/* Measured 290.2x18 — a disclosure control below the 24px target minimum,
+   on 4 pages including the campaign page and the share page. */
+.pc-match-howto summary { cursor: pointer; font-weight: 800; color: var(--brand-text); display: flex; align-items: center; min-height: 24px; }
 .pc-match-howto ol { margin: 8px 0 0; padding-left: 18px; line-height: 1.6; }
 
 /* ── Campaign CTA row: Donate (primary) + Share (secondary) ───────────────── */
@@ -7662,7 +7665,8 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 .back-to-top {
   position: fixed;
   right: 24px;
-  bottom: 24px;
+  /* + the iOS home-indicator inset; resolves to plain 24px everywhere else. */
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
   z-index: 900;
   display: inline-flex;
   align-items: center;
@@ -7692,7 +7696,7 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 /* Clear of the thumb on small screens, and clear of the install prompt, which
    spans nearly the full width there. */
 @media (max-width: 640px) {
-  .back-to-top { right: 16px; bottom: 16px; width: 44px; height: 44px; }
+  .back-to-top { right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); width: 44px; height: 44px; }
 }
 
 /* The hover lift is decoration, not feedback that carries meaning. */
@@ -9749,6 +9753,10 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 .dn-money input {
   flex: 1; min-width: 0; border: 0; background: none; color: var(--t1);
   font: inherit; font-size: 16px; font-weight: 700;
+  /* The 44px target belongs to .dn-money, the wrapper. Without stretching, the
+     input was centred inside it and measured 22.5px tall — half the hit area a
+     donor is actually aiming at. */
+  align-self: stretch; height: 100%;
 }
 .dn-money input:focus { outline: none; }
 .dn-select {

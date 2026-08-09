@@ -1,5 +1,142 @@
 # CharitMe — Execution Tracker
 
+## 📱 END-TO-END MOBILE APP READINESS AUDIT — 4 parallel agents, 13 fixed, 8 open (Claude, 2026-08-09)
+
+This is a PWA, not a native shell (`app/manifest.ts` + `public/sw.js` +
+`components/PWARegister.tsx`; no Capacitor/Expo in any package.json). So "mobile app
+readiness" means PWA installability, offline, and mobile-web ergonomics.
+
+Four read-only agents swept disjoint scopes against ONE populated build (Next + the
+Supabase stub) so nothing was audited twice: **PWA install/offline**, **layout & touch
+targets**, **forms/interaction/nav**, **data wiring & payload**. Every number below was
+measured in a real Chromium at a real phone viewport, not inferred.
+
+### 🔴 THE SERIOUS ONE: the service worker was caching whole pages marked `no-store`
+
+`public/sw.js` v2 cached every same-origin GET that was not `mode: 'navigate'`. Next's
+client-side navigations and prefetches are `mode: 'cors'` — so the rule swallowed
+**RSC page payloads**. Measured after ONE browse of `/`: **102 cache entries, 80 of them
+`?_rsc=`**, the largest **45,008 B** of `/campaigns`.
+
+Every page on this site answers `Cache-Control: private, no-cache, no-store` and its
+`Vary` list is `rsc, next-router-state-tree, next-router-prefetch,
+next-router-segment-prefetch, Accept-Encoding` — **`Cookie` is not in it**. The Cache API
+ignores `Cache-Control`, so those payloads were stored anyway, and two different sessions
+on one device produce the **same cache key**. Whoever loaded a route first won forever.
+
+The serving half was **proven, not theorised**: a hand-edited cached `/campaigns` body
+rendered in the live DOM after a browser restart, with no revalidation.
+
+⚠️ **The precache leaked too** — this one the audit had not reached. `/offline` renders
+the global header, which for a signed-in user contains their name, and `cache.addAll`
+fetches **with cookies**. It now uses `credentials: 'omit'`, which pins the signed-out shell.
+
+**Fixed:** caching is allowlisted. Cache-first only for content-hashed `/_next/static`;
+stale-while-revalidate for unhashed `/public` assets; nothing marked `no-store`/`private`
+or typed `text/x-component` is stored at all. `CACHE_VERSION` → **v3**, which is what
+evicts already-poisoned installs on activate. The stale-while-revalidate branch also
+retires the hand-bumped version that the re-encoded-logo incident needed.
+
+⚠️ **Deliberate non-fix:** an offline cold launch shows `/offline`, not a cached app
+shell. The shell is `private, no-store` and carries the signed-in header, so caching it
+to make offline nicer would reintroduce exactly the leak above. A worse offline
+experience is the correct trade.
+
+### ✅ Also fixed in this pass
+
+| what | evidence |
+|---|---|
+| iOS zoom-on-focus on **every auth field** | measured 13px on `/login` + `/signup` email/password/name; iOS zooms below 16px and never zooms back, leaving the form off-screen mid-task. Auth, donate, payout, dedication and share fields raised to 16px |
+| `/about-us` + `/success-stories` rendered **fabricated impact claims** | `lib/impact-stats.ts:115` fell back to hardcoded literals (`2.3M+ People Helped`, `98% Funds to Programs`) whenever the owner configured nothing — against a measured reality of 352 campaigns / $96,850 raised, and contradicting `/fees`. Its own docstring promised `[]`; it now returns `[]` |
+| `/impact-map` counted **every** `supported_countries` row under a "can pay out to" label | reported 20 while `/supported-countries`, filtering correctly, reported 15. Now `.eq('active',true).eq('can_fundraise',true)` |
+| homepage called a donation count **"Lives impacted"** | `metrics.donations` is a payment count, and rendered the same 268 as the "Gifts given" tile. Now "Donations" |
+| a missing organizer profile was attributed to **"CharitMe Organizer"** | 8 sites. The platform telling a donor it runs a stranger's fundraiser. Now "Campaign organizer" |
+| the mobile header scrolled away with **no other nav affordance** | at scroll 2500 on a 10,571px page the hamburger sat at `y:-2224`. Now `position: sticky` — **scoped to ≤1100px**, because desktop has no such defect and pinning it sitewide would change what every contrast/focus sweep measures on 200+ pages |
+| campaign tab strip could **chain a swipe to browser-back** | `scrollWidth 457` vs `clientWidth 356`; sibling strips already contain it. Added `overscroll-behavior-inline: contain` |
+| iOS install metas + manifest identity | added the legacy `apple-mobile-web-app-capable` (measured absent), `id: '/'`, and relaxed `orientation` off `portrait-primary` which locked out landscape everywhere including tablets |
+
+### 🧪 TWO ROUTES WERE PASSING EVERY AUDIT WHILE MEASURING NOTHING
+
+Both are **fixture** bugs, and both are the exact shape of the `supported_countries`
+failure already recorded in this file:
+
+- `volunteer_opportunities` fixture used `status: 'active'`. The column allows only
+  `open | upcoming | closed`, and every reader filters `.in('status',['open','upcoming'])`
+  — so `/volunteer`, `/volunteer/[slug]`, the categories facet and the opportunity cards
+  rendered a permanent zero-state. **The app was correct; the fixture could not match.**
+- No fixture campaign carried a `location`, so `/impact-map`'s primary section rendered
+  "No locations recorded yet" and the location filters on `/search` and `/campaigns` could
+  never match.
+
+Fixed and verified on a rebuild: `/volunteer` renders its opportunity, `/impact-map`
+renders real places. ⚠️ **Restart the stub after editing fixtures** — it loads them once
+at startup, which cost a full debugging cycle here.
+
+### ⏳ OPEN — real, measured, NOT yet fixed
+
+- [ ] **Auth fields have no `autocomplete`** — `components/AuthPanel.tsx:185,190,194` all
+      measure `autocomplete: null`, so no password manager or iOS AutoFill offers anything
+      on login or signup. The correct pattern already exists one directory away in
+      `app/create/page.tsx:2524-2527`. Add `name` / `email` /
+      `current-password`|`new-password`.
+- [ ] **The donate card's primary amount input has no `inputMode`** —
+      `app/campaigns/[slug]/DonateButton.tsx:426` is `type=number, inputmode=null`. The
+      *secondary* custom-amount field in the same component (line ~394) has
+      `inputMode="decimal"` — so the field a donor actually lands on is the one missing it.
+- [ ] **Bank routing/account fields get an alphabetic keyboard** —
+      `app/create/page.tsx:1956,1958` are `type="text"` with no `inputMode`, though both
+      `onChange` handlers strip non-digits, proving the data is numeric.
+- [ ] **Mobile menu does not close on Escape or on outside tap** — measured twice on `/`:
+      panel still visible after both. `components/AppShell.tsx:459-475` handles `openMenu`
+      and `accountOpen` but not `menuOpen`. (It DOES close on re-tap and on route change.)
+- [ ] **Search is unreachable on mobile** — `.kind-header-search` computes to width 0 below
+      1100px and the mobile panel's 45 links contain no `/search`, so a documented feature
+      with query/cause/location/sort has no phone entry point.
+- [ ] **~7 more sub-16px fields still zoom iOS** on `/donate`, `/donate/[slug]`, the donor
+      message textarea and the campaign assistant. The money-path ones are a conversion
+      defect, not a nit.
+- [ ] **One 518 KB stylesheet on every route, 94–98% unused.** `app/globals.css` is 676 KB
+      / 12,199 lines → 518,233 B raw, 89 KB gz, render-blocking on every page. Chrome
+      coverage: **2.1% used on `/search`, 2.8% on `/login`** (14 KB of 506 KB). Admin and
+      dashboard blocks ride along on every public page (`.admin-*` 152 selectors,
+      `.users-*` 176, `.cr2-*` 457). Route-scoping this is the single biggest mobile win
+      available, and it is a real refactor — not a change to slip in beside a merge.
+- [ ] **Campaign covers over-fetch up to 18×** — a 1200 px source fills a 92 px box on
+      `/campaigns` list rows and a 68 px box in the carousel thumb strip; 88 of 155 `<img>`
+      across 12 routes carry no `srcset`. `next.config.js` already whitelists the remote
+      hosts, so `next/image` would fix it with no config change. Start with the two
+      thumbnail cases — those are the 13–18× ones.
+
+### ✅ Measured CLEAN — do not redo
+
+- **Every manifest icon** returns 200 at its declared size, verified from real PNG IHDR
+  bytes rather than filenames (192/512/512-maskable/180 apple-touch). The maskable icon's
+  safe zone is correct: logo max radius 185.5 px vs the 204.8 px safe circle, **0 px
+  outside**. All installability criteria pass.
+- **No layout shift from images**: of 155 `<img>` across 12 routes only 2 lack a reserved
+  box, and both are 0×0 hidden elements. `scrollWidth === 390` on all 12 — no horizontal
+  overflow anywhere.
+- **Query columns are sound**: **4,463 column references** across `app/**` and `lib/**`
+  validated against `schema.sql` + every migration — **zero unknown columns or tables**,
+  and all 47 literal `.eq(col,'value')` filters satisfy their CHECK constraints. The
+  `supported_countries` class of bug does **not** recur in application code.
+- **Error handling is unusually good**: `/campaigns`, `/search`, `/donor-wall`,
+  `/impact-map`, `/volunteer` and `/impact` all distinguish "read failed" from "genuinely
+  empty". All **194 sitemap routes returned 200**.
+- **No hover-only controls** anywhere (scanned every `:hover` rule on 6 routes), **no
+  scroll lock or scroll trap**, mobile menu links are hit-testable by touch, and
+  `/login/mfa` is exemplary (`inputMode="numeric"`, `autocomplete="one-time-code"`, 24px).
+- `/api/*` is genuinely excluded from the SW and no cross-origin entry is cached.
+
+### 🧰 Two stub limitations that shape any re-run
+
+The stub **ignores `select=`** (returns all columns), so raw HTML sizes are an upper
+bound; and it **does not resolve embedded joins**, so lists whose mapper drops rows with a
+missing join look empty here. `/donor-wall` and `/community` are empty for that reason —
+**not app bugs**. Check both before filing anything from a stub measurement.
+
+---
+
 ## ✅ SIGNED-IN RELEASE AUDIT CLEAN ON THE COMBINED CAUSE-PAGE BRANCH (Codex, 2026-08-08)
 
 The authenticated release sweep has completed against the branch that includes
