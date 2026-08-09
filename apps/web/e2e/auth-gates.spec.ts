@@ -19,7 +19,6 @@ test.setTimeout(120_000);
 
 /** Mirrors PROTECTED in middleware.ts, plus deeper paths under each prefix. */
 const PROTECTED_PATHS = [
-  '/create',
   '/dashboard',
   '/dashboard/campaigns',
   '/profile',
@@ -29,7 +28,7 @@ const PROTECTED_PATHS = [
 ] as const;
 
 /** Mirrors PUBLIC_EXCEPTIONS — public despite sitting under a protected prefix. */
-const PUBLIC_EXCEPTIONS = ['/create/choose-path'] as const;
+const PUBLIC_EXCEPTIONS = ['/create', '/create/choose-path'] as const;
 
 test('protected routes redirect an unauthenticated visitor to login', async ({ page }) => {
   for (const path of PROTECTED_PATHS) {

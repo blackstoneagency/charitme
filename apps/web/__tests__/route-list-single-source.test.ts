@@ -142,6 +142,7 @@ describe('public route list has a single source of truth', () => {
     expect(overlap, `Routes claimed as both public and auth-gated: ${overlap.join(', ')}`).toEqual([]);
     expect(data.authGated.routes).toContain('/achievements');
     expect(data.authGated.routes).toContain('/privacy-center');
+    expect(data.public).toContain('/create');
     expect(data.public).toContain('/create/choose-path');
     expect(data.public).toContain('/beneficiary/accept');
 
@@ -189,6 +190,7 @@ describe('public route list has a single source of truth', () => {
       '/thank-you/receipt?session_id=cs_test_stub2',
       '/thank-you/share?session_id=cs_test_stub2',
       '/thank-you/done?session_id=cs_test_stub2',
+      '/create',
       '/create/choose-path',
       '/features/fundraising-core',
       '/forgot-password',
