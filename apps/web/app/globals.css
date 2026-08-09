@@ -398,6 +398,27 @@ input, select, textarea, button { max-width: 100%; }
    undifferentiated links. */
 /* The mobile-panel search form. 16px on the input so iOS does not zoom the page
    on focus; 44px controls so both are comfortable touch targets. */
+/* Collapsed nav groups in the mobile panel. The summary is a real touch target
+   (44px) and carries a count so the group's size is visible before opening. */
+.kind-mobile-group { border-top: 1px solid var(--b1); }
+/* Explicit rather than relying on the UA's closed-<details> behaviour: the panel
+   is a grid container and several author rules target `.kind-mobile a`, so the
+   default hiding is not something to take on trust here. */
+.kind-mobile-group:not([open]) > a { display: none; }
+.kind-mobile-group > summary {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  min-height: 44px; cursor: pointer; list-style: none;
+}
+.kind-mobile-group > summary::-webkit-details-marker { display: none; }
+.kind-mobile-group > summary::after {
+  content: '\203A'; margin-left: auto; font-size: 18px; line-height: 1;
+  transform: rotate(90deg); transition: transform .15s;
+}
+.kind-mobile-group[open] > summary::after { transform: rotate(-90deg); }
+.kind-mobile-group > summary > span {
+  min-width: 22px; padding: 1px 7px; border-radius: 999px;
+  background: var(--s3); color: var(--t2); font-size: 12px; font-weight: 700;
+}
 .kind-mobile-search { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; margin-bottom: 6px; }
 .kind-mobile-search .kind-mobile-heading { grid-column: 1 / -1; margin-bottom: 0; }
 .kind-mobile-search input { min-width: 0; min-height: 44px; padding: 0 12px; border: 1px solid var(--b2); border-radius: 10px; background: var(--s1); color: var(--t1); font-size: 16px; }
@@ -3230,6 +3251,11 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
      asks not to be shown. The gradient and glow stay — they are not motion. */
   .mirror-btn-create:hover::after,
   .mirror-btn-create:focus-visible::after { animation: none; }
+  /* The mobile nav group's disclosure chevron. Folded into this block rather
+     than given its own: home-donate-cta.test.ts asserts on the FIRST
+     prefers-reduced-motion block in this file, so a second one above it makes
+     that guard read the wrong rules. */
+  .kind-mobile-group > summary::after { transition: none; }
 }
 .task-row em { color: #7a8299; font-size: 12px; font-style: normal; font-weight: 500; }
 .task-row em.today { color: #ff3158; font-weight: 600; }

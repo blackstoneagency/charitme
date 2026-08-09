@@ -102,16 +102,24 @@ panel to use it. Recorded as unverified rather than claimed.
 
 ### ⏳ OPEN — real, measured, NOT yet fixed
 
-- [ ] **The mobile panel is 2303px tall on an 844px viewport** — 45 links plus the new
-      search form. Found while verifying the dismissal fix: with the panel open,
-      `.kind-header`'s bottom edge is at **y=2303**, so there is **no point on screen
-      outside it**. That makes "tap outside to close" structurally unreachable, and it
-      means reaching the account links means scrolling nearly three screens. Worth
-      collapsing the cause/resource groups behind accordions.
-      ⚠️ This also invalidated my first verification run: the outside-tap probe reported
-      the panel closing, but the tap had landed on a nav LINK and navigated. A dismissal
-      test must assert its tap point is genuinely outside — same trap as the header-nav
-      e2e spec.
+- [ ] **Mobile panel: headed groups are now COLLAPSED, but the result is only
+      PARTLY verified — do not close this without re-measuring.** The twenty cause
+      links and twelve resource links now sit in `<details>` disclosures
+      (`components/AppShell.tsx`), with 44px summaries and an explicit
+      `.kind-mobile-group:not([open]) > a { display: none }` rather than trusting the
+      UA default (the panel is a grid container and several author rules target
+      `.kind-mobile a`).
+      **What I measured and trust:** header bottom fell from **y=2303 to y=806** on an
+      844px viewport, so the panel now fits the screen; 5 groups render; summaries are
+      44px.
+      ⚠️ **What I could NOT reproduce:** one run reported all 41 grouped links still
+      visible with `groupsOpen: 0`, and a second run found **zero** `.kind-mobile-group`
+      elements at all — almost certainly hydration timing in the probe, but two runs
+      disagreeing means the collapse is NOT confirmed. Re-measure with an explicit wait
+      for the panel, and assert `groupsOpen === 0` together with
+      `linksInGroupsVisible === 0` — the pair, not either alone.
+      ⚠️ `page.tap()` silently failed to open the panel where `page.click()` worked; a
+      probe that taps and finds nothing looks identical to a panel that does not exist.
 - [ ] **One 518 KB stylesheet on every route, 94–98% unused.** `app/globals.css` is 676 KB
       / 12,199 lines → 518,233 B raw, 89 KB gz, render-blocking on every page. Chrome
       coverage: **2.1% used on `/search`, 2.8% on `/login`** (14 KB of 506 KB). Admin and
