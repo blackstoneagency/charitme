@@ -71,6 +71,8 @@ jobs:
   migration-replay:
     name: replay migrations and seeds from zero
     runs-on: ubuntu-latest
+    # Observed ~3m45s end to end. 45 min is ~12x headroom and still bounds a hang.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
@@ -113,6 +115,20 @@ jobs:
   verify:
     name: typecheck · lint · test · build · e2e · a11y
     runs-on: ubuntu-latest
+    # ⚠️ This is the deliberate replacement for a safety net that used to exist by
+    # ACCIDENT. Before master stopped cancelling its own runs (see the concurrency
+    # block above), a hung master run was cleared by the next merge. It no longer
+    # is — which is the point of that change, but it means a hang now sits until
+    # GitHub's default 360-minute cap, holding a runner and delaying the verdict
+    # by six hours.
+    #
+    # 180 min against observed durations: the whole job has run ~60 min, and the
+    # e2e step alone has been measured at 51.9m, 70m and 95m+ on successive
+    # commits. That growth is why the bound is generous rather than tight — it is
+    # here to catch a HANG, not to police a slow suite. If a run ever trips this,
+    # the e2e suite has outgrown a single job and should be split, not given a
+    # bigger number.
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
 
