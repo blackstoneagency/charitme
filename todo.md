@@ -23267,3 +23267,63 @@ editing it.
 
 Verified on both routes, signed out and in: shell no/yes, `<h1>` 1/1, wordmarks
 2/1, 0 page errors on all four.
+
+## ✅ The two donation checkboxes — traced end to end (2026-08-09)
+
+"Don't display my name or profile publicly on the fundraiser" (`anonymous`) and
+"Subscribe to receive emails" (`subscribeToUpdates`). Both work. Each survives
+four hops, and a break at ANY of them is invisible from the UI because Stripe
+Checkout succeeds either way — the donor only finds out when their name appears
+on a campaign they asked to be anonymous on.
+
+| hop | anonymous | subscribe |
+|---|---|---|
+| checkbox → state | `checked={anonymous}` | `checked={subscribeEmail}` |
+| state → request | `anonymous` | `subscribeToUpdates` |
+| request → Stripe metadata | `'1'`/`'0'` | `'1'`/`'0'` |
+| metadata → DB | `p_anonymous` on `record_donation` | `marketing_contacts.status` + `profiles.notification_marketing` |
+
+⚠️ **The `'1'`/`'0'` stringification is load-bearing.** Stripe metadata values are
+strings, so `String(false)` is `"false"` — truthy. A truthiness check anywhere on
+the read side would make every donation anonymous. Mutation-tested.
+
+### Where the subscribe box actually bites
+The send path filters on **`marketing_contacts.status === 'active'`** and
+`isSuppressed(email)`. `marketingStatusForOptIn(false)` returns `'unsubscribed'`,
+so declining creates a contact that cannot be marketed to — executed, not read.
+
+`profiles.notification_marketing` is written too, but **nothing in any send path
+reads it**; it is the donor-visible mirror on /profile. Worth knowing before
+anyone "fixes" a send filter to consult it, or assumes the checkbox is decorative
+because that column is not queried.
+
+⚠️ Declining deliberately does NOT downgrade an existing subscriber
+(`resolveContact` only ever upgrades to `'active'`). A donation is not a
+preference change, and someone who subscribed via the newsletter should not be
+dropped for giving without ticking a box.
+
+### Anonymity is honoured on every public surface
+Executed against the real mappers, not inspected: `mapRecentDonations` returns
+the real name without the box, `'Anonymous'` with it, **and** `'Anonymous'` for a
+donor whose profile is Private but who did not tick it — two independent gates,
+which have regressed before. `DonorWall`, `DonationTicker` and `CommentsList` all
+branch on the per-gift flag; exports and organizer notifications are covered by
+the existing `donor-privacy` suite.
+
+### 🔍 One observation, not a defect
+`aggregateSupporters` folds an anonymous gift's AMOUNT into a named supporter row
+if the same donor later gives openly — so an organizer sees "Real Name, 2 gifts,
+$525" and can infer the anonymous one. The checkbox promises no public display
+("publicly on the fundraiser") and the supporter list is the organizer's own CRM,
+so this does not break the stated promise, and per-gift anonymity is deliberate.
+Flagging it because most donors would not expect it. Changing it would affect
+organizer reconciliation, so it is a product call rather than a bug fix.
+
+### ❌ What could NOT be executed here, and why
+The four hops need a live Stripe Checkout session and a signed webhook. Neither
+exists in this sandbox. The donate form also renders only when
+`isActive && payoutReady`, and no seeded campaign is payout-ready — so it cannot
+be driven in a browser here either (confirmed: the stub's campaigns render the
+"ended" or non-payout state, exposing only the comment form's "Post anonymously"
+box). The suite records this next to the assertions it qualifies rather than
+letting a reader assume more coverage than exists.
