@@ -22431,6 +22431,16 @@ signed-in half off as blocked on a database. It was not. `supabase-stub.mjs` and
 |---|---|---|
 | routes swept | 111 (public) | **229** (public + signed-in) |
 | `/donor` document width @320px | **324px** | 320px |
+| admin-mode page loads analyzed | — | **452**, 0 overflow |
+| member-mode page loads analyzed | — | **354**, 0 overflow |
+
+⚠️ **Both modes are required and neither is redundant.** As an admin,
+`/login`, `/signup` and `/dashboard` all redirect to `/admin` and are never
+measured; as a member the whole `/admin/*` tree is correctly skipped. Running
+only the default (admin) mode leaves the member dashboard unmeasured — which is
+how `/donor` stayed broken. Member mode needs `ADMIN_EMAILS=` empty, the
+organizer fixture (`…0012` + `stub-organizer-access-token` — the id alone is not
+enough, the stub resolves the persona from the TOKEN), and `AUDIT_SKIP_ADMIN=1`.
 
 ### The defect: a cancel button you could not reach
 
