@@ -242,6 +242,18 @@ fix, not a note to file — the absent surface is exactly where defects survive.
       first measurement claimed. ⚠️ Ratio thresholds on images must be computed in DEVICE
       pixels, or you will chase phantom savings and ship blur.
 
+- [ ] **Manifest has no `screenshots`, so Chrome Android shows the minimal install
+      infobar instead of the rich install dialog.** Attempted 2026-08-09 and
+      ABANDONED, recorded so the next person knows the cost before starting.
+      Generating them from the running build is the obvious approach and it does
+      not work here: `page.screenshot()` times out at 30s on `/` and `/campaigns`
+      — the page never reaches Playwright's stability threshold, almost certainly
+      the hero carousel and the CountUp animations, and `animations: 'disabled'`
+      did not settle it. Worth doing only with a deliberate capture mode (freeze
+      the carousel, or a `?static=1` render path), and worth weighing against the
+      maintenance: screenshots are binary assets that go stale at every redesign,
+      for a richer install dialog on one platform.
+
 ### 🛡️ THE SWEEPS COULD NOT TELL "CLEAN" FROM "EMPTY" — now they can
 
 Four fixture bugs in one session all shared one root cause: **no audit in this
