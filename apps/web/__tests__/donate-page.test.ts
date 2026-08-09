@@ -15,30 +15,31 @@ const FORM = read('app/donate/DonateForm.tsx');
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('the donate panel does not re-implement the money path', () => {
-  it('posts to the same endpoints as the campaign-page flow', () => {
-    expect(FORM).toContain("'/api/donations/recurring'");
-    expect(FORM).toContain("'/api/donations'");
+  it('renders the same DonateButton used by campaign, peer, and embed pages', () => {
+    expect(FORM).toContain("import DonateButton from '../campaigns/[slug]/DonateButton'");
+    expect(FORM).toContain('<DonateButton');
   });
 
-  it('sends an Idempotency-Key on one-off donations', () => {
+  it('contains no second API client or fee calculator', () => {
     // Without it a double-click or a retried request can charge twice. Recurring
     // is excluded deliberately — it has its own guard server-side.
-    expect(FORM).toMatch(/Idempotency-Key/);
-    expect(FORM).toMatch(/monthly \? \{\} : \{ 'Idempotency-Key'/);
+    expect(FORM).not.toMatch(/fetch\s*\(/);
+    expect(FORM).not.toContain('donationBreakdown');
+    expect(FORM).not.toContain('methodProcessingFee');
   });
 
-  it('reuses the shared donation floor rather than hardcoding one', () => {
-    expect(FORM).toContain("from '@shared/fees'");
-    expect(FORM).toContain('MIN_DONATION_CENTS');
-    expect(FORM).toContain('MAX_DONATION_CENTS');
+  it('passes the selected campaign currency and Supabase pricing revision through', () => {
+    expect(FORM).toContain('currency={selected.currency}');
+    expect(FORM).toContain('checkoutSettings={checkoutSettings}');
+    expect(FORM).toContain('checkoutRevision={checkoutRevision}');
     // A literal minimum here would drift from the server's the first time either
     // moved, and the donor would see a limit the API does not enforce.
-    expect(FORM).not.toMatch(/amountCents\s*<\s*\d{2,}/);
+    expect(PAGE).toContain('getDonationCheckoutSnapshot()');
   });
 
-  it('builds the charge from the selected amount, in cents', () => {
-    expect(FORM).toMatch(/Math\.round\(parsed \* 100\)/);
-    expect(FORM).toMatch(/body: JSON\.stringify\(\{[\s\S]*?amountCents/);
+  it('only mounts checkout after a real campaign is selected', () => {
+    expect(FORM).toMatch(/\{selected \? \([\s\S]*?<DonateButton/);
+    expect(FORM).toContain('Select a campaign to open its secure donation checkout.');
   });
 });
 
@@ -55,14 +56,9 @@ describe('validation reports through one surface', () => {
     expect(select).not.toMatch(/\brequired\b/);
   });
 
-  it('the custom amount input carries no min attribute', () => {
-    const input = FORM.slice(FORM.indexOf('type="number"'), FORM.indexOf('type="number"') + 400);
-    expect(input).not.toMatch(/\bmin=\{/);
-  });
-
-  it('every rejection lands in a live region', () => {
+  it('campaign-load failures land in a live region', () => {
     expect(FORM).toMatch(/role="alert"/);
-    expect(FORM).toContain('setError(');
+    expect(FORM).toContain('loadFailed');
   });
 });
 
@@ -82,8 +78,7 @@ describe('the page degrades honestly', () => {
   it('tells the donor when the picker could not load, instead of showing it empty', () => {
     expect(FORM).toContain('loadFailed');
     expect(FORM).toMatch(/couldn&rsquo;t load campaigns|couldn't load campaigns/);
-    // And refuses the submit rather than posting an empty campaignId.
-    expect(FORM).toMatch(/disabled=\{busy \|\| loadFailed\}/);
+    expect(PAGE).toContain('targets={targets ?? []}');
   });
 
   it('never renders a donation count it did not measure', () => {

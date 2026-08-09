@@ -51,12 +51,13 @@ describe('the message of support still works', () => {
   });
 });
 
-describe('the shared donation-flow module is untouched', () => {
-  it('still exports the dedication helpers for the guided flow', () => {
+describe('the former guided route uses the shared checkout too', () => {
+  it('delegates to DonateButton without restoring dedication-only state', () => {
     // /donate/[slug] still uses them. Deleting the module because one caller
     // stopped importing it would break a different page.
-    const core = read('lib/donation-flow-core.ts');
-    expect(core).toMatch(/export function composeDedicatedMessage/);
-    expect(read('app/donate/[slug]/GuidedDonation.tsx')).toMatch(/composeDedicatedMessage/);
+    const guided = read('app/donate/[slug]/GuidedDonation.tsx');
+    expect(guided).toContain("import DonateButton from '../../campaigns/[slug]/DonateButton'");
+    expect(guided).toContain('<DonateButton');
+    expect(guided).not.toMatch(/composeDedicatedMessage|dedicationKind|honoreeName/);
   });
 });

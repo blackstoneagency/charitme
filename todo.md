@@ -1,5 +1,21 @@
 # CharitMe — Execution Tracker
 
+## Donation checkout unification — active release (Codex, 2026-08-09)
+
+- [x] Replace every campaign, direct-donate, peer, embed, and portfolio donation form with the shared checkout and one money calculation.
+- [x] Load donation presets, the popular amount, CharitMe fee tiers/default, and processor estimates from normalized `platform_settings` data.
+- [x] Add authenticated Super Admin controls and a validated save route for every checkout pricing option.
+- [x] Reject stale pricing revisions before creating a Stripe Checkout session.
+- [x] Preserve exact custom CharitMe fees for one-time, recurring, and portfolio gifts and allocate portfolio fees to the cent in the webhook.
+- [x] Add the idempotent settings migration and rollback; 129 migrations and 41 rollback files are now tracked.
+- [x] Complete unit, integration, browser, accessibility, and responsive checkout validation.
+- [ ] Merge through `master`, apply both pending release migrations through staging and production, tag the release, and verify the production domain.
+
+Production is confirmed through `20260901000000_campaign_payout_ready`. The two
+release migrations awaiting the gated workflow are
+`20260902000000_unified_campaign_builder` and
+`20260902010000_donation_checkout_settings`.
+
 ## Campaign builder rebuild — active release (Codex, 2026-08-09)
 
 The campaign-creation audit is documented in `docs/campaign-builder-audit.md`.
@@ -3482,9 +3498,9 @@ skipped workflow leaves its check pending forever and would deadlock a docs-only
 PR. Nothing is required today, which is why this is safe now — recorded so the
 next person does not find out the hard way.
 
-## 🛑 SUPABASE STAGING — blocked, and the pending count is **40** (Claude, 2026-08-03)
+## 🛑 SUPABASE STAGING — historical audit, and the file-derived upper-bound pending count is **42** (Claude, 2026-08-03)
 
-**Live ledger rechecked 2026-08-09:** 127 local migration files against 87
+**Live ledger rechecked 2026-08-09:** 129 local migration files against 87
 production ledger entries. The 40-file gap below is therefore a current
 measurement, not only historical arithmetic.
 
@@ -3590,7 +3606,7 @@ all 18 in order and proved rollback.
 Twenty-two migrations have been added since. So the count is arithmetic:
 
 ```
-127 local − 87 applied           = 40
+129 local − 87 applied           = 42
 18 audited pending + 22 added    = 40   ✓ reconciles
 ```
 

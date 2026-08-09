@@ -5,6 +5,7 @@
 // Stripe SDK, which fails under the Vitest ESM environment. lib/stripe.ts
 // re-exports everything here for backward compatibility.
 import type Stripe from 'stripe';
+import type { CheckoutPaymentMethod } from '@shared/fees';
 
 export type PaymentMethodType = Stripe.Checkout.SessionCreateParams.PaymentMethodType;
 
@@ -32,6 +33,18 @@ export const RECURRING_PAYMENT_METHOD_TYPES: PaymentMethodType[] = [
   'link',
   'us_bank_account',
 ];
+
+export function checkoutPaymentMethodTypes(
+  method: CheckoutPaymentMethod,
+  mode: 'payment' | 'subscription',
+): PaymentMethodType[] {
+  const supported = mode === 'subscription'
+    ? RECURRING_PAYMENT_METHOD_TYPES
+    : ONE_TIME_PAYMENT_METHOD_TYPES;
+  if (method === 'stripe') return [...supported];
+  if (method === 'bank') return supported.includes('us_bank_account') ? ['us_bank_account'] : ['card'];
+  return ['card'];
+}
 
 /**
  * Given a Stripe payment-method rejection, compute the payment_method_types to

@@ -1,4 +1,5 @@
 import { FOOTER_SETTINGS_DEFAULTS } from './footer-nav';
+import { DEFAULT_DONATION_CHECKOUT_SETTINGS } from '@shared/fees';
 
 export const VALID_CATEGORIES = [
   'general', 'security', 'email', 'payment', 'integrations',
@@ -52,6 +53,17 @@ export const DEFAULTS: Record<SettingsCategory, Record<string, unknown>> = {
     // One-time fee (in cents) a creator pays to feature their campaign in the
     // homepage rotator. Editable in Super Admin → Settings → Payment.
     featuredCampaignPriceCents: 500,
+    donationCheckout: {
+      ...DEFAULT_DONATION_CHECKOUT_SETTINGS,
+      amountPresetsCents: [...DEFAULT_DONATION_CHECKOUT_SETTINGS.amountPresetsCents],
+      supportTierPercents: [...DEFAULT_DONATION_CHECKOUT_SETTINGS.supportTierPercents],
+      methodFees: {
+        stripe: { ...DEFAULT_DONATION_CHECKOUT_SETTINGS.methodFees.stripe },
+        gpay: { ...DEFAULT_DONATION_CHECKOUT_SETTINGS.methodFees.gpay },
+        bank: { ...DEFAULT_DONATION_CHECKOUT_SETTINGS.methodFees.bank },
+        card: { ...DEFAULT_DONATION_CHECKOUT_SETTINGS.methodFees.card },
+      },
+    },
   },
   integrations: {
     googleAnalyticsEnabled: false,

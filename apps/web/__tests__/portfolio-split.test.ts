@@ -5,6 +5,7 @@ import {
   encodeSplit,
   decodeSplit,
   lineSessionId,
+  allocateCentsProportionally,
   MAX_PORTFOLIO_CAMPAIGNS,
   MIN_PORTFOLIO_SHARE_CENTS,
 } from '../lib/portfolio-split';
@@ -119,6 +120,40 @@ describe('buildSplit', () => {
       { campaignId: 'b', amountCents: 499.5 },
     ]);
     expect(r.ok).toBe(false);
+  });
+});
+
+describe('allocateCentsProportionally', () => {
+  it('allocates every cent exactly across weighted campaign donations', () => {
+    const parts = [
+      { campaignId: 'a', amountCents: 700 },
+      { campaignId: 'b', amountCents: 200 },
+      { campaignId: 'c', amountCents: 100 },
+    ];
+    for (let total = 1; total <= 10_000; total += 113) {
+      const allocated = allocateCentsProportionally(total, parts);
+      expect(allocated.reduce((sum, part) => sum + part.amountCents, 0)).toBe(total);
+      expect(allocated.every((part) => Number.isInteger(part.amountCents))).toBe(true);
+    }
+  });
+
+  it('uses largest remainder deterministically', () => {
+    expect(allocateCentsProportionally(101, [
+      { campaignId: 'a', amountCents: 3 },
+      { campaignId: 'b', amountCents: 1 },
+    ])).toEqual([
+      { campaignId: 'a', amountCents: 76 },
+      { campaignId: 'b', amountCents: 25 },
+    ]);
+  });
+
+  it('handles zero totals and zero weights without inventing money', () => {
+    const zeroWeights = [
+      { campaignId: 'a', amountCents: 0 },
+      { campaignId: 'b', amountCents: 0 },
+    ];
+    expect(allocateCentsProportionally(0, zeroWeights).map((part) => part.amountCents)).toEqual([0, 0]);
+    expect(allocateCentsProportionally(5, zeroWeights).map((part) => part.amountCents)).toEqual([3, 2]);
   });
 });
 

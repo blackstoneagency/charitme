@@ -40,6 +40,7 @@ export const stripe: Stripe = stripeSecretKey
 export {
   ONE_TIME_PAYMENT_METHOD_TYPES,
   RECURRING_PAYMENT_METHOD_TYPES,
+  checkoutPaymentMethodTypes,
   nextPaymentMethodTypes,
 } from './stripe-payment-methods';
 import { nextPaymentMethodTypes } from './stripe-payment-methods';

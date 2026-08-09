@@ -7,8 +7,9 @@ import { cache } from 'react';
 import { supabaseAdmin } from '../../../../../lib/supabase';
 import { getPeerPage } from './get-peer';
 import { ProgressBar, Card } from '../../../../../components/ui';
-import { formatMoneyShort, DEFAULT_CURRENCY } from '@shared/currencies';
+import { formatMoneyShort, normalizeCurrency } from '@shared/currencies';
 import DonateButton from '../../DonateButton';
+import { getDonationCheckoutSnapshot } from '../../../../../lib/donation-checkout-settings';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,6 +54,17 @@ const attributionColumnExists = cache(async (): Promise<boolean> => {
   return !error;
 });
 
+async function getCampaignCurrency(campaignId: string): Promise<string | null> {
+  const { data, error } = await boundedQuery(() =>
+    supabaseAdmin
+      .from('campaign_launch_settings')
+      .select('currency')
+      .eq('campaign_id', campaignId)
+      .maybeSingle(),
+  );
+  return error ? null : normalizeCurrency(data?.currency);
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -84,9 +96,13 @@ export default async function PeerFundraiserPage({
   if (!found) notFound();
 
   const { campaign, peer, profile } = found;
-  const attributionLive = await attributionColumnExists();
+  const [attributionLive, currency, checkout] = await Promise.all([
+    attributionColumnExists(),
+    getCampaignCurrency(campaign.id),
+    getDonationCheckoutSnapshot(),
+  ]);
   const name = profile?.full_name ?? 'A supporter';
-  const canDonate = campaign.status === 'active' && campaign.visibility === 'public' && peer.status === 'active';
+  const canDonate = campaign.status === 'active' && campaign.visibility === 'public' && peer.status === 'active' && currency !== null;
 
   return (
     <main id="main-content" style={{ maxWidth: 900, margin: '0 auto', padding: '32px 24px 64px' }}>
@@ -102,7 +118,7 @@ export default async function PeerFundraiserPage({
             display: 'inline-block',
             fontSize: 11,
             fontWeight: 900,
-            letterSpacing: '.08em',
+            letterSpacing: 0,
             textTransform: 'uppercase',
             color: 'var(--violet-ink)',
             marginBottom: 10,
@@ -125,10 +141,10 @@ export default async function PeerFundraiserPage({
       <Card>
         <div style={{ display: 'flex', minWidth: 0, alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
           <strong style={{ fontSize: 26, fontWeight: 900, color: 'var(--t1)' }}>
-            {formatMoneyShort(peer.raised_amount, DEFAULT_CURRENCY)}
+            {formatMoneyShort(peer.raised_amount, currency ?? 'USD')}
           </strong>
           <span style={{ fontSize: 14, color: 'var(--t3)' }}>
-            raised of {formatMoneyShort(peer.goal_amount, DEFAULT_CURRENCY)} goal
+            raised of {formatMoneyShort(peer.goal_amount, currency ?? 'USD')} goal
           </span>
         </div>
         <ProgressBar value={peer.raised_amount} max={peer.goal_amount > 0 ? peer.goal_amount : 1} />
@@ -159,12 +175,17 @@ export default async function PeerFundraiserPage({
           <DonateButton
             campaignId={campaign.id}
             campaignTitle={campaign.title}
+            currency={currency}
+            checkoutSettings={checkout.settings}
+            checkoutRevision={checkout.revision}
             peerFundraiserId={peer.id}
           />
         ) : (
           <Card>
             <p style={{ margin: 0, fontSize: 14, color: 'var(--t2)' }}>
-              This fundraiser is not accepting donations right now.{' '}
+              {currency === null
+                ? 'Secure checkout is temporarily unavailable. Please refresh in a moment. '
+                : 'This fundraiser is not accepting donations right now. '}
               <Link href={`/campaigns/${campaign.slug}`} style={{ color: 'var(--violet-ink)', fontWeight: 700 }}>
                 Visit the campaign
               </Link>{' '}

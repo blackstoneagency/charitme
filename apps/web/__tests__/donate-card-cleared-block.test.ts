@@ -51,11 +51,13 @@ describe('the donate card keeps the block between toggle and amounts empty', () 
     expect(code).not.toMatch(/aiNudge/);
   });
 
-  // The same fetch supplies the suggested preset amounts, which sit OUTSIDE the
-  // removed block — deleting it would quietly drop campaign-tuned asks.
-  it('still asks the donor-conversion endpoint for suggested amounts', () => {
-    expect(code).toContain('/api/ai/donor-conversion');
-    expect(code).toContain('setPresets');
+  // Presets now come from the normalized Super Admin checkout configuration,
+  // shared by every donation surface and the server-side charge calculation.
+  it('uses the Super Admin checkout settings for preset amounts', () => {
+    expect(code).toContain('checkout.amountPresetsCents.map');
+    expect(code).toContain('checkout.popularAmountCents');
+    expect(code).toContain('normalizeDonationCheckoutSettings');
+    expect(code).not.toContain('/api/ai/donor-conversion');
   });
 });
 

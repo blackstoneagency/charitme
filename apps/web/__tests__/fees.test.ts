@@ -4,6 +4,7 @@ import {
   methodProcessingFee, METHOD_FEES, MIN_DONATION_CENTS,
   donationBreakdown, SUPPORT_TIER_PERCENTS, SUGGESTED_SUPPORT_PERCENT,
   TIP_OPTIONS, DEFAULT_DONOR_TIP_PERCENT, netToFundraiser,
+  DEFAULT_DONATION_CHECKOUT_SETTINGS, normalizeDonationCheckoutSettings,
 } from '@shared/fees';
 
 describe('netToFundraiser (0% platform fee promise)', () => {
@@ -162,5 +163,68 @@ describe('donationBreakdown — single source of truth', () => {
     const b = donationBreakdown({ amountCents: 0, supportPercent: 15 });
     expect(b.netToRecipientCents).toBe(0);
     expect(b.recipientPercent).toBe(0);
+  });
+});
+
+describe('Supabase-configurable donation checkout settings', () => {
+  it('ships the requested six amount choices and an explicit 0% fee choice', () => {
+    const settings = normalizeDonationCheckoutSettings(DEFAULT_DONATION_CHECKOUT_SETTINGS);
+    expect(settings.amountPresetsCents).toEqual([2_500, 5_000, 7_500, 10_000, 15_000, 25_000]);
+    expect(settings.popularAmountCents).toBe(5_000);
+    expect(settings.supportTierPercents).toEqual([15, 12, 10, 8, 5, 3, 1, 0]);
+  });
+
+  it('normalizes valid admin values into stable display order and regenerated labels', () => {
+    const settings = normalizeDonationCheckoutSettings({
+      amountPresetsCents: [99_00, 25_00, 10_00, 50_00, 75_00, 125_00],
+      popularAmountCents: 75_00,
+      supportTierPercents: [0, 2, 4, 6, 8, 10, 12, 14],
+      defaultSupportPercent: 8,
+      methodFees: {
+        stripe: { pct: 3.25, fixed: 42, label: 'stale' },
+        gpay: { pct: 3.25, fixed: 42, label: 'stale' },
+        card: { pct: 3.25, fixed: 42, label: 'stale' },
+        bank: { pct: 0.6, fixed: 0, cap: 400, label: 'stale' },
+      },
+    });
+
+    expect(settings.amountPresetsCents).toEqual([1_000, 2_500, 5_000, 7_500, 9_900, 12_500]);
+    expect(settings.supportTierPercents).toEqual([14, 12, 10, 8, 6, 4, 2, 0]);
+    expect(settings.methodFees.stripe.label).toBe('3.25% + $0.42');
+    expect(settings.methodFees.bank.label).toBe('0.6% (max $4)');
+  });
+
+  it('fails closed to complete defaults when arrays or references are malformed', () => {
+    const settings = normalizeDonationCheckoutSettings({
+      amountPresetsCents: [2_500, 2_500],
+      popularAmountCents: 99_999,
+      supportTierPercents: [15, 12, 10, 8, 5, 3, 1, 2],
+      defaultSupportPercent: 99,
+    });
+
+    expect(settings.amountPresetsCents).toEqual(DEFAULT_DONATION_CHECKOUT_SETTINGS.amountPresetsCents);
+    expect(settings.popularAmountCents).toBe(DEFAULT_DONATION_CHECKOUT_SETTINGS.popularAmountCents);
+    expect(settings.supportTierPercents).toContain(0);
+    expect(settings.defaultSupportPercent).toBe(DEFAULT_DONATION_CHECKOUT_SETTINGS.defaultSupportPercent);
+  });
+
+  it('uses the runtime processor configuration in the exact checkout breakdown', () => {
+    const methodFees = normalizeDonationCheckoutSettings({
+      ...DEFAULT_DONATION_CHECKOUT_SETTINGS,
+      methodFees: {
+        ...DEFAULT_DONATION_CHECKOUT_SETTINGS.methodFees,
+        stripe: { pct: 4, fixed: 50, label: 'ignored' },
+      },
+    }).methodFees;
+    const breakdown = donationBreakdown({
+      amountCents: 10_000,
+      supportPercent: 10,
+      method: 'stripe',
+      methodFees,
+      coverProcessing: true,
+    });
+
+    expect(breakdown.processingCents).toBe(490);
+    expect(breakdown.totalChargedCents).toBe(11_490);
   });
 });

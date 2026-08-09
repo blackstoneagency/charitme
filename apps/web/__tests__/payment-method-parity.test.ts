@@ -2,7 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { METHOD_FEES } from '@shared/fees';
-import { ONE_TIME_PAYMENT_METHOD_TYPES } from '../lib/stripe-payment-methods';
+import {
+  ONE_TIME_PAYMENT_METHOD_TYPES,
+  RECURRING_PAYMENT_METHOD_TYPES,
+  checkoutPaymentMethodTypes,
+} from '../lib/stripe-payment-methods';
 
 // Guard against a real bug we shipped once: the donate form offered PayPal and
 // Venmo (each with its own processing-fee rate) while Stripe Checkout could only
@@ -57,5 +61,17 @@ describe('donor payment-method parity with Stripe Checkout', () => {
     const ids = uiOptionIds();
     expect(ids).not.toContain('paypal');
     expect(ids).not.toContain('venmo');
+  });
+
+  it('constrains explicit selections to the rail whose estimate was shown', () => {
+    expect(checkoutPaymentMethodTypes('bank', 'payment')).toEqual(['us_bank_account']);
+    expect(checkoutPaymentMethodTypes('bank', 'subscription')).toEqual(['us_bank_account']);
+    expect(checkoutPaymentMethodTypes('card', 'payment')).toEqual(['card']);
+    expect(checkoutPaymentMethodTypes('gpay', 'payment')).toEqual(['card']);
+  });
+
+  it('keeps every supported rail when the donor selects the default Stripe handoff', () => {
+    expect(checkoutPaymentMethodTypes('stripe', 'payment')).toEqual(ONE_TIME_PAYMENT_METHOD_TYPES);
+    expect(checkoutPaymentMethodTypes('stripe', 'subscription')).toEqual(RECURRING_PAYMENT_METHOD_TYPES);
   });
 });

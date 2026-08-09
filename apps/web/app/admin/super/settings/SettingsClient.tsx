@@ -1,12 +1,19 @@
 'use client';
 
 import React, { useState } from 'react';
+import {
+  DEFAULT_DONATION_CHECKOUT_SETTINGS,
+  CHECKOUT_PAYMENT_METHODS,
+  normalizeDonationCheckoutSettings,
+  type CheckoutPaymentMethod,
+  type DonationCheckoutSettings,
+} from '@shared/fees';
 
 export type PlatformConfig = {
   platformName?: string; tagline?: string; supportEmail?: string; supportPhone?: string;
-  currency?: string; platformFeePercent?: number; donationFeePercent?: number;
-  defaultDonorTipPercent?: number; maintenanceMode?: boolean; allowNewRegistrations?: boolean;
+  currency?: string; maintenanceMode?: boolean; allowNewRegistrations?: boolean;
   maintenanceMessage?: string; maintenanceExpectedBackAt?: string;
+  donationCheckout?: DonationCheckoutSettings;
   /** Stored under config.payment; surfaced here in DOLLARS and sent as cents. */
   featuredCampaignPriceDollars?: number;
 };
@@ -19,6 +26,40 @@ function Field({ label, k, value, type = 'text', ph, onSet }: { label: string; k
     <label style={{ fontSize: 12, color: 'var(--t3)', display: 'block' }}>{label}
       <input style={input} type={type} placeholder={ph} value={value ?? ''}
         onChange={(e) => onSet(k, type === 'number' ? (e.target.value === '' ? undefined : Number(e.target.value)) : e.target.value)} />
+    </label>
+  );
+}
+
+function NumericField({
+  label,
+  value,
+  min = 0,
+  max,
+  step = 1,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min?: number;
+  max?: number;
+  step?: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <label style={{ fontSize: 12, color: 'var(--t3)', display: 'block' }}>
+      {label}
+      <input
+        style={input}
+        type="number"
+        value={value}
+        min={min}
+        max={max}
+        step={step}
+        onChange={(event) => {
+          const next = Number(event.target.value);
+          if (Number.isFinite(next)) onChange(next);
+        }}
+      />
     </label>
   );
 }
@@ -47,11 +88,18 @@ export default function SettingsClient({ config: initial }: { config: PlatformCo
   const [c, setC] = useState<PlatformConfig>({
     ...initial,
     maintenanceExpectedBackAt: toDateTimeLocal(initial.maintenanceExpectedBackAt),
+    donationCheckout: normalizeDonationCheckoutSettings(initial.donationCheckout),
   });
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const flash = (m: string) => { setToast(m); setTimeout(() => setToast(null), 3000); };
   const set = (k: keyof PlatformConfig, v: unknown) => setC((p) => ({ ...p, [k]: v }));
+  const setCheckout = (update: (current: DonationCheckoutSettings) => DonationCheckoutSettings) => {
+    setC((current) => ({
+      ...current,
+      donationCheckout: update(current.donationCheckout ?? DEFAULT_DONATION_CHECKOUT_SETTINGS),
+    }));
+  };
 
   async function save() {
     setBusy(true);
@@ -75,18 +123,30 @@ export default function SettingsClient({ config: initial }: { config: PlatformCo
       // Re-surface the saved cents as dollars so the field shows what was stored
       // rather than reverting to blank.
       const savedCents = Number((j.config?.payment as Record<string, unknown> | undefined)?.featuredCampaignPriceCents);
+      const savedPayment = j.config?.payment && typeof j.config.payment === 'object' && !Array.isArray(j.config.payment)
+        ? (j.config.payment as Record<string, unknown>)
+        : {};
       setC({
         ...j.config,
         maintenanceExpectedBackAt: toDateTimeLocal(j.config?.maintenanceExpectedBackAt),
         featuredCampaignPriceDollars: Number.isFinite(savedCents) && savedCents > 0 ? savedCents / 100 : undefined,
+        donationCheckout: normalizeDonationCheckoutSettings(savedPayment.donationCheckout),
       });
       flash('Settings saved');
     } catch (e) { flash(`Error: ${(e as Error).message}`); } finally { setBusy(false); }
   }
 
+  const checkout = c.donationCheckout ?? DEFAULT_DONATION_CHECKOUT_SETTINGS;
+  const methodLabels: Record<CheckoutPaymentMethod, string> = {
+    stripe: 'Stripe',
+    gpay: 'Google Pay',
+    bank: 'Bank transfer',
+    card: 'Credit or debit',
+  };
+
   return (
     <div style={{ padding: '0 4px 48px', maxWidth: 820 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 18 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: 18 }}>
         <section className="kf-card" style={{ padding: 18 }}>
           <h3 style={{ margin: '0 0 12px', fontSize: 15 }}>Branding</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
@@ -100,9 +160,10 @@ export default function SettingsClient({ config: initial }: { config: PlatformCo
           <h3 style={{ margin: '0 0 12px', fontSize: 15 }}>Fees &amp; currency</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
             <Field label="Default currency (ISO)" k="currency" value={c.currency} ph="USD" onSet={set} />
-            <Field label="Platform fee %" k="platformFeePercent" value={c.platformFeePercent} type="number" onSet={set} />
-            <Field label="Processing fee %" k="donationFeePercent" value={c.donationFeePercent} type="number" onSet={set} />
-            <Field label="Default donor tip %" k="defaultDonorTipPercent" value={c.defaultDonorTipPercent} type="number" onSet={set} />
+            <label style={{ fontSize: 12, color: 'var(--t3)', display: 'block' }}>
+              Mandatory platform fee
+              <input style={input} value="0%" readOnly aria-readonly="true" />
+            </label>
             <Field
               label="Featured campaign price (USD, one-time)"
               k="featuredCampaignPriceDollars"
@@ -114,6 +175,134 @@ export default function SettingsClient({ config: initial }: { config: PlatformCo
           </div>
         </section>
       </div>
+
+      <section className="kf-card" style={{ padding: 18, marginTop: 18 }}>
+        <h3 style={{ margin: '0 0 4px', fontSize: 15 }}>Donation checkout &amp; CharitMe fee</h3>
+        <p style={{ margin: '0 0 16px', color: 'var(--t3)', fontSize: 12.5, lineHeight: 1.5 }}>
+          These values power every campaign, peer, embed, direct, recurring, and multi-campaign checkout.
+        </p>
+
+        <h4 style={{ margin: '0 0 10px', fontSize: 13.5 }}>Donation amount buttons</h4>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 10 }}>
+          {checkout.amountPresetsCents.map((cents, index) => (
+            <NumericField
+              key={`amount-${index}`}
+              label={`Amount ${index + 1} (USD)`}
+              value={cents / 100}
+              min={1}
+              max={1_000_000}
+              step={0.01}
+              onChange={(dollars) => setCheckout((current) => {
+                const amountPresetsCents = [...current.amountPresetsCents];
+                const previous = amountPresetsCents[index] ?? 0;
+                const nextCents = Math.round(dollars * 100);
+                amountPresetsCents[index] = nextCents;
+                return {
+                  ...current,
+                  amountPresetsCents,
+                  popularAmountCents: current.popularAmountCents === previous ? nextCents : current.popularAmountCents,
+                };
+              })}
+            />
+          ))}
+          <label style={{ fontSize: 12, color: 'var(--t3)', display: 'block' }}>
+            Most popular amount
+            <select
+              style={input}
+              value={checkout.popularAmountCents}
+              onChange={(event) => setCheckout((current) => ({ ...current, popularAmountCents: Number(event.target.value) }))}
+            >
+              {checkout.amountPresetsCents.map((cents, index) => (
+                <option key={`popular-amount-${index}`} value={cents}>${(cents / 100).toLocaleString()}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <h4 style={{ margin: '20px 0 10px', fontSize: 13.5 }}>Optional CharitMe fee choices</h4>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 10 }}>
+          {checkout.supportTierPercents.map((percent, index) => (
+            <NumericField
+              key={`support-${index}`}
+              label={`Choice ${index + 1} (%)`}
+              value={percent}
+              min={0}
+              max={100}
+              step={0.1}
+              onChange={(nextPercent) => setCheckout((current) => {
+                const supportTierPercents = [...current.supportTierPercents];
+                const previous = supportTierPercents[index] ?? 0;
+                supportTierPercents[index] = nextPercent;
+                return {
+                  ...current,
+                  supportTierPercents,
+                  defaultSupportPercent: current.defaultSupportPercent === previous ? nextPercent : current.defaultSupportPercent,
+                };
+              })}
+            />
+          ))}
+          <label style={{ fontSize: 12, color: 'var(--t3)', display: 'block' }}>
+            Default CharitMe fee
+            <select
+              style={input}
+              value={checkout.defaultSupportPercent}
+              onChange={(event) => setCheckout((current) => ({ ...current, defaultSupportPercent: Number(event.target.value) }))}
+            >
+              {checkout.supportTierPercents.map((percent, index) => (
+                <option key={`default-support-${index}`} value={percent}>{percent}%</option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <h4 style={{ margin: '20px 0 4px', fontSize: 13.5 }}>Payment processing estimates</h4>
+        {CHECKOUT_PAYMENT_METHODS.map((method) => {
+          const fee = checkout.methodFees[method];
+          return (
+            <div
+              key={method}
+              style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 10, alignItems: 'end', padding: '12px 0', borderTop: '1px solid var(--b1)' }}
+            >
+              <strong style={{ fontSize: 13, paddingBottom: 11 }}>{methodLabels[method]}</strong>
+              <NumericField
+                label="Percent"
+                value={fee.pct}
+                min={0}
+                max={20}
+                step={0.01}
+                onChange={(pct) => setCheckout((current) => ({
+                  ...current,
+                  methodFees: { ...current.methodFees, [method]: { ...current.methodFees[method], pct } },
+                }))}
+              />
+              <NumericField
+                label="Fixed fee (USD)"
+                value={fee.fixed / 100}
+                min={0}
+                max={100}
+                step={0.01}
+                onChange={(dollars) => setCheckout((current) => ({
+                  ...current,
+                  methodFees: { ...current.methodFees, [method]: { ...current.methodFees[method], fixed: Math.round(dollars * 100) } },
+                }))}
+              />
+              {method === 'bank' ? (
+                <NumericField
+                  label="Maximum fee (USD)"
+                  value={(fee.cap ?? 0) / 100}
+                  min={0}
+                  max={1_000}
+                  step={0.01}
+                  onChange={(dollars) => setCheckout((current) => ({
+                    ...current,
+                    methodFees: { ...current.methodFees, bank: { ...current.methodFees.bank, cap: Math.round(dollars * 100) } },
+                  }))}
+                />
+              ) : <span aria-hidden="true" />}
+            </div>
+          );
+        })}
+      </section>
 
       <section className="kf-card" style={{ padding: 18, marginTop: 18 }}>
         <h3 style={{ margin: '0 0 8px', fontSize: 15 }}>Platform controls</h3>

@@ -5,6 +5,42 @@ import { revalidateTag } from 'next/cache';
 import { supabaseAdmin } from '../../../../../lib/supabase';
 import { guardSuperAdmin, logSuperAdminAction } from '../../../../../lib/super-admin';
 import { FEATURE_PRICE_MIN_CENTS, FEATURE_PRICE_MAX_CENTS } from '../../../../../lib/featured';
+import { MAX_DONATION_CENTS, MIN_DONATION_CENTS } from '@shared/fees';
+import { boundedQuery } from '../../../../../lib/query-timeout';
+
+const MethodFeeSchema = z.object({
+  pct: z.number().min(0).max(20),
+  fixed: z.number().int().min(0).max(10_000),
+  cap: z.number().int().min(0).max(100_000).optional(),
+  label: z.string().max(60).optional(),
+});
+
+const DonationCheckoutSchema = z.object({
+  amountPresetsCents: z
+    .array(z.number().int().min(MIN_DONATION_CENTS).max(MAX_DONATION_CENTS))
+    .length(6)
+    .refine((values) => new Set(values).size === values.length, 'Donation amounts must be unique'),
+  popularAmountCents: z.number().int().min(MIN_DONATION_CENTS).max(MAX_DONATION_CENTS),
+  supportTierPercents: z
+    .array(z.number().min(0).max(100))
+    .length(8)
+    .refine((values) => new Set(values).size === values.length, 'CharitMe fee choices must be unique')
+    .refine((values) => values.includes(0), 'CharitMe fee choices must include 0%'),
+  defaultSupportPercent: z.number().min(0).max(100),
+  methodFees: z.object({
+    stripe: MethodFeeSchema,
+    gpay: MethodFeeSchema,
+    bank: MethodFeeSchema,
+    card: MethodFeeSchema,
+  }),
+}).superRefine((value, context) => {
+  if (!value.amountPresetsCents.includes(value.popularAmountCents)) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['popularAmountCents'], message: 'Most popular amount must be one of the six choices' });
+  }
+  if (!value.supportTierPercents.includes(value.defaultSupportPercent)) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['defaultSupportPercent'], message: 'Default CharitMe fee must be one of the eight choices' });
+  }
+});
 
 // Whitelisted, typed platform settings. Free-form config is never accepted raw.
 const Schema = z.object({
@@ -33,6 +69,7 @@ const Schema = z.object({
     .min(FEATURE_PRICE_MIN_CENTS)
     .max(FEATURE_PRICE_MAX_CENTS)
     .optional(),
+  donationCheckout: DonationCheckoutSchema.optional(),
 });
 
 // PATCH /api/admin/super/settings — merge into platform_settings.config (id=1).
@@ -41,9 +78,22 @@ export async function PATCH(request: NextRequest) {
   if (!guard.ok) return guard.response;
 
   const parsed = Schema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten() }, { status: 400 });
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'Invalid input', code: 'INVALID_INPUT', details: parsed.error.flatten() },
+      { status: 400 },
+    );
+  }
 
-  const { data: existing } = await supabaseAdmin.from('platform_settings').select('id, config').eq('id', 1).maybeSingle();
+  const { data: existing, error: lookupError } = await boundedQuery(() =>
+    supabaseAdmin.from('platform_settings').select('id, config').eq('id', 1).maybeSingle(),
+  );
+  if (lookupError) {
+    return NextResponse.json(
+      { error: 'Settings are temporarily unavailable', code: 'SETTINGS_LOOKUP_UNAVAILABLE' },
+      { status: 503 },
+    );
+  }
   const currentConfig = (existing?.config as Record<string, unknown> | null) ?? {};
 
   // The featured price lives at `config.payment.featuredCampaignPriceCents`,
@@ -52,23 +102,33 @@ export async function PATCH(request: NextRequest) {
   // save a value nothing ever reads — the setting would appear to work and
   // change nothing. Lift it into `payment` explicitly, preserving the other
   // payment keys that page owns.
-  const { featuredCampaignPriceCents, ...flat } = parsed.data;
+  const { featuredCampaignPriceCents, donationCheckout, ...flat } = parsed.data;
   const nextConfig: Record<string, unknown> = { ...currentConfig, ...flat };
 
-  if (featuredCampaignPriceCents !== undefined) {
+  if (featuredCampaignPriceCents !== undefined || donationCheckout !== undefined) {
     const currentPayment =
       currentConfig.payment && typeof currentConfig.payment === 'object' && !Array.isArray(currentConfig.payment)
         ? (currentConfig.payment as Record<string, unknown>)
         : {};
-    nextConfig.payment = { ...currentPayment, featuredCampaignPriceCents };
+    nextConfig.payment = {
+      ...currentPayment,
+      ...(featuredCampaignPriceCents !== undefined ? { featuredCampaignPriceCents } : {}),
+      ...(donationCheckout !== undefined ? { donationCheckout } : {}),
+    };
   }
 
+  const write = {
+    config: nextConfig,
+    updated_at: new Date().toISOString(),
+    updated_by: guard.user.id,
+  };
   const { error } = existing
-    ? await supabaseAdmin.from('platform_settings').update({ config: nextConfig }).eq('id', 1)
-    : await supabaseAdmin.from('platform_settings').insert({ id: 1, config: nextConfig });
+    ? await supabaseAdmin.from('platform_settings').update(write).eq('id', 1)
+    : await supabaseAdmin.from('platform_settings').insert({ id: 1, ...write });
   if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
 
   revalidateTag('platform-settings');
+  revalidateTag('donation-checkout-settings');
   await logSuperAdminAction(guard.user.id, 'settings.update', 'platform_settings', null, { keys: Object.keys(parsed.data) });
   return NextResponse.json({ ok: true, config: nextConfig });
 }

@@ -6,20 +6,32 @@ import { getCampaign } from '../../campaigns/[slug]/get-campaign';
 import { resolveCampaignCover } from '../../../lib/covers';
 import CampaignImage from '../../../components/CampaignImage';
 import GuidedDonation from './GuidedDonation';
+import { boundedQuery } from '../../../lib/query-timeout';
+import { supabaseAdmin } from '../../../lib/supabase';
+import { normalizeCurrency } from '@shared/currencies';
+import { getDonationCheckoutSnapshot } from '../../../lib/donation-checkout-settings';
+import { resolvePayoutDestination } from '../../../lib/payout-destination';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * The guided donation flow for one campaign.
- *
- * `/donate` is step 1 of the reference (choose a campaign); this is steps 2–7,
- * after which **Stripe Checkout** takes over for the payment method, the card
- * fields and the final confirm. It posts to the same `POST /api/donations` the
- * campaign page uses, so there is one server-side donation path rather than a
- * parallel checkout that could drift from the one carrying real money.
+ * The unified donation checkout for one campaign. It renders the same shared
+ * form and posts to the same server routes as the campaign, peer, and embed
+ * surfaces so pricing and payment behavior cannot drift between entry points.
  */
 
 type Props = { params: Promise<{ slug: string }> };
+
+async function getCampaignCurrency(campaignId: string): Promise<string | null> {
+  const { data, error } = await boundedQuery(() =>
+    supabaseAdmin
+      .from('campaign_launch_settings')
+      .select('currency')
+      .eq('campaign_id', campaignId)
+      .maybeSingle(),
+  );
+  return error ? null : normalizeCurrency(data?.currency);
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
@@ -40,11 +52,20 @@ export default async function GuidedDonatePage({ params }: Props) {
   const campaign = await getCampaign(slug);
   if (!campaign) notFound();
 
-  // A campaign that is not live cannot take money. Saying so beats rendering a
-  // form whose submit would be refused by the API after the donor has filled it in.
-  const acceptingDonations = campaign.status === 'active';
-
-  const cover = await resolveCampaignCover(campaign.cover_image_url, campaign.category, campaign.slug);
+  const [cover, currency, checkout, payoutResult] = await Promise.all([
+    resolveCampaignCover(campaign.cover_image_url, campaign.category, campaign.slug),
+    getCampaignCurrency(campaign.id),
+    getDonationCheckoutSnapshot(),
+    resolvePayoutDestination(campaign)
+      .then((destination) => ({ destination, unavailable: false }))
+      .catch(() => ({ destination: null, unavailable: true })),
+  ]);
+  const acceptingDonations =
+    campaign.status === 'active'
+    && (campaign as { accept_donations?: boolean | null }).accept_donations !== false
+    && currency !== null
+    && payoutResult.destination !== null;
+  const checkoutUnavailable = currency === null || payoutResult.unavailable;
   const raised = Number(campaign.raised_amount ?? 0);
   const goal = Number(campaign.goal_amount ?? 0);
   const percent = goal > 0 ? Math.min(100, Math.round((raised / goal) * 100)) : null;
@@ -60,12 +81,11 @@ export default async function GuidedDonatePage({ params }: Props) {
       </nav>
 
       <header style={{ marginBottom: 22 }}>
-        <h1 style={{ margin: '0 0 8px', fontSize: 30, lineHeight: 1.15, fontWeight: 850, color: 'var(--t1)', letterSpacing: '-0.02em' }}>
+        <h1 style={{ margin: '0 0 8px', fontSize: 30, lineHeight: 1.15, fontWeight: 850, color: 'var(--t1)', letterSpacing: 0 }}>
           Donate to {campaign.title}
         </h1>
         <p style={{ margin: 0, fontSize: 16, color: 'var(--t2)', maxWidth: 620 }}>
-          A few short steps. The platform takes 0% — what you give goes to the organiser,
-          minus the payment processor&rsquo;s own fee.
+          Choose an amount and review the CharitMe fee and payment estimate before secure checkout.
         </p>
       </header>
 
@@ -88,15 +108,22 @@ export default async function GuidedDonatePage({ params }: Props) {
       </section>
 
       {acceptingDonations ? (
-        <GuidedDonation campaignId={campaign.id} campaignTitle={campaign.title} campaignSlug={campaign.slug} />
+        <GuidedDonation
+          campaignId={campaign.id}
+          campaignTitle={campaign.title}
+          currency={currency}
+          checkoutSettings={checkout.settings}
+          checkoutRevision={checkout.revision}
+        />
       ) : (
         <section style={{ padding: 20, border: '1px solid var(--b1)', borderRadius: 'var(--rl)', background: 'var(--s2)', maxWidth: 620, minWidth: 0 }}>
           <h2 style={{ margin: '0 0 8px', fontSize: 17, fontWeight: 750, color: 'var(--t1)' }}>
-            This campaign is not accepting donations right now
+            {checkoutUnavailable ? 'Secure checkout is temporarily unavailable' : 'This campaign is not accepting donations right now'}
           </h2>
           <p style={{ margin: '0 0 12px', fontSize: 14.5, color: 'var(--t2)' }}>
-            It is not currently live, so a donation would be refused after you filled the
-            form in. We would rather say so here.
+            {checkoutUnavailable
+              ? 'We could not verify the campaign currency and recipient payout readiness just now. Nothing can be charged until those checks succeed.'
+              : 'The campaign is not currently ready to take a payment, so checkout remains closed.'}
           </p>
           <Link href="/campaigns" style={{ color: 'var(--brand-text)', fontWeight: 650, display: 'inline-flex', alignItems: 'center', minHeight: 44 }}>
             Find another campaign to support →
