@@ -3411,11 +3411,20 @@ skipped workflow leaves its check pending forever and would deadlock a docs-only
 PR. Nothing is required today, which is why this is safe now — recorded so the
 next person does not find out the hard way.
 
-## 🛑 SUPABASE STAGING — blocked, and the pending count is **38** (Claude, 2026-08-03)
+## 🛑 SUPABASE STAGING — blocked, and the pending count is **39** (Claude, 2026-08-03)
 
-**Live ledger rechecked 2026-08-09:** 125 local migration files against 87
-production ledger entries. The 38-file gap below is therefore a current
+**Live ledger rechecked 2026-08-09:** 126 local migration files against 87
+production ledger entries. The 39-file gap below is therefore a current
 measurement, not only historical arithmetic.
+
+**+1 on 2026-08-09: `20260831010000_user_nav_preferences.sql`.** One row per
+person holding their own sidebar layout, RLS-scoped to `user_id = auth.uid()`.
+⚠️ Applying it changes nothing a visitor or an existing user sees: the reader
+degrades to "no customization" on `42P01`, so every signed-in page renders the
+persona-default sidebar until someone actually saves a layout. Verified against a
+real PostgreSQL 16 — migration applies clean with all four policies; user 1 sees
+1 row and 0 of user 2's; a cross-user UPDATE affects 0 rows; the CHECK rejects a
+non-array (`hidden = '{}'` → `user_nav_preferences_hidden_is_array`).
 
 **+1 on 2026-08-08: `20260829010000_platform_impact_stats.sql`.** Adds
 `platform_impact_stats` and `platform_fund_allocation` — the owner-authored
@@ -3510,8 +3519,8 @@ all 18 in order and proved rollback.
 Eighteen migrations have been added since. So the count is arithmetic:
 
 ```
-125 local − 87 applied           = 38
-18 audited pending + 20 added    = 38   ✓ reconciles
+126 local − 87 applied           = 39
+18 audited pending + 21 added    = 39   ✓ reconciles
 ```
 
 All 18 audited-pending versions are still on disk under their original names.

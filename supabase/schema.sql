@@ -4127,6 +4127,20 @@ CREATE TABLE public.volunteer_shifts (
 -- Name: webhook_events; Type: TABLE; Schema: public; Owner: -
 --
 
+--
+-- Name: user_nav_preferences; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.user_nav_preferences (
+    user_id uuid NOT NULL,
+    hidden jsonb DEFAULT '[]'::jsonb NOT NULL,
+    item_order jsonb DEFAULT '[]'::jsonb NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT user_nav_preferences_hidden_is_array CHECK ((jsonb_typeof(hidden) = 'array'::text)),
+    CONSTRAINT user_nav_preferences_order_is_array CHECK ((jsonb_typeof(item_order) = 'array'::text))
+);
+
+
 CREATE TABLE public.webhook_events (
     id uuid DEFAULT uuid_generate_v4() NOT NULL,
     stripe_event_id text NOT NULL,
@@ -5864,6 +5878,14 @@ ALTER TABLE ONLY public.volunteer_shifts
 
 ALTER TABLE ONLY public.volunteer_shifts
     ADD CONSTRAINT volunteer_shifts_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: webhook_events webhook_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_nav_preferences
+    ADD CONSTRAINT user_nav_preferences_pkey PRIMARY KEY (user_id);
 
 
 --
