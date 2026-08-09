@@ -242,6 +242,29 @@ fix, not a note to file — the absent surface is exactly where defects survive.
       first measurement claimed. ⚠️ Ratio thresholds on images must be computed in DEVICE
       pixels, or you will chase phantom savings and ship blur.
 
+### ⚠️ A PR CAN END UP WITH NO CI RUN AND NO WAY TO GET ONE
+
+Two rules interact badly, and the result looks like "CI is just slow":
+
+1. `concurrency: cancel-in-progress: true` — every push cancels the in-flight run.
+2. `paths-ignore` includes `todo.md` — a docs-only push starts NO new run.
+
+So: push code → CI starts → push a `todo.md`-only follow-up → the code run is
+**cancelled** and nothing replaces it. Measured here: run `31328457709` on
+`77ad2ea1` (the /glossary fix) was cancelled at 18:18 by a docs commit, and the
+two later `todo.md` commits triggered nothing. The PR then sat at
+`mergeable_state: unstable` with **only the Vercel check**, indistinguishable
+from "CI has not started yet". The code was never verified and never would be.
+
+**The fix is `rerun_workflow_run` on the cancelled run**, not another push — the
+cancelled run's head differs from the current head only by ignored paths, so its
+result is valid for the code. Pushing a no-op to force a run also fails: an empty
+commit changes no paths and is ignored too.
+
+**Rule: land code and docs in ONE push, or push docs FIRST.** And when a PR shows
+only the Vercel check, check whether the last real run was `cancelled` before
+assuming it is still queued.
+
 ### ⚠️ HARNESS TRAP THAT INVALIDATED A WHOLE SWEEP
 
 `next start` holds an in-memory prerendered-HTML cache. Running `npm run build`
