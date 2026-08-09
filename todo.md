@@ -23078,3 +23078,49 @@ That job passing is the checkable half of "wired to Supabase" — the schema
 applies cleanly from scratch and the seeded fixtures verify. What it does NOT
 cover, and what still needs owner credentials, is a real staging *project*; see
 the owner-gated list below.
+
+---
+
+## 🔶 OPEN — the ONE remaining item, now precise enough to decide in one line (Claude, 2026-08-09)
+
+Previously filed vaguely as "awaiting a decision on `/donate/[slug]`". Traced
+properly, and the trace changes the recommendation.
+
+**The dedication feature on `/donate/[slug]` is working, wired, and storable:**
+
+```
+GuidedDonation.tsx:65   composeDedicatedMessage(dedication, message) -> finalMessage
+GuidedDonation.tsx:113  POST /api/donations  { message: finalMessage }
+api/donations/route.ts:31   message: z.string().max(500).optional()
+api/donations/route.ts:424  message: message ?? ''      <- persisted
+```
+
+It is not the honoree-notification box the donation model refuses (there is
+nowhere to put an honoree *address*). It is a message prefix — "In honor of X" —
+which has somewhere to live and does live there.
+
+⚠️ **So it must NOT be removed to match the campaign page.** The standing
+constraint is "do not remove working customer-facing functionality without a
+justified replacement", and "the other form doesn't have it" is not a
+justification. The campaign-page field was removed because the owner pointed at
+it directly; nobody has pointed at this one.
+
+**Owner's call, and the two options are genuinely different products:**
+- **Keep** (recommended, and the current state) — donors on the guided flow can
+  dedicate a donation; the campaign-page quick form stays lean.
+- **Remove** — the two forms match, at the cost of a working feature.
+
+Either way the code is correct today. This entry exists so the decision is made
+on the facts rather than on the inconsistency.
+
+### Everything else still open is credential-gated, not code
+
+| item | blocker | evidence |
+|---|---|---|
+| GitHub Actions minutes | billing/plan — owner only | quota signature documented in CLAUDE.md |
+| Staging Supabase project | no credentials in sandbox | CI's isolated-DB job is the closest checkable proxy, and it passes |
+| Delete 36 stale branches | token cannot delete refs (403) | command ready in `docs/branch-cleanup-2026-08-06.md` |
+
+None of these is fixable from inside this repo. Writing them out of this file
+would make it read empty while the system stayed identical — which is the one
+outcome that would make this file worse than useless.
