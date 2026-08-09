@@ -16818,22 +16818,16 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
   `/api/stripe/connect` onboarding · destination-charge architecture · payout gate ·
   server-side fee math · recurring subscription state machine.
 
-## Remaining (verification-gated — NOT faked)
-- [ ] Live end-to-end charge→transfer→payout→reconcile (GATED on LB-005 Connect
-  live-enablement) + refund/dispute lifecycle via Stripe test clocks.
-- [x] Browser / mobile / accessibility / **load** tests — **DONE (2026-07-25).** The
-  sandbox does have a harness (Playwright + Chromium). Browser+a11y: Lighthouse on
-  **32 public pages, all 100**. Mobile: 390x844 emulation, tap targets 28 -> 0,
-  0 horizontal overflow. Responsive: `scripts/audit-responsive.mjs`, 17 pages x
-  3 viewports x 2 themes = 102 renders, 0 findings. Load: new
-  `scripts/load-test.mjs` (150 req @ concurrency 20 per path) — **0 errors on every
-  path**; see CHAR-SM35 for the one latency outlier it surfaced.
-- [ ] Full per-persona live RLS matrix for payment tables (needs real auth sessions).
-
 ## Verification-gated (NOT faked — needs Stripe live verification / staging)
+
+⚠️ This section and a near-identical "Remaining (verification-gated)" one above
+it were VERBATIM DUPLICATES, down to the completed [x] entry — the same work
+counted twice in the open set. Merged 2026-08-09; keep it as ONE list.
+
 - [ ] Live end-to-end charge→transfer→payout→reconcile (GATED on LB-005 Connect
   live-enablement).
 - [ ] Refund/dispute lifecycle via Stripe test clocks.
+- [ ] Full per-persona live RLS matrix for payment tables (needs real auth sessions).
 - [x] Browser / mobile / accessibility / **load** tests — **DONE (2026-07-25).** The
   sandbox does have a harness (Playwright + Chromium). Browser+a11y: Lighthouse on
   **32 public pages, all 100**. Mobile: 390x844 emulation, tap targets 28 -> 0,
