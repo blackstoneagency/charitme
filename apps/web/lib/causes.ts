@@ -311,6 +311,12 @@ export const POPULAR_CAUSES: readonly Cause[] = [
     slug: 'animals-planet',
     label: 'Animals & Planet',
     impactTitle: 'Real Impact. Real Sanctuary.',
+    // `blurb` is the page's meta description (4 call sites in
+    // app/causes/[slug]/page.tsx), and search engines want >= 50 chars. This
+    // read 'Rescue, shelter, conservation, and climate work.' at 48 and failed
+    // the e2e SEO floor. Fixed concurrently in two lanes; master's wording is
+    // kept. Bounds are pinned in __tests__/cause-blurb-seo.test.ts so the next
+    // one is caught in milliseconds instead of a 52-minute e2e job.
     blurb: 'Rescue, shelter, conservation, wildlife, and climate work.',
     tagline: 'Protecting what cannot ask.',
     intro: 'Shelters, rescues, habitats, and the people who keep them running. Your support pays for food, veterinary care, and land.',
