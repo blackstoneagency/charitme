@@ -221,14 +221,25 @@ export default async function HomePage() {
                   the top of the homepage offered a fundraiser no entry point at
                   all.
 
-                  It goes to /create/choose-path rather than straight to /create:
-                  that page offers both the AI-guided build and the manual
-                  wizard, and sending everyone down one of them decides for them.
+                  ⚠️ It used to go to /create/choose-path, on the reasoning that
+                  the chooser offers both the AI-guided build and the manual
+                  wizard and sending everyone down one decides for them. That
+                  reasoning no longer holds: the builder's FIRST screen carries
+                  both "✨ Write with AI" beside the story field and a link to
+                  /ai-campaign, so nothing is decided by going there — the choice
+                  is simply made one screen later, in context, next to the field
+                  it affects. What the chooser did add was a whole screen between
+                  a visitor and the thing they clicked to do.
+
+                  The chooser is still a page and still reachable; it is just no
+                  longer in the way. /ai-campaign keeps its own links from the
+                  footer, /ai-fundraising and the builder itself, so the AI path
+                  did not lose a route in.
 
                   ⚠️ This replaced "See Our Impact" → /impact. /impact is still
                   reachable from the header nav ("Our Impact") and the footer, so
                   the page did not lose its only route in. */}
-              <Link href="/create/choose-path" className="mirror-btn mirror-btn-create">Create Campaign <Icon name="arrow" /></Link>
+              <Link href="/create" className="mirror-btn mirror-btn-create">Create Campaign <Icon name="arrow" /></Link>
             </div>
 
             {/* ⚠️ The reference puts a five-face avatar cluster here with
@@ -484,7 +495,7 @@ export default async function HomePage() {
             <h2 id="mirror-proof-title">Make an Impact Today <Icon name="heart" /></h2>
             <p>Small acts. Big change. Be part of something beautiful.</p>
             <div className="mirror-actions">
-              <Link href="/create/choose-path" className="mirror-btn mirror-btn-primary">Start a Fundraiser</Link>
+              <Link href="/create" className="mirror-btn mirror-btn-primary">Start a Fundraiser</Link>
               <Link href="/campaigns" className="mirror-btn mirror-btn-secondary">Donate Now <Icon name="heart" /></Link>
             </div>
           </div>

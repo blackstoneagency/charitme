@@ -6,6 +6,14 @@ This is a PWA, not a native shell (`app/manifest.ts` + `public/sw.js` +
 `components/PWARegister.tsx`; no Capacitor/Expo in any package.json). So "mobile app
 readiness" means PWA installability, offline, and mobile-web ergonomics.
 
+🤝 **Read alongside "MOBILE READINESS AUDIT — the headline is that it is CLEAN"
+below, by a parallel agent.** The two are complementary, not contradictory: that
+sweep covered horizontal overflow, tap targets and viewport meta across 111 PUBLIC
+routes on a DATABASE-LESS build. This one covers PWA/service-worker, forms and
+keyboards, safe-area, data wiring and payload, against a POPULATED build including
+signed-in surfaces. Neither found what the other found because neither looked there.
+Two of its conclusions corrected claims in this entry — see the ⚠️ rows below.
+
 Four read-only agents swept disjoint scopes against ONE populated build (Next + the
 Supabase stub) so nothing was audited twice: **PWA install/offline**, **layout & touch
 targets**, **forms/interaction/nav**, **data wiring & payload**. Every number below was
@@ -54,7 +62,7 @@ experience is the correct trade.
 | the mobile header scrolled away with **no other nav affordance** | at scroll 2500 on a 10,571px page the hamburger sat at `y:-2224`. Now `position: sticky` — **scoped to ≤1100px**, because desktop has no such defect and pinning it sitewide would change what every contrast/focus sweep measures on 200+ pages |
 | campaign tab strip could **chain a swipe to browser-back** | `scrollWidth 457` vs `clientWidth 356`; sibling strips already contain it. Added `overscroll-behavior-inline: contain` |
 | **no `env(safe-area-inset-*)` anywhere**, and `viewport-fit` never set | every bottom-anchored fixed control sat under the ~34px iOS home indicator — back-to-top, the mobile donate bar, the dashboard bottom nav, the locale menu, the install prompt. `viewportFit:'cover'` is load-bearing: without it every `env()` resolves to 0 and the `calc()` offsets do nothing |
-| `/donate` custom-amount input measured **167.9 × 22.5** | the 44px target was on the WRAPPER; the input was centred inside it, so half the area a donor aims at was not the field. WCAG 2.2 §2.5.8, in the primary money flow |
+| ⚠️ `/donate` custom-amount input measured **167.9 × 22.5** — but this is NOT the conformance failure my agent called it | The parallel audit **verified by tapping** that the 44px `.dn-money` wrapper focuses the input (`document.activeElement` → "Custom amount in US dollars"), so the EFFECTIVE target always passed. It was right and this entry's first draft was wrong. The `align-self: stretch` applied here is hygiene — it makes the measured element match the hit area so future sweeps stop re-flagging it — not a WCAG fix. **Measure what a thumb actually hits.** |
 | comment Like button **23.1 × 18**, breadcrumbs **19.5**, embed `<summary>` **18** | all under the 24px minimum; the Like button keeps its exact visual position via a compensating negative margin |
 | iOS install metas + manifest identity | added the legacy `apple-mobile-web-app-capable` (measured absent), `id: '/'`, and relaxed `orientation` off `portrait-primary` which locked out landscape everywhere including tablets |
 
@@ -109,10 +117,13 @@ at startup, which cost a full debugging cycle here.
       `.foot-badge-sub` is **9px**. 129 `font-size: 10px|11px` declarations in
       `app/globals.css`. Fix by raising the floor inside `@media (max-width: 760px)`
       rather than editing 129 rules, and treat 12px as the site minimum.
-- [ ] **~25 of 113 pages carry 15–21px link/button targets** — including
-      `/login` + `/signup`'s "Sign up"/"Log in" switch (21px, in the auth flow),
-      `/campaigns` card titles (18px), `/glossary` (16 links at 18px), `/impact`
-      (6 at 18px). Worth one shared rule, not 20 patches.
+- [ ] **~25 of 113 pages carry 15–21px link/button targets** — `/campaigns` card
+      titles (18px), `/glossary` (16 links at 18px), `/impact` (6 at 18px),
+      `/for-donors`, `/matching`, `/supported-countries`. Worth one shared rule, not
+      20 patches. ⚠️ **NOT the `/login`+`/signup` auth switch** — the parallel audit
+      already fixed that one (`.auth-switch button` is now `min-height: 32px` with a
+      focus ring), and it is exempt from WCAG 2.5.8 anyway under the inline
+      exception since it sits inside a sentence. Do not re-fix it.
 - [ ] **Checkboxes render 13×13** on `/donate`, `/give`, `/volunteer` (15×15 on
       `/campaigns`). The *effective* target passes because each is wrapped in a much
       larger clickable `<label>`, so this is an affordance problem rather than a
@@ -180,6 +191,118 @@ missing join look empty here. `/donor-wall` and `/community` are empty for that 
 **not app bugs**. Check both before filing anything from a stub measurement.
 
 ---
+## 📐 /campaigns BROWSE STRIP — regrouped, and the height trade is measured (Claude, 2026-08-09)
+
+The strip drove **two different filters** in one undifferentiated wall.
+"Emergency Aid" is `?cause=disaster-relief`; "Emergency" is
+`?category=Emergency`, and they sat seven tiles apart. "Women & Families" sat
+near "Family". Pairs that read as duplicates, look interchangeable, and return
+different result sets — with nothing on screen explaining why.
+
+Now two labelled groups, **Browse by cause** and **Browse by category**, so the
+distinction is visible instead of living in a code comment. A cause is editorial
+and spans several categories; a category is the `campaigns.category` value
+itself. Every tile still resolves to a real filter — `CAMPAIGN_CATEGORIES` for
+the second group, existing cause slugs for the first.
+
+The CSS is now **mobile-first**. The old rules were desktop-first with a
+`@media (max-width: 480px)` block that took the icon DOWN to 38px, so the
+smallest screen got the smallest touch target. 44px (WCAG 2.5.5) is now the
+floor in the base rule, and the media queries only add room at 560px and 900px.
+`campaigns-browse.test.ts` pins that every declared icon width is >= 44 in the
+base rule *and* every media query.
+
+### ⚠️ The strip got TALLER on a phone, and that is the honest number
+
+Measured in Chromium, `.cbx-browse` height:
+
+| width | columns | strip height |
+|---|---|---|
+| 320px | 3 | **789px** |
+| 390px | 4 | 721px |
+| 768px | 7 | 471px |
+| 1280px | 11 | 401px |
+
+Master's version was ~700px at 320px. The two group headings and the larger
+icons each cost height, so this trades ~90px of vertical space for a real
+accessibility floor and for killing the duplicate-label confusion. Worth it, but
+it is a trade and not a pure win.
+
+Two attempts to buy the height back both FAILED and are recorded so they are not
+retried blind:
+
+- **74px columns "for 4 across at 320px" gave THREE**, and an 874px strip. The
+  arithmetic forgot the page gutter, the panel padding and the inter-tile gaps —
+  the usable width is ~250px, not 320px. 64px was tried next and still gives
+  three; four needs ~58px, at which "Shelter & Housing" wraps to four lines and
+  the rows grow back.
+- **11px labels** bought no column and cost readability. Reverted to 12px.
+
+The lever that would actually work is not rendering 24 tiles at once on a phone
+— a collapse or a per-group scroller. Both were left alone deliberately: PR #298
+moved this strip OFF horizontal scrolling six days ago because 21 of 24
+categories sat outside the viewport with no affordance, and re-litigating a
+measured fix on a preference is how that bug comes back.
+
+**Verified after the change**: 0 AA contrast failures (110 pages x 2 themes,
+15,866 elements), 0 axe violations (222 loads), 0 horizontal overflow, 0 tap
+targets under 24px, 3625 tests.
+## 📱 MOBILE READINESS AUDIT — swept, and the headline is that it is CLEAN (Claude, 2026-08-09)
+
+End-to-end mobile audit against a production build. **The result is negative,
+and a negative result recorded is worth more than a fabricated finding.**
+
+| check | method | result |
+|---|---|---|
+| horizontal overflow, 320px | `audit:mobile`, 111 public routes | **0 findings** |
+| horizontal overflow, 390px | same | **0 findings** |
+| viewport meta | `app/layout.tsx` | `width=device-width, initialScale: 1`, and **no `maximumScale` / `userScalable:false`** — pinch-zoom is not blocked |
+| grid tracks (`minmax` vs bare `1fr`) | `mobile-grid-tracks.test.ts` | 10/10 pass |
+| tap targets < 24×24, 390px | new probe, 21 routes | 5 raw → **1 genuine** |
+
+### ⚠️ 4 OF 5 TAP FINDINGS WERE ARTIFACTS — check the EFFECTIVE target, not the element
+
+The same ratio `audit:focus-order` hit (7 of 7 artifacts on its first run). A
+raw `getBoundingClientRect()` on an `<input>` measures the wrong thing whenever
+a label or a styled wrapper is the real target:
+
+| raw finding | effective target | verdict |
+|---|---|---|
+| `/donate` checkbox 13×13 | wrapped in a **276×39 label** | artifact |
+| `/transparency` checkbox 16×16 | wrapped in a **227×24 label** | artifact |
+| `/donate` amount input 198×**23** | `.dn-money` visible field is **276×44**, label-wrapped | artifact |
+| `/donate` breadcrumb "Home" 38×20 | conventional breadcrumb | not worth a change |
+| `/login`+`/signup` auth-switch 60×**21** | none — bare text button | **genuine** |
+
+The amount-input one I initially called REAL and had to correct: tapping the
+44px visible field was verified to focus the input
+(`document.activeElement` → `Custom amount in US dollars`). **Measure what a
+thumb actually hits.**
+
+### The one genuine finding, and its honest severity
+
+`.auth-switch button` — the only control that flips the auth panel between
+Log in and Sign up — measured **60×21**. It sits inside a sentence
+("Need an account? Sign up"), so it is **EXEMPT from WCAG 2.5.8** under the
+inline exception. Calling it a conformance failure would be wrong.
+
+It is still the sole path to account creation from the login screen, and
+vertical padding costs nothing: now `min-height: 32px` with padding and a
+focus ring.
+
+### 🚧 What this audit CANNOT see, so nobody re-derives it
+
+- **Playwright still cannot reach production** — re-tested today, still
+  `net::ERR_CONNECTION_RESET`; chromium does not use the agent proxy that
+  `curl` does. Browser geometry is measurable on a LOCAL build only.
+- **The local build has no database**, so 5 data-dependent routes return HTTP
+  500 and are unmeasurable here. ⚠️ **They are fine on production** — verified
+  by `curl`: `/campaigns/<slug>` `/embed` `/share` `/updates` all 200. Do not
+  report those 500s as defects.
+- `/campaigns/<slug>/team` 404s on production and that is **correct** — the
+  route is `team/[peerSlug]`, there is no index page.
+- The **signed-in** surface is not covered here (`audit:mobile --auth` needs a
+  stub session). Public only, which is 111 routes.
 
 ## ✅ SIGNED-IN RELEASE AUDIT CLEAN ON THE COMBINED CAUSE-PAGE BRANCH (Codex, 2026-08-08)
 
@@ -202,7 +325,6 @@ The release branch also remains green for typecheck, lint, focused unit/contract
 tests, and the zero-state nine-persona Supabase platform matrix. PR #303 remains
 the release vehicle; production is not claimed until its exact head passes CI,
 is merged, and the tagged release workflow completes.
-
 ## 🏷️ A CARD SHOWED "✓ Verified" AND "Needs More Info" AT THE SAME TIME (Claude, 2026-08-08)
 
 Measured on production, `/supporter-space`, before the fix:
@@ -22490,3 +22612,98 @@ suggested path — this is an escape hatch for someone who is done, not a nag.
 - Collapse title/story/goal onto ONE first screen (they are three screens for
   three fields).
 - `/create/choose-path` is still an interstitial before the builder.
+
+### ✅ Round 3 shipped — three screens to publishable (2026-08-09)
+
+Reordered `CAMPAIGN_STEPS` so the three fields the publish gate actually wants
+come first, and opened the builder on the first of them.
+
+The wizard used to *start* on `basics` — `path` was only ever reached by
+pressing Back — so the lived order was basics → title → story → **media** →
+goal. Five screens, with an upload wedged between the story and the goal,
+before a draft was publishable at all.
+
+| | before | after |
+|---|---|---|
+| screens before publishable | 5 (then walk to review to publish) | **3** |
+| account required to start | yes | no |
+
+Measured in a browser: screen 1 "Name Your Campaign", screen 2 "Tell Your
+Story", screen 3 "Set Your Goal" → **Publish now appears**. 0 page errors.
+
+⚠️ **No step KEY changed, only the order.** Keys are what `normalizeStep`
+migrates and what live drafts hold, so a draft saved mid-flow still resolves to
+the screen it was on. A test pins every current key round-tripping plus the two
+legacy generations (`category`→`basics`, `summary`→`review`, `live`→`publish`).
+
+### Contrast of the new button — and a correction
+First measurement reported 9.49:1 in "both themes". **That was wrong**: the app
+re-applies its stored theme on load, so `setAttribute('data-theme','light')`
+was overwritten and the light run measured dark twice — the same false all-clear
+`audit:contrast` exists to prevent.
+
+Setting `localStorage['charitme-theme-v2']` before load instead:
+
+| theme | fg on bg | ratio |
+|---|---|---|
+| dark | `rgb(74,222,128)` on `rgb(24,28,60)` | **9.49:1** |
+| light | `rgb(13,120,60)` on `rgb(250,251,255)` | **5.39:1** |
+
+Both pass AA. ⚠️ For anyone theming this app in a browser: set the
+localStorage key, not the attribute.
+
+### ✅ Round 4 — one screen, two clicks, and the interstitial is out of the way (2026-08-09)
+
+**`title`, `story` and `goal` are now ONE step, `essentials`**, and it is where
+the builder opens. Three Continue presses and two page transitions to enter
+three fields is not a flow, it is a queue.
+
+This is the same merge that produced `basics` (`type`/`category`/`location` were
+three near-empty screens once), and it is migrated the same way — through
+`LEGACY_STEP_MAP`. That map is not historical debt; it is the mechanism that
+lets this flow keep improving without stranding drafts already in flight.
+
+⚠️ **Drafts live 7 days**, so people are holding `title`, `story` and `goal`
+right now. All three map to `essentials`, and a test asserts every current key
+round-trips plus all three legacy generations. An unmapped key renders no
+branch — a blank screen that looks exactly like their work being deleted.
+
+The step count went 12 → 10, so the hardcoded `toHaveLength(12)` assertions
+were rewritten to derive from the model. The path has been 9, 7, 12 and now 10
+steps; pinning a number just means editing it again next time.
+
+### The homepage no longer routes through a chooser
+`/create/choose-path` existed so the AI-vs-manual choice was not made for the
+visitor. That reasoning stopped holding: the builder's FIRST screen now carries
+both "✨ Write with AI" beside the story field and its own link to
+`/ai-campaign`. Nothing is decided by going straight there — the choice is made
+one screen later, in context, next to the field it affects.
+
+The chooser is still a page and still reachable; it is just no longer in the
+way. `/ai-campaign` keeps links from the footer, `/ai-fundraising` and the
+builder, so the AI path did not lose a route in. The test that REQUIRED the
+chooser was inverted, with its reasoning rewritten rather than deleted.
+
+### End to end, measured
+
+```
+homepage → click "Create Campaign" → /create → fill three fields → Publish
+```
+
+| | |
+|---|---|
+| screens visited | **2** |
+| clicks to publish | **2** |
+| seconds, end to end | **7.7** |
+| POST /api/campaigns | **201** |
+| page errors | 0 |
+
+**Where this started:** homepage → chooser → `/create` → 307 to `/login` →
+sign up → basics → title → story → media → goal → rewards → payout → verify →
+review → launch.
+
+### Still open, and honestly out of scope for "frictionless"
+- A real charge has still never run (owner-blocked on Stripe test keys).
+- Nine other pages still link to the chooser (`/fast-payouts`, `/features`,
+  `/ai-fundraising`, …). The homepage is the entry point that mattered; the
+  rest are secondary CTAs on pages a visitor reached deliberately.

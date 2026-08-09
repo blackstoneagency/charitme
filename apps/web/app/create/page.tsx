@@ -69,7 +69,7 @@ import AiFollowUps from './AiFollowUps';
 import ReadinessChecklist from './ReadinessChecklist';
 import GoalProceedsBreakdown from './GoalProceedsBreakdown';
 import StorySectionsEditor from './StorySectionsEditor';
-import { publishReadiness } from '../../lib/campaign-readiness';
+import { publishReadiness, type ReadinessStep } from '../../lib/campaign-readiness';
 import FeatureUpsell from './FeatureUpsell';
 import { analyzeStory } from '../../lib/story-analysis';
 
@@ -257,7 +257,13 @@ function CampaignPreviewModal({
   goalDisplay: string;
   imageCount: number;
   goalCents: number;
-  onGoToStep: (step: WizardStep) => void;
+  /**
+   * Field-named, not screen-named. The modal lists what a donor looks for —
+   * "a title", "a story" — so its items keep those names even though title,
+   * story and goal now share one screen. The page maps them to the screen via
+   * `stepForReadiness`, in exactly one place.
+   */
+  onGoToStep: (step: ReadinessStep) => void;
   onClose: () => void;
   onLaunch: () => void;
   launching: boolean;
@@ -387,7 +393,11 @@ function CampaignPreviewModal({
 const BUILDER_ERROR_ID = 'cr2-builder-error';
 
 export default function CreatePage() {
-  const [step, setStep]               = useState<WizardStep>('basics');
+  // Opens on `title`, not `basics`. The gate wants a title, a story and a goal;
+  // opening on category/location put an administrative screen in front of the
+  // only three fields that decide whether this campaign can go live at all.
+  // `path` is still reachable by going Back, exactly as it was from `basics`.
+  const [step, setStep]               = useState<WizardStep>('essentials');
   const [loading, setLoading]         = useState(false);
   const [aiLoading, setAiLoading]     = useState(false);
   const [storyMode, setStoryMode]     = useState<'freeform' | 'guided'>('freeform');
@@ -607,7 +617,7 @@ export default function CreatePage() {
     if (typeof window !== 'undefined') localStorage.removeItem(CAMPAIGN_DRAFT_KEY);
     setForm(EMPTY_FORM);
     setUploadedImages([]);
-    setStep('basics');
+    setStep('essentials');
     setSavedAt(null);
     draftDecided.current = true;
     setRecoverableDraft(null);
@@ -752,7 +762,7 @@ export default function CreatePage() {
   // also hit "AI improve". Seeds once so it never fights the user's edits.
   const titleSeededRef = useRef(false);
   useEffect(() => {
-    if (step !== 'title' || titleSeededRef.current) return;
+    if (step !== 'essentials' || titleSeededRef.current) return;
     titleSeededRef.current = true;
     setForm(prev => (prev.title.trim() ? prev : { ...prev, title: suggestCampaignTitle(prev) }));
   }, [step]);
@@ -819,7 +829,7 @@ export default function CreatePage() {
   // is unavailable or the category has too few comparables, the step simply
   // renders as it did before rather than showing a made-up range.
   useEffect(() => {
-    if (step !== 'goal' || !form.category) return;
+    if (step !== 'essentials' || !form.category) return;
     let cancelled = false;
     void (async () => {
       try {
@@ -1003,7 +1013,7 @@ export default function CreatePage() {
       category: fields.category ?? prev.category,
       goal: prev.goal.trim() || (fields.goalCents ? String(Math.round(fields.goalCents / 100)) : prev.goal),
     }));
-    setStep('story');
+    setStep('essentials');
     void runAi(seed);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1013,18 +1023,18 @@ export default function CreatePage() {
     // that owns it — an error on the Review screen is otherwise a dead end.
     if (form.title.trim().length < 3) {
       setError('Campaign title must be at least 3 characters.');
-      setStep('title');
+      setStep('essentials');
       return;
     }
     if (status === 'active') {
       if (form.description.trim().length < 20) {
         setError('Campaign story must be at least 20 characters.');
-        setStep('story');
+        setStep('essentials');
         return;
       }
       if (goalCents < 100) {
         setError('Fundraising goal must be at least $1.00.');
-        setStep('goal');
+        setStep('essentials');
         return;
       }
     }
@@ -1125,6 +1135,18 @@ export default function CreatePage() {
    * gate that stopped asking for anything four screens ago is the friction, so
    * the moment those three are satisfied the option to publish appears.
    */
+  /**
+   * Where a readiness item's "fix this" jumps to.
+   *
+   * `ReadinessStep` names the FIELD's owner — title, story, goal — and that is
+   * worth keeping: the checklist should say which thing is missing, not which
+   * screen happens to hold it this month. The screen those three now share is
+   * `essentials`, so the mapping lives here rather than flattening the
+   * checklist's vocabulary to match the current layout.
+   */
+  const stepForReadiness = (r: ReadinessStep): WizardStep =>
+    r === 'title' || r === 'story' || r === 'goal' ? 'essentials' : r;
+
   const readiness = publishReadiness({
     title: form.title,
     description: form.description,
@@ -1329,7 +1351,7 @@ export default function CreatePage() {
           goalDisplay={goalDisplay}
           imageCount={uploadedImages.filter(i => i.status === 'done').length}
           goalCents={goalCents}
-          onGoToStep={(s) => setStep(s)}
+          onGoToStep={(s) => setStep(stepForReadiness(s))}
           onClose={() => setShowPreviewModal(false)}
           onLaunch={() => {
             setShowPreviewModal(false);
@@ -1407,7 +1429,53 @@ export default function CreatePage() {
             <section className="cr2-form-card">
 
               {/* AI banner — story step only */}
-              {step === 'story' && (
+              {step === 'essentials' && (
+                <div className="cr2-title-panel">
+                  <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 22, flexWrap: 'wrap' }}>
+                    <h2 className="cr2-step-q" style={{ padding: 0, margin: 0 }}>Give your fundraiser a Title</h2>
+                    <button
+                      type="button"
+                      className="cr2-ai-suggest"
+                      onClick={async () => {
+                        setAiLoading(true);
+                        try {
+                          const res = await fetch('/api/ai/campaign', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ category: form.category, goalAmount: goalCents || 500000, beneficiary: form.beneficiaryName || 'the beneficiary', notes: form.description?.trim() || 'Help us write a compelling fundraiser.', tone: 'authentic' }) });
+                          const data = await res.json();
+                          if (res.ok && typeof data.title === 'string' && data.title.trim()) upd('title', data.title.slice(0, 80));
+                        } catch { /* silent */ } finally { setAiLoading(false); }
+                      }}
+                      disabled={aiLoading}
+                    >
+                      {aiLoading ? '✨ Thinking…' : '✨ AI improve'}
+                    </button>
+                  </div>
+
+                  <p style={{ margin: '0 0 16px', fontSize: 13.5, color: 'var(--t3)', lineHeight: 1.5 }}>
+                    We&rsquo;ve suggested a title from your story — edit it, or tap <strong>AI improve</strong> for a polished version.
+                  </p>
+
+                  <div className="cr2-title-input-wrap">
+                    <input
+                      type="text"
+                      aria-label="Campaign title"
+                      className="cr2-title-big"
+                      ref={titleInputRef}
+                      value={form.title}
+                      onChange={e => upd('title', e.target.value.slice(0, 80))}
+                      placeholder="Donate to help..."
+                      maxLength={80}
+                      aria-invalid={errorField === 'title' || undefined}
+                      aria-describedby={errorField === 'title' ? BUILDER_ERROR_ID : undefined}
+                    />
+                    <span className={`cr2-char-count${form.title.length > 70 ? ' warn' : ''}`}>
+                      {form.title.length}/80
+                    </span>
+                  </div>
+                  {error && <div id={BUILDER_ERROR_ID} className="cr2-error" role="alert" style={{ margin: '14px 0 0' }}>{error}</div>}
+                </div>
+              )}
+
+              {step === 'essentials' && (
                 <div className="cr2-ai-banner">
                   <div className="cr2-ai-banner-orb"><KFIcon name="send" /></div>
                   <div className="cr2-ai-banner-text">
@@ -1549,7 +1617,7 @@ export default function CreatePage() {
               )}
 
               {/* ── Step: Story ── */}
-              {step === 'story' && (
+              {step === 'essentials' && (
                 <div className="cr2-form-panel">
                   <h2 className="cr2-step-q" style={{ padding: 0, marginBottom: 8 }}>Tell Donors Your Story.</h2>
 
@@ -1643,54 +1711,9 @@ export default function CreatePage() {
               )}
 
               {/* ── Step: Title ── */}
-              {step === 'title' && (
-                <div className="cr2-title-panel">
-                  <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 22, flexWrap: 'wrap' }}>
-                    <h2 className="cr2-step-q" style={{ padding: 0, margin: 0 }}>Give your fundraiser a Title</h2>
-                    <button
-                      type="button"
-                      className="cr2-ai-suggest"
-                      onClick={async () => {
-                        setAiLoading(true);
-                        try {
-                          const res = await fetch('/api/ai/campaign', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ category: form.category, goalAmount: goalCents || 500000, beneficiary: form.beneficiaryName || 'the beneficiary', notes: form.description?.trim() || 'Help us write a compelling fundraiser.', tone: 'authentic' }) });
-                          const data = await res.json();
-                          if (res.ok && typeof data.title === 'string' && data.title.trim()) upd('title', data.title.slice(0, 80));
-                        } catch { /* silent */ } finally { setAiLoading(false); }
-                      }}
-                      disabled={aiLoading}
-                    >
-                      {aiLoading ? '✨ Thinking…' : '✨ AI improve'}
-                    </button>
-                  </div>
-
-                  <p style={{ margin: '0 0 16px', fontSize: 13.5, color: 'var(--t3)', lineHeight: 1.5 }}>
-                    We&rsquo;ve suggested a title from your story — edit it, or tap <strong>AI improve</strong> for a polished version.
-                  </p>
-
-                  <div className="cr2-title-input-wrap">
-                    <input
-                      type="text"
-                      aria-label="Campaign title"
-                      className="cr2-title-big"
-                      ref={titleInputRef}
-                      value={form.title}
-                      onChange={e => upd('title', e.target.value.slice(0, 80))}
-                      placeholder="Donate to help..."
-                      maxLength={80}
-                      aria-invalid={errorField === 'title' || undefined}
-                      aria-describedby={errorField === 'title' ? BUILDER_ERROR_ID : undefined}
-                    />
-                    <span className={`cr2-char-count${form.title.length > 70 ? ' warn' : ''}`}>
-                      {form.title.length}/80
-                    </span>
-                  </div>
-                  {error && <div id={BUILDER_ERROR_ID} className="cr2-error" role="alert" style={{ margin: '14px 0 0' }}>{error}</div>}
-                </div>
-              )}
 
               {/* ── Step: Goal ── */}
-              {step === 'goal' && (
+              {step === 'essentials' && (
                 <div className="cr2-form-panel">
                   <h2 className="cr2-step-q" style={{ padding: 0, marginBottom: 8 }}>How much would you like to raise?</h2>
 
@@ -2127,7 +2150,7 @@ export default function CreatePage() {
                   <div style={{ margin: '14px 0' }}>
                     <ReadinessChecklist
                       readiness={readiness}
-                      onGoToStep={(s) => setStep(s)}
+                      onGoToStep={(s) => setStep(stepForReadiness(s))}
                     />
                   </div>
 
@@ -2180,7 +2203,7 @@ export default function CreatePage() {
                     <div className="cr2-review-row">
                       <span className="cr2-review-label">Title</span>
                       <span className="cr2-review-val">{form.title || <span style={{ color: 'var(--red-text)' }}>Not set</span>}</span>
-                      <button type="button" className="cr2-review-edit" onClick={() => setStep('title')}>Edit</button>
+                      <button type="button" className="cr2-review-edit" onClick={() => setStep('essentials')}>Edit</button>
                     </div>
 
                     {/* Goal */}
@@ -2190,7 +2213,7 @@ export default function CreatePage() {
                         {goalCents >= 100 ? `$${(goalCents / 100).toLocaleString()}` : <span style={{ color: 'var(--red-text)' }}>Not set</span>}
                         {form.autoGoal === 'true' && <span className="cr2-automated-badge">AUTOMATED</span>}
                       </span>
-                      <button type="button" className="cr2-review-edit" onClick={() => setStep('goal')}>Edit</button>
+                      <button type="button" className="cr2-review-edit" onClick={() => setStep('essentials')}>Edit</button>
                     </div>
 
                     {/* Location */}
@@ -2210,7 +2233,7 @@ export default function CreatePage() {
                           ? `${form.description.slice(0, 80)}${form.description.length > 80 ? '…' : ''}`
                           : <span style={{ color: 'var(--red-text)' }}>Story too short (min 20 chars)</span>}
                       </span>
-                      <button type="button" className="cr2-review-edit" onClick={() => setStep('story')}>Edit</button>
+                      <button type="button" className="cr2-review-edit" onClick={() => setStep('essentials')}>Edit</button>
                     </div>
                   </div>
 
@@ -2224,7 +2247,7 @@ export default function CreatePage() {
               )}
 
               {/* Error (global, not shown inside title step which has inline) */}
-              {error && step !== 'title' && <div id={BUILDER_ERROR_ID} className="cr2-error" role="alert">{error}</div>}
+              {error && step !== 'essentials' && <div id={BUILDER_ERROR_ID} className="cr2-error" role="alert">{error}</div>}
 
               {/* Navigation */}
               <div className="cr2-nav">
@@ -2564,7 +2587,7 @@ function computeScore(form: FormState, step: WizardStep, payoutLinked: boolean, 
   const reached = (target: WizardStep) =>
     CAMPAIGN_STEPS.indexOf(step) >= CAMPAIGN_STEPS.indexOf(target);
 
-  const identity: ScoreState   = isGuest === false ? 'verified' : (reached('story') ? 'watch' : 'pending');
+  const identity: ScoreState   = isGuest === false ? 'verified' : (reached('essentials') ? 'watch' : 'pending');
   const beneficiary: ScoreState = form.description.length > 200 ? 'verified'
     : form.description.length > 50 ? 'watch' : 'pending';
   const payout: ScoreState     = payoutLinked ? 'verified' : (reached('publish') ? 'watch' : 'pending');
