@@ -21,6 +21,10 @@ const campaignControls = readFileSync(
   join(__dirname, '../app/dashboard/campaigns/[id]/_components/CampaignControls.tsx'),
   'utf8',
 );
+const trustSafety = readFileSync(
+  join(__dirname, '../app/admin/trust-safety/page.tsx'),
+  'utf8',
+);
 
 /** Extract `--name: #hex;` declarations from a single CSS block body. */
 function parseTokens(block: string): Record<string, string> {
@@ -109,5 +113,16 @@ describe('theme token contrast (WCAG 2.2 AA)', () => {
 
   it('gives completed create steps a readable dark-theme label', () => {
     expect(css).toContain('[data-theme="dark"] .cr2-track-item.done .cr2-track-label { color: var(--violet-ink); }');
+  });
+
+  it('keeps the signed-in identity readable on the always-black global header', () => {
+    expect(contrast('#d8dee5', '#000000')).toBeGreaterThanOrEqual(AA_NORMAL);
+    expect(css).toContain('.kind-header .kind-user-btn { color: #d8dee5; }');
+  });
+
+  it('uses a theme-aware surface for the trust flag resolution action', () => {
+    expect(trustSafety).toContain("background: 'var(--green-light)'");
+    expect(trustSafety).toContain("border: '1px solid var(--green-dark)'");
+    expect(trustSafety).not.toContain("background: '#f0fff4'");
   });
 });

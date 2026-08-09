@@ -70,6 +70,18 @@ const NIL_UUID = '00000000-0000-0000-0000-000000000000';
 /** @type {Probe[]} */
 const PROBES = [
   {
+    migration: '20260831000000_seed_priority_cause_catalogs',
+    proves: 'campaigns priority cause catalog rows',
+    firstCreatedIn: '20260831000000_seed_priority_cause_catalogs',
+    path: '/api/campaigns?category=Education&limit=100&sort=newest',
+    ok: (b) => Array.isArray(b?.campaigns)
+      && b.campaigns.filter((campaign) =>
+        campaign?.is_demo === true
+        && /^charitme-example-education-\d{2}$/.test(campaign?.slug ?? ''),
+      ).length === 50,
+    control: { path: '/api/campaigns?category=not-a-real-category', status: 400 },
+  },
+  {
     migration: '20260805000000_reconcile_runtime_tables',
     proves: 'campaign_milestones',
     firstCreatedIn: '20260805000000_reconcile_runtime_tables',
@@ -184,6 +196,7 @@ async function findPeerFundraiserPage(base, get) {
  * re-derive it, and does not mistake "not probed" for "not applied".
  */
 const NO_PUBLIC_SIGNAL = [
+  ['20260830000000_protect_verification_and_campaign_integrity', 'database triggers reject privileged writes to campaigns, nonprofit profiles, and verification documents; proving the rejection requires an authenticated destructive test, which runs in the isolated staging platform matrix instead of against production'],
   ['20260829000000_reconcile_live_schema_columns', 'the migration records 49 columns that already exist in production, so every public reader succeeds both before and after the ledger entry is applied; only the migration ledger can distinguish those states'],
   ['20260828000000_repair_editorial_admin_policies', 'RLS policy replacement; a successful public read cannot distinguish the hardened is_admin predicate from the legacy generated-role predicate'],
   ['20260827010000_donations_columns_missing_from_migrations', 'no-op against production BY CONSTRUCTION — all five columns already exist live, which is why it was written; a probe could only confirm what schema-columns.json already records. It matters solely for provisioning a NEW database, where its absence makes record_donation raise 42703 on the first donation'],

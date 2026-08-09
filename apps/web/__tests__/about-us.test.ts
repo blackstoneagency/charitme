@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { parseTeam, parseVideoUrl, initials } from '../lib/about-page';
+import { parseTeam, parseVideoUrl, initials, withDefaultTeamPhotos } from '../lib/about-page';
 import { parseImpactTiles } from '../lib/impact-stats';
 import { VALID_CATEGORIES, DEFAULTS } from '../lib/settings-defaults';
 
@@ -115,6 +115,29 @@ describe('the roster is real content or no content', () => {
     expect(parseTeam([{ name: 'A B', title: 'Lead', photo: 'javascript:alert(1)' }])[0].photo).toBeUndefined();
     expect(parseTeam([{ name: 'A B', title: 'Lead', photo: 'https://x/y.jpg' }])[0].photo).toBe('https://x/y.jpg');
   });
+
+  it('accepts only the bounded local team-image path', () => {
+    expect(parseTeam([{ name: 'A B', title: 'Lead', photo: '/images/team/a-b.jpg' }])[0].photo)
+      .toBe('/images/team/a-b.jpg');
+    for (const bad of ['/images/team/../secret.jpg', '/uploads/a-b.jpg', '//evil.test/a.jpg']) {
+      expect(parseTeam([{ name: 'A B', title: 'Lead', photo: bad }])[0].photo).toBeUndefined();
+    }
+  });
+
+  it('adds a default portrait to the matching Supabase roster without replacing admin photos', () => {
+    const defaults = parseTeam(DEFAULTS.about.teamRoster);
+    const sarah = defaults.find((member) => member.name === 'Sarah Johnson');
+    expect(sarah?.photo).toBe('/images/team/sarah-johnson.jpg');
+
+    const hydrated = withDefaultTeamPhotos([
+      { name: 'Sarah Johnson', title: 'Chief Executive Officer' },
+      { name: 'Michael Patel', title: 'Chief Technology Officer', photo: 'https://example.com/michael.jpg' },
+      { name: 'Custom Person', title: 'Custom Role' },
+    ]);
+    expect(hydrated[0].photo).toBe('/images/team/sarah-johnson.jpg');
+    expect(hydrated[1].photo).toBe('https://example.com/michael.jpg');
+    expect(hydrated[2].photo).toBeUndefined();
+  });
 });
 
 describe('the story video button', () => {
@@ -194,7 +217,12 @@ describe('the settings category is wired end to end', () => {
     for (const member of team) {
       expect(member.name.length).toBeGreaterThan(0);
       expect(member.title.length).toBeGreaterThan(0);
+      expect(member.photo).toMatch(/^\/images\/team\/[a-z0-9-]+\.jpg$/);
+      const imagePath = resolve(__dirname, '..', 'public', member.photo!.slice(1));
+      expect(readFileSync(imagePath).byteLength).toBeGreaterThan(20_000);
     }
+
+    expect(teamUi).toContain('Representative photography is shown until verified team portraits are supplied.');
 
     const tiles = parseImpactTiles(DEFAULTS.about.impactStats);
     expect(tiles).toHaveLength(5);
