@@ -241,15 +241,33 @@ mcp__github__actions_get  method=get_workflow_job        resource_id=<job_id>
 
 | | runners DEAD (ignore the red check) | runners ALIVE (fix the red check) |
 |---|---|---|
-| `billable.UBUNTU.total_ms` | **0** | thousands |
+| ~~`billable.UBUNTU.total_ms`~~ | ~~**0**~~ | ~~thousands~~ — ⚠️ **USELESS NOW, see below** |
 | `runner_id` | **0** | e.g. `1000001483` |
 | `runner_name` | **empty** | e.g. `"GitHub Actions 1000001483"` |
 | duration | ~10s, start≈finish | minutes (~3m09s for a full run) |
 | steps | **none** | checkout → setup-node → install → typecheck → lint → tests → audit → build |
 | logs | 404 | present |
 
+⚠️ **`billable.UBUNTU.total_ms` NO LONGER DISCRIMINATES — it reads 0 on a
+perfectly healthy run.** Public repositories get free Actions minutes, so nothing
+is billed and the field is 0 whether the run did three minutes of work or never
+started. Measured 2026-08-09 on run `31281889561`: `total_ms: 0` for both jobs,
+while job `93164461821` carried `runner_id: 1000002118`, a populated
+`runner_name`, the full step list, and **3m23s** of real execution. Reading the
+old top row alone would have called that run dead and dismissed a genuine
+failure. **Use `runner_id` / `runner_name` / the step list.** This is a direct
+consequence of the repo going public — the same change that ended the outage
+also broke the cheapest test for it.
+
 **Also check `master`.** If master's recent runs fail identically, the failure is
 not your branch. Both facts together are conclusive.
+
+⚠️ **And check WHICH COMMIT the red run used.** A failing check on a PR may be
+pinned to a superseded tip. On 2026-08-09 PR #314 showed a red
+"Signed-in contrast audit" from commit `0d98de27`; re-running the same audit on
+the branch's actual tip gave **0 failures across 226 pages × 2 themes**, because
+master had since fixed it. Compare `head_sha` against your branch tip before
+spending time on a red check.
 
 **Timeline so far:** dead for ~2 weeks → alive 2026-08-01 (run `30704209059`,
 `runner_id: 1000001483`, 3m09s) → **dead again 2026-08-02**, verified on run

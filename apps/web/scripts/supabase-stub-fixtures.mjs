@@ -71,6 +71,15 @@ export const STUB_PERSONAS = [
   },
 ];
 
+/**
+ * The `--no-admin` persona's id, LOOKED UP rather than written twice. Rows that
+ * an ordinary member has to OWN (see volunteer_opportunities) belong to this id;
+ * hardcoding it here would be a second copy that the sweep could silently
+ * outgrow — which is the exact shape of the bug the ownership comment describes.
+ */
+const ORGANIZER_ID = STUB_PERSONAS.find((p) => p.key === 'organizer')?.id;
+if (!ORGANIZER_ID) throw new Error('the organizer persona is gone — fixtures owned by it would be ownerless');
+
 /** Seeded LCG (numerical recipes constants) — no dependency, stable across Node versions. */
 function rng(seed = 1337) {
   let s = seed >>> 0;
@@ -353,13 +362,22 @@ export function buildFixtures() {
       is_remote: false,
       starts_at: daysAgo(-14),
       ends_at: daysAgo(-13),
-      created_by: USER_ID,
+      // Owned by the ORGANIZER persona, not the super-admin one, and that is
+      // deliberate. /volunteer/manage/[id] redirects anyone who is neither the
+      // owner nor an admin — so with this row owned by …0001 the member-mode
+      // sweeps (`--no-admin`, which runs as …0012) were redirected to /volunteer
+      // and the manage page, check-in codes and all, was never measured by
+      // anything. Owned by the organizer it renders for BOTH: the member by
+      // ownership, the admin by the admin bypass on the line above the redirect.
+      created_by: ORGANIZER_ID,
       // ⚠️ 'open', not 'active'. `volunteer_opportunities.status` allows only
-      // open | upcoming | closed, and every reader filters
-      // `.in('status', ['open','upcoming'])`. With 'active' the filter matched
+      // open | upcoming | closed, and every LIST reader filters
+      // `.in('status', ['open','upcoming'])`. With 'active' that filter matched
       // NOTHING, so /volunteer, /volunteer/[slug], the categories facet and the
       // opportunity cards rendered a permanent zero-state and passed every audit
       // having measured none of them. Same shape as the supported_countries bug.
+      // Orthogonal to the ownership fix above — that one is about the manage
+      // page, which is reached by id and never goes through this filter.
       status: 'open',
       deleted_at: null,
       created_at: daysAgo(20),

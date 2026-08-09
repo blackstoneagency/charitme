@@ -49,13 +49,21 @@ export const viewport: Viewport = {
   themeColor: '#6d35ff',
   width: 'device-width',
   initialScale: 1,
-  // ⚠️ Load-bearing for the safe-area insets below. Without `viewport-fit: cover`
-  // every `env(safe-area-inset-*)` resolves to 0, so the calc() offsets on the
-  // bottom-anchored controls would silently do nothing. Measured: nothing in this
-  // repo referenced safe-area at all, and every bottom-fixed control (back-to-top,
-  // the mobile donate bar, the dashboard bottom nav, the locale menu, the install
-  // prompt) sat under the ~34px iOS home indicator.
-  viewportFit: 'cover',
+  // ⚠️ Edge-to-edge is deliberately NOT enabled here, and that is the fix rather
+  // than an omission.
+  //
+  // My mobile audit reported that every bottom-anchored fixed control sits under
+  // the ~34px iOS home indicator, and I opted into edge-to-edge plus insets to
+  // "fix" it. That was WRONG, and __tests__/viewport-safe-area.test.ts caught it.
+  // The default lays the page out INSIDE the display's safe rectangle, so nothing
+  // renders under the home indicator, the notch or the rounded corners, and
+  // `env(safe-area-inset-*)` correctly returns 0 because there is nothing to inset
+  // past. Opting out makes every edge-anchored and full-bleed element the author's
+  // problem at once — so doing it while handling one inset on one element is worse
+  // than leaving the default alone.
+  //
+  // The guard greps this file for the literal setting, so do not spell it out in a
+  // comment either: a quoted mention fails the test exactly like a real one.
 };
 
 // Inline script runs before React hydration to apply the saved theme with no flash.

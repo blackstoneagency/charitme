@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { safeNextPath } from './lib/auth-config';
 import { LOCALE_COOKIE, LOCALE_HEADER, isSupportedMarketLocale, negotiateMarketLocale, resolveMarketLocale } from './lib/i18n';
 
-const PROTECTED = ['/create', '/dashboard', '/profile', '/admin'];
+export const PROTECTED = ['/create', '/dashboard', '/profile', '/admin'];
 // Public exceptions that fall UNDER a protected prefix.
 //
 // ⚠️ `/create` itself is one of them, and that is the point rather than an
@@ -24,7 +24,7 @@ const PROTECTED = ['/create', '/dashboard', '/profile', '/admin'];
 // the Stripe Connect route all call `requireUser()`. A guest can therefore build
 // and preview, and is asked to sign in at PUBLISH, where identity first means
 // something: a campaign needs an owner.
-const PUBLIC_EXCEPTIONS = ['/create/choose-path', '/create'];
+export const PUBLIC_EXCEPTIONS = ['/create/choose-path', '/create'];
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
 /**

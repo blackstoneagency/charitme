@@ -42,15 +42,39 @@ on:
     branches: [master]
     paths-ignore: *docs-only
 
-# Cancel superseded runs on the same ref (e.g. rapid pushes to a PR branch).
+# Cancel superseded runs on the same ref (e.g. rapid pushes to a PR branch) —
+# but NEVER on master.
+#
+# ⚠️ Measured 2026-08-09: master's post-merge CI could not finish AT ALL. Eight
+# merges landed between 00:56 and 02:07 (mean gap 10.2 min, largest 17.7), while
+# a full run needs upwards of an hour — the one e2e step that ever COMPLETED took
+# 51.9m, and later ones were still running at 64m and 71m when observed (those
+# are lower bounds, not durations; see the note above `timeout-minutes` below).
+# Result: 7 runs cancelled, 1 still running, ZERO completed. Every
+# master run was killed by the next merge before it cleared the build step, so a
+# red master would have been invisible and "green on master" was not a claim
+# anyone could substantiate.
+#
+# The fix gives each master COMMIT its own group, so master runs never cancel one
+# another. Deliberately NOT `cancel-in-progress: false` on the shared group:
+# that makes runs QUEUE instead, and at a 10-minute merge cadence against
+# 60-minute runs the queue grows without bound — trading an absent signal for an
+# ever-later one.
+#
+# The expression appends the sha ONLY on master; on every other ref it appends
+# the empty string, so PR behaviour is byte-for-byte what it was — a new push to
+# a PR branch still cancels its predecessor, which is the case this was written
+# for. Public repo, so the extra parallel runs cost no billable minutes.
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}-${{ github.ref == 'refs/heads/master' && github.sha || '' }}
   cancel-in-progress: true
 
 jobs:
   migration-replay:
     name: replay migrations and seeds from zero
     runs-on: ubuntu-latest
+    # Observed ~3m45s end to end. 45 min is ~12x headroom and still bounds a hang.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
@@ -86,6 +110,25 @@ jobs:
       - name: Verify staging personas, tenants, data, and storage
         run: npm run test:platform-matrix
 
+      # Authenticated RLS smoke, against the database this job just built from
+      # zero. todo.md carried five near-identical open items reading "apply the
+      # migration to staging and run authenticated RLS/payment smoke tests" —
+      # all five waiting on an owner-provisioned staging project that does not
+      # exist yet, so NOTHING ran an authenticated RLS check on any commit.
+      #
+      # This does not replace that project: an isolated replay is not a
+      # production-shaped environment, and the pre-production gate still belongs
+      # to the release workflow. What it does is make the *verification* half
+      # real and continuous — anon must read zero rows from profiles, donations
+      # and privacy_requests, and two freshly-created personas must each see
+      # their own profile and never each other's. The script bootstraps and
+      # deletes those personas itself and refuses any non-loopback URL.
+      - name: Authenticated RLS smoke (isolated replay)
+        env:
+          BOOTSTRAP_LOCAL_RLS_PERSONAS: 'true'
+          REQUIRE_AUTHENTICATED_RLS_PERSONAS: 'true'
+        run: npm run test:rls-live
+
       - name: Stop isolated database
         if: always()
         run: npx supabase stop --no-backup || true
@@ -93,6 +136,33 @@ jobs:
   verify:
     name: typecheck · lint · test · build · e2e · a11y
     runs-on: ubuntu-latest
+    # ⚠️ This is the deliberate replacement for a safety net that used to exist by
+    # ACCIDENT. Before master stopped cancelling its own runs (see the concurrency
+    # block above), a hung master run was cleared by the next merge. It no longer
+    # is — which is the point of that change, but it means a hang now sits until
+    # GitHub's default 360-minute cap, holding a runner and delaying the verdict
+    # by six hours.
+    #
+    # 180 min against what has actually been MEASURED. Being precise about that,
+    # because the first version of this comment was not:
+    #
+    #   · e2e, completed:  51.9m  (run 31286083199, 00:29:49 -> 01:21:41)
+    #   · e2e, lower bounds on runs that had not finished when observed:
+    #                     >=71m  (run 31289682235)  ~64m  (run 31292380747)
+    #
+    # ⚠️ Only the first is a duration. The other two are "still running when I
+    # looked", which is a lower bound, not a measurement — an earlier draft of
+    # this comment read "51.9m, 70m and 95m+ on successive commits" and called
+    # that GROWTH. It is not: you cannot trend three numbers when two of them are
+    # lower bounds on runs that never completed, and the 95m figure was simply
+    # wrong. Do not cite a trend here until two runs have finished and been
+    # compared.
+    #
+    # The bound is generous because the honest spread is wide, not because the
+    # suite is known to be growing. It is here to catch a HANG, not to police a
+    # slow suite. If a run ever trips it, the e2e suite has outgrown a single job
+    # and should be split, not given a bigger number.
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
 
