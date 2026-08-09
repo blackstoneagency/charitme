@@ -242,6 +242,38 @@ fix, not a note to file — the absent surface is exactly where defects survive.
       first measurement claimed. ⚠️ Ratio thresholds on images must be computed in DEVICE
       pixels, or you will chase phantom savings and ship blur.
 
+### ✅ TWO MORE AUDIT FINDINGS THAT THE TRACKER HAD LOST
+
+Both were in the data sweep's report and never actioned. Found by re-reading the
+**agents' original findings** against current code rather than the tracker — which
+is now twice that has surfaced something (see /corporate-partnerships below).
+
+**`/fast-payouts` claimed "40+ Countries" in three places** while
+`/supported-countries` rendered the real figure from `supported_countries` —
+measured **15** able to fundraise. Two pages, two answers to one factual
+question, and the hardcoded one is the one a visitor cannot check. "40+" was
+also a claim about **Stripe's** global coverage presented as CharitMe's, which
+is a different and larger number than the countries this platform has enabled.
+
+Now read through `lib/payout-countries.ts`, a single reader both pages can use
+— the same single-source-of-truth rule that CAMPAIGN_CATEGORIES and the
+impact-stats module already follow. It returns **`null`, not 0**, on a failed
+read, and the tile is DROPPED rather than rendered as "0 Countries": a database
+blip must not tell an organizer this platform pays out nowhere, on the page
+whose whole job is convincing them they will be paid.
+
+**`/api/campaigns/rotator` turned a failed count into a confident `0`** —
+`statsResult.error` was never checked. The visible outcome was right *by
+accident* (HeroRotator renders "—" for 0), which is exactly why it survived:
+correct output from a wrong value is the hardest kind to notice. Now `null` on
+error, with the consumer typed and rendering "—" for unknown.
+
+⚠️ **The rendered check could not prove the country fix.** The audit stub does
+not support `head: true` count queries, so the reader returns null and the tile
+is correctly omitted — identical to what a reader that ALWAYS returned null
+would produce. `__tests__/payout-country-count.test.ts` covers the branch a live
+database takes, which no local render can exercise.
+
 ### ✅ /corporate-partnerships WAS SHOWING INVENTED FIGURES AND INVENTED PEOPLE
 
 Found while re-checking the audit's own findings rather than the tracker — it was
