@@ -311,7 +311,7 @@ export const POPULAR_CAUSES: readonly Cause[] = [
     slug: 'animals-planet',
     label: 'Animals & Planet',
     impactTitle: 'Real Impact. Real Sanctuary.',
-    blurb: 'Rescue, shelter, conservation, and climate work.',
+    blurb: 'Rescue, shelter, conservation, wildlife, and climate work.',
     tagline: 'Protecting what cannot ask.',
     intro: 'Shelters, rescues, habitats, and the people who keep them running. Your support pays for food, veterinary care, and land.',
     categories: ['Animal', 'Environment'],
