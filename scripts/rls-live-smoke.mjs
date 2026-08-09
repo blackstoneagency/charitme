@@ -14,6 +14,12 @@ if (!supabaseUrl || !anonKey) {
   process.exit(1);
 }
 
+class DisabledRealtimeTransport {
+  constructor() {
+    throw new Error('Realtime is not part of the RLS smoke test.');
+  }
+}
+
 function parsePersonas(value) {
   if (!value) return [];
   let parsed;
@@ -52,6 +58,7 @@ async function createLocalPersonas() {
 
   const admin = createClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
+    realtime: { transport: DisabledRealtimeTransport },
   });
   const personas = [];
   const userIds = [];
@@ -89,11 +96,13 @@ async function clientFor(persona, personaIndex) {
     return createClient(supabaseUrl, anonKey, {
       auth: { autoRefreshToken: false, persistSession: false },
       global: { headers: { Authorization: `Bearer ${persona.accessToken}` } },
+      realtime: { transport: DisabledRealtimeTransport },
     });
   }
 
   const client = createClient(supabaseUrl, anonKey, {
     auth: { autoRefreshToken: false, persistSession: false },
+    realtime: { transport: DisabledRealtimeTransport },
   });
   const { data, error } = await client.auth.signInWithPassword({
     email: persona.email,
@@ -119,6 +128,7 @@ async function readIds(client, table, filter) {
 async function run() {
   const anonymous = createClient(supabaseUrl, anonKey, {
     auth: { autoRefreshToken: false, persistSession: false },
+    realtime: { transport: DisabledRealtimeTransport },
   });
   const anonymousChecks = [
     ['profiles', 'private profile rows are not anonymous-readable'],
