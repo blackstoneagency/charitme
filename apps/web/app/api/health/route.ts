@@ -10,7 +10,12 @@ import {
 // GET /api/health — public liveness; append ?details=1 for admin diagnostics.
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const details = new URL(request.url).searchParams.get('details') === '1';
-  if (!details) return NextResponse.json({ status: 'ok', ts: Date.now() });
+  if (!details) {
+    const response = NextResponse.json({ status: 'ok', ts: Date.now() });
+    const releaseSha = process.env.VERCEL_GIT_COMMIT_SHA;
+    if (releaseSha) response.headers.set('x-charitme-release', releaseSha);
+    return response;
+  }
 
   const user = await verifyAdmin();
   if (!user) return NextResponse.json({ error: 'Forbidden', code: 'ADMIN_REQUIRED' }, { status: 403 });

@@ -13,7 +13,8 @@ describe('health endpoint contract', () => {
   const source = readFileSync(HEALTH_ROUTE, 'utf8');
 
   it('keeps public health responses minimal', () => {
-    expect(source).toContain("if (!details) return NextResponse.json({ status: 'ok', ts: Date.now() });");
+    expect(source).toContain("NextResponse.json({ status: 'ok', ts: Date.now() })");
+    expect(source).toContain("response.headers.set('x-charitme-release', releaseSha)");
     expect(source).toContain("const user = await verifyAdmin();");
     expect(source).toContain("code: 'ADMIN_REQUIRED'");
   });

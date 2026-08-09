@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { percentile, roundToNiceAmount, buildGoalGuidance, MIN_SAMPLE } from '../lib/goal-guidance';
+import { readFileSync } from 'node:fs';
 
 describe('percentile', () => {
   it('returns null for an empty list and the value for a single item', () => {
@@ -20,6 +21,15 @@ describe('percentile', () => {
 
   it('ignores non-finite values', () => {
     expect(percentile([1, NaN, 3], 0.5)).toBe(2);
+  });
+});
+
+describe('goal guidance route wiring', () => {
+  it('filters comparable campaigns by their Supabase launch currency', () => {
+    const source = readFileSync(new URL('../app/api/campaigns/goal-guidance/route.ts', import.meta.url), 'utf8');
+    expect(source).toContain('campaign_launch_settings!inner(currency)');
+    expect(source).toContain(".eq('campaign_launch_settings.currency', currency)");
+    expect(source).toContain("code: 'UNKNOWN_CURRENCY'");
   });
 });
 

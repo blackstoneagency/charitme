@@ -30,7 +30,7 @@ export interface DonorCheck {
   /** Why a donor cares — shown when the check fails. */
   why: string;
   /** Which wizard step fixes it. */
-  step: 'basics' | 'story' | 'title' | 'goal' | 'media';
+  step: 'beneficiary' | 'story' | 'purpose' | 'goal' | 'media';
 }
 
 /** Story length a donor reads as "they actually explained this". */
@@ -57,7 +57,7 @@ export function evaluateDonorView(input: DonorPreviewInput): {
       label: 'Title says what the money is for',
       passed: input.title.trim().length >= 15,
       why: 'A short or vague title makes donors guess. Name the person and the need.',
-      step: 'title',
+      step: 'purpose',
     },
     {
       id: 'story',
@@ -79,7 +79,7 @@ export function evaluateDonorView(input: DonorPreviewInput): {
       // Fundraising for yourself is self-evident; for someone else, name them.
       passed: input.forSelf === 'true' || input.beneficiaryName.trim().length > 0,
       why: 'When a campaign is for someone else, donors want to know who.',
-      step: 'basics',
+      step: 'beneficiary',
     },
     {
       id: 'multiple_photos',

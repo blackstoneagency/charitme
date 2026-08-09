@@ -1,9 +1,11 @@
+import 'server-only';
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { createClient } from '../../../lib/supabase-server';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
-import { checkRateLimit } from '../../../lib/rate-limit';
+import { formatMoneyShort, isSupportedCurrency } from '@shared/currencies';
+import { checkRateLimitDurable } from '../../../lib/rate-limit-durable';
 import { getSuspensionState } from '../../../lib/roles';
 import { applyCampaignSearch } from '../../../lib/campaign-search';
 import { totalPages } from '../../../lib/pagination';
@@ -11,7 +13,8 @@ import { PUBLISH_MIN_STORY_CHARS, PUBLISH_MIN_GOAL_CENTS } from '../../../lib/ca
 import { likeTerm } from '../../../lib/campaign-search';
 import { notExpiredFilter } from '../../../lib/campaign-visibility-core';
 import { applyDonatable, campaignColumns } from '../../../lib/campaign-visibility';
-import { insertTolerantOfMissingColumns } from '../../../lib/campaign-insert-columns';
+import { parseCampaignVideoUrl } from '../../../lib/campaign-video';
+import { isSafeStoragePath } from '../../../lib/storage-path';
 
 function slugify(text: string): string {
   return text
@@ -21,6 +24,64 @@ function slugify(text: string): string {
     .replace(/-+/g, '-')
     .slice(0, 60);
 }
+
+function countryCodeFromLocation(location: string | undefined): string {
+  const pairs: Readonly<Record<string, string>> = {
+    'United States': 'US', 'United Kingdom': 'GB', Canada: 'CA', Australia: 'AU',
+    Germany: 'DE', France: 'FR', Ireland: 'IE', 'New Zealand': 'NZ', Spain: 'ES',
+    Italy: 'IT', Portugal: 'PT', Japan: 'JP', Singapore: 'SG', Netherlands: 'NL',
+  };
+  const match = Object.entries(pairs).find(([name]) => location?.includes(name));
+  return match?.[1] ?? 'US';
+}
+
+const BuilderItemId = z.string().min(1).max(160);
+const HttpUrl = z.string().trim().url().max(2048).refine(
+  (value) => value.startsWith('https://') || value.startsWith('http://'),
+  'Only http and https links are supported.',
+);
+const UseOfFundsSchema = z.object({
+  id: BuilderItemId,
+  label: z.string().trim().min(1).max(120),
+  amountCents: z.number().int().positive().max(1_000_000_000),
+});
+const DonationTierSchema = z.object({
+  id: BuilderItemId,
+  label: z.string().trim().min(1).max(120),
+  amountCents: z.number().int().min(100).max(100_000_000),
+});
+const FaqSchema = z.object({
+  id: BuilderItemId,
+  question: z.string().trim().min(5).max(300),
+  answer: z.string().trim().min(5).max(2000),
+  aiGenerated: z.boolean(),
+});
+const MilestoneSchema = z.object({
+  id: BuilderItemId,
+  title: z.string().trim().min(2).max(160),
+  description: z.string().trim().max(1000),
+  targetCents: z.number().int().positive().max(1_000_000_000),
+});
+const SourceDocumentSchema = z.object({
+  id: BuilderItemId,
+  name: z.string().trim().min(1).max(255),
+  mediaType: z.literal('document'),
+  mimeType: z.enum([
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'text/plain',
+  ]),
+  sizeBytes: z.number().int().min(1).max(5 * 1024 * 1024),
+  storagePath: z.string().min(1).max(500),
+  publicUrl: z.literal(''),
+});
+const MediaSchema = z.object({
+  mediaType: z.literal('image'),
+  storagePath: z.string().min(1).max(500),
+  publicUrl: z.string().url(),
+  altText: z.string().trim().min(1).max(300),
+});
 
 const CreateSchema = z.object({
   title: z.string().min(3).max(100),
@@ -38,11 +99,35 @@ const CreateSchema = z.object({
   beneficiaryRelationship: z.string().max(120).optional(),
   evidenceNote: z.string().max(1000).optional(),
   location: z.string().max(120).optional(),
-  videoUrl: z.string().url().nullable().optional(),
+  videoUrl: z.string().trim().max(2048).nullable().optional().refine(
+    (value) => value == null || parseCampaignVideoUrl(value) !== null,
+    'Video must be a secure YouTube or Vimeo link.',
+  ),
   // Step 1 of the builder: who is RAISING. Distinct from beneficiary_*, which
   // record who benefits. Defaulted rather than required so an older client — or
   // a draft resumed from before step 1 existed — still publishes.
   campaignPath: z.enum(['personal', 'nonprofit', 'team']).default('personal'),
+  builderPath: z.enum(['ai', 'guided']),
+  beneficiaryType: z.enum(['self', 'other', 'organization']),
+  currency: z.string().trim().transform((value) => value.toUpperCase()).refine(isSupportedCurrency, 'Unsupported currency.'),
+  useOfFunds: z.array(UseOfFundsSchema).max(12),
+  donationTiers: z.array(DonationTierSchema).max(8),
+  faqs: z.array(FaqSchema).max(10),
+  milestones: z.array(MilestoneSchema).max(10),
+  sourceLinks: z.array(z.object({ id: BuilderItemId, url: HttpUrl })).max(5),
+  sourceDocuments: z.array(SourceDocumentSchema).max(10),
+  media: z.array(MediaSchema).max(10),
+  allowRecurring: z.boolean(),
+  allowAnonymous: z.boolean(),
+  visibility: z.enum(['public', 'unlisted', 'private']),
+  acceptDonations: z.boolean(),
+  seoTitle: z.string().trim().max(60).optional(),
+  seoDescription: z.string().trim().max(160).optional(),
+  socialTitle: z.string().trim().max(100).optional(),
+  socialDescription: z.string().trim().max(300).optional(),
+  coverImageGuidance: z.string().trim().max(500).optional(),
+  policyAccepted: z.boolean(),
+  schemaVersion: z.number().int().min(2).max(1000),
   // 'draft' saves without publishing; 'active' publishes immediately (default)
   status: z.enum(['draft', 'active']).default('active'),
 }).superRefine((v, ctx) => {
@@ -61,21 +146,34 @@ const CreateSchema = z.object({
   if (v.goalAmount < PUBLISH_MIN_GOAL_CENTS) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom, path: ['goalAmount'],
-      message: `Goal must be at least $${(PUBLISH_MIN_GOAL_CENTS / 100).toFixed(2)} to publish.`,
+      message: `Goal must be at least ${formatMoneyShort(PUBLISH_MIN_GOAL_CENTS, v.currency)} to publish.`,
     });
+  }
+  if (!v.location?.trim()) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['location'], message: 'Location is required to publish.' });
+  }
+  if (!v.coverImageUrl || v.media.length === 0) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['coverImageUrl'], message: 'A cover image is required to publish.' });
+  }
+  if (v.useOfFunds.length === 0 || v.useOfFunds.reduce((sum, item) => sum + item.amountCents, 0) !== v.goalAmount) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['useOfFunds'], message: 'The use-of-funds plan must equal the campaign goal.' });
+  }
+  if (v.beneficiaryType !== 'self' && (!v.beneficiaryName?.trim() || !v.beneficiaryRelationship?.trim())) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['beneficiaryName'], message: 'Beneficiary details are required.' });
+  }
+  if (!v.policyAccepted) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['policyAccepted'], message: 'Policy acknowledgement is required.' });
   }
 });
 
 export async function POST(request: NextRequest) {
   // 5 campaign creations per user per hour — prevents abuse
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-  if (!checkRateLimit(`campaign:${ip}`, 5, 60 * 60 * 1000)) {
-    return NextResponse.json({ error: 'Too many requests', code: 'RATE_LIMITED' }, { status: 429 });
-  }
-
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!user) return NextResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 });
+  if (!(await checkRateLimitDurable(`campaign:${user.id}`, 5, 60 * 60 * 1000))) {
+    return NextResponse.json({ error: 'Too many requests', code: 'RATE_LIMITED' }, { status: 429 });
+  }
 
   // Suspension was previously displayed and never enforced: staff suspended a
   // fraudulent fundraiser, the admin console showed "Suspended", and nothing in
@@ -98,61 +196,151 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json().catch(() => null);
   const parsed = CreateSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'Invalid campaign request', code: 'INVALID_INPUT', details: parsed.error.flatten() },
+      { status: 400 },
+    );
+  }
 
-  const { title, tagline, description, goalAmount, deadline, category, coverImageUrl, imageUrls, beneficiaryName, beneficiaryRelationship, evidenceNote, location, videoUrl, status, campaignPath } = parsed.data;
+  const input = parsed.data;
+  const { title, evidenceNote, status } = input;
+  const ownedMediaPrefix = `campaigns/${user.id}/`;
+  if (input.media.some((item) => !isSafeStoragePath(item.storagePath))
+      || input.sourceDocuments.some((item) => !isSafeStoragePath(item.storagePath))) {
+    return NextResponse.json({ error: 'Uploaded media path is invalid.', code: 'INVALID_MEDIA_PATH' }, { status: 400 });
+  }
+  if (input.media.some((item) => !item.storagePath.startsWith(ownedMediaPrefix))
+      || input.sourceDocuments.some((item) => !item.storagePath.startsWith(`${ownedMediaPrefix}sources/`))) {
+    return NextResponse.json({ error: 'Uploaded media does not belong to this account.', code: 'MEDIA_FORBIDDEN' }, { status: 403 });
+  }
+  const mediaStorage = supabaseAdmin.storage.from('campaign-media');
+  const sourceStorage = supabaseAdmin.storage.from('campaign-source-documents');
+  if (input.media.some((item) => mediaStorage.getPublicUrl(item.storagePath).data.publicUrl !== item.publicUrl)) {
+    return NextResponse.json({ error: 'Campaign media URL does not match its uploaded file.', code: 'INVALID_MEDIA_URL' }, { status: 400 });
+  }
+  const [mediaObjects, sourceObjects] = await Promise.all([
+    Promise.all(input.media.map((item) => mediaStorage.exists(item.storagePath))),
+    Promise.all(input.sourceDocuments.map((item) => sourceStorage.exists(item.storagePath))),
+  ]);
+  if ([...mediaObjects, ...sourceObjects].some((result) => result.error)) {
+    return NextResponse.json({ error: 'Uploaded files could not be verified. Please try again.', code: 'STORAGE_UNAVAILABLE' }, { status: 503 });
+  }
+  if ([...mediaObjects, ...sourceObjects].some((result) => result.data !== true)) {
+    return NextResponse.json({ error: 'One or more uploaded files could not be found.', code: 'MEDIA_NOT_FOUND' }, { status: 400 });
+  }
+  if (status === 'active' && input.coverImageUrl !== input.media[0]?.publicUrl) {
+    return NextResponse.json({ error: 'The cover image must be the first uploaded campaign image.', code: 'INVALID_COVER_IMAGE' }, { status: 400 });
+  }
 
-  const baseSlug = slugify(title);
+  if (status === 'active') {
+    const [profileResult, payoutResult, nonprofitResult] = await Promise.all([
+      supabaseAdmin.from('profiles').select('full_name, identity_verified').eq('id', user.id).maybeSingle(),
+      supabaseAdmin
+        .from('connected_accounts')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('payouts_enabled', true)
+        .eq('charges_enabled', true)
+        .eq('details_submitted', true)
+        .eq('verification_status', 'verified')
+        .not('stripe_account_id', 'is', null)
+        .neq('stripe_account_id', '')
+        .maybeSingle(),
+      input.campaignPath === 'nonprofit'
+        ? supabaseAdmin
+            .from('nonprofit_profiles')
+            .select('id')
+            .eq('owner_id', user.id)
+            .or('verified.eq.true,verification_status.eq.verified')
+            .limit(1)
+            .maybeSingle()
+        : Promise.resolve({ data: { id: 'not-required' }, error: null }),
+    ]);
+    if (profileResult.error || payoutResult.error || nonprofitResult.error) {
+      return NextResponse.json(
+        { error: 'Launch readiness could not be verified. Please try again.', code: 'READINESS_UNAVAILABLE' },
+        { status: 503 },
+      );
+    }
+    const profile = profileResult.data as { full_name?: string | null; identity_verified?: boolean | null } | null;
+    const payout = payoutResult.data;
+    if (!profile?.full_name?.trim()) {
+      return NextResponse.json({ error: 'Complete organizer details before publishing.', code: 'ORGANIZER_INCOMPLETE' }, { status: 400 });
+    }
+    if (profile?.identity_verified !== true) {
+      return NextResponse.json({ error: 'Identity verification is required before publishing.', code: 'IDENTITY_VERIFICATION_REQUIRED' }, { status: 409 });
+    }
+    if (!payout) {
+      return NextResponse.json({ error: 'Complete Stripe payout onboarding before publishing.', code: 'PAYOUT_NOT_READY' }, { status: 409 });
+    }
+    if (!nonprofitResult.data) {
+      return NextResponse.json({ error: 'Organization verification is required before publishing.', code: 'VERIFICATION_REQUIRED' }, { status: 409 });
+    }
+  }
+
+  const baseSlug = slugify(title) || 'campaign';
   const slug = `${baseSlug}-${Date.now().toString(36)}`;
 
   const baseInsert = {
-    user_id: user.id,
-    slug,
-    title,
-    tagline: tagline ?? null,
-    description,
-    goal_amount: goalAmount,
-    raised_amount: 0,
-    backer_count: 0,
-    deadline: deadline ?? null,
-    category,
-    cover_image_url: coverImageUrl ?? null,
-    beneficiary_name: beneficiaryName ?? null,
-    beneficiary_relationship: beneficiaryRelationship ?? null,
-    location: location ?? null,
-    video_url: videoUrl ?? null,
-    status: status ?? 'active',
-    accept_donations: true,
-    visibility: 'public',
+    title: input.title,
+    tagline: input.tagline ?? '',
+    description: input.description,
+    goal_amount: input.goalAmount,
+    deadline: input.deadline ?? '',
+    category: input.category,
+    cover_image_url: input.coverImageUrl ?? '',
+    beneficiary_name: input.beneficiaryName ?? '',
+    beneficiary_relationship: input.beneficiaryRelationship ?? '',
+    beneficiary_type: input.beneficiaryType,
+    location: input.location ?? '',
+    video_url: input.videoUrl ?? '',
+    status: input.status,
+    accept_donations: input.acceptDonations,
+    visibility: input.visibility,
+    builder_path: input.builderPath,
+    currency: input.currency,
+    country_code: countryCodeFromLocation(input.location),
+    use_of_funds: input.useOfFunds.map((item) => ({ label: item.label, amount_cents: item.amountCents })),
+    donation_tiers: input.donationTiers.map((item) => ({ label: item.label, amount_cents: item.amountCents })),
+    faqs: input.faqs.map((item) => ({ question: item.question, answer: item.answer, ai_generated: item.aiGenerated })),
+    milestones: input.milestones.map((item) => ({ title: item.title, description: item.description, target_cents: item.targetCents })),
+    source_links: input.sourceLinks.map((item) => item.url),
+    source_documents: input.sourceDocuments.map((item) => ({
+      name: item.name,
+      mime_type: item.mimeType,
+      size_bytes: item.sizeBytes,
+      storage_path: item.storagePath,
+    })),
+    media: input.media.map((item) => ({
+      media_type: item.mediaType,
+      storage_path: item.storagePath,
+      public_url: item.publicUrl,
+      alt_text: item.altText,
+    })),
+    allow_recurring: input.allowRecurring,
+    allow_anonymous: input.allowAnonymous,
+    seo_title: input.seoTitle ?? '',
+    seo_description: input.seoDescription ?? '',
+    social_title: input.socialTitle ?? '',
+    social_description: input.socialDescription ?? '',
+    cover_image_guidance: input.coverImageGuidance ?? '',
+    policy_accepted_at: input.policyAccepted ? new Date().toISOString() : '',
+    schema_version: input.schemaVersion,
+    evidence_note: evidenceNote ?? '',
   };
 
-  // Insert with the optional columns, retrying without whichever the database
-  // says it lacks. Migrations here are applied by the owner rather than by
-  // deploy, so `campaign_path` does not exist the moment this code ships —
-  // inserting it unconditionally would fail every campaign creation until
-  // someone ran the SQL. See lib/campaign-insert-columns.ts.
-  //
-  // ⚠️ This replaced a hand-rolled fallback that handled `image_urls` ALONE.
-  // With two independently-missing columns that shape needs four branches; it
-  // would have inserted successfully without images and then failed outright on
-  // campaign_path.
-  const { result } = await insertTolerantOfMissingColumns(
-    {
-      ...baseInsert,
-      image_urls: imageUrls ?? [],
-      campaign_path: campaignPath ?? 'personal',
-    },
-    // `await`ed rather than returned directly: PostgrestBuilder is a thenable,
-    // not a Promise, so returning it loses the result type.
-    async (payload) =>
-      await supabaseAdmin
-        .from('campaigns')
-        .insert(payload as typeof baseInsert)
-        .select('id, slug')
-        .single(),
-  );
-
-  const { data, error } = result;
+  const { data, error } = await supabaseAdmin
+    .rpc('create_campaign_from_builder', {
+      p_user_id: user.id,
+      p_slug: slug,
+      p_payload: {
+        ...baseInsert,
+        image_urls: input.media.map((item) => item.publicUrl),
+        campaign_path: input.campaignPath,
+      },
+    })
+    .single();
 
   if (error) {
     console.error('Campaign create failed', error.code, error.message);
@@ -162,25 +350,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (evidenceNote?.trim()) {
-    const { error: ledgerError } = await supabaseAdmin
-      .from('transparency_ledger_items')
-      .insert({
-        campaign_id: data.id,
-        item_type: 'milestone',
-        title: 'Organizer evidence note',
-        description: evidenceNote.trim(),
-        category: 'Trust',
-        status: 'published',
-      });
-
-    if (ledgerError) {
-      console.error('Campaign evidence save failed', ledgerError);
-      return NextResponse.json({ error: 'Campaign created, but evidence note could not be saved.', code: 'EVIDENCE_SAVE_FAILED', slug: data.slug }, { status: 500 });
-    }
+  const created = data as { campaign_id?: string; campaign_slug?: string } | null;
+  if (!created?.campaign_id || !created.campaign_slug) {
+    return NextResponse.json({ error: 'Campaign could not be saved', code: 'INVALID_DATABASE_RESPONSE' }, { status: 500 });
   }
-
-  return NextResponse.json(data, { status: 201 });
+  return NextResponse.json({ id: created.campaign_id, slug: created.campaign_slug }, { status: 201 });
 }
 
 export async function GET(request: NextRequest) {

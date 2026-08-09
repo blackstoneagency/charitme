@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { followUpPlan, type FollowUpForm } from '../../lib/campaign-followups';
+import { currencySymbol } from '@shared/currencies';
 
 // One-question-at-a-time follow-ups shown after the AI drafts a campaign, filling
 // the human facts the AI can't infer (who it's for, relationship, timing). Pure
@@ -10,9 +11,11 @@ import { followUpPlan, type FollowUpForm } from '../../lib/campaign-followups';
 // derived from the updated form. Themed (CSS vars) + mobile-first.
 export default function AiFollowUps({
   form,
+  currency,
   onAnswer,
 }: {
   form: FollowUpForm;
+  currency: string;
   onAnswer: (field: keyof FollowUpForm, value: string) => void;
 }) {
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
@@ -115,7 +118,7 @@ export default function AiFollowUps({
         {current.kind === 'money' && (
           <div>
             <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 20, fontWeight: 800, color: 'var(--t3)' }}>$</span>
+              <span style={{ fontSize: 20, fontWeight: 800, color: 'var(--t3)' }}>{currencySymbol(currency)}</span>
               <input aria-labelledby="ai-followup-question" ref={inputRef} type="number" min="1" step="1" inputMode="numeric" value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="5000" style={inputStyle} />
             </div>
             {continueBtn(!(Number.parseFloat(draft) > 0))}

@@ -1,64 +1,31 @@
-# Campaign Builder — UX / CRO Audit & Roadmap
+# Campaign Builder Audit
 
-> Grounded audit of the **two** existing campaign-creation paths (no third path is
-> being added). Scope: friction inventory + a prioritized, shippable roadmap.
-> Items marked ✅ are already done; the rest are ranked by impact/effort.
+## Current-State Findings
 
-## The two paths (confirmed in code)
+| Current step or surface | Purpose | Friction or risk | Duplicate? | Required? | Decision |
+|---|---|---|---|---|---|
+| `/create/choose-path` | Select AI or guided creation | Correct concept, but links to two unrelated implementations | No | Yes | Keep and point both choices at one builder |
+| `/ai-campaign` | Collect an AI prompt | Text-only; no voice, files, or links; hands off to a second wizard | Partial | AI only | Redesign as the AI intake for the shared builder |
+| `/create/ai` | Twelve-step AI campaign wizard | No shared autosave, resume, readiness, or preview; publishes before its final steps | Yes | No | Redirect legacy links into the shared builder |
+| `/create` essentials | Collect title, story, and goal together | Fast, but presents a dense form and does not honor one-question-per-screen | Yes | Yes | Split into progressive guided steps; AI may prefill them |
+| `/create` basics | Collect beneficiary, category, and location | Three decisions on one screen | Yes | Conditional | Split into beneficiary, category, and location steps |
+| Media upload | Add cover/gallery images | Uploads to Storage but does not create `campaign_media` rows at publish | No | Yes for launch quality | Keep, enforce 5 MB, and persist media records atomically |
+| Rewards | Optional campaign rewards | Useful only for some campaign types and interrupts donation-first flow | No | No | Move behind optional campaign settings |
+| Payout | Connect recipient account | Alternative handles are stored in an unrelated profile website field and cannot receive platform payouts | No | Yes before accepting donations | Use verified Stripe Connect readiness only |
+| Verification | Explain external verification | Status is not read back and publication is not gated | No | Yes | Require organizer identity; require nonprofit verification when claimed |
+| Review | Show readiness checklist | Only title, story, and a $1 goal block publication | No | Yes | Expand to the complete launch contract |
+| Preview modal | Preview donor page | Only mobile/desktop modes; no social or checkout summary | No | Yes | Add all four preview modes and section edit links |
+| Draft autosave | Local and Supabase resume | Strong base; stores unversioned opaque JSON and hardcodes analytics to guided | No | Yes | Keep, add path/schema version/history, and correct analytics |
+| Campaign create API | Validate and insert campaign | Child records are written after publish or not at all; no transactional shared model | No | Yes | Validate one payload and create campaign plus child records atomically |
+| AI generation API | Draft fundraising copy | Response is not schema-validated and rich output is discarded by `/create` | Partial | AI only | Validate structured output and map every generated field into the shared model |
 
-| Path | Route | Shape |
-|------|-------|-------|
-| **1 · AI Campaign Creator** | `app/ai-campaign/`, `app/ai-fundraising/` + `POST /api/ai/campaign`, `/api/ai/campaign-assistant` | Type an intent → AI drafts title/story/goal/category/etc. Falls back deterministically when no OpenAI key. |
-| **2 · Guided Wizard** | `app/create/page.tsx` (9 steps) + helper components (`AiFollowUps`, `GoalProceedsBreakdown`, `ReadinessChecklist`, `StorySectionsEditor`) | `type → category → location → story → title → goal → media → payout → review → live`. Cross-links to Path 1 ("Use AI Instead"). |
-| Fork | `app/create/choose-path/` | Chooses between the two. |
+## Target Journey
 
-Both post to `POST /api/campaigns` (Supabase `campaigns` insert). Images go through
-`POST /api/upload/campaign-image` (authz-checked). Payout uses Stripe Connect +
-alt rails (`/api/stripe/connect`).
+Both paths use the same draft, form model, readiness engine, preview, and publish endpoint.
 
-## Friction inventory (highest-impact first)
-
-1. **✅ FIXED — No draft autosave / recovery.** The wizard created a Supabase row
-   only on the *final* submit, so any interruption (refresh, closed tab, dead
-   battery, accidental Back) lost everything. Only a one-shot `sessionStorage`
-   restore existed, and only for the login-bounce. → Shipped `lib/campaign-draft.ts`
-   (localStorage autosave, 7-day TTL, versioned, defensive parse) + a "Welcome
-   back — resume?" banner + "✓ Saved" indicator, cleared on successful
-   Supabase submit. (CHAR-SM15)
-2. **✅ FIXED — Payout required before publish (Step 8 of 9).** Was the single
-   biggest drop-off point. Payout is now **optional to publish** (CHAR-SM23): the
-   creator launches + shares immediately and finishes payout later; the donation
-   API still 409s `PAYOUT_NOT_READY` until the recipient is payout-ready, so no
-   funds path is compromised. Messaging added on the payout/review/success steps
-   and the public page already shows donors "Donations open soon".
-3. **9 steps is long.** Merge/auto-infer: `location` (infer country from
-   locale/IP; ZIP optional), `type`+`category` (one screen), `title` (AI-derived
-   from story — never ask). Target: ≤5 screens, one primary action each.
-4. **AI is opt-in, not default.** Path 2 treats AI as a side link. Per the brief,
-   AI should pre-fill title/tagline/goal/category/FAQs silently and let the user
-   edit — never present an empty field AI could fill.
-5. **No per-step analytics / drop-off tracking.** There's a marketing/events
-   pipeline (`trackEvent`) but wizard steps aren't instrumented, so abandonment
-   points are invisible. Recommended: emit a `campaign_builder_step` event per
-   step advance (cheap, high signal).
-6. **Image experience is a plain uploader.** No AI/stock suggestions, crop
-   preview, or optimization surfaced in-flow. Free-stock suggestions are now
-   feasible via `lib/unsplash.ts` (pending the Unsplash key — see CHAR-SM13).
-7. **No live multi-device preview.** A desktop/mobile/social preview while editing
-   materially lifts completion + quality on competitors.
-
-## Requires external services / keys (cannot be "fully wired" without them — will not fake)
-
-- **AI image & video generation, background removal, face enhancement, auto-captions,
-  transcription** — need an image/video AI provider + storage pipeline. Themed
-  *stock* images are wired-ready via Unsplash (CHAR-SM13) once the key lands.
-- **Voice input / speech-to-text** — needs a speech provider (or the Web Speech
-  API, browser-gated; can be added as progressive enhancement).
-- **End-to-end publish + donation verification** — needs Stripe **test** keys
-  (configured keys are live; ADR-0003 forbids real charges from the sandbox).
-
-## Method note
-
-This is a program of work, not a single commit. Each slice ships fully wired to
-Supabase, tested, and mobile-checked — starting with #1 (recovery), the highest
-abandonment lever. Progress is logged in `todo.md` (CHAR-SM15…).
+1. Choose **Build with AI** or **Build Step by Step**.
+2. AI accepts a prompt plus optional voice, photos, documents, and links, then fills every field it can and asks only for missing facts.
+3. Guided creation asks one primary question at a time with smart defaults.
+4. Every meaningful change saves locally and, once signed in, to Supabase with version history.
+5. Both paths end at the same four-mode preview and readiness checklist.
+6. The server independently verifies required profile, payout, verification, policy, content, media, and budget state before one atomic publish transaction.

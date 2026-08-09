@@ -7,21 +7,13 @@ export const metadata: Metadata = {
   description: 'Choose how to build your fundraiser — let AI draft it for you, or go step by step. Either way you can pause and resume anytime.',
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Co-equal entry for the two campaign-creation paths (CHAR-0017 gap #1).
-// Both converge on the same /create wizard + /api/campaigns model:
-//   • AI path      → /ai-campaign (prompt) → /create/ai?cause=<prompt> (12 steps)
-//   • Guided path  → /create (step-by-step wizard)
-// Theme-aware (CSS-variable colours) and mobile-first (cards stack < 720px).
-// ─────────────────────────────────────────────────────────────────────────────
-
 const CARD: React.CSSProperties = {
   flex: '1 1 300px',
   display: 'flex',
   flexDirection: 'column',
   gap: 14,
   padding: '28px 26px',
-  borderRadius: 20,
+  borderRadius: 8,
   border: '1.5px solid var(--b1, #e8ecf4)',
   background: 'var(--s1, #fff)',
   textDecoration: 'none',
@@ -49,10 +41,10 @@ function PathCard({
   return (
     <Link href={href} style={CARD} className="cm-choose-card">
       <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 48, height: 48, borderRadius: 14, background: iconBg, color: '#fff' }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 48, height: 48, borderRadius: 8, background: iconBg, color: '#fff' }}>
           <PublicIcon name={icon} />
         </span>
-        <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.03em', padding: '4px 10px', borderRadius: 999, background: badgeBg, color: badgeFg }}>
+        <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: 0, padding: '4px 10px', borderRadius: 999, background: badgeBg, color: badgeFg }}>
           {badge}
         </span>
       </div>
@@ -79,7 +71,7 @@ function PathCard({
         style={{
           marginTop: 'auto',
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-          padding: '12px 18px', borderRadius: 12, fontWeight: 800, fontSize: 14.5,
+          padding: '12px 18px', borderRadius: 8, fontWeight: 800, fontSize: 14.5,
           background: ctaSolid ? 'var(--violet, #6c35ff)' : 'transparent',
           color: ctaSolid ? '#fff' : 'var(--violet-ink)',
           border: ctaSolid ? 'none' : '1.5px solid var(--violet, #6c35ff)',
@@ -116,10 +108,10 @@ export default function ChoosePathPage() {
             badgeBg="var(--s2, #f5f0ff)"
             badgeFg="var(--violet-ink)"
             icon="ai"
-            iconBg="linear-gradient(135deg,#6c35ff,#4d1ee0)"
+            iconBg="#5b21b6"
             title="Build with AI"
-            time="≈ 2 minutes"
-            body="Describe your cause in a sentence. Our AI drafts your title, story, goal, and launch plan — you review, tweak, and publish."
+            time="About 3 minutes"
+            body="Describe the need once. AI builds your title, story, budget, FAQs, milestones, sharing copy, and search metadata, then asks only what is missing."
             bullets={[
               'AI writes a compelling first draft',
               'Answer only what it still needs',
@@ -129,15 +121,15 @@ export default function ChoosePathPage() {
             ctaSolid
           />
           <PathCard
-            href="/create"
+            href="/create?path=guided"
             badge="FULL CONTROL"
             badgeBg="var(--s3, #ecfdf5)"
             badgeFg="var(--green-dark, #047857)"
             icon="edit"
-            iconBg="linear-gradient(135deg,#059669,#047857)"
+            iconBg="#047857"
             title="Step by step"
-            time="≈ 10 minutes"
-            body="Prefer to write it yourself? Walk through guided questions at your own pace, with full control over every detail."
+            time="About 8 minutes"
+            body="Answer one clear question at a time, with smart defaults, inline guidance, and full control over every detail."
             bullets={[
               'One clear question at a time',
               'Tips and examples as you go',

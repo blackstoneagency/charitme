@@ -1,5 +1,39 @@
 # CharitMe — Execution Tracker
 
+## Campaign builder rebuild — active release (Codex, 2026-08-09)
+
+The campaign-creation audit is documented in `docs/campaign-builder-audit.md`.
+The replacement is implemented on `codex/unified-campaign-builder` and is the
+current release priority; the older backlog classification below predates this
+explicit product request.
+
+- [x] Reduce campaign creation to exactly **Build with AI** and **Build Step by Step**.
+- [x] Converge both paths on one 12-screen builder, one campaign model, one preview, and one publish gate.
+- [x] Add AI prompt intake with optional voice, images, documents, and HTTP(S) links.
+- [x] Generate title, summary, story, category, goal, budget, tiers, FAQs, milestones, social copy, SEO copy, and cover guidance.
+- [x] Skip AI-generated questions that are already complete and ask only for missing launch data.
+- [x] Add debounced local plus Supabase autosave, multi-device resume, visible save state, and explicit Save & Exit.
+- [x] Add phone, desktop, social, and checkout previews.
+- [x] Require exact budget, cover media, policy acceptance, Stripe payout readiness, identity verification, and nonprofit verification when applicable.
+- [x] Add atomic Supabase campaign-graph creation, private source-document storage, draft versions, RLS, indexes, and rollback SQL.
+- [ ] Replay all migrations from zero and pass lint, typecheck, unit, integration, E2E, accessibility, and production build.
+- [ ] Merge through `master`, publish the release tag, and verify the production builder and database.
+
+### Production migration reconciliation — verified 2026-08-09
+
+Release `v0.1.9` passed zero-state replay and isolated staging, then production
+`supabase db push --include-all` completed every migration through
+`20260901000000_campaign_payout_ready`. The job failed only afterward while a
+redundant Vercel configuration call used an expired token; Vercel's GitHub
+integration independently deployed that exact `master` commit successfully.
+
+The older 39-file ledger section below is retained as its historical audit
+snapshot, not as current production state. Of 126 local migrations, production
+now has the first 125; only
+`20260902000000_unified_campaign_builder` remains for this release. The release
+workflow now proves both the exact Vercel deployment SHA and the SHA served by
+the production domain, without depending on the expired CLI token.
+
 ## ⛔ THE OPEN SET IS 21 ITEMS AND **NONE OF THEM ARE AGENT-ACTIONABLE** (Claude, 2026-08-09)
 
 Read this before working the list, because the list does not say it: every
@@ -3214,11 +3248,11 @@ skipped workflow leaves its check pending forever and would deadlock a docs-only
 PR. Nothing is required today, which is why this is safe now — recorded so the
 next person does not find out the hard way.
 
-## 🛑 SUPABASE STAGING — blocked, and the pending count is **38** (Claude, 2026-08-03)
+## 🛑 SUPABASE STAGING — blocked, and the pending count is **39** (Claude, 2026-08-03)
 
 **Live ledger rechecked 2026-08-08:** `supabase migration list --linked`
-reported 124 local migration files and 87 production ledger entries (125 local as of
-2026-08-09). The 38-file
+reported 124 local migration files and 87 production ledger entries (126 local including
+the unified campaign-builder migration). The 39-file
 gap below is therefore a current measurement, not only historical arithmetic.
 
 **+1 on 2026-08-08: `20260830000000_protect_verification_and_campaign_integrity.sql`.**
@@ -3280,8 +3314,8 @@ PDFs, which are not reconstructible from this schema.
 ⚠️ **Superseded in part — read the correction at the top of this file first.**
 The arithmetic below is sound and the drift guard on it is worth keeping, but the
 number it produces is a **file-derived upper bound, not the applied state**. At
-least two of the 37 are demonstrably live in production, measured against the
-running site. Treat 37 as "no more than 37", and establish the real set with
+least two of the 39 are demonstrably live in production, measured against the
+running site. Treat 39 as "no more than 39", and establish the real set with
 `supabase migration list --linked` before planning a release.
 
 **None of the four numbers previously in this file was right**, and the fifth —
@@ -3296,16 +3330,16 @@ that day**:
 dump confirmed the objects were absent, and a restored production clone applied
 all 18 in order and proved rollback.
 
-Twenty migrations have been added since. So the count is arithmetic:
+Twenty-one migrations have been added since. So the count is arithmetic:
 
 ```
-125 local − 87 applied           = 38
-18 audited pending + 20 added    = 38   ✓ reconciles
+126 local − 87 applied           = 39
+18 audited pending + 21 added    = 39   ✓ reconciles
 ```
 
 All 18 audited-pending versions are still on disk under their original names.
 
-### ⚠️ Seven of the 38 are SECURITY hardening, not features
+### ⚠️ Seven of the 39 are SECURITY hardening, not features
 
 This is the part that changes the priority. Written, reviewed, merged — and
 **not live**:
@@ -3340,7 +3374,7 @@ miscounting, it was adding migrations and leaving the old number in place.
 
 Owner action unchanged: upgrade Supabase, free a project slot, or provision
 staging elsewhere. Do not bypass the gate — the ledger's last line says so, and
-37 unverified migrations including seven privilege changes is exactly the case the
+39 unverified migrations including seven privilege changes is exactly the case the
 gate exists for.
 
 ## ⚪ `/certificate` — NOT a deferral; building it would require inventing data

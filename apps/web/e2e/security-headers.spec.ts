@@ -8,11 +8,13 @@ test('normal pages send baseline security headers', async ({ request }) => {
   const policy = response.headers()['content-security-policy'];
   expect(policy).toContain("default-src 'self'");
   expect(policy).toContain("frame-ancestors 'self'");
+  expect(policy).toContain('https://www.youtube-nocookie.com');
+  expect(policy).toContain('https://player.vimeo.com');
   expect(policy).toMatch(/script-src[^;]*nonce-[^ ;]+/);
   expect(response.headers()['x-frame-options']).toBe('SAMEORIGIN');
   expect(response.headers()['x-content-type-options']).toBe('nosniff');
   expect(response.headers()['referrer-policy']).toBe('strict-origin-when-cross-origin');
-  expect(response.headers()['permissions-policy']).toBe('camera=(), microphone=(), geolocation=()');
+  expect(response.headers()['permissions-policy']).toBe('camera=(), microphone=(self), geolocation=()');
 });
 
 test('campaign embeds remain frameable by third-party sites', async ({ request }) => {

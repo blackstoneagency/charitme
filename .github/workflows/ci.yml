@@ -129,6 +129,9 @@ jobs:
           REQUIRE_AUTHENTICATED_RLS_PERSONAS: 'true'
         run: npm run test:rls-live
 
+      - name: Campaign builder database smoke (isolated replay)
+        run: npm run test:campaign-builder-db
+
       - name: Stop isolated database
         if: always()
         run: npx supabase stop --no-backup || true

@@ -29,7 +29,7 @@ export default function ReadinessChecklist({
 
       <p style={{ margin: '2px 0 12px', fontSize: 13, color: readyToPublish ? 'var(--green-dark, #047857)' : 'var(--t3, #64748b)', fontWeight: readyToPublish ? 700 : 500 }}>
         {readyToPublish
-          ? '✓ Ready to publish. Finish the recommended items below for a stronger campaign.'
+          ? '✓ Ready to publish. Every required launch check is complete.'
           : 'Complete the required items (marked ★) before publishing.'}
       </p>
 
