@@ -136,6 +136,32 @@ and a negative result recorded is worth more than a fabricated finding.**
 | viewport meta | `app/layout.tsx` | `width=device-width, initialScale: 1`, and **no `maximumScale` / `userScalable:false`** — pinch-zoom is not blocked |
 | grid tracks (`minmax` vs bare `1fr`) | `mobile-grid-tracks.test.ts` | 10/10 pass |
 | tap targets < 24×24, 390px | new probe, 21 routes | 5 raw → **1 genuine** |
+| **SIGNED-IN** overflow + taps, 320/390px | `audit:mobile --auth --no-admin`, 227 routes | **0 findings, 356 page loads** — first clean run this sweep has ever produced, see below |
+
+### 🔴 THE SIGNED-IN MOBILE SWEEP HAD NEVER REPORTED CLEAN — for two harness reasons
+
+It exited 1 on every run, so it was never read. Neither cause was a defect in
+the product, and both hid real coverage:
+
+1. **`/login` and `/signup` counted as failures.** A signed-in visitor is
+   redirected to `/dashboard`, and the redirect check — which exists so a gated
+   route cannot be measured AS the login page — has no way to tell that apart
+   from a genuine misroute. `audit-contrast.mjs` already subtracted them via the
+   shared route file's `signedOutOnly`; `audit-mobile.mjs` had no equivalent.
+   Now it reads the same key, and `route-list-single-source.test.ts` asserts it
+   for **every** `--auth`-capable sweep rather than the two that exist today.
+2. **`/volunteer/manage/[id]` was measured by NOTHING.** The fixture opportunity
+   was owned by the super-admin persona, so under `--no-admin` (which runs as
+   the organizer, …0012) the page correctly redirected a non-owner to
+   `/volunteer` — and a page that renders **check-in codes** was never rendered
+   in any sweep at either width. Reassigned to the organizer persona it renders
+   for both: the member by ownership, the admin by the admin bypass one line
+   above the redirect. The id is looked up from `STUB_PERSONAS`, not written a
+   second time.
+
+Both are the same shape as the defect class this file keeps recording: **a
+permanently-red audit is an ignored audit**, and a route that always redirects
+looks identical to a route that is fine.
 
 ### ⚠️ 4 OF 5 TAP FINDINGS WERE ARTIFACTS — check the EFFECTIVE target, not the element
 
