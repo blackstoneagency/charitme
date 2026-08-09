@@ -21,23 +21,35 @@ control under the thumb. Affects `.auth-page`, `.dash-home`, `.sc-page` and the
 shell containers — i.e. sign-in, the member dashboard and the supported-countries
 page.
 
-### 🟡 OPEN — a fixed toast sits under the iPhone home indicator
+### ❌ WITHDRAWN — the "toast under the home indicator" finding was mine and it was WRONG
 
-`.kf-set-toast` is `position: fixed; bottom: 28px`. The home indicator area is
-~34px in portrait on every notched iPhone, so the toast overlaps it.
+I recorded `.kf-set-toast` (`position: fixed; bottom: 28px`) as overlapping the
+~34px iPhone home indicator, and proposed `viewportFit: 'cover'` +
+`env(safe-area-inset-*)` as the fix. **That fix would have CREATED the defect it
+was meant to repair**, and the reason is the setting I was pointing at.
 
-**Not fixed here, deliberately.** The fix is `env(safe-area-inset-bottom)`, and
-`env()` returns **0** unless the viewport meta carries `viewport-fit=cover` —
-which this app does not set (`export const viewport` has `themeColor` and no
-`viewportFit`). Adding it is not a one-line change: it makes content extend into
-the unsafe areas on every notched device, so every full-bleed and edge-anchored
-element needs re-checking against a real device. I cannot verify that from here
-— and a headless run would report it clean either way, which is the whole
-problem.
+The `viewport-fit` default is `contain`: iOS lays the page out inside the largest
+rectangle that fits the display's **safe area**. Nothing renders under the home
+indicator, the notch or the rounded corners in the first place, so `bottom: 28px`
+is 28px above the safe area's own edge — clear of the indicator. `env()`
+returning 0 is not a missing feature here; it is the correct answer, because
+there is nothing to inset past.
 
-Whoever takes it: set `viewportFit: 'cover'`, then sweep for edge-anchored
-elements and add the four `env(safe-area-inset-*)` paddings together. Doing the
-first without the second is worse than doing neither.
+`viewport-fit=cover` opts *out* of that and hands every edge-anchored and
+full-bleed element to the author at once. So the previous entry had it exactly
+backwards: the app is safe **because** it does not set `cover`, and the
+"❌ 0 uses / ❌ absent" rows in the table below are a consistent pair, not two
+gaps.
+
+**Pinned, since the two settings are one change and were nearly split:**
+`__tests__/viewport-safe-area.test.ts` permits `cover` but fails if it lands
+without all four `env(safe-area-inset-*)` sides — and fails if the insets appear
+without `cover`, where they would silently do nothing. Mutation-tested: planting
+`viewportFit: 'cover'` alone turns it red.
+
+The `100vh` → `100dvh` fix above is **unaffected** and stands. `100vh` is the
+large viewport on iOS whatever `viewport-fit` says — that one is about the URL
+bar, not the safe area, which is why only one of the two survived checking.
 
 ### Measured state of the rest
 
@@ -296,9 +308,34 @@ alone would have excluded **133 legitimate campaigns** and nearly emptied the pa
 **allow-list** so a tier invented later is not promotable by default. A test
 fails if the admin dropdown gains a value it does not classify.
 
-🔴 **STILL OPEN — the `TrustStatus` union itself is wrong.** Anything switching
-on that type is mis-handling the plurality of production data. Not widened into
-unasked; it needs its own pass.
+✅ **CLOSED 2026-08-09, and the claim above was half wrong — the correction is
+the finding.** "The `TrustStatus` union itself is wrong" assumed the two
+vocabularies should be one list. They should not.
+
+`TrustStatus` is the **COMPUTED** vocabulary: what `getTrustStatus(score)`
+returns. `'Trusted'` is absent from it because the scorer genuinely cannot
+produce `'Trusted'` — it is an admin's stored judgement. **Widening the union
+would have been the actual mistake**: the added member would be permanently
+unreachable while telling every `switch` over the type the opposite. And nothing
+switches on it against stored data — its only two consumers are the trust-score
+routes, which compute from a score.
+
+The real defect was the missing **barrier**, which is also what produced the
+`'Strong Trust'` bug recorded above (a computed-only tier used to filter the
+stored column, quietly matching nothing). Three changes:
+
+- **The fourth copy is gone.** `app/api/admin/campaigns/[id]/route.ts` hardcoded
+  its own five-value Set — and it is the ONLY writer of `campaigns.trust_status`,
+  which carries **no CHECK constraint in any migration**, so that Set *is* the
+  column's constraint. It now derives from `STORED_TRUST_TIERS`, the same list
+  `/success-stories` filters on. A tier can no longer become settable without
+  being classified promotable or not.
+- `StoredTrustTier` exported, and `TrustStatus` documented as computed-only with
+  the reason widening it is wrong.
+- Two guards in `__tests__/trust-tiers.test.ts`, both mutation-tested: a
+  re-hardcoded literal in the admin route fails, and writing a computed status
+  into `trust_status` fails. The old guard parsed the route's literal to prove it
+  agreed; agreement is structural now, so it asserts the derivation instead.
 
 ### `Flagged` was promotable until now
 
