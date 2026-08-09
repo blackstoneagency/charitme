@@ -42,9 +42,29 @@ on:
     branches: [master]
     paths-ignore: *docs-only
 
-# Cancel superseded runs on the same ref (e.g. rapid pushes to a PR branch).
+# Cancel superseded runs on the same ref (e.g. rapid pushes to a PR branch) —
+# but NEVER on master.
+#
+# ⚠️ Measured 2026-08-09: master's post-merge CI could not finish AT ALL. Eight
+# merges landed between 00:56 and 02:07 (mean gap 10.2 min, largest 17.7), while
+# a full run needs ~55-75 min — the e2e step alone took 51.9m once and 70m+ on
+# the next. Result: 7 runs cancelled, 1 still running, ZERO completed. Every
+# master run was killed by the next merge before it cleared the build step, so a
+# red master would have been invisible and "green on master" was not a claim
+# anyone could substantiate.
+#
+# The fix gives each master COMMIT its own group, so master runs never cancel one
+# another. Deliberately NOT `cancel-in-progress: false` on the shared group:
+# that makes runs QUEUE instead, and at a 10-minute merge cadence against
+# 60-minute runs the queue grows without bound — trading an absent signal for an
+# ever-later one.
+#
+# The expression appends the sha ONLY on master; on every other ref it appends
+# the empty string, so PR behaviour is byte-for-byte what it was — a new push to
+# a PR branch still cancels its predecessor, which is the case this was written
+# for. Public repo, so the extra parallel runs cost no billable minutes.
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}-${{ github.ref == 'refs/heads/master' && github.sha || '' }}
   cancel-in-progress: true
 
 jobs:
