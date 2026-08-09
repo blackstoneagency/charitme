@@ -140,8 +140,21 @@ alter table public.donations
 alter table public.donations
   add column if not exists processing_fee_cents bigint not null default 0;
 
-alter function public.record_donation(text, uuid, uuid, bigint, bigint, bigint, text, boolean, text, text)
-  set search_path = pg_catalog, public, pg_temp;
+-- Some production databases already carry the later 11-argument overload,
+-- which replaces this legacy signature. Harden it when present without making
+-- an otherwise-safe migration chain fail on that known schema drift.
+do $$
+begin
+  if to_regprocedure(
+    'public.record_donation(text,uuid,uuid,bigint,bigint,bigint,text,boolean,text,text)'
+  ) is not null then
+    execute 'alter function public.record_donation(text, uuid, uuid, bigint, bigint, bigint, text, boolean, text, text) set search_path = pg_catalog, public, pg_temp';
+    execute 'revoke all on function public.record_donation(text, uuid, uuid, bigint, bigint, bigint, text, boolean, text, text) from public, anon, authenticated';
+    execute 'grant execute on function public.record_donation(text, uuid, uuid, bigint, bigint, bigint, text, boolean, text, text) to service_role';
+  end if;
+end;
+$$;
+
 alter function public.increment_campaign_stats(uuid, bigint)
   set search_path = pg_catalog, public, pg_temp;
 alter function public.decrement_campaign_stats(uuid, bigint)
@@ -151,8 +164,6 @@ alter function public.claim_campaign_reward(uuid)
 alter function public.get_admin_system_resource_usage()
   set search_path = pg_catalog, public, pg_temp;
 
-revoke all on function public.record_donation(text, uuid, uuid, bigint, bigint, bigint, text, boolean, text, text)
-  from public, anon, authenticated;
 revoke all on function public.increment_campaign_stats(uuid, bigint)
   from public, anon, authenticated;
 revoke all on function public.decrement_campaign_stats(uuid, bigint)
@@ -162,8 +173,6 @@ revoke all on function public.claim_campaign_reward(uuid)
 revoke all on function public.get_admin_system_resource_usage()
   from public, anon, authenticated;
 
-grant execute on function public.record_donation(text, uuid, uuid, bigint, bigint, bigint, text, boolean, text, text)
-  to service_role;
 grant execute on function public.increment_campaign_stats(uuid, bigint)
   to service_role;
 grant execute on function public.decrement_campaign_stats(uuid, bigint)
