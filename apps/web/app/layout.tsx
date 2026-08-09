@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { DEFAULT_OG_IMAGE } from '../lib/public-routes';
 import { headers } from 'next/headers';
+import { SESSION_HINT_HEADER } from '../middleware';
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import './globals.css';
@@ -108,6 +109,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     getMaintenanceStatus(),
   ]);
   const path = requestHeaders.get('x-pathname') ?? '/';
+  // Set by middleware from the session lookup it already performs. Read here
+  // rather than calling `getUser()` again: this layout wraps every page, and an
+  // auth round-trip per public page render would be a real cost for a boolean
+  // that has already been computed.
+  const hasSession = requestHeaders.get(SESSION_HINT_HEADER) === '1';
   if (maintenanceStatus.enabled && !isMaintenanceBypassPath(path)) redirect('/maintenance');
 
   const nonce = requestHeaders.get('x-nonce') ?? undefined;
@@ -140,6 +146,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <MarketingTracker />
           </Suspense>
           <AppShell
+            hasSession={hasSession}
             initialAnnouncements={initialAnnouncements}
             bannerAppearance={bannerAppearance}
             footerSettings={footerSettings}

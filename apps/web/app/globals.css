@@ -1828,6 +1828,12 @@ input, select, textarea, button { max-width: 100%; }
    A shared class rather than another inline `margin: '0 32px'`: those inline
    copies are why the gutter is 32/18/16 in three places and why four pages
    missed it entirely. */
+/* A topbar carrying only the account controls, for a page that supplies its own
+   heading (e.g. /resources renders its marketing hero inside the dashboard
+   shell). Without this the empty title block still reserves the full 124px and
+   pushes the hero down by a blank row. */
+.kf-topbar--controls-only { min-height: 0; padding-top: 20px; padding-bottom: 0; justify-content: flex-end; }
+
 .kf-body { padding: 0 32px 32px; min-width: 0; }
 @media (max-width: 1100px) { .kf-body { padding: 0 18px 24px; } }
 @media (max-width: 900px)  { .kf-body { padding-left: 16px; padding-right: 16px; } }
