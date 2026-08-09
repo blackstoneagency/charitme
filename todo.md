@@ -24,8 +24,17 @@ file's length for a backlog. This index is the backlog.
   `DONATION_STEPS` in `lib/donation-flow-core.ts`, which drives `stepPosition`
   ("Step 4 of 12"), `previousStep` and the screen-reader announcements. Removing
   it edits the shared 12-step model on the payment path. Needs an explicit call.
-- **Two homepage entry points to `/create/choose-path`** — the "Create Campaign"
-  hero button and the pre-existing "Start a Fundraiser". Keep both, or drop one.
+- ~~**Two homepage entry points to `/create/choose-path`**~~ — **CLOSED, and the
+  item was stale.** Measured 2026-08-09: *neither* CTA points at
+  `/create/choose-path` any more. Both go to `/create` (`app/page.tsx` lines 242
+  and 493), changed deliberately with the reasoning written at line 224 — the
+  builder's first screen already offers both the AI and manual paths, so the
+  chooser added a screen between a visitor and the thing they clicked without
+  deciding anything. The two remaining CTAs sit in *different sections* — the
+  hero, and the "Make an Impact Today" closing band — which is an ordinary
+  top-and-bottom CTA pair, not a duplicate. **No change needed; nothing to
+  decide.** Recorded rather than silently deleted, because the wrong version of
+  this item was the basis of a question put to the owner.
 
 ### ~~Known coverage gap~~ — CLOSED, and the claim was wrong
 
