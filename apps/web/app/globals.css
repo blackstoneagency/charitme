@@ -449,6 +449,7 @@ input, select, textarea, button { max-width: 100%; }
 }
 .kind-user-wrap { position: relative; flex-shrink: 0; }
 .kind-user-btn { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 4px; border: none; background: transparent; cursor: pointer; font: inherit; color: var(--ink, #0f1238); }
+.kind-header .kind-user-btn { color: #d8dee5; }
 .kind-avatar-sm { width: 30px; height: 30px; border-radius: 50%; background: #e8590c; color: #fff; display: inline-grid; place-items: center; font-size: 14px; font-weight: 800; }
 .kind-user-name { font-size: 14px; font-weight: 700; white-space: nowrap; }
 .kind-user-caret { transition: transform .15s; }
@@ -2114,7 +2115,23 @@ input, select, textarea, button { max-width: 100%; }
 .auth-forgot { align-self: flex-end; margin-top: -13px; padding: 5px 0; font-size: 12.5px; font-weight: 800; color: var(--violet-ink); text-decoration: none; }
 .auth-forgot:hover { text-decoration: underline; }
 .auth-switch { text-align: center; }
-.auth-switch button { border: 0; background: transparent; color: var(--violet-ink); font-weight: 700; margin-left: 8px; }
+/* The only control that switches this panel between Log in and Sign up.
+   It measured 60x21 on a 390px phone — inside a sentence, so it is EXEMPT from
+   WCAG 2.5.8's 24x24 minimum under the inline exception, and this is therefore a
+   usability fix rather than a conformance one. It is still the sole path to
+   account creation from the login screen, and vertical padding costs nothing. */
+.auth-switch button {
+  border: 0;
+  background: transparent;
+  color: var(--violet-ink);
+  font-weight: 700;
+  margin-left: 4px;
+  padding: 6px 8px;
+  min-height: 32px;
+  cursor: pointer;
+  border-radius: 8px;
+}
+.auth-switch button:focus-visible { outline: 2px solid var(--violet-ink); outline-offset: 2px; }
 
 /* ── Public Campaign Page ── */
 .public-campaign { width: min(1900px, 100%); margin: 0 auto; padding: 34px 42px 48px; color: var(--ink); }
@@ -4961,6 +4978,38 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 .cr2-nav-draft:disabled { opacity: .5; cursor: not-allowed; }
 .cr2-nav-next { height: 46px; padding: 0 30px; background: var(--grad-brand); color: #fff; border: none; border-radius: 13px; font-size: 14px; font-weight: 650; cursor: pointer; transition: all .18s; box-shadow: 0 4px 16px rgba(108,53,255,.4); }
 .cr2-nav-next:hover { transform: translateY(-1px); box-shadow: 0 7px 22px rgba(108,53,255,.5); }
+/* "Publish now" — offered from the moment the three publish minimums are met,
+   alongside Continue rather than instead of it. Deliberately the LAUNCH green
+   and not the brand gradient: it is the same action as the launch button on the
+   review step, and a second violet button beside Continue would read as the
+   same control twice. Sits quieter than Continue (outline, not filled) because
+   continuing is still the suggested path — this is an escape hatch for someone
+   who is done, not a nag. */
+.cr2-nav-publish-now {
+  height: 46px;
+  padding: 0 22px;
+  background: transparent;
+  color: var(--green-text);
+  border: 1.5px solid var(--green-text);
+  border-radius: 13px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .18s;
+  white-space: nowrap;
+}
+.cr2-nav-publish-now:hover:not(:disabled) {
+  background: var(--green-text);
+  color: #fff;
+  transform: translateY(-1px);
+}
+.cr2-nav-publish-now:disabled { opacity: .55; cursor: not-allowed; }
+@media (max-width: 560px) {
+  /* The nav row is Back + Save Draft + this + Continue on a phone. Let it wrap
+     rather than squeeze Continue off the edge. */
+  .cr2-nav-publish-now { padding: 0 14px; font-size: 13px; }
+}
 .cr2-nav-launch { height: 50px; padding: 0 34px; background: linear-gradient(135deg, #19b86a, #0ea5e9); color: #fff; border: none; border-radius: 14px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all .18s; box-shadow: 0 4px 16px rgba(25,184,106,.4); }
 .cr2-nav-launch:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(25,184,106,.5); }
 .cr2-nav-launch:disabled { opacity: .55; cursor: not-allowed; }
@@ -8472,6 +8521,63 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 .cl-story-meta { font-size: 12.5px; font-weight: 700; color: var(--green-text); }
 .cl-story-cta { font-size: 13.5px; font-weight: 700; color: var(--brand-text); }
 
+.cl-faq {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 22px;
+  margin: 8px 0 52px;
+  padding-top: 42px;
+  border-top: 1px solid var(--b1);
+}
+.cl-faq-head p {
+  margin: 0 0 7px;
+  color: var(--brand-text);
+  font-size: 12px;
+  font-weight: 760;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+.cl-faq-head h2 {
+  margin: 0;
+  color: var(--t1);
+  font-size: var(--fs-h2);
+  font-weight: 800;
+  letter-spacing: 0;
+}
+.cl-faq-list { border-top: 1px solid var(--b1); }
+.cl-faq-list details { border-bottom: 1px solid var(--b1); }
+.cl-faq-list summary {
+  min-height: 52px;
+  padding: 15px 4px;
+  color: var(--t1);
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 730;
+  line-height: 1.45;
+}
+.cl-faq-list summary::marker { color: var(--brand-text); }
+.cl-faq-list details p {
+  max-width: 74ch;
+  margin: -2px 0 18px;
+  padding: 0 28px 0 4px;
+  color: var(--t3);
+  font-size: 14px;
+  line-height: 1.65;
+}
+.cl-faq-more { margin: -4px 0 0; color: var(--t3); font-size: 13.5px; line-height: 1.6; }
+.cl-faq-more a { color: var(--brand-text); font-weight: 700; }
+.cl-catalog-note {
+  margin: 0 0 20px;
+  padding: 12px 14px;
+  border: 1px solid var(--b1);
+  border-left: 4px solid var(--blue);
+  border-radius: var(--r);
+  background: var(--s2);
+  color: var(--t2);
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+
 .cl-cta { padding: 0 var(--gutter, 20px) 64px; }
 .cl-cta-inner {
   display: grid;
@@ -8502,6 +8608,8 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   .cl-hero { padding: 32px 0 120px; }
   .cl-hero-inner { grid-template-columns: minmax(0, 1.35fr) minmax(0, 320px); }
   .cl-crumbs { grid-column: 1 / -1; }
+  .cl-faq { grid-template-columns: minmax(220px, .55fr) minmax(0, 1.45fr); column-gap: 56px; }
+  .cl-faq-more { grid-column: 2; }
   /* The heart is purely ornamental, so it appears only where there is room for
      it. Below 980px the band is already two stacked rows and a 56px glyph would
      push the actions further from the copy they belong to. */
@@ -10575,6 +10683,14 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 
 /* ── Our Team ───────────────────────────────────────────────────────────── */
 .ab-team { padding: 48px 0 0; }
+.ab-team-note {
+  max-width: 620px;
+  margin: 8px auto 20px;
+  color: var(--t3);
+  font-size: 12.5px;
+  line-height: 1.5;
+  text-align: center;
+}
 .ab-team-grid {
   list-style: none; margin: 0; padding: 0;
   display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;

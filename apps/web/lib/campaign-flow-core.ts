@@ -40,13 +40,35 @@
  * live campaign is a separate, deliberate act via the dashboard, not an undo.
  */
 
+/**
+ * ⚠️ ORDER CHANGED, and the reason is the whole point of this list.
+ *
+ * The publish gate wants exactly three things — a title, a story of 20
+ * characters, and a goal of at least $1 (`campaign-readiness.ts`, which the
+ * server's schema shares). Those three used to sit at positions 3, 4 and 6,
+ * behind `basics` and with `media` wedged between story and goal, so an
+ * organizer passed five screens before their draft was publishable at all.
+ *
+ * They now come first, which makes "Publish now" reachable on screen three
+ * instead of screen six. Everything after them is what it always was —
+ * optional strengthening — and now looks like it.
+ *
+ * ⚠️ No step KEY changed, only the order, and that is deliberate: keys are what
+ * `normalizeStep` migrates and what live drafts hold. A draft saved mid-flow
+ * still resolves to the same screen it was on. Reordering is safe here in a way
+ * that renaming would not be.
+ *
+ * `path` stays first in the list but is not where the wizard starts — the
+ * builder opens on `title` and `path` is reached by going Back, exactly as it
+ * was reached from `basics` before.
+ */
 export const CAMPAIGN_STEPS = [
   'path',
-  'basics',
   'title',
   'story',
-  'media',
   'goal',
+  'basics',
+  'media',
   'rewards',
   'payout',
   'verify',

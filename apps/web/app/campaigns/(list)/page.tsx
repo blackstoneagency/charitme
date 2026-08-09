@@ -33,7 +33,7 @@ type SortOption = 'raised' | 'latest' | 'donors' | 'ending' | 'trust';
 
 /** One list of columns, so the featured row and the main list cannot drift. */
 const CAMPAIGN_SELECT =
-  'id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, status, trust_status, nonprofit_verified, location, campaign_health_score';
+  'id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, status, trust_status, nonprofit_verified, location, campaign_health_score, is_demo';
 
 type CampaignRow = {
   id: string;
@@ -51,6 +51,7 @@ type CampaignRow = {
   nonprofit_verified: boolean | null;
   location: string | null;
   campaign_health_score: number | null;
+  is_demo: boolean | null;
 };
 
 const PAGE_SIZE = 12;

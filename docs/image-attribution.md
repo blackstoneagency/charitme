@@ -1,6 +1,18 @@
 # Image attribution
 
-## No new external images were introduced
+## About Us team portraits
+
+The six `/about-us` portraits are representative stock photography, not identity
+verification for the named team members. They are stored locally for reliable,
+fast delivery and the page labels them as representative until verified team
+portraits are supplied through the Supabase-backed system settings roster.
+
+Each source is an Unsplash image CDN URL and is free for commercial use under
+the [Unsplash License](https://unsplash.com/license). Attribution is appreciated
+but not required. The CDN URLs used for download do not expose the contributor
+profile, so no creator name is asserted below.
+
+## Existing image pipelines
 
 The pages built or wired in this pass (`/campaigns/[slug]/share`, `/partner`,
 `/internships`) add **no new hosted image asset**. Every image they render comes
@@ -45,9 +57,13 @@ public URL — generated data, not a licensed work.
 
 Any *new* external image added to these pages must record, in this file: source
 URL, creator (where given), license basis, download date, the page using it, and
-required attribution. Nothing in this pass met that condition, so the inventory
-below is intentionally empty.
+required attribution.
 
 | Image | Page | Source | Creator | License | Added |
 |---|---|---|---|---|---|
-| — | — | — | — | — | — |
+| `sarah-johnson.jpg` | `/about-us` | `https://images.unsplash.com/photo-1531123897727-8f129e1688ce` | Not exposed by CDN URL | Unsplash License | 2026-08-08 |
+| `michael-patel.jpg` | `/about-us` | `https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d` | Not exposed by CDN URL | Unsplash License | 2026-08-08 |
+| `emily-carter.jpg` | `/about-us` | `https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e` | Not exposed by CDN URL | Unsplash License | 2026-08-08 |
+| `david-lee.jpg` | `/about-us` | `https://images.unsplash.com/photo-1566492031773-4f4e44671857` | Not exposed by CDN URL | Unsplash License | 2026-08-08 |
+| `aisha-khan.jpg` | `/about-us` | `https://images.unsplash.com/photo-1573496799652-408c2ac9fe98` | Not exposed by CDN URL | Unsplash License | 2026-08-08 |
+| `james-wilson.jpg` | `/about-us` | `https://images.unsplash.com/photo-1560250097-0b93528c311a` | Not exposed by CDN URL | Unsplash License | 2026-08-08 |

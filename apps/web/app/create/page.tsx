@@ -146,17 +146,28 @@ interface UploadedImage {
 const JOURNEY_STEPS = ['Plan', 'Create', 'Launch', 'Manage', 'Celebrate', 'Impact'];
 
 /**
- * Where an unauthenticated organizer is asked to sign in — deliberately the FIRST
- * step that technically requires a session: the next step (media) uploads to
- * /api/upload/campaign-image, which 401s without one. Everything before it
- * (Basics → Story → Title → Goal) is narrative work a guest can do freely, so they
- * build the whole campaign and only sign in when the product genuinely cannot
- * proceed. The draft survives sign-in (localStorage + Supabase cross-device), so
- * nothing is lost at the gate.
+ * Where an unauthenticated organizer is asked to sign in.
  *
- * Moving this later requires guest uploads to a temp bucket + claim-on-signup.
+ * The principle here was already right and is kept verbatim: ask **only when the
+ * product genuinely cannot proceed**. What changed is that there is no longer a
+ * STEP that triggers it. There were two problems with pinning it to a step:
+ *
+ *  1. The step it was pinned to (`goal`) comes AFTER `media` in the flow, and
+ *     media is the step that actually needs a session — it posts to
+ *     /api/upload/campaign-image, which 401s. So the gate sat one step too late
+ *     for the only thing it was protecting. That was invisible while
+ *     `middleware.ts` redirected every signed-out visitor away from /create;
+ *     opening the builder to guests is what made it reachable.
+ *  2. A gate on a step stops an organizer who was never going to use that step.
+ *     Photos are optional to publish — the readiness engine lists a cover as a
+ *     recommendation, not a requirement — so a guest with no photo was being
+ *     asked to sign up for a capability they had not asked for.
+ *
+ * So the two moments that genuinely need a session ask for one themselves:
+ * uploading a file (below, in `handleFileSelect`) and publishing (the campaign
+ * needs an owner). Everything else a guest can do freely, and the draft survives
+ * sign-in via localStorage + `campaign_wizard_drafts`, so nothing is lost.
  */
-const GUEST_GATE_STEP: WizardStep = 'goal';
 
 const ALLOWED_IMG_TYPES = new Set([
   'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif',
@@ -376,7 +387,11 @@ function CampaignPreviewModal({
 const BUILDER_ERROR_ID = 'cr2-builder-error';
 
 export default function CreatePage() {
-  const [step, setStep]               = useState<WizardStep>('basics');
+  // Opens on `title`, not `basics`. The gate wants a title, a story and a goal;
+  // opening on category/location put an administrative screen in front of the
+  // only three fields that decide whether this campaign can go live at all.
+  // `path` is still reachable by going Back, exactly as it was from `basics`.
+  const [step, setStep]               = useState<WizardStep>('title');
   const [loading, setLoading]         = useState(false);
   const [aiLoading, setAiLoading]     = useState(false);
   const [storyMode, setStoryMode]     = useState<'freeform' | 'guided'>('freeform');
@@ -414,6 +429,18 @@ export default function CreatePage() {
   const [connectingStripe, setConnectingStripe] = useState(false);
   const [isGuest, setIsGuest]         = useState<boolean | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  /**
+   * Why the modal was opened, so success does the right thing.
+   *
+   * ⚠️ This used to be INFERRED from the current step (`step === GUEST_GATE_STEP`
+   * meant "advance", anything else meant "publish"). That worked only while
+   * exactly one mid-wizard step could open it. Sign-in is now requested at the
+   * two moments that actually need a session — uploading and publishing — and
+   * those can both happen on the same step, so the step can no longer tell them
+   * apart. Publishing a campaign because someone signed in to attach a photo
+   * would be a genuinely bad outcome, so the intent is recorded, not guessed.
+   */
+  const [loginIntent, setLoginIntent] = useState<'upload' | 'publish'>('publish');
   const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   // Restore wizard state parked in sessionStorage across an OAuth sign-in bounce.
@@ -584,7 +611,7 @@ export default function CreatePage() {
     if (typeof window !== 'undefined') localStorage.removeItem(CAMPAIGN_DRAFT_KEY);
     setForm(EMPTY_FORM);
     setUploadedImages([]);
-    setStep('basics');
+    setStep('title');
     setSavedAt(null);
     draftDecided.current = true;
     setRecoverableDraft(null);
@@ -824,6 +851,7 @@ export default function CreatePage() {
     step === 'rewards' ? draftRewards.some(draftRewardHasContent) : false;
   const hasCover  = uploadedImages.some(img => img.status === 'done');
 
+
   const autoGoalStart = Math.max(2400, Math.round((parseFloat(form.goal) || 0) * 0.4));
 
   // Report a validation failure against a specific field: show the banner, mark
@@ -841,10 +869,6 @@ export default function CreatePage() {
 
   const goNext = () => {
     setError(''); setErrorField(null);
-    if (step === GUEST_GATE_STEP && isGuest === true) {
-      setShowLoginModal(true);
-      return;
-    }
     if (step === 'media') {
       const stillUploading = uploadedImages.some(img => img.status === 'uploading');
       if (stillUploading) { setError('Please wait for all images to finish uploading.'); return; }
@@ -888,6 +912,12 @@ export default function CreatePage() {
 
   const handleFileSelect = useCallback(async (files: FileList | null) => {
     if (!files || files.length === 0) return;
+    // The one moment in the builder that cannot work without a session:
+    // /api/upload/campaign-image checks it server-side and 401s. Asking here —
+    // rather than on entering the step — means a guest who is not adding photos
+    // is never asked at all, and one who is gets the prompt at the instant it
+    // becomes true, with their draft already saved.
+    if (isGuest === true) { setLoginIntent('upload'); setShowLoginModal(true); return; }
     const remaining = MAX_IMAGES - uploadedImages.length;
     if (remaining <= 0) { setUploadError(`Maximum ${MAX_IMAGES} images allowed.`); return; }
     const validFiles = Array.from(files).filter(f => ALLOWED_IMG_TYPES.has(f.type) && f.size <= MAX_IMG_SIZE).slice(0, remaining);
@@ -917,7 +947,7 @@ export default function CreatePage() {
         setUploadedImages(prev => prev.map(img => img.id === pendingId ? { ...img, status: 'error', errorMsg: e instanceof Error ? e.message : 'Upload failed' } : img));
       }
     }
-  }, [uploadedImages.length]);
+  }, [uploadedImages.length, isGuest]);
 
   const removeImage = useCallback(async (img: UploadedImage) => {
     if (img.url.startsWith('blob:')) {
@@ -1088,6 +1118,28 @@ export default function CreatePage() {
       (payoutAccount.payouts_enabled && payoutAccount.details_submitted)
     )
   );
+  /**
+   * Publish readiness, computed for EVERY step rather than only on review.
+   *
+   * The point is the button below it. The publish gate wants three things —
+   * title >= 3 chars, story >= 20, goal >= $1 — and `campaign-readiness.ts` is
+   * the same source the server's zod schema uses, so this cannot drift from what
+   * POST /api/campaigns will accept. Everything else the builder collects is a
+   * recommendation. Walking an organizer through six more screens to reach a
+   * gate that stopped asking for anything four screens ago is the friction, so
+   * the moment those three are satisfied the option to publish appears.
+   */
+  const readiness = publishReadiness({
+    title: form.title,
+    description: form.description,
+    goalCents,
+    category: form.category,
+    country: form.country,
+    coverImageUrl: form.coverImageUrl,
+    forSelf: form.forSelf,
+    beneficiaryName: form.beneficiaryName,
+    payoutLinked,
+  });
 
   const connectStripe = async () => {
     setConnectingStripe(true); setError('');
@@ -1285,7 +1337,7 @@ export default function CreatePage() {
           onClose={() => setShowPreviewModal(false)}
           onLaunch={() => {
             setShowPreviewModal(false);
-            if (isGuest !== false) { setShowLoginModal(true); } else { void publish(); }
+            if (isGuest !== false) { setLoginIntent('publish'); setShowLoginModal(true); } else { void publish(); }
           }}
           launching={loading}
         />
@@ -2078,17 +2130,7 @@ export default function CreatePage() {
                   {/* Publish-readiness checklist — each item jumps to its step */}
                   <div style={{ margin: '14px 0' }}>
                     <ReadinessChecklist
-                      readiness={publishReadiness({
-                        title: form.title,
-                        description: form.description,
-                        goalCents,
-                        category: form.category,
-                        country: form.country,
-                        coverImageUrl: form.coverImageUrl,
-                        forSelf: form.forSelf,
-                        beneficiaryName: form.beneficiaryName,
-                        payoutLinked,
-                      })}
+                      readiness={readiness}
                       onGoToStep={(s) => setStep(s)}
                     />
                   </div>
@@ -2108,7 +2150,7 @@ export default function CreatePage() {
                     <button
                       type="button"
                       className="cr2-btn-launch"
-                      onClick={() => { if (isGuest !== false) { setShowLoginModal(true); } else { void publish(); } }}
+                      onClick={() => { if (isGuest !== false) { setLoginIntent('publish'); setShowLoginModal(true); } else { void publish(); } }}
                       disabled={loading}
                     >
                       🚀 {loading ? 'Launching…' : 'LAUNCH'}
@@ -2195,6 +2237,32 @@ export default function CreatePage() {
                   {stepIdx >= 1 && step !== 'payout' && step !== 'review' && (
                     <button type="button" className="cr2-nav-draft" onClick={() => void saveDraft()} disabled={loading}>
                       {loading ? 'Saving…' : 'Save Draft'}
+                    </button>
+                  )}
+                  {/* ── Publish, from the moment it is actually possible ──────
+                      Not a shortcut bolted on: it is the correction to the
+                      flow's central friction. The gate wants a title, a story
+                      and a goal; the builder was walking people through six
+                      more screens before offering the button. This appears the
+                      instant those three are satisfied and stays available,
+                      so the remaining steps become what they always were —
+                      optional strengthening — instead of a toll.
+
+                      `readyToPublish` is computed from the same module the
+                      server's schema uses, so this button never appears for a
+                      draft POST /api/campaigns would reject. Guests get the
+                      sign-in modal here exactly as they do on review. */}
+                  {readiness.readyToPublish && step !== 'review' && !CAMPAIGN_STEP_META[step].postPublish && (
+                    <button
+                      type="button"
+                      className="cr2-nav-publish-now"
+                      onClick={() => {
+                        if (isGuest !== false) { setLoginIntent('publish'); setShowLoginModal(true); } else { void publish(); }
+                      }}
+                      disabled={loading}
+                      title="Your campaign has everything it needs to go live"
+                    >
+                      Publish now →
                     </button>
                   )}
                   {step !== 'review' && (
@@ -2348,16 +2416,10 @@ export default function CreatePage() {
           onSuccess={() => {
             setIsGuest(false);
             setShowLoginModal(false);
-            // Two callers open this modal: the mid-wizard sign-in gate (continue
-            // where they left off) and the Publish button (publish once signed in).
-            // Derived from the step list rather than a hardcoded key so moving the
-            // gate again doesn't silently strand the user here.
-            if (step === GUEST_GATE_STEP) {
-              const next = WIZARD_STEPS[WIZARD_STEPS.findIndex(s => s.key === step) + 1];
-              if (next) setStep(next.key);
-            } else {
-              void publish();
-            }
+            // Only publish when publishing is what they were doing. Signing in
+            // to attach a photo leaves them exactly where they were, with the
+            // draft intact, to pick the file again.
+            if (loginIntent === 'publish') void publish();
           }}
         />
       )}
