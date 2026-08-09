@@ -7,7 +7,7 @@ import { supabaseAdmin, supabasePublic } from '../../../lib/supabase';
 // whole site down. Counts over `donations` deliberately do NOT move here: anon
 // sees 0 of them, and a false "0 gifts" is worse than an honest em dash.
 import { boundedQuery } from '../../../lib/query-timeout';
-import { campaignColumns, applyLiveFilters, applyNotExpired } from '../../../lib/campaign-visibility';
+import { campaignColumns, applyLiveFilters, applyNotExpired, applyDonatable } from '../../../lib/campaign-visibility';
 import { applyCampaignSearch, likeTerm } from '../../../lib/campaign-search';
 import { EmptyState } from '../../../components/ui';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
@@ -166,10 +166,16 @@ async function getCampaigns(opts: {
     // from the cause grid and then showing them one click later would just move
     // the problem. `sort=ending` becomes genuinely "ending soonest" as a result.
     let query = applyNotExpired(
-      applyLiveFilters(
-        supabasePublic
-          .from('campaigns')
-          .select(CAMPAIGN_SELECT, { count: 'exact' }),
+      // Same rule as the cause grid, and applied here for the same reason the
+      // expiry filter is: the cause hub links to THIS page as "All campaigns",
+      // so filtering there and not here would just move the problem one click.
+      applyDonatable(
+        applyLiveFilters(
+          supabasePublic
+            .from('campaigns')
+            .select(CAMPAIGN_SELECT, { count: 'exact' }),
+          cols,
+        ),
         cols,
       ),
     );

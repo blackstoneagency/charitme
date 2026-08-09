@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { boundedQuery } from '../../../lib/query-timeout';
-import { campaignColumns, applyLiveFilters, applyNotExpired } from '../../../lib/campaign-visibility';
+import { campaignColumns, applyLiveFilters, applyNotExpired, applyDonatable } from '../../../lib/campaign-visibility';
 import { CAUSES, getCause, causeBrowseHref, type Cause } from '../../../lib/causes';
 import { type CampaignCardData } from '../../../components/CampaignCard';
 import CauseCampaignList from './CauseCampaignList';
@@ -97,12 +97,17 @@ async function getCampaigns(cause: Cause): Promise<CampaignCardData[] | null> {
     // already renders that as "we could not load these", not as "none exist".
     const { data, error } = await boundedQuery(() =>
       applyNotExpired(
-        applyLiveFilters(
-          supabaseAdmin
-            .from('campaigns')
-            .select(
-              'id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, status, trust_status, nonprofit_verified, location, campaign_health_score, featured, is_demo',
-            ),
+        // A cause grid is a place to CHOOSE a campaign to give to, so a campaign
+        // that cannot take money yet does not belong in it.
+        applyDonatable(
+          applyLiveFilters(
+            supabaseAdmin
+              .from('campaigns')
+              .select(
+                'id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, status, trust_status, nonprofit_verified, location, campaign_health_score, featured, is_demo',
+              ),
+            cols,
+          ),
           cols,
         ),
       )

@@ -3214,10 +3214,11 @@ skipped workflow leaves its check pending forever and would deadlock a docs-only
 PR. Nothing is required today, which is why this is safe now — recorded so the
 next person does not find out the hard way.
 
-## 🛑 SUPABASE STAGING — blocked, and the pending count is **37** (Claude, 2026-08-03)
+## 🛑 SUPABASE STAGING — blocked, and the pending count is **38** (Claude, 2026-08-03)
 
 **Live ledger rechecked 2026-08-08:** `supabase migration list --linked`
-reported 124 local migration files and 87 production ledger entries. The 37-file
+reported 124 local migration files and 87 production ledger entries (125 local as of
+2026-08-09). The 38-file
 gap below is therefore a current measurement, not only historical arithmetic.
 
 **+1 on 2026-08-08: `20260830000000_protect_verification_and_campaign_integrity.sql`.**
@@ -3295,16 +3296,16 @@ that day**:
 dump confirmed the objects were absent, and a restored production clone applied
 all 18 in order and proved rollback.
 
-Eighteen migrations have been added since. So the count is arithmetic:
+Twenty migrations have been added since. So the count is arithmetic:
 
 ```
-124 local − 87 applied           = 37
-18 audited pending + 19 added    = 37   ✓ reconciles
+125 local − 87 applied           = 38
+18 audited pending + 20 added    = 38   ✓ reconciles
 ```
 
 All 18 audited-pending versions are still on disk under their original names.
 
-### ⚠️ Seven of the 37 are SECURITY hardening, not features
+### ⚠️ Seven of the 38 are SECURITY hardening, not features
 
 This is the part that changes the priority. Written, reviewed, merged — and
 **not live**:

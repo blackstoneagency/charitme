@@ -10,6 +10,7 @@ import { totalPages } from '../../../lib/pagination';
 import { PUBLISH_MIN_STORY_CHARS, PUBLISH_MIN_GOAL_CENTS } from '../../../lib/campaign-readiness';
 import { likeTerm } from '../../../lib/campaign-search';
 import { notExpiredFilter } from '../../../lib/campaign-visibility-core';
+import { applyDonatable, campaignColumns } from '../../../lib/campaign-visibility';
 import { insertTolerantOfMissingColumns } from '../../../lib/campaign-insert-columns';
 
 function slugify(text: string): string {
@@ -199,7 +200,18 @@ export async function GET(request: NextRequest) {
   // request with a different sort would duplicate some rows and skip others.
   const featuredFirst = searchParams.get('featured_first') === '1';
 
-  const base = supabaseAdmin
+  // Campaigns that cannot take a donation are excluded here too, because THIS
+  // route serves pages 2+ of the grids that already exclude them server-side.
+  // Filtering only the first page would let a non-donatable campaign reappear on
+  // the second click — the same defect the expiry filter was added here to fix.
+  //
+  // Guarded on a column probe: the migration that adds `payout_ready` is applied
+  // by the owner, not by deploy, so before it runs the column does not exist and
+  // filtering on it would 42703 the entire listing. `applyDonatable` no-ops in
+  // that state, which leaves today's behaviour rather than emptying the API.
+  const cols = await campaignColumns();
+
+  const base = applyDonatable(supabaseAdmin
     .from('campaigns')
     // `trust_status`, `nonprofit_verified` and `campaign_health_score` are the
     // fields CampaignCard uses for its Verified badge and countdown. Without
@@ -217,7 +229,7 @@ export async function GET(request: NextRequest) {
     // out of `active` when its deadline passes, so this listing returned finished
     // campaigns whose own cards rendered "Ended". Same rule, same helper, as the
     // server-rendered first page — see `notExpiredFilter`.
-    .or(notExpiredFilter());
+    .or(notExpiredFilter()), cols);
 
   let query = (featuredFirst ? base.order('featured', { ascending: false }) : base)
     .order(sortCol, { ascending: false });
