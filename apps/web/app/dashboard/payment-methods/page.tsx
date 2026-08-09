@@ -152,14 +152,24 @@ export default async function PaymentMethodsPage() {
 
   return (
     <CharitMeShell active="settings">
-      <TopBar title="Payment Methods" subtitle="Manage your saved payment methods." />
+      {/* The action belongs in the TopBar's own slot, beside the title.
+          It used to sit in a full-width `space-between` row BELOW the topbar,
+          which threw it to the far right of the window — roughly 700px from the
+          sentence it was paired with, and past the right edge of every card on
+          the page. The row it was in had no horizontal gutter either, so the
+          explanatory line under the title started 32px to the LEFT of the
+          title. Both are the same root cause: content rendered straight into
+          `.kf-main`, which has no padding of its own. */}
+      <TopBar
+        title="Payment Methods"
+        subtitle="Manage your saved payment methods."
+        actions={loaded.state !== 'unavailable' ? <AddMethodButton /> : undefined}
+      />
 
-      <div style={{ display: 'flex', minWidth: 0, justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '22px' }}>
-        <p style={{ fontSize: '14px', color: 'var(--t3)', margin: 0 }}>
+      <div className="kf-body">
+        <p style={{ fontSize: '14px', color: 'var(--t3)', margin: '0 0 22px' }}>
           Cards are stored by Stripe, our payment processor — CharitMe never sees or keeps your card number.
         </p>
-        {loaded.state !== 'unavailable' ? <AddMethodButton /> : null}
-      </div>
 
       {loaded.state === 'unavailable' ? (
         <Notice
@@ -231,6 +241,7 @@ export default async function PaymentMethodsPage() {
         </svg>
         Your payment information is secure and encrypted, and is held by Stripe rather than by CharitMe.
       </p>
+      </div>
     </CharitMeShell>
   );
 }

@@ -21,7 +21,11 @@ export default async function DashboardVolunteerPage() {
           </Link>
         }
       />
-      <div className="kf-admin-dash" style={{ padding: '4px 0', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 28 }}>
+      {/* `paddingTop` only — see the note on /dashboard/grants. The shorthand
+          `padding: '4px 0'` zeroed the horizontal gutter that `.kf-admin-dash`
+          provides, which is why both headings and every card here touched the
+          window edge. */}
+      <div className="kf-admin-dash" style={{ paddingTop: '4px', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 28 }}>
         <section>
           <h2 style={{ fontSize: 17, fontWeight: 700, margin: '0 0 12px' }}>Your applications</h2>
           <VolunteerApplicationsClient />
