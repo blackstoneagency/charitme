@@ -130,32 +130,47 @@ probe that taps and finds nothing looks identical to a panel that does not exist
 
 Because the panel now fits the viewport, a point outside it exists again — which is
 what makes the outside-tap dismissal reachable at all.
-- [~] **One 518 KB stylesheet on every route, 94–98% unused — TWO SLICES DONE (PR #341),
-      the rest evaluated and deliberately left.** Chrome coverage was **2.1% used on
-      `/search`, 2.8% on `/login`**.
-      - ✅ `.admin-*` / `.users-*` → `app/admin/admin.css` (165 rules, **16,697 B**),
-        imported by `app/admin/layout.tsx`.
-      - ✅ `.cr2-*` → `app/create/builder.css` (288 rules, **32,567 B**), imported by
-        `app/create/page.tsx` and `app/dashboard/grants/GrantMatchClient.tsx`.
-      - Built global chunk **506,671 → 474,110 B**; `/`, `/campaigns`, `/login` load ONLY
-        the global chunk, `/create` and `/admin` additionally load theirs. **49,264 B no
-        longer ships on ordinary public routes.**
-      - ❌ `.rp-*` (221 rules) EVALUATED AND REJECTED — spread across 14 public route
-        trees plus `components/`, so it is shared chrome, not route-owned. Moving it
-        would break pages. Do not retry without new evidence.
-      - ⚠️ At-rule blocks stay in `globals.css` on purpose: a rule nested in a media
-        query can be shared, and proving that per block is not worth the risk. 46
-        admin-family rules therefore remain in the global sheet.
-      - ⚠️ **Three guards failed on the `.cr2-*` move and all three were RIGHT.**
-        `cr2-button-contrast`, `create-publish-when-ready` and `gradient-text-contrast`
-        read `globals.css` and check `.cr2-*` rules; the gradient guard's count fell
-        16 → 13 and it failed its own "finds the rules it is supposed to be checking"
-        floor — exactly the vacuous pass it exists to prevent. All three now read the
-        extracted sheets too. **Any future extraction must be added there as well**, or
-        those guards silently start checking nothing.
-      - Remaining, if pursued: per-route CSS Modules for `.pc-*` (225) and `.cbx-*`
-        (104). Each needs its own scoping proof first — that proof is what made these
-        two safe.
+- [ ] **One 518 KB stylesheet on every route, 94–98% unused.** `app/globals.css` →
+      518,233 B raw, render-blocking on every page. Chrome coverage: **2.1% used on
+      `/search`, 2.8% on `/login`**. Still the biggest mobile win available.
+
+      ⚠️ **ATTEMPTED AND REVERTED (2026-08-09). Read this before trying again — the
+      obvious approach is wrong for a reason that is invisible until you measure it.**
+
+      Route-scoping worked mechanically: `.admin-*`/`.users-*` → `app/admin/admin.css`
+      (165 rules, 16,697 B), `.cr2-*` → `app/create/builder.css` (288 rules, 32,567 B),
+      `.cbx-*` → `app/campaigns/(list)/browse.css` (75 rules). Built global chunk fell
+      **506,671 → 474,110 B**, public routes loaded only the global chunk, and `/create`
+      and `/admin` correctly loaded theirs with rules applying. All of that was verified.
+
+      **It was reverted anyway, because leaving the at-rules behind INVERTS THE CASCADE.**
+      `globals.css` loads first; a route sheet loads after it. Move a family's BASE rules
+      into the later sheet while its `@media` overrides stay in `globals.css`, and the
+      base rule now wins at equal specificity — responsive behaviour runs backwards. The
+      exposure was real, not theoretical: 7 media blocks still referenced `.cbx-*`, 5
+      `.cr2-*`, 2 `.admin-*`, 3 `.users-*`.
+
+      Moving the media blocks too gets most of the way (5 guard failures → 2), but **not
+      all the way**: some blocks carry mixed selector lists, and 4 rules
+      (`.cr2-nav-publish-now`, `.users-kpi-row`, `.cbx-hero`, `.cbx-hero-art::after`) sit
+      nested deeper than a flat parser reaches. A partial migration keeps the hazard.
+
+      **The second obstacle is the test suite.** Every CSS guard in `__tests__` assumes ONE
+      stylesheet — they `readFileSync('app/globals.css')`. Six broke across the three
+      slices. Worse, concatenating the sheets for them is not a fix either: guards that
+      slice "from this selector to the next `body {`" then read across a file boundary.
+      ⚠️ And a shared helper introduced to solve it had `path.join(__dirname, '..')` where
+      it needed `'..','..'`, which made every guard using it **fail to COLLECT** — quietly
+      removing **67 tests** from the run while printing no failure line. `Tests 3850
+      passed` looked green. **Always compare the Test FILES count too, not just passes.**
+
+      If retried, the order is: (1) make the guards read CSS through one helper and assert
+      a rule-count floor, (2) move each family's base rules AND every at-rule referencing
+      it in the same commit, (3) verify a responsive rule still wins at its breakpoint in
+      a real browser — not just that the file loaded. `.rp-*` (221 rules) and `.pc-*` (225)
+      are NOT candidates under any approach: measured across 14 and 7 route trees plus
+      `components/`, they are shared chrome.
+
 - [ ] **Small tap targets: the measured block-level ones are FIXED; `/glossary` is not.**
       `.cbx-feat-body > h3 > a`, `.pc-donor-name > a`, `.pc-organizer > a`,
       `.pc-ai > ul > li > a`, `.sc-info-link`, `.rr-program-empty > a` and

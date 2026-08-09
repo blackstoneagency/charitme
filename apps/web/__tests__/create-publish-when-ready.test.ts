@@ -11,9 +11,7 @@ import {
 
 const read = (p: string) => readFileSync(resolve(__dirname, '..', p), 'utf8');
 const builder = read('app/create/page.tsx');
-// BOTH sheets — `.cr2-*` now lives in app/create/builder.css (see the note in
-// cr2-button-contrast.test.ts); globals.css still holds the at-rule blocks.
-const css = read('app/globals.css') + '\n' + read('app/create/builder.css');
+const css = read('app/globals.css');
 
 const base = {
   title: 'A campaign title',

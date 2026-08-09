@@ -4,12 +4,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
-// ⚠️ BOTH sheets. The `.cr2-*` rules were moved out of globals.css into
-// app/create/builder.css so they stop shipping on every public route; the
-// at-rule blocks stayed behind. Reading only one file would make this guard
-// pass vacuously by finding nothing to check.
-const css = readFileSync(join(here, '..', 'app', 'globals.css'), 'utf8')
-  + '\n' + readFileSync(join(here, '..', 'app', 'create', 'builder.css'), 'utf8');
+const css = readFileSync(join(here, '..', 'app', 'globals.css'), 'utf8');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The two builder buttons that carry a WHITE label on a GRADIENT.

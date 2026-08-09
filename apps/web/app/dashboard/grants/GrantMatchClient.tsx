@@ -4,9 +4,6 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { Btn, Badge, Spinner } from '../../../components/ui';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
-// Campaign-builder styles, scoped here rather than in globals.css so the
-// ~36KB of .cr2-* rules does not ship on every other public route.
-import '../../create/builder.css';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // "Find grants that fit" — the UI for POST /api/ai/grant-match.
