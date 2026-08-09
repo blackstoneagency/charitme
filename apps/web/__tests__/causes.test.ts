@@ -70,10 +70,12 @@ describe('cause identity', () => {
     }
   });
 
-  it('every cause carries a blurb', () => {
-    // The blurb is the meta description as well as the card copy. An empty one
-    // ships a page with no description into search results.
-    for (const c of CAUSES) expect(c.blurb.length, c.slug).toBeGreaterThan(20);
+  it('every cause carries a search-ready blurb', () => {
+    // The blurb is the meta description as well as the card copy.
+    for (const c of CAUSES) {
+      expect(c.blurb.length, c.slug).toBeGreaterThanOrEqual(50);
+      expect(c.blurb.length, c.slug).toBeLessThanOrEqual(180);
+    }
   });
 });
 
