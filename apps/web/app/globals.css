@@ -4962,6 +4962,38 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 .cr2-nav-draft:disabled { opacity: .5; cursor: not-allowed; }
 .cr2-nav-next { height: 46px; padding: 0 30px; background: var(--grad-brand); color: #fff; border: none; border-radius: 13px; font-size: 14px; font-weight: 650; cursor: pointer; transition: all .18s; box-shadow: 0 4px 16px rgba(108,53,255,.4); }
 .cr2-nav-next:hover { transform: translateY(-1px); box-shadow: 0 7px 22px rgba(108,53,255,.5); }
+/* "Publish now" — offered from the moment the three publish minimums are met,
+   alongside Continue rather than instead of it. Deliberately the LAUNCH green
+   and not the brand gradient: it is the same action as the launch button on the
+   review step, and a second violet button beside Continue would read as the
+   same control twice. Sits quieter than Continue (outline, not filled) because
+   continuing is still the suggested path — this is an escape hatch for someone
+   who is done, not a nag. */
+.cr2-nav-publish-now {
+  height: 46px;
+  padding: 0 22px;
+  background: transparent;
+  color: var(--green-text);
+  border: 1.5px solid var(--green-text);
+  border-radius: 13px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .18s;
+  white-space: nowrap;
+}
+.cr2-nav-publish-now:hover:not(:disabled) {
+  background: var(--green-text);
+  color: #fff;
+  transform: translateY(-1px);
+}
+.cr2-nav-publish-now:disabled { opacity: .55; cursor: not-allowed; }
+@media (max-width: 560px) {
+  /* The nav row is Back + Save Draft + this + Continue on a phone. Let it wrap
+     rather than squeeze Continue off the edge. */
+  .cr2-nav-publish-now { padding: 0 14px; font-size: 13px; }
+}
 .cr2-nav-launch { height: 50px; padding: 0 34px; background: linear-gradient(135deg, #19b86a, #0ea5e9); color: #fff; border: none; border-radius: 14px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all .18s; box-shadow: 0 4px 16px rgba(25,184,106,.4); }
 .cr2-nav-launch:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(25,184,106,.5); }
 .cr2-nav-launch:disabled { opacity: .55; cursor: not-allowed; }
