@@ -110,6 +110,103 @@ const PATHS: Record<HelpIcon, React.ReactNode> = {
       <path d="M10 17.4h4" />
     </>
   ),
+  // A hammer and spanner — repairs and rebuilding.
+  tools: (
+    <>
+      <path d="M14.2 6.3a3.6 3.6 0 0 0 4.8 4.6l2.3 2.3-2.3 2.3-2.3-2.3a3.6 3.6 0 0 0-4.6-4.8l2.1-2.1Z" />
+      <path d="M9.4 3.6 3.6 9.4l2.4 2.4 5.8-5.8-2.4-2.4Z" />
+      <path d="m6.8 12.6 4.8 4.8-2.9 2.9-4.8-4.8 2.9-2.9Z" />
+    </>
+  ),
+  // An open book — classrooms and reading.
+  book: (
+    <>
+      <path d="M12 6.6C10.4 5.3 8.2 4.6 5 4.6v12.6c3.2 0 5.4.7 7 2 1.6-1.3 3.8-2 7-2V4.6c-3.2 0-5.4.7-7 2Z" />
+      <path d="M12 6.6v12.6" />
+    </>
+  ),
+  // A laptop — digital access and skills.
+  laptop: (
+    <>
+      <rect x="4.4" y="5" width="15.2" height="10" rx="1.6" />
+      <path d="M2.6 18.4h18.8" />
+    </>
+  ),
+  // A paw — animals in care.
+  paw: (
+    <>
+      <ellipse cx="6.6" cy="10.4" rx="1.9" ry="2.4" />
+      <ellipse cx="17.4" cy="10.4" rx="1.9" ry="2.4" />
+      <ellipse cx="9.9" cy="6.3" rx="1.8" ry="2.2" />
+      <ellipse cx="14.1" cy="6.3" rx="1.8" ry="2.2" />
+      <path d="M12 13.2c3 0 4.8 1.9 4.8 3.9S15 20.6 12 20.6s-4.8-1.5-4.8-3.5 1.8-3.9 4.8-3.9Z" />
+    </>
+  ),
+  // A painter's palette — artists at work.
+  palette: (
+    <>
+      <path d="M12 3.4a8.6 8.6 0 0 0 0 17.2c1.2 0 1.8-.8 1.8-1.7 0-1.3-1-1.6-1-2.6 0-.9.7-1.6 1.7-1.6h2A4.9 4.9 0 0 0 21 9.8C20.7 6 16.8 3.4 12 3.4Z" />
+      <circle cx="7.9" cy="10.2" r="1.1" />
+      <circle cx="12" cy="7.6" r="1.1" />
+      <circle cx="16.1" cy="10.2" r="1.1" />
+    </>
+  ),
+  // A quaver — performance and music.
+  music: (
+    <>
+      <path d="M9.4 18.2V5.6l9.2-2v12.6" />
+      <circle cx="6.9" cy="18.2" r="2.5" />
+      <circle cx="16.1" cy="16.2" r="2.5" />
+    </>
+  ),
+  // A medal — competition and achievement.
+  medal: (
+    <>
+      <circle cx="12" cy="14.8" r="5.2" />
+      <path d="m8.6 9.8-3-6.4h4.2L12 7.4l2.2-4h4.2l-3 6.4" />
+      <path d="M12 12.4v4.8" />
+    </>
+  ),
+  // A droplet — clean water.
+  water: <path d="M12 3.2s6 6.1 6 10a6 6 0 0 1-12 0c0-3.9 6-10 6-10Z" />,
+  // A handset — crisis lines and the weekly call.
+  phone: (
+    <path d="M7.4 3.8 9.7 4l1 3.5-2 1.5a11.5 11.5 0 0 0 5.6 5.6l1.5-2 3.5 1 .2 2.3a2 2 0 0 1-2.1 2.2C10.6 18.4 5.6 13.4 5.2 5.9a2 2 0 0 1 2.2-2.1Z" />
+  ),
+  // A head in profile — mental health.
+  mind: (
+    <>
+      <path d="M15.6 20.6v-2.5c2.6-1 4.4-3.6 4.4-6.5A7.8 7.8 0 0 0 4.6 10a5 5 0 0 0-.6 2.1c0 .8 1.7 1.6 1.7 1.6l1.1.5v2.2h2v4.2" />
+      <path d="M11 9.2a2.2 2.2 0 1 1 2.2 2.2v1.4" />
+    </>
+  ),
+  // A flask — research and trials.
+  flask: (
+    <>
+      <path d="M9.6 3.4v5.4L4.9 17a2.2 2.2 0 0 0 1.9 3.3h10.4a2.2 2.2 0 0 0 1.9-3.3l-4.7-8.2V3.4" />
+      <path d="M8.6 3.4h6.8" />
+      <path d="M7.3 14.2h9.4" />
+    </>
+  ),
+  // A balance — legal aid and rights.
+  scales: (
+    <>
+      <path d="M12 3.6v16.8M6.4 20.4h11.2" />
+      <path d="M4 7.6h16" />
+      <path d="M7.4 7.8 4.6 13.6h5.6L7.4 7.8Z" />
+      <path d="M16.6 7.8l-2.8 5.8h5.6l-2.8-5.8Z" />
+    </>
+  ),
+  // A plain shield — safety and protection.
+  shield: <path d="M12 3.2 4.6 6v6.1c0 4.3 3.1 7.6 7.4 8.7 4.3-1.1 7.4-4.4 7.4-8.7V6L12 3.2Z" />,
+  // A case — work and livelihood.
+  briefcase: (
+    <>
+      <rect x="3" y="7.6" width="18" height="12" rx="2" />
+      <path d="M8.8 7.6V5.8a1.8 1.8 0 0 1 1.8-1.8h2.8a1.8 1.8 0 0 1 1.8 1.8v1.8" />
+      <path d="M3 12.8h18" />
+    </>
+  ),
   // Hands under a heart — dignity after a loss.
   hope: (
     <>
