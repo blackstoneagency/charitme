@@ -583,16 +583,42 @@ export function getCause(slug: string): Cause | undefined {
 }
 
 /**
- * Where a cause's "browse" link should point.
+ * The cause's own landing page — where a link ABOUT a cause should point.
  *
- * `/campaigns` filters on a SINGLE `category`, so a multi-category cause cannot
- * be expressed as a query string without silently dropping the other categories.
- * Those keep their own page, which queries with `.in(...)`.
+ * Use this for navigation: the mega-menu, the search results, anywhere the
+ * label is the cause's name. Every cause has one of these pages and they are
+ * all statically generated, so there is never a reason to send a visitor
+ * somewhere else when they click the cause's name.
+ */
+export function causePageHref(cause: Cause): string {
+  return `/causes/${cause.slug}`;
+}
+
+/**
+ * Where a cause's "browse the campaigns" link should point.
+ *
+ * ⚠️ This used to branch on the number of categories: one category went to
+ * `/campaigns?category=…` and several went to `/causes/<slug>`. Both halves of
+ * that were wrong once cause pages became real pages, and each broke a
+ * different thing — measured in a browser, not argued:
+ *
+ *   · **Single-category causes never reached their own page.** Clicking
+ *     "Health & Wellness" or "Education" in the mega-menu landed on the
+ *     campaigns list. Nine of the twenty causes were unreachable that way, so
+ *     the pages existed and nothing linked to them.
+ *
+ *   · **Multi-category causes self-linked.** On the eleven of them, the hero's
+ *     "Donate now" AND the closing band's went to `/causes/<slug>` — the page
+ *     the visitor was already on. The primary call to action did nothing. The
+ *     helps grid had already been patched around this by hardcoding the right
+ *     href; the two buttons had not.
+ *
+ * `?cause=` fixes both without a branch: `/campaigns` resolves the slug to the
+ * cause's categories and queries with `.in(...)`, so nothing is dropped for a
+ * multi-category cause and nothing self-links for any cause.
  */
 export function causeBrowseHref(cause: Cause): string {
-  return cause.categories.length === 1
-    ? `/campaigns?category=${encodeURIComponent(cause.categories[0])}`
-    : `/causes/${cause.slug}`;
+  return `/campaigns?cause=${encodeURIComponent(cause.slug)}`;
 }
 
 /**

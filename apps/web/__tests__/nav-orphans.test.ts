@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { INDEXABLE_PUBLIC_ROUTES } from '../lib/public-routes';
 import { FOOTER_SECTIONS, FOOTER_LEGAL_BAR } from '../lib/footer-nav';
 import { flattenNav } from '../lib/main-nav';
-import { CAUSES, causeBrowseHref } from '../lib/causes';
+import { CAUSES } from '../lib/causes';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // A page in the sitemap that nothing links to is crawlable and unreachable —
@@ -29,25 +29,14 @@ const APP_SHELL = readFileSync(join(__dirname, '..', 'components', 'AppShell.tsx
 const EXEMPT: Record<string, string> = {
   '/': 'reached by the logo in the header, which is not part of MAIN_NAV',
   '/search': 'reached by the header search form in AppShell.tsx (asserted below)',
-  // Cause detail pages the mega-menu does not link DIRECTLY, derived so this
-  // cannot fall behind the cause list.
+  // ⚠️ NO cause exemption any more, deliberately.
   //
-  // Which causes those are is a nav-shape accident worth naming: `causeBrowseHref`
-  // sends a MULTI-category cause to its own page (because /campaigns filters on
-  // one category and would silently drop the rest) and a single-category one to
-  // /campaigns?category=…. So the multi-category causes are linked from the menu
-  // and the single-category ones are not. Deriving the exemption from that same
-  // helper means it stays correct if a cause gains or loses a category — a
-  // hardcoded list would not, and this file rejects exemptions that are no
-  // longer needed.
-  //
-  // The claim "reached from /causes" is CHECKED below, not trusted.
-  ...Object.fromEntries(
-    CAUSES.filter((c) => causeBrowseHref(c) !== `/causes/${c.slug}`).map((c) => [
-      `/causes/${c.slug}`,
-      'a cause detail page — reached from /causes, which IS in the menu and links every cause (asserted below). Linking all 20 individually would bury the menu.',
-    ]),
-  ),
+  // There used to be one — first for /causes/mental-health alone, then derived
+  // for the nine causes the mega-menu did not link directly. Both were correct
+  // descriptions of a nav that sent a single-category cause to
+  // /campaigns?category=… instead of to its own page. The menu now links every
+  // cause page directly, so an exemption here would be stale, and this file
+  // rejects exemptions that are no longer needed.
 };
 
 function linkedFromChrome(): Set<string> {

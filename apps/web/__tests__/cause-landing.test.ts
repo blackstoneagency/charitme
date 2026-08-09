@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { formatStat, formatMoneyStat } from '../lib/cause-landing';
-import { CAUSES } from '../lib/causes';
+import { CAUSES, causeBrowseHref, causePageHref } from '../lib/causes';
 
 const read = (p: string) => readFileSync(resolve(__dirname, '..', p), 'utf8');
 const landing = read('app/causes/[slug]/CauseLanding.tsx');
@@ -248,19 +248,20 @@ describe('the landing is wired to real destinations', () => {
     expect(page).toContain('{!l.scoped && <span className="cl-tab-scope"> · all causes</span>}');
   });
 
-  it('the helps CTA does not link the page to itself', () => {
-    // `causeBrowseHref` returns the CAUSE PAGE for a multi-category cause, so
-    // using it here made all four "Help now" links on People in Need point at
-    // the page they were already on.
-    expect(page).toContain('href={`/campaigns?cause=${cause.slug}`}');
-    // Comments stripped first — the block carries a comment EXPLAINING why
-    // `causeBrowseHref` is wrong here, and matching the text rather than the
-    // code would punish the explanation and push the next author to delete it.
-    // Same mistake, and same fix, as the fabricated-figure guard above.
-    const code = page.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
-    const at = code.indexOf('cl-helps-cta');
-    expect(at, 'the helps CTA is not rendered').toBeGreaterThan(-1);
-    expect(code.slice(at - 400, at + 200)).not.toContain('causeBrowseHref');
+  it('no on-page call to action can resolve to the page it sits on', () => {
+    // This replaces a SYNTACTIC guard that banned `causeBrowseHref` near the
+    // helps CTA. That helper used to return the cause page for a
+    // multi-category cause, so the ban was a reasonable workaround — but it
+    // only protected the one link somebody had noticed. The hero's "Donate
+    // now" and the closing band's used the same helper and self-linked on all
+    // eleven multi-category causes, which a textual guard could never see.
+    //
+    // The branch is gone, so the invariant can be stated directly instead:
+    // browsing a cause's campaigns is never the cause's own page.
+    for (const c of CAUSES) {
+      expect(causeBrowseHref(c), `${c.slug} browse link is its own page`).not.toBe(causePageHref(c));
+      expect(causeBrowseHref(c).startsWith('/campaigns'), `${c.slug} does not browse campaigns`).toBe(true);
+    }
   });
 
   it('every helps CTA carries the card it belongs to in its accessible name', () => {
@@ -270,7 +271,7 @@ describe('the landing is wired to real destinations', () => {
     // campaign as "shelter" rather than "food", so a per-card filter would
     // promise a narrowing that is not there.
     expect(page).toContain('aria-label={`${cause.helpsCta}: ${h.title}`}');
-    expect(page).toContain('href={`/campaigns?cause=${cause.slug}`}');
+    expect(page).toContain('href={causeBrowseHref(cause)}');
   });
 
   it('treats the hero photo as decorative, since the H1 beside it names the cause', () => {

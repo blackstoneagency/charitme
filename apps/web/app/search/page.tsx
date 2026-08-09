@@ -13,7 +13,7 @@ import {
   normalizeQuery,
   searchCauses,
   searchResources,
-  causeBrowseHref,
+  causePageHref,
   type SearchScope,
   type SearchSort,
 } from '../../lib/site-search';
@@ -205,7 +205,7 @@ export default async function SearchPage({ searchParams }: Props) {
               </h2>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 260px), 1fr))', gap: '14px' }}>
                 {causes.map((c) => (
-                  <Link key={c.slug} href={causeBrowseHref(c)} style={{ textDecoration: 'none' }}>
+                  <Link key={c.slug} href={causePageHref(c)} style={{ textDecoration: 'none' }}>
                     <div style={{ padding: '16px', border: '1px solid var(--b1)', borderRadius: 'var(--rl)', background: 'var(--s1)', height: '100%' }}>
                       <h3 style={{ fontSize: '15px', fontWeight: 750, color: 'var(--t1)' }}>{c.label}</h3>
                       <p style={{ fontSize: '13px', color: 'var(--t3)', marginTop: '5px', lineHeight: 1.5 }}>{c.blurb}</p>

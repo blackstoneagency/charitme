@@ -19,7 +19,7 @@
 // a fabricated statistic on a page whose entire job is to report what exists.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { CAUSES, causeBrowseHref, type Cause } from './causes';
+import { CAUSES, causePageHref, type Cause } from './causes';
 import { INDEXABLE_PUBLIC_ROUTES, type PublicRoute } from './public-routes';
 
 export type SearchScope = 'all' | 'campaigns' | 'causes' | 'resources';
@@ -83,8 +83,14 @@ export function searchResources(q: string, limit = 12): ResourceHit[] {
     .map((r) => ({ path: r.path, title: r.title, description: r.description }));
 }
 
-/** Where a cause result should link. Shared with the nav so they cannot diverge. */
-export { causeBrowseHref };
+/**
+ * Where a cause result should link. Shared with the nav so they cannot diverge —
+ * and that claim is only true if this re-exports the same helper the nav calls.
+ * It used to re-export `causeBrowseHref`, which the nav has stopped using: a
+ * search result for "Education" would have gone to the campaigns list while the
+ * menu entry beside it went to the cause page.
+ */
+export { causePageHref };
 
 export const SEARCH_SORTS = ['relevance', 'raised', 'latest', 'ending'] as const;
 export type SearchSort = (typeof SEARCH_SORTS)[number];
