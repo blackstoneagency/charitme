@@ -68,6 +68,20 @@ function MenuLinkIcon({ index }: { index: number }) {
 // NOTE: /create is intentionally NOT bypassed — it now shows the global nav above its wizard
 const SHELL_BYPASS = ['/dashboard', '/admin', '/profile', '/maintenance'];
 
+/**
+ * Public pages that render the DASHBOARD shell for a signed-in visitor.
+ *
+ * These live in the dashboard sidebar (`RESOURCE_NAV` in
+ * `lib/persona-navigation.ts`) but are public marketing pages, so a signed-in
+ * person clicking one used to lose the left navigation entirely. They now draw
+ * `CharitMeShell` themselves when there is a session — and when they do, this
+ * shell must step aside, or the page carries two navigations and two logos.
+ *
+ * Signed OUT they are ordinary public pages and keep the public chrome, which
+ * is why this is a separate list rather than an addition to `SHELL_BYPASS`.
+ */
+const SHELL_BYPASS_WHEN_SIGNED_IN = ['/resources'];
+
 // Campaign embed widgets (/campaigns/[slug]/embed) are designed to run inside an
 // <iframe> on third-party sites — they render their own minimal layout and must
 // never include the site nav/footer.
@@ -388,12 +402,19 @@ function AppBadges({ settings }: { settings: FooterSettings }) {
 
 export function AppShell({
   children,
+  hasSession = false,
   initialAnnouncements,
   bannerAppearance,
   footerSettings,
   initialLocale,
 }: {
   children: React.ReactNode;
+  /**
+   * Whether the request carried a session, resolved on the SERVER by middleware
+   * and passed through the root layout. Defaults false so a caller that does not
+   * supply it behaves exactly as before.
+   */
+  hasSession?: boolean;
   initialAnnouncements?: Announcement[];
   bannerAppearance?: BannerAppearance;
   footerSettings?: FooterSettings;
@@ -410,7 +431,13 @@ export function AppShell({
   const accountRef = useRef<HTMLDivElement | null>(null);
   const navRef = useRef<HTMLElement | null>(null);
   const supabase = useMemo(() => createClient(), []);
-  const bypass = SHELL_BYPASS.some((p) => path === p || path.startsWith(p + '/')) || isEmbedRoute(path);
+  // `hasSession` comes from the server (middleware → layout), NOT from the
+  // `user` state below: that is populated by an effect, so deciding on it would
+  // render the public header and strip it a moment later.
+  const bypass =
+    SHELL_BYPASS.some((p) => path === p || path.startsWith(p + '/'))
+    || isEmbedRoute(path)
+    || (hasSession && SHELL_BYPASS_WHEN_SIGNED_IN.some((p) => path === p));
 
   const displayName = ((user?.user_metadata?.full_name as string | undefined) ?? user?.email?.split('@')[0] ?? 'Account').split(' ')[0];
   const avatarInitial = (displayName[0] ?? 'A').toUpperCase();

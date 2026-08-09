@@ -2,6 +2,9 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { BLOG_POSTS } from '../../lib/blog-posts';
 import { PageBody, PageHero, Section, CardGrid, InfoCard, CtaBand } from '../../components/PageShell';
+import { CharitMeShell } from '../../components/CharitMeShellServer';
+import ShellAccountControls from '../../components/ShellAccountControls';
+import { getUser } from '../../lib/auth';
 
 export const metadata: Metadata = {
   title: 'Resources',
@@ -55,7 +58,15 @@ const LATEST_POSTS = [...BLOG_POSTS]
   .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
   .slice(0, 3);
 
-export default function ResourcesPage() {
+/**
+ * The page content, shell-agnostic.
+ *
+ * Extracted so the same markup can render in either chrome without a second
+ * copy — the duplication this repo has paid for repeatedly. It is byte-identical
+ * in both, which is the point: a signed-in visitor should not get a different
+ * /resources, only a different frame around it.
+ */
+function ResourcesContent() {
   return (
     <PageBody>
       <PageHero
@@ -125,5 +136,42 @@ export default function ResourcesPage() {
         secondary={{ label: 'Contact us', href: '/contact' }}
       />
     </PageBody>
+  );
+}
+
+/**
+ * ⚠️ `/resources` is IN the dashboard sidebar — `RESOURCE_NAV` in
+ * `lib/persona-navigation.ts` puts it there for every persona — but it rendered
+ * in the public marketing shell, so clicking it from the dashboard dropped the
+ * left navigation entirely. A signed-in person following a sidebar link landed
+ * on a page with no way back into the product except the browser's Back button.
+ *
+ * So the CONTENT is unchanged and the FRAME follows the session: dashboard
+ * chrome when signed in, the public page when not. The signed-out render — the
+ * one search engines and share links see — is byte-identical to before, which
+ * is why `metadata` and the canonical URL are untouched.
+ *
+ * This costs nothing: the route is already `ƒ (Dynamic)` in the build output, so
+ * it was server-rendering per request before this read the session. `getUser` is
+ * React-`cache`d, so the shell's own session lookup collapses into the same
+ * round-trip rather than adding one.
+ */
+export default async function ResourcesPage() {
+  const user = await getUser();
+  if (!user) return <ResourcesContent />;
+  return (
+    <CharitMeShell active="Resources">
+      {/* The shell's account strip — theme, search, notifications, account —
+          without a `TopBar`. TopBar requires a title and renders it as an <h1>,
+          and this page already has one in its hero; two <h1>s on a page is a
+          real accessibility and SEO regression, not a cosmetic one. A signed-in
+          visitor still needs the controls, so they are rendered on their own. */}
+      <header className="kf-topbar kf-topbar--controls-only">
+        <div className="kf-top-actions">
+          <ShellAccountControls />
+        </div>
+      </header>
+      <ResourcesContent />
+    </CharitMeShell>
   );
 }

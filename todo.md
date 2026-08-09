@@ -23179,3 +23179,62 @@ on the facts rather than on the inconsistency.
 None of these is fixable from inside this repo. Writing them out of this file
 would make it read empty while the system stayed identical — which is the one
 outcome that would make this file worse than useless.
+
+## 🧭 /resources inside the dashboard shell (2026-08-09)
+
+`/resources` is in the sidebar for **every** persona (`RESOURCE_NAV` in
+`lib/persona-navigation.ts`) but rendered in the public marketing shell — so a
+signed-in person clicking it lost the left navigation entirely, with no way back
+into the product but the browser's Back button.
+
+Now the CONTENT is unchanged and the FRAME follows the session: dashboard chrome
+when signed in, the public page when not. The signed-out render — what search
+engines and share links see — is byte-identical, canonical included.
+
+### ⚠️ Two things this took that were not obvious
+
+**1. The public header has to step aside, or the page has TWO of everything.**
+`AppShell` learns about the session from a client-side `getUser()` in an effect,
+so deciding there renders the public header and strips it a moment later — a
+visible flash of two navigations and two logos. The session is instead resolved
+where it already was: middleware runs `getUserWithTimeout` unconditionally on
+every non-API request, so it now sets `x-has-session` (a boolean, request-side
+only, never the browser) which the root layout reads — it already calls
+`headers()`, so no new cost and no extra auth round-trip.
+
+**2. `NextResponse.next({ request })` snapshots headers at CALL time.** The
+first call happens ~35 lines BEFORE the session is known, so setting the header
+afterwards changed nothing. The first attempt looked correct, built clean, and
+did **absolutely nothing** — the page still had both navigations. The response
+is now rebuilt after the header is set, carrying across any cookies the Supabase
+client had already written (dropping those would sign people out on any request
+that refreshed a token).
+
+### No second `<h1>`
+`TopBar` requires a title and renders it as an `<h1>`; the page's hero already
+has one. The account controls (theme, search, notifications, account) are
+rendered on their own via `ShellAccountControls` under a
+`.kf-topbar--controls-only` header, so the strip is there without a duplicate
+heading.
+
+### Measured, signed out → signed in
+| | signed out | signed in |
+|---|---|---|
+| dashboard shell | no | **yes** |
+| `<h1>` count | 1 | **1** |
+| "CharitMe" wordmarks | 2 | **1** (was 3) |
+| account controls | — | present |
+| active sidebar item | — | **`/resources`** |
+| page errors | 0 | 0 |
+
+### On "100% wired to Supabase" — precisely
+The shell decision is now session-driven (Supabase auth, via middleware). The
+CARDS are not database content and should not be: they are an index of internal
+routes, and there is no resources table — `aeo_entries` is the Q&A store behind
+/faq and /how-it-works, and no `blog_posts` table exists (the page's own comment
+records a first draft that queried one). "Latest from the blog" reads
+`lib/blog-posts.ts`, the same module `/blog` renders, so the two cannot drift.
+
+What was missing was ENFORCEMENT: the file claimed "every card here points at a
+page that EXISTS" and nothing checked it. A test now resolves all 20 hrefs
+against `app/**/page.tsx`, honouring route groups and dynamic segments.
