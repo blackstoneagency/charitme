@@ -22226,3 +22226,42 @@ sign-in prompt and 0 page errors**.
 register with the story textarea — the step appears to silently refuse to
 advance. Use `type()`. Two runs were misread as a product block before that was
 pinned down.
+
+### ✅ Round 2 shipped — publish is offered the moment it is possible (2026-08-09)
+
+The flow's central friction was that the publish GATE and the publish PATH
+disagreed. The gate wants three things; the builder walked people through six
+more screens before offering the button.
+
+`publishReadiness` is now computed **once, at component scope**, instead of
+inline on the review step — which is precisely why the button could not exist
+anywhere else before. One computation also means the checklist and the button
+can never disagree about whether a draft is publishable.
+
+`Publish now →` appears next to Continue as soon as title ≥ 3, story ≥ 20 and
+goal ≥ $1 are satisfied, and never on a `postPublish` step (offering it after
+going live would invite a second campaign from someone who already made one).
+
+**Measured in a browser, both signed-out and signed-in:**
+
+| moment | button |
+|---|---|
+| step 1 | absent |
+| title filled | absent |
+| story filled, goal empty | absent |
+| goal filled | **appears** |
+
+· guest clicks it → sign-in modal (intent `publish`)
+· signed-in clicks it → `POST /api/campaigns` → **201 Created**
+
+That last line matters: it is the difference between a control and a
+decoration. This repo has shipped a button whose class had no CSS rule and
+rendered as a grey box, so the styling is asserted too.
+
+⚠️ It is an outline button, not a second filled one. Continuing is still the
+suggested path — this is an escape hatch for someone who is done, not a nag.
+
+### Still ahead
+- Collapse title/story/goal onto ONE first screen (they are three screens for
+  three fields).
+- `/create/choose-path` is still an interstitial before the builder.

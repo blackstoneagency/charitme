@@ -847,6 +847,7 @@ export default function CreatePage() {
     step === 'rewards' ? draftRewards.some(draftRewardHasContent) : false;
   const hasCover  = uploadedImages.some(img => img.status === 'done');
 
+
   const autoGoalStart = Math.max(2400, Math.round((parseFloat(form.goal) || 0) * 0.4));
 
   // Report a validation failure against a specific field: show the banner, mark
@@ -1113,6 +1114,28 @@ export default function CreatePage() {
       (payoutAccount.payouts_enabled && payoutAccount.details_submitted)
     )
   );
+  /**
+   * Publish readiness, computed for EVERY step rather than only on review.
+   *
+   * The point is the button below it. The publish gate wants three things —
+   * title >= 3 chars, story >= 20, goal >= $1 — and `campaign-readiness.ts` is
+   * the same source the server's zod schema uses, so this cannot drift from what
+   * POST /api/campaigns will accept. Everything else the builder collects is a
+   * recommendation. Walking an organizer through six more screens to reach a
+   * gate that stopped asking for anything four screens ago is the friction, so
+   * the moment those three are satisfied the option to publish appears.
+   */
+  const readiness = publishReadiness({
+    title: form.title,
+    description: form.description,
+    goalCents,
+    category: form.category,
+    country: form.country,
+    coverImageUrl: form.coverImageUrl,
+    forSelf: form.forSelf,
+    beneficiaryName: form.beneficiaryName,
+    payoutLinked,
+  });
 
   const connectStripe = async () => {
     setConnectingStripe(true); setError('');
@@ -2103,17 +2126,7 @@ export default function CreatePage() {
                   {/* Publish-readiness checklist — each item jumps to its step */}
                   <div style={{ margin: '14px 0' }}>
                     <ReadinessChecklist
-                      readiness={publishReadiness({
-                        title: form.title,
-                        description: form.description,
-                        goalCents,
-                        category: form.category,
-                        country: form.country,
-                        coverImageUrl: form.coverImageUrl,
-                        forSelf: form.forSelf,
-                        beneficiaryName: form.beneficiaryName,
-                        payoutLinked,
-                      })}
+                      readiness={readiness}
                       onGoToStep={(s) => setStep(s)}
                     />
                   </div>
@@ -2220,6 +2233,32 @@ export default function CreatePage() {
                   {stepIdx >= 1 && step !== 'payout' && step !== 'review' && (
                     <button type="button" className="cr2-nav-draft" onClick={() => void saveDraft()} disabled={loading}>
                       {loading ? 'Saving…' : 'Save Draft'}
+                    </button>
+                  )}
+                  {/* ── Publish, from the moment it is actually possible ──────
+                      Not a shortcut bolted on: it is the correction to the
+                      flow's central friction. The gate wants a title, a story
+                      and a goal; the builder was walking people through six
+                      more screens before offering the button. This appears the
+                      instant those three are satisfied and stays available,
+                      so the remaining steps become what they always were —
+                      optional strengthening — instead of a toll.
+
+                      `readyToPublish` is computed from the same module the
+                      server's schema uses, so this button never appears for a
+                      draft POST /api/campaigns would reject. Guests get the
+                      sign-in modal here exactly as they do on review. */}
+                  {readiness.readyToPublish && step !== 'review' && !CAMPAIGN_STEP_META[step].postPublish && (
+                    <button
+                      type="button"
+                      className="cr2-nav-publish-now"
+                      onClick={() => {
+                        if (isGuest !== false) { setLoginIntent('publish'); setShowLoginModal(true); } else { void publish(); }
+                      }}
+                      disabled={loading}
+                      title="Your campaign has everything it needs to go live"
+                    >
+                      Publish now →
                     </button>
                   )}
                   {step !== 'review' && (
