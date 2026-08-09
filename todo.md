@@ -1,6 +1,6 @@
 # CharitMe — Execution Tracker
 
-## 📱 END-TO-END MOBILE APP READINESS AUDIT — 4 parallel agents, 13 fixed, 8 open (Claude, 2026-08-09)
+## 📱 END-TO-END MOBILE APP READINESS AUDIT — 4 parallel agents, 18 fixed, 11 open (Claude, 2026-08-09)
 
 This is a PWA, not a native shell (`app/manifest.ts` + `public/sw.js` +
 `components/PWARegister.tsx`; no Capacitor/Expo in any package.json). So "mobile app
@@ -53,6 +53,9 @@ experience is the correct trade.
 | a missing organizer profile was attributed to **"CharitMe Organizer"** | 8 sites. The platform telling a donor it runs a stranger's fundraiser. Now "Campaign organizer" |
 | the mobile header scrolled away with **no other nav affordance** | at scroll 2500 on a 10,571px page the hamburger sat at `y:-2224`. Now `position: sticky` — **scoped to ≤1100px**, because desktop has no such defect and pinning it sitewide would change what every contrast/focus sweep measures on 200+ pages |
 | campaign tab strip could **chain a swipe to browser-back** | `scrollWidth 457` vs `clientWidth 356`; sibling strips already contain it. Added `overscroll-behavior-inline: contain` |
+| **no `env(safe-area-inset-*)` anywhere**, and `viewport-fit` never set | every bottom-anchored fixed control sat under the ~34px iOS home indicator — back-to-top, the mobile donate bar, the dashboard bottom nav, the locale menu, the install prompt. `viewportFit:'cover'` is load-bearing: without it every `env()` resolves to 0 and the `calc()` offsets do nothing |
+| `/donate` custom-amount input measured **167.9 × 22.5** | the 44px target was on the WRAPPER; the input was centred inside it, so half the area a donor aims at was not the field. WCAG 2.2 §2.5.8, in the primary money flow |
+| comment Like button **23.1 × 18**, breadcrumbs **19.5**, embed `<summary>` **18** | all under the 24px minimum; the Like button keeps its exact visual position via a compensating negative margin |
 | iOS install metas + manifest identity | added the legacy `apple-mobile-web-app-capable` (measured absent), `id: '/'`, and relaxed `orientation` off `portrait-primary` which locked out landscape everywhere including tablets |
 
 ### 🧪 TWO ROUTES WERE PASSING EVERY AUDIT WHILE MEASURING NOTHING
@@ -101,11 +104,40 @@ at startup, which cost a full debugging cycle here.
       dashboard blocks ride along on every public page (`.admin-*` 152 selectors,
       `.users-*` 176, `.cr2-*` 457). Route-scoping this is the single biggest mobile win
       available, and it is a real refactor — not a change to slip in beside a merge.
+- [ ] **10–11px body text sitewide.** `.kind-footer h3` and `.kind-footer-links a`
+      measure **11px on 109 of 113 pages**; `hello@charitme.com` is **10px** on 104;
+      `.foot-badge-sub` is **9px**. 129 `font-size: 10px|11px` declarations in
+      `app/globals.css`. Fix by raising the floor inside `@media (max-width: 760px)`
+      rather than editing 129 rules, and treat 12px as the site minimum.
+- [ ] **~25 of 113 pages carry 15–21px link/button targets** — including
+      `/login` + `/signup`'s "Sign up"/"Log in" switch (21px, in the auth flow),
+      `/campaigns` card titles (18px), `/glossary` (16 links at 18px), `/impact`
+      (6 at 18px). Worth one shared rule, not 20 patches.
+- [ ] **Checkboxes render 13×13** on `/donate`, `/give`, `/volunteer` (15×15 on
+      `/campaigns`). The *effective* target passes because each is wrapped in a much
+      larger clickable `<label>`, so this is an affordance problem rather than a
+      blocker — but 13px is hard to aim at and hard to see.
+- [ ] **`MobileDonateCTA` is still UNVERIFIED at runtime.** It is gated on
+      `isActive && payoutReady`, and no stub campaign has a connected Stripe account,
+      so `.mobile-donate-bar` never mounts here — measured `null` on every attempt.
+      Its 72px height is cleared by a hardcoded `.public-campaign { padding-bottom:
+      80px }` guess that does not track a wrapping title, and it now needs the
+      safe-area inset too. Re-measure against a campaign with `payoutReady === true`.
 - [ ] **Campaign covers over-fetch up to 18×** — a 1200 px source fills a 92 px box on
       `/campaigns` list rows and a 68 px box in the carousel thumb strip; 88 of 155 `<img>`
       across 12 routes carry no `srcset`. `next.config.js` already whitelists the remote
       hosts, so `next/image` would fix it with no config change. Start with the two
       thumbnail cases — those are the 13–18× ones.
+
+### ⚠️ HARNESS TRAP THAT INVALIDATED A WHOLE SWEEP
+
+`next start` holds an in-memory prerendered-HTML cache. Running `npm run build`
+against a server that is already up replaces `.next/static/css/*`, and the running
+server keeps serving HTML that points at the OLD css hash — which now **400s**. Every
+page is then unstyled, and `audit:responsive` reported **440 findings**, all of them
+`stylesheet has 0 rules; page is UNSTYLED` — its own refusal-to-measure guard, not
+layout bugs. **Rebuild ⇒ restart the server**, and restart the STUB too after editing
+fixtures (it loads them once at startup). Both cost a full cycle here.
 
 ### ✅ Measured CLEAN — do not redo
 
@@ -127,6 +159,18 @@ at startup, which cost a full debugging cycle here.
   scroll lock or scroll trap**, mobile menu links are hit-testable by touch, and
   `/login/mfa` is exemplary (`inputMode="numeric"`, `autocomplete="one-time-code"`, 24px).
 - `/api/*` is genuinely excluded from the SW and no cross-origin entry is cached.
+- **No horizontal overflow, verified properly.** `html, body { overflow-x: hidden }`
+  defeats the usual `scrollWidth` metric, so elements painted past the right edge were
+  measured directly: **0 clipped** across 56 verification measurements at 360/390/414 in
+  both themes. The 17 pages that looked like overflow were all correctly-built
+  `overflow-x: auto` scroll strips.
+- **0 obscured controls** across all 226 measurements — `elementFromPoint` at the centre
+  of every visible interactive element. Nothing is unclickable.
+- **0 fixed-element collisions** at full scroll-to-bottom on all 56 pages; exactly one
+  fixed element (back-to-top, 44×44) is ever on screen, and no bar permanently covers
+  the bottom of a scrolled page.
+- **Pinch zoom is not blocked** — no `user-scalable=no`, no `maximum-scale`.
+- Hamburger 42×42, theme toggle 36×36, `.kf-nav a` 44×44 — all pass.
 
 ### 🧰 Two stub limitations that shape any re-run
 
