@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { INDEXABLE_PUBLIC_ROUTES } from '../lib/public-routes';
 import { FOOTER_SECTIONS, FOOTER_LEGAL_BAR } from '../lib/footer-nav';
 import { flattenNav } from '../lib/main-nav';
+import { CAUSES } from '../lib/causes';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // A page in the sitemap that nothing links to is crawlable and unreachable —
@@ -28,8 +29,14 @@ const APP_SHELL = readFileSync(join(__dirname, '..', 'components', 'AppShell.tsx
 const EXEMPT: Record<string, string> = {
   '/': 'reached by the logo in the header, which is not part of MAIN_NAV',
   '/search': 'reached by the header search form in AppShell.tsx (asserted below)',
-  '/causes/mental-health':
-    'a cause detail page — reached from /causes, which IS in the menu. Linking all 20 individually would bury the menu.',
+  // ⚠️ NO cause exemption any more, deliberately.
+  //
+  // There used to be one — first for /causes/mental-health alone, then derived
+  // for the nine causes the mega-menu did not link directly. Both were correct
+  // descriptions of a nav that sent a single-category cause to
+  // /campaigns?category=… instead of to its own page. The menu now links every
+  // cause page directly, so an exemption here would be stale, and this file
+  // rejects exemptions that are no longer needed.
 };
 
 function linkedFromChrome(): Set<string> {
@@ -39,6 +46,37 @@ function linkedFromChrome(): Set<string> {
   for (const l of FOOTER_LEGAL_BAR) hrefs.add(l.href);
   return hrefs;
 }
+
+const CAUSES_BROWSER = readFileSync(
+  join(__dirname, '..', 'app', 'causes', 'CausesBrowser.tsx'),
+  'utf8',
+);
+
+describe('the cause exemption is earned, not asserted', () => {
+  it('/causes is itself in the global chrome', () => {
+    const linked = new Set(flattenNav().map((l) => l.href.split('?')[0]));
+    expect(linked.has('/causes'), '/causes is not in the menu, so the exemption is false').toBe(true);
+  });
+
+  it('/causes links to every cause detail page', () => {
+    // The index links the slug DIRECTLY rather than through `causeBrowseHref`,
+    // which is what makes every cause page reachable — including the
+    // single-category ones the mega-menu sends to /campaigns instead. If this
+    // ever routed through that helper, nine cause pages would become genuinely
+    // unreachable while this suite still passed on the exemption.
+    expect(CAUSES_BROWSER).toContain('href={`/causes/${c.slug}`}');
+    expect(CAUSES_BROWSER).not.toContain('causeBrowseHref');
+  });
+
+  it('the index renders from the full cause list, not a subset', () => {
+    expect(CAUSES.length).toBe(20);
+    // The browser receives the full list as a prop and renders `shown`, which is
+    // the filtered view of it — so the link above is reached for every cause
+    // when no filter is applied.
+    expect(CAUSES_BROWSER).toContain('{ causes }: { causes: BrowseCause[] }');
+    expect(CAUSES_BROWSER).toContain('{shown.map((c) => (');
+  });
+});
 
 describe('every indexable public route is reachable from the global chrome', () => {
   it('has no unexplained orphans', () => {

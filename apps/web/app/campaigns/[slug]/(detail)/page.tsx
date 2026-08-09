@@ -24,7 +24,6 @@ import MobileDonateCTA from '../MobileDonateCTA';
 import CampaignCarousel from '../CampaignCarousel';
 import DonorWall, { type WallDonation } from '../DonorWall';
 import DonationTicker from '../DonationTicker';
-import Milestones from '../Milestones';
 import TeamFundraisers, { type TeamFundraiser } from '../TeamFundraisers';
 import JoinTeamButton from '../JoinTeamButton';
 import CommentForm from '../CommentForm';
@@ -168,15 +167,6 @@ async function getFAQs(campaignId: string) {
     .order('sort_order', { ascending: true })
     .limit(10));
   return (data ?? []) as { id: string; question: string; answer: string; sort_order: number }[];
-}
-
-async function getMilestones(campaignId: string) {
-  const { data } = await boundedQuery(() => supabaseAdmin
-    .from('campaign_milestones')
-    .select('id, title, description, target_amount, reached_at, sort_order')
-    .eq('campaign_id', campaignId)
-    .order('sort_order', { ascending: true }));
-  return (data ?? []) as { id: string; title: string; description: string | null; target_amount: number | null; reached_at: string | null; sort_order: number }[];
 }
 
 type PeerRow = {
@@ -400,13 +390,12 @@ export default async function CampaignPage({ params, searchParams }: Props) {
     referrerId,
   };
 
-  const [donations, updates, updatesCount, faqs, donorMessages, milestones, teamFundraisers, currency, payoutDestination, trustInput, similarCampaigns] = await Promise.all([
+  const [donations, updates, updatesCount, faqs, donorMessages, teamFundraisers, currency, payoutDestination, trustInput, similarCampaigns] = await Promise.all([
     getRecentDonations(campaign.id),
     getUpdates(campaign.id),
     getUpdatesCount(campaign.id),
     getFAQs(campaign.id),
     getDonorMessages(campaign.id),
-    getMilestones(campaign.id),
     getTeamFundraisers(campaign.id),
     getCampaignCurrency(campaign.id),
     resolvePayoutDestination(campaign),
@@ -921,7 +910,17 @@ export default async function CampaignPage({ params, searchParams }: Props) {
               <span>{timeLabel}</span>
             </div>
 
-            <Milestones milestones={milestones} raisedCents={raised} currency={currency} />
+            {/* ── Milestones & stretch goals: REMOVED ──────────────────────
+                The "🎯 Milestones & stretch goals" panel was removed on request.
+
+                Kept as a note rather than a silent deletion, because the data
+                behind it is NOT gone: `campaign_milestones` rows, the
+                /dashboard/campaigns/[id]/milestones editor that writes them, and
+                the milestones API all still exist. An organiser can still set
+                milestones; the public panel no longer renders them.
+
+                Re-adding it means restoring `getMilestones` to the Promise.all
+                above and a component to render it. */}
 
             {isActive && payoutReady ? (
               <DonateButton

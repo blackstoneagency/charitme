@@ -1,13 +1,5 @@
 'use client';
 
-import {
-  composeDedicatedMessage,
-  isValidDedication,
-  DEDICATION_KINDS,
-  DEDICATION_PREFIX,
-  DEDICATION_NAME_MAX,
-  type DedicationKind,
-} from '../../../lib/donation-flow-core';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   MAX_DONATION_CENTS,
@@ -134,19 +126,6 @@ export default function DonateButton({
   const [subscribeEmail, setSubscribeEmail] = useState(false);
   const [anonymous, setAnonymous]         = useState(false);
   const [message, setMessage]             = useState('');
-  // Step 7 of the reference flow. There is no dedication table and no honoree
-  // columns on `donations`, so the dedication is composed INTO the message that
-  // really is stored and really is shown on the donor wall — rather than
-  // rendering honoree fields that would be silently discarded.
-  const [dedicationKind, setDedicationKind] = useState<DedicationKind | ''>('');
-  const [honoreeName, setHonoreeName]     = useState('');
-
-  // What actually gets stored. Composed by the same pure function the tests
-  // cover, so the donor wall and the unit tests cannot disagree.
-  const dedication = dedicationKind && isValidDedication({ kind: dedicationKind, honoreeName })
-    ? { kind: dedicationKind, honoreeName }
-    : null;
-  const dedicatedMessage = composeDedicatedMessage(dedication, message);
   const [tipPercent, setTipPercent]       = useState<number>(DEFAULT_DONOR_TIP_PERCENT);
   // Custom support amount, entered in whole currency units. null = using a tier %.
   // Kept as a string so the field can be empty while typing without snapping to 0.
@@ -242,7 +221,7 @@ export default function DonateButton({
           campaignId,
           amountCents,
           cadence: 'monthly',
-          message: dedicatedMessage ? dedicatedMessage : undefined,
+          message: message.trim() ? message : undefined,
           anonymous,
           coverProcessingFee: !isMonthly,
           tipPercent,
@@ -671,53 +650,14 @@ export default function DonateButton({
         )}
       </div>
 
-      {/* ── Dedicate this donation (step 7 of the reference flow) ──
-          Only two things are offered, because only two can be stored: the
-          dedication kind and the honoree's name, both folded into `message`.
-          The artwork's "notify the honoree by email" is NOT here — there is
-          nowhere to keep an address and no sending path, and a tick-box that
-          silently notifies nobody is worse than its absence. */}
-      <div>
-        <label htmlFor="donor-dedication" style={{ display: 'block', fontSize: 12, fontWeight: 900, color: MU, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>
-          Dedicate this donation (optional)
-        </label>
-        <select
-          id="donor-dedication"
-          value={dedicationKind}
-          onChange={(e) => setDedicationKind(e.target.value as DedicationKind | '')}
-          style={{
-            width: '100%', minWidth: 0, boxSizing: 'border-box', border: `1.5px solid ${BD}`,
-            borderRadius: 12, padding: '11px 14px', fontSize: 14, fontFamily: 'inherit',
-            background: 'var(--s1, #fff)', color: INK, minHeight: 44,
-          }}
-        >
-          <option value="">No dedication</option>
-          {DEDICATION_KINDS.map((k) => (
-            <option key={k} value={k}>{DEDICATION_PREFIX[k].replace(/:$/, '')}</option>
-          ))}
-        </select>
+      {/* ── Dedicate this donation: REMOVED ──────────────────────────────
+          The "Dedicate this donation (optional)" select and its honoree-name
+          field were removed on request.
 
-        {dedicationKind && (
-          <input
-            aria-label="Who is this donation for?"
-            value={honoreeName}
-            onChange={(e) => setHonoreeName(e.target.value.slice(0, DEDICATION_NAME_MAX))}
-            placeholder="Their name"
-            maxLength={DEDICATION_NAME_MAX}
-            style={{
-              width: '100%', minWidth: 0, boxSizing: 'border-box', border: `1.5px solid ${BD}`,
-              borderRadius: 12, padding: '11px 14px', fontSize: 14, fontFamily: 'inherit',
-              background: 'var(--s1, #fff)', color: INK, marginTop: 8, minHeight: 44,
-            }}
-          />
-        )}
-
-        {dedication && (
-          <p style={{ fontSize: 12, color: MU, margin: '6px 0 0' }}>
-            Your message will begin: “{DEDICATION_PREFIX[dedication.kind]} {dedication.honoreeName.trim()}”
-          </p>
-        )}
-      </div>
+          Nothing else changes about what is stored: the dedication was never a
+          column, it was composed INTO `message`, which is still collected below
+          and still posted. Existing donations that carry a composed dedication
+          in their message are untouched and still render on the donor wall. */}
 
       {/* ── Optional message of support ── */}
       <div>

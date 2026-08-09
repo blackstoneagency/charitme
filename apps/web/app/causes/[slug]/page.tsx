@@ -4,7 +4,7 @@ import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { boundedQuery } from '../../../lib/query-timeout';
 import { campaignColumns, applyLiveFilters, applyNotExpired } from '../../../lib/campaign-visibility';
-import { CAUSES, getCause, type Cause } from '../../../lib/causes';
+import { CAUSES, getCause, causeBrowseHref, type Cause } from '../../../lib/causes';
 import { type CampaignCardData } from '../../../components/CampaignCard';
 import CauseCampaignList from './CauseCampaignList';
 import { EmptyState } from '../../../components/ui';
@@ -277,11 +277,13 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
                     four identical "Help now" links is still distinguishable. */}
                 {cause.helpsCta && (
                   <Link
-                    // NOT `causeBrowseHref`, which returns the CAUSE PAGE for a
-                    // multi-category cause — so on People in Need all four of
-                    // these linked back to the page they were on. Caught by a
-                    // browser probe reading the rendered hrefs, not by any test.
-                    href={`/campaigns?cause=${cause.slug}`}
+                    // `causeBrowseHref` now resolves to exactly this, for every
+                    // cause. It used to return the CAUSE PAGE for a
+                    // multi-category one — which is why this href was written
+                    // out by hand here — and that branch has been removed
+                    // precisely because it also broke the two "Donate now"
+                    // buttons, which nobody had hardcoded around.
+                    href={causeBrowseHref(cause)}
                     className="cl-helps-cta"
                     aria-label={`${cause.helpsCta}: ${h.title}`}
                   >

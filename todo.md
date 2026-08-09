@@ -1,5 +1,79 @@
 # CharitMe — Execution Tracker
 
+## 🏷️ A CARD SHOWED "✓ Verified" AND "Needs More Info" AT THE SAME TIME (Claude, 2026-08-08)
+
+Measured on production, `/supporter-space`, before the fix:
+
+| | |
+|---|---|
+| cards carrying an admin-set **"✓ Verified"** badge | **18 of 18** |
+| cards simultaneously showing a computed **"Needs More Info"** chip | **18 of 18** |
+| distinct computed scores across all 18 cards | **two**: 52 and 57 |
+
+Same class as "136 days left" above "This campaign has ended": two surfaces
+answering one question differently, on one card, where a donor decides.
+
+### Root cause: the scorer cannot tell ABSENT from FALSE
+
+`calculateTrustScore` reads **15** signals. `CampaignCardData` carries **5**.
+The other ten are `undefined`, and the function treats that exactly like a
+failure, so every campaign scored:
+
+```
+34 base + 6 cover + 4 tagline + 4 deadline + 4 active = 52   (+5 if backers >= 3 = 57)
+```
+
+A confident-looking per-campaign number that was neither per-campaign nor a
+measurement. The repo already had the right idea one line away —
+`risk_signal_unavailable` exists precisely because "could not check" must not
+score as "checked and clean" — but only on the risk deduction, never on the
+positive signals.
+
+**Fixed:** `trustScoreIsMeasurable()` in `lib/ai-platform.ts`. The card stops
+computing a score it cannot compute and shows the STORED tier, which is the
+platform's real judgement and is already on the card. The "Trust" tile became
+"Raised" — real data the card carries.
+
+### ⚠️ MY OWN EARLIER CLAIM HERE WAS WRONG, and the correction is the finding
+
+An earlier entry said "the `TrustStatus` union omits `Trusted`, so anything
+switching on that type is mis-handling the plurality of production data."
+**That was overstated.** `TrustStatus` types the COMPUTED label; nothing types
+the stored column with it (every read is `as string`). There is no bug in the
+union.
+
+The real issue is worse and less visible: **two vocabularies with the same name,
+sharing three words and differing on three.**
+
+| | set by | values |
+|---|---|---|
+| STORED `campaigns.trust_status` | an admin | Verified, **Trusted**, Needs More Info, Under Review, **Flagged** |
+| COMPUTED `TrustStatus` | `getTrustStatus(score)` | Verified, **Strong Trust**, Needs More Info, Under Review |
+
+`Trusted` is the most common stored value (130 of 308) and the scorer never
+produces it. `Strong Trust` is the reverse — production holds **zero** rows,
+because admin cannot set it.
+
+### 🔴 …and that conflation was in code I wrote EARLIER THE SAME DAY
+
+`PROMOTABLE_TRUST_TIERS` listed `'Strong Trust'`. That constant filters the
+STORED column on /success-stories, so the value matched nothing: the query was
+narrowed to two tiers while appearing to allow three. Harmless in effect,
+identical in kind to the bug being fixed. **My own new test caught it**, which is
+the argument for asserting the property rather than the values.
+
+Removed. `STORED_TRUST_TIERS` is now the admin allow-list exactly, and the
+promotable set is a subset of it by construction.
+
+### 🔁 THE COMMENT-MATCHING TRAP, THIRD TIME TODAY
+
+`expect(src).not.toMatch(/calculateTrustScore\(/)` failed on **correct** code,
+because the comment explaining what the card stopped calling names the function.
+Third occurrence today (also on the hero button and the AI flow). It fails safe,
+but the same bug with the comment deleted would pass while the string shipped.
+**Strip comments before every absence assertion.** Written into the helper.
+
+
 ## 🏷️ A "FEATURED STORY" THAT THE PLATFORM ITSELF WOULD NOT VOUCH FOR (Claude, 2026-08-05)
 
 `/success-stories`, headed **"Featured Stories"**, was showcasing a campaign
@@ -21945,6 +22019,43 @@ else. Worth recording because it accidentally proved the degraded path: with the
 database unreachable the page still returns a complete 200 with the design
 intact, rather than erroring.
 
+### ✅ THE DURABLE ANSWER (2026-08-08) — ask the GitHub **Deployments API**, not the site
+
+Every entry below this one records a *verdict* about which channel works, and
+every one of them has since flipped. On 2026-08-04 curl was denied AND the
+Deployments API 403'd. On 2026-08-05 curl worked. On **2026-08-08 curl is denied
+again (`000`) while the Deployments API answers fine** — with the *same token*
+that 403'd four days earlier. So stop recording verdicts and run the check.
+
+**This is the best channel for "is it Production, not Preview?", because it is
+the only one that names the environment as a field** rather than making you
+infer it from a URL:
+
+```bash
+curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+  "https://api.github.com/repos/blackstoneagency/charitme/deployments?environment=Production&per_page=1"
+# → [{ "id": …, "environment": "Production", "sha": "<commit>", … }]
+
+curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+  "https://api.github.com/repos/blackstoneagency/charitme/deployments/<id>/statuses?per_page=1"
+# → [{ "state": "success", "description": "Deployment has completed", … }]
+```
+
+Match `sha` against the commit you merged. That is the whole verification:
+newest Production deployment + `state: success` + your sha = live on production.
+
+Worked example, Health & Wellness (#306): deployment `5813564749`,
+`environment: "Production"`, `sha: 297d32b2`, `state: success` at
+2026-08-08T23:07:21Z.
+
+⚠️ **A `403` from this endpoint is not proof it is blocked forever.** That is the
+mistake this file previously enshrined — a 403 measured once was written up as
+"token scope", generalised to "production is unobservable", and used to justify
+not retrying. Retry it; it costs one call.
+
+⚠️ `pull_request_read get_status` still only reports the PR head's **preview**
+deploy. That limit is real and unchanged — it proves the build, not the alias.
+
 ### ✅ SUPERSEDED 2026-08-05 — `curl` REACHES PRODUCTION AGAIN
 
 The table below is **stale**. Measured 2026-08-05 20:34 UTC:
@@ -21996,3 +22107,27 @@ the production alias serves it. Different claim.
 ```bash
 curl -s https://www.charitme.com/donate | grep -c "Make a Donation"   # → 1
 ```
+
+## ✅ CLOSED — /donate is live on Production (owner-verified, 2026-08-04)
+
+The last open clause is settled. The owner ran the check and it returned `1`:
+
+```bash
+curl -s https://www.charitme.com/donate | grep -c "Make a Donation"   # → 1
+```
+
+All five clauses of the goal now hold, each with evidence rather than assumption:
+
+| clause | how it was established |
+|---|---|
+| matches the design | browser render against a real production build |
+| black in dark mode | computed `body` background = `rgb(0, 0, 0)` |
+| wired to Supabase | `supabaseAdmin` → `campaigns` + `donations`, `revalidate = 300` |
+| pushed to master | merged as `8d2c9c4b` |
+| **serving on Production, not Preview** | **owner curl → `1`** |
+
+### The procedure, for next time
+Ten channels were tried from inside the sandbox before asking, and **all ten are
+blocked** — they are listed in the entry above this one. Do not re-derive them.
+When production liveness is the open question, **ask the owner for the one-line
+curl immediately**; it is the only channel that works and it costs seconds.
