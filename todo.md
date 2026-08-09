@@ -171,7 +171,7 @@ what makes the outside-tap dismissal reachable at all.
       are NOT candidates under any approach: measured across 14 and 7 route trees plus
       `components/`, they are shared chrome.
 
-- [ ] **Small tap targets: the measured block-level ones are FIXED; `/glossary` is not.**
+- [x] **Small tap targets — measured block-level ones AND `/glossary` are now fixed.**
       `.cbx-feat-body > h3 > a`, `.pc-donor-name > a`, `.pc-organizer > a`,
       `.pc-ai > ul > li > a`, `.sc-info-link`, `.rr-program-empty > a` and
       `.imp-area-body > h3 > a` now use `inline-flex` + `min-height: 24px`, which grows
@@ -181,10 +181,16 @@ what makes the outside-tap dismissal reachable at all.
       ⚠️ A blanket `a { min-height: 24px }` was rejected deliberately — most links here
       are inline text inside sentences, where WCAG's inline exception applies and a
       min-height would break the line box.
-      ⚠️ **Still open: `/glossary`** — `dt > a` at 18px and the "Read more" `dd > a` at
-      16px. Its markup is entirely inline-styled with no class names, so scoping needs a
-      class added to the page first; a bare `dt > a` rule would reach every definition
-      list on the site.
+      ✅ **`/glossary` CLOSED (2026-08-09).** The 16 `dt > a` term links measured 18px;
+      all 16 now measure **exactly 24px**, verified in a real 390x844 touch browser
+      (`termsUnder24: []`). Sized INLINE on the element rather than via a `dt > a` rule:
+      this page's markup carries no class names, and a bare `dt > a` selector would reach
+      every definition list on the site — adding a class purely to hang a rule on was the
+      worse trade.
+      ⚠️ The "Read more" `dd > a` links stay at **16px on purpose**. They sit inside a
+      sentence, which WCAG 2.5.8 exempts under the inline exception — the same call the
+      parallel lane made for `.auth-switch button`. Enlarging them would break the
+      sentence's line rhythm to satisfy a rule that does not apply. Do not "fix" them.
       ⚠️ Two selectors in my first draft (`.glossary-term > a`, `.imp-story-body > h3 > a`)
       matched **nothing** — I had guessed the class names. A selector that matches
       nothing passes every check while fixing nothing; always assert the match COUNT,
