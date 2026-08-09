@@ -23238,3 +23238,32 @@ records a first draft that queried one). "Latest from the blog" reads
 What was missing was ENFORCEMENT: the file claimed "every card here points at a
 page that EXISTS" and nothing checked it. A test now resolves all 20 hrefs
 against `app/**/page.tsx`, honouring route groups and dynamic segments.
+
+### 🔀 Merged with master's identical fix for /fundraising-guide
+
+While this was in flight, master landed the SAME mechanism for
+`/fundraising-guide` — `SHELL_WHEN_SIGNED_IN` plus an `authResolved` flag. The
+merge kept **master's name and list** and added `/resources` to it, rather than
+shipping two lists that do the same job.
+
+The two differed in how they learn about the session, and the resolution takes
+the better half of each:
+
+| | master's rule | this branch | merged |
+|---|---|---|---|
+| signed-in flash | prevented | prevented | prevented |
+| signed-OUT flash | header suppressed until the client auth call returns | none — server knows | **none** |
+
+`hasSession === undefined ? (!authResolved || !!user) : hasSession` — trust the
+server when it answered, fall back to master's conservative client rule when it
+did not. ⚠️ The prop deliberately has **no default**: `false` would be
+indistinguishable from "definitely signed out" and would reintroduce the flash
+for any caller that does not pass it.
+
+Master's own test pinned its exact expression, so it was updated to assert the
+property (membership in the list, the anti-flash fallback surviving) rather than
+the literal array and condition — the next resource page should not require
+editing it.
+
+Verified on both routes, signed out and in: shell no/yes, `<h1>` 1/1, wordmarks
+2/1, 0 page errors on all four.
