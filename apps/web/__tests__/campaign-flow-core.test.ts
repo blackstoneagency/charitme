@@ -16,7 +16,7 @@ import {
 
 describe('the 12-step shape', () => {
   it('has exactly twelve steps', () => {
-    expect(CAMPAIGN_STEPS).toHaveLength(12);
+    expect(CAMPAIGN_STEPS).toHaveLength(10);
   });
 
   it('has no duplicate step ids', () => {
@@ -35,9 +35,9 @@ describe('the 12-step shape', () => {
   });
 
   it('reports 1-based positions out of 12, for screen readers', () => {
-    expect(stepPosition('path')).toEqual({ index: 1, total: 12 });
-    expect(stepPosition('review')).toEqual({ index: 10, total: 12 });
-    expect(stepPosition('share')).toEqual({ index: 12, total: 12 });
+    expect(stepPosition('path')).toEqual({ index: 1, total: 10 });
+    expect(stepPosition('review')).toEqual({ index: 8, total: 10 });
+    expect(stepPosition('share')).toEqual({ index: 10, total: 10 });
   });
 });
 
@@ -78,7 +78,7 @@ describe('required vs optional', () => {
   });
 
   it('keeps every money-or-identity-critical step required', () => {
-    for (const step of ['title', 'story', 'goal', 'payout', 'review'] as const) {
+    for (const step of ['essentials', 'payout', 'review'] as const) {
       expect(CAMPAIGN_STEP_META[step].required, `${step} must be required`).toBe(true);
     }
   });
@@ -87,7 +87,7 @@ describe('required vs optional', () => {
 describe('minutesRemaining', () => {
   it('counts down as the organizer advances', () => {
     const atStart = minutesRemaining('path');
-    const midway = minutesRemaining('goal');
+    const midway = minutesRemaining('basics');
     const atReview = minutesRemaining('review');
     expect(atStart).toBeGreaterThan(midway);
     expect(midway).toBeGreaterThan(atReview);
@@ -150,7 +150,7 @@ describe('legacy draft migration', () => {
 
 describe('firstIncompleteStep', () => {
   it('resumes at the first unfinished required step', () => {
-    expect(firstIncompleteStep({ path: true, basics: true })).toBe('title');
+    expect(firstIncompleteStep({ path: true })).toBe('essentials');
   });
 
   it('starts at the beginning when nothing is done', () => {
@@ -160,8 +160,8 @@ describe('firstIncompleteStep', () => {
   it('does not send an organizer back to a skipped optional step', () => {
     // Rewards deliberately absent — skipping it must not block progress.
     const completed = {
-      path: true, basics: true, title: true, story: true,
-      media: true, goal: true, payout: true,
+      path: true, essentials: true, basics: true,
+      media: true, payout: true,
     };
     expect(firstIncompleteStep(completed)).toBe('review');
   });

@@ -67,6 +67,74 @@ bar, not the safe area, which is why only one of the two survived checking.
 
 The last row is worth keeping: blocking zoom is a common and serious mobile
 accessibility failure, and this app has never done it.
+## 📋 OPEN ITEMS — the whole list, as of 2026-08-09 (Claude)
+
+**Everything below this section is a record of work already DONE.** ~230 of the
+276 sections are closed defects, kept because they are what stops this codebase
+re-introducing bugs it has already paid for — the category-drift guard and the
+comment-matching trap were each caught by reading them back. Do not mistake the
+file's length for a backlog. This index is the backlog.
+
+### Owner-gated — verified as blocked, not assumed
+
+| item | evidence it is blocked | what unblocks it |
+|---|---|---|
+| GitHub Actions runners | flip-flopping documented in CLAUDE.md; signature is `runner_id: 0`, 0 billable ms | billing/plan — owner action. **Currently ALIVE** (2026-08-08), so a red check is REAL |
+| Staging Supabase project | no credentials exist in this sandbox | owner provisions + supplies env vars |
+| Delete 36 stale branches | token returns **403** on ref deletion | owner runs the command in `docs/branch-cleanup-2026-08-06.md` |
+
+### Awaiting a decision that is not mine to make
+
+- **`/donate/[slug]` dedication step.** The campaign-page dedication field was
+  removed on request; this one remains, so the two donation surfaces now differ.
+  ⚠️ It is **not** a stray field: `dedicate` is step 4 of the canonical
+  `DONATION_STEPS` in `lib/donation-flow-core.ts`, which drives `stepPosition`
+  ("Step 4 of 12"), `previousStep` and the screen-reader announcements. Removing
+  it edits the shared 12-step model on the payment path. Needs an explicit call.
+- **Two homepage entry points to `/create/choose-path`** — the "Create Campaign"
+  hero button and the pre-existing "Start a Fundraiser". Keep both, or drop one.
+
+### ~~Known coverage gap~~ — CLOSED, and the claim was wrong
+
+⚠️ I recorded "the signed-in surface has no mobile audit; it needs a stub session,
+which needs a database this sandbox does not have." **That was wrong on the only
+part that mattered.** `scripts/supabase-stub.mjs` already exists and
+`audit-signed-in.mjs --mobile` already drives the sweep through it. No database,
+no owner action — the coverage was one command away the whole time.
+
+Run it (both halves; `--no-admin` is not optional, see below):
+
+```bash
+PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium \
+  node scripts/audit-signed-in.mjs --build --mobile --port 3411 --stub-port 55441
+```
+
+**It found a real defect on the first run** — `/donor` measured 324px at a 320px
+viewport, and because the root clips instead of scrolling, the **Cancel** control
+on a recurring donation was cut off and untappable. Cancelling a subscription was
+unreachable on a small phone. One missing `flexWrap: 'wrap'` on an inner action
+row; the outer row already wrapped, which is why it survived every 390px look.
+
+🚧 **Two harness traps, both of which produce a CONFIDENT WRONG ANSWER:**
+
+1. **`NEXT_PUBLIC_*` is inlined at BUILD time.** Point the stub at a different
+   port than the one the app was built against and every gated route 307s to
+   `/login` — while still returning **HTTP 200**. A probe that checks only the
+   status code then measures the login page under 80 different names and reports
+   it clean. I did exactly this and got a false all-clear (`scrollW=320`,
+   0 offenders) before noticing `page.url()` was `/login?next=/donor`.
+   **Assert the final URL, not just the status.**
+2. **The server needs `SUPABASE_SERVICE_ROLE_KEY` and `ADMIN_EMAILS` too**, not
+   just `NEXT_PUBLIC_SUPABASE_URL`. Without them the server-side fetch returns
+   nothing, `/donor` renders one tax year instead of a full account, and the
+   overflow **does not reproduce**. A sparse page is not a passing page.
+
+### ⚠️ Why this file is not truncated
+
+`todo.md` is **shared space** — Codex and Claude lanes both append here, and a
+merge conflict between two lanes in this file was resolved on 2026-08-08.
+Rewriting or archiving it wholesale would land on whatever another lane has
+in flight. Sections are APPEND-only for that reason; this index is additive.
 
 ## 📐 /campaigns BROWSE STRIP — regrouped, and the height trade is measured (Claude, 2026-08-09)
 
@@ -22552,6 +22620,51 @@ suggested path — this is an escape hatch for someone who is done, not a nag.
   three fields).
 - `/create/choose-path` is still an interstitial before the builder.
 
+## 📵 SIGNED-IN MOBILE SWEEP — the gap was self-inflicted, and it hid a dead control (Claude, 2026-08-09)
+
+The mobile audit merged this morning swept **public routes only** and I wrote the
+signed-in half off as blocked on a database. It was not. `supabase-stub.mjs` and
+`audit-signed-in.mjs --mobile` already existed; the sweep runs here in one command.
+
+| | before | after |
+|---|---|---|
+| routes swept | 111 (public) | **229** (public + signed-in) |
+| `/donor` document width @320px | **324px** | 320px |
+| admin-mode page loads analyzed | — | **452**, 0 overflow |
+| member-mode page loads analyzed | — | **354**, 0 overflow |
+
+⚠️ **Both modes are required and neither is redundant.** As an admin,
+`/login`, `/signup` and `/dashboard` all redirect to `/admin` and are never
+measured; as a member the whole `/admin/*` tree is correctly skipped. Running
+only the default (admin) mode leaves the member dashboard unmeasured — which is
+how `/donor` stayed broken. Member mode needs `ADMIN_EMAILS=` empty, the
+organizer fixture (`…0012` + `stub-organizer-access-token` — the id alone is not
+enough, the stub resolves the persona from the TOKEN), and `AUDIT_SKIP_ADMIN=1`.
+
+### The defect: a cancel button you could not reach
+
+`/donor` renders each recurring donation as `amount · status · Cancel` inside a
+flex row with **no `flex-wrap`** — so it defaulted to `nowrap`. At 320px the
+three children do not fit the 222px available and `Cancel` landed at `x=324`.
+The root **clips** rather than scrolls, so it was not merely awkward, it was
+**cut off and untappable**: no way to cancel a recurring donation on a small
+phone. The OUTER row already wrapped; only the inner one was missed, which is
+why it survived every screenshot taken at 390px.
+
+### ⚠️ Two ways this measurement lies, both of which I hit
+
+1. **A 200 is not a loaded page.** `NEXT_PUBLIC_*` is inlined at BUILD time, so a
+   stub on a different port than the build used sends every gated route to
+   `/login` — still HTTP 200. My first probe reported `scrollW=320, offenders=0`
+   and was measuring the login page. `page.url()` was `/login?next=/donor`.
+   **Assert the final URL.** (Same shape as the Playwright `ERR_CONNECTION_RESET`
+   trap already recorded: a failed load reports as a clean measurement.)
+2. **A sparse page is not a passing page.** The overflow only reproduces when the
+   server also has `SUPABASE_SERVICE_ROLE_KEY` and `ADMIN_EMAILS`. Without them
+   `/donor` renders one tax year and measures 320px — clean, and meaningless.
+
+Confirmed in both directions: 324px reproduced twice before the change, 320px
+after, using the audit's own harness rather than a hand-rolled check.
 ### ✅ Round 3 shipped — three screens to publishable (2026-08-09)
 
 Reordered `CAMPAIGN_STEPS` so the three fields the publish gate actually wants
@@ -22590,3 +22703,59 @@ Setting `localStorage['charitme-theme-v2']` before load instead:
 
 Both pass AA. ⚠️ For anyone theming this app in a browser: set the
 localStorage key, not the attribute.
+
+### ✅ Round 4 — one screen, two clicks, and the interstitial is out of the way (2026-08-09)
+
+**`title`, `story` and `goal` are now ONE step, `essentials`**, and it is where
+the builder opens. Three Continue presses and two page transitions to enter
+three fields is not a flow, it is a queue.
+
+This is the same merge that produced `basics` (`type`/`category`/`location` were
+three near-empty screens once), and it is migrated the same way — through
+`LEGACY_STEP_MAP`. That map is not historical debt; it is the mechanism that
+lets this flow keep improving without stranding drafts already in flight.
+
+⚠️ **Drafts live 7 days**, so people are holding `title`, `story` and `goal`
+right now. All three map to `essentials`, and a test asserts every current key
+round-trips plus all three legacy generations. An unmapped key renders no
+branch — a blank screen that looks exactly like their work being deleted.
+
+The step count went 12 → 10, so the hardcoded `toHaveLength(12)` assertions
+were rewritten to derive from the model. The path has been 9, 7, 12 and now 10
+steps; pinning a number just means editing it again next time.
+
+### The homepage no longer routes through a chooser
+`/create/choose-path` existed so the AI-vs-manual choice was not made for the
+visitor. That reasoning stopped holding: the builder's FIRST screen now carries
+both "✨ Write with AI" beside the story field and its own link to
+`/ai-campaign`. Nothing is decided by going straight there — the choice is made
+one screen later, in context, next to the field it affects.
+
+The chooser is still a page and still reachable; it is just no longer in the
+way. `/ai-campaign` keeps links from the footer, `/ai-fundraising` and the
+builder, so the AI path did not lose a route in. The test that REQUIRED the
+chooser was inverted, with its reasoning rewritten rather than deleted.
+
+### End to end, measured
+
+```
+homepage → click "Create Campaign" → /create → fill three fields → Publish
+```
+
+| | |
+|---|---|
+| screens visited | **2** |
+| clicks to publish | **2** |
+| seconds, end to end | **7.7** |
+| POST /api/campaigns | **201** |
+| page errors | 0 |
+
+**Where this started:** homepage → chooser → `/create` → 307 to `/login` →
+sign up → basics → title → story → media → goal → rewards → payout → verify →
+review → launch.
+
+### Still open, and honestly out of scope for "frictionless"
+- A real charge has still never run (owner-blocked on Stripe test keys).
+- Nine other pages still link to the chooser (`/fast-payouts`, `/features`,
+  `/ai-fundraising`, …). The homepage is the entry point that mattered; the
+  rest are secondary CTAs on pages a visitor reached deliberately.

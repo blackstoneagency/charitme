@@ -72,10 +72,12 @@ describe('cause identity', () => {
     }
   });
 
-  it('every cause carries a blurb', () => {
-    // The blurb is the meta description as well as the card copy. An empty one
-    // ships a page with no description into search results.
-    for (const c of CAUSES) expect(c.blurb.length, c.slug).toBeGreaterThan(20);
+  it('every cause carries a search-ready blurb', () => {
+    // The blurb is the meta description as well as the card copy.
+    for (const c of CAUSES) {
+      expect(c.blurb.length, c.slug).toBeGreaterThanOrEqual(50);
+      expect(c.blurb.length, c.slug).toBeLessThanOrEqual(180);
+    }
   });
 });
 
@@ -182,27 +184,16 @@ describe('getCause', () => {
   });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// `blurb` IS the meta description of /causes/[slug] — it is passed straight to
-// `metadata.description`, `openGraph.description` and the Twitter card. That is
-// not obvious from the field name, and it cost a CI failure: `animals-planet`
-// was 48 characters, two short of the 50 the e2e quality spec requires of every
-// indexable page, and the only signal was a 59-minute Playwright run failing on
-// a number.
-//
-// A unit test costs milliseconds and names the actual constraint. The e2e spec
-// still owns the rendered check — this stops the same defect reaching it.
-// ─────────────────────────────────────────────────────────────────────────────
-describe('every cause blurb is a usable meta description', () => {
-  it.each(CAUSES.map((c) => [c.slug, c.blurb] as const))(
-    '%s is between 50 and 180 characters',
-    (_slug, blurb) => {
-      expect(blurb.length).toBeGreaterThanOrEqual(50);
-      expect(blurb.length).toBeLessThanOrEqual(180);
-    },
-  );
-
-  it('is still what the page publishes, so this test is not measuring a dead field', () => {
+// `blurb` IS the meta description of /causes/[slug] — passed straight to
+// `metadata.description`, `openGraph.description` and the Twitter card. The
+// LENGTH bounds live in `cause-blurb-seo.test.ts` (written concurrently in
+// another lane, and more thorough: it also catches whitespace padding and two
+// causes sharing one description). Only the anchor is kept here, because a
+// bounds test is worth nothing if the page stops publishing the field it
+// measures — that is the failure mode where a guard passes forever while the
+// thing it guards is gone.
+describe('the blurb bounds are measuring a field the page actually publishes', () => {
+  it('the cause page still uses cause.blurb as its description', () => {
     const page = readFileSync(join(__dirname, '..', 'app', 'causes', '[slug]', 'page.tsx'), 'utf8');
     expect(page, 'the cause page stopped using blurb as its description').toMatch(
       /description:\s*cause\.blurb/,

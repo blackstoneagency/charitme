@@ -24,9 +24,6 @@
       "/dashboard/ai-growth-plan",
       "/dashboard/corporate"
     ],
-    "create": [
-      "/create"
-    ],
     "admin": [
       "/admin",
       "/admin/users",
