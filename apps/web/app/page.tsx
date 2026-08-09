@@ -7,6 +7,7 @@ import JsonLd from '../components/JsonLd';
 import { isRotatorEligible } from '../lib/featured';
 import { withQueryTimeout } from '../lib/query-timeout';
 import { getCoverForCategory, getCoverForCampaign } from '../lib/photo-catalog';
+import { getCause } from '../lib/causes';
 import { getCategoryStats, getHomeData, getRecentDonations } from '../lib/home-data';
 import { getHomeStories } from '../lib/home-stories';
 import { campaignTimeLabel } from '../lib/campaign-lifecycle';
@@ -50,13 +51,35 @@ function Icon({ name, className = 'hi' }: { name: string; className?: string }) 
   return <svg {...common}>{paths[name] ?? paths.heart}</svg>;
 }
 
-const CAUSES = [
-  { category: 'Sports', title: 'Sports & Youth', body: 'Empowering young athletes and building confidence through opportunity.', action: 'Support Youth', icon: 'users' },
-  { category: 'Emergency', title: 'People in Need', body: 'Providing food, shelter, and essentials to individuals and families facing hardship.', action: 'Help Now', icon: 'heart' },
-  { category: 'Community', title: 'Community & Relief', body: 'Rebuilding communities and providing immediate relief when disaster strikes.', action: 'Give Relief', icon: 'globe' },
-  { category: 'Medical', title: 'Health & Wellness', body: 'Supporting medical treatment, mental health, and wellness for people in crisis.', action: 'Support Health', icon: 'shield' },
-  { category: 'Education', title: 'Education', body: 'Opening doors to learning and creating opportunities that last a lifetime.', action: 'Invest in Education', icon: 'check' },
-  { category: 'Animal', title: 'Animals & Planet', body: 'Protecting animals and the planet for future generations.', action: 'Protect Our Planet', icon: 'leaf' },
+/**
+ * The six cards in "Causes That Change Lives".
+ *
+ * ⚠️ `slug` is a REAL cause in `lib/causes.ts`, and it is the only thing here
+ * that decides where a card goes. The rest is presentation the cause definition
+ * does not carry — the design's action wording and its icon.
+ *
+ * This list previously carried a `category` instead, and each card linked to
+ * `/campaigns?category=<one category>`. Measured against `lib/causes.ts`, that
+ * was wrong in four of six cases and outright misdirecting in one:
+ *
+ *   Sports & Youth      → dropped Competition
+ *   Community & Relief  → dropped Emergency
+ *   Animals & Planet    → dropped Environment
+ *   People in Need      → linked to **Emergency**, which is not one of its
+ *                         categories at all (it is Family + Wishes + Memorial),
+ *                         so "Help Now" showed a completely different set of
+ *                         campaigns from the cause it named.
+ *
+ * A cause spans several categories; `?category=` can express exactly one. That
+ * is why the cause pages exist, and why these link to them.
+ */
+const CAUSE_CARDS = [
+  { slug: 'sports-youth',     action: 'Support Youth',       icon: 'users' },
+  { slug: 'people-in-need',   action: 'Help Now',            icon: 'heart' },
+  { slug: 'community-relief', action: 'Give Relief',         icon: 'globe' },
+  { slug: 'health-wellness',  action: 'Support Health',      icon: 'shield' },
+  { slug: 'education',        action: 'Invest in Education', icon: 'check' },
+  { slug: 'animals-planet',   action: 'Protect Our Planet',  icon: 'leaf' },
 ] as const;
 
 const TRUST_ITEMS = [
@@ -257,21 +280,37 @@ export default async function HomePage() {
         <div className="mirror-wrap">
           <h2 id="mirror-causes-title">Causes That Change Lives</h2>
           <div className="mirror-cause-grid">
-            {CAUSES.map((cause, index) => {
-              const stats = categoryStats.get(cause.category);
+            {CAUSE_CARDS.map((card, index) => {
+              // `getCause` rather than a second hand-written list: a renamed slug
+              // drops the card instead of linking to a 404. Same rule
+              // /success-stories already uses for its chips.
+              const cause = getCause(card.slug);
+              if (!cause) return null;
+              // Summed across ALL the cause's categories. Reading one category's
+              // row understated every multi-category cause — and the count sat
+              // directly above a link that now goes to the cause page, where the
+              // visitor can count the cards themselves.
+              const stats = cause.categories.reduce(
+                (acc: { count: number; supporters: number }, cat: string) => {
+                  const row = categoryStats.get(cat);
+                  return row ? { count: acc.count + row.count, supporters: acc.supporters + row.supporters } : acc;
+                },
+                { count: 0, supporters: 0 },
+              );
+              const measured = cause.categories.some((cat) => categoryStats.has(cat));
               return (
-                <Reveal as="article" className="mirror-cause" key={cause.category} delay={index * 45}>
-                  <Link href={`/campaigns?category=${encodeURIComponent(cause.category)}`}>
+                <Reveal as="article" className="mirror-cause" key={cause.slug} delay={index * 45}>
+                  <Link href={`/causes/${cause.slug}`}>
                     <div className="mirror-cause-media">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={getCoverForCategory(cause.category)} alt="" width={360} height={250} loading="lazy" decoding="async" />
-                      <span><Icon name={cause.icon} /></span>
+                      <img src={getCoverForCategory(cause.categories[0])} alt="" width={360} height={250} loading="lazy" decoding="async" />
+                      <span><Icon name={card.icon} /></span>
                     </div>
                     <div className="mirror-cause-copy">
-                      <h3>{cause.title}</h3>
-                      <p>{cause.body}</p>
-                      {stats ? <small>{stats.count.toLocaleString()} active causes · {stats.supporters.toLocaleString()} supporters</small> : null}
-                      <strong>{cause.action} <Icon name="arrow" /></strong>
+                      <h3>{cause.label}</h3>
+                      <p>{cause.blurb}</p>
+                      {measured ? <small>{stats.count.toLocaleString()} active campaigns · {stats.supporters.toLocaleString()} supporters</small> : null}
+                      <strong>{card.action} <Icon name="arrow" /></strong>
                     </div>
                   </Link>
                 </Reveal>

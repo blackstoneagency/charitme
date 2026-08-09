@@ -2230,19 +2230,6 @@ input, select, textarea, button { max-width: 100%; }
 .pc-statline { display: flex; justify-content: space-between; color: #4c5679; font-size: 14px; margin-bottom: 22px; }
 .pc-ended { border-radius: 14px; background: var(--s2); padding: 14px; text-align: center; color: var(--muted); font-weight: 650; }
 
-/* Milestones / stretch goals */
-.pc-milestones { margin: 0 0 22px; border: 1px solid var(--b2); border-radius: 14px; padding: 14px 16px; background: var(--s2); }
-.pc-milestones-title { margin: 0 0 10px; font-size: 13px; font-weight: 900; color: var(--t1); }
-.pc-milestones-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
-.pc-milestone { display: flex; gap: 10px; align-items: flex-start; }
-.pc-milestone-icon { font-size: 16px; line-height: 1.4; flex-shrink: 0; }
-.pc-milestone-body { flex: 1; min-width: 0; }
-.pc-milestone-title { font-size: 13px; font-weight: 800; color: var(--t1); }
-.pc-milestone.reached .pc-milestone-title { color: var(--green-dark, #065f46); }
-.pc-milestone-desc { font-size: 12px; color: var(--t3); margin-top: 2px; line-height: 1.45; }
-.pc-milestone-meta { font-size: 11px; font-weight: 700; color: var(--t3); margin-top: 4px; }
-.pc-milestone-bar { height: 6px; border-radius: 999px; background: var(--b1); margin-top: 6px; overflow: hidden; }
-.pc-milestone-bar span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--violet), var(--violet-2)); }
 /* Personal referral link box */
 .pc-referral { margin-top: 18px; border-radius: 14px; background: #f8fff9; border: 1px solid #d4f4df; padding: 16px; }
 .pc-referral-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
@@ -6069,7 +6056,6 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 [data-theme="dark"] .pc-referral { background: var(--s1); border-color: var(--b1); }
 [data-theme="dark"] .pc-referral-head b { color: var(--t1); }
 [data-theme="dark"] .pc-referral-head span { color: var(--t3); }
-[data-theme="dark"] .pc-milestones { background: var(--s1); border-color: var(--b1); }
 [data-theme="dark"] .pc-match-note, [data-theme="dark"] .pc-match-howto { color: var(--t3); }
 [data-theme="dark"] .pc-organizers { background: rgba(15,18,48,.96); border-color: var(--line); }
 [data-theme="dark"] .pc-org-info b { color: var(--t1); }
