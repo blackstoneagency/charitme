@@ -387,7 +387,11 @@ function CampaignPreviewModal({
 const BUILDER_ERROR_ID = 'cr2-builder-error';
 
 export default function CreatePage() {
-  const [step, setStep]               = useState<WizardStep>('basics');
+  // Opens on `title`, not `basics`. The gate wants a title, a story and a goal;
+  // opening on category/location put an administrative screen in front of the
+  // only three fields that decide whether this campaign can go live at all.
+  // `path` is still reachable by going Back, exactly as it was from `basics`.
+  const [step, setStep]               = useState<WizardStep>('title');
   const [loading, setLoading]         = useState(false);
   const [aiLoading, setAiLoading]     = useState(false);
   const [storyMode, setStoryMode]     = useState<'freeform' | 'guided'>('freeform');
@@ -607,7 +611,7 @@ export default function CreatePage() {
     if (typeof window !== 'undefined') localStorage.removeItem(CAMPAIGN_DRAFT_KEY);
     setForm(EMPTY_FORM);
     setUploadedImages([]);
-    setStep('basics');
+    setStep('title');
     setSavedAt(null);
     draftDecided.current = true;
     setRecoverableDraft(null);

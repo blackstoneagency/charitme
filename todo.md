@@ -22294,3 +22294,42 @@ suggested path — this is an escape hatch for someone who is done, not a nag.
 - Collapse title/story/goal onto ONE first screen (they are three screens for
   three fields).
 - `/create/choose-path` is still an interstitial before the builder.
+
+### ✅ Round 3 shipped — three screens to publishable (2026-08-09)
+
+Reordered `CAMPAIGN_STEPS` so the three fields the publish gate actually wants
+come first, and opened the builder on the first of them.
+
+The wizard used to *start* on `basics` — `path` was only ever reached by
+pressing Back — so the lived order was basics → title → story → **media** →
+goal. Five screens, with an upload wedged between the story and the goal,
+before a draft was publishable at all.
+
+| | before | after |
+|---|---|---|
+| screens before publishable | 5 (then walk to review to publish) | **3** |
+| account required to start | yes | no |
+
+Measured in a browser: screen 1 "Name Your Campaign", screen 2 "Tell Your
+Story", screen 3 "Set Your Goal" → **Publish now appears**. 0 page errors.
+
+⚠️ **No step KEY changed, only the order.** Keys are what `normalizeStep`
+migrates and what live drafts hold, so a draft saved mid-flow still resolves to
+the screen it was on. A test pins every current key round-tripping plus the two
+legacy generations (`category`→`basics`, `summary`→`review`, `live`→`publish`).
+
+### Contrast of the new button — and a correction
+First measurement reported 9.49:1 in "both themes". **That was wrong**: the app
+re-applies its stored theme on load, so `setAttribute('data-theme','light')`
+was overwritten and the light run measured dark twice — the same false all-clear
+`audit:contrast` exists to prevent.
+
+Setting `localStorage['charitme-theme-v2']` before load instead:
+
+| theme | fg on bg | ratio |
+|---|---|---|
+| dark | `rgb(74,222,128)` on `rgb(24,28,60)` | **9.49:1** |
+| light | `rgb(13,120,60)` on `rgb(250,251,255)` | **5.39:1** |
+
+Both pass AA. ⚠️ For anyone theming this app in a browser: set the
+localStorage key, not the attribute.
