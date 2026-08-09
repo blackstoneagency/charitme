@@ -1,6 +1,6 @@
 # CharitMe — Execution Tracker
 
-## 📱 END-TO-END MOBILE APP READINESS AUDIT — 4 parallel agents, 26 fixed, 1 RETRACTED, 4 open (Claude, 2026-08-09)
+## 📱 END-TO-END MOBILE APP READINESS AUDIT — 4 parallel agents, 27 fixed, 1 RETRACTED, 3 open (Claude, 2026-08-09)
 
 This is a PWA, not a native shell (`app/manifest.ts` + `public/sw.js` +
 `components/PWARegister.tsx`; no Capacitor/Expo in any package.json). So "mobile app
@@ -102,24 +102,34 @@ panel to use it. Recorded as unverified rather than claimed.
 
 ### ⏳ OPEN — real, measured, NOT yet fixed
 
-- [ ] **Mobile panel: headed groups are now COLLAPSED, but the result is only
-      PARTLY verified — do not close this without re-measuring.** The twenty cause
-      links and twelve resource links now sit in `<details>` disclosures
-      (`components/AppShell.tsx`), with 44px summaries and an explicit
-      `.kind-mobile-group:not([open]) > a { display: none }` rather than trusting the
-      UA default (the panel is a grid container and several author rules target
-      `.kind-mobile a`).
-      **What I measured and trust:** header bottom fell from **y=2303 to y=806** on an
-      844px viewport, so the panel now fits the screen; 5 groups render; summaries are
-      44px.
-      ⚠️ **What I could NOT reproduce:** one run reported all 41 grouped links still
-      visible with `groupsOpen: 0`, and a second run found **zero** `.kind-mobile-group`
-      elements at all — almost certainly hydration timing in the probe, but two runs
-      disagreeing means the collapse is NOT confirmed. Re-measure with an explicit wait
-      for the panel, and assert `groupsOpen === 0` together with
-      `linksInGroupsVisible === 0` — the pair, not either alone.
-      ⚠️ `page.tap()` silently failed to open the panel where `page.click()` worked; a
-      probe that taps and finds nothing looks identical to a panel that does not exist.
+### ✅ MOBILE PANEL — collapsed, and now VERIFIED (was the 2303px item)
+
+The twenty cause links and twelve resource links sit in `<details>` disclosures
+(`components/AppShell.tsx`), 44px summaries with a count, and an explicit
+`.kind-mobile-group:not([open]) > a { display: none }` rather than trusting the UA
+default — the panel is a grid container and several author rules target
+`.kind-mobile a`.
+
+**Measured on a populated build, identical across 3 consecutive runs:**
+
+| | before | after |
+|---|---|---|
+| `.kind-header` bottom edge (844px viewport) | **y=2303** | **y=806** — fits the screen |
+| groups rendered / open | — | 5 / **0** |
+| links inside groups / visible | — | 41 / **0** |
+| top-level links visible | 45 | 4 |
+| links revealed by expanding one group | — | **9** (the control is not inert) |
+
+⚠️ The earlier "could not reproduce" note was MY error, not flakiness: those runs
+were against a build made BEFORE the explicit hide rule was added. Rebuild after a
+CSS change before concluding anything — the running server serves the old bundle.
+⚠️ `page.tap()` silently failed to open the panel where `page.click()` worked. A
+probe that taps and finds nothing looks identical to a panel that does not exist.
+⚠️ The pair is what matters: assert `groupsOpen === 0` AND
+`linksInGroupsVisible === 0`. Either alone passes on a broken control.
+
+Because the panel now fits the viewport, a point outside it exists again — which is
+what makes the outside-tap dismissal reachable at all.
 - [ ] **One 518 KB stylesheet on every route, 94–98% unused.** `app/globals.css` is 676 KB
       / 12,199 lines → 518,233 B raw, 89 KB gz, render-blocking on every page. Chrome
       coverage: **2.1% used on `/search`, 2.8% on `/login`** (14 KB of 506 KB). Admin and
