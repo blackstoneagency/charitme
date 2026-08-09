@@ -81,12 +81,16 @@ const SHELL_BYPASS = ['/dashboard', '/admin', '/profile', '/maintenance'];
  *
  * ⚠️ The route's own page component decides whether to render `CharitMeShell`,
  * from the SERVER session. This list only tells the marketing chrome to get out
- * of the way. The two are keyed on the same fact, but they learn it at different
- * moments — the page during SSR, this component after its auth call resolves —
- * so between hydration and that resolution a signed-in visitor would briefly get
- * BOTH. `authResolved` below exists to prevent that; see the comment there.
+ * of the way. The two are keyed on the same fact, but they can learn it at
+ * different moments — the page during SSR, this component after its auth call
+ * resolves — so a signed-in visitor could briefly get BOTH.
+ *
+ * `hasSession` closes that gap properly: middleware already resolves the session
+ * on every non-API request, and passes it through the root layout, so the FIRST
+ * server render is already correct in both directions. `authResolved` remains
+ * the fallback for any caller that does not supply it — see the bypass below.
  */
-const SHELL_WHEN_SIGNED_IN = ['/fundraising-guide'];
+const SHELL_WHEN_SIGNED_IN = ['/fundraising-guide', '/resources'];
 
 // Campaign embed widgets (/campaigns/[slug]/embed) are designed to run inside an
 // <iframe> on third-party sites — they render their own minimal layout and must
@@ -408,12 +412,23 @@ function AppBadges({ settings }: { settings: FooterSettings }) {
 
 export function AppShell({
   children,
+  hasSession,
   initialAnnouncements,
   bannerAppearance,
   footerSettings,
   initialLocale,
 }: {
   children: React.ReactNode;
+  /**
+   * Whether the request carried a session, resolved on the SERVER by middleware
+   * and passed through the root layout.
+   *
+   * Deliberately has NO default: `undefined` means "the server did not say", and
+   * the bypass falls back to the client-side rule. A default of `false` would be
+   * indistinguishable from "definitely signed out" and would reintroduce the
+   * double-chrome flash for anyone rendering AppShell without this prop.
+   */
+  hasSession?: boolean;
   initialAnnouncements?: Announcement[];
   bannerAppearance?: BannerAppearance;
   footerSettings?: FooterSettings;
@@ -442,14 +457,20 @@ export function AppShell({
   const navRef = useRef<HTMLElement | null>(null);
   const supabase = useMemo(() => createClient(), []);
   const shellWhenSignedIn = SHELL_WHEN_SIGNED_IN.some((p) => path === p || path.startsWith(p + '/'));
-  // On these routes the marketing chrome is suppressed while the answer is
-  // UNKNOWN as well as when it is "signed in". The alternative — assume signed
-  // out until proven otherwise — renders the marketing header on top of the
-  // server-rendered app shell for every signed-in visitor, on every load.
+  // Prefer the SERVER's answer. `hasSession` comes from middleware via the root
+  // layout, so it is known before the first byte and is right in both
+  // directions: no marketing header flashing over the app shell for a member,
+  // and no missing header for an anonymous visitor.
+  //
+  // When it is absent (any caller that does not pass it) fall back to the
+  // client-side rule: suppress while the answer is UNKNOWN as well as when it is
+  // "signed in", because assuming signed-out renders the marketing header on top
+  // of the server-rendered app shell for every signed-in visitor, on every load.
+  const signedInForShell = hasSession === undefined ? (!authResolved || !!user) : hasSession;
   const bypass =
     SHELL_BYPASS.some((p) => path === p || path.startsWith(p + '/'))
     || isEmbedRoute(path)
-    || (shellWhenSignedIn && (!authResolved || !!user));
+    || (shellWhenSignedIn && signedInForShell);
 
   const displayName = ((user?.user_metadata?.full_name as string | undefined) ?? user?.email?.split('@')[0] ?? 'Account').split(' ')[0];
   const avatarInitial = (displayName[0] ?? 'A').toUpperCase();
