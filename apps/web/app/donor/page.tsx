@@ -245,7 +245,17 @@ export default async function DonorPortalPage() {
                       {cadenceLabel(r.cadence)} · {r.next_bill_at ? `Next: ${fmtDate(r.next_bill_at)}` : `Started ${fmtDate(r.created_at)}`}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12 }}>
+                  {/* `flexWrap: 'wrap'` is load-bearing, not tidying. Without it
+                      this row is `nowrap` (the CSS default) and its three
+                      children — amount, status pill, Cancel — measure wider than
+                      a 320px phone leaves for them: the Cancel link landed at
+                      x=324 and, because the root CLIPS rather than scrolls, it
+                      was cut off and untappable. Cancelling a recurring donation
+                      was unreachable on a small phone.
+                      The OUTER row already wrapped; only this inner one did not,
+                      which is why the page looked fine in a screenshot that
+                      happened to be taken at 390px. */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', gap: 12, justifyContent: 'flex-end' }}>
                     <strong style={{ color: 'var(--brand-text)' }}>{formatCents(r.amount_cents, currencyMap.get(r.campaign_id) ?? 'usd')}/{r.cadence === 'monthly' ? 'mo' : r.cadence}</strong>
                     <span style={{
                       fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20,
