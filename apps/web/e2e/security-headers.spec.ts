@@ -10,6 +10,8 @@ test('normal pages send baseline security headers', async ({ request }) => {
   expect(policy).toContain("frame-ancestors 'self'");
   expect(policy).toContain('https://www.youtube-nocookie.com');
   expect(policy).toContain('https://player.vimeo.com');
+  expect(policy).toContain('https://api.dicebear.com');
+  expect(policy).toContain('https://api.qrserver.com');
   expect(policy).toMatch(/script-src[^;]*nonce-[^ ;]+/);
   expect(response.headers()['x-frame-options']).toBe('SAMEORIGIN');
   expect(response.headers()['x-content-type-options']).toBe('nosniff');
