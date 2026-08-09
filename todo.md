@@ -1,5 +1,62 @@
 # CharitMe — Execution Tracker
 
+## 📱 MOBILE READINESS AUDIT — swept, and the headline is that it is CLEAN (Claude, 2026-08-09)
+
+End-to-end mobile audit against a production build. **The result is negative,
+and a negative result recorded is worth more than a fabricated finding.**
+
+| check | method | result |
+|---|---|---|
+| horizontal overflow, 320px | `audit:mobile`, 111 public routes | **0 findings** |
+| horizontal overflow, 390px | same | **0 findings** |
+| viewport meta | `app/layout.tsx` | `width=device-width, initialScale: 1`, and **no `maximumScale` / `userScalable:false`** — pinch-zoom is not blocked |
+| grid tracks (`minmax` vs bare `1fr`) | `mobile-grid-tracks.test.ts` | 10/10 pass |
+| tap targets < 24×24, 390px | new probe, 21 routes | 5 raw → **1 genuine** |
+
+### ⚠️ 4 OF 5 TAP FINDINGS WERE ARTIFACTS — check the EFFECTIVE target, not the element
+
+The same ratio `audit:focus-order` hit (7 of 7 artifacts on its first run). A
+raw `getBoundingClientRect()` on an `<input>` measures the wrong thing whenever
+a label or a styled wrapper is the real target:
+
+| raw finding | effective target | verdict |
+|---|---|---|
+| `/donate` checkbox 13×13 | wrapped in a **276×39 label** | artifact |
+| `/transparency` checkbox 16×16 | wrapped in a **227×24 label** | artifact |
+| `/donate` amount input 198×**23** | `.dn-money` visible field is **276×44**, label-wrapped | artifact |
+| `/donate` breadcrumb "Home" 38×20 | conventional breadcrumb | not worth a change |
+| `/login`+`/signup` auth-switch 60×**21** | none — bare text button | **genuine** |
+
+The amount-input one I initially called REAL and had to correct: tapping the
+44px visible field was verified to focus the input
+(`document.activeElement` → `Custom amount in US dollars`). **Measure what a
+thumb actually hits.**
+
+### The one genuine finding, and its honest severity
+
+`.auth-switch button` — the only control that flips the auth panel between
+Log in and Sign up — measured **60×21**. It sits inside a sentence
+("Need an account? Sign up"), so it is **EXEMPT from WCAG 2.5.8** under the
+inline exception. Calling it a conformance failure would be wrong.
+
+It is still the sole path to account creation from the login screen, and
+vertical padding costs nothing: now `min-height: 32px` with padding and a
+focus ring.
+
+### 🚧 What this audit CANNOT see, so nobody re-derives it
+
+- **Playwright still cannot reach production** — re-tested today, still
+  `net::ERR_CONNECTION_RESET`; chromium does not use the agent proxy that
+  `curl` does. Browser geometry is measurable on a LOCAL build only.
+- **The local build has no database**, so 5 data-dependent routes return HTTP
+  500 and are unmeasurable here. ⚠️ **They are fine on production** — verified
+  by `curl`: `/campaigns/<slug>` `/embed` `/share` `/updates` all 200. Do not
+  report those 500s as defects.
+- `/campaigns/<slug>/team` 404s on production and that is **correct** — the
+  route is `team/[peerSlug]`, there is no index page.
+- The **signed-in** surface is not covered here (`audit:mobile --auth` needs a
+  stub session). Public only, which is 111 routes.
+
 ## ✅ SIGNED-IN RELEASE AUDIT CLEAN ON THE COMBINED CAUSE-PAGE BRANCH (Codex, 2026-08-08)
 
 The authenticated release sweep has completed against the branch that includes
