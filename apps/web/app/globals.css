@@ -449,6 +449,7 @@ input, select, textarea, button { max-width: 100%; }
 }
 .kind-user-wrap { position: relative; flex-shrink: 0; }
 .kind-user-btn { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 4px; border: none; background: transparent; cursor: pointer; font: inherit; color: var(--ink, #0f1238); }
+.kind-header .kind-user-btn { color: #d8dee5; }
 .kind-avatar-sm { width: 30px; height: 30px; border-radius: 50%; background: #e8590c; color: #fff; display: inline-grid; place-items: center; font-size: 14px; font-weight: 800; }
 .kind-user-name { font-size: 14px; font-weight: 700; white-space: nowrap; }
 .kind-user-caret { transition: transform .15s; }
