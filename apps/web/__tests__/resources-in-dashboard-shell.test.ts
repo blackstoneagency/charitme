@@ -53,9 +53,15 @@ describe('the public chrome steps aside without a flash', () => {
     // NOT on its own `user` state: that is filled by an effect, so the public
     // header would render and be stripped a moment later — a visible flash of
     // two navigations and two logos.
-    expect(appShell).toContain('SHELL_BYPASS_WHEN_SIGNED_IN');
-    expect(appShell).toContain("SHELL_BYPASS_WHEN_SIGNED_IN = ['/resources']");
-    expect(appShell).toMatch(/hasSession && SHELL_BYPASS_WHEN_SIGNED_IN\.some/);
+    // Master landed the same mechanism for /fundraising-guide while this was in
+    // flight; the merge kept ITS name and list and added /resources, rather than
+    // shipping two lists that do the same job.
+    expect(appShell).toContain('SHELL_WHEN_SIGNED_IN');
+    expect(appShell).toMatch(/SHELL_WHEN_SIGNED_IN = \[[^\]]*'\/resources'/);
+    expect(appShell).toMatch(/SHELL_WHEN_SIGNED_IN = \[[^\]]*'\/fundraising-guide'/);
+    // The server's answer wins when it exists; the client rule is the fallback.
+    expect(appShell).toContain("hasSession === undefined ? (!authResolved || !!user) : hasSession");
+    expect(appShell).toContain('shellWhenSignedIn && signedInForShell');
   });
 
   it('the flag comes from middleware, which already resolved the session', () => {

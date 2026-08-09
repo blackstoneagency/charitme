@@ -69,18 +69,28 @@ function MenuLinkIcon({ index }: { index: number }) {
 const SHELL_BYPASS = ['/dashboard', '/admin', '/profile', '/maintenance'];
 
 /**
- * Public pages that render the DASHBOARD shell for a signed-in visitor.
+ * Public routes that render the SIGNED-IN app shell (sidebar + top bar) once you
+ * have a session, and the public marketing chrome when you do not.
  *
- * These live in the dashboard sidebar (`RESOURCE_NAV` in
- * `lib/persona-navigation.ts`) but are public marketing pages, so a signed-in
- * person clicking one used to lose the left navigation entirely. They now draw
- * `CharitMeShell` themselves when there is a session — and when they do, this
- * shell must step aside, or the page carries two navigations and two logos.
+ * These are the resource pages that appear in `RESOURCE_NAV` — a member reaches
+ * them from the sidebar, so landing on the marketing site instead is a jarring
+ * change of context that also loses the navigation they arrived by. Anonymous
+ * visitors must keep the marketing layout: the pages are publicly indexable, and
+ * showing a signed-out visitor an app sidebar full of "sign in to access" stubs
+ * would be a worse first impression than the marketing header.
  *
- * Signed OUT they are ordinary public pages and keep the public chrome, which
- * is why this is a separate list rather than an addition to `SHELL_BYPASS`.
+ * ⚠️ The route's own page component decides whether to render `CharitMeShell`,
+ * from the SERVER session. This list only tells the marketing chrome to get out
+ * of the way. The two are keyed on the same fact, but they can learn it at
+ * different moments — the page during SSR, this component after its auth call
+ * resolves — so a signed-in visitor could briefly get BOTH.
+ *
+ * `hasSession` closes that gap properly: middleware already resolves the session
+ * on every non-API request, and passes it through the root layout, so the FIRST
+ * server render is already correct in both directions. `authResolved` remains
+ * the fallback for any caller that does not supply it — see the bypass below.
  */
-const SHELL_BYPASS_WHEN_SIGNED_IN = ['/resources'];
+const SHELL_WHEN_SIGNED_IN = ['/fundraising-guide', '/resources'];
 
 // Campaign embed widgets (/campaigns/[slug]/embed) are designed to run inside an
 // <iframe> on third-party sites — they render their own minimal layout and must
@@ -402,7 +412,7 @@ function AppBadges({ settings }: { settings: FooterSettings }) {
 
 export function AppShell({
   children,
-  hasSession = false,
+  hasSession,
   initialAnnouncements,
   bannerAppearance,
   footerSettings,
@@ -411,8 +421,12 @@ export function AppShell({
   children: React.ReactNode;
   /**
    * Whether the request carried a session, resolved on the SERVER by middleware
-   * and passed through the root layout. Defaults false so a caller that does not
-   * supply it behaves exactly as before.
+   * and passed through the root layout.
+   *
+   * Deliberately has NO default: `undefined` means "the server did not say", and
+   * the bypass falls back to the client-side rule. A default of `false` would be
+   * indistinguishable from "definitely signed out" and would reintroduce the
+   * double-chrome flash for anyone rendering AppShell without this prop.
    */
   hasSession?: boolean;
   initialAnnouncements?: Announcement[];
@@ -424,6 +438,17 @@ export function AppShell({
   const footer = footerSettings ?? FOOTER_SETTINGS_DEFAULTS;
   const path = usePathname();
   const [user, setUser] = useState<User | null>(null);
+  /**
+   * Whether the auth call has come back yet — distinct from `!user`, which is
+   * ALSO true for the entire window before it resolves.
+   *
+   * Only consulted for SHELL_WHEN_SIGNED_IN routes. On those, the page has
+   * already server-rendered the app shell for a signed-in visitor, so drawing
+   * the marketing header before this resolves puts a full second header above it
+   * and then rips it away. Treating "not yet known" as "signed out" is exactly
+   * the bug; this makes the third state explicit.
+   */
+  const [authResolved, setAuthResolved] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
@@ -431,13 +456,21 @@ export function AppShell({
   const accountRef = useRef<HTMLDivElement | null>(null);
   const navRef = useRef<HTMLElement | null>(null);
   const supabase = useMemo(() => createClient(), []);
-  // `hasSession` comes from the server (middleware → layout), NOT from the
-  // `user` state below: that is populated by an effect, so deciding on it would
-  // render the public header and strip it a moment later.
+  const shellWhenSignedIn = SHELL_WHEN_SIGNED_IN.some((p) => path === p || path.startsWith(p + '/'));
+  // Prefer the SERVER's answer. `hasSession` comes from middleware via the root
+  // layout, so it is known before the first byte and is right in both
+  // directions: no marketing header flashing over the app shell for a member,
+  // and no missing header for an anonymous visitor.
+  //
+  // When it is absent (any caller that does not pass it) fall back to the
+  // client-side rule: suppress while the answer is UNKNOWN as well as when it is
+  // "signed in", because assuming signed-out renders the marketing header on top
+  // of the server-rendered app shell for every signed-in visitor, on every load.
+  const signedInForShell = hasSession === undefined ? (!authResolved || !!user) : hasSession;
   const bypass =
     SHELL_BYPASS.some((p) => path === p || path.startsWith(p + '/'))
     || isEmbedRoute(path)
-    || (hasSession && SHELL_BYPASS_WHEN_SIGNED_IN.some((p) => path === p));
+    || (shellWhenSignedIn && signedInForShell);
 
   const displayName = ((user?.user_metadata?.full_name as string | undefined) ?? user?.email?.split('@')[0] ?? 'Account').split(' ')[0];
   const avatarInitial = (displayName[0] ?? 'A').toUpperCase();
@@ -448,8 +481,11 @@ export function AppShell({
   };
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data.user));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => setUser(session?.user ?? null));
+    supabase.auth.getUser().then(({ data }) => { setUser(data.user); setAuthResolved(true); });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setUser(session?.user ?? null);
+      setAuthResolved(true);
+    });
     return () => subscription.unsubscribe();
   }, [supabase]);
 
