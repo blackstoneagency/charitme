@@ -120,6 +120,12 @@ describe('theme token contrast (WCAG 2.2 AA)', () => {
     expect(css).toContain('.kind-header .kind-user-btn { color: #d8dee5; }');
   });
 
+  it('keeps the AI campaign security note readable on the public page', () => {
+    const foreground = css.match(/\.ai-builder-secure\s*\{[\s\S]*?color:\s*(#[0-9a-fA-F]{6})/)?.[1];
+    expect(foreground).toBeDefined();
+    expect(contrast(foreground ?? '#000000', '#fbfaff')).toBeGreaterThanOrEqual(AA_NORMAL);
+  });
+
   it('uses a theme-aware surface for the trust flag resolution action', () => {
     expect(trustSafety).toContain("background: 'var(--green-light)'");
     expect(trustSafety).toContain("border: '1px solid var(--green-dark)'");

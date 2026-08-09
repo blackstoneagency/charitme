@@ -3401,7 +3401,7 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 .ai-builder-chips button { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border: 1px solid #e6e9f2; border-radius: 14px; background: #fff; color: #20254a; font-size: 13px; font-weight: 800; line-height: 1.45; text-align: left; cursor: pointer; transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
 .ai-builder-chips button:hover { border-color: #c9bcfb; box-shadow: 0 14px 34px rgba(108,53,255,.12); transform: translateY(-1px); }
 .ai-builder-chips .pub-icon { width: 20px; height: 20px; color: var(--brand-text); flex: 0 0 auto; }
-.ai-builder-secure { display: flex; align-items: center; gap: 8px; margin: 34px 0 0; color: #6b7591; font-size: 13px; font-weight: 700; }
+.ai-builder-secure { display: flex; align-items: center; gap: 8px; margin: 34px 0 0; color: #66708c; font-size: 13px; font-weight: 700; }
 .ai-builder-secure .pub-icon { width: 16px; height: 16px; }
 @media (max-width: 720px) {
   .ai-builder-card { padding: 40px 22px 36px; }
