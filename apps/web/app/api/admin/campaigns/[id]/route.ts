@@ -3,10 +3,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { supabaseAdmin } from '../../../../../lib/supabase';
 import { verifyAdmin } from '../../users/_auth';
+import { STORED_TRUST_TIERS } from '../../../../../lib/trust-tiers';
 
 const allowedStatuses    = new Set(['draft', 'active', 'paused', 'completed', 'rejected', 'frozen']);
-// 'Trusted' is a valid DB value (between 'Under Review' and 'Verified')
-const allowedTrustStatus = new Set(['Needs More Info', 'Under Review', 'Trusted', 'Verified', 'Flagged']);
+// This route is the ONLY writer of `campaigns.trust_status` — the column carries
+// no CHECK constraint, so this Set is the constraint. It was a fourth hand-kept
+// copy of a vocabulary that had already drifted three ways (see lib/trust-tiers.ts);
+// it now derives from the same list `/success-stories` filters on, so a tier
+// cannot become settable without also being classified promotable or not.
+const allowedTrustStatus = new Set<string>(STORED_TRUST_TIERS);
 
 const PatchSchema = z.object({
   // Core text fields

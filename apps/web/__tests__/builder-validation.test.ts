@@ -9,10 +9,8 @@ import { PUBLISH_MIN_STORY_CHARS, PUBLISH_MIN_GOAL_CENTS } from '../lib/campaign
 // failure targets. The component uses that field to set aria-invalid /
 // aria-describedby and to move focus onto the offending input.
 //
-// This is unit-tested rather than driven in a browser because /create is
-// auth-gated and there is no database in CI, so the wizard can't be walked here.
-// Without these, the field-targeting would ship unverified on the primary
-// conversion path.
+// The public browser sweep verifies that the guest builder renders, while these
+// unit checks cover field targeting without needing to publish into a database.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const base = { step: 'title', title: '', description: '', goalCents: 0, goalRaw: '' };

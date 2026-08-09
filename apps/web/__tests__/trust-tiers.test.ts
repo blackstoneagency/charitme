@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import {
   PROMOTABLE_TRUST_TIERS,
   NON_PROMOTABLE_TRUST_TIERS,
+  STORED_TRUST_TIERS,
   isPromotableTrustTier,
 } from '../lib/trust-tiers';
 
@@ -62,19 +63,53 @@ describe('the tier vocabulary cannot drift without failing', () => {
   // A filter written from any one of those lists alone is wrong.
   const adminRoute = read('app/api/admin/campaigns/[id]/route.ts');
 
-  function adminSettableTiers(): string[] {
-    const line = adminRoute.match(/allowedTrustStatus = new Set\(\[([^\]]*)\]\)/);
-    expect(line, 'the admin allow-list moved — this guard is now blind').not.toBeNull();
-    return [...line![1].matchAll(/'([^']+)'/g)].map((m) => m[1]);
-  }
-
   it('classifies every tier an admin can actually set', () => {
-    // The real risk: someone adds a tier to the admin dropdown and it silently
-    // becomes un-promotable (or worse, if this were a deny-list, promotable).
+    // The route used to hand-maintain a FOURTH copy of the vocabulary, and this
+    // test parsed it to prove the copy agreed. It now derives from
+    // STORED_TRUST_TIERS, so agreement is structural and the parsing guard would
+    // only be checking itself. What is still worth asserting is that the
+    // derivation is real — a re-hardcoded literal must fail here.
+    expect(adminRoute).toMatch(/new Set<string>\(STORED_TRUST_TIERS\)/);
+    expect(adminRoute).toMatch(/import \{[^}]*STORED_TRUST_TIERS[^}]*\} from '[^']*trust-tiers'/);
+    expect(
+      adminRoute,
+      'the admin route hardcodes trust tiers again — derive them from STORED_TRUST_TIERS',
+    ).not.toMatch(/allowedTrustStatus\s*=\s*new Set\(\[/);
+
     const known = new Set<string>([...PROMOTABLE_TRUST_TIERS, ...NON_PROMOTABLE_TRUST_TIERS]);
-    for (const tier of adminSettableTiers()) {
+    for (const tier of STORED_TRUST_TIERS) {
       expect(known.has(tier), `"${tier}" is settable in admin but unclassified in trust-tiers.ts`)
         .toBe(true);
+    }
+  });
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // The barrier between the two vocabularies.
+  //
+  // A long-standing note called `TrustStatus` (lib/ai-platform.ts) "wrong"
+  // because the plurality production value, 'Trusted', is absent from it. It is
+  // not wrong — it is the COMPUTED vocabulary and the scorer genuinely cannot
+  // produce 'Trusted'. Widening it would add a permanently unreachable member
+  // while implying the opposite to every `switch`. The real gap was that nothing
+  // stopped one vocabulary being used as the other, which is exactly the mistake
+  // that put 'Strong Trust' in the promotable list and silently narrowed the
+  // /success-stories query.
+  // ───────────────────────────────────────────────────────────────────────────
+  it('never writes a COMPUTED status into the STORED column', () => {
+    const platform = read('lib/ai-platform.ts');
+    const computed = [...platform.matchAll(/return '([^']+)';/g)]
+      .map((m) => m[1])
+      .filter((v) => /^[A-Z]/.test(v));
+    expect(computed, 'getTrustStatus stopped returning literals — this guard is blind').toContain('Strong Trust');
+
+    // Only the scorer's own tiers may be computed; any that the column cannot
+    // hold must never reach a write. The one that matters is 'Strong Trust'.
+    const storedOnly = computed.filter((v) => !(STORED_TRUST_TIERS as readonly string[]).includes(v));
+    expect(storedOnly, 'a computed-only tier exists, so the barrier below must hold').toContain('Strong Trust');
+
+    for (const file of ['app/api/ai/trust-score/route.ts', 'app/api/trust-score/route.ts']) {
+      expect(read(file), `${file} writes a computed status to trust_status`)
+        .not.toMatch(/trust_status:\s*(status|getTrustStatus)/);
     }
   });
 

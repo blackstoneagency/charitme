@@ -27,4 +27,9 @@ describe('live RLS smoke contract', () => {
     );
     expect(source).toContain('personas.length < 2');
   });
+
+  it('does not require a WebSocket transport for database-only checks', () => {
+    expect(source).toContain('class DisabledRealtimeTransport');
+    expect(source.match(/realtime: \{ transport: DisabledRealtimeTransport \}/g)).toHaveLength(4);
+  });
 });

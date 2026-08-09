@@ -60,7 +60,16 @@ if (WITH_AUTH && !sessionCookie) {
   process.exit(2);
 }
 
-let list = WITH_AUTH ? [...publicList, ...gatedList] : publicList;
+// `/login` and `/signup` redirect a signed-in visitor away on mount, so under
+// --auth they land on /dashboard and the redirect check below counts them as
+// failures — on every run, forever. The classification lives in the shared
+// route file (the contrast sweep reads the same key), and is subtracted ONLY
+// under --auth: signed out these are ordinary pages and must still be swept.
+const SIGNED_OUT_ONLY = new Set(routes.signedOutOnly ?? []);
+
+let list = WITH_AUTH
+  ? [...publicList.filter((r) => !SIGNED_OUT_ONLY.has(typeof r === 'string' ? r : r.path)), ...gatedList]
+  : publicList;
 if (ONLY) list = list.filter((r) => ONLY.includes(typeof r === 'string' ? r : r.path));
 if (list.length === 0) {
   console.error('✗ no routes selected — refusing to report a clean run over nothing.');

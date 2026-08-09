@@ -56,6 +56,7 @@
     "/contact",
     "/cookies",
     "/corporate-partnerships",
+    "/create",
     "/create/choose-path",
     "/crisis",
     "/developers",
@@ -146,7 +147,6 @@
     "_comment": "Verified to redirect signed-out, or to require a session/token. `routes` are gated pages outside /dashboard and /admin. `consoles` are renderable static pages under those roots. `redirects` are compatibility aliases with an exact expected destination. `dynamicSamples` bind each parameterized signed-in template to one populated fixture URL.",
     "routes": [
       "/achievements",
-      "/create",
       "/donor",
       "/events/manage",
       "/impact/manage",
