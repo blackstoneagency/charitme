@@ -13,7 +13,7 @@ import { PUBLISH_MIN_STORY_CHARS, PUBLISH_MIN_GOAL_CENTS } from '../lib/campaign
 // unit checks cover field targeting without needing to publish into a database.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const base = { step: 'title', title: '', description: '', goalCents: 0, goalRaw: '' };
+const base = { step: 'title', title: '', description: '', goalCents: 0, goalRaw: '', currency: 'USD' };
 
 // The builder once *claimed* to mirror the server's publish rules and did not —
 // that gap let a crafted request publish a 1-character story. These thresholds
@@ -59,9 +59,11 @@ describe('validateBuilderStep', () => {
   });
 
   describe('story step', () => {
-    it('lets an EMPTY story through — it is finishable later, and nagging is friction', () => {
-      expect(validateBuilderStep({ ...base, step: 'story', description: '' })).toBeNull();
-      expect(validateBuilderStep({ ...base, step: 'story', description: '   ' })).toBeNull();
+    it('requires a story before the user advances', () => {
+      expect(validateBuilderStep({ ...base, step: 'story', description: '' }))
+        .toMatchObject({ field: 'description' });
+      expect(validateBuilderStep({ ...base, step: 'story', description: '   ' }))
+        .toMatchObject({ field: 'description' });
     });
 
     it('rejects a started-but-too-short story and targets the description field', () => {
@@ -75,17 +77,23 @@ describe('validateBuilderStep', () => {
   });
 
   describe('goal step', () => {
-    it('lets an EMPTY goal through (optional at this step)', () => {
-      expect(validateBuilderStep({ ...base, step: 'goal', goalRaw: '', goalCents: 0 })).toBeNull();
+    it('requires a goal before the user advances', () => {
+      expect(validateBuilderStep({ ...base, step: 'goal', goalRaw: '', goalCents: 0 }))
+        .toMatchObject({ field: 'goal' });
     });
 
-    it('rejects a goal under $1 and targets the goal field', () => {
+    it('rejects a goal under one currency unit and targets the goal field', () => {
       expect(validateBuilderStep({ ...base, step: 'goal', goalRaw: '0.50', goalCents: 50 }))
         .toMatchObject({ field: 'goal' });
     });
 
-    it('accepts exactly $1', () => {
+    it('accepts exactly one currency unit', () => {
       expect(validateBuilderStep({ ...base, step: 'goal', goalRaw: '1', goalCents: 100 })).toBeNull();
+    });
+
+    it('formats validation in the selected campaign currency', () => {
+      expect(validateBuilderStep({ ...base, step: 'goal', goalRaw: '', goalCents: 0, currency: 'EUR' })?.message)
+        .toContain('€1');
     });
   });
 

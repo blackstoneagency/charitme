@@ -32,7 +32,7 @@ const GoalInput = z.object({
   budget_cents: z.number().int().nonnegative().nullable().optional(),
   channels: z.array(z.string().max(40)).max(12).default([]),
   autonomy_level: z.number().int().min(1).max(4).default(1),
-  constraints: z.record(z.unknown()).default({}),
+  constraints: z.record(z.string(), z.unknown()).default({}),
 });
 
 // GET — list goals, newest first, each with live-measured progress.

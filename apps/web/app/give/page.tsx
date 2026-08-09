@@ -3,6 +3,7 @@ import { supabaseAdmin } from '../../lib/supabase';
 import { boundedQuery } from '../../lib/query-timeout';
 import { campaignColumns, applyLiveFilters } from '../../lib/campaign-visibility';
 import GiveClient, { type GiveCampaign } from './GiveClient';
+import { getDonationCheckoutSnapshot } from '../../lib/donation-checkout-settings';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,7 +41,10 @@ async function getCampaigns(): Promise<GiveCampaign[]> {
 }
 
 export default async function GivePage() {
-  const campaigns = await getCampaigns();
+  const [campaigns, checkout] = await Promise.all([
+    getCampaigns(),
+    getDonationCheckoutSnapshot(),
+  ]);
 
   return (
     <main id="main-content" style={{ maxWidth: 900, margin: '0 auto', padding: '40px 24px 64px' }}>
@@ -50,7 +54,7 @@ export default async function GivePage() {
             display: 'inline-block',
             fontSize: 11,
             fontWeight: 900,
-            letterSpacing: '.08em',
+            letterSpacing: 0,
             textTransform: 'uppercase',
             color: 'var(--violet-ink)',
             marginBottom: 10,
@@ -67,7 +71,11 @@ export default async function GivePage() {
         </p>
       </header>
 
-      <GiveClient campaigns={campaigns} />
+      <GiveClient
+        campaigns={campaigns}
+        checkoutSettings={checkout.settings}
+        checkoutRevision={checkout.revision}
+      />
     </main>
   );
 }

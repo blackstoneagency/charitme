@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import type Stripe from 'stripe';
 import { stripe, formatCents } from '../../../../lib/stripe';
 import { peerRpcArg } from '../../../../lib/peer-attribution';
-import { decodeSplit, lineSessionId } from '../../../../lib/portfolio-split';
+import { allocateCentsProportionally, decodeSplit, lineSessionId } from '../../../../lib/portfolio-split';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { sendReceiptEmail, sendTaxReceiptEmail, sendOrganizerDonationAlert, sendPayoutEmail, sendRefundEmail } from '../../../../lib/email';
 import { canIssueTaxReceipt } from '../../../../lib/tax';
@@ -2077,15 +2077,17 @@ async function handlePortfolioComplete(
     console.error('[webhook] portfolio session had no decodable split', { session: session.id });
     return;
   }
+  const tipParts = allocateCentsProportionally(Number(meta.tipCents ?? 0), parts);
+  const processingParts = allocateCentsProportionally(Number(meta.processingFeeCents ?? 0), parts);
 
-  for (const part of parts) {
+  for (const [index, part] of parts.entries()) {
     const { error } = await supabaseAdmin.rpc('record_donation', {
       p_stripe_event_id: `${eventId}#${part.campaignId}`,
       p_campaign_id: part.campaignId,
       p_donor_id: meta.donorId || null,
       p_amount_cents: part.amountCents,
-      p_tip_cents: 0,
-      p_processing_fee_cents: 0,
+      p_tip_cents: tipParts[index]?.amountCents ?? 0,
+      p_processing_fee_cents: processingParts[index]?.amountCents ?? 0,
       p_message: meta.message || null,
       p_anonymous: meta.anonymous === '1',
       // NULL, deliberately. All lines share one payment intent, and

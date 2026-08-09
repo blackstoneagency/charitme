@@ -26,6 +26,10 @@ test.setTimeout(120_000);
 // boundary and its test cannot disagree again.
 import { PROTECTED, PUBLIC_EXCEPTIONS } from '../middleware';
 
+const PUBLIC_EXCEPTION_DESTINATIONS: Partial<Record<string, string>> = {
+  '/create/ai': '/ai-campaign',
+};
+
 /**
  * Every protected prefix that is NOT itself a public exception, plus deeper
  * paths under each — a prefix guard that only checked exact matches would pass
@@ -70,8 +74,8 @@ test('public exceptions under a protected prefix stay reachable', async ({ page 
   for (const path of PUBLIC_EXCEPTIONS) {
     const response = await page.goto(path, { waitUntil: 'domcontentloaded' });
     expect(response?.status(), path).toBeLessThan(400);
-    // The whole point of the exception: visible before sign-in.
-    expect(new URL(page.url()).pathname, `${path} must not redirect to login`).toBe(path);
+    const destination = PUBLIC_EXCEPTION_DESTINATIONS[path] ?? path;
+    expect(new URL(page.url()).pathname, `${path} must remain publicly reachable`).toBe(destination);
   }
 });
 

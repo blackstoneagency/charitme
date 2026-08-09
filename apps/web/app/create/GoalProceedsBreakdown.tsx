@@ -2,16 +2,15 @@
 
 import React from 'react';
 import { goalProceeds } from '../../lib/goal-proceeds';
-
-const fmt = (cents: number) =>
-  `$${(cents / 100).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+import { formatMoneyShort } from '@shared/currencies';
 
 // Shown on the goal step once a goal is entered. Educates the organizer on
 // CharitMe's 0% platform fee and the only real deduction (payment processing).
 // Pure math lives in lib/goal-proceeds.ts. Themed + mobile-first.
-export default function GoalProceedsBreakdown({ goalCents }: { goalCents: number }) {
+export default function GoalProceedsBreakdown({ goalCents, currency = 'USD' }: { goalCents: number; currency?: string }) {
   if (!goalCents || goalCents < 100) return null;
   const p = goalProceeds(goalCents);
+  const fmt = (cents: number): string => formatMoneyShort(cents, currency);
 
   return (
     <div
@@ -33,7 +32,7 @@ export default function GoalProceedsBreakdown({ goalCents }: { goalCents: number
       <Row
         label="CharitMe platform fee"
         sub="We take 0% — always"
-        value="$0"
+        value={fmt(0)}
         valueColor="var(--green-dark, #047857)"
       />
       <Row

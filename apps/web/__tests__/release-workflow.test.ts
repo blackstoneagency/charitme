@@ -56,9 +56,12 @@ describe('production release workflow', () => {
     expect(rlsSmoke).toContain('localPersonas.admin.auth.admin.deleteUser(userId)');
   });
 
-  it('uses protected GitHub environments and deploys production explicitly', () => {
+  it('uses protected environments and verifies the exact Git-integrated production release', () => {
     expect(workflow).toMatch(/staging:[\s\S]*environment:\s*staging/);
     expect(workflow).toMatch(/production:[\s\S]*environment:\s*production/);
-    expect(workflow).toContain('npx vercel deploy --prod --yes');
+    expect(workflow).toContain('deployments: read');
+    expect(workflow).toContain("SKIP_VERCEL_CONFIGURATION: 'true'");
+    expect(workflow).toContain('node scripts/verify-production-release.mjs');
+    expect(workflow).not.toContain('npx vercel deploy --prod --yes');
   });
 });

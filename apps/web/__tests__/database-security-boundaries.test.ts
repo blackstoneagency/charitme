@@ -74,8 +74,8 @@ describe('privileged database boundaries migration', () => {
   });
 
   it('tolerates production databases where the legacy donation overload is already gone', () => {
-    expect(migration).toContain(
-      "to_regprocedure(\n    'public.record_donation(text,uuid,uuid,bigint,bigint,bigint,text,boolean,text,text)'",
+    expect(migration).toMatch(
+      /to_regprocedure\(\s*'public\.record_donation\(text,\s*uuid,\s*uuid,\s*bigint,\s*bigint,\s*bigint,\s*text,\s*boolean,\s*text,\s*text\)'/,
     );
     expect(migration).toContain('if to_regprocedure(');
   });

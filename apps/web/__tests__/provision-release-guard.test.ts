@@ -45,4 +45,10 @@ describe('Supabase provisioning release guard', () => {
     expect(source).toContain("['db', 'push', '--linked', '--include-all', '--yes']");
     expect(source).not.toContain('@db.${projectRef}.supabase.co:5432/postgres');
   });
+
+  it('can leave Vercel deployment to the verified GitHub integration after database push', () => {
+    expect(source).toContain("process.env.SKIP_VERCEL_CONFIGURATION === 'true'");
+    expect(source.indexOf("process.env.SKIP_VERCEL_CONFIGURATION === 'true'"))
+      .toBeGreaterThan(source.indexOf("run(supabase, pushArgs)"));
+  });
 });

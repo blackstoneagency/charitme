@@ -2,15 +2,16 @@ import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import type Stripe from 'stripe';
-import { createCheckoutSession, RECURRING_PAYMENT_METHOD_TYPES } from '../../../../lib/stripe';
+import { createCheckoutSession, checkoutPaymentMethodTypes } from '../../../../lib/stripe';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { boundedQuery } from '../../../../lib/query-timeout';
 import { createClient } from '../../../../lib/supabase-server';
-import { donorTip, MIN_DONATION_CENTS, MAX_DONATION_CENTS, DEFAULT_DONOR_TIP_PERCENT } from '@shared/fees';
+import { donorTip, MIN_DONATION_CENTS, MAX_DONATION_CENTS, type CheckoutPaymentMethod } from '@shared/fees';
 import { normalizeCurrency } from '@shared/currencies';
 import { resolvePayoutDestination, PayoutLookupUnavailableError } from '../../../../lib/payout-destination';
 import { getAppOrigin } from '../../../../lib/auth-config';
 import { checkRateLimit } from '../../../../lib/rate-limit';
+import { getDonationCheckoutSnapshot } from '../../../../lib/donation-checkout-settings';
 
 const Schema = z.object({
   campaignId:   z.string().uuid(),
@@ -19,6 +20,9 @@ const Schema = z.object({
   message:      z.string().max(500).optional(),
   anonymous:    z.boolean().optional(),
   tipPercent:   z.number().min(0).max(100).optional(),
+  tipCents:     z.number().int().min(0).max(MAX_DONATION_CENTS).optional(),
+  paymentMethod: z.enum(['stripe', 'gpay', 'bank', 'card']).optional(),
+  checkoutRevision: z.string().trim().min(1).max(100).optional(),
   donorEmail:   z.string().email().optional(),
   utmSource:    z.string().max(100).optional(),
   utmMedium:    z.string().max(100).optional(),
@@ -47,19 +51,30 @@ export async function POST(request: NextRequest) {
 
   let body: unknown;
   try { body = await request.json(); } catch {
-    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid JSON body', code: 'INVALID_JSON' }, { status: 400 });
   }
 
   const parsed = Schema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Invalid input' }, { status: 400 });
+    return NextResponse.json(
+      { error: parsed.error.issues[0]?.message ?? 'Invalid input', code: 'INVALID_INPUT', details: parsed.error.flatten() },
+      { status: 400 },
+    );
   }
 
   const { campaignId, amountCents, cadence, message, anonymous, donorEmail,
           utmSource, utmMedium, utmCampaign, utmContent, shareEventId, referrerId,
           subscribeToUpdates } = parsed.data;
-  const tipPercent = parsed.data.tipPercent ?? DEFAULT_DONOR_TIP_PERCENT;
-  const tipCents = donorTip(amountCents, tipPercent);
+  const checkout = await getDonationCheckoutSnapshot();
+  if (parsed.data.checkoutRevision && parsed.data.checkoutRevision !== checkout.revision) {
+    return NextResponse.json(
+      { error: 'Donation pricing changed while this page was open. Refresh to review the current total.', code: 'CHECKOUT_CONFIG_CHANGED' },
+      { status: 409 },
+    );
+  }
+  const tipPercent = parsed.data.tipPercent ?? checkout.settings.defaultSupportPercent;
+  const tipCents = parsed.data.tipCents ?? donorTip(amountCents, tipPercent);
+  const paymentMethod: CheckoutPaymentMethod = parsed.data.paymentMethod ?? 'stripe';
 
   // Verify campaign is active.
   // `.maybeSingle()`, not `.single()`: `.single()` reports "no rows" AS AN ERROR,
@@ -190,22 +205,33 @@ export async function POST(request: NextRequest) {
 
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
     mode: 'subscription',
-    // Apple Pay / Google Pay (via card), Link, US bank transfer (ACH)
-    payment_method_types: RECURRING_PAYMENT_METHOD_TYPES,
+    payment_method_types: checkoutPaymentMethodTypes(paymentMethod, 'subscription'),
     ...(stripeEmail ? { customer_email: stripeEmail } : {}),
     line_items: [
       {
         price_data: {
           currency,
           product_data: {
-            name: `Monthly support for: ${campaign.title}`,
+            name: `Recurring donation to: ${campaign.title}`,
             description: message ?? `Recurring ${cadence} donation`,
           },
-          unit_amount: totalPerPeriod,
+          unit_amount: amountCents,
           recurring: { interval, interval_count: intervalCount },
         },
         quantity: 1,
       },
+      ...(tipCents > 0 ? [{
+        price_data: {
+          currency,
+          product_data: {
+            name: 'CharitMe fee',
+            description: 'Optional support for CharitMe services',
+          },
+          unit_amount: tipCents,
+          recurring: { interval, interval_count: intervalCount },
+        },
+        quantity: 1,
+      }] : []),
     ],
     success_url: `${origin}/campaigns/${campaign.slug}?donated=1&recurring=1&amount=${amountCents}`,
     cancel_url: `${origin}/campaigns/${campaign.slug}`,
@@ -216,6 +242,8 @@ export async function POST(request: NextRequest) {
       anonymous:            anonymous ? '1' : '0',
       donationAmountCents:  String(amountCents),
       tipCents:             String(tipCents),
+      paymentMethod,
+      checkoutRevision:     checkout.revision,
       cadence,
       isRecurring:          '1',
       utmSource:            utmSource || (referralShareEventId ? 'referral' : ''),
@@ -239,6 +267,8 @@ export async function POST(request: NextRequest) {
         anonymous: anonymous ? '1' : '0',
         donationAmountCents: String(amountCents),
         tipCents: String(tipCents),
+        paymentMethod,
+        checkoutRevision: checkout.revision,
         cadence,
         isRecurring: '1',
       },
@@ -271,7 +301,10 @@ export async function POST(request: NextRequest) {
         { status: 409 },
       );
     }
-    return NextResponse.json({ error: msg }, { status: 502 });
+    return NextResponse.json(
+      { error: 'Could not start secure checkout. Please try again.', code: 'STRIPE_ERROR' },
+      { status: 502 },
+    );
   }
   return NextResponse.json({ url: session!.url });
 }

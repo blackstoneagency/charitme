@@ -6,6 +6,7 @@ import {
   canGoBack,
   firstIncompleteStep,
   minutesRemaining,
+  nextIncompleteStepAfter,
   nextStep,
   normalizeStep,
   optionalSteps,
@@ -14,162 +15,90 @@ import {
   type CampaignStep,
 } from '../lib/campaign-flow-core';
 
-describe('the 12-step shape', () => {
-  it('has exactly twelve steps', () => {
-    expect(CAMPAIGN_STEPS).toHaveLength(10);
-  });
+const PREVIEW_STEPS = [
+  'purpose', 'beneficiary', 'category', 'location', 'goal', 'plan',
+  'story', 'media', 'settings', 'payout', 'verify', 'review',
+] as const;
 
-  it('has no duplicate step ids', () => {
+describe('unified campaign journey', () => {
+  it('has twelve builder screens followed by publish and share', () => {
+    expect(builderSteps()).toEqual(PREVIEW_STEPS);
+    expect(CAMPAIGN_STEPS).toEqual([...PREVIEW_STEPS, 'publish', 'share']);
     expect(new Set(CAMPAIGN_STEPS).size).toBe(CAMPAIGN_STEPS.length);
   });
 
-  it('carries meta for every step, keyed consistently', () => {
+  it('provides metadata for every step', () => {
     for (const step of CAMPAIGN_STEPS) {
-      const meta = CAMPAIGN_STEP_META[step];
-      expect(meta, `no meta for ${step}`).toBeDefined();
-      // A mismatched id is how a stepper ends up highlighting the wrong entry.
-      expect(meta.id).toBe(step);
-      expect(meta.label.length).toBeGreaterThan(0);
-      expect(meta.title.length).toBeGreaterThan(0);
+      expect(CAMPAIGN_STEP_META[step].id).toBe(step);
+      expect(CAMPAIGN_STEP_META[step].title).not.toBe('');
     }
   });
 
-  it('reports 1-based positions out of 12, for screen readers', () => {
-    expect(stepPosition('path')).toEqual({ index: 1, total: 10 });
-    expect(stepPosition('review')).toEqual({ index: 8, total: 10 });
-    expect(stepPosition('share')).toEqual({ index: 10, total: 10 });
+  it('reports the preview as step 12 of 12', () => {
+    expect(stepPosition('purpose')).toEqual({ index: 1, total: 12 });
+    expect(stepPosition('review')).toEqual({ index: 12, total: 12 });
   });
 });
 
 describe('navigation', () => {
-  it('walks forward through every step and stops at the end', () => {
-    const walked: CampaignStep[] = ['path'];
-    let cur: CampaignStep | null = 'path';
-    while ((cur = nextStep(cur!))) walked.push(cur);
-    expect(walked).toEqual([...CAMPAIGN_STEPS]);
-    expect(nextStep('share')).toBeNull();
-  });
-
-  it('walks backward symmetrically', () => {
-    expect(previousStep('path')).toBeNull();
-    for (let i = 1; i < CAMPAIGN_STEPS.length; i++) {
-      expect(previousStep(CAMPAIGN_STEPS[i]!)).toBe(CAMPAIGN_STEPS[i - 1]);
+  it('walks forward and backward without branching by builder path', () => {
+    const walked: CampaignStep[] = ['purpose'];
+    let current: CampaignStep | null = 'purpose';
+    while (current && nextStep(current)) {
+      current = nextStep(current);
+      if (current) walked.push(current);
+    }
+    expect(walked).toEqual(CAMPAIGN_STEPS);
+    for (let index = 1; index < CAMPAIGN_STEPS.length; index += 1) {
+      expect(previousStep(CAMPAIGN_STEPS[index]!)).toBe(CAMPAIGN_STEPS[index - 1]);
     }
   });
 
-  it('allows Back on every pre-publish step except the first', () => {
-    expect(canGoBack('path')).toBe(false);
-    for (const step of builderSteps().slice(1)) {
-      expect(canGoBack(step), `${step} should allow going back`).toBe(true);
-    }
-  });
-
-  it('refuses Back once the campaign is live', () => {
-    // The campaign has a public URL by now; Back would present a published
-    // campaign as an unsaved draft.
+  it('cannot navigate backward after publication', () => {
+    expect(canGoBack('purpose')).toBe(false);
+    expect(canGoBack('review')).toBe(true);
     expect(canGoBack('publish')).toBe(false);
     expect(canGoBack('share')).toBe(false);
   });
-});
 
-describe('required vs optional', () => {
-  it('treats rewards and verification as skippable, and nothing else', () => {
-    expect(optionalSteps()).toEqual(['rewards', 'verify']);
-  });
-
-  it('keeps every money-or-identity-critical step required', () => {
-    for (const step of ['essentials', 'payout', 'review'] as const) {
-      expect(CAMPAIGN_STEP_META[step].required, `${step} must be required`).toBe(true);
-    }
-  });
-});
-
-describe('minutesRemaining', () => {
-  it('counts down as the organizer advances', () => {
-    const atStart = minutesRemaining('path');
-    const midway = minutesRemaining('basics');
-    const atReview = minutesRemaining('review');
-    expect(atStart).toBeGreaterThan(midway);
-    expect(midway).toBeGreaterThan(atReview);
-  });
-
-  it('excludes post-publish steps — they are not work before going live', () => {
-    // 'review' is the last pre-publish step, so its remaining time is its own.
-    expect(minutesRemaining('review')).toBe(CAMPAIGN_STEP_META.review.minutes);
+  it('counts only pre-publish work', () => {
+    expect(minutesRemaining('purpose')).toBeGreaterThan(minutesRemaining('story'));
+    expect(minutesRemaining('review')).toBe(0);
     expect(minutesRemaining('publish')).toBe(0);
-    expect(minutesRemaining('share')).toBe(0);
-  });
-
-  it('returns 0 for an unknown step rather than NaN', () => {
-    expect(minutesRemaining('nope' as CampaignStep)).toBe(0);
   });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// The migration tests. These are the ones that matter: a draft holding an old
-// step key must never render a blank screen, because to the organizer that looks
-// exactly like their work being deleted.
-// ─────────────────────────────────────────────────────────────────────────────
-
-describe('legacy draft migration', () => {
-  it('maps the 9-step flow keys onto basics', () => {
-    expect(normalizeStep('type')).toBe('basics');
-    expect(normalizeStep('category')).toBe('basics');
-    expect(normalizeStep('location')).toBe('basics');
+describe('requirements and migration', () => {
+  it('requires every launch-readiness screen', () => {
+    expect(optionalSteps()).toEqual([]);
   });
 
-  it('maps the 7-step flow keys onto their 12-step names', () => {
+  it('maps every retired key to a rendered screen', () => {
+    expect(normalizeStep('path')).toBe('beneficiary');
+    expect(normalizeStep('type')).toBe('beneficiary');
+    expect(normalizeStep('basics')).toBe('beneficiary');
+    expect(normalizeStep('essentials')).toBe('purpose');
+    expect(normalizeStep('title')).toBe('purpose');
+    expect(normalizeStep('rewards')).toBe('settings');
     expect(normalizeStep('summary')).toBe('review');
     expect(normalizeStep('live')).toBe('publish');
+    expect(normalizeStep('unknown')).toBeNull();
   });
 
-  it('passes through every current step unchanged', () => {
-    for (const step of CAMPAIGN_STEPS) {
-      expect(normalizeStep(step)).toBe(step);
-    }
-  });
-
-  it('returns null for junk so the caller can fall back to step 1', () => {
-    expect(normalizeStep(undefined)).toBeNull();
-    expect(normalizeStep(null)).toBeNull();
-    expect(normalizeStep('')).toBeNull();
-    expect(normalizeStep('not-a-step')).toBeNull();
-  });
-
-  it('never returns a step the wizard cannot render', () => {
-    // Guards the whole mapping at once: whatever normalizeStep returns must be
-    // a step that exists, or the wizard renders no branch and the screen is blank.
-    const inputs = ['type', 'category', 'location', 'summary', 'live', ...CAMPAIGN_STEPS];
-    for (const raw of inputs) {
-      const normalized = normalizeStep(raw);
-      expect(normalized).not.toBeNull();
-      expect(CAMPAIGN_STEPS).toContain(normalized!);
-    }
-  });
-});
-
-describe('firstIncompleteStep', () => {
-  it('resumes at the first unfinished required step', () => {
-    expect(firstIncompleteStep({ path: true })).toBe('essentials');
-  });
-
-  it('starts at the beginning when nothing is done', () => {
-    expect(firstIncompleteStep({})).toBe('path');
-  });
-
-  it('does not send an organizer back to a skipped optional step', () => {
-    // Rewards deliberately absent — skipping it must not block progress.
-    const completed = {
-      path: true, essentials: true, basics: true,
-      media: true, payout: true,
-    };
+  it('resumes at the first unfinished required screen', () => {
+    expect(firstIncompleteStep({})).toBe('purpose');
+    expect(firstIncompleteStep({ purpose: true })).toBe('beneficiary');
+    const completed = Object.fromEntries(builderSteps().map((step) => [step, true])) as Partial<Record<CampaignStep, boolean>>;
     expect(firstIncompleteStep(completed)).toBe('review');
   });
 
-  it('lands on review when every required step is done', () => {
-    const completed = Object.fromEntries(
-      builderSteps().map((s) => [s, true]),
-    ) as Partial<Record<CampaignStep, boolean>>;
-    expect(firstIncompleteStep(completed)).toBe('review');
+  it('lets the AI path ask only the next missing question', () => {
+    const generated = Object.fromEntries(builderSteps().map((step) => [step, true])) as Partial<Record<CampaignStep, boolean>>;
+    generated.location = false;
+    generated.media = false;
+    expect(nextIncompleteStepAfter('beneficiary', generated)).toBe('location');
+    expect(nextIncompleteStepAfter('location', generated)).toBe('media');
+    generated.media = true;
+    expect(nextIncompleteStepAfter('location', generated)).toBe('review');
   });
 });

@@ -1,68 +1,70 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { publishReadiness, type ReadinessInput } from '../lib/campaign-readiness';
 
-const empty: ReadinessInput = {
-  title: '', description: '', goalCents: 0, category: '', country: '',
-  coverImageUrl: '', forSelf: 'true', beneficiaryName: '', payoutLinked: false,
-};
-
 const complete: ReadinessInput = {
-  title: 'Help rebuild the shelter',
-  description: 'Our community animal shelter flooded and needs urgent repairs to reopen.',
-  goalCents: 500000,
-  category: 'Animal',
+  title: 'Help rebuild the community center',
+  description: 'The center needs urgent repairs so local programs can safely reopen.',
+  goalCents: 500_000,
+  currency: 'USD',
+  category: 'Community',
   country: 'United States',
-  coverImageUrl: 'https://img/cover.jpg',
+  coverImageUrl: 'https://example.com/cover.jpg',
   forSelf: 'true',
   beneficiaryName: '',
+  beneficiaryRelationship: '',
   payoutLinked: true,
+  useOfFundsComplete: true,
+  organizerComplete: true,
+  verificationComplete: true,
+  policyAccepted: true,
 };
 
 describe('publishReadiness', () => {
-  it('an empty draft is not publishable and scores low', () => {
-    const r = publishReadiness(empty);
-    expect(r.readyToPublish).toBe(false);
-    expect(r.score).toBe(0);
-    expect(r.missingRequired.map((i) => i.id).sort()).toEqual(['goal', 'story', 'title']);
+  it('marks a complete personal campaign ready', () => {
+    const result = publishReadiness(complete);
+    expect(result.readyToPublish).toBe(true);
+    expect(result.status).toBe('ready_to_publish');
+    expect(result.score).toBe(100);
   });
 
-  it('required items exactly mirror the publish API (title, story, goal)', () => {
-    const r = publishReadiness(empty);
-    expect(r.items.filter((i) => i.required).map((i) => i.id).sort()).toEqual(['goal', 'story', 'title']);
+  it('requires every production launch dependency', () => {
+    const empty = publishReadiness({
+      ...complete,
+      title: '', description: '', goalCents: 0, category: '', country: '',
+      coverImageUrl: '', forSelf: '', payoutLinked: false,
+      useOfFundsComplete: false, organizerComplete: false,
+      verificationComplete: false, policyAccepted: false,
+    });
+    expect(empty.readyToPublish).toBe(false);
+    expect(empty.missingRequired.map((item) => item.id)).toEqual([
+      'title', 'organizer', 'beneficiary', 'category', 'location', 'goal',
+      'plan', 'story', 'media', 'policy', 'payout', 'verification',
+    ]);
   });
 
-  it('readyToPublish flips true once title + story + goal are met, even if extras are missing', () => {
-    const r = publishReadiness({ ...empty, title: 'A clear title', description: 'A short but valid story here.', goalCents: 100 });
-    expect(r.readyToPublish).toBe(true);
-    expect(r.missingRequired).toEqual([]);
-    expect(r.score).toBeLessThan(100); // category/media/payout still recommended
+  it('requires beneficiary name and relationship for another person', () => {
+    const result = publishReadiness({ ...complete, forSelf: 'false' });
+    expect(result.missingRequired.map((item) => item.id)).toContain('beneficiary');
+    expect(publishReadiness({
+      ...complete,
+      forSelf: 'false',
+      beneficiaryName: 'Jordan Lee',
+      beneficiaryRelationship: 'Friend',
+    }).readyToPublish).toBe(true);
   });
 
-  it('a fully-filled draft scores 100 and is publishable', () => {
-    const r = publishReadiness(complete);
-    expect(r.readyToPublish).toBe(true);
-    expect(r.score).toBe(100);
+  it('requires verification for every campaign', () => {
+    const pending = publishReadiness({ ...complete, verificationComplete: false });
+    expect(pending.missingRequired.map((item) => item.id)).toContain('verification');
+    expect(publishReadiness({ ...complete, verificationComplete: true }).readyToPublish).toBe(true);
   });
 
-  it('adds a beneficiary item only when raising for someone else', () => {
-    expect(publishReadiness({ ...empty, forSelf: 'true' }).items.some((i) => i.id === 'beneficiary')).toBe(false);
-    const other = publishReadiness({ ...empty, forSelf: 'false' });
-    expect(other.items.some((i) => i.id === 'beneficiary')).toBe(true);
-    // beneficiary is a recommendation, not a publish blocker
-    expect(other.missingRequired.some((i) => i.id === 'beneficiary')).toBe(false);
+  it('links every item to the screen that can resolve it', () => {
+    for (const item of publishReadiness(complete).items) expect(item.step).not.toBe('');
   });
 
-  it('every item carries the step that fixes it', () => {
-    for (const item of publishReadiness(empty).items) {
-      expect(typeof item.step).toBe('string');
-      if (!item.done) expect(item.hint).toBeTruthy();
-    }
-  });
-
-  it('the just-under-threshold values do not count as done', () => {
-    const r = publishReadiness({ ...empty, title: 'ab', description: 'too short', goalCents: 99 });
-    expect(r.items.find((i) => i.id === 'title')?.done).toBe(false); // 2 chars
-    expect(r.items.find((i) => i.id === 'story')?.done).toBe(false); // 9 chars < 20
-    expect(r.items.find((i) => i.id === 'goal')?.done).toBe(false);  // 99c < $1
+  it('formats goal guidance in the selected campaign currency', () => {
+    const result = publishReadiness({ ...complete, goalCents: 0, currency: 'EUR' });
+    expect(result.items.find((item) => item.id === 'goal')?.hint).toContain('€1');
   });
 });

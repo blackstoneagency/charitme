@@ -52,7 +52,6 @@ const MUTATION = /export async function (POST|PATCH|PUT|DELETE)/;
 
 /** Intentionally reachable without a session — each needs a reason. */
 const PUBLIC_MUTATIONS: Record<string, string> = {
-  'ai/campaign': 'public campaign drafting; durable-rate-limited',
   'ai/goal-recommend': 'public goal suggestion; durable-rate-limited',
   'auth/signout': 'clearing your own session cannot require a session',
   'campaign-reports': 'abuse reports must be filable without an account',

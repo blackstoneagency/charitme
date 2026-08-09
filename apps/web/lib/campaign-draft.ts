@@ -1,29 +1,63 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Campaign-builder draft autosave / recovery.
 //
-// The guided wizard (/create) only writes to Supabase on the final submit, so an
-// interruption (refresh, closed tab, dead battery, accidental back) lost all the
-// user's work — a major abandonment driver. This module persists the in-progress
-// wizard state to localStorage on every change and restores it on return, so the
-// user can pick up exactly where they left off. (In-progress form state lives in
-// localStorage by design — instant, offline-safe, and it avoids spamming the DB
-// with half-built campaign rows; a *committed* draft still goes to Supabase via
-// "Save draft".)
+// The wizard mirrors in-progress state to localStorage immediately and, for a
+// signed-in organizer, to Supabase after a short debounce. Local recovery works
+// offline while the server copy supports another device and version history.
 //
 // Pure + framework-free so it is fully unit-tested; the React layer only does the
 // localStorage read/write.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { isSafeStoragePath } from './storage-path';
+
 export const CAMPAIGN_DRAFT_KEY = 'charitme-campaign-draft-v1';
 export const CAMPAIGN_DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+export type CampaignDraftImage = {
+  url: string;
+  name: string;
+  storagePath: string;
+};
 
 export interface CampaignDraft<F = Record<string, string>> {
   v: 1;
   ts: number;
   step: string;
   storyMode: string;
+  builderPath: 'ai' | 'guided';
+  schemaVersion: number;
+  sourceContext: Record<string, unknown>;
   form: F;
-  images: { url: string; name: string }[];
+  images: CampaignDraftImage[];
+}
+
+export function campaignMediaStoragePath(url: string, candidate?: string): string {
+  if (isSafeStoragePath(candidate) && candidate.startsWith('campaigns/')) return candidate;
+  try {
+    const marker = '/storage/v1/object/public/campaign-media/';
+    const pathname = new URL(url).pathname;
+    const markerIndex = pathname.indexOf(marker);
+    if (markerIndex < 0) return '';
+    const decoded = decodeURIComponent(pathname.slice(markerIndex + marker.length));
+    return isSafeStoragePath(decoded) && decoded.startsWith('campaigns/') ? decoded : '';
+  } catch {
+    return '';
+  }
+}
+
+function normalizeDraftImage(value: unknown): CampaignDraftImage | null {
+  if (!value || typeof value !== 'object') return null;
+  const image = value as { url?: unknown; name?: unknown; storagePath?: unknown };
+  if (typeof image.url !== 'string') return null;
+  return {
+    url: image.url,
+    name: typeof image.name === 'string' ? image.name : '',
+    storagePath: campaignMediaStoragePath(
+      image.url,
+      typeof image.storagePath === 'string' ? image.storagePath : undefined,
+    ),
+  };
 }
 
 /** The form fields that indicate a user has actually started (drives whether we offer recovery). */
@@ -32,8 +66,11 @@ const MEANINGFUL_KEYS = ['title', 'tagline', 'description', 'goal', 'beneficiary
 export function buildDraft<F>(input: {
   step: string;
   storyMode: string;
+  builderPath?: 'ai' | 'guided';
+  schemaVersion?: number;
+  sourceContext?: Record<string, unknown>;
   form: F;
-  images: { url: string; name: string }[];
+  images: { url: string; name: string; storagePath?: string }[];
   now?: number;
 }): CampaignDraft<F> {
   return {
@@ -41,8 +78,14 @@ export function buildDraft<F>(input: {
     ts: input.now ?? Date.now(),
     step: input.step,
     storyMode: input.storyMode,
+    builderPath: input.builderPath ?? 'guided',
+    schemaVersion: input.schemaVersion ?? 1,
+    sourceContext: input.sourceContext ?? {},
     form: input.form,
-    images: input.images,
+    images: input.images.flatMap((image) => {
+      const normalized = normalizeDraftImage(image);
+      return normalized ? [normalized] : [];
+    }),
   };
 }
 
@@ -77,8 +120,18 @@ export function parseDraft<F = Record<string, string>>(
     ts: d.ts,
     step: typeof d.step === 'string' ? d.step : '',
     storyMode: typeof d.storyMode === 'string' ? d.storyMode : 'freeform',
+    builderPath: d.builderPath === 'ai' ? 'ai' : 'guided',
+    schemaVersion: typeof d.schemaVersion === 'number' && Number.isInteger(d.schemaVersion) && d.schemaVersion > 0
+      ? d.schemaVersion
+      : 1,
+    sourceContext: d.sourceContext && typeof d.sourceContext === 'object' && !Array.isArray(d.sourceContext)
+      ? d.sourceContext
+      : {},
     form: d.form as F,
-    images: Array.isArray(d.images) ? d.images.filter((i) => i && typeof i.url === 'string') : [],
+    images: Array.isArray(d.images) ? d.images.flatMap((image) => {
+      const normalized = normalizeDraftImage(image);
+      return normalized ? [normalized] : [];
+    }) : [],
   };
 }
 
@@ -119,6 +172,9 @@ export interface RemoteDraftRow {
   form?: unknown;
   images?: unknown;
   client_ts?: number | null;
+  builder_path?: string | null;
+  schema_version?: number | null;
+  source_context?: unknown;
 }
 
 /** Normalise a Supabase draft row into the same shape as a localStorage draft. */
@@ -132,11 +188,19 @@ export function fromRemoteDraft<F = Record<string, string>>(
     ts,
     step: typeof row.step === 'string' ? row.step : '',
     storyMode: typeof row.story_mode === 'string' ? row.story_mode : 'freeform',
+    builderPath: row.builder_path === 'ai' ? 'ai' : 'guided',
+    schemaVersion: typeof row.schema_version === 'number' && Number.isInteger(row.schema_version) && row.schema_version > 0
+      ? row.schema_version
+      : 1,
+    sourceContext: row.source_context && typeof row.source_context === 'object' && !Array.isArray(row.source_context)
+      ? row.source_context as Record<string, unknown>
+      : {},
     form: row.form as F,
     images: Array.isArray(row.images)
-      ? (row.images as { url?: unknown; name?: unknown }[])
-          .filter((i) => i && typeof i.url === 'string')
-          .map((i) => ({ url: i.url as string, name: typeof i.name === 'string' ? i.name : '' }))
+      ? row.images.flatMap((image) => {
+          const normalized = normalizeDraftImage(image);
+          return normalized ? [normalized] : [];
+        })
       : [],
   };
 }

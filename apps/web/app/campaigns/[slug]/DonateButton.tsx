@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   MAX_DONATION_CENTS,
-  DEFAULT_DONOR_TIP_PERCENT,
-  SUPPORT_TIER_PERCENTS,
+  DEFAULT_DONATION_CHECKOUT_SETTINGS,
   donationBreakdown,
-  METHOD_FEES,
-  type PaymentMethod,
+  normalizeDonationCheckoutSettings,
+  type CheckoutPaymentMethod,
+  type DonationCheckoutSettings,
 } from '@shared/fees';
 import { createClient } from '../../../lib/supabase-browser';
 import { formatMoney, formatMoneyShort, currencySymbol, DEFAULT_CURRENCY } from '@shared/currencies';
@@ -30,12 +30,9 @@ const BD  = 'var(--b2, #e2d9ff)';
 const MU  = 'var(--t3, #64748b)';
 const INK = 'var(--t1, #1a1a2e)';
 
-/* Fallback preset amounts when no campaign-tuned asks are provided */
-const DEFAULT_PRESETS = [25, 50, 75, 100, 150, 250];
-
 type FrequencyMode = 'once' | 'monthly';
 
-interface PayOption { id: PaymentMethod; label: string; icon: React.ReactNode }
+interface PayOption { id: CheckoutPaymentMethod; label: string; icon: React.ReactNode }
 
 // Only methods Stripe Checkout can actually fulfil for this account are offered.
 // PayPal and Venmo were previously listed but are NOT in ONE_TIME_PAYMENT_METHOD_TYPES
@@ -78,35 +75,32 @@ function TipIcon({ name }: { name: string }) {
   };
   return <svg viewBox="0 0 24 24" width="100%" height="100%" style={ICON_STROKE as React.CSSProperties} aria-hidden>{name === 'shieldCheck' ? <><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" /><polyline points="8.5 12 11 14.3 16 9.3" /></> : p[name]}</svg>;
 }
-/** [label, icon] keyed by support %; 0 is the standalone "None" row. */
-const TIP_TIER_META: Record<number, { label: string; icon: string }> = {
-  15: { label: 'Recommended', icon: 'heartFill' },
-  12: { label: 'Great', icon: 'star' },
-  10: { label: 'Good', icon: 'thumb' },
-  8: { label: 'Nice', icon: 'smile' },
-  5: { label: 'Thanks', icon: 'heart' },
-  3: { label: 'Little bit', icon: 'clap' },
-  1: { label: 'Any help counts', icon: 'gift' },
-  0: { label: 'No tip', icon: 'none' },
-};
+const TIP_TIER_PRESENTATION = [
+  { label: 'Recommended', icon: 'heartFill' },
+  { label: 'Great', icon: 'star' },
+  { label: 'Good', icon: 'thumb' },
+  { label: 'Nice', icon: 'smile' },
+  { label: 'Thanks', icon: 'heart' },
+  { label: 'Little bit', icon: 'clap' },
+  { label: 'Any help counts', icon: 'gift' },
+  { label: 'No fee', icon: 'none' },
+] as const;
 
 export default function DonateButton({
   campaignId,
   campaignTitle,
   utm,
   currency = DEFAULT_CURRENCY,
-  smartPresets,
-  recommendedAmount,
+  checkoutSettings = DEFAULT_DONATION_CHECKOUT_SETTINGS,
+  checkoutRevision = 'defaults',
   peerFundraiserId,
 }: {
   campaignId: string;
   campaignTitle: string;
   utm?: UtmProps;
   currency?: string;
-  /** Campaign-tuned ask amounts from the donation optimizer (dollars, ascending). */
-  smartPresets?: number[];
-  /** Which preset to pre-select and badge as "popular". */
-  recommendedAmount?: number;
+  checkoutSettings?: DonationCheckoutSettings;
+  checkoutRevision?: string;
   /**
    * Set only when the donor arrived through a supporter's page
    * (`/campaigns/[slug]/team/[peerSlug]`). Credits that supporter as well as the
@@ -115,18 +109,18 @@ export default function DonateButton({
    */
   peerFundraiserId?: string;
 }) {
+  const checkout = useMemo(() => normalizeDonationCheckoutSettings(checkoutSettings), [checkoutSettings]);
   const money      = (cents: number) => formatMoney(cents, currency);
   const moneyShort = (cents: number) => formatMoneyShort(cents, currency);
   const symbol     = currencySymbol(currency);
-  /** The preset highlighted as "MOST POPULAR" (donation optimizer, else $50). */
-  const recommended = recommendedAmount ?? 50;
+  const recommended = checkout.popularAmountCents;
 
   const [frequency, setFrequency]         = useState<FrequencyMode>('once');
-  const [amount, setAmount]               = useState(String(recommendedAmount ?? 50));
+  const [amount, setAmount]               = useState(String(recommended / 100));
   const [subscribeEmail, setSubscribeEmail] = useState(false);
   const [anonymous, setAnonymous]         = useState(false);
   const [message, setMessage]             = useState('');
-  const [tipPercent, setTipPercent]       = useState<number>(DEFAULT_DONOR_TIP_PERCENT);
+  const [tipPercent, setTipPercent]       = useState<number>(checkout.defaultSupportPercent);
   // Custom support amount, entered in whole currency units. null = using a tier %.
   // Kept as a string so the field can be empty while typing without snapping to 0.
   const [customTip, setCustomTip]         = useState<string | null>(null);
@@ -139,24 +133,9 @@ export default function DonateButton({
   const [error, setError]                 = useState('');
   const [guestEmail, setGuestEmail]       = useState('');
   const [isGuest, setIsGuest]             = useState<boolean | null>(null);
-  const [preferredMethod, setPreferredMethod] = useState<PaymentMethod>('stripe');
+  const [preferredMethod, setPreferredMethod] = useState<CheckoutPaymentMethod>('stripe');
   const [serviceOpen, setServiceOpen] = useState(false);
   const [methodOpen, setMethodOpen] = useState(false);
-  const [presets, setPresets] = useState<number[]>(smartPresets && smartPresets.length === 6 ? smartPresets : DEFAULT_PRESETS);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/ai/donor-conversion?campaignId=${encodeURIComponent(campaignId)}`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: { suggestedAmounts?: number[]; message?: string } | null) => {
-        if (cancelled || !data) return;
-        if (Array.isArray(data.suggestedAmounts) && data.suggestedAmounts.length > 0) {
-          setPresets(data.suggestedAmounts);
-        }
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [campaignId]);
 
   const amountCents = Math.round((Number.parseFloat(amount) || 0) * 100);
   const isMonthly   = frequency === 'monthly';
@@ -182,19 +161,16 @@ export default function DonateButton({
       // card is charged — no percentage round-trip in between.
       ...(customTipCents != null ? { supportCentsOverride: customTipCents } : {}),
       method: preferredMethod,
+      methodFees: checkout.methodFees,
       coverProcessing: !isMonthly,
     });
-    // Recurring charges settle their processing fee per-cycle via Stripe; the
-    // donate form (like before) does not fold it into the shown monthly total,
-    // so keep processing off the monthly breakdown to avoid line items that
-    // don't sum to "You pay".
     return {
       tip: b.supportCents,
-      processing: isMonthly ? 0 : b.processingCents,
+      processing: b.processingCents,
       total: b.totalChargedCents,
       netToRecipient: b.netToRecipientCents,
     };
-  }, [amountCents, tipPercent, customTipCents, isMonthly, preferredMethod]);
+  }, [amountCents, tipPercent, customTipCents, isMonthly, preferredMethod, checkout.methodFees]);
 
   const handleDonate = async () => {
     if (Number.isNaN(amountCents) || amountCents < 100) { setError(`Minimum donation is ${money(100)}`); return; }
@@ -229,6 +205,7 @@ export default function DonateButton({
           // the figure shown in the breakdown above to the cent.
           ...(customTipCents != null ? { tipCents: customTipCents } : {}),
           paymentMethod: preferredMethod,
+          checkoutRevision,
           donorEmail: !user && guestEmail.trim() ? guestEmail.trim() : undefined,
           subscribeToUpdates: subscribeEmail,
           // Share attribution — forwarded from landing URL
@@ -313,17 +290,19 @@ export default function DonateButton({
           component no longer takes a `rewards` prop and the campaign page no
           longer queries `campaign_rewards` — nothing else consumed either. */}
 
-      {/* ── Preset amounts — 3×2 grid, personalized via AI Donor Conversion Engine + donation optimizer ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12, marginTop: 4 }}>
-        {presets.map((preset) => {
-          const active = amount === String(preset);
+      {/* ── Preset amounts ── */}
+      <div role="radiogroup" aria-label="Donation amount" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12, marginTop: 4 }}>
+        {checkout.amountPresetsCents.map((preset) => {
+          const active = amountCents === preset;
           const popular = preset === recommended;
           return (
             <button
               key={preset}
               type="button"
+              role="radio"
+              aria-checked={active}
               onClick={() => {
-                setAmount(String(preset));
+                setAmount(String(preset / 100));
               }}
               style={{
                 position: 'relative',
@@ -334,18 +313,18 @@ export default function DonateButton({
                 color: active ? '#fff' : INK,
                 fontWeight: 800,
                 fontSize: 26,
-                letterSpacing: '-.01em',
+                letterSpacing: 0,
                 cursor: 'pointer',
                 boxShadow: active ? '0 10px 24px rgba(108,53,255,.28)' : 'none',
                 transition: 'border-color .15s, background .15s, color .15s, box-shadow .15s',
               }}
             >
-              {symbol}{preset.toLocaleString()}
+              {moneyShort(preset)}
               {popular && (
                 <span style={{
                   position: 'absolute', top: -11, left: '50%', transform: 'translateX(-50%)',
                   display: 'inline-flex', alignItems: 'center', gap: 4,
-                  fontSize: 9.5, fontWeight: 800, letterSpacing: '.04em', whiteSpace: 'nowrap',
+                  fontSize: 9.5, fontWeight: 800, letterSpacing: 0, whiteSpace: 'nowrap',
                   background: active ? '#fff' : V, color: active ? V : '#fff',
                   padding: '3px 9px', borderRadius: 999, boxShadow: '0 4px 12px rgba(108,53,255,.35)',
                 }}>
@@ -405,7 +384,7 @@ export default function DonateButton({
             />
             <button
               type="button"
-              onClick={() => { setShowCustomAmount(false); setAmount(String(recommended)); }}
+              onClick={() => { setShowCustomAmount(false); setAmount(String(recommended / 100)); }}
               style={{ border: 0, background: 'transparent', color: MU, fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
             >
               Use presets
@@ -433,7 +412,7 @@ export default function DonateButton({
                 }}
                 placeholder="0"
                 aria-label="Donation amount"
-                style={{ width: '4ch', maxWidth: 160, border: 0, fontSize: 40, fontWeight: 800, letterSpacing: '-.02em', outline: 'none', background: 'transparent', color: INK, fontFamily: 'inherit', padding: 0 }}
+                style={{ width: '4ch', maxWidth: 160, border: 0, fontSize: 40, fontWeight: 800, letterSpacing: 0, outline: 'none', background: 'transparent', color: INK, fontFamily: 'inherit', padding: 0 }}
               />
               {isMonthly && <span style={{ fontSize: 15, color: MU, fontWeight: 700 }}>/mo</span>}
             </span>
@@ -445,17 +424,97 @@ export default function DonateButton({
         </div>
       </div>
 
-      {/* ── Service fee (tip) — labeled dropdown ── */}
+      {/* ── Payment method & processing fee — labeled dropdown ── */}
       <div>
-        <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 700, color: MU, textTransform: 'uppercase', letterSpacing: '.06em' }}>
-          Service fee
+        <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 700, color: MU, textTransform: 'uppercase', letterSpacing: 0 }}>
+          Payment method &amp; processing fee estimate
+        </p>
+        <p style={{ margin: '0 0 8px', fontSize: 11.5, lineHeight: 1.45, color: MU }}>
+          Stripe Checkout confirms the payment methods available for your currency and device. This selection estimates processing fees; you choose the final method securely on Stripe&apos;s checkout page.
+        </p>
+        {(() => {
+          const sel = PAY_OPTIONS.find((o) => o.id === preferredMethod) ?? PAY_OPTIONS[0];
+          const selFee = checkout.methodFees[sel.id];
+          return (
+            <button
+              type="button"
+              onClick={() => setMethodOpen((o) => !o)}
+              aria-expanded={methodOpen}
+              aria-controls="payment-method-panel"
+              aria-label={`Payment method: ${sel.label}, ${selFee.label}. Tap to ${methodOpen ? 'collapse' : 'expand'} the options.`}
+              style={{
+                width: '100%', display: 'flex', minWidth: 0, alignItems: 'center', gap: 12,
+                padding: '13px 16px', background: 'var(--s1, #fff)',
+                border: `1.5px solid ${methodOpen ? V : BD}`, borderRadius: 14,
+                cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'border-color .15s',
+              }}
+            >
+              <span style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--s2, #f5f5f5)', display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                {sel.icon}
+              </span>
+              <span style={{ flex: 1, fontSize: 14, fontWeight: 800, color: INK }}>{sel.label}</span>
+              <span style={{ fontSize: 11, color: MU, fontWeight: 600, whiteSpace: 'nowrap' }}>{selFee.label}</span>
+              <svg viewBox="0 0 24 24" width={18} height={18} aria-hidden style={{ ...(ICON_STROKE as React.CSSProperties), color: MU, flexShrink: 0, transform: methodOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+          );
+        })()}
+        {methodOpen && (
+          <div
+            id="payment-method-panel"
+            role="radiogroup"
+            aria-label="Payment method"
+            style={{ display: 'flex', flexDirection: 'column', gap: 0, marginTop: 8, border: `1.5px solid ${BD}`, borderRadius: 14, overflow: 'hidden' }}
+          >
+            {PAY_OPTIONS.map((opt, idx) => {
+              const active = preferredMethod === opt.id;
+              const feeCfg = checkout.methodFees[opt.id];
+              return (
+                <label
+                  key={opt.id}
+                  style={{
+                    display: 'flex', minWidth: 0, alignItems: 'center', gap: 12,
+                    padding: '13px 16px', background: active ? VL : 'var(--s1, #fff)',
+                    borderTop: idx > 0 ? `1px solid ${BD}` : 'none',
+                    cursor: 'pointer', transition: 'background .15s',
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="preferredMethod"
+                    value={opt.id}
+                    checked={active}
+                    onChange={() => setPreferredMethod(opt.id)}
+                    style={{ accentColor: V, width: 16, height: 16, flexShrink: 0 }}
+                  />
+                  <span style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--s2, #f5f5f5)', display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    {opt.icon}
+                  </span>
+                  <span style={{ flex: 1, fontSize: 14, fontWeight: active ? 800 : 600, color: active ? VT : INK }}>
+                    {opt.label}
+                  </span>
+                  <span style={{ fontSize: 11, color: active ? INK : MU, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                    {feeCfg.label}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── Optional CharitMe fee — labeled dropdown ── */}
+      <div>
+        <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 700, color: MU, textTransform: 'uppercase', letterSpacing: 0 }}>
+          CharitMe fee
         </p>
         <button
           type="button"
           onClick={() => setServiceOpen((o) => !o)}
           aria-expanded={serviceOpen}
           aria-controls="service-fee-panel"
-          aria-label={`Service fee: CharitMe tip ${customTipCents != null ? money(customTipCents) : `${tipPercent}%`}. Tap to ${serviceOpen ? 'collapse' : 'expand'} the options.`}
+          aria-label={`CharitMe fee: ${customTipCents != null ? money(customTipCents) : `${tipPercent}%`}. Tap to ${serviceOpen ? 'collapse' : 'expand'} the options.`}
           style={{
             width: '100%', display: 'flex', minWidth: 0, alignItems: 'center', gap: 12,
             padding: '13px 16px', background: 'var(--s1, #fff)',
@@ -483,27 +542,28 @@ export default function DonateButton({
             </p>
 
             {/* Suggested tiers — icon + % + label */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 6 }}>
-              {SUPPORT_TIER_PERCENTS.map((p) => {
-                const active = tipPercent === p;
-                const meta = TIP_TIER_META[p];
+            <div role="radiogroup" aria-label="Optional CharitMe fee" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 6 }}>
+              {checkout.supportTierPercents.map((p, index) => {
+                const active = customTip === null && tipPercent === p;
+                const meta = TIP_TIER_PRESENTATION[index] ?? TIP_TIER_PRESENTATION[TIP_TIER_PRESENTATION.length - 1];
                 return (
                   <button
                     key={p}
                     type="button"
-                    onClick={() => setTipPercent(p)}
-                    aria-pressed={active}
+                    onClick={() => { setCustomTip(null); setTipPercent(p); }}
+                    role="radio"
+                    aria-checked={active}
                     aria-label={`Set support to ${p} percent (${meta.label})`}
                     style={{
                       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
                       padding: '9px 2px', borderRadius: 12,
                       border: `1.5px solid ${active ? V : BD}`,
                       background: active ? VL : 'var(--s1, #fff)',
-                      color: active ? V : MU, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .12s',
+                      color: active ? VT : MU, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .12s',
                     }}
                   >
                     <span style={{ width: 20, height: 20 }}><TipIcon name={meta.icon} /></span>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: active ? V : INK }}>{p}%</span>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: active ? VT : INK }}>{p}%</span>
                     {active
                       ? <span style={{ fontSize: 8, fontWeight: 800, color: '#fff', background: V, padding: '1px 5px', borderRadius: 999, whiteSpace: 'nowrap' }}>{meta.label}</span>
                       : <span style={{ fontSize: 9, fontWeight: 600, lineHeight: 1.15, textAlign: 'center' }}>{meta.label}</span>}
@@ -571,86 +631,6 @@ export default function DonateButton({
         )}
       </div>
 
-      {/* ── Payment method & processing fee — labeled dropdown ── */}
-      <div>
-        <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 700, color: MU, textTransform: 'uppercase', letterSpacing: '.06em' }}>
-          Payment method &amp; processing fee estimate
-        </p>
-        <p style={{ margin: '0 0 8px', fontSize: 11.5, lineHeight: 1.45, color: MU }}>
-          Stripe Checkout confirms the payment methods available for your currency and device. This selection estimates processing fees; you choose the final method securely on Stripe&apos;s checkout page.
-        </p>
-        {(() => {
-          const sel = PAY_OPTIONS.find((o) => o.id === preferredMethod) ?? PAY_OPTIONS[0];
-          const selFee = METHOD_FEES[sel.id];
-          return (
-            <button
-              type="button"
-              onClick={() => setMethodOpen((o) => !o)}
-              aria-expanded={methodOpen}
-              aria-controls="payment-method-panel"
-              aria-label={`Payment method: ${sel.label}, ${selFee.label}. Tap to ${methodOpen ? 'collapse' : 'expand'} the options.`}
-              style={{
-                width: '100%', display: 'flex', minWidth: 0, alignItems: 'center', gap: 12,
-                padding: '13px 16px', background: 'var(--s1, #fff)',
-                border: `1.5px solid ${methodOpen ? V : BD}`, borderRadius: 14,
-                cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'border-color .15s',
-              }}
-            >
-              <span style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--s2, #f5f5f5)', display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                {sel.icon}
-              </span>
-              <span style={{ flex: 1, fontSize: 14, fontWeight: 800, color: INK }}>{sel.label}</span>
-              <span style={{ fontSize: 11, color: MU, fontWeight: 600, whiteSpace: 'nowrap' }}>{selFee.label}</span>
-              <svg viewBox="0 0 24 24" width={18} height={18} aria-hidden style={{ ...(ICON_STROKE as React.CSSProperties), color: MU, flexShrink: 0, transform: methodOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
-            </button>
-          );
-        })()}
-        {methodOpen && (
-          <div
-            id="payment-method-panel"
-            role="radiogroup"
-            aria-label="Payment method"
-            style={{ display: 'flex', flexDirection: 'column', gap: 0, marginTop: 8, border: `1.5px solid ${BD}`, borderRadius: 14, overflow: 'hidden' }}
-          >
-            {PAY_OPTIONS.map((opt, idx) => {
-              const active = preferredMethod === opt.id;
-              const feeCfg = METHOD_FEES[opt.id];
-              return (
-                <label
-                  key={opt.id}
-                  style={{
-                    display: 'flex', minWidth: 0, alignItems: 'center', gap: 12,
-                    padding: '13px 16px', background: active ? VL : 'var(--s1, #fff)',
-                    borderTop: idx > 0 ? `1px solid ${BD}` : 'none',
-                    cursor: 'pointer', transition: 'background .15s',
-                  }}
-                >
-                  <input
-                    type="radio"
-                    name="preferredMethod"
-                    value={opt.id}
-                    checked={active}
-                    onChange={() => setPreferredMethod(opt.id)}
-                    style={{ accentColor: V, width: 16, height: 16, flexShrink: 0 }}
-                  />
-                  <span style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--s2, #f5f5f5)', display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    {opt.icon}
-                  </span>
-                  <span style={{ flex: 1, fontSize: 14, fontWeight: active ? 800 : 600, color: active ? V : INK }}>
-                    {opt.label}
-                  </span>
-                  <span style={{ fontSize: 11, color: MU, fontWeight: 600, whiteSpace: 'nowrap' }}>
-                    {feeCfg.label}
-                  </span>
-                </label>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
       {/* ── Dedicate this donation: REMOVED ──────────────────────────────
           The "Dedicate this donation (optional)" select and its honoree-name
           field were removed on request.
@@ -662,7 +642,7 @@ export default function DonateButton({
 
       {/* ── Optional message of support ── */}
       <div>
-        <label htmlFor="donor-message" style={{ display: 'block', fontSize: 12, fontWeight: 900, color: MU, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>
+        <label htmlFor="donor-message" style={{ display: 'block', fontSize: 12, fontWeight: 900, color: MU, textTransform: 'uppercase', letterSpacing: 0, marginBottom: 8 }}>
           Leave a message of support (optional)
         </label>
         <textarea
@@ -717,26 +697,23 @@ export default function DonateButton({
             onChange={(e) => setGuestEmail(e.target.value)}
             placeholder="your@email.com"
             aria-label="Email for receipt"
-            style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--b2, #fcd34d)', borderRadius: 9, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', outline: 'none', background: 'var(--s1, #fff)', color: INK }}
+            style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--b2, #fcd34d)', borderRadius: 9, padding: '10px 12px', fontSize: 16, fontFamily: 'inherit', outline: 'none', background: 'var(--s1, #fff)', color: INK }}
           />
         </div>
       )}
 
       {/* ── Transparent breakdown ── */}
       <div style={{ background: 'var(--s2, #f9f7ff)', borderRadius: 14, padding: '16px 18px', border: `1px solid ${BD}` }}>
-        <p style={{ margin: '0 0 12px', fontSize: 11, fontWeight: 700, color: MU, textTransform: 'uppercase', letterSpacing: '.07em' }}>
+        <p style={{ margin: '0 0 12px', fontSize: 11, fontWeight: 700, color: MU, textTransform: 'uppercase', letterSpacing: 0 }}>
           Breakdown
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
           <BRow label={isMonthly ? 'Monthly donation' : 'Donation'} value={money(amountCents)} />
-          {/* CharitMe support tip + payment-processing fee shown as one combined
-              line (both are added on top of the donation, never deducted). */}
-          {breakdown.tip + breakdown.processing > 0 && (
-            <BRow
-              label="Processing & Service Fee"
-              value={money(breakdown.tip + breakdown.processing)}
-            />
-          )}
+          <BRow label="CharitMe fee (optional)" value={money(breakdown.tip)} />
+          <BRow
+            label={`${PAY_OPTIONS.find((option) => option.id === preferredMethod)?.label ?? 'Stripe'} processing estimate${isMonthly ? ' (covered by CharitMe)' : ''}`}
+            value={money(breakdown.processing)}
+          />
           {amountCents > 0 && !isMonthly && (
             <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', fontSize: 13, fontWeight: 700, color: GRT }}>
               <span>Recipient receives</span>
@@ -786,7 +763,7 @@ export default function DonateButton({
           fontSize: 17,
           fontWeight: 700,
           cursor: loading ? 'not-allowed' : 'pointer',
-          letterSpacing: '-.01em',
+          letterSpacing: 0,
           boxShadow: isMonthly
             ? '0 6px 22px rgba(5,150,105,.35)'
             : '0 6px 22px rgba(108,53,255,.38)',

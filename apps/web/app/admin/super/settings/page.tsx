@@ -5,6 +5,7 @@ import { requireSuperAdmin } from '../../../../lib/auth';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import SettingsClient, { type PlatformConfig } from './SettingsClient';
 import { FEATURE_PRICE_DEFAULT_CENTS } from '../../../../lib/featured';
+import { donationCheckoutSettingsFromPlatformConfig } from '../../../../lib/donation-checkout-settings';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +25,7 @@ export default async function SuperAdminSettingsPage() {
     ...(raw as PlatformConfig),
     featuredCampaignPriceDollars:
       Number.isFinite(savedCents) && savedCents > 0 ? savedCents / 100 : FEATURE_PRICE_DEFAULT_CENTS / 100,
+    donationCheckout: donationCheckoutSettingsFromPlatformConfig(raw),
   } as PlatformConfig;
   return (
     <CharitMeShell active="Platform Settings" mode="admin">

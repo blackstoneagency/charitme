@@ -9,31 +9,34 @@ import {
   parseDraft,
   draftHasContent,
   draftAgeLabel,
+  campaignMediaStoragePath,
   fromRemoteDraft,
   pickFreshestDraft,
   describePublishFailure,
   type CampaignDraft,
 } from '../../lib/campaign-draft';
 import { WIZARD_STEPS, normalizeStep, minutesRemaining, isOptionalStep, type WizardStep } from '../../lib/wizard-steps';
-import { CAMPAIGN_STEPS, CAMPAIGN_STEP_META, canGoBack, stepPosition } from '../../lib/campaign-flow-core';
+import { CAMPAIGN_STEPS, CAMPAIGN_STEP_META, canGoBack, nextIncompleteStepAfter, stepPosition } from '../../lib/campaign-flow-core';
 import {
   parseDraftRewards,
-  draftRewardHasContent,
   summarizeRewardSync,
   toRewardPayloads,
   validateDraftRewards,
   type DraftReward,
   type RewardFieldError,
 } from '../../lib/campaign-rewards-draft';
-import StepPath from './StepPath';
 import StepRewards from './StepRewards';
 import StepVerify from './StepVerify';
+import CampaignPlanEditor from './CampaignPlanEditor';
+import CampaignSettingsEditor from './CampaignSettingsEditor';
+import CampaignPathChoice from './CampaignPathChoice';
 import { evaluateDonorView } from '../../lib/donor-preview';
+import { parseCampaignVideoUrl } from '../../lib/campaign-video';
 
 /** A pristine wizard form — also what "start another campaign" resets to (F8). */
 const EMPTY_FORM: FormState = {
   category: 'Medical',
-  forSelf: 'true',
+  forSelf: '',
   country: 'United States',
   zipCode: '',
   autoGoal: 'false',
@@ -45,8 +48,27 @@ const EMPTY_FORM: FormState = {
   beneficiaryRelationship: '',
   description: '',
   coverImageUrl: '',
+  videoUrl: '',
   campaignPath: 'personal',
   rewardsJson: '',
+  currency: 'USD',
+  useOfFundsJson: '',
+  donationTiersJson: '',
+  faqsJson: '',
+  milestonesJson: '',
+  sourceLinksJson: '',
+  sourceDocumentsJson: '',
+  recurringEnabled: 'true',
+  anonymousEnabled: 'true',
+  visibility: 'public',
+  acceptDonations: 'true',
+  seoTitle: '',
+  seoDescription: '',
+  socialTitle: '',
+  socialDescription: '',
+  coverImageGuidance: '',
+  policyAccepted: 'false',
+  aiPrompt: '',
 };
 
 /** Which of the organizer's drafts this browser is currently editing (F8). */
@@ -62,6 +84,7 @@ interface DraftSummary {
 import { suggestCampaignTitle } from '../../lib/campaign-title';
 import Link from 'next/link';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
+import { currencySymbol, formatMoneyShort, SUPPORTED_CURRENCIES } from '@shared/currencies';
 import { extractCampaignFields } from '../../lib/campaign-intake';
 import { CharitMeShell, KFIcon } from '../../components/CharitMeApp';
 import { createClient } from '../../lib/supabase-browser';
@@ -72,32 +95,38 @@ import StorySectionsEditor from './StorySectionsEditor';
 import { publishReadiness, type ReadinessStep } from '../../lib/campaign-readiness';
 import FeatureUpsell from './FeatureUpsell';
 import { analyzeStory } from '../../lib/story-analysis';
+import {
+  CAMPAIGN_BUILDER_SCHEMA_VERSION,
+  parseCampaignFaqs,
+  parseCampaignMilestones,
+  parseDonationTiers,
+  parseSourceDocuments,
+  parseSourceLinks,
+  parseUseOfFunds,
+  stringifyBuilderItems,
+  totalUseOfFunds,
+  validateCampaignBuilderSettings,
+  type CampaignBuilderPath,
+} from '../../lib/campaign-builder-model';
+import {
+  AI_INTAKE_SESSION_KEY,
+  clearCachedAiIntakeFiles,
+  loadCachedAiIntakeFiles,
+  parseAiCampaignIntake,
+} from '../../lib/campaign-ai-intake';
 
 // ─────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────
 
-type PayoutMethod = 'stripe' | 'paypal' | 'venmo' | 'googlepay' | 'sinch';
 type PayoutAccount = {
   id: string;
   stripe_account_id: string;
   payouts_enabled: boolean;
+  charges_enabled: boolean;
   details_submitted: boolean;
   verification_status: string;
-  payout_type?: string;
-  paypal_email?: string;
-  venmo_handle?: string;
-  googlepay_email?: string;
-  sinch_ref?: string;
-} | null;
-
-interface PaymentMethods {
-  primary?: string;
-  paypal?: string;
-  venmo?: string;
-  googlepay?: string;
-  sinch?: string;
-}
+};
 
 interface FormState {
   category: string;
@@ -113,10 +142,11 @@ interface FormState {
   beneficiaryRelationship: string;
   description: string;
   coverImageUrl: string;
-  /** Step 1 — 'personal' | 'nonprofit' | 'team'. Drives whether step 9 applies. */
+  videoUrl: string;
+  /** 'personal' | 'nonprofit' | 'team'. Controls the required verification path. */
   campaignPath: string;
   /**
-   * Step 7 rewards, JSON-encoded.
+   * Optional rewards, JSON-encoded.
    *
    * ⚠️ Stored as a string INSIDE the form rather than as its own draft field on
    * purpose. `CampaignDraft.form` is persisted verbatim to localStorage and to
@@ -127,6 +157,28 @@ interface FormState {
    * losing work the organizer had typed.
    */
   rewardsJson: string;
+  currency: string;
+  useOfFundsJson: string;
+  donationTiersJson: string;
+  faqsJson: string;
+  milestonesJson: string;
+  sourceLinksJson: string;
+  sourceDocumentsJson: string;
+  recurringEnabled: string;
+  anonymousEnabled: string;
+  visibility: string;
+  acceptDonations: string;
+  seoTitle: string;
+  seoDescription: string;
+  socialTitle: string;
+  socialDescription: string;
+  coverImageGuidance: string;
+  policyAccepted: string;
+  aiPrompt: string;
+}
+
+function normalizeForm(value: Partial<FormState> | null | undefined): FormState {
+  return { ...EMPTY_FORM, ...(value ?? {}) };
 }
 
 type UploadStatus = 'uploading' | 'done' | 'error';
@@ -138,6 +190,23 @@ interface UploadedImage {
   status: UploadStatus;
   errorMsg?: string;
 }
+
+type AiCampaignDraftResponse = {
+  title?: string;
+  summary?: string;
+  story?: string;
+  category?: string;
+  suggestedGoalCents?: number;
+  useOfFunds?: { label: string; amountCents: number }[];
+  socialCaption?: string;
+  longPost?: string;
+  donorFaq?: { question: string; answer: string }[];
+  donationTiers?: { amountCents: number; label: string }[];
+  milestones?: { title: string; description: string; targetCents: number }[];
+  seoTitle?: string;
+  seoDescription?: string;
+  coverImageGuidance?: string;
+};
 
 // ─────────────────────────────────────────────
 // Constants
@@ -158,10 +227,8 @@ const JOURNEY_STEPS = ['Plan', 'Create', 'Launch', 'Manage', 'Celebrate', 'Impac
  *     for the only thing it was protecting. That was invisible while
  *     `middleware.ts` redirected every signed-out visitor away from /create;
  *     opening the builder to guests is what made it reachable.
- *  2. A gate on a step stops an organizer who was never going to use that step.
- *     Photos are optional to publish — the readiness engine lists a cover as a
- *     recommendation, not a requirement — so a guest with no photo was being
- *     asked to sign up for a capability they had not asked for.
+   *  2. Authentication happens at the upload action, after the organizer has
+   *     already entered enough context for the saved draft to survive sign-in.
  *
  * So the two moments that genuinely need a session ask for one themselves:
  * uploading a file (below, in `handleFileSelect`) and publishing (the campaign
@@ -172,7 +239,7 @@ const JOURNEY_STEPS = ['Plan', 'Create', 'Launch', 'Manage', 'Celebrate', 'Impac
 const ALLOWED_IMG_TYPES = new Set([
   'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif',
 ]);
-const MAX_IMG_SIZE = 10 * 1024 * 1024;
+const MAX_IMG_SIZE = 5 * 1024 * 1024;
 const MAX_IMAGES   = 10;
 
 const COUNTRIES = [
@@ -244,19 +311,26 @@ const SUGGESTED_PHOTOS: Record<string, string[]> = {
 function CampaignPreviewModal({
   form,
   coverImageUrl,
-  goalDisplay,
   imageCount,
   goalCents,
+  organizerName,
+  identityVerified,
+  nonprofitVerified,
+  payoutLinked,
   onGoToStep,
   onClose,
   onLaunch,
   launching,
+  canLaunch,
 }: {
   form: FormState;
   coverImageUrl: string;
-  goalDisplay: string;
   imageCount: number;
   goalCents: number;
+  organizerName: string;
+  identityVerified: boolean;
+  nonprofitVerified: boolean;
+  payoutLinked: boolean;
   /**
    * Field-named, not screen-named. The modal lists what a donor looks for —
    * "a title", "a story" — so its items keep those names even though title,
@@ -267,11 +341,14 @@ function CampaignPreviewModal({
   onClose: () => void;
   onLaunch: () => void;
   launching: boolean;
+  canLaunch: boolean;
 }) {
   const beneficiary = form.forSelf === 'true' ? 'you' : (form.beneficiaryName || 'someone in need');
+  const useOfFunds = parseUseOfFunds(form.useOfFundsJson);
+  const campaignVideo = parseCampaignVideoUrl(form.videoUrl);
   // Most donors arrive on a phone, so the preview defaults to the phone frame —
   // previewing only the desktop layout hid the view most donors actually get.
-  const [viewport, setViewport] = React.useState<'mobile' | 'desktop'>('mobile');
+  const [viewport, setViewport] = React.useState<'mobile' | 'desktop' | 'social' | 'checkout'>('mobile');
   const donorView = evaluateDonorView({
     title: form.title, description: form.description, goalCents,
     coverImageUrl, imageCount, forSelf: form.forSelf,
@@ -285,19 +362,52 @@ function CampaignPreviewModal({
         <p className="cr2-preview-topbar-title">{form.title || 'Untitled Campaign'}</p>
         <button type="button" className="cr2-preview-topbar-back" onClick={onClose}>← Back</button>
         <div role="group" aria-label="Preview device" style={{ display: 'inline-flex', gap: 4, background: 'rgba(0,0,0,.18)', borderRadius: 999, padding: 3, marginLeft: 8 }}>
-          {(['mobile', 'desktop'] as const).map((v) => (
+          {(['mobile', 'desktop', 'social', 'checkout'] as const).map((v) => (
             <button key={v} type="button" onClick={() => setViewport(v)} aria-pressed={viewport === v}
               style={{ padding: '5px 12px', borderRadius: 999, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 800,
                 background: viewport === v ? '#fff' : 'transparent', color: viewport === v ? '#1a1a2e' : '#fff' }}>
-              {v === 'mobile' ? '📱 Phone' : '🖥 Desktop'}
+              {v === 'mobile' ? 'Phone' : v === 'desktop' ? 'Desktop' : v === 'social' ? 'Social' : 'Checkout'}
             </button>
           ))}
         </div>
-        <button type="button" className="cr2-preview-topbar-launch" onClick={onLaunch} disabled={launching}>
+        <button type="button" className="cr2-preview-topbar-launch" onClick={onLaunch} disabled={launching || !canLaunch} title={canLaunch ? 'Publish campaign' : 'Complete launch readiness first'}>
           {launching ? 'Launching…' : '🚀 Launch Campaign'}
         </button>
       </div>
       <div className="cr2-preview-scroll">
+        {viewport === 'social' ? (
+          <div className="cb-social-preview" aria-label="Social sharing preview">
+            <div className="cb-social-preview-image">
+              {coverImageUrl
+                // eslint-disable-next-line @next/next/no-img-element
+                ? <img src={coverImageUrl} alt="" />
+                : <span>Cover image</span>}
+            </div>
+            <div className="cb-social-preview-copy">
+              <span>charitme.com</span>
+              <h2>{form.socialTitle || form.title || 'Your campaign title'}</h2>
+              <p>{form.socialDescription || form.tagline || form.description.slice(0, 180) || 'Your campaign summary will appear here.'}</p>
+            </div>
+          </div>
+        ) : viewport === 'checkout' ? (
+          <div className="cb-checkout-preview" aria-label="Donation checkout preview">
+            <div className="cb-checkout-summary">
+              <span className="cr2-preview-cat-pill">{form.category}</span>
+              <h2>Support {form.title || 'this campaign'}</h2>
+              <p>Choose a donation amount</p>
+              <div className="cb-checkout-amounts">
+                {(parseDonationTiers(form.donationTiersJson).length > 0
+                  ? parseDonationTiers(form.donationTiersJson).slice(0, 4).map((tier) => tier.amountCents)
+                  : [2500, 5000, 10000, 25000]).map((amount) => (
+                    <button type="button" key={amount} disabled>{formatMoneyShort(amount, form.currency)}</button>
+                  ))}
+              </div>
+              <label><span>Other amount</span><div className="cb-checkout-input"><span>{currencySymbol(form.currency)}</span><input disabled placeholder="0.00" /></div></label>
+              <button type="button" className="cr2-donate-btn" disabled>Continue to payment</button>
+              <small>Preview only. No payment is collected.</small>
+            </div>
+          </div>
+        ) : (
         <div
           className="cr2-preview-page"
           style={viewport === 'mobile'
@@ -305,7 +415,16 @@ function CampaignPreviewModal({
             : undefined}
         >
           <div className="cr2-preview-hero">
-            {coverImageUrl
+            {campaignVideo?.kind === 'embed' ? (
+              <iframe
+                src={campaignVideo.previewUrl}
+                title={`Video for ${form.title || 'campaign preview'}`}
+                loading="lazy"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                referrerPolicy="strict-origin-when-cross-origin"
+              />
+            ) : coverImageUrl
               // eslint-disable-next-line @next/next/no-img-element
               ? <img src={coverImageUrl} alt="Cover" />
               : 'Cover photo will appear here'}
@@ -315,20 +434,51 @@ function CampaignPreviewModal({
               <span className="cr2-preview-cat-pill">{form.category}</span>
               <h1>{form.title || 'Your Campaign Title'}</h1>
               <p className="cr2-preview-by">
-                Organized by <strong>{beneficiary}</strong>
+                Organized by <strong>{organizerName || 'Organizer name pending'}</strong>
                 {form.country && <> · {form.country}</>}
               </p>
-              <p className="cr2-preview-story-text">
-                {form.description || 'Your campaign story will appear here. Write a compelling story on the previous step to engage donors and explain your cause.'}
-              </p>
+              <button type="button" className="cb-preview-edit" onClick={() => { onClose(); onGoToStep('purpose'); }}>Edit title</button>
+              <section className="cb-preview-section" aria-labelledby="preview-beneficiary-heading">
+                <div className="cb-preview-section-head">
+                  <h2 id="preview-beneficiary-heading">Who this helps</h2>
+                  <button type="button" className="cb-preview-edit" onClick={() => { onClose(); onGoToStep('beneficiary'); }}>Edit</button>
+                </div>
+                <p>
+                  {form.forSelf === 'true'
+                    ? 'This campaign supports the organizer directly.'
+                    : `${beneficiary}${form.beneficiaryRelationship ? ` · ${form.beneficiaryRelationship}` : ''}`}
+                </p>
+              </section>
+              <section className="cb-preview-section" aria-labelledby="preview-story-heading">
+                <div className="cb-preview-section-head">
+                  <h2 id="preview-story-heading">The story</h2>
+                  <button type="button" className="cb-preview-edit" onClick={() => { onClose(); onGoToStep('story'); }}>Edit</button>
+                </div>
+                <p className="cr2-preview-story-text">
+                  {form.description || 'Your campaign story will appear here. Write a compelling story on the previous step to engage donors and explain your cause.'}
+                </p>
+              </section>
+              <section className="cb-preview-section" aria-labelledby="preview-funds-heading">
+                <div className="cb-preview-section-head">
+                  <h2 id="preview-funds-heading">How funds will be used</h2>
+                  <button type="button" className="cb-preview-edit" onClick={() => { onClose(); onGoToStep('plan'); }}>Edit</button>
+                </div>
+                {useOfFunds.length > 0 ? (
+                  <ul className="cb-preview-fund-list">
+                    {useOfFunds.map((item) => (
+                      <li key={item.id}><span>{item.label}</span><strong>{formatMoneyShort(item.amountCents, form.currency)}</strong></li>
+                    ))}
+                  </ul>
+                ) : <p>Your campaign budget will appear here.</p>}
+              </section>
             </div>
             <div>
               <div className="cr2-donate-box">
-                <div className="cr2-donate-raised">$0</div>
-                <div className="cr2-donate-goal">raised of ${goalDisplay} goal</div>
+                <div className="cr2-donate-raised">{formatMoneyShort(0, form.currency)}</div>
+                <div className="cr2-donate-goal">raised of {formatMoneyShort(goalCents, form.currency)} goal</div>
                 <div className="cr2-donate-bar"><div className="cr2-donate-fill" /></div>
                 <div className="cr2-donate-stats">
-                  <span><strong>$0</strong> raised</span>
+                  <span><strong>{formatMoneyShort(0, form.currency)}</strong> raised</span>
                   <span><strong>0</strong> donors</span>
                 </div>
                 {/* Inert on purpose — say so, rather than letting it look broken. */}
@@ -338,6 +488,22 @@ function CampaignPreviewModal({
                 <p style={{ margin: '8px 0 0', fontSize: 11.5, color: 'var(--t3)', textAlign: 'center' }}>
                   Preview only — donations are disabled until you publish.
                 </p>
+              </div>
+
+              <div className="cb-preview-trust" aria-label="Campaign trust and verification">
+                <div className="cb-preview-section-head">
+                  <h2>Trust and verification</h2>
+                  <button type="button" className="cb-preview-edit" onClick={() => { onClose(); onGoToStep('verify'); }}>Edit</button>
+                </div>
+                <ul>
+                  <li className={identityVerified ? 'is-ready' : ''}><span>{identityVerified ? '✓' : '○'}</span> Organizer identity {identityVerified ? 'verified' : 'pending'}</li>
+                  <li className={payoutLinked ? 'is-ready' : ''}><span>{payoutLinked ? '✓' : '○'}</span> Payout account {payoutLinked ? 'ready' : 'pending'}</li>
+                  {form.campaignPath === 'nonprofit' && (
+                    <li className={nonprofitVerified ? 'is-ready' : ''}><span>{nonprofitVerified ? '✓' : '○'}</span> Organization {nonprofitVerified ? 'verified' : 'pending'}</li>
+                  )}
+                  <li className={imageCount > 0 ? 'is-ready' : ''}><span>{imageCount > 0 ? '✓' : '○'}</span> {imageCount} campaign {imageCount === 1 ? 'photo' : 'photos'}</li>
+                </ul>
+                <button type="button" className="cb-preview-edit cb-preview-media-edit" onClick={() => { onClose(); onGoToStep('media'); }}>Edit media</button>
               </div>
 
               {/* F10: what a donor looks for, from the donor's point of view. */}
@@ -379,6 +545,7 @@ function CampaignPreviewModal({
             </div>
           </div>
         </div>
+        )}
       </div>
     </div>
   );
@@ -393,15 +560,12 @@ function CampaignPreviewModal({
 const BUILDER_ERROR_ID = 'cr2-builder-error';
 
 export default function CreatePage() {
-  // Opens on `title`, not `basics`. The gate wants a title, a story and a goal;
-  // opening on category/location put an administrative screen in front of the
-  // only three fields that decide whether this campaign can go live at all.
-  // `path` is still reachable by going Back, exactly as it was from `basics`.
-  const [step, setStep]               = useState<WizardStep>('essentials');
+  const [step, setStep]               = useState<WizardStep>('purpose');
+  const [builderPath, setBuilderPath] = useState<CampaignBuilderPath | null>(null);
   const [loading, setLoading]         = useState(false);
   const [aiLoading, setAiLoading]     = useState(false);
   const [storyMode, setStoryMode]     = useState<'freeform' | 'guided'>('freeform');
-  // Step 7. Held here and written after publish, because the rewards API needs a
+  // Held here and written after publish, because the rewards API needs a
   // campaign id that does not exist until then (lib/campaign-rewards-draft.ts).
   const [draftRewards, setDraftRewards] = useState<DraftReward[]>([]);
   const [rewardError, setRewardError]   = useState<{ key: string; error: RewardFieldError } | null>(null);
@@ -413,6 +577,7 @@ export default function CreatePage() {
   // *something* was wrong but not *which* input, leaving focus on the button.
   const [errorField, setErrorField]   = useState<BuilderField | null>(null);
   const titleInputRef                 = useRef<HTMLInputElement>(null);
+  const titleSeededRef                = useRef(false);
   const storyInputRef                 = useRef<HTMLTextAreaElement>(null);
   const goalInputRef                  = useRef<HTMLInputElement>(null);
   const [publishedSlug, setPublishedSlug] = useState('');
@@ -421,17 +586,10 @@ export default function CreatePage() {
   const [userName, setUserName]       = useState<string | null>(null);
   const [userEmail, setUserEmail]     = useState<string | undefined>(undefined);
   const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
-  const [payoutAccount, setPayoutAccount] = useState<PayoutAccount>(null);
+  const [identityVerified, setIdentityVerified] = useState(false);
+  const [nonprofitVerified, setNonprofitVerified] = useState(false);
+  const [payoutAccountState, setPayoutAccount] = useState<PayoutAccount | null>(null);
   const [payoutLoading, setPayoutLoading] = useState(false);
-  const [payoutMethod, setPayoutMethod]   = useState<PayoutMethod | null>(null);
-  const [showAltPayouts, setShowAltPayouts] = useState(false);
-  const [paypalEmail, setPaypalEmail]     = useState('');
-  const [venmoHandle, setVenmoHandle]     = useState('');
-  const [googlePayEmail, setGooglePayEmail] = useState('');
-  const [routingNumber, setRoutingNumber]   = useState('');
-  const [accountNumber, setAccountNumber]   = useState('');
-  const [accountType, setAccountType]       = useState<'checking' | 'savings'>('checking');
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethods>({});
   const [connectingStripe, setConnectingStripe] = useState(false);
   const [isGuest, setIsGuest]         = useState<boolean | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -457,15 +615,22 @@ export default function CreatePage() {
     try {
       const { savedForm, savedStep, savedImages, savedStoryMode } = JSON.parse(saved) as {
         savedForm: FormState; savedStep: WizardStep;
-        savedImages?: { url: string; name: string }[]; savedStoryMode?: string;
+        savedImages?: { url: string; name: string; storagePath?: string }[]; savedStoryMode?: string;
       };
       if (Array.isArray(savedImages) && savedImages.length > 0) {
-        setUploadedImages(savedImages.map((i, idx) => ({
-          id: `bounce-${idx}-${i.url}`, url: i.url, name: i.name ?? '', status: 'done' as const,
-        })));
+        setUploadedImages(savedImages.map((i, idx) => {
+          const storagePath = campaignMediaStoragePath(i.url, i.storagePath);
+          return {
+            id: storagePath || `unrestorable-bounce-${idx}`,
+            url: i.url,
+            name: i.name ?? '',
+            status: storagePath ? 'done' as const : 'error' as const,
+            errorMsg: storagePath ? undefined : 'Re-upload this image to continue.',
+          };
+        }));
       }
       if (savedStoryMode === 'freeform' || savedStoryMode === 'guided') setStoryMode(savedStoryMode);
-      setForm(savedForm);
+      setForm(normalizeForm(savedForm));
       const restoredStep = normalizeStep(savedStep);
       if (restoredStep) setStep(restoredStep);
     } catch { /* ignore */ }
@@ -483,23 +648,58 @@ export default function CreatePage() {
       setIsGuest(false);
       setUserEmail(user.email ?? undefined);
       restoreBounce(sessionStorage.getItem('cm_wizard'));
-      void supabase
-        .from('profiles')
-        .select('full_name, avatar_url')
-        .eq('id', user.id)
-        .single()
-        .then(({ data }) => {
-          if (data) {
-            setUserName((data as { full_name?: string | null; avatar_url?: string | null }).full_name ?? null);
-            setUserAvatarUrl((data as { full_name?: string | null; avatar_url?: string | null }).avatar_url ?? null);
-          }
-        });
+      void Promise.all([
+        supabase
+          .from('profiles')
+          .select('full_name, avatar_url, identity_verified')
+          .eq('id', user.id)
+          .single(),
+        supabase
+          .from('nonprofit_profiles')
+          .select('verified, verification_status')
+          .eq('owner_id', user.id),
+      ]).then(([profileResult, nonprofitResult]) => {
+        const profile = profileResult.data as {
+          full_name?: string | null;
+          avatar_url?: string | null;
+          identity_verified?: boolean | null;
+        } | null;
+        if (profile) {
+          setUserName(profile.full_name ?? null);
+          setUserAvatarUrl(profile.avatar_url ?? null);
+          setIdentityVerified(profile.identity_verified === true);
+        }
+        const organizations = (nonprofitResult.data ?? []) as {
+          verified?: boolean | null;
+          verification_status?: string | null;
+        }[];
+        setNonprofitVerified(organizations.some((organization) =>
+          organization.verified === true || organization.verification_status === 'verified'));
+      });
     });
   }, [restoreBounce]);
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const requested = params.get('path');
+    if (requested === 'ai' || params.has('ai') || params.has('intake')) setBuilderPath('ai');
+    else if (requested === 'guided'
+      || sessionStorage.getItem('cm_wizard')
+      || localStorage.getItem(CAMPAIGN_DRAFT_KEY)) {
+      titleSeededRef.current = true;
+      setForm((previous) => previous.title.trim()
+        ? previous
+        : { ...previous, title: suggestCampaignTitle(previous) });
+      setBuilderPath('guided');
+    }
+    else setBuilderPath(null);
+  }, []);
+
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
+  const [pendingIntakeFiles, setPendingIntakeFiles] = useState<File[]>([]);
+  const [sourceUploadError, setSourceUploadError] = useState('');
   const [dragging, setDragging]             = useState(false);
   const [uploadError, setUploadError]       = useState('');
 
@@ -515,7 +715,7 @@ export default function CreatePage() {
   const [showDraftPicker, setShowDraftPicker] = useState(false);
   const remoteLatestIdRef = useRef<string | null>(null);
   const draftDecided = useRef(false);
-  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
   useEffect(() => {
     // A pending login-bounce restore (cm_wizard) takes precedence — don't also
@@ -536,6 +736,9 @@ export default function CreatePage() {
   const draftIdRef = useRef<string | null>(
     typeof window === 'undefined' ? null : localStorage.getItem(ACTIVE_DRAFT_KEY),
   );
+  const draftSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const draftSaveSequenceRef = useRef(0);
+  const draftGenerationRef = useRef(0);
   const setActiveDraftId = useCallback((id: string | null) => {
     draftIdRef.current = id;
     if (typeof window === 'undefined') return;
@@ -543,9 +746,76 @@ export default function CreatePage() {
     else localStorage.removeItem(ACTIVE_DRAFT_KEY);
   }, []);
 
+  const persistWizardDraft = useCallback(async (): Promise<boolean> => {
+    const completedImages = uploadedImages.filter((image) => image.status === 'done');
+    if (!draftHasContent(form, completedImages.length)) return true;
+    const sequence = ++draftSaveSequenceRef.current;
+    const generation = draftGenerationRef.current;
+    setSaveState('saving');
+    const draft = buildDraft({
+      step,
+      storyMode,
+      builderPath: builderPath ?? 'guided',
+      schemaVersion: CAMPAIGN_BUILDER_SCHEMA_VERSION,
+      sourceContext: {
+        links: parseSourceLinks(form.sourceLinksJson),
+        documents: parseSourceDocuments(form.sourceDocumentsJson),
+      },
+      form,
+      images: completedImages.map((image) => ({ url: image.url, name: image.name, storagePath: image.id })),
+    });
+    localStorage.setItem(CAMPAIGN_DRAFT_KEY, serializeDraft(draft));
+    if (isGuest !== false) {
+      if (sequence === draftSaveSequenceRef.current) setSaveState('saved');
+      return true;
+    }
+    let remoteSaved = false;
+    const queuedSave = draftSaveQueueRef.current.catch(() => undefined).then(async () => {
+      if (generation !== draftGenerationRef.current) {
+        remoteSaved = true;
+        return;
+      }
+      try {
+        const response = await fetch('/api/campaigns/draft', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: draftIdRef.current ?? undefined,
+            step,
+            storyMode,
+            builderPath: builderPath ?? 'guided',
+            schemaVersion: CAMPAIGN_BUILDER_SCHEMA_VERSION,
+            sourceContext: draft.sourceContext,
+            form,
+            images: draft.images,
+            ts: draft.ts,
+          }),
+        });
+        if (!response.ok) throw new Error('remote save failed');
+        const result: unknown = await response.json();
+        if (generation === draftGenerationRef.current
+            && result && typeof result === 'object'
+            && typeof (result as { id?: unknown }).id === 'string') {
+          setActiveDraftId((result as { id: string }).id);
+        }
+        remoteSaved = true;
+      } catch {
+        remoteSaved = false;
+      }
+    });
+    draftSaveQueueRef.current = queuedSave.then(() => undefined, () => undefined);
+    await queuedSave;
+    if (generation === draftGenerationRef.current && sequence === draftSaveSequenceRef.current) {
+      setSaveState(remoteSaved ? 'saved' : 'error');
+    }
+    return remoteSaved;
+  }, [builderPath, form, isGuest, setActiveDraftId, step, storyMode, uploadedImages]);
+
   const clearDraft = useCallback(() => {
+    draftGenerationRef.current += 1;
+    draftSaveSequenceRef.current += 1;
     if (typeof window !== 'undefined') localStorage.removeItem(CAMPAIGN_DRAFT_KEY);
-    setSavedAt(null);
+    setSaveState('idle');
     // Drop the cross-device copy too, so a published campaign never resurfaces as
     // a "resume your draft" prompt on the organizer's other devices. Only this
     // draft is removed — the organizer's other drafts must survive.
@@ -557,7 +827,7 @@ export default function CreatePage() {
     setActiveDraftId(null);
   }, [setActiveDraftId]);
 
-  // Rehydrate step 7 whenever the form is replaced wholesale — draft recovery,
+  // Rehydrate rewards whenever the form is replaced wholesale — draft recovery,
   // opening another draft, or the OAuth bounce. Doing it here rather than at each
   // restore site means a new restore path cannot forget to carry the rewards.
   // The comparison is what stops this looping: the editor writes both pieces of
@@ -572,12 +842,21 @@ export default function CreatePage() {
   const resumeDraft = useCallback(() => {
     const d = recoverableDraft;
     if (!d) return;
-    setForm(d.form);
+    draftGenerationRef.current += 1;
+    draftSaveSequenceRef.current += 1;
+    setForm(normalizeForm(d.form));
+    setBuilderPath(d.builderPath);
     if (d.storyMode === 'freeform' || d.storyMode === 'guided') setStoryMode(d.storyMode);
-    setUploadedImages(d.images.map((i, idx) => ({ id: `restored-${idx}-${i.url}`, url: i.url, name: i.name, status: 'done' as const })));
+    setUploadedImages(d.images.map((i, idx) => ({
+      id: i.storagePath || `unrestorable-local-${idx}`,
+      url: i.url,
+      name: i.name,
+      status: i.storagePath ? 'done' as const : 'error' as const,
+      errorMsg: i.storagePath ? undefined : 'Re-upload this image to continue.',
+    })));
     const draftStep = normalizeStep(d.step);
     if (draftStep) setStep(draftStep);
-    setSavedAt(d.ts);
+    setSaveState('saved');
     draftDecided.current = true;
     setRecoverableDraft(null);
   }, [recoverableDraft]);
@@ -590,11 +869,21 @@ export default function CreatePage() {
       const { draft: row } = await res.json();
       const d = fromRemoteDraft<FormState>(row);
       if (!d) return;
-      setForm(d.form);
+      draftGenerationRef.current += 1;
+      draftSaveSequenceRef.current += 1;
+      setForm(normalizeForm(d.form));
+      setBuilderPath(d.builderPath);
       if (d.storyMode === 'freeform' || d.storyMode === 'guided') setStoryMode(d.storyMode);
-      setUploadedImages(d.images.map((i, idx) => ({ id: `remote-${idx}-${i.url}`, url: i.url, name: i.name, status: 'done' as const })));
+      setUploadedImages(d.images.map((i, idx) => ({
+        id: i.storagePath || `unrestorable-remote-${idx}`,
+        url: i.url,
+        name: i.name,
+        status: i.storagePath ? 'done' as const : 'error' as const,
+        errorMsg: i.storagePath ? undefined : 'Re-upload this image to continue.',
+      })));
       const st = normalizeStep(d.step);
       if (st) setStep(st);
+      setSaveState('saved');
       setActiveDraftId(id);
       draftDecided.current = true;
       setRecoverableDraft(null);
@@ -607,22 +896,32 @@ export default function CreatePage() {
     try {
       await fetch(`/api/campaigns/draft?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
       setDraftList((list) => list.filter((d) => d.id !== id));
-      if (draftIdRef.current === id) setActiveDraftId(null);
+      if (draftIdRef.current === id) {
+        draftGenerationRef.current += 1;
+        draftSaveSequenceRef.current += 1;
+        setActiveDraftId(null);
+      }
     } catch { /* best-effort */ }
   }, [setActiveDraftId]);
 
   /** Begin a fresh campaign, leaving existing drafts untouched. */
   const startNewDraft = useCallback(() => {
+    draftGenerationRef.current += 1;
+    draftSaveSequenceRef.current += 1;
     setActiveDraftId(null);
     if (typeof window !== 'undefined') localStorage.removeItem(CAMPAIGN_DRAFT_KEY);
-    setForm(EMPTY_FORM);
+    const nextForm = builderPath === 'guided'
+      ? { ...EMPTY_FORM, title: suggestCampaignTitle(EMPTY_FORM) }
+      : EMPTY_FORM;
+    titleSeededRef.current = builderPath === 'guided';
+    setForm(nextForm);
     setUploadedImages([]);
-    setStep('essentials');
-    setSavedAt(null);
+    setStep('purpose');
+    setSaveState('idle');
     draftDecided.current = true;
     setRecoverableDraft(null);
     setShowDraftPicker(false);
-  }, [setActiveDraftId]);
+  }, [builderPath, setActiveDraftId]);
 
   const dismissDraft = useCallback(() => {
     clearDraft();
@@ -631,42 +930,13 @@ export default function CreatePage() {
   }, [clearDraft]);
 
   useEffect(() => {
-    // Autosave once the recovery decision is made and there's real content.
     if (!draftDecided.current || recoverableDraft) return;
     if (typeof window === 'undefined') return;
-    if (!draftHasContent(form, uploadedImages.filter(i => i.status === 'done').length)) return;
-    const t = setTimeout(() => {
-      const draft = buildDraft({
-        step,
-        storyMode,
-        form,
-        images: uploadedImages.filter(i => i.status === 'done').map(i => ({ url: i.url, name: i.name })),
-      });
-      localStorage.setItem(CAMPAIGN_DRAFT_KEY, serializeDraft(draft));
-      setSavedAt(draft.ts);
-      // Signed-in organizers also get the draft mirrored to Supabase so they can
-      // resume on another device. Best-effort: localStorage remains the source of
-      // truth for this tab, so a failed sync never blocks or interrupts the user.
-      if (isGuest === false) {
-        void (async () => {
-          try {
-            const res = await fetch('/api/campaigns/draft', {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                id: draftIdRef.current ?? undefined,
-                step, storyMode, form, images: draft.images, ts: draft.ts,
-              }),
-            });
-            if (!res.ok) return; // incl. the draft-limit 409 — local copy still holds the work
-            const { id } = await res.json();
-            if (typeof id === 'string') setActiveDraftId(id);
-          } catch { /* offline or transient */ }
-        })();
-      }
-    }, 600);
-    return () => clearTimeout(t);
-  }, [form, step, storyMode, uploadedImages, recoverableDraft, isGuest, setActiveDraftId]);
+    if (!draftHasContent(form, uploadedImages.filter((image) => image.status === 'done').length)) return;
+    setSaveState('saving');
+    const timer = window.setTimeout(() => { void persistWizardDraft(); }, 600);
+    return () => window.clearTimeout(timer);
+  }, [form, step, storyMode, builderPath, uploadedImages, recoverableDraft, persistWizardDraft]);
 
   // Cross-device resume: once we know the user is signed in, look for a draft
   // saved on another device and offer it when it is fresher than anything local.
@@ -718,12 +988,12 @@ export default function CreatePage() {
 
   const trackBuilder = useCallback((event: string, stepKey: string) => {
     if (typeof window === 'undefined' || !builderSession.current) return;
-    const body = JSON.stringify({ sessionId: builderSession.current, path: 'guided', step: stepKey, event });
+    const body = JSON.stringify({ sessionId: builderSession.current, path: builderPath ?? 'guided', step: stepKey, event });
     try {
       if (navigator.sendBeacon) navigator.sendBeacon('/api/analytics/builder', new Blob([body], { type: 'application/json' }));
       else void fetch('/api/analytics/builder', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, keepalive: true });
     } catch { /* analytics is best-effort */ }
-  }, []);
+  }, [builderPath]);
 
   // Fire an "enter" per step (the funnel), and "abandon" if the tab closes before publishing.
   useEffect(() => { if (builderSession.current) trackBuilder('enter', step); }, [step, trackBuilder]);
@@ -760,12 +1030,11 @@ export default function CreatePage() {
   // the Title step with no title yet, seed a smart suggestion from what they've
   // already entered (category / beneficiary / self). Instant + editable; they can
   // also hit "AI improve". Seeds once so it never fights the user's edits.
-  const titleSeededRef = useRef(false);
   useEffect(() => {
-    if (step !== 'essentials' || titleSeededRef.current) return;
+    if (step !== 'purpose' || builderPath !== 'guided' || titleSeededRef.current) return;
     titleSeededRef.current = true;
     setForm(prev => (prev.title.trim() ? prev : { ...prev, title: suggestCampaignTitle(prev) }));
-  }, [step]);
+  }, [step, builderPath]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const blobUrlsRef  = useRef<string[]>([]);
 
@@ -785,43 +1054,15 @@ export default function CreatePage() {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) { setPayoutLoading(false); return; }
-      Promise.all([
-        supabase
-          .from('connected_accounts')
-          .select('id, stripe_account_id, payouts_enabled, details_submitted, verification_status')
-          .eq('user_id', user.id)
-          .maybeSingle(),
-        supabase
-          .from('profiles')
-          .select('org_website')
-          .eq('id', user.id)
-          .single(),
-      ]).then(([{ data: acct }, { data: profile }]) => {
-        const orgSite = (profile as { org_website?: string | null } | null)?.org_website ?? '';
-        let methods: PaymentMethods = {};
-        // Parse stored payment methods — supports new JSON format + legacy paypal: prefix
-        if (orgSite.startsWith('{')) {
-          try { methods = JSON.parse(orgSite) as PaymentMethods; } catch { /* ignore */ }
-        } else if (orgSite.startsWith('paypal:')) {
-          methods = { primary: 'paypal', paypal: orgSite.replace('paypal:', '') };
-        }
-        setPaymentMethods(methods);
-        // Set payout account based on what's connected
-        if (acct && (acct as { payouts_enabled: boolean }).payouts_enabled) {
-          setPayoutAccount(acct as PayoutAccount);
-        } else if (methods.primary === 'venmo' && methods.venmo) {
-          setPayoutAccount({ id: 'venmo', stripe_account_id: '', payouts_enabled: true, details_submitted: true, verification_status: 'verified', payout_type: 'venmo', venmo_handle: methods.venmo });
-        } else if (methods.primary === 'googlepay' && methods.googlepay) {
-          setPayoutAccount({ id: 'googlepay', stripe_account_id: '', payouts_enabled: true, details_submitted: true, verification_status: 'verified', payout_type: 'googlepay', googlepay_email: methods.googlepay });
-        } else if (methods.primary === 'paypal' && methods.paypal) {
-          setPayoutAccount({ id: 'paypal', stripe_account_id: '', payouts_enabled: true, details_submitted: true, verification_status: 'verified', payout_type: 'paypal', paypal_email: methods.paypal });
-        } else if (methods.primary === 'sinch' && methods.sinch) {
-          setPayoutAccount({ id: 'sinch', stripe_account_id: '', payouts_enabled: true, details_submitted: true, verification_status: 'verified', payout_type: 'sinch', sinch_ref: methods.sinch });
-        } else if (acct) {
-          setPayoutAccount(acct as PayoutAccount);
-        }
-        setPayoutLoading(false);
-      });
+      supabase
+        .from('connected_accounts')
+        .select('id, stripe_account_id, payouts_enabled, charges_enabled, details_submitted, verification_status')
+        .eq('user_id', user.id)
+        .maybeSingle()
+        .then(({ data: account }) => {
+          setPayoutAccount(account as PayoutAccount | null);
+          setPayoutLoading(false);
+        });
     });
   }, [step]);
 
@@ -829,18 +1070,20 @@ export default function CreatePage() {
   // is unavailable or the category has too few comparables, the step simply
   // renders as it did before rather than showing a made-up range.
   useEffect(() => {
-    if (step !== 'essentials' || !form.category) return;
+    if (step !== 'goal' || !form.category) return;
     let cancelled = false;
+    setGoalGuidance(null);
     void (async () => {
       try {
-        const res = await fetch(`/api/campaigns/goal-guidance?category=${encodeURIComponent(form.category)}`, { cache: 'no-store' });
+        const params = new URLSearchParams({ category: form.category, currency: form.currency });
+        const res = await fetch(`/api/campaigns/goal-guidance?${params.toString()}`, { cache: 'no-store' });
         if (!res.ok) return;
         const { guidance } = await res.json();
         if (!cancelled && guidance?.available) setGoalGuidance(guidance);
       } catch { /* guidance is a nicety, never a blocker */ }
     })();
     return () => { cancelled = true; };
-  }, [step, form.category]);
+  }, [step, form.category, form.currency]);
 
   const upd = (k: keyof FormState, v: string) =>
     setForm(prev => ({ ...prev, [k]: v }));
@@ -853,8 +1096,9 @@ export default function CreatePage() {
    * forward. Only the two optional steps can answer this; everything else is
    * required and always reads "Continue".
    */
-  const stepHasInput =
-    step === 'rewards' ? draftRewards.some(draftRewardHasContent) : false;
+  const stepHasInput = step === 'verify'
+    ? identityVerified || nonprofitVerified
+    : false;
   const hasCover  = uploadedImages.some(img => img.status === 'done');
 
 
@@ -875,34 +1119,98 @@ export default function CreatePage() {
 
   const goNext = () => {
     setError(''); setErrorField(null);
+    if (step === 'beneficiary') {
+      if (!form.forSelf) { setError('Choose who will benefit from this campaign.'); return; }
+      if (form.forSelf === 'false' && !form.beneficiaryName.trim()) {
+        setError('Enter the beneficiary name.'); return;
+      }
+      if (form.forSelf === 'false' && !form.beneficiaryRelationship.trim()) {
+        setError('Describe your relationship to the beneficiary.'); return;
+      }
+    }
+    if (step === 'category' && !form.category) {
+      setError('Choose the category that best matches this campaign.'); return;
+    }
+    if (step === 'location' && !form.country) {
+      setError('Choose the beneficiary country.'); return;
+    }
+    if (step === 'plan') {
+      const funds = parseUseOfFunds(form.useOfFundsJson);
+      if (funds.length === 0 || funds.some((item) => !item.label.trim() || item.amountCents <= 0)) {
+        setError('Add a clear label and amount for every budget item.'); return;
+      }
+      if (totalUseOfFunds(funds) !== goalCents) {
+        setError('The use-of-funds budget must total the fundraising goal exactly.'); return;
+      }
+    }
     if (step === 'media') {
       const stillUploading = uploadedImages.some(img => img.status === 'uploading');
       if (stillUploading) { setError('Please wait for all images to finish uploading.'); return; }
+      if (!hasCover) { setError('Add a cover photo before continuing.'); return; }
+      if (form.videoUrl.trim() && !parseCampaignVideoUrl(form.videoUrl)) {
+        setError('Enter a valid HTTPS YouTube or Vimeo video link.'); return;
+      }
     }
     // Rewards are validated HERE rather than at publish, so an organizer learns a
     // title is too long while they are looking at it — not after the campaign is
     // already live and the write has been rejected.
-    if (step === 'rewards') {
+    if (step === 'settings') {
       const invalid = validateDraftRewards(draftRewards);
       if (invalid) { setRewardError(invalid); setError(invalid.error.message); return; }
       setRewardError(null);
+      const settingsError = validateCampaignBuilderSettings({
+        donationTiers: parseDonationTiers(form.donationTiersJson),
+        faqs: parseCampaignFaqs(form.faqsJson),
+        milestones: parseCampaignMilestones(form.milestonesJson),
+      });
+      if (settingsError) { setError(settingsError); return; }
+      if (form.policyAccepted !== 'true') {
+        setError('Confirm the campaign is accurate and follows CharitMe policies.'); return;
+      }
     }
-    // Field-targeted validation lives in lib/builder-validation.ts so the rules
-    // and their field mapping are unit-tested — the builder itself can't be
-    // driven in CI (auth-gated, no database).
+    if (step === 'payout' && !payoutLinked) {
+      setError('Complete Stripe payout onboarding before continuing.'); return;
+    }
+    if (step === 'verify' && !identityVerified) {
+      setError('Complete identity verification before publishing.'); return;
+    }
+    if (step === 'verify' && form.campaignPath === 'nonprofit' && !nonprofitVerified) {
+      setError('Complete organization verification before publishing a nonprofit campaign.'); return;
+    }
+    // Keep field targeting in the shared validator so browser and unit coverage
+    // exercise the same focus and error contract.
     const stepError = validateBuilderStep({
       step,
       title: form.title,
       description: form.description,
       goalCents,
       goalRaw: form.goal,
+      currency: form.currency,
     });
     if (stepError) { failField(stepError.field, stepError.message); return; }
-    // Payout is intentionally OPTIONAL to publish — the campaign can go live and be
-    // shared immediately, and the organizer finishes payout to start receiving
-    // donations (the donation API already blocks charges until the recipient is
-    // payout-ready, so nothing is lost by publishing first). This removes the
-    // single biggest drop-off point in the builder.
+    if (builderPath === 'ai') {
+      const funds = parseUseOfFunds(form.useOfFundsJson);
+      const budgetComplete = funds.length > 0
+        && funds.every((item) => Boolean(item.label.trim()) && item.amountCents > 0)
+        && totalUseOfFunds(funds) === goalCents;
+      setStep(nextIncompleteStepAfter(step, {
+        purpose: form.title.trim().length >= 3,
+        beneficiary: Boolean(form.forSelf)
+          && (form.forSelf !== 'false'
+            || (Boolean(form.beneficiaryName.trim()) && Boolean(form.beneficiaryRelationship.trim()))),
+        category: Boolean(form.category),
+        location: Boolean(form.country),
+        goal: goalCents >= 100,
+        plan: budgetComplete,
+        story: form.description.trim().length >= 20,
+        media: hasCover,
+        settings: form.policyAccepted === 'true',
+        payout: payoutLinked,
+        verify: identityVerified
+          && (form.campaignPath !== 'nonprofit' || nonprofitVerified),
+      }));
+      return;
+    }
     const next = WIZARD_STEPS[stepIdx + 1];
     if (next) setStep(next.key);
   };
@@ -916,7 +1224,7 @@ export default function CreatePage() {
     if (prev) setStep(prev.key);
   };
 
-  const handleFileSelect = useCallback(async (files: FileList | null) => {
+  const handleFileSelect = useCallback(async (files: FileList | readonly File[] | null) => {
     if (!files || files.length === 0) return;
     // The one moment in the builder that cannot work without a session:
     // /api/upload/campaign-image checks it server-side and 401s. Asking here —
@@ -928,8 +1236,8 @@ export default function CreatePage() {
     if (remaining <= 0) { setUploadError(`Maximum ${MAX_IMAGES} images allowed.`); return; }
     const validFiles = Array.from(files).filter(f => ALLOWED_IMG_TYPES.has(f.type) && f.size <= MAX_IMG_SIZE).slice(0, remaining);
     const skipped = files.length - validFiles.length;
-    if (validFiles.length === 0) { setUploadError('No valid images found. Use JPG, PNG, GIF, WebP, or AVIF under 10 MB.'); return; }
-    setUploadError(skipped > 0 ? `${skipped} file(s) skipped — invalid type or over 10 MB.` : '');
+    if (validFiles.length === 0) { setUploadError('No valid images found. Use JPG, PNG, GIF, WebP, or AVIF under 5 MB.'); return; }
+    setUploadError(skipped > 0 ? `${skipped} file(s) skipped — invalid type or over 5 MB.` : '');
     const newItems: UploadedImage[] = validFiles.map(f => {
       const blobUrl = URL.createObjectURL(f);
       blobUrlsRef.current.push(blobUrl);
@@ -955,6 +1263,59 @@ export default function CreatePage() {
     }
   }, [uploadedImages.length, isGuest]);
 
+  const uploadSourceDocuments = useCallback(async (files: readonly File[]) => {
+    if (files.length === 0) return;
+    if (isGuest !== false) {
+      setPendingIntakeFiles((current) => [...current, ...files]);
+      return;
+    }
+    setSourceUploadError('');
+    const saved = parseSourceDocuments(form.sourceDocumentsJson);
+    for (const file of files) {
+      try {
+        const body = new FormData();
+        body.append('file', file);
+        const response = await fetch('/api/upload/campaign-source', { method: 'POST', body });
+        const payload = await response.json() as {
+          path?: string;
+          name?: string;
+          mimeType?: string;
+          sizeBytes?: number;
+          error?: string;
+        };
+        if (!response.ok || !payload.path) throw new Error(payload.error ?? 'Document upload failed.');
+        saved.push({
+          id: payload.path,
+          name: payload.name ?? file.name,
+          mediaType: 'document',
+          mimeType: payload.mimeType ?? file.type,
+          sizeBytes: payload.sizeBytes ?? file.size,
+          storagePath: payload.path,
+          publicUrl: '',
+        });
+      } catch (cause: unknown) {
+        setSourceUploadError(cause instanceof Error ? cause.message : 'A source document could not be uploaded.');
+      }
+    }
+    setForm((current) => ({ ...current, sourceDocumentsJson: stringifyBuilderItems(saved) }));
+  }, [form.sourceDocumentsJson, isGuest]);
+
+  const processIntakeFiles = useCallback(async (files: readonly File[]) => {
+    const images = files.filter((file) => file.type.startsWith('image/'));
+    const documents = files.filter((file) => !file.type.startsWith('image/'));
+    if (images.length > 0) await handleFileSelect(images);
+    if (documents.length > 0) await uploadSourceDocuments(documents);
+  }, [handleFileSelect, uploadSourceDocuments]);
+
+  useEffect(() => {
+    if (isGuest !== false || pendingIntakeFiles.length === 0) return;
+    const files = pendingIntakeFiles;
+    setPendingIntakeFiles([]);
+    void processIntakeFiles(files).then(() => clearCachedAiIntakeFiles()).catch(() => {
+      setPendingIntakeFiles(files);
+    });
+  }, [isGuest, pendingIntakeFiles, processIntakeFiles]);
+
   const removeImage = useCallback(async (img: UploadedImage) => {
     if (img.url.startsWith('blob:')) {
       URL.revokeObjectURL(img.url);
@@ -966,7 +1327,18 @@ export default function CreatePage() {
     setUploadedImages(prev => prev.filter(i => i.id !== img.id));
   }, []);
 
-  const runAi = async (notesOverride?: string, toneOverride?: string, forceStory = false) => {
+  const runAi = async (
+    notesOverride?: string,
+    toneOverride?: string,
+    forceStory = false,
+    context?: {
+      category?: string;
+      goalCents?: number;
+      beneficiary?: string;
+      sourceLinks?: string[];
+      sourceDocuments?: string[];
+    },
+  ) => {
     setAiLoading(true);
     setError('');
     try {
@@ -974,16 +1346,60 @@ export default function CreatePage() {
       const res = await fetch('/api/ai/campaign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category: form.category, goalAmount: goalCents || 500000, beneficiary: form.beneficiaryName || 'the beneficiary', notes, tone: toneOverride || 'authentic' }),
+        body: JSON.stringify({
+          category: context?.category ?? form.category,
+          goalAmount: (context?.goalCents ?? goalCents) || 500000,
+          currency: form.currency,
+          beneficiary: (context?.beneficiary ?? form.beneficiaryName) || 'the beneficiary',
+          notes,
+          tone: toneOverride || 'authentic',
+          sourceLinks: context?.sourceLinks ?? parseSourceLinks(form.sourceLinksJson).map((item) => item.url),
+          sourceDocuments: context?.sourceDocuments ?? parseSourceDocuments(form.sourceDocumentsJson).map((item) => item.name),
+        }),
       });
-      const data = await res.json();
+      const data = await res.json() as AiCampaignDraftResponse & { error?: string };
       if (!res.ok) throw new Error(data.error ?? 'AI generation failed');
-      setForm(prev => ({
-        ...prev,
-        title: prev.title || (typeof data.title === 'string' ? data.title : prev.title),
-        tagline: prev.tagline || (typeof data.socialCaption === 'string' ? data.socialCaption : prev.tagline),
-        description: (!forceStory && prev.description.length > 80) ? prev.description : (typeof data.story === 'string' ? data.story : prev.description),
-      }));
+      setForm((previous) => {
+        const category = typeof data.category === 'string'
+          && (CAMPAIGN_CATEGORIES as readonly string[]).includes(data.category)
+          ? data.category
+          : previous.category;
+        const useOfFunds = Array.isArray(data.useOfFunds)
+          ? data.useOfFunds.map((item, index) => ({ id: `ai-fund-${index + 1}`, label: item.label, amountCents: item.amountCents }))
+          : parseUseOfFunds(previous.useOfFundsJson);
+        const donationTiers = Array.isArray(data.donationTiers)
+          ? data.donationTiers.map((item, index) => ({ id: `ai-tier-${index + 1}`, label: item.label, amountCents: item.amountCents }))
+          : parseDonationTiers(previous.donationTiersJson);
+        const faqs = Array.isArray(data.donorFaq)
+          ? data.donorFaq.map((item, index) => ({ id: `ai-faq-${index + 1}`, question: item.question, answer: item.answer, aiGenerated: true }))
+          : parseCampaignFaqs(previous.faqsJson);
+        const milestones = Array.isArray(data.milestones)
+          ? data.milestones.map((item, index) => ({ id: `ai-milestone-${index + 1}`, title: item.title, description: item.description, targetCents: item.targetCents }))
+          : parseCampaignMilestones(previous.milestonesJson);
+        const generatedTitle = typeof data.title === 'string' ? data.title : previous.title;
+        const summary = typeof data.summary === 'string'
+          ? data.summary
+          : typeof data.socialCaption === 'string' ? data.socialCaption : previous.tagline;
+        return {
+          ...previous,
+          title: previous.title || generatedTitle,
+          tagline: previous.tagline || summary,
+          description: (!forceStory && previous.description.length > 80)
+            ? previous.description
+            : typeof data.story === 'string' ? data.story : previous.description,
+          category,
+          goal: previous.goal.trim() || (typeof data.suggestedGoalCents === 'number' ? String(data.suggestedGoalCents / 100) : previous.goal),
+          useOfFundsJson: stringifyBuilderItems(useOfFunds),
+          donationTiersJson: stringifyBuilderItems(donationTiers),
+          faqsJson: stringifyBuilderItems(faqs),
+          milestonesJson: stringifyBuilderItems(milestones),
+          seoTitle: previous.seoTitle || data.seoTitle || generatedTitle.slice(0, 60),
+          seoDescription: previous.seoDescription || data.seoDescription || summary.slice(0, 160),
+          socialTitle: previous.socialTitle || generatedTitle,
+          socialDescription: previous.socialDescription || data.socialCaption || summary,
+          coverImageGuidance: previous.coverImageGuidance || data.coverImageGuidance || '',
+        };
+      });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'AI generation failed');
     } finally {
@@ -991,30 +1407,47 @@ export default function CreatePage() {
     }
   };
 
-  // "Build with AI" entry: /ai-campaign routes here as /create?ai=<prompt>.
-  // Carry the prompt through — seed the story, jump to the Story step, and
-  // generate the first draft once (the AI endpoint falls back deterministically,
-  // so this always produces reviewable content the organizer can edit).
   const aiSeededRef = useRef(false);
   useEffect(() => {
     if (aiSeededRef.current) return;
     const params = new URLSearchParams(window.location.search);
-    const prompt = params.get('ai');
-    if (!prompt || !prompt.trim()) return;
+    const intake = parseAiCampaignIntake(sessionStorage.getItem(AI_INTAKE_SESSION_KEY));
+    const prompt = intake?.prompt ?? params.get('ai') ?? '';
+    if (!prompt.trim()) return;
     aiSeededRef.current = true;
+    setBuilderPath('ai');
     const seed = prompt.trim().slice(0, 4000);
-    // Pre-fill the structured fields we can infer from the prompt so the AI path
-    // asks fewer questions (category + goal); the wizard still lets the organizer
-    // change anything. Never infers beneficiary identity.
     const fields = extractCampaignFields(seed);
-    setForm(prev => ({
-      ...prev,
-      description: prev.description.trim().length > seed.length ? prev.description : seed,
-      category: fields.category ?? prev.category,
-      goal: prev.goal.trim() || (fields.goalCents ? String(Math.round(fields.goalCents / 100)) : prev.goal),
+    const sourceLinks = intake?.links ?? [];
+    setForm((previous) => ({
+      ...previous,
+      aiPrompt: seed,
+      description: previous.description.trim().length > seed.length ? previous.description : seed,
+      category: fields.category ?? previous.category,
+      goal: previous.goal.trim() || (fields.goalCents ? String(fields.goalCents / 100) : previous.goal),
+      sourceLinksJson: stringifyBuilderItems(sourceLinks.map((url, index) => ({ id: `source-link-${index + 1}`, url }))),
     }));
-    setStep('essentials');
-    void runAi(seed);
+    void (async () => {
+      const cachedFiles = intake ? await loadCachedAiIntakeFiles(intake.files.map((file) => file.id)) : [];
+      if (cachedFiles.length > 0) setPendingIntakeFiles(cachedFiles);
+      const textContext = await Promise.all(cachedFiles
+        .filter((file) => file.type === 'text/plain')
+        .slice(0, 2)
+        .map(async (file) => `${file.name}: ${(await file.text()).slice(0, 1200)}`));
+      const contextNotes = [
+        seed,
+        sourceLinks.length > 0 ? `Helpful links: ${sourceLinks.join(', ')}` : '',
+        intake?.files.length ? `Attached files: ${intake.files.map((file) => file.name).join(', ')}` : '',
+        ...textContext,
+      ].filter(Boolean).join('\n').slice(0, 4000);
+      await runAi(contextNotes, undefined, false, {
+        category: fields.category ?? 'Community',
+        goalCents: fields.goalCents ?? 500000,
+        sourceLinks,
+        sourceDocuments: intake?.files.map((file) => file.name) ?? [],
+      });
+      setStep('beneficiary');
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1023,18 +1456,24 @@ export default function CreatePage() {
     // that owns it — an error on the Review screen is otherwise a dead end.
     if (form.title.trim().length < 3) {
       setError('Campaign title must be at least 3 characters.');
-      setStep('essentials');
+      setStep('purpose');
       return;
     }
     if (status === 'active') {
       if (form.description.trim().length < 20) {
         setError('Campaign story must be at least 20 characters.');
-        setStep('essentials');
+        setStep('story');
         return;
       }
       if (goalCents < 100) {
-        setError('Fundraising goal must be at least $1.00.');
-        setStep('essentials');
+        setError(`Fundraising goal must be at least ${formatMoneyShort(100, form.currency)}.`);
+        setStep('goal');
+        return;
+      }
+      if (!readiness.readyToPublish) {
+        const firstMissing = readiness.missingRequired[0];
+        setError(firstMissing?.hint ?? 'Complete every required launch item before publishing.');
+        if (firstMissing) setStep(firstMissing.step);
         return;
       }
     }
@@ -1049,21 +1488,47 @@ export default function CreatePage() {
           tagline: form.tagline.trim() || undefined,
           description: form.description.trim() || 'Draft — story coming soon.',
           // Send the real figure. A draft may legitimately have no goal yet (0);
-          // coercing it to $1 wrote a number the organizer never chose, which then
+          // coercing it to one currency unit wrote a number the organizer never chose, which then
           // rode along if they later published from the dashboard.
           goalAmount: goalCents,
           deadline: form.deadline || null,
           category: form.category,
           coverImageUrl: form.coverImageUrl || null,
+          videoUrl: form.videoUrl.trim() || null,
           imageUrls: uploadedImages.filter(img => img.status === 'done').map(img => img.url),
           beneficiaryName: form.beneficiaryName.trim() || undefined,
           beneficiaryRelationship: form.beneficiaryRelationship.trim() || undefined,
           location,
           status,
-          // ⚠️ Step 1's answer. This was MISSING: the builder asked who is
-          // raising, used it to word the verification step, and then dropped it
-          // on publish — a question whose answer goes nowhere.
           campaignPath: form.campaignPath || 'personal',
+          builderPath: builderPath ?? 'guided',
+          beneficiaryType: form.forSelf === 'true' ? 'self' : form.campaignPath === 'nonprofit' ? 'organization' : 'other',
+          currency: form.currency,
+          useOfFunds: parseUseOfFunds(form.useOfFundsJson),
+          donationTiers: parseDonationTiers(form.donationTiersJson),
+          faqs: parseCampaignFaqs(form.faqsJson),
+          milestones: parseCampaignMilestones(form.milestonesJson),
+          sourceLinks: parseSourceLinks(form.sourceLinksJson),
+          sourceDocuments: parseSourceDocuments(form.sourceDocumentsJson),
+          media: uploadedImages
+            .filter((image) => image.status === 'done')
+            .map((image, index) => ({
+              mediaType: 'image',
+              storagePath: image.id,
+              publicUrl: image.url,
+              altText: index === 0 ? `Cover image for ${form.title.trim()}` : `Campaign image ${index + 1} for ${form.title.trim()}`,
+            })),
+          allowRecurring: form.recurringEnabled === 'true',
+          allowAnonymous: form.anonymousEnabled === 'true',
+          visibility: form.visibility,
+          acceptDonations: form.acceptDonations === 'true',
+          seoTitle: form.seoTitle.trim() || undefined,
+          seoDescription: form.seoDescription.trim() || undefined,
+          socialTitle: form.socialTitle.trim() || undefined,
+          socialDescription: form.socialDescription.trim() || undefined,
+          coverImageGuidance: form.coverImageGuidance.trim() || undefined,
+          policyAccepted: form.policyAccepted === 'true',
+          schemaVersion: CAMPAIGN_BUILDER_SCHEMA_VERSION,
         }),
       });
       const data = await res.json();
@@ -1080,7 +1545,7 @@ export default function CreatePage() {
       setPublishedSlug(typeof data.slug === 'string' ? data.slug : '');
       const newId = typeof data.id === 'string' ? data.id : '';
       setPublishedId(newId);
-      // ── Step 7 rewards, written now that a campaign id exists ──
+      // Rewards are written now that a campaign id exists.
       //
       // ⚠️ Deliberately AFTER the success state is committed and never allowed to
       // throw into the publish path. The campaign is live at this point; a failed
@@ -1113,50 +1578,47 @@ export default function CreatePage() {
   };
 
   const publish = () => submitCampaign('active');
-  const saveDraft = () => submitCampaign('draft');
+  const saveAndExit = async (): Promise<void> => {
+    setError('');
+    const saved = await persistWizardDraft();
+    if (!saved) {
+      setError('Your draft is safe on this device, but it could not sync to your account. Try again before exiting.');
+      return;
+    }
+    window.location.assign(isGuest === false ? '/dashboard/campaigns' : '/');
+  };
 
   const payoutLinked = Boolean(
-    payoutAccount && (
-      (payoutAccount.payout_type === 'paypal'     && payoutAccount.paypal_email)    ||
-      (payoutAccount.payout_type === 'venmo'      && payoutAccount.venmo_handle)    ||
-      (payoutAccount.payout_type === 'googlepay'  && payoutAccount.googlepay_email) ||
-      (payoutAccount.payout_type === 'sinch'      && payoutAccount.sinch_ref)       ||
-      (payoutAccount.payouts_enabled && payoutAccount.details_submitted)
-    )
+    payoutAccountState?.stripe_account_id
+      && payoutAccountState.payouts_enabled
+      && payoutAccountState.charges_enabled
+      && payoutAccountState.details_submitted
+      && payoutAccountState.verification_status === 'verified',
   );
-  /**
-   * Publish readiness, computed for EVERY step rather than only on review.
-   *
-   * The point is the button below it. The publish gate wants three things —
-   * title >= 3 chars, story >= 20, goal >= $1 — and `campaign-readiness.ts` is
-   * the same source the server's zod schema uses, so this cannot drift from what
-   * POST /api/campaigns will accept. Everything else the builder collects is a
-   * recommendation. Walking an organizer through six more screens to reach a
-   * gate that stopped asking for anything four screens ago is the friction, so
-   * the moment those three are satisfied the option to publish appears.
-   */
-  /**
-   * Where a readiness item's "fix this" jumps to.
-   *
-   * `ReadinessStep` names the FIELD's owner — title, story, goal — and that is
-   * worth keeping: the checklist should say which thing is missing, not which
-   * screen happens to hold it this month. The screen those three now share is
-   * `essentials`, so the mapping lives here rather than flattening the
-   * checklist's vocabulary to match the current layout.
-   */
-  const stepForReadiness = (r: ReadinessStep): WizardStep =>
-    r === 'title' || r === 'story' || r === 'goal' ? 'essentials' : r;
+  const stepForReadiness = (readinessStep: ReadinessStep): WizardStep => readinessStep;
+
+  const useOfFunds = parseUseOfFunds(form.useOfFundsJson);
+  const useOfFundsComplete = useOfFunds.length > 0
+    && useOfFunds.every((item) => Boolean(item.label.trim()) && item.amountCents > 0)
+    && totalUseOfFunds(useOfFunds) === goalCents;
 
   const readiness = publishReadiness({
     title: form.title,
     description: form.description,
     goalCents,
+    currency: form.currency,
     category: form.category,
     country: form.country,
     coverImageUrl: form.coverImageUrl,
     forSelf: form.forSelf,
     beneficiaryName: form.beneficiaryName,
+    beneficiaryRelationship: form.beneficiaryRelationship,
     payoutLinked,
+    useOfFundsComplete,
+    organizerComplete: isGuest === false && Boolean(userName?.trim()),
+    verificationComplete: identityVerified
+      && (form.campaignPath !== 'nonprofit' || nonprofitVerified),
+    policyAccepted: form.policyAccepted === 'true',
   });
 
   const connectStripe = async () => {
@@ -1173,80 +1635,6 @@ export default function CreatePage() {
     }
   };
 
-  // ── Shared: persist payment methods JSON to profiles.org_website ──
-  const persistPaymentMethods = async (updated: PaymentMethods) => {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
-    const { error: profileErr } = await supabase
-      .from('profiles')
-      .update({ org_website: JSON.stringify(updated) } as Record<string, string>)
-      .eq('id', user.id);
-    if (profileErr) throw new Error('Failed to save payment method.');
-    setPaymentMethods(updated);
-  };
-
-  const savePaypal = async () => {
-    if (!paypalEmail.trim() || !paypalEmail.includes('@')) { setError('Please enter a valid PayPal email address.'); return; }
-    setLoading(true); setError('');
-    try {
-      const isFirst = !payoutLinked;
-      const updated: PaymentMethods = { ...paymentMethods, paypal: paypalEmail.trim(), ...(isFirst ? { primary: 'paypal' } : {}) };
-      await persistPaymentMethods(updated);
-      setPayoutMethod(null);
-      if (isFirst) setPayoutAccount({ id: 'paypal', stripe_account_id: '', payouts_enabled: true, details_submitted: true, verification_status: 'verified', payout_type: 'paypal', paypal_email: paypalEmail.trim() });
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to save PayPal email.');
-    } finally { setLoading(false); }
-  };
-
-  const saveVenmo = async () => {
-    if (!venmoHandle.trim()) { setError('Please enter your Venmo username.'); return; }
-    setLoading(true); setError('');
-    try {
-      const handle = venmoHandle.trim().replace(/^@/, '');
-      const isFirst = !payoutLinked;
-      const updated: PaymentMethods = { ...paymentMethods, venmo: `@${handle}`, ...(isFirst ? { primary: 'venmo' } : {}) };
-      await persistPaymentMethods(updated);
-      setPayoutMethod(null);
-      if (isFirst) setPayoutAccount({ id: 'venmo', stripe_account_id: '', payouts_enabled: true, details_submitted: true, verification_status: 'verified', payout_type: 'venmo', venmo_handle: `@${handle}` });
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to save Venmo handle.');
-    } finally { setLoading(false); }
-  };
-
-  const saveGooglePay = async () => {
-    if (!googlePayEmail.trim() || !googlePayEmail.includes('@')) { setError('Please enter your Google account email.'); return; }
-    setLoading(true); setError('');
-    try {
-      const isFirst = !payoutLinked;
-      const updated: PaymentMethods = { ...paymentMethods, googlepay: googlePayEmail.trim(), ...(isFirst ? { primary: 'googlepay' } : {}) };
-      await persistPaymentMethods(updated);
-      setPayoutMethod(null);
-      if (isFirst) setPayoutAccount({ id: 'googlepay', stripe_account_id: '', payouts_enabled: true, details_submitted: true, verification_status: 'verified', payout_type: 'googlepay', googlepay_email: googlePayEmail.trim() });
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to save Google Pay email.');
-    } finally { setLoading(false); }
-  };
-
-  const saveSinch = async () => {
-    if (!routingNumber.trim() || routingNumber.length < 9) { setError('Please enter a valid 9-digit routing number.'); return; }
-    if (!accountNumber.trim() || accountNumber.length < 4) { setError('Please enter your account number.'); return; }
-    setLoading(true); setError('');
-    try {
-      const last4 = accountNumber.slice(-4);
-      const ref = `sinch_${accountType}_${last4}`;
-      const isFirst = !payoutLinked;
-      const updated: PaymentMethods = { ...paymentMethods, sinch: ref, ...(isFirst ? { primary: 'sinch' } : {}) };
-      await persistPaymentMethods(updated);
-      setPayoutMethod(null);
-      setRoutingNumber(''); setAccountNumber('');
-      if (isFirst) setPayoutAccount({ id: 'sinch', stripe_account_id: '', payouts_enabled: true, details_submitted: true, verification_status: 'verified', payout_type: 'sinch', sinch_ref: ref });
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to save bank account.');
-    } finally { setLoading(false); }
-  };
-
   const journeyState = (i: number): 'done' | 'active' | '' => {
     if (i === 0) return 'done';
     if (i === 1) return stepIdx <= 6 ? 'active' : 'done';
@@ -1254,9 +1642,13 @@ export default function CreatePage() {
     return '';
   };
 
-  const goalDisplay = parseFloat(form.goal || '0').toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-
   const heroCopy: Record<string, { title: string; sub: string }> = {
+    purpose: { title: 'Name Your Campaign', sub: 'Give donors a clear reason to care at a glance.' },
+    beneficiary: { title: 'Choose the Beneficiary', sub: 'Tell us who receives the support and who is organizing it.' },
+    plan: { title: 'Plan the Funds', sub: 'Show donors exactly how their support will be used.' },
+    settings: { title: 'Choose Settings', sub: 'Set donor options, FAQs, milestones, and search previews.' },
+    verify: { title: 'Confirm Verification', sub: 'Complete the trust checks required for this campaign type.' },
+    review: { title: 'Preview and Readiness', sub: 'Resolve anything blocking a safe production launch.' },
     type:     { title: 'Start Your Fundraiser',    sub: 'Tell us who you\'re raising funds for.' },
     category: { title: 'Pick a Category',           sub: 'Choose the category that best fits your cause — it helps donors find you.' },
     location: { title: 'Where Are You Located?',   sub: 'We use your location to connect you with local donors and comply with fundraising laws.' },
@@ -1271,6 +1663,21 @@ export default function CreatePage() {
   const currentHero = heroCopy[step] ?? { title: 'Create Your Campaign', sub: '' };
 
   const suggestedPhotos = SUGGESTED_PHOTOS[form.category] ?? SUGGESTED_PHOTOS.default ?? [];
+
+  if (builderPath === null) {
+    return (
+      <CampaignPathChoice
+        onGuidedStart={() => {
+          titleSeededRef.current = true;
+          setForm((previous) => previous.title.trim()
+            ? previous
+            : { ...previous, title: suggestCampaignTitle(previous) });
+          window.history.replaceState({}, '', '/create?path=guided');
+          setBuilderPath('guided');
+        }}
+      />
+    );
+  }
 
   // ─────────────────────────────────────────────
   return (
@@ -1348,9 +1755,12 @@ export default function CreatePage() {
         <CampaignPreviewModal
           form={form}
           coverImageUrl={form.coverImageUrl}
-          goalDisplay={goalDisplay}
           imageCount={uploadedImages.filter(i => i.status === 'done').length}
           goalCents={goalCents}
+          organizerName={userName?.trim() || ''}
+          identityVerified={identityVerified}
+          nonprofitVerified={nonprofitVerified}
+          payoutLinked={payoutLinked}
           onGoToStep={(s) => setStep(stepForReadiness(s))}
           onClose={() => setShowPreviewModal(false)}
           onLaunch={() => {
@@ -1358,6 +1768,7 @@ export default function CreatePage() {
             if (isGuest !== false) { setLoginIntent('publish'); setShowLoginModal(true); } else { void publish(); }
           }}
           launching={loading}
+          canLaunch={readiness.readyToPublish}
         />
       )}
 
@@ -1377,9 +1788,14 @@ export default function CreatePage() {
                     · about {minutesRemaining(step)} min left
                   </span>
                 )}
-                {savedAt && (
-                  <span title="Your progress is saved on this device" style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, opacity: .85 }}>
-                    · ✓ Saved
+                {saveState !== 'idle' && (
+                  <span
+                    title={saveState === 'error' ? 'Saved on this device; account sync needs attention' : 'Campaign draft save status'}
+                    style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, opacity: .85 }}
+                  >
+                    {saveState === 'saving' ? ' · Saving...'
+                      : saveState === 'error' ? ' · Saved on this device'
+                        : ' · ✓ Saved'}
                   </span>
                 )}
               </div>
@@ -1399,7 +1815,7 @@ export default function CreatePage() {
         {step !== 'publish' && (
           <div className="cr2-track-wrap">
             <div className="cr2-track">
-              {WIZARD_STEPS.map((s, i) => {
+              {WIZARD_STEPS.filter((item) => !CAMPAIGN_STEP_META[item.key].postPublish).map((s, i) => {
                 const isDone   = i < stepIdx;
                 const isActive = s.key === step;
                 return (
@@ -1429,7 +1845,7 @@ export default function CreatePage() {
             <section className="cr2-form-card">
 
               {/* AI banner — story step only */}
-              {step === 'essentials' && (
+              {step === 'purpose' && (
                 <div className="cr2-title-panel">
                   <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 22, flexWrap: 'wrap' }}>
                     <h2 className="cr2-step-q" style={{ padding: 0, margin: 0 }}>Give your fundraiser a Title</h2>
@@ -1439,10 +1855,14 @@ export default function CreatePage() {
                       onClick={async () => {
                         setAiLoading(true);
                         try {
-                          const res = await fetch('/api/ai/campaign', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ category: form.category, goalAmount: goalCents || 500000, beneficiary: form.beneficiaryName || 'the beneficiary', notes: form.description?.trim() || 'Help us write a compelling fundraiser.', tone: 'authentic' }) });
-                          const data = await res.json();
-                          if (res.ok && typeof data.title === 'string' && data.title.trim()) upd('title', data.title.slice(0, 80));
-                        } catch { /* silent */ } finally { setAiLoading(false); }
+                          const res = await fetch('/api/ai/campaign', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ category: form.category, goalAmount: goalCents || 500000, currency: form.currency, beneficiary: form.beneficiaryName || 'the beneficiary', notes: form.description?.trim() || 'Help us write a compelling fundraiser.', tone: 'authentic' }) });
+                          const data = await res.json() as { title?: string; error?: string };
+                          if (!res.ok) throw new Error(data.error ?? 'AI title improvement failed.');
+                          if (!data.title?.trim()) throw new Error('AI did not return a title.');
+                          upd('title', data.title.slice(0, 80));
+                        } catch (cause: unknown) {
+                          setError(cause instanceof Error ? cause.message : 'AI title improvement failed.');
+                        } finally { setAiLoading(false); }
                       }}
                       disabled={aiLoading}
                     >
@@ -1475,7 +1895,7 @@ export default function CreatePage() {
                 </div>
               )}
 
-              {step === 'essentials' && (
+              {step === 'story' && (
                 <div className="cr2-ai-banner">
                   <div className="cr2-ai-banner-orb"><KFIcon name="send" /></div>
                   <div className="cr2-ai-banner-text">
@@ -1488,64 +1908,88 @@ export default function CreatePage() {
                 </div>
               )}
 
-              {/* ── Step 1: Path ── */}
-              {step === 'path' && (
-                <StepPath
-                  value={form.campaignPath}
-                  onChange={(path) => upd('campaignPath', path)}
-                />
+              {step === 'settings' && (
+                <div className="cr2-form-panel cb-settings-panel">
+                  <CampaignSettingsEditor
+                    currency={form.currency}
+                    recurringEnabled={form.recurringEnabled === 'true'}
+                    anonymousEnabled={form.anonymousEnabled === 'true'}
+                    visibility={form.visibility}
+                    policyAccepted={form.policyAccepted === 'true'}
+                    donationTiers={parseDonationTiers(form.donationTiersJson)}
+                    faqs={parseCampaignFaqs(form.faqsJson)}
+                    milestones={parseCampaignMilestones(form.milestonesJson)}
+                    seoTitle={form.seoTitle}
+                    seoDescription={form.seoDescription}
+                    socialTitle={form.socialTitle}
+                    socialDescription={form.socialDescription}
+                    onField={upd}
+                    onDonationTiers={(items) => upd('donationTiersJson', stringifyBuilderItems(items))}
+                    onFaqs={(items) => upd('faqsJson', stringifyBuilderItems(items))}
+                    onMilestones={(items) => upd('milestonesJson', stringifyBuilderItems(items))}
+                  />
+                  <details className="cb-disclosure">
+                    <summary>Optional donor rewards <span>{draftRewards.length}</span></summary>
+                    <div className="cb-disclosure-body">
+                      <StepRewards
+                        rewards={draftRewards}
+                        currency={form.currency}
+                        onChange={(next) => {
+                          setDraftRewards(next);
+                          setRewardError(null);
+                          upd('rewardsJson', JSON.stringify(next));
+                        }}
+                        fieldError={rewardError}
+                      />
+                    </div>
+                  </details>
+                </div>
               )}
 
-              {/* ── Step 7: Rewards (optional) ── */}
-              {step === 'rewards' && (
-                <StepRewards
-                  rewards={draftRewards}
-                  onChange={(next) => {
-                    setDraftRewards(next);
-                    setRewardError(null);
-                    // Mirrored into the form so the wizard's existing draft
-                    // autosave carries them; see FormState.rewardsJson.
-                    upd('rewardsJson', JSON.stringify(next));
-                  }}
-                  fieldError={rewardError}
-                />
-              )}
-
-              {/* ── Step 9: Verify (optional) ── */}
+              {/* ── Step: Required verification ── */}
               {step === 'verify' && (
-                <StepVerify campaignPath={form.campaignPath} signedIn={isGuest === false} />
+                <StepVerify
+                  campaignPath={form.campaignPath}
+                  signedIn={isGuest === false}
+                  identityVerified={identityVerified}
+                  nonprofitVerified={nonprofitVerified}
+                />
               )}
 
               {/* ── Step: Type ── */}
-              {step === 'basics' && (
+              {(step === 'beneficiary' || step === 'category' || step === 'location') && (
                 <div className="cr2-type-panel">
-                  <h2 className="cr2-step-q">Let&apos;s get started, who are you fundraising for?</h2>
+                  {step === 'beneficiary' && (
+                    <>
+                      <h2 className="cr2-step-q">Who will benefit from this campaign?</h2>
 
-                  <div className="cr2-who-grid">
-                    <button
-                      type="button"
-                      className={`cr2-who-card${form.forSelf === 'true' ? ' selected' : ''}`}
-                      onClick={() => upd('forSelf', 'true')}
-                    >
-                      <div className="cr2-who-icon" style={{ background: 'rgba(108,53,255,.12)' }}>🙋</div>
-                      <strong>Yourself</strong>
-                      <p>Funds are delivered to your bank account for your own use</p>
-                    </button>
-                    <button
-                      type="button"
-                      className={`cr2-who-card${form.forSelf === 'false' ? ' selected' : ''}`}
-                      onClick={() => upd('forSelf', 'false')}
-                    >
-                      <div className="cr2-who-icon" style={{ background: 'rgba(16,185,129,.12)' }}>🤝</div>
-                      <strong>Someone else</strong>
-                      <p>You&apos;ll invite a beneficiary to receive funds or distribute them yourself</p>
-                    </button>
-                  </div>
+                      <div className="cr2-who-grid">
+                        {([
+                          { key: 'self', path: 'personal', self: 'true', title: 'Myself', detail: 'The funds support your own need.' },
+                          { key: 'other', path: 'personal', self: 'false', title: 'Someone I know', detail: 'A family member, friend, or community member.' },
+                          { key: 'nonprofit', path: 'nonprofit', self: 'false', title: 'A registered nonprofit', detail: 'A verified charity, foundation, or community organization.' },
+                          { key: 'team', path: 'team', self: 'false', title: 'A team or group', detail: 'A school, club, sports team, or group effort.' },
+                        ] as const).map((choice) => (
+                          <button
+                            key={choice.key}
+                            type="button"
+                            className={`cr2-who-card${form.campaignPath === choice.path && form.forSelf === choice.self ? ' selected' : ''}`}
+                            onClick={() => setForm((current) => ({ ...current, campaignPath: choice.path, forSelf: choice.self }))}
+                          >
+                            <strong>{choice.title}</strong>
+                            <p>{choice.detail}</p>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
 
-                  <h2 className="cr2-step-q" style={{ marginTop: 26 }}>What best describes your cause?</h2>
+                  {step === 'category' && (
+                    <>
+                      <h2 className="cr2-step-q" style={{ marginTop: 0 }}>What best describes your cause?</h2>
 
-                  <div className="cr2-divider-label">Choose a category</div>
-                  <div className="cr2-cat-chips">
+                      <div className="cr2-divider-label">Choose a category</div>
+                      <div className="cr2-cat-chips">
                     {CAMPAIGN_CATEGORIES.map(cat => (
                       <button
                         key={cat}
@@ -1556,11 +2000,15 @@ export default function CreatePage() {
                         {cat}
                       </button>
                     ))}
-                  </div>
+                      </div>
+                    </>
+                  )}
 
-                  <h2 className="cr2-step-q" style={{ marginTop: 26, marginBottom: 22 }}>Where are you located?</h2>
+                  {step === 'location' && (
+                    <>
+                      <h2 className="cr2-step-q" style={{ marginTop: 0, marginBottom: 22 }}>Where is the beneficiary located?</h2>
 
-                  <div className="cr2-field">
+                      <div className="cr2-field">
                     <label htmlFor="cr-country">Country</label>
                     <select id="cr-country" value={form.country} onChange={e => upd('country', e.target.value)}>
                       {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -1568,9 +2016,9 @@ export default function CreatePage() {
                     <a href="/supported-countries" className="cr2-countries-link" target="_blank" rel="noopener noreferrer">
                       Countries we support fundraisers in →
                     </a>
-                  </div>
+                      </div>
 
-                  <div className="cr2-field">
+                      <div className="cr2-field">
                     <label htmlFor="cr-zip">ZIP / Postal Code</label>
                     <input
                       id="cr-zip"
@@ -1580,12 +2028,16 @@ export default function CreatePage() {
                       placeholder="e.g. 90210"
                       maxLength={12}
                     />
-                  </div>
+                      </div>
+                    </>
+                  )}
 
-                  {form.forSelf === 'false' && (
+                  {step === 'beneficiary' && form.forSelf === 'false' && (
                     <>
                       <div className="cr2-field">
-                        <label htmlFor="cr-beneficiary-name">Beneficiary Name</label>
+                        <label htmlFor="cr-beneficiary-name">
+                          {form.campaignPath === 'nonprofit' ? 'Organization Name' : form.campaignPath === 'team' ? 'Team or Group Name' : 'Beneficiary Name'}
+                        </label>
                         <input
                           id="cr-beneficiary-name"
                           type="text"
@@ -1596,7 +2048,9 @@ export default function CreatePage() {
                         />
                       </div>
                       <div className="cr2-field">
-                        <label htmlFor="cr-beneficiary-rel">Your Relationship to Them</label>
+                        <label htmlFor="cr-beneficiary-rel">
+                          {form.campaignPath === 'nonprofit' || form.campaignPath === 'team' ? 'Your Role' : 'Your Relationship to Them'}
+                        </label>
                         <input
                           id="cr-beneficiary-rel"
                           type="text"
@@ -1609,15 +2063,17 @@ export default function CreatePage() {
                     </>
                   )}
 
+                  {step === 'location' && (
                   <div className="cr2-loc-banner">
                     <span>📍</span>
                     <span>CharitMe is where fundraising begins for more than 278 people near you.</span>
                   </div>
+                  )}
                 </div>
               )}
 
               {/* ── Step: Story ── */}
-              {step === 'essentials' && (
+              {step === 'story' && (
                 <div className="cr2-form-panel">
                   <h2 className="cr2-step-q" style={{ padding: 0, marginBottom: 8 }}>Tell Donors Your Story.</h2>
 
@@ -1705,7 +2161,7 @@ export default function CreatePage() {
                   {/* AI follow-ups — fill the human facts the AI can't infer, one at
                       a time. Shown once there's a story to build on. */}
                   {form.description.trim().length >= 20 && !aiLoading && (
-                    <AiFollowUps form={form} onAnswer={(field, value) => upd(field, value)} />
+                    <AiFollowUps form={form} currency={form.currency} onAnswer={(field, value) => upd(field, value)} />
                   )}
                 </div>
               )}
@@ -1713,7 +2169,7 @@ export default function CreatePage() {
               {/* ── Step: Title ── */}
 
               {/* ── Step: Goal ── */}
-              {step === 'essentials' && (
+              {step === 'goal' && (
                 <div className="cr2-form-panel">
                   <h2 className="cr2-step-q" style={{ padding: 0, marginBottom: 8 }}>How much would you like to raise?</h2>
 
@@ -1721,7 +2177,7 @@ export default function CreatePage() {
                     <div style={{ margin: '0 0 14px', padding: '12px 14px', borderRadius: 12, background: 'var(--s2, #f5f7fb)', border: '1px solid var(--b1, #e8ecf4)' }}>
                       <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--t1, #1a1a2e)' }}>
                         Most {form.category.toLowerCase()} campaigns set{' '}
-                        ${Math.round(goalGuidance.lowCents / 100).toLocaleString('en-US')}–${Math.round(goalGuidance.highCents / 100).toLocaleString('en-US')}
+                        {formatMoneyShort(goalGuidance.lowCents, form.currency)} to {formatMoneyShort(goalGuidance.highCents, form.currency)}
                       </div>
                       <div style={{ fontSize: 12.5, color: 'var(--t3)', marginTop: 4, lineHeight: 1.5 }}>
                         {goalGuidance.note}
@@ -1736,7 +2192,7 @@ export default function CreatePage() {
                             onClick={() => upd('goal', String(Math.round((c as number) / 100)))}
                             style={{ padding: '6px 12px', borderRadius: 999, border: '1px solid var(--b2, #d7dced)', background: 'var(--s1, #fff)', color: 'var(--t2, #334064)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
                           >
-                            Use ${Math.round((c as number) / 100).toLocaleString('en-US')}
+                            Use {formatMoneyShort(c as number, form.currency)}
                           </button>
                         ))}
                       </div>
@@ -1763,10 +2219,10 @@ export default function CreatePage() {
                       </button>
                     </label>
                     <div className="cr2-goal-input-row">
-                      <span className="cr2-goal-prefix">$</span>
+                      <span className="cr2-goal-prefix">{currencySymbol(form.currency)}</span>
                       <input
                         type="number"
-                        aria-label="Fundraising goal amount in dollars"
+                        aria-label={`Fundraising goal amount in ${form.currency}`}
                         className="cr2-goal-input"
                         ref={goalInputRef}
                         value={form.goal}
@@ -1777,7 +2233,16 @@ export default function CreatePage() {
                         aria-invalid={errorField === 'goal' || undefined}
                         aria-describedby={errorField === 'goal' ? BUILDER_ERROR_ID : undefined}
                       />
-                      <span className="cr2-goal-suffix">USD</span>
+                      <select
+                        className="cr2-goal-suffix"
+                        aria-label="Campaign currency"
+                        value={form.currency}
+                        onChange={(event) => upd('currency', event.target.value)}
+                      >
+                        {SUPPORTED_CURRENCIES.map((currency) => (
+                          <option key={currency.code} value={currency.code}>{currency.code}</option>
+                        ))}
+                      </select>
                     </div>
                   </div>
 
@@ -1798,18 +2263,31 @@ export default function CreatePage() {
                       We&apos;ll gradually adjust your goal as donations come in to help build momentum.
                     </p>
                     <p className="cr2-auto-goal-start">
-                      Your starting goal would be ${autoGoalStart.toLocaleString()}
+                      Your starting goal would be {formatMoneyShort(Math.round(autoGoalStart * 100), form.currency)}
                     </p>
                   </div>
 
-                  <GoalProceedsBreakdown goalCents={goalCents} />
+                  <GoalProceedsBreakdown goalCents={goalCents} currency={form.currency} />
                 </div>
               )}
 
               {/* ── Step: Media ── */}
+              {step === 'plan' && (
+                <div className="cr2-form-panel">
+                  <CampaignPlanEditor
+                    goalCents={goalCents}
+                    category={form.category}
+                    currency={form.currency}
+                    items={parseUseOfFunds(form.useOfFundsJson)}
+                    onChange={(items) => upd('useOfFundsJson', stringifyBuilderItems(items))}
+                  />
+                </div>
+              )}
+
               {step === 'media' && (
                 <div className="cr2-form-panel">
-                  <h2 className="cr2-step-q" style={{ padding: 0, marginBottom: 8 }}>Add a cover photo or video</h2>
+                  <h2 className="cr2-step-q" style={{ padding: 0, marginBottom: 8 }}>Bring your campaign to life</h2>
+                  <p className="cr2-step-help">Add a cover photo for discovery and sharing. You can also add one secure YouTube or Vimeo link.</p>
 
                   <div className="cr2-field">
                     <div
@@ -1826,9 +2304,10 @@ export default function CreatePage() {
                       <input ref={fileInputRef} aria-label="Upload campaign images" type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/avif" multiple style={{ display: 'none' }} onChange={e => handleFileSelect(e.target.files)} onClick={e => { (e.target as HTMLInputElement).value = ''; }} />
                       <div className="cr2-upload-icon"><KFIcon name="upload" /></div>
                       <strong>{dragging ? 'Release to upload' : 'Drop images here or click to browse'}</strong>
-                      <span>JPG, PNG, GIF, WebP, AVIF · up to {MAX_IMAGES} images · 10 MB each</span>
+                      <span>JPG, PNG, GIF, WebP, AVIF; up to {MAX_IMAGES} images; 5 MB each</span>
                     </div>
                     {uploadError && <p role="alert" style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--red-text)', fontWeight: 700 }}>{uploadError}</p>}
+                    {sourceUploadError && <p role="alert" style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--red-text)', fontWeight: 700 }}>{sourceUploadError}</p>}
                   </div>
 
                   {uploadedImages.length > 0 && (
@@ -1849,6 +2328,30 @@ export default function CreatePage() {
                       <p style={{ fontSize: 12, color: 'var(--t3)', margin: '10px 0 0', lineHeight: 1.45 }}>The first photo becomes your cover image. Remove and re-upload to reorder.</p>
                     </div>
                   )}
+
+                  <div className="cr2-field cr2-video-field">
+                    <label htmlFor="campaign-video-url">Video link (optional)</label>
+                    <input
+                      id="campaign-video-url"
+                      type="url"
+                      inputMode="url"
+                      autoComplete="url"
+                      placeholder="https://youtube.com/watch?v=..."
+                      value={form.videoUrl}
+                      onChange={(event) => upd('videoUrl', event.target.value)}
+                      aria-invalid={Boolean(form.videoUrl.trim() && !parseCampaignVideoUrl(form.videoUrl))}
+                      aria-describedby="campaign-video-help"
+                    />
+                    <span id="campaign-video-help" className="cr2-field-help">
+                      HTTPS links from YouTube or Vimeo.
+                    </span>
+                    {form.videoUrl.trim() && !parseCampaignVideoUrl(form.videoUrl) && (
+                      <span className="cr2-field-error" role="alert">Use a supported secure video link.</span>
+                    )}
+                    {parseCampaignVideoUrl(form.videoUrl) && (
+                      <span className="cr2-field-success" role="status">Video link ready for preview.</span>
+                    )}
+                  </div>
 
                   {/* Suggested photos */}
                   <div className="cr2-suggested">
@@ -1873,265 +2376,35 @@ export default function CreatePage() {
               {/* ── Step: Payout ── */}
               {step === 'payout' && (
                 <div className="cr2-form-panel">
-
-                  {/* Status header */}
                   <div className="cr2-payout-header">
-                    <span className="cr2-payout-header-label">Payout Status</span>
-                    {payoutLoading ? (
-                      <span className="cr2-payout-status-pill checking">Checking…</span>
-                    ) : payoutLinked ? (
-                      <span className="cr2-payout-status-pill linked">● Connected</span>
-                    ) : (
-                      <span className="cr2-payout-status-pill unlinked">● Not Linked</span>
-                    )}
+                    <span className="cr2-payout-header-label">Stripe payout status</span>
+                    {payoutLoading
+                      ? <span className="cr2-payout-status-pill checking">Checking...</span>
+                      : payoutLinked
+                        ? <span className="cr2-payout-status-pill linked">Connected</span>
+                        : <span className="cr2-payout-status-pill unlinked">Action required</span>}
                   </div>
-
-                  {!payoutLoading && !payoutLinked && (
-                    <div style={{ margin: '0 0 16px', padding: '12px 14px', borderRadius: 12, background: 'rgba(16,185,129,.10)', border: '1px solid rgba(16,185,129,.3)', display: 'flex', minWidth: 0, gap: 10, alignItems: 'flex-start', fontSize: 13.5, lineHeight: 1.5, color: 'var(--t2)' }}>
-                      <span aria-hidden style={{ fontSize: 17 }}>✅</span>
-                      <span>
-                        <strong>This is optional right now.</strong> You can publish your campaign and start sharing it in the next step — set up payouts here or later from your dashboard. You&rsquo;ll be able to <em>receive</em> donations once payouts are connected.
-                      </span>
+                  <h2 className="cr2-step-q">Connect the account that will receive donations</h2>
+                  <p className="cr2-step-help">
+                    Stripe Connect verifies the recipient and routes each donation directly to the correct account. CharitMe never stores bank credentials.
+                  </p>
+                  {payoutLinked ? (
+                    <div className="cb-payout-ready" role="status">
+                      <strong>Payouts are ready</strong>
+                      <span>Bank details and identity checks were completed in Stripe.</span>
                     </div>
-                  )}
-
-                  {payoutLoading ? (
-                    <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--t3)', fontSize: 14 }}>Checking your payout account…</div>
-
-                  ) : payoutMethod === 'stripe' ? (
-                    /* ── Stripe sub-form ── */
-                    <div className="cr2-payout-subform">
-                      <div className="cr2-payout-subform-head">
-                        <span style={{ fontSize: 26 }}>🏦</span>
-                        <div><strong>Stripe Connect</strong><p>Direct bank deposits to your verified bank account.</p></div>
-                      </div>
-                      <div className="cr2-payout-trust-row">
-                        🔒 Bank-level encryption · 0% CharitMe fees · Funds deposited within 2 business days
-                      </div>
-                      <button type="button" className="cr2-payout-connect-btn cr2-payout-btn-stripe" onClick={() => void connectStripe()} disabled={connectingStripe}>
-                        {connectingStripe ? 'Redirecting to Stripe…' : '🏦 Connect Bank via Stripe →'}
-                      </button>
-                      {payoutAccount && !payoutAccount.payouts_enabled && (
-                        <div className="cr2-payout-warn">⚠️ Stripe onboarding incomplete — click above to finish setup.</div>
-                      )}
-                      <button type="button" className="cr2-payout-back-link" onClick={() => setPayoutMethod(null)}>← Back to options</button>
-                    </div>
-
-                  ) : payoutMethod === 'venmo' ? (
-                    /* ── Venmo sub-form ── */
-                    <div className="cr2-payout-subform">
-                      <div className="cr2-payout-subform-head">
-                        <span style={{ fontSize: 26 }}>💚</span>
-                        <div><strong>Venmo</strong><p>Receive donations directly to your Venmo account.</p></div>
-                      </div>
-                      <label htmlFor="cr-venmo" className="cr2-payout-field-label">Venmo Username</label>
-                      <div className="cr2-payout-input-prefix-wrap">
-                        <span className="cr2-payout-input-prefix">@</span>
-                        <input id="cr-venmo" type="text" value={venmoHandle} onChange={e => setVenmoHandle(e.target.value.replace(/^@/, ''))} placeholder="yourvenmo" className="cr2-payout-input cr2-payout-input-has-prefix" />
-                      </div>
-                      <button type="button" className="cr2-payout-connect-btn cr2-payout-btn-venmo" onClick={() => void saveVenmo()} disabled={loading || !venmoHandle.trim()}>
-                        {loading ? 'Saving…' : '💚 Save Venmo Account'}
-                      </button>
-                      <button type="button" className="cr2-payout-back-link" onClick={() => setPayoutMethod(null)}>← Back to options</button>
-                    </div>
-
-                  ) : payoutMethod === 'googlepay' ? (
-                    /* ── Google Pay sub-form ── */
-                    <div className="cr2-payout-subform">
-                      <div className="cr2-payout-subform-head">
-                        <span style={{ fontSize: 26 }}>🔵</span>
-                        <div><strong>Google Pay</strong><p>Receive donations via your Google Pay account.</p></div>
-                      </div>
-                      <label htmlFor="cr-gpay-email" className="cr2-payout-field-label">Google Account Email</label>
-                      <input id="cr-gpay-email" type="email" value={googlePayEmail} onChange={e => setGooglePayEmail(e.target.value)} placeholder="you@gmail.com" className="cr2-payout-input" />
-                      <button type="button" className="cr2-payout-connect-btn cr2-payout-btn-gpay" onClick={() => void saveGooglePay()} disabled={loading || !googlePayEmail.trim()}>
-                        {loading ? 'Saving…' : '🔵 Save Google Pay Account'}
-                      </button>
-                      <button type="button" className="cr2-payout-back-link" onClick={() => setPayoutMethod(null)}>← Back to options</button>
-                    </div>
-
-                  ) : payoutMethod === 'paypal' ? (
-                    /* ── PayPal sub-form ── */
-                    <div className="cr2-payout-subform">
-                      <div className="cr2-payout-subform-head">
-                        <span style={{ fontSize: 26 }}>💙</span>
-                        <div><strong>PayPal</strong><p>Donations sent to your PayPal account. PayPal fees apply on their end.</p></div>
-                      </div>
-                      <label htmlFor="cr-paypal-email" className="cr2-payout-field-label">PayPal Email Address</label>
-                      <input id="cr-paypal-email" type="email" value={paypalEmail} onChange={e => setPaypalEmail(e.target.value)} placeholder="you@paypal.com" className="cr2-payout-input" />
-                      <button type="button" className="cr2-payout-connect-btn cr2-payout-btn-paypal" onClick={() => void savePaypal()} disabled={loading || !paypalEmail.trim()}>
-                        {loading ? 'Saving…' : '💙 Save PayPal Account'}
-                      </button>
-                      <button type="button" className="cr2-payout-back-link" onClick={() => setPayoutMethod(null)}>← Back to options</button>
-                    </div>
-
-                  ) : payoutMethod === 'sinch' ? (
-                    /* ── Sinch ACH sub-form ── */
-                    <div className="cr2-payout-subform">
-                      <div className="cr2-payout-subform-head">
-                        <span style={{ fontSize: 26 }}>🏛</span>
-                        <div><strong>Sinch Bank Link</strong><p>Instant ACH bank account verification. Powered by Sinch.</p></div>
-                      </div>
-                      <div className="cr2-payout-trust-row">
-                        🔒 Powered by <strong>Sinch</strong> · Bank-level encryption · Instant verification
-                      </div>
-                      <label htmlFor="cr-routing" className="cr2-payout-field-label">Routing Number (9 digits)</label>
-                      <input id="cr-routing" type="text" inputMode="numeric" autoComplete="off" value={routingNumber} onChange={e => setRoutingNumber(e.target.value.replace(/\D/g, '').slice(0, 9))} placeholder="021000021" className="cr2-payout-input" maxLength={9} />
-                      <label htmlFor="cr-account" className="cr2-payout-field-label" style={{ marginTop: 14 }}>Account Number</label>
-                      <input id="cr-account" type="text" inputMode="numeric" autoComplete="off" value={accountNumber} onChange={e => setAccountNumber(e.target.value.replace(/\D/g, ''))} placeholder="Enter account number" className="cr2-payout-input" />
-                      <span className="cr2-payout-field-label" style={{ marginTop: 14, display: 'block' }}>Account Type</span>
-                      <div className="cr2-payout-acct-type-row" role="group" aria-label="Account type">
-                        <button type="button" className={`cr2-acct-type-btn${accountType === 'checking' ? ' selected' : ''}`} onClick={() => setAccountType('checking')}>Checking</button>
-                        <button type="button" className={`cr2-acct-type-btn${accountType === 'savings' ? ' selected' : ''}`} onClick={() => setAccountType('savings')}>Savings</button>
-                      </div>
-                      <button type="button" className="cr2-payout-connect-btn cr2-payout-btn-sinch" onClick={() => void saveSinch()} disabled={loading || !routingNumber || !accountNumber}>
-                        {loading ? 'Verifying…' : '🏛 Connect Bank Account →'}
-                      </button>
-                      <button type="button" className="cr2-payout-back-link" onClick={() => setPayoutMethod(null)}>← Back to options</button>
-                    </div>
-
                   ) : (
-                    /* ── Method selection screen ── */
-                    <div>
-                      {/* Primary account (if already connected) */}
-                      {payoutLinked && payoutAccount && (
-                        <div className="cr2-payout-primary-card">
-                          <div className="cr2-payout-primary-badge">PRIMARY</div>
-                          <div className="cr2-payout-primary-row">
-                            <span className="cr2-payout-primary-icon">
-                              {payoutAccount.payout_type === 'paypal'    ? '💙'
-                               : payoutAccount.payout_type === 'venmo'   ? '💚'
-                               : payoutAccount.payout_type === 'googlepay' ? '🔵'
-                               : payoutAccount.payout_type === 'sinch'   ? '🏛'
-                               : '🏦'}
-                            </span>
-                            <div className="cr2-payout-primary-info">
-                              <strong>
-                                {payoutAccount.payout_type === 'paypal'     ? 'PayPal'
-                                 : payoutAccount.payout_type === 'venmo'    ? 'Venmo'
-                                 : payoutAccount.payout_type === 'googlepay' ? 'Google Pay'
-                                 : payoutAccount.payout_type === 'sinch'    ? 'Sinch Bank Link'
-                                 : 'Stripe Connect'}
-                              </strong>
-                              <span>
-                                {payoutAccount.paypal_email    && payoutAccount.paypal_email}
-                                {payoutAccount.venmo_handle    && payoutAccount.venmo_handle}
-                                {payoutAccount.googlepay_email && payoutAccount.googlepay_email}
-                                {payoutAccount.sinch_ref       && `${accountType} ••••${payoutAccount.sinch_ref.slice(-4)}`}
-                                {payoutAccount.stripe_account_id && `${payoutAccount.stripe_account_id.slice(0, 14)}…`}
-                              </span>
-                            </div>
-                            <span className="cr2-payout-primary-check">✓</span>
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="cr2-payout-also-label">
-                        {payoutLinked ? 'Also accept via:' : 'How do you want to receive donations?'}
-                      </div>
-                      {!payoutLinked && (
-                        <p style={{ fontSize: 13, color: 'var(--t3)', marginBottom: 18, lineHeight: 1.55 }}>
-                          CharitMe charges 0% platform fees. Connect once — donations go directly to you.
-                          <strong style={{ color: 'var(--red)' }}> This step is required to continue.</strong>
-                        </p>
-                      )}
-
-                      {/* Stripe */}
-                      <button type="button" className={`cr2-payout-option${!payoutLinked ? ' cr2-payout-option-featured' : ''}`} onClick={() => setPayoutMethod('stripe')}>
-                        <span className="cr2-payout-option-icon">🏦</span>
-                        <div className="cr2-payout-option-body">
-                          <strong>Stripe Connect <span className="cr2-payout-recommended">RECOMMENDED</span></strong>
-                          <span>Direct bank deposit · Identity verified · Most trusted</span>
-                        </div>
-                        {paymentMethods.primary === 'stripe' || (payoutAccount?.stripe_account_id && payoutAccount.payouts_enabled)
-                          ? <span className="cr2-payout-option-connected">✓</span>
-                          : <span className="cr2-payout-option-arrow">›</span>}
-                      </button>
-
-                      {/* Progressive disclosure: lead with the recommended option
-                          (Stripe, above); tuck the alternates behind a toggle so the
-                          required payout step poses one primary choice, not five. If
-                          any alternate is already connected, reveal by default. */}
-                      {(() => {
-                        const anyAltConnected = Boolean(paymentMethods.venmo || paymentMethods.googlepay || paymentMethods.paypal || paymentMethods.sinch);
-                        const open = showAltPayouts || anyAltConnected;
-                        return (
-                          <>
-                            {!open && (
-                              <button
-                                type="button"
-                                className="cr2-payout-more-toggle"
-                                onClick={() => setShowAltPayouts(true)}
-                                style={{
-                                  width: '100%', display: 'flex', minWidth: 0, alignItems: 'center', justifyContent: 'center', gap: 8,
-                                  padding: '12px 16px', marginTop: 6, borderRadius: 12, cursor: 'pointer',
-                                  border: '1.5px dashed var(--b1, #e8ecf4)', background: 'transparent',
-                                  fontSize: 13.5, fontWeight: 700, color: 'var(--t2, #475569)', fontFamily: 'inherit',
-                                }}
-                                aria-expanded={false}
-                              >
-                                More ways to get paid <span aria-hidden>▾</span>
-                              </button>
-                            )}
-                            <div style={{ display: open ? 'block' : 'none' }} aria-hidden={!open}>
-                      {/* Venmo */}
-                      <button type="button" className="cr2-payout-option" onClick={() => { setVenmoHandle(paymentMethods.venmo?.replace('@','') ?? ''); setPayoutMethod('venmo'); }}>
-                        <span className="cr2-payout-option-icon">💚</span>
-                        <div className="cr2-payout-option-body">
-                          <strong>Venmo</strong>
-                          <span>{paymentMethods.venmo ? `Connected: ${paymentMethods.venmo}` : 'Send directly to your Venmo account'}</span>
-                        </div>
-                        {paymentMethods.venmo
-                          ? <span className="cr2-payout-option-connected">✓</span>
-                          : <span className="cr2-payout-option-arrow">›</span>}
-                      </button>
-
-                      {/* Google Pay */}
-                      <button type="button" className="cr2-payout-option" onClick={() => { setGooglePayEmail(paymentMethods.googlepay ?? ''); setPayoutMethod('googlepay'); }}>
-                        <span className="cr2-payout-option-icon">🔵</span>
-                        <div className="cr2-payout-option-body">
-                          <strong>Google Pay</strong>
-                          <span>{paymentMethods.googlepay ? `Connected: ${paymentMethods.googlepay}` : 'Receive via your Google account'}</span>
-                        </div>
-                        {paymentMethods.googlepay
-                          ? <span className="cr2-payout-option-connected">✓</span>
-                          : <span className="cr2-payout-option-arrow">›</span>}
-                      </button>
-
-                      {/* PayPal */}
-                      <button type="button" className="cr2-payout-option" onClick={() => { setPaypalEmail(paymentMethods.paypal ?? ''); setPayoutMethod('paypal'); }}>
-                        <span className="cr2-payout-option-icon">💙</span>
-                        <div className="cr2-payout-option-body">
-                          <strong>PayPal</strong>
-                          <span>{paymentMethods.paypal ? `Connected: ${paymentMethods.paypal}` : 'Send to your PayPal account · PayPal fees apply'}</span>
-                        </div>
-                        {paymentMethods.paypal
-                          ? <span className="cr2-payout-option-connected">✓</span>
-                          : <span className="cr2-payout-option-arrow">›</span>}
-                      </button>
-
-                      {/* Sinch */}
-                      <button type="button" className="cr2-payout-option" onClick={() => setPayoutMethod('sinch')}>
-                        <span className="cr2-payout-option-icon">🏛</span>
-                        <div className="cr2-payout-option-body">
-                          <strong>Sinch Bank Link</strong>
-                          <span>{paymentMethods.sinch ? `Connected: ••••${paymentMethods.sinch.slice(-4)}` : 'Instant ACH bank connection · No manual routing numbers'}</span>
-                        </div>
-                        {paymentMethods.sinch
-                          ? <span className="cr2-payout-option-connected">✓</span>
-                          : <span className="cr2-payout-option-arrow">›</span>}
-                      </button>
-                            </div>
-                          </>
-                        );
-                      })()}
-
-                      {/* Important notice */}
-                      <div className="cr2-payout-important">
-                        <strong>⚠️ IMPORTANT!</strong> CharitMe does <strong>NOT</strong> store any funds, they are sent directly to you at processing.
-                      </div>
-                    </div>
+                    <button type="button" className="cr2-payout-connect-btn cr2-payout-btn-stripe" onClick={() => void connectStripe()} disabled={connectingStripe || payoutLoading}>
+                      {connectingStripe ? 'Opening Stripe...' : 'Complete secure payout setup'}
+                    </button>
                   )}
+
+                  {payoutAccountState && !payoutLinked && !payoutLoading && (
+                    <div className="cr2-payout-warn" role="status">Stripe onboarding is incomplete. Continue setup to enable payouts.</div>
+                  )}
+                  <div className="cr2-payout-important">
+                    <strong>Production safeguard:</strong> a campaign cannot publish or accept donations until payouts are enabled and recipient details are submitted.
+                  </div>
                 </div>
               )}
 
@@ -2139,8 +2412,8 @@ export default function CreatePage() {
               {step === 'review' && (
                 <div className="cr2-launch-panel">
                   <div className="cr2-launch-header">
-                    <h2>Your Fundraising is Ready to Launch!!</h2>
-                    <p>Review everything below before going live</p>
+                    <h2>{readiness.readyToPublish ? 'Ready to publish' : 'Finish launch readiness'}</h2>
+                    <p>Review the campaign in every donor context, then resolve any required items.</p>
                   </div>
 
                   {/* Score bar */}
@@ -2154,23 +2427,12 @@ export default function CreatePage() {
                     />
                   </div>
 
-                  {!payoutLinked && (
-                    <div style={{ margin: '4px 0 14px', padding: '12px 14px', borderRadius: 12, background: 'rgba(245,158,11,.10)', border: '1px solid rgba(245,158,11,.35)', fontSize: 13.5, lineHeight: 1.5, color: 'var(--t2)', display: 'flex', minWidth: 0, gap: 10, alignItems: 'flex-start' }}>
-                      <span aria-hidden style={{ fontSize: 17 }}>💡</span>
-                      <span>
-                        <strong>You can launch now.</strong> Your campaign goes live and is shareable immediately. To start <em>receiving</em> donations, connect a payout method — you can{' '}
-                        <button type="button" onClick={() => setStep('payout')} style={{ background: 'none', border: 0, padding: 0, color: 'var(--brand-text)', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>do it now</button>{' '}
-                        or anytime from your dashboard.
-                      </span>
-                    </div>
-                  )}
-
                   <div className="cr2-launch-btns">
                     <button
                       type="button"
                       className="cr2-btn-launch"
                       onClick={() => { if (isGuest !== false) { setLoginIntent('publish'); setShowLoginModal(true); } else { void publish(); } }}
-                      disabled={loading}
+                      disabled={loading || !readiness.readyToPublish}
                     >
                       🚀 {loading ? 'Launching…' : 'LAUNCH'}
                     </button>
@@ -2194,7 +2456,9 @@ export default function CreatePage() {
                             <img src={form.coverImageUrl} alt="Cover" />
                           )}
                         </div>
-                        {hasCover ? 'Cover photo added' : 'No photo yet'}
+                        {hasCover
+                          ? parseCampaignVideoUrl(form.videoUrl) ? 'Cover photo and video added' : 'Cover photo added'
+                          : 'No photo yet'}
                       </span>
                       <button type="button" className="cr2-review-edit" onClick={() => setStep('media')}>Edit</button>
                     </div>
@@ -2203,17 +2467,17 @@ export default function CreatePage() {
                     <div className="cr2-review-row">
                       <span className="cr2-review-label">Title</span>
                       <span className="cr2-review-val">{form.title || <span style={{ color: 'var(--red-text)' }}>Not set</span>}</span>
-                      <button type="button" className="cr2-review-edit" onClick={() => setStep('essentials')}>Edit</button>
+                      <button type="button" className="cr2-review-edit" onClick={() => setStep('purpose')}>Edit</button>
                     </div>
 
                     {/* Goal */}
                     <div className="cr2-review-row">
                       <span className="cr2-review-label">Goal</span>
                       <span className="cr2-review-val">
-                        {goalCents >= 100 ? `$${(goalCents / 100).toLocaleString()}` : <span style={{ color: 'var(--red-text)' }}>Not set</span>}
+                        {goalCents >= 100 ? formatMoneyShort(goalCents, form.currency) : <span style={{ color: 'var(--red-text)' }}>Not set</span>}
                         {form.autoGoal === 'true' && <span className="cr2-automated-badge">AUTOMATED</span>}
                       </span>
-                      <button type="button" className="cr2-review-edit" onClick={() => setStep('essentials')}>Edit</button>
+                      <button type="button" className="cr2-review-edit" onClick={() => setStep('goal')}>Edit</button>
                     </div>
 
                     {/* Location */}
@@ -2222,7 +2486,7 @@ export default function CreatePage() {
                       <span className="cr2-review-val">
                         {form.zipCode ? `${form.zipCode}, ${form.country}` : form.country}
                       </span>
-                      <button type="button" className="cr2-review-edit" onClick={() => setStep('basics')}>Edit</button>
+                      <button type="button" className="cr2-review-edit" onClick={() => setStep('location')}>Edit</button>
                     </div>
 
                     {/* Story */}
@@ -2233,7 +2497,7 @@ export default function CreatePage() {
                           ? `${form.description.slice(0, 80)}${form.description.length > 80 ? '…' : ''}`
                           : <span style={{ color: 'var(--red-text)' }}>Story too short (min 20 chars)</span>}
                       </span>
-                      <button type="button" className="cr2-review-edit" onClick={() => setStep('essentials')}>Edit</button>
+                      <button type="button" className="cr2-review-edit" onClick={() => setStep('story')}>Edit</button>
                     </div>
                   </div>
 
@@ -2247,50 +2511,20 @@ export default function CreatePage() {
               )}
 
               {/* Error (global, not shown inside title step which has inline) */}
-              {error && step !== 'essentials' && <div id={BUILDER_ERROR_ID} className="cr2-error" role="alert">{error}</div>}
+              {error && step !== 'purpose' && <div id={BUILDER_ERROR_ID} className="cr2-error" role="alert">{error}</div>}
 
               {/* Navigation */}
               <div className="cr2-nav">
                 <button type="button" className="cr2-nav-back" onClick={goPrev} disabled={!canGoBack(step)}>← Back</button>
                 <div style={{ display: 'flex', minWidth: 0, gap: 10, alignItems: 'center' }}>
-                  {stepIdx >= 1 && step !== 'payout' && step !== 'review' && (
-                    <button type="button" className="cr2-nav-draft" onClick={() => void saveDraft()} disabled={loading}>
-                      {loading ? 'Saving…' : 'Save Draft'}
-                    </button>
-                  )}
-                  {/* ── Publish, from the moment it is actually possible ──────
-                      Not a shortcut bolted on: it is the correction to the
-                      flow's central friction. The gate wants a title, a story
-                      and a goal; the builder was walking people through six
-                      more screens before offering the button. This appears the
-                      instant those three are satisfied and stays available,
-                      so the remaining steps become what they always were —
-                      optional strengthening — instead of a toll.
-
-                      `readyToPublish` is computed from the same module the
-                      server's schema uses, so this button never appears for a
-                      draft POST /api/campaigns would reject. Guests get the
-                      sign-in modal here exactly as they do on review. */}
-                  {readiness.readyToPublish && step !== 'review' && !CAMPAIGN_STEP_META[step].postPublish && (
-                    <button
-                      type="button"
-                      className="cr2-nav-publish-now"
-                      onClick={() => {
-                        if (isGuest !== false) { setLoginIntent('publish'); setShowLoginModal(true); } else { void publish(); }
-                      }}
-                      disabled={loading}
-                      title="Your campaign has everything it needs to go live"
-                    >
-                      Publish now →
+                  {step !== 'review' && (
+                    <button type="button" className="cr2-nav-draft" onClick={() => void saveAndExit()} disabled={saveState === 'saving'}>
+                      {saveState === 'saving' ? 'Saving...' : 'Save & Exit'}
                     </button>
                   )}
                   {step !== 'review' && (
                     <button type="button" className="cr2-nav-next" onClick={goNext}>
-                      {step === 'payout' && !payoutLinked
-                        ? 'Skip — set up later →'
-                        : isOptionalStep(step) && !stepHasInput
-                          ? 'Skip this step →'
-                          : 'Continue →'}
+                      {isOptionalStep(step) && !stepHasInput ? 'Skip this step →' : 'Continue →'}
                     </button>
                   )}
                 </div>
@@ -2325,7 +2559,6 @@ export default function CreatePage() {
           </div>
 
         ) : step === 'publish' ? (
-          /* ── Step 11: Published ── */
           <div className="cr2-success">
             <div className="cr2-success-icon"><KFIcon name="check" /></div>
             <h2>🎉 Your Campaign is Live!</h2>
@@ -2368,9 +2601,7 @@ export default function CreatePage() {
               </Link>
             </div>
 
-            {/* The one action that most changes whether this campaign raises
-                anything. It is step 12 rather than a panel here because a
-                campaign with no first share reliably raises nothing. */}
+            {/* Sharing immediately after launch is the strongest next action. */}
             {publishedSlug && (
               <button
                 type="button"
@@ -2383,7 +2614,6 @@ export default function CreatePage() {
             )}
           </div>
         ) : (
-          /* ── Step 12: Share ── */
           <div className="cr2-success">
             <h2>Get your first donors</h2>
             <p>
@@ -2429,7 +2659,7 @@ export default function CreatePage() {
         <GuestLoginModal
           savedForm={form}
           savedStep={step}
-          savedImages={uploadedImages.filter(i => i.status === 'done').map(i => ({ url: i.url, name: i.name }))}
+          savedImages={uploadedImages.filter(i => i.status === 'done').map(i => ({ url: i.url, name: i.name, storagePath: i.id }))}
           savedStoryMode={storyMode}
           onClose={() => setShowLoginModal(false)}
           onSuccess={() => {
@@ -2473,13 +2703,13 @@ function GuestLoginModal({ onClose, onSuccess, savedForm, savedStep, savedImages
   onSuccess: () => void;
   savedForm: FormState;
   savedStep: WizardStep;
-  savedImages: { url: string; name: string }[];
+  savedImages: { url: string; name: string; storagePath: string }[];
   savedStoryMode: string;
 }) {
   const supabase = React.useMemo(() => createClient(), []);
   // The gate that interrupts the builder (Location step) needs different copy
   // from the ordinary sign-in entry point.
-  const midWizard = savedStep === 'basics';
+  const midWizard = savedStep !== 'purpose';
   // Keyboard parity for the backdrop click-to-close: Escape closes the modal.
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -2587,7 +2817,7 @@ function computeScore(form: FormState, step: WizardStep, payoutLinked: boolean, 
   const reached = (target: WizardStep) =>
     CAMPAIGN_STEPS.indexOf(step) >= CAMPAIGN_STEPS.indexOf(target);
 
-  const identity: ScoreState   = isGuest === false ? 'verified' : (reached('essentials') ? 'watch' : 'pending');
+  const identity: ScoreState   = isGuest === false ? 'verified' : (reached('beneficiary') ? 'watch' : 'pending');
   const beneficiary: ScoreState = form.description.length > 200 ? 'verified'
     : form.description.length > 50 ? 'watch' : 'pending';
   const payout: ScoreState     = payoutLinked ? 'verified' : (reached('publish') ? 'watch' : 'pending');

@@ -1,5 +1,55 @@
 # CharitMe — Execution Tracker
 
+## Donation checkout unification — active release (Codex, 2026-08-09)
+
+- [x] Replace every campaign, direct-donate, peer, embed, and portfolio donation form with the shared checkout and one money calculation.
+- [x] Load donation presets, the popular amount, CharitMe fee tiers/default, and processor estimates from normalized `platform_settings` data.
+- [x] Add authenticated Super Admin controls and a validated save route for every checkout pricing option.
+- [x] Reject stale pricing revisions before creating a Stripe Checkout session.
+- [x] Preserve exact custom CharitMe fees for one-time, recurring, and portfolio gifts and allocate portfolio fees to the cent in the webhook.
+- [x] Add the idempotent settings migration and rollback; 129 migrations and 41 rollback files are now tracked.
+- [x] Complete unit, integration, browser, accessibility, and responsive checkout validation.
+- [ ] Merge through `master`, apply both pending release migrations through staging and production, tag the release, and verify the production domain.
+
+Production is confirmed through `20260901000000_campaign_payout_ready`. The two
+release migrations awaiting the gated workflow are
+`20260902000000_unified_campaign_builder` and
+`20260902010000_donation_checkout_settings`.
+
+## Campaign builder rebuild — active release (Codex, 2026-08-09)
+
+The campaign-creation audit is documented in `docs/campaign-builder-audit.md`.
+The replacement is implemented on `codex/unified-campaign-builder` and is the
+current release priority; the older backlog classification below predates this
+explicit product request.
+
+- [x] Reduce campaign creation to exactly **Build with AI** and **Build Step by Step**.
+- [x] Converge both paths on one 12-screen builder, one campaign model, one preview, and one publish gate.
+- [x] Add AI prompt intake with optional voice, images, documents, and HTTP(S) links.
+- [x] Generate title, summary, story, category, goal, budget, tiers, FAQs, milestones, social copy, SEO copy, and cover guidance.
+- [x] Skip AI-generated questions that are already complete and ask only for missing launch data.
+- [x] Add debounced local plus Supabase autosave, multi-device resume, visible save state, and explicit Save & Exit.
+- [x] Add phone, desktop, social, and checkout previews.
+- [x] Require exact budget, cover media, policy acceptance, Stripe payout readiness, identity verification, and nonprofit verification when applicable.
+- [x] Add atomic Supabase campaign-graph creation, private source-document storage, draft versions, RLS, indexes, and rollback SQL.
+- [ ] Replay all migrations from zero and pass lint, typecheck, unit, integration, E2E, accessibility, and production build.
+- [ ] Merge through `master`, publish the release tag, and verify the production builder and database.
+
+### Production migration reconciliation — verified 2026-08-09
+
+Release `v0.1.9` passed zero-state replay and isolated staging, then production
+`supabase db push --include-all` completed every migration through
+`20260901000000_campaign_payout_ready`. The job failed only afterward while a
+redundant Vercel configuration call used an expired token; Vercel's GitHub
+integration independently deployed that exact `master` commit successfully.
+
+The older 39-file ledger section below is retained as its historical audit
+snapshot, not as current production state. Of 126 local migrations, production
+now has the first 125; only
+`20260902000000_unified_campaign_builder` remains for this release. The release
+workflow now proves both the exact Vercel deployment SHA and the SHA served by
+the production domain, without depending on the expired CLI token.
+
 ## 📱 END-TO-END MOBILE APP READINESS AUDIT — 4 parallel agents, 29 fixed, 1 RETRACTED, 1 open (Claude, 2026-08-09)
 
 This is a PWA, not a native shell (`app/manifest.ts` + `public/sw.js` +
@@ -3448,9 +3498,9 @@ skipped workflow leaves its check pending forever and would deadlock a docs-only
 PR. Nothing is required today, which is why this is safe now — recorded so the
 next person does not find out the hard way.
 
-## 🛑 SUPABASE STAGING — blocked, and the pending count is **40** (Claude, 2026-08-03)
+## 🛑 SUPABASE STAGING — historical audit, and the file-derived upper-bound pending count is **42** (Claude, 2026-08-03)
 
-**Live ledger rechecked 2026-08-09:** 127 local migration files against 87
+**Live ledger rechecked 2026-08-09:** 129 local migration files against 87
 production ledger entries. The 40-file gap below is therefore a current
 measurement, not only historical arithmetic.
 
@@ -3537,8 +3587,8 @@ PDFs, which are not reconstructible from this schema.
 ⚠️ **Superseded in part — read the correction at the top of this file first.**
 The arithmetic below is sound and the drift guard on it is worth keeping, but the
 number it produces is a **file-derived upper bound, not the applied state**. At
-least two of the 37 are demonstrably live in production, measured against the
-running site. Treat 37 as "no more than 37", and establish the real set with
+least two of the 39 are demonstrably live in production, measured against the
+running site. Treat 39 as "no more than 39", and establish the real set with
 `supabase migration list --linked` before planning a release.
 
 **None of the four numbers previously in this file was right**, and the fifth —
@@ -3556,7 +3606,7 @@ all 18 in order and proved rollback.
 Twenty-two migrations have been added since. So the count is arithmetic:
 
 ```
-127 local − 87 applied           = 40
+129 local − 87 applied           = 42
 18 audited pending + 22 added    = 40   ✓ reconciles
 ```
 
@@ -3597,7 +3647,7 @@ miscounting, it was adding migrations and leaving the old number in place.
 
 Owner action unchanged: upgrade Supabase, free a project slot, or provision
 staging elsewhere. Do not bypass the gate — the ledger's last line says so, and
-37 unverified migrations including seven privilege changes is exactly the case the
+39 unverified migrations including seven privilege changes is exactly the case the
 gate exists for.
 
 ## ⚪ `/certificate` — NOT a deferral; building it would require inventing data

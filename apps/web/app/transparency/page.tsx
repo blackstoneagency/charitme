@@ -5,6 +5,9 @@ import { safeJsonLd } from '../../lib/json-ld';
 import MoneyCalculator from './MoneyCalculator';
 import JsonLd from '../../components/JsonLd';
 import { PROCESSING_FEE_COPY } from '../../lib/fee-copy';
+import { getDonationCheckoutSnapshot } from '../../lib/donation-checkout-settings';
+
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: 'Transparency Center — Where Your Money Goes | CharitMe',
@@ -44,7 +47,8 @@ const FAQ: { q: string; a: string }[] = [
   },
 ];
 
-export default function TransparencyPage() {
+export default async function TransparencyPage(): Promise<React.ReactElement> {
+  const { settings } = await getDonationCheckoutSnapshot();
   const faqLd = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
@@ -72,7 +76,7 @@ export default function TransparencyPage() {
       </section>
 
       <section style={{ margin: '28px 0' }}>
-        <MoneyCalculator />
+        <MoneyCalculator checkoutSettings={settings} />
       </section>
 
       <article className="legal-body">
@@ -99,7 +103,7 @@ export default function TransparencyPage() {
             create campaigns or receive donations.
           </li>
           <li>
-            <strong>Donor support: optional.</strong> Suggested at 15%, but reducible to 0% in one tap with
+            <strong>CharitMe fee: optional.</strong> Suggested at {settings.defaultSupportPercent}%, but reducible to 0% in one tap with
             no dark patterns. This is what keeps CharitMe running.
           </li>
           <li>

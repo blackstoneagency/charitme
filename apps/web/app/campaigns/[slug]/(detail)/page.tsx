@@ -32,9 +32,10 @@ import SaveCampaignButton from '../SaveCampaignButton';
 import CampaignAssistant from '../CampaignAssistant';
 import { getPhotosForCategory, getCoverForCampaign } from '../../../../lib/photo-catalog';
 import { optimizedCoverUrl } from '../../../../lib/img-optimize';
-import { optimizeAsks, computeImpact } from '../../../../lib/donation-optimizer';
+import { computeImpact } from '../../../../lib/donation-optimizer';
 import { campaignLifecycle, campaignTimeLabel } from '../../../../lib/campaign-lifecycle';
 import { DEMO_BADGE_EXPLANATION, DEMO_BADGE_LABEL, isDemoCampaign } from '../../../../lib/demo-campaign';
+import { getDonationCheckoutSnapshot } from '../../../../lib/donation-checkout-settings';
 
 export const dynamic = 'force-dynamic';
 
@@ -395,7 +396,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
     referrerId,
   };
 
-  const [donations, updates, updatesCount, faqs, donorMessages, teamFundraisers, currency, payoutDestination, trustInput, similarCampaigns] = await Promise.all([
+  const [donations, updates, updatesCount, faqs, donorMessages, teamFundraisers, currency, payoutDestination, trustInput, similarCampaigns, checkout] = await Promise.all([
     getRecentDonations(campaign.id),
     getUpdates(campaign.id),
     getUpdatesCount(campaign.id),
@@ -406,6 +407,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
     resolvePayoutDestination(campaign),
     buildCampaignTrustInput(campaign),
     getSimilarCampaigns(campaign.id, campaign.category),
+    getDonationCheckoutSnapshot(),
   ]);
   const payoutReady = !!payoutDestination;
 
@@ -552,14 +554,13 @@ export default async function CampaignPage({ params, searchParams }: Props) {
       ? rawImageUrls
       : getPhotosForCategory(campaign.category, 4);
 
-  // AI Donation Optimizer — campaign-tuned ask amounts + impact projection
+  // AI impact projection
   const campaignStats = {
     goalCents: goal,
     raisedCents: raised,
     backerCount: campaign.backer_count ?? donations.length,
     createdAt: campaign.created_at as string,
   };
-  const asks = optimizeAsks(campaignStats);
   const impact = computeImpact(campaignStats);
 
   // Arc SVG for Impact Tracker donut
@@ -933,8 +934,8 @@ export default async function CampaignPage({ params, searchParams }: Props) {
                 campaignTitle={campaign.title}
                 utm={utm}
                 currency={currency}
-                smartPresets={asks.presets}
-                recommendedAmount={asks.recommended}
+                checkoutSettings={checkout.settings}
+                checkoutRevision={checkout.revision}
               />
             ) : isActive && !payoutReady ? (
               <div className="pc-ended">
