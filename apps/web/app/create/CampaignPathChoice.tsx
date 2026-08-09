@@ -151,7 +151,7 @@ export default function CampaignPathChoice({ onGuidedStart }: { onGuidedStart?: 
             badgeFg="var(--green-dark, #047857)"
             icon="edit"
             iconBg="#047857"
-            title="Step by step"
+            title="Build Step by Step"
             time="About 8 minutes"
             body="Answer one clear question at a time, with smart defaults, inline guidance, and full control over every detail."
             bullets={[
@@ -159,7 +159,7 @@ export default function CampaignPathChoice({ onGuidedStart }: { onGuidedStart?: 
               'Tips and examples as you go',
               'Nothing published until you say so',
             ]}
-            cta="Start step by step"
+            cta="Build Step by Step"
             ctaSolid={false}
             onSelect={onGuidedStart}
           />
