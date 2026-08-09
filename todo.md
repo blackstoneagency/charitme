@@ -242,6 +242,36 @@ fix, not a note to file — the absent surface is exactly where defects survive.
       first measurement claimed. ⚠️ Ratio thresholds on images must be computed in DEVICE
       pixels, or you will chase phantom savings and ship blur.
 
+### ✅ /events, /grants AND /sponsor WERE MEASURING NOTHING — the FOURTH instance
+
+`fundraising_events`, `grants` and `sponsorship_opportunities` had **zero fixture
+rows**, so all three routes rendered clean empty states and passed every audit
+having measured none of their real markup. That is now the fourth instance of one
+class this session:
+
+| table | why it matched nothing |
+|---|---|
+| `supported_countries` | fixture used invented column names |
+| `volunteer_opportunities` | `status: 'active'`, but readers filter `open\|upcoming` |
+| `connected_accounts` | no rows ⇒ `payoutReady` false ⇒ the whole donate surface absent |
+| `fundraising_events`, `grants`, `sponsorship_opportunities` | no rows at all |
+
+⚠️ **A zero-state page passes contrast, axe, responsive and target-size checks
+perfectly, because there is nothing on it to fail.** "No fixture" is a COVERAGE
+BUG, not a gap to note.
+
+Each new fixture's `status` was checked against **both** the reader's filter and
+the table's CHECK constraint before writing it — a fixture that cannot match is
+worse than none, since it looks like coverage. Verified: events
+`.eq('status','published')` vs CHECK `draft|published|completed|cancelled`;
+grants `.in('status',['open','upcoming'])` vs CHECK `open|upcoming|closed`
+(fixtures deliberately span BOTH values so neither branch goes unmeasured);
+sponsorships `.eq('status','open')` vs CHECK `draft|open|closed|fulfilled|cancelled`.
+
+Measured after: `/events` 200 with 6 events rendered (72,628 B), `/grants` 200
+with 8 (95,971 B), `/sponsor` 200 with 6 (59,575 B) — previously all three were
+empty states.
+
 ### ✅ TWO MORE AUDIT FINDINGS THAT THE TRACKER HAD LOST
 
 Both were in the data sweep's report and never actioned. Found by re-reading the
