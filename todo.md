@@ -22673,3 +22673,31 @@ post-merge CI cannot produce a verdict.
 Verified locally in place of the missing signal (branch = master at `e9814c9c`):
 typecheck clean, lint clean, 3697 tests, `public-quality.spec.ts` passing on
 both the chromium and mobile projects.
+
+### ✅ FIXED AND VERIFIED — master runs no longer cancel each other (Claude, 2026-08-09)
+
+`ci.yml` now keys the concurrency group on the **commit** for master
+(`…-${{ github.ref == 'refs/heads/master' && github.sha || '' }}`), merged as
+`e926d9d3` (PR #325).
+
+**Verified by observation, not by reading the diff:** immediately after the
+merge, two master runs were in progress *at the same time* —
+
+| run | commit | status |
+|---|---|---|
+| `31292380747` | `e926d9d3` | in_progress |
+| `31289682235` | `35d8d75e` | **in_progress — survived** |
+
+Under the old config both shared `ci-CI-refs/heads/master`, so the newer run
+would have cancelled the older. Different groups now, so both live.
+
+⚠️ **Not `cancel-in-progress: false`** — that queues rather than cancels, and at
+a ~10-minute merge cadence against ~60-minute runs the backlog grows without
+bound. PR refs are untouched: the sha is appended only on master, so a new push
+to a PR branch still cancels its predecessor.
+
+📌 **One correction to the measurement above:** the 8 "merges" counted are
+CODE merges. `ci.yml` has `paths-ignore` for docs-only paths, so docs commits
+(`e9814c9c`, `ac6169b1`) never triggered a run and never cancelled anything. The
+cadence figure is right for the merges that actually start CI, which is the
+number that mattered.
