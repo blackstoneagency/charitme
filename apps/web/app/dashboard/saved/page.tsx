@@ -7,6 +7,7 @@ import { resolveCampaignCover } from '../../../lib/covers';
 import { getTranslator } from '../../../lib/locale-server';
 import { formatMoneyShort } from '@shared/currencies';
 import { EmptyState } from '../../../components/ui';
+import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
 
 export const metadata: Metadata = { title: 'Saved causes' };
 export const dynamic = 'force-dynamic';
@@ -95,13 +96,9 @@ export default async function SavedCausesPage() {
     : [];
 
   return (
-    <div style={{ padding: '4px 0 40px' }}>
-      <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--t1)', margin: '0 0 6px' }}>
-        {t('saved.title')}
-      </h1>
-      <p style={{ fontSize: 14.5, color: 'var(--t3)', margin: '0 0 24px' }}>
-        {t('saved.subtitle')}
-      </p>
+    <CharitMeShell active="Saved Causes">
+      <TopBar title={t('saved.title')} subtitle={t('saved.subtitle')} />
+      <div style={{ padding: '4px 0 40px' }}>
 
       {rows === null ? (
         <EmptyState
@@ -154,6 +151,7 @@ export default async function SavedCausesPage() {
           })}
         </ul>
       )}
-    </div>
+      </div>
+    </CharitMeShell>
   );
 }
