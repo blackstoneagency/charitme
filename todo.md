@@ -13245,7 +13245,19 @@ AI platform, admin, lead-gen — **plus all eight domains above**.
   - Database: reads/writes `campaigns.featured`, reads `platform_settings.config.payment.featuredCampaignPriceCents`
   - API: `POST /api/campaigns/[id]/feature`, `GET /api/campaigns/rotator`, `stripe/webhook`
   - UI: `/dashboard/campaigns/[id]` (Feature button), `/admin/settings` (price), homepage `HeroRotator`
-  - Tests: `__tests__/featured.test.ts` 8/8 pass (price resolution + rotator selection). **Pending manual/staging:** Stripe checkout → webhook → featured flip; rotator featured-only cycling; 403 ownership; 400 double-purchase.
+  - Tests: `__tests__/featured.test.ts` 21 assertions (price resolution + rotator selection, both pure).
+    **Checks (5) and (6) no longer need staging and are now covered by executed-handler
+    tests** — `__tests__/feature-route-gating.test.ts`, 11 assertions running GET/POST
+    against a fake PostgREST and a fake Stripe. Both gates decide BEFORE any Stripe call,
+    so nothing about them ever required credentials; they were simply untested, and
+    `featured.test.ts` never runs the handler — nothing established that this route
+    checked ownership at all. Mutation-tested: deleting the 403 branch fails the
+    non-owner test, deleting the 400 branch fails the double-purchase test. Also pinned:
+    401/404/500, `metadata.type = 'feature_campaign'` (the webhook's only hook), the
+    per-request admin price rather than the $5 default, and `returnTo` staying on a known
+    set instead of accepting a URL (an open returnTo on a payment route is a redirect gadget).
+    **Still genuinely staging-gated:** (1) price persistence through the admin UI, (2) the
+    creator's checkout redirect, (3) the webhook flipping `featured`, (4) the live rotator.
   - Completion Evidence: (to fill in during QA — Stripe test session id, webhook event id, `campaigns.featured` DB record, homepage rotator screenshot)
   - Commit: 586fc3a (feature merged via #27)
 
