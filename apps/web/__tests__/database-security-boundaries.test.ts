@@ -73,6 +73,13 @@ describe('privileged database boundaries migration', () => {
     }
   });
 
+  it('tolerates production databases where the legacy donation overload is already gone', () => {
+    expect(migration).toContain(
+      "to_regprocedure(\n    'public.record_donation(text,uuid,uuid,bigint,bigint,bigint,text,boolean,text,text)'",
+    );
+    expect(migration).toContain('if to_regprocedure(');
+  });
+
   it('enforces valid go-forward financial amounts', () => {
     expect(migration).toContain('add column if not exists tip_cents bigint');
     expect(migration).toContain('add column if not exists processing_fee_cents bigint');
