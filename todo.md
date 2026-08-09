@@ -22701,3 +22701,50 @@ CODE merges. `ci.yml` has `paths-ignore` for docs-only paths, so docs commits
 (`e9814c9c`, `ac6169b1`) never triggered a run and never cancelled anything. The
 cadence figure is right for the merges that actually start CI, which is the
 number that mattered.
+
+## ✅ MASTER CI: EVERY STEP GREEN, AND THE RED ONE WAS TWO WEEKS OLD (Claude, 2026-08-09)
+
+The concurrency fix (`e926d9d3`) let a master run finish for the first time in
+over a day. Run `31289682235` came back **failure** — and that is the fix
+working, not a problem with it. Reading the actual result:
+
+| step | result | how verified |
+|---|---|---|
+| Typecheck · Lint · Unit tests · image audit | **success** | CI run `31289682235` |
+| Production build · Playwright install | **success** | same run |
+| **End-to-end (chromium + mobile)** | **success** (69m) | same run |
+| **Runtime audits (contrast + axe, both themes)** | **success** | same run |
+| Signed-in contrast audit | **failure → FIXED** | see below |
+
+### The one failure, and it predated this session by two weeks
+
+4 findings = 2 defects × 2 themes, both white-on-gradient buttons on `/create`:
+
+- `.cr2-ai-banner-btn` "✨ Write with AI" — white on `#0ea5e9` = **2.77:1**
+- `.cr2-strengthen-btn` "Enhance" — white on `#f59e0b` = **2.15:1**
+
+⚠️ **Attribution was checked before anything was touched.** `git log -S` puts
+both classes in `160084f2`, **2026-07-23** — not this session's diff, not another
+lane's in-flight work. Fixed in `bbfb0daa`: `#0369a1` (5.93:1) and
+`#b45309`/`#92400e` (5.02 / 7.09:1).
+
+**Re-run of the identical CI command on master's current code:**
+
+```
+node scripts/audit-signed-in.mjs --build --strict-gradients
+✅ No AA contrast failures across 226 pages × 2 themes   (exit 0)
+```
+
+### What this episode is actually evidence of
+
+A two-week-old AA failure on the campaign builder was invisible the whole time,
+because the only check that catches it sat at the end of a ~60-minute job that
+was being cancelled before it got there. **The first completed run found it
+immediately.** That is the argument for the concurrency change, made by the
+change itself.
+
+📌 Guard added so the next one costs milliseconds instead of an hour:
+`__tests__/cr2-button-contrast.test.ts` scores every gradient stop from the
+stylesheet. Mutation-tested both ways. It also covers `.cr2-ai-hero-cta`, which
+was already compliant — pinning only what has already broken is how the next one
+gets missed.
