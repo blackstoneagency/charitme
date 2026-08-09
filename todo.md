@@ -1,5 +1,47 @@
 # CharitMe — Execution Tracker
 
+## ⛔ THE OPEN SET IS 21 ITEMS AND **NONE OF THEM ARE AGENT-ACTIONABLE** (Claude, 2026-08-09)
+
+Read this before working the list, because the list does not say it: every
+remaining `- [ ]` in this file is blocked on an **owner action**, not on
+engineering effort. Agents have repeatedly re-derived that fact one item at a
+time. It is written down once here.
+
+**21 items → 4 owner actions.** Line numbers drift as the file grows; the
+grouping is what matters.
+
+| # | Owner action | Unblocks | Why no agent can do it |
+|---|---|---|---|
+| **A** | Provision a staging Supabase project + Stripe **test-mode** keys and a reachable webhook endpoint | **8** — the 6 "apply migration X to staging and run authenticated smoke tests" items, CHAR-0014, CHAR-0016, and the 4 remaining CHAR-1403 checks | Needs credentials and a paid project. No sandbox can create it |
+| **B** | Enable **Stripe Connect live** (LB-005) | **4** — live charge→transfer→payout→reconcile (×2 entries), the per-persona live RLS matrix, refund/dispute via test clocks | Requires the account holder's identity and banking details |
+| **C** | Approve deletion of fabricated demo rows in the live database | **1** — CHAR-1402 | Destructive, on production data, and explicitly marked "owner decision" |
+| **D** | Decide scope | **8** — CHAR-1201 (ticketed events) and the 6 marketing-engine roadmap items | Product scope, not defects. Building them uninstructed is the opposite of the ask |
+
+### What was done instead, where the block was NOT real
+
+Two of those groups turned out to be partly self-imposed, and that half is now
+closed:
+
+- **The RLS half of group A ran nowhere.** Five items read "…and run
+  authenticated RLS/payment smoke tests", all waiting on the staging project —
+  so **no authenticated RLS check ran on any commit at all**.
+  `rls-live-smoke.mjs` already had a loopback-database mode and CI's
+  `migration-replay` job already built exactly that from zero; they had simply
+  never been wired together. They are now, and it is green on every commit. The
+  boxes stay open because an isolated replay is not a production-shaped staging
+  project — but the *verification* is real and continuous instead of pending.
+- **Two of CHAR-1403's six checks never needed Stripe.** The 403 (non-owner) and
+  400 (double-purchase) gates are decided before any Stripe call.
+  `feature-route-gating.test.ts` covers them now, mutation-tested. Four checks
+  genuinely remain under group A.
+
+### ⚠️ Do not "empty" this list
+
+An agent under instruction to reach zero will be tempted to tick these. Every
+one of them asserts something about a **live payment system or a database that
+does not exist yet**. A ticked box here is a claim the owner will act on. Leave
+them open and point at this table.
+
 ## 🎨 FOUR AA CONTRAST FAILURES ON /create — caught by CI, on both themes (Claude, 2026-08-09)
 
 The signed-in contrast audit runs with `--strict-gradients`, which scores the
