@@ -1,5 +1,48 @@
 # CharitMe — Execution Tracker
 
+## 🎨 FOUR AA CONTRAST FAILURES ON /create — caught by CI, on both themes (Claude, 2026-08-09)
+
+The signed-in contrast audit runs with `--strict-gradients`, which scores the
+**least favourable stop** of a gradient rather than waving gradients through.
+Two buttons on the campaign builder failed it, identically in light and dark:
+
+| control | measured | needed |
+|---|---|---|
+| `.cr2-ai-banner-btn` "✨ Write with AI" — white on `#0ea5e9` | **2.77:1** | 4.5 |
+| `.cr2-strengthen-btn` "Enhance" — white on `#f59e0b` | **2.15:1** | 4.5 |
+
+Both are 13px/650, so the large-text 3:1 allowance does not apply.
+
+Fixed by darkening each gradient within its own hue rather than switching to
+dark text, which would have read as a different control:
+
+- `#6c35ff → #0ea5e9` becomes `#6c35ff → #0369a1` (5.85 / **5.93**)
+- `#f59e0b → #d97706` becomes `#b45309 → #92400e` (**5.02** / 7.09)
+
+⚠️ `#d97706` was **also** failing at 3.19:1 and was never reported — the audit
+prints only the worst stop per element, so a second failure hides behind the
+first. Fixing only the reported colour would have left the button failing.
+
+Verified with the same tool CI uses, `--strict-gradients --only /create`:
+170 text elements examined per theme, **0 failures**.
+
+### 🚧 A static scan of the stylesheet disagrees with the audit, and the AUDIT is right
+
+Scanning `globals.css` for "gradient background + white text + font-size" finds
+**19 more** stops below their threshold (`.cr2-btn-launch`, `.cr2-btn-preview`,
+`.kf-nav-launch`, …). The runtime audit reports none of them.
+
+**No static guard was added, deliberately.** A declaration is not a rendered
+pixel: most of those controls sit on wizard steps or states the sweep never
+reaches, and a test that flags 19 things the browser cannot see is the
+false-finding pattern this file already records four times over. The
+`--strict-gradients` audit in CI is the guard, and it measures.
+
+What the gap DOES indicate is a coverage question worth someone's time: if
+`.cr2-btn-launch` is genuinely reachable by an organiser and genuinely fails,
+the defect is real and the SWEEP is what needs extending — not the stylesheet
+linted from a distance.
+
 ## 📱 MOBILE READINESS — the class of defect NO audit in this repo can see (Claude, 2026-08-09)
 
 Six runtime sweeps run headless Chromium at a fixed viewport. That viewport has
