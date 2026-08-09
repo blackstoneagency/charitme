@@ -326,7 +326,8 @@ function Row({ label: l, value }: { label: string; value: string }) {
 const card: React.CSSProperties = { padding: 20, border: '1px solid var(--b1)', borderRadius: 'var(--rl)', background: 'var(--s1)', minWidth: 0 };
 const label: React.CSSProperties = { fontSize: 13, fontWeight: 700, color: 'var(--t2)' };
 const input: React.CSSProperties = {
-  width: '100%', minWidth: 0, maxWidth: '100%', padding: '11px 12px', fontSize: 15, fontFamily: 'inherit',
+  // 16px minimum: below it iOS zooms the page on focus and never zooms back.
+  width: '100%', minWidth: 0, maxWidth: '100%', padding: '11px 12px', fontSize: 16, fontFamily: 'inherit',
   color: 'var(--t1)', background: 'var(--s2)', border: '1px solid var(--b1)', borderRadius: 'var(--r)', minHeight: 44,
 };
 const checkRow: React.CSSProperties = {

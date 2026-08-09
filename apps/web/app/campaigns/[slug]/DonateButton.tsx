@@ -423,6 +423,7 @@ export default function DonateButton({
               <span style={{ fontSize: 34, fontWeight: 800, color: INK }}>{symbol}</span>
               <input
                 type="number"
+                inputMode="decimal"
                 min="1"
                 step="1"
                 value={amount}
@@ -673,7 +674,8 @@ export default function DonateButton({
           maxLength={500}
           style={{
             width: '100%', boxSizing: 'border-box', border: `1.5px solid ${BD}`, borderRadius: 12,
-            padding: '12px 14px', fontSize: 14, fontFamily: 'inherit', outline: 'none', resize: 'vertical',
+            // 16px minimum: below it iOS zooms the page on focus and never zooms back.
+            padding: '12px 14px', fontSize: 16, fontFamily: 'inherit', outline: 'none', resize: 'vertical',
             background: 'var(--s1, #fff)', color: INK,
           }}
         />

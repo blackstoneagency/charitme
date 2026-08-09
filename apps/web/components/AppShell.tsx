@@ -409,6 +409,7 @@ export function AppShell({
   const [unreadCount, setUnreadCount] = useState(0);
   const accountRef = useRef<HTMLDivElement | null>(null);
   const navRef = useRef<HTMLElement | null>(null);
+  const headerRef = useRef<HTMLElement | null>(null);
   const supabase = useMemo(() => createClient(), []);
   const bypass = SHELL_BYPASS.some((p) => path === p || path.startsWith(p + '/')) || isEmbedRoute(path);
 
@@ -463,6 +464,29 @@ export function AppShell({
     return () => document.removeEventListener('mousedown', onDown);
   }, [openMenu]);
 
+  // Close the MOBILE panel on Escape or an outside tap.
+  //
+  // Measured on a 390x844 touch context: with the panel open, Escape left it
+  // visible and a tap at the first non-interactive point outside it left it
+  // visible too. The two effects around this one cover `openMenu` (mega-menu)
+  // and `accountOpen`; `menuOpen` was in neither, so the only ways out were
+  // re-tapping the hamburger or navigating. `pointerdown` rather than
+  // `mousedown` so a touch dismisses it without waiting for the emulated mouse
+  // event, and the header itself defines "outside" — the panel renders inside it.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false); };
+    const onDown = (e: PointerEvent) => {
+      if (headerRef.current && !headerRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('pointerdown', onDown);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('pointerdown', onDown);
+    };
+  }, [menuOpen]);
+
   // Close the account dropdown on outside click
   useEffect(() => {
     if (!accountOpen) return;
@@ -482,7 +506,7 @@ export function AppShell({
           focused — it is the first thing Tab reaches. */}
       <a href="#main-content" className="skip-link">Skip to main content</a>
       <AnnouncementBanner initial={initialAnnouncements} appearance={bannerAppearance} />
-      <header className="kind-header">
+      <header className="kind-header" ref={headerRef}>
         <div className="container">
           <Logo />
           {/*
@@ -602,6 +626,23 @@ export function AppShell({
         </div>
         {menuOpen && (
           <div className="kind-mobile" id="mobile-navigation">
+            {/* ⚠️ Search's ONLY mobile entry point. `.kind-header-search` lives
+                inside `.kind-auth`, which is hidden below 1100px — measured
+                `display: grid` but bounding width 0, with the input reporting
+                visible:false. So /search, which supports query, cause, location
+                and sort, had no way in from a phone at all. A real form rather
+                than a link, so the first tap is already the search. */}
+            <form action="/search" method="get" role="search" className="kind-mobile-search">
+              <label htmlFor="kind-mobile-search-input" className="kind-mobile-heading">Search</label>
+              <input
+                id="kind-mobile-search-input"
+                type="search"
+                name="q"
+                placeholder="Search campaigns"
+                autoComplete="off"
+              />
+              <button type="submit">Search</button>
+            </form>
             {/* Derived from MAIN_NAV, not a second hand-kept list. The headings
                 come through so the twenty cause links and twelve resource links
                 are not one undifferentiated column. */}

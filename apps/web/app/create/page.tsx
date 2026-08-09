@@ -1976,9 +1976,9 @@ export default function CreatePage() {
                         🔒 Powered by <strong>Sinch</strong> · Bank-level encryption · Instant verification
                       </div>
                       <label htmlFor="cr-routing" className="cr2-payout-field-label">Routing Number (9 digits)</label>
-                      <input id="cr-routing" type="text" value={routingNumber} onChange={e => setRoutingNumber(e.target.value.replace(/\D/g, '').slice(0, 9))} placeholder="021000021" className="cr2-payout-input" maxLength={9} />
+                      <input id="cr-routing" type="text" inputMode="numeric" autoComplete="off" value={routingNumber} onChange={e => setRoutingNumber(e.target.value.replace(/\D/g, '').slice(0, 9))} placeholder="021000021" className="cr2-payout-input" maxLength={9} />
                       <label htmlFor="cr-account" className="cr2-payout-field-label" style={{ marginTop: 14 }}>Account Number</label>
-                      <input id="cr-account" type="text" value={accountNumber} onChange={e => setAccountNumber(e.target.value.replace(/\D/g, ''))} placeholder="Enter account number" className="cr2-payout-input" />
+                      <input id="cr-account" type="text" inputMode="numeric" autoComplete="off" value={accountNumber} onChange={e => setAccountNumber(e.target.value.replace(/\D/g, ''))} placeholder="Enter account number" className="cr2-payout-input" />
                       <span className="cr2-payout-field-label" style={{ marginTop: 14, display: 'block' }}>Account Type</span>
                       <div className="cr2-payout-acct-type-row" role="group" aria-label="Account type">
                         <button type="button" className={`cr2-acct-type-btn${accountType === 'checking' ? ' selected' : ''}`} onClick={() => setAccountType('checking')}>Checking</button>

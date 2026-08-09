@@ -396,6 +396,12 @@ input, select, textarea, button { max-width: 100%; }
 
 /* Group labels in the mobile sheet — without them the flattened list is 30+
    undifferentiated links. */
+/* The mobile-panel search form. 16px on the input so iOS does not zoom the page
+   on focus; 44px controls so both are comfortable touch targets. */
+.kind-mobile-search { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; margin-bottom: 6px; }
+.kind-mobile-search .kind-mobile-heading { grid-column: 1 / -1; margin-bottom: 0; }
+.kind-mobile-search input { min-width: 0; min-height: 44px; padding: 0 12px; border: 1px solid var(--b2); border-radius: 10px; background: var(--s1); color: var(--t1); font-size: 16px; }
+.kind-mobile-search button { min-height: 44px; padding: 0 16px; border: 0; border-radius: 10px; background: var(--violet); color: #fff; font-weight: 700; font-size: 14px; cursor: pointer; }
 .kind-mobile-heading {
   margin-top: 6px;
   font-size: 11px; font-weight: 850; letter-spacing: .07em; text-transform: uppercase;

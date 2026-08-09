@@ -1,6 +1,6 @@
 # CharitMe — Execution Tracker
 
-## 📱 END-TO-END MOBILE APP READINESS AUDIT — 4 parallel agents, 18 fixed, 11 open (Claude, 2026-08-09)
+## 📱 END-TO-END MOBILE APP READINESS AUDIT — 4 parallel agents, 24 fixed, 7 open (Claude, 2026-08-09)
 
 This is a PWA, not a native shell (`app/manifest.ts` + `public/sw.js` +
 `components/PWARegister.tsx`; no Capacitor/Expo in any package.json). So "mobile app
@@ -83,29 +83,35 @@ Fixed and verified on a rebuild: `/volunteer` renders its opportunity, `/impact-
 renders real places. ⚠️ **Restart the stub after editing fixtures** — it loads them once
 at startup, which cost a full debugging cycle here.
 
+### ✅ SECOND FIX PASS — verified in a real touch browser (390×844, hasTouch)
+
+Verified against a **freshly restarted** server whose stylesheet resolves 200 (5,224 CSS
+rules applied — a sweep against the dead-hash state would have measured unstyled pages):
+
+| fix | verification |
+|---|---|
+| auth `autocomplete` | `/login` inputs now report `["email","current-password"]`; signup gets `name` + `new-password`. A wrong value here is worse than none — `new-password` on login makes a manager refuse to fill |
+| **zero** sub-16px fields left on `/login`, `/signup`, `/donate` | measured `[]` on all three. The only remaining sub-16px element is a 13×13 **checkbox**, whose effective target is its much larger wrapping label |
+| donate primary input `inputMode="decimal"`, bank fields `inputMode="numeric"` | the donate field a donor lands on had none while the secondary one did; both bank fields already strip non-digits in `onChange`, so the data was provably numeric |
+| mobile menu **closes on Escape** | measured `true` (was `false`) |
+| **search now has a mobile entry point** | the panel carries a real `role="search"` form; input visible, computed **16px** |
+
+⚠️ **The outside-tap half is NOT verifiable at this viewport** — see the panel-height item
+below. The handler is in place and correct, but a user cannot reach a point outside the
+panel to use it. Recorded as unverified rather than claimed.
+
 ### ⏳ OPEN — real, measured, NOT yet fixed
 
-- [ ] **Auth fields have no `autocomplete`** — `components/AuthPanel.tsx:185,190,194` all
-      measure `autocomplete: null`, so no password manager or iOS AutoFill offers anything
-      on login or signup. The correct pattern already exists one directory away in
-      `app/create/page.tsx:2524-2527`. Add `name` / `email` /
-      `current-password`|`new-password`.
-- [ ] **The donate card's primary amount input has no `inputMode`** —
-      `app/campaigns/[slug]/DonateButton.tsx:426` is `type=number, inputmode=null`. The
-      *secondary* custom-amount field in the same component (line ~394) has
-      `inputMode="decimal"` — so the field a donor actually lands on is the one missing it.
-- [ ] **Bank routing/account fields get an alphabetic keyboard** —
-      `app/create/page.tsx:1956,1958` are `type="text"` with no `inputMode`, though both
-      `onChange` handlers strip non-digits, proving the data is numeric.
-- [ ] **Mobile menu does not close on Escape or on outside tap** — measured twice on `/`:
-      panel still visible after both. `components/AppShell.tsx:459-475` handles `openMenu`
-      and `accountOpen` but not `menuOpen`. (It DOES close on re-tap and on route change.)
-- [ ] **Search is unreachable on mobile** — `.kind-header-search` computes to width 0 below
-      1100px and the mobile panel's 45 links contain no `/search`, so a documented feature
-      with query/cause/location/sort has no phone entry point.
-- [ ] **~7 more sub-16px fields still zoom iOS** on `/donate`, `/donate/[slug]`, the donor
-      message textarea and the campaign assistant. The money-path ones are a conversion
-      defect, not a nit.
+- [ ] **The mobile panel is 2303px tall on an 844px viewport** — 45 links plus the new
+      search form. Found while verifying the dismissal fix: with the panel open,
+      `.kind-header`'s bottom edge is at **y=2303**, so there is **no point on screen
+      outside it**. That makes "tap outside to close" structurally unreachable, and it
+      means reaching the account links means scrolling nearly three screens. Worth
+      collapsing the cause/resource groups behind accordions.
+      ⚠️ This also invalidated my first verification run: the outside-tap probe reported
+      the panel closing, but the tap had landed on a nav LINK and navigated. A dismissal
+      test must assert its tap point is genuinely outside — same trap as the header-nav
+      e2e spec.
 - [ ] **One 518 KB stylesheet on every route, 94–98% unused.** `app/globals.css` is 676 KB
       / 12,199 lines → 518,233 B raw, 89 KB gz, render-blocking on every page. Chrome
       coverage: **2.1% used on `/search`, 2.8% on `/login`** (14 KB of 506 KB). Admin and

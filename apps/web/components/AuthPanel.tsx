@@ -182,16 +182,19 @@ function AuthForm({ defaultMode: initialMode = 'login', benefits }: AuthPanelPro
           {mode === 'signup' ? (
             <label>
               Full name
-              <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Sarah Thompson" required />
+              <input autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Sarah Thompson" required />
             </label>
           ) : null}
           <label>
             Email
-            <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" required />
+            <input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" required />
           </label>
           <label>
             Password
-            <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter your password" required minLength={6} />
+            {/* `current-password` on login, `new-password` on signup: the wrong one
+                makes a password manager offer to overwrite a saved credential on
+                sign-up, or refuse to fill on login. */}
+            <input type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter your password" required minLength={6} />
           </label>
 
           {mode === 'login' ? (
