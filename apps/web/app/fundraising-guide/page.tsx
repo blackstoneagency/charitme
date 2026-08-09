@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { getUser } from '../../lib/auth';
+import { CharitMeShell } from '../../components/CharitMeShellServer';
 import {
   ReferenceCardGrid,
   ReferenceChecklist,
@@ -37,8 +39,24 @@ const JOURNEY = [
   { icon: 'chart', title: 'Grow', body: 'Update, thank, measure, and keep momentum.' },
 ];
 
-export default function FundraisingGuidePage() {
-  return (
+/**
+ * Rendered inside the signed-in app shell for members, and as a public marketing
+ * page for everyone else.
+ *
+ * The page body is IDENTICAL either way — only the chrome around it changes.
+ * Forking the content would give the two audiences different guidance from one
+ * URL, which is the drift this repo keeps paying for.
+ *
+ * ⚠️ `getUser()` here is the AUTHORITATIVE half of the decision. `AppShell`
+ * suppresses the marketing chrome for this route via SHELL_WHEN_SIGNED_IN, but
+ * it only learns the session after its own auth call resolves — so it treats
+ * "not yet known" as "suppress", and this server-side answer is what actually
+ * decides which chrome gets drawn.
+ */
+export default async function FundraisingGuidePage() {
+  const user = await getUser();
+
+  const body = (
     <ReferencePage>
       <ReferenceHero
         crumbs={[{ label: 'Home', href: '/' }, { label: 'Resources', href: '/resources' }, { label: 'Fundraising Guide' }]}
@@ -106,4 +124,10 @@ export default function FundraisingGuidePage() {
       />
     </ReferencePage>
   );
+
+  // `active` matches the RESOURCE_NAV label exactly — the sidebar highlights by
+  // label, so a mismatch silently highlights nothing and the member cannot tell
+  // where they are.
+  if (!user) return body;
+  return <CharitMeShell active="Fundraising Guide">{body}</CharitMeShell>;
 }
