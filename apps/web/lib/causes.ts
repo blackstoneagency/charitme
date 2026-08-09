@@ -135,6 +135,12 @@ export interface Cause {
    * tags a campaign as "shelter" rather than "food".
    */
   helpsCta?: string;
+  /**
+   * Cause-specific answers shown on the page and emitted as FAQPage schema.
+   * Supabase-published entries override these; this copy is the resilient
+   * fallback when the content store is unavailable during a request.
+   */
+  faqs?: readonly { readonly question: string; readonly answer: string }[];
 }
 
 /**
@@ -268,6 +274,13 @@ export const POPULAR_CAUSES: readonly Cause[] = [
       { title: 'Adapt the home', icon: 'home', body: 'Ramps, rails and equipment fitted for a discharge date, not months after it.' },
       { title: 'Support the whole family', icon: 'community', body: 'Lost income, childcare and the household bills that do not pause for illness.' },
     ],
+    faqs: [
+      { question: 'What can a Health & Wellness fundraiser cover?', answer: 'A health fundraiser can explain a specific need such as treatment, prescriptions, rehabilitation, accessible equipment, travel to care, temporary lodging, or essential household costs during recovery.' },
+      { question: 'Can I start a health fundraiser for someone else?', answer: 'Yes. The campaign builder records who is organizing, who benefits, and the organizer\'s relationship to that person so supporters can understand how the fundraiser is connected to the need.' },
+      { question: 'How should a medical need be documented?', answer: 'Share only the evidence needed to support the campaign while protecting private health information. CharitMe may request identity, beneficiary, payout, or supporting documentation during trust and safety review.' },
+      { question: 'Are donations to health campaigns tax deductible?', answer: 'Not automatically. Tax deductibility depends on the recipient and campaign structure. Look for the tax-deductible indicator and use the receipt or annual tax statement provided for an eligible donation.' },
+      { question: 'Can a donor give to a health campaign anonymously?', answer: 'Donors can choose the privacy options offered at checkout. Payment and compliance records are still retained securely even when a public donor name is hidden.' },
+    ],
   },
   {
     slug: 'education',
@@ -285,6 +298,13 @@ export const POPULAR_CAUSES: readonly Cause[] = [
       { title: 'Close the digital gap', icon: 'laptop', body: 'Devices and connectivity for pupils expected to submit work they cannot get online to send.' },
       { title: 'Get pupils there', icon: 'travel', body: 'Fares and transport that turn a long walk into an attendance record worth having.' },
       { title: 'Feed the school day', icon: 'food', body: 'Breakfast and lunch provision, because a hungry morning undoes the teaching that follows.' },
+    ],
+    faqs: [
+      { question: 'What can an Education fundraiser support?', answer: 'Education campaigns can fund tuition, books, classroom materials, devices, connectivity, transportation, meals, tutoring, accessible learning resources, and other clearly explained learning needs.' },
+      { question: 'Who can start an Education campaign?', answer: 'Students, families, teachers, teams, community groups, and eligible organizations can start a campaign when they can accurately describe the need, beneficiary, budget, and intended use of funds.' },
+      { question: 'Can a campaign raise money for tuition or scholarships?', answer: 'Yes. The campaign should identify who will receive the support, what the funds cover, and how money will be delivered or managed. Organizers should avoid promising tax treatment that has not been verified.' },
+      { question: 'Are donations to school campaigns tax deductible?', answer: 'Tax deductibility depends on the receiving organization and campaign structure. A school-related purpose alone does not make a gift deductible; check the campaign indicator and donation receipt.' },
+      { question: 'How can supporters follow an Education campaign?', answer: 'Organizers can publish updates, milestones, photos, and outcomes. Supporters can return to the campaign page and use their account history to review eligible receipts and campaign activity.' },
     ],
   },
   {
@@ -339,6 +359,13 @@ export const POPULAR_CAUSES: readonly Cause[] = [
       { title: 'Sit with people', icon: 'phone', body: 'Pastoral visits, bereavement support and the call that comes when nobody else does.' },
       { title: 'Give practical advice', icon: 'scales', body: 'Debt, housing and paperwork help from trained volunteers, free at the point of asking.' },
       { title: 'Keep the hall usable', icon: 'tools', body: 'Roof, heating and access repairs for a building the whole neighbourhood books.' },
+    ],
+    faqs: [
+      { question: 'Which faith communities can fundraise on CharitMe?', answer: 'Campaigns may represent different faiths, beliefs, and interfaith efforts when they follow CharitMe\'s terms, prohibited-use rules, financial requirements, and trust and safety standards.' },
+      { question: 'What can a Faith & Belief campaign support?', answer: 'Campaigns can explain needs such as community meals, shelter, pastoral care, youth service, accessibility, emergency relief, outreach, or repairs to spaces used for community support.' },
+      { question: 'Can a campaign fund worship or religious activities?', answer: 'Permitted fundraising must remain lawful, transparent, and consistent with CharitMe policies. Campaigns cannot support hate, coercion, discrimination, violence, fraud, or another prohibited use.' },
+      { question: 'Are donations to faith campaigns tax deductible?', answer: 'Not every faith campaign is tax deductible. Eligibility depends on the receiving organization and campaign structure, so donors should rely on the campaign indicator and their issued receipt or statement.' },
+      { question: 'Can interfaith community projects use this cause?', answer: 'Yes. Interfaith and community-service projects can use Faith & Belief when that category accurately describes the organizers and work, while clearly explaining who benefits and how funds will be used.' },
     ],
   },
 ];

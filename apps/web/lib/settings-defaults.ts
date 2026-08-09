@@ -118,12 +118,12 @@ export const DEFAULTS: Record<SettingsCategory, Record<string, unknown>> = {
     // `AboutTeam` shows monogram initials instead — its intended empty-photo
     // state. Add `"photo"` (https only) per person to use real headshots.
     teamRoster: JSON.stringify([
-      { name: 'Sarah Johnson', title: 'Chief Executive Officer' },
-      { name: 'Michael Patel', title: 'Chief Technology Officer' },
-      { name: 'Emily Carter', title: 'Chief Operations Officer' },
-      { name: 'David Lee', title: 'Head of Impact' },
-      { name: 'Aisha Khan', title: 'Head of Community' },
-      { name: 'James Wilson', title: 'Head of Trust & Safety' },
+      { name: 'Sarah Johnson', title: 'Chief Executive Officer', photo: '/images/team/sarah-johnson.jpg' },
+      { name: 'Michael Patel', title: 'Chief Technology Officer', photo: '/images/team/michael-patel.jpg' },
+      { name: 'Emily Carter', title: 'Chief Operations Officer', photo: '/images/team/emily-carter.jpg' },
+      { name: 'David Lee', title: 'Head of Impact', photo: '/images/team/david-lee.jpg' },
+      { name: 'Aisha Khan', title: 'Head of Community', photo: '/images/team/aisha-khan.jpg' },
+      { name: 'James Wilson', title: 'Head of Trust & Safety', photo: '/images/team/james-wilson.jpg' },
     ]),
 
     // Gates the design's "Watch our story" button, and stays EMPTY — this one

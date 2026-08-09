@@ -191,7 +191,6 @@ export async function GET(request: NextRequest) {
   const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') ?? '24', 10)));
   const offset = (page - 1) * limit;
   const location = searchParams.get('location');
-  const visibility = searchParams.get('visibility') ?? 'public';
   const sort = searchParams.get('sort') ?? 'raised';
   const sortCol = sort === 'newest' ? 'created_at' : sort === 'backers' ? 'backer_count' : 'raised_amount';
   // Opt-in, not the default: floating featured rows to the top of a `sort=newest`
@@ -207,9 +206,12 @@ export async function GET(request: NextRequest) {
     // them a card rendered from THIS route looks different from the identical
     // campaign server-rendered on a cause page — the badge simply vanishes on
     // everything loaded by "See more campaigns".
-    .select('id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, status, location, accept_donations, trust_status, nonprofit_verified, campaign_health_score, featured', { count: 'exact' })
+    .select('id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, status, location, accept_donations, trust_status, nonprofit_verified, campaign_health_score, featured, is_demo', { count: 'exact' })
     .eq('status', 'active')
-    .eq('visibility', visibility)
+    // This is a public, unauthenticated endpoint. A caller-supplied visibility
+    // value previously let `?visibility=private` bypass RLS through the service
+    // client and enumerate private campaigns.
+    .eq('visibility', 'public')
     .is('deleted_at', null)
     // `status = 'active'` alone is not "still running": nothing moves a campaign
     // out of `active` when its deadline passes, so this listing returned finished
@@ -218,7 +220,10 @@ export async function GET(request: NextRequest) {
     .or(notExpiredFilter());
 
   let query = (featuredFirst ? base.order('featured', { ascending: false }) : base)
-    .order(sortCol, { ascending: false })
+    .order(sortCol, { ascending: false });
+  if (sortCol !== 'created_at') query = query.order('created_at', { ascending: false });
+  query = query
+    .order('id', { ascending: true })
     .range(offset, offset + limit - 1);
 
   // A cause spans SEVERAL categories, so this accepts a comma-separated list and

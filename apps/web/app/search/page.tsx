@@ -42,7 +42,7 @@ async function findCampaigns(
       supabaseAdmin
         .from('campaigns')
         .select(
-          'id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, status, trust_status, nonprofit_verified, location, campaign_health_score',
+          'id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, status, trust_status, nonprofit_verified, location, campaign_health_score, is_demo',
           { count: 'exact' },
         ),
       cols,

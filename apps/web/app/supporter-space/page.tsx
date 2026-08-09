@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 
 export const revalidate = 300;
 
-const SELECT = 'id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, status, trust_status, nonprofit_verified, location, campaign_health_score';
+const SELECT = 'id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, status, trust_status, nonprofit_verified, location, campaign_health_score, is_demo';
 
 type Buckets = {
   closingSoon: CampaignCardData[];
