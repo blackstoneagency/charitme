@@ -242,6 +242,38 @@ fix, not a note to file — the absent surface is exactly where defects survive.
       first measurement claimed. ⚠️ Ratio thresholds on images must be computed in DEVICE
       pixels, or you will chase phantom savings and ship blur.
 
+### 🛡️ THE SWEEPS COULD NOT TELL "CLEAN" FROM "EMPTY" — now they can
+
+Four fixture bugs in one session all shared one root cause: **no audit in this
+repo asked whether a page rendered its DATA.** They asked about contrast, axe,
+target size and overflow — all of which a zero-state page passes perfectly,
+because there is nothing on it to fail.
+
+⚠️ **`audit-contrast` HAS an empty-render check and it caught none of them.** It
+counts visible leaf text across `body *` — the whole document — against a floor
+of **1** (5 when authenticated). A page with a header, nav and footer clears
+that floor with an entirely empty main region. **Measuring the shell cannot
+detect missing content.**
+
+`scripts/audit-content-contracts.mjs` (`npm run audit:content-contracts`) asserts
+per route that a minimum number of REAL ITEMS is present, scoped to `<main>`.
+Mutation-tested: emptying the `grants` fixture makes it fail `/grants` alone
+while the other seven still pass.
+
+⚠️ **My first draft failed 3 routes and ALL THREE were artifacts** — the same
+7-of-7 rate the focus-order audit hit on its first run. `/supported-countries`
+renders `.sc-country-card` divs, not the `li, tr` I guessed; `/sponsor` and
+`/leaderboard` are client-rendered and were still showing skeletons when I
+measured. Both are fixed (verified selectors; a bounded wait for skeletons to
+clear, reported distinctly from "no data" because they are different problems).
+**A guard that cries wolf is worse than no guard.**
+
+⚠️ It also tripped `route-list-single-source`, correctly: the paths now come from
+`e2e/public-routes.json` and any contract naming a route absent from it exits 2.
+That guard's own message records why — five copies existed before, all five
+drifted, and two listed non-public routes, so the sweeps audited /login and
+passed.
+
 ### ✅ /events, /grants AND /sponsor WERE MEASURING NOTHING — the FOURTH instance
 
 `fundraising_events`, `grants` and `sponsorship_opportunities` had **zero fixture
