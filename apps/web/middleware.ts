@@ -4,10 +4,27 @@ import { safeNextPath } from './lib/auth-config';
 import { LOCALE_COOKIE, LOCALE_HEADER, isSupportedMarketLocale, negotiateMarketLocale, resolveMarketLocale } from './lib/i18n';
 
 const PROTECTED = ['/create', '/dashboard', '/profile', '/admin'];
-// Public exceptions that fall UNDER a protected prefix. The campaign path chooser
-// must be viewable before sign-in (mirrors the already-public /ai-campaign entry) —
-// login is still required once the visitor actually starts the wizard at /create.
-const PUBLIC_EXCEPTIONS = ['/create/choose-path'];
+// Public exceptions that fall UNDER a protected prefix.
+//
+// ⚠️ `/create` itself is one of them, and that is the point rather than an
+// oversight. The builder previously redirected a signed-out visitor to /login
+// before rendering anything, which made a signup the price of LOOKING at the
+// tool — the single most expensive thing a funnel can do, and measured here as
+// `GET /create → 307 → /login`.
+//
+// The builder was already written for this: `app/create/page.tsx` carries an
+// `isGuest` state, a login modal and a guest shell mode, none of which could
+// ever run while this guard was in front of it. Someone built the right thing
+// and a route guard silently disabled it.
+//
+// Nothing is loosened by allowing the page itself. The builder holds a draft in
+// local state and only ever reaches the database through API routes, and EVERY
+// one of those still checks the session server-side — `POST /api/campaigns`
+// (publish), `/api/campaigns/drafts` (cross-device drafts), the upload route and
+// the Stripe Connect route all call `requireUser()`. A guest can therefore build
+// and preview, and is asked to sign in at PUBLISH, where identity first means
+// something: a campaign needs an owner.
+const PUBLIC_EXCEPTIONS = ['/create/choose-path', '/create'];
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
 /**

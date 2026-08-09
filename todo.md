@@ -22115,3 +22115,114 @@ Ten channels were tried from inside the sandbox before asking, and **all ten are
 blocked** — they are listed in the entry above this one. Do not re-derive them.
 When production liveness is the open question, **ask the owner for the one-line
 curl immediately**; it is the only channel that works and it costs seconds.
+
+## 🔬 DEEP DIVE — where the create flow actually loses people (measured 2026-08-09)
+
+Measured against a production build driven through `scripts/supabase-stub.mjs`,
+not read off the code. Four findings, worst first.
+
+### 1. ⛔ You must create an account before you can see the builder
+```
+GET /create  → 307 → /login?next=%2Fcreate      (measured)
+GET /create/choose-path → 200
+```
+`middleware.ts` lists `/create` in `PROTECTED` with only `/create/choose-path`
+exempt. This is the single most expensive thing a funnel can do: it asks for a
+signup before showing any value.
+
+⚠️ **And the builder already contains a full guest mode that this makes
+unreachable.** `app/create/page.tsx` carries `isGuest` state, a
+`GUEST_GATE_STEP = 'goal'`, a login modal, and `guestMode` on the shell. None
+of it can ever run for a signed-out visitor, because middleware redirects
+before the page renders. Someone built the right thing and a route guard
+silently disabled it.
+
+### 2. ⛔ Ten screens and ~17 minutes to publish — for three required fields
+`minutesRemaining('path')` sums to **17**. The publish gate, from
+`campaign-readiness.ts` (which is the SAME source the server zod schema uses):
+
+| the gate actually requires | value |
+|---|---|
+| title | ≥ 3 chars |
+| story | ≥ 20 chars |
+| goal | ≥ $1 |
+
+That is it. Category, location, beneficiary, photos, rewards, payout and
+verification are all collected on the way to a gate that does not ask for any
+of them.
+
+### 3. The path to the builder has an interstitial
+`/create/choose-path` forks AI vs manual before the wizard starts, so the real
+journey is: choose-path → login wall → 10 wizard steps.
+
+### 4. What the walkthrough found
+Driving the real builder with a stub session, eight screens were reachable
+before the walk stalled, and **not one input carries `required`** — every rule
+lives in custom validation. That is not itself a bug (the messages are better
+than the browser's), but it means the browser cannot tell an organizer what is
+needed until they press Continue.
+
+### What is already right, and must not be lost
+- **Payout is already optional to publish** and says so in a comment — a
+  previous fix, and the correct call.
+- Drafts persist 7 days in localStorage *and* `campaign_wizard_drafts`.
+- `firstIncompleteStep` resumes at the first incomplete REQUIRED step.
+- The AI assist, readiness checklist and goal guidance are genuinely good.
+
+### The re-engineering this points to
+Not "delete the wizard". The wizard's steps are all backed by real tables and
+that discipline is worth keeping. The friction is the ORDER and the GATE:
+
+1. let guests build, and ask for identity at **publish**, where it first matters;
+2. put the three fields the gate actually wants on the **first** screen;
+3. make publish reachable from the moment those three are satisfied, instead of
+   nine screens later;
+4. keep everything else as optional strengthening, clearly marked.
+
+### ✅ Round 1 shipped — the signup wall is gone (2026-08-09)
+
+`/create` no longer redirects a signed-out visitor. Measured on a production
+build, before and after:
+
+| route | before | after |
+|---|---|---|
+| `/create` | 307 → /login | **200** |
+| `/create/ai` | 307 | 307 (unchanged) |
+| `/dashboard` | 307 | 307 (unchanged) |
+
+The exemption matches EXACTLY (`path === p`), not by prefix, which is why
+`/create/ai` is untouched — a prefix match would have opened every child route.
+
+**Nothing was loosened server-side**, and that is the half worth checking:
+
+```
+POST /api/campaigns          (no session) → 401
+POST /api/upload/campaign-image (no session) → 401
+PUT  /api/campaigns/drafts   (no session) → 401
+```
+
+### The gate moved from a STEP to the two moments that need a session
+It used to fire on the `goal` step. Two things were wrong with that, and the
+first is only visible once guests can actually get in:
+
+- `media` comes BEFORE `goal` in the step list, and media is the step that
+  posts to `/api/upload/campaign-image`. The gate sat one step *after* the only
+  thing it protected.
+- Photos are optional to publish, so gating the step asked people who were
+  never going to add one to sign up for a capability they had not requested.
+
+Now: uploading asks (in `handleFileSelect`), and publishing asks. Nothing else.
+
+⚠️ **`loginIntent` is not decoration.** Success used to infer what to do from
+the current step — `step === GUEST_GATE_STEP` meant "advance", anything else
+meant "publish". With two callers able to fire on the SAME step, that inference
+would have published a campaign because someone signed in to attach a photo.
+
+### Verified in a browser as a signed-out guest
+Landed on `/create` (200), walked path → title → story → photos with **no
+sign-in prompt and 0 page errors**.
+
+⚠️ Note for the next person driving this wizard: Playwright's `fill()` does not
+register with the story textarea — the step appears to silently refuse to
+advance. Use `type()`. Two runs were misread as a product block before that was
+pinned down.
