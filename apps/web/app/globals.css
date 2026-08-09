@@ -1402,6 +1402,7 @@ input, select, textarea, button { max-width: 100%; }
 /* CharitMe product app */
 .kf-app {
   min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   grid-template-columns: 292px minmax(0, 1fr);
   background: #fff;
@@ -1412,6 +1413,7 @@ input, select, textarea, button { max-width: 100%; }
   position: sticky;
   top: 0;
   height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   gap: 22px;
@@ -2067,7 +2069,7 @@ input, select, textarea, button { max-width: 100%; }
 .kf-journey strong { font-size: 13px; }
 .kf-journey small { color: #26335c; font-size: 11px; line-height: 1.35; }
 
-.auth-page { min-height: calc(100vh - 90px); display: grid; place-items: center; padding: 52px 24px; }
+.auth-page { min-height: calc(100vh - 90px); min-height: calc(100dvh - 90px); display: grid; place-items: center; padding: 52px 24px; }
 .auth-panel { width: min(1040px, 100%); display: grid; grid-template-columns: minmax(0, 1fr) 440px; gap: 28px; align-items: stretch; }
 .auth-copy, .auth-card { border: 1px solid var(--line); border-radius: 28px; background: rgba(255,255,255,.88); box-shadow: var(--shadow); }
 .auth-copy { padding: 54px; background: radial-gradient(circle at 74% 22%, rgba(235,63,198,.16), transparent 28%), radial-gradient(circle at 24% 72%, rgba(109,53,255,.14), transparent 34%), #fff; }
@@ -2483,7 +2485,7 @@ input, select, textarea, button { max-width: 100%; }
 .pc-pay-icon { width: 28px; height: 28px; border-radius: 6px; display: grid; place-items: center; font-size: 14px; font-weight: 700; flex-shrink: 0; }
 
 /* Signed-in dashboard landing */
-.dash-home { min-height: 100vh; padding: 26px 30px 24px; background: #f7f8fc; }
+.dash-home { min-height: 100vh; min-height: 100dvh; padding: 26px 30px 24px; background: #f7f8fc; }
 .dash-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 28px; margin-bottom: 26px; }
 .dash-head h1 { margin: 0; color: #0f1535; font-size: 28px; line-height: 1.1; letter-spacing: -.02em; font-weight: 700; }
 .dash-head p { margin: 8px 0 0; color: #68718e; font-size: 15px; }
@@ -5349,7 +5351,7 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 /* ═══════════════════════════════════════════════════════
    sc-* — Supported Countries public page
    ═══════════════════════════════════════════════════════ */
-.sc-page { min-height: 100vh; background: var(--bg, #f8f7fe); }
+.sc-page { min-height: 100vh; min-height: 100dvh; background: var(--bg, #f8f7fe); }
 
 /* Hero */
 .sc-hero { position: relative; overflow: hidden; background: linear-gradient(135deg, #0f1238 0%, #1e0a4a 60%, #0d2154 100%); color: #fff; padding: 80px 24px 72px; text-align: center; }
@@ -5522,6 +5524,22 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
   --red-text: #ff4768;
 }
 
+/* ── Mobile viewport: why every `100vh` here has a `100dvh` companion ────────
+   On iOS Safari `100vh` is the LARGE viewport — the height with the URL bar
+   HIDDEN. A `min-height: 100vh` section is therefore taller than the visible
+   area whenever the bar is showing, which is most of the time, so the page
+   gains ~60-100px of dead scroll and the first tap often just collapses the
+   bar instead of hitting the control under the thumb.
+
+   ⚠️ NO AUDIT IN THIS REPO CAN SEE THIS. Every sweep runs headless Chromium at
+   a fixed viewport, where the URL bar does not exist and `100vh === 100dvh`.
+   The overflow and tap-target runs are green on exactly the pages this affects.
+   It was found by reading the stylesheet, not by measuring, and the same is
+   true of anything else that depends on real mobile browser chrome.
+
+   `dvh` is the dynamic viewport height and tracks the bar. The `100vh` line
+   stays immediately above as the fallback for browsers without `dvh`; they
+   ignore the second declaration and are no worse off than before. */
 /* ── Body ── */
 [data-theme="dark"] body {
   /* Flat black, requested.
@@ -7801,6 +7819,7 @@ summary:focus-visible,
 .maintenance-page {
   position: relative;
   min-height: 100vh;
+  min-height: 100dvh;
   overflow: hidden;
   display: grid;
   place-items: center;
@@ -11467,6 +11486,7 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   --red-text: #ff8fa0;
 
   min-height: 100vh;
+  min-height: 100dvh;
   padding-bottom: 36px;
   overflow: clip;
   background: var(--rp-bg);

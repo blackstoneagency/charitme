@@ -1,5 +1,61 @@
 # CharitMe — Execution Tracker
 
+## 📱 MOBILE READINESS — the class of defect NO audit in this repo can see (Claude, 2026-08-09)
+
+Six runtime sweeps run headless Chromium at a fixed viewport. That viewport has
+**no URL bar, no home indicator, no notch and no dynamic chrome**, so an entire
+family of real mobile defects is invisible to every one of them — and the sweeps
+are green on exactly the pages affected. These were found by reading the
+stylesheet and the layout, not by measuring, and that is the point.
+
+### ✅ FIXED — `100vh` is the wrong unit on iOS Safari
+
+Nine declarations, now each carrying a `100dvh` companion (the `100vh` line
+stays above as the fallback).
+
+On iOS Safari `100vh` is the LARGE viewport — the height with the URL bar
+HIDDEN. A `min-height: 100vh` section is taller than the visible area whenever
+the bar shows, which is most of the time, so the page gains ~60–100px of dead
+scroll and a first tap often just collapses the bar instead of hitting the
+control under the thumb. Affects `.auth-page`, `.dash-home`, `.sc-page` and the
+shell containers — i.e. sign-in, the member dashboard and the supported-countries
+page.
+
+### 🟡 OPEN — a fixed toast sits under the iPhone home indicator
+
+`.kf-set-toast` is `position: fixed; bottom: 28px`. The home indicator area is
+~34px in portrait on every notched iPhone, so the toast overlaps it.
+
+**Not fixed here, deliberately.** The fix is `env(safe-area-inset-bottom)`, and
+`env()` returns **0** unless the viewport meta carries `viewport-fit=cover` —
+which this app does not set (`export const viewport` has `themeColor` and no
+`viewportFit`). Adding it is not a one-line change: it makes content extend into
+the unsafe areas on every notched device, so every full-bleed and edge-anchored
+element needs re-checking against a real device. I cannot verify that from here
+— and a headless run would report it clean either way, which is the whole
+problem.
+
+Whoever takes it: set `viewportFit: 'cover'`, then sweep for edge-anchored
+elements and add the four `env(safe-area-inset-*)` paddings together. Doing the
+first without the second is worse than doing neither.
+
+### Measured state of the rest
+
+| check | result |
+|---|---|
+| PWA manifest | ✅ `app/manifest.ts` (Next injects the link) |
+| `themeColor` | ✅ set |
+| `overscroll-behavior` | ✅ present |
+| `prefers-reduced-motion` | ✅ 10 blocks |
+| `env(safe-area-inset-*)` | ❌ 0 uses |
+| `viewport-fit=cover` | ❌ absent |
+| `-webkit-tap-highlight-color` | ❌ unset (default grey flash on iOS tap) |
+| `touch-action` | ❌ 0 declarations |
+| user-scalable / maximum-scale | ✅ not set — pinch-zoom is NOT blocked, which is correct |
+
+The last row is worth keeping: blocking zoom is a common and serious mobile
+accessibility failure, and this app has never done it.
+
 ## 📐 /campaigns BROWSE STRIP — regrouped, and the height trade is measured (Claude, 2026-08-09)
 
 The strip drove **two different filters** in one undifferentiated wall.
