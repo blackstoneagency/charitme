@@ -6,8 +6,7 @@ import {
   POPULAR_CAUSES,
   causeBrowseHref,
   getCause,
-  uncoveredCategories,
-} from '../lib/causes';
+  uncoveredCategories, causePageHref } from '../lib/causes';
 
 // The failure this guards against: `CAMPAIGN_CATEGORIES` is the single source of
 // truth for campaign categories, and it has already drifted once when three
@@ -125,17 +124,41 @@ describe('narrower disclosure', () => {
 });
 
 describe('causeBrowseHref', () => {
-  it('uses the /campaigns filter when the cause is exactly one category', () => {
-    expect(causeBrowseHref(getCause('education')!)).toBe('/campaigns?category=Education');
-    expect(causeBrowseHref(getCause('environment')!)).toBe('/campaigns?category=Environment');
+  it('browses campaigns by CAUSE, for every cause, with no branch', () => {
+    // ⚠️ This replaces two cases that pinned the old branching contract:
+    // one category went to `/campaigns?category=…`, several went to
+    // `/causes/<slug>`. Both halves broke something once cause pages became
+    // real pages, and each broke a different thing:
+    //
+    //   · the single-category branch meant nine causes — Health & Wellness and
+    //     Education among them — were never reachable from the mega-menu,
+    //     which linked their NAME to a filtered campaigns list;
+    //   · the multi-category branch made the hero and closing "Donate now"
+    //     buttons link to the page they were already on, on eleven causes.
+    //
+    // `?cause=` needs no branch: /campaigns resolves the slug to the cause's
+    // categories and queries with `.in(...)`, so nothing is dropped.
+    expect(causeBrowseHref(getCause('education')!)).toBe('/campaigns?cause=education');
+    expect(causeBrowseHref(getCause('animals-planet')!)).toBe('/campaigns?cause=animals-planet');
+    for (const c of CAUSES) {
+      expect(causeBrowseHref(c), `${c.slug}`).toBe(`/campaigns?cause=${c.slug}`);
+    }
   });
 
-  it('keeps multi-category causes on their own page', () => {
-    // /campaigns filters on a single category. Pointing a multi-category cause
-    // there would silently drop every category but the first — the page would
-    // look like it worked and show a subset.
-    expect(causeBrowseHref(getCause('animals-planet')!)).toBe('/causes/animals-planet');
-    expect(causeBrowseHref(getCause('people-in-need')!)).toBe('/causes/people-in-need');
+  it('does not drop categories for a multi-category cause', () => {
+    // The original reason the branch existed. `?category=` can only carry one,
+    // so a multi-category cause pointed at it would silently show a subset
+    // while looking like it worked. `?cause=` carries the slug instead.
+    for (const c of CAUSES.filter((x) => x.categories.length > 1)) {
+      expect(causeBrowseHref(c)).not.toContain('category=');
+    }
+  });
+
+  it('sends a link ABOUT a cause to that cause\'s own page', () => {
+    for (const c of CAUSES) {
+      expect(causePageHref(c)).toBe(`/causes/${c.slug}`);
+      expect(causePageHref(c), `${c.slug}`).not.toBe(causeBrowseHref(c));
+    }
   });
 
   it('never emits an unencoded category', () => {

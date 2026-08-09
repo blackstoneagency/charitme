@@ -9,7 +9,7 @@
 // `flattenNav()` derives the mobile list, so it cannot fall behind.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { ALL_CAUSES_COLUMN, POPULAR_CAUSES, causeBrowseHref } from './causes';
+import { ALL_CAUSES_COLUMN, POPULAR_CAUSES, causePageHref } from './causes';
 
 export interface NavLink {
   label: string;
@@ -50,13 +50,13 @@ export const EXPLORE_CAUSES: NavItem = {
     {
       heading: 'Popular Causes',
       headingKey: 'nav.causes.popular',
-      links: POPULAR_CAUSES.map((c) => ({ label: c.label, href: causeBrowseHref(c), labelKey: `nav.cause.${c.slug}` })),
+      links: POPULAR_CAUSES.map((c) => ({ label: c.label, href: causePageHref(c), labelKey: `nav.cause.${c.slug}` })),
       footer: VIEW_ALL,
     },
     {
       heading: 'All Causes',
       headingKey: 'nav.causes.all',
-      links: ALL_CAUSES_COLUMN.map((c) => ({ label: c.label, href: causeBrowseHref(c), labelKey: `nav.cause.${c.slug}` })),
+      links: ALL_CAUSES_COLUMN.map((c) => ({ label: c.label, href: causePageHref(c), labelKey: `nav.cause.${c.slug}` })),
       footer: VIEW_ALL,
     },
   ],
