@@ -49,11 +49,17 @@ for (const viewport of VIEWPORTS) {
     await feeButton.click();
     const feePanel = page.locator('#service-fee-panel');
     await expect(feePanel.getByRole('radio')).toHaveCount(8);
+    await expect(page.getByLabel(
+      'Fees (estimated): $7.96. CharitMe fee $7.50 + processing $0.46.',
+    )).toBeVisible();
     await feePanel.getByRole('radio', { name: /^Set support to 0 percent/ }).click();
 
     const breakdown = page.getByText('Breakdown', { exact: true }).locator('..');
-    await expect(breakdown).toContainText('CharitMe fee (optional)');
-    await expect(breakdown).toContainText('Bank transfer processing estimate');
+    await expect(breakdown).toContainText('Fees (estimated)');
+    await expect(page.getByLabel(
+      'Fees (estimated): $0.40. Processing only — no CharitMe fee.',
+    )).toBeVisible();
+    await expect(breakdown).toContainText('Recipient receives');
     await expect(breakdown).toContainText('$50.40');
     await expect(page.getByRole('button', { name: /Donate to/ })).toContainText('$50.40');
 
