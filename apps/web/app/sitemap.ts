@@ -61,7 +61,11 @@ async function safeCampaignColumns() {
   try {
     return await campaignColumns();
   } catch {
-    return { visibility: true, deletedAt: true };
+    // Same asymmetry as FAIL_TOWARD_PRIVACY in lib/campaign-visibility.ts: the
+    // privacy filters stay ON when we cannot tell, but `payoutReady` stays OFF.
+    // Filtering on a column that has not been migrated yet is 42703, which would
+    // fail the query and emit an EMPTY sitemap — delisting the whole site.
+    return { visibility: true, deletedAt: true, payoutReady: false };
   }
 }
 

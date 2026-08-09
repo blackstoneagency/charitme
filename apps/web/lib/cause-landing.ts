@@ -1,7 +1,7 @@
 import 'server-only';
 import { supabaseAdmin } from './supabase';
 import { boundedQuery } from './query-timeout';
-import { campaignColumns, applyLiveFilters, applyVisibilityFilters, applyNotExpired } from './campaign-visibility';
+import { campaignColumns, applyLiveFilters, applyVisibilityFilters, applyNotExpired, applyDonatable } from './campaign-visibility';
 import type { Cause } from './causes';
 import type { CauseStoryRow, CauseImpactStatRow, EmbeddedCampaignSlug } from './database.types';
 
@@ -69,8 +69,14 @@ export async function getCauseStats(cause: Cause): Promise<CauseStats> {
       // has passed makes the number disagree with the six cards under it, and the
       // cards are the checkable half.
       applyNotExpired(
-        applyLiveFilters(
-          supabaseAdmin.from('campaigns').select('category, raised_amount, backer_count'),
+        // The tile counts what the grid shows. The grid below now excludes
+        // campaigns that cannot take a donation, so counting them here would
+        // reintroduce exactly the disagreement the expiry filter removed.
+        applyDonatable(
+          applyLiveFilters(
+            supabaseAdmin.from('campaigns').select('category, raised_amount, backer_count'),
+            cols,
+          ),
           cols,
         ),
       )
