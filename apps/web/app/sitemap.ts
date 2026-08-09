@@ -116,9 +116,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     impactPlans,
   ] = await Promise.all([
     queryRows(() => applyLiveFilters(
-      supabaseAdmin.from('campaigns').select('id, slug, updated_at'),
+      supabaseAdmin.from('campaigns').select('id, slug, updated_at, is_demo'),
       cols,
     )
+      .eq('is_demo', false)
       .order('raised_amount', { ascending: false })
       .limit(5000)),
     queryRows(() => supabaseAdmin

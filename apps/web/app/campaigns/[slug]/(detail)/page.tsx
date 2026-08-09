@@ -322,6 +322,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const campaignUrl = `${ORIGIN}/campaigns/${slug}`;
   const description = campaign.tagline ?? campaign.description?.slice(0, 160) ?? '';
   const image = campaign.cover_image_url ?? getCoverForCampaign(campaign.category, campaign.slug);
+  const isDemo = isDemoCampaign(campaign as { is_demo?: unknown });
 
   return {
     title: campaign.title,
@@ -341,6 +342,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       images: [image],
     },
     alternates: { canonical: campaignUrl },
+    // Seeded catalog rows make cause discovery testable without pretending to
+    // be real fundraisers. Keep them out of search indexes even though they are
+    // intentionally visible and clearly labelled inside CharitMe.
+    robots: isDemo ? { index: false, follow: true } : { index: true, follow: true },
   };
 }
 

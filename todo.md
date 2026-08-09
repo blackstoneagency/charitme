@@ -57,6 +57,27 @@ focus ring.
 - The **signed-in** surface is not covered here (`audit:mobile --auth` needs a
   stub session). Public only, which is 111 routes.
 
+## ✅ SIGNED-IN RELEASE AUDIT CLEAN ON THE COMBINED CAUSE-PAGE BRANCH (Codex, 2026-08-08)
+
+The authenticated release sweep has completed against the branch that includes
+master through `2c98bc99` (all 20 cause pages) plus the global-navigation and
+trust-safety contrast fixes in `cbc21ae4`.
+
+| Theme | Routes rendered | Text elements examined | WCAG AA failures |
+|---|---:|---:|---:|
+| Light | 226 | 32,944 | **0** |
+| Dark | 226 | 32,774 | **0** |
+
+Result: **452 authenticated renders with zero AA contrast failures**. The audit
+used the production build and the authenticated Supabase stub, and covered every
+registered member/admin route in both themes. The previously measured user-name
+contrast regression in the black global navigation and the Trust & Safety
+Resolve action are both closed and regression-tested.
+
+The release branch also remains green for typecheck, lint, focused unit/contract
+tests, and the zero-state nine-persona Supabase platform matrix. PR #303 remains
+the release vehicle; production is not claimed until its exact head passes CI,
+is merged, and the tagged release workflow completes.
 
 ## 🏷️ A CARD SHOWED "✓ Verified" AND "Needs More Info" AT THE SAME TIME (Claude, 2026-08-08)
 
@@ -2822,11 +2843,17 @@ skipped workflow leaves its check pending forever and would deadlock a docs-only
 PR. Nothing is required today, which is why this is safe now — recorded so the
 next person does not find out the hard way.
 
-## 🛑 SUPABASE STAGING — blocked, and the pending count is **35** (Claude, 2026-08-03)
+## 🛑 SUPABASE STAGING — blocked, and the pending count is **37** (Claude, 2026-08-03)
 
 **Live ledger rechecked 2026-08-08:** `supabase migration list --linked`
-reported 122 local migration files and 87 production ledger entries. The 35-file
+reported 124 local migration files and 87 production ledger entries. The 37-file
 gap below is therefore a current measurement, not only historical arithmetic.
+
+**+1 on 2026-08-08: `20260830000000_protect_verification_and_campaign_integrity.sql`.**
+Prevents browser sessions from self-verifying nonprofit profiles or uploaded
+documents, spoofing campaign money and trust fields, publishing directly, or
+turning on paid featured placement. The isolated staging platform matrix proves
+the denied and service-role paths before release.
 
 **+1 on 2026-08-08: `20260829000000_reconcile_live_schema_columns.sql`.**
 Reproduces 49 production columns, their exact types/defaults/nullability, foreign
@@ -2881,8 +2908,8 @@ PDFs, which are not reconstructible from this schema.
 ⚠️ **Superseded in part — read the correction at the top of this file first.**
 The arithmetic below is sound and the drift guard on it is worth keeping, but the
 number it produces is a **file-derived upper bound, not the applied state**. At
-least two of the 35 are demonstrably live in production, measured against the
-running site. Treat 35 as "no more than 35", and establish the real set with
+least two of the 37 are demonstrably live in production, measured against the
+running site. Treat 37 as "no more than 37", and establish the real set with
 `supabase migration list --linked` before planning a release.
 
 **None of the four numbers previously in this file was right**, and the fifth —
@@ -2897,16 +2924,16 @@ that day**:
 dump confirmed the objects were absent, and a restored production clone applied
 all 18 in order and proved rollback.
 
-Seventeen migrations have been added since. So the count is arithmetic:
+Eighteen migrations have been added since. So the count is arithmetic:
 
 ```
-122 local − 87 applied           = 35
-18 audited pending + 17 added    = 35   ✓ reconciles
+124 local − 87 applied           = 37
+18 audited pending + 19 added    = 37   ✓ reconciles
 ```
 
 All 18 audited-pending versions are still on disk under their original names.
 
-### ⚠️ Six of the 35 are SECURITY hardening, not features
+### ⚠️ Seven of the 37 are SECURITY hardening, not features
 
 This is the part that changes the priority. Written, reviewed, merged — and
 **not live**:
@@ -2917,6 +2944,7 @@ This is the part that changes the priority. Written, reviewed, merged — and
 - `20260812010000_creator_tips_not_world_readable`
 - `20260813000000_donor_message_anonymity_contract`
 - `20260814010000_harden_role_and_team_boundaries`
+- `20260830000000_protect_verification_and_campaign_integrity`
 
 The staging blocker is not only holding back features; it is holding back RLS and
 privilege hardening in production. Several others (`tasks`, `custom_domains`,
@@ -2940,7 +2968,7 @@ miscounting, it was adding migrations and leaving the old number in place.
 
 Owner action unchanged: upgrade Supabase, free a project slot, or provision
 staging elsewhere. Do not bypass the gate — the ledger's last line says so, and
-35 unverified migrations including six privilege changes is exactly the case the
+37 unverified migrations including seven privilege changes is exactly the case the
 gate exists for.
 
 ## ⚪ `/certificate` — NOT a deferral; building it would require inventing data
@@ -22173,3 +22201,153 @@ Ten channels were tried from inside the sandbox before asking, and **all ten are
 blocked** — they are listed in the entry above this one. Do not re-derive them.
 When production liveness is the open question, **ask the owner for the one-line
 curl immediately**; it is the only channel that works and it costs seconds.
+
+## 🔬 DEEP DIVE — where the create flow actually loses people (measured 2026-08-09)
+
+Measured against a production build driven through `scripts/supabase-stub.mjs`,
+not read off the code. Four findings, worst first.
+
+### 1. ⛔ You must create an account before you can see the builder
+```
+GET /create  → 307 → /login?next=%2Fcreate      (measured)
+GET /create/choose-path → 200
+```
+`middleware.ts` lists `/create` in `PROTECTED` with only `/create/choose-path`
+exempt. This is the single most expensive thing a funnel can do: it asks for a
+signup before showing any value.
+
+⚠️ **And the builder already contains a full guest mode that this makes
+unreachable.** `app/create/page.tsx` carries `isGuest` state, a
+`GUEST_GATE_STEP = 'goal'`, a login modal, and `guestMode` on the shell. None
+of it can ever run for a signed-out visitor, because middleware redirects
+before the page renders. Someone built the right thing and a route guard
+silently disabled it.
+
+### 2. ⛔ Ten screens and ~17 minutes to publish — for three required fields
+`minutesRemaining('path')` sums to **17**. The publish gate, from
+`campaign-readiness.ts` (which is the SAME source the server zod schema uses):
+
+| the gate actually requires | value |
+|---|---|
+| title | ≥ 3 chars |
+| story | ≥ 20 chars |
+| goal | ≥ $1 |
+
+That is it. Category, location, beneficiary, photos, rewards, payout and
+verification are all collected on the way to a gate that does not ask for any
+of them.
+
+### 3. The path to the builder has an interstitial
+`/create/choose-path` forks AI vs manual before the wizard starts, so the real
+journey is: choose-path → login wall → 10 wizard steps.
+
+### 4. What the walkthrough found
+Driving the real builder with a stub session, eight screens were reachable
+before the walk stalled, and **not one input carries `required`** — every rule
+lives in custom validation. That is not itself a bug (the messages are better
+than the browser's), but it means the browser cannot tell an organizer what is
+needed until they press Continue.
+
+### What is already right, and must not be lost
+- **Payout is already optional to publish** and says so in a comment — a
+  previous fix, and the correct call.
+- Drafts persist 7 days in localStorage *and* `campaign_wizard_drafts`.
+- `firstIncompleteStep` resumes at the first incomplete REQUIRED step.
+- The AI assist, readiness checklist and goal guidance are genuinely good.
+
+### The re-engineering this points to
+Not "delete the wizard". The wizard's steps are all backed by real tables and
+that discipline is worth keeping. The friction is the ORDER and the GATE:
+
+1. let guests build, and ask for identity at **publish**, where it first matters;
+2. put the three fields the gate actually wants on the **first** screen;
+3. make publish reachable from the moment those three are satisfied, instead of
+   nine screens later;
+4. keep everything else as optional strengthening, clearly marked.
+
+### ✅ Round 1 shipped — the signup wall is gone (2026-08-09)
+
+`/create` no longer redirects a signed-out visitor. Measured on a production
+build, before and after:
+
+| route | before | after |
+|---|---|---|
+| `/create` | 307 → /login | **200** |
+| `/create/ai` | 307 | 307 (unchanged) |
+| `/dashboard` | 307 | 307 (unchanged) |
+
+The exemption matches EXACTLY (`path === p`), not by prefix, which is why
+`/create/ai` is untouched — a prefix match would have opened every child route.
+
+**Nothing was loosened server-side**, and that is the half worth checking:
+
+```
+POST /api/campaigns          (no session) → 401
+POST /api/upload/campaign-image (no session) → 401
+PUT  /api/campaigns/drafts   (no session) → 401
+```
+
+### The gate moved from a STEP to the two moments that need a session
+It used to fire on the `goal` step. Two things were wrong with that, and the
+first is only visible once guests can actually get in:
+
+- `media` comes BEFORE `goal` in the step list, and media is the step that
+  posts to `/api/upload/campaign-image`. The gate sat one step *after* the only
+  thing it protected.
+- Photos are optional to publish, so gating the step asked people who were
+  never going to add one to sign up for a capability they had not requested.
+
+Now: uploading asks (in `handleFileSelect`), and publishing asks. Nothing else.
+
+⚠️ **`loginIntent` is not decoration.** Success used to infer what to do from
+the current step — `step === GUEST_GATE_STEP` meant "advance", anything else
+meant "publish". With two callers able to fire on the SAME step, that inference
+would have published a campaign because someone signed in to attach a photo.
+
+### Verified in a browser as a signed-out guest
+Landed on `/create` (200), walked path → title → story → photos with **no
+sign-in prompt and 0 page errors**.
+
+⚠️ Note for the next person driving this wizard: Playwright's `fill()` does not
+register with the story textarea — the step appears to silently refuse to
+advance. Use `type()`. Two runs were misread as a product block before that was
+pinned down.
+
+### ✅ Round 2 shipped — publish is offered the moment it is possible (2026-08-09)
+
+The flow's central friction was that the publish GATE and the publish PATH
+disagreed. The gate wants three things; the builder walked people through six
+more screens before offering the button.
+
+`publishReadiness` is now computed **once, at component scope**, instead of
+inline on the review step — which is precisely why the button could not exist
+anywhere else before. One computation also means the checklist and the button
+can never disagree about whether a draft is publishable.
+
+`Publish now →` appears next to Continue as soon as title ≥ 3, story ≥ 20 and
+goal ≥ $1 are satisfied, and never on a `postPublish` step (offering it after
+going live would invite a second campaign from someone who already made one).
+
+**Measured in a browser, both signed-out and signed-in:**
+
+| moment | button |
+|---|---|
+| step 1 | absent |
+| title filled | absent |
+| story filled, goal empty | absent |
+| goal filled | **appears** |
+
+· guest clicks it → sign-in modal (intent `publish`)
+· signed-in clicks it → `POST /api/campaigns` → **201 Created**
+
+That last line matters: it is the difference between a control and a
+decoration. This repo has shipped a button whose class had no CSS rule and
+rendered as a grey box, so the styling is asserted too.
+
+⚠️ It is an outline button, not a second filled one. Continuing is still the
+suggested path — this is an escape hatch for someone who is done, not a nag.
+
+### Still ahead
+- Collapse title/story/goal onto ONE first screen (they are three screens for
+  three fields).
+- `/create/choose-path` is still an interstitial before the builder.

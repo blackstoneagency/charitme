@@ -85,7 +85,7 @@ export interface AboutPageContent {
 
 const FALLBACK: AboutPageContent = {
   companyName: 'CharitMe',
-  team: [],
+  team: parseTeam(DEFAULTS.about.teamRoster),
   storyVideoUrl: null,
 };
 
@@ -119,12 +119,29 @@ export function parseTeam(raw: unknown): TeamMember[] {
     const photoRaw = typeof r.photo === 'string' ? r.photo.trim() : '';
     // https only. An http headshot would be blocked as mixed content and render
     // as a broken image on a page whose whole job is looking trustworthy.
-    const photo = /^https:\/\/\S+$/.test(photoRaw) ? photoRaw : undefined;
+    const photo = /^https:\/\/\S+$/.test(photoRaw) || /^\/images\/team\/[a-z0-9-]+\.jpg$/.test(photoRaw)
+      ? photoRaw
+      : undefined;
     const linkedinRaw = typeof r.linkedin === 'string' ? r.linkedin.trim() : '';
     out.push({ name, title, photo, linkedin: parseLinkedIn(linkedinRaw) });
     if (out.length === 12) break;
   }
   return out;
+}
+
+export function withDefaultTeamPhotos(team: TeamMember[]): TeamMember[] {
+  const defaults = new Map(
+    parseTeam(DEFAULTS.about.teamRoster).map((member) => [
+      `${member.name.toLowerCase()}\u0000${member.title.toLowerCase()}`,
+      member.photo,
+    ]),
+  );
+
+  return team.map((member) => {
+    if (member.photo) return member;
+    const photo = defaults.get(`${member.name.toLowerCase()}\u0000${member.title.toLowerCase()}`);
+    return photo ? { ...member, photo } : member;
+  });
 }
 
 /**
@@ -189,7 +206,7 @@ const fetchAboutContent = unstable_cache(
 
       return {
         companyName: name || FALLBACK.companyName,
-        team: parseTeam(about.teamRoster ?? DEFAULTS.about.teamRoster),
+        team: withDefaultTeamPhotos(parseTeam(about.teamRoster ?? DEFAULTS.about.teamRoster)),
         storyVideoUrl: parseVideoUrl(about.storyVideoUrl ?? DEFAULTS.about.storyVideoUrl),
       };
     } catch {

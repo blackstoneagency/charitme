@@ -250,7 +250,7 @@ export default async function TrustSafetyPage() {
 function ResolveFlag({ id }: { id: string }) {
   return (
     <form action={`/api/admin/trust/flags/${id}/resolve`} method="POST" style={{ display: 'inline' }}>
-      <button type="submit" style={{ fontSize: 12, padding: '5px 12px', background: '#f0fff4', color: 'var(--green-text)', borderRadius: 8, fontWeight: 700, border: '1px solid #bbf7d0', cursor: 'pointer' }}>
+      <button type="submit" style={{ fontSize: 12, padding: '5px 12px', background: 'var(--green-light)', color: 'var(--green-text)', borderRadius: 8, fontWeight: 700, border: '1px solid var(--green-dark)', cursor: 'pointer' }}>
         Resolve
       </button>
     </form>

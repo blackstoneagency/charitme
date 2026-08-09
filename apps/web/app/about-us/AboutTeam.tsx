@@ -15,10 +15,14 @@ import { initials, type TeamMember } from '../../lib/about-page';
  */
 export default function AboutTeam({ members }: { members: TeamMember[] }) {
   if (members.length === 0) return null;
+  const usesRepresentativePhotography = members.some((member) => member.photo?.includes('images/team/'));
 
   return (
     <section className="ab-team" aria-labelledby="ab-team-h">
       <h2 id="ab-team-h" className="ab-h2">Our Team</h2>
+      {usesRepresentativePhotography && (
+        <p className="ab-team-note">Representative photography is shown until verified team portraits are supplied.</p>
+      )}
       <ul className="ab-team-grid">
         {members.map((member) => (
           <li key={`${member.name}-${member.title}`} className="ab-team-card">

@@ -63,10 +63,28 @@ jobs:
         run: npm ci
 
       - name: Start isolated database
-        run: npx supabase db start
+        run: npx supabase start
 
       - name: Replay every migration and seed
         run: npx supabase db reset --local
+
+      - name: Export isolated Supabase configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx supabase status --output env > "$RUNNER_TEMP/supabase.env"
+          set -a
+          source "$RUNNER_TEMP/supabase.env"
+          set +a
+          echo "::add-mask::$SERVICE_ROLE_KEY"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+          } >> "$GITHUB_ENV"
+
+      - name: Verify staging personas, tenants, data, and storage
+        run: npm run test:platform-matrix
 
       - name: Stop isolated database
         if: always()
