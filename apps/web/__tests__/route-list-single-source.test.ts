@@ -523,4 +523,22 @@ describe('signed-out-only routes are excluded from the signed-in sweep, not from
     expect(sweep).toMatch(/AUTH_PAGES\s*=\s*ALL_PAGES\.filter/);
     expect(sweep).toMatch(/WITH_AUTH\s*\?\s*\[\.\.\.AUTH_PAGES/);
   });
+
+  // The contrast sweep was the only one that knew about this, so the signed-in
+  // MOBILE sweep counted /login and /signup as redirect failures and exited 1
+  // on every single run — a permanently-red audit, which by this repo's own
+  // rule is an ignored audit. Asserted for EVERY --auth-capable sweep rather
+  // than for the two that exist today, so the next one cannot repeat it.
+  it('every --auth-capable sweep subtracts them', () => {
+    const dir = path.join(WEB_ROOT, 'scripts');
+    const sweeps = readdirSync(dir)
+      .filter((f) => /^audit-.*\.mjs$/.test(f))
+      .map((f) => [f, readFileSync(path.join(dir, f), 'utf8')] as const)
+      .filter(([, src]) => src.includes("includes('--auth')"));
+
+    expect(sweeps.length, 'no --auth-capable sweep found — the filename pattern moved').toBeGreaterThan(1);
+    for (const [name, src] of sweeps) {
+      expect(src, `${name} sweeps signed-in without subtracting signedOutOnly`).toContain('signedOutOnly');
+    }
+  });
 });

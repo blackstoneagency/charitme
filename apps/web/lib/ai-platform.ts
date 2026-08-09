@@ -1,3 +1,23 @@
+/**
+ * The COMPUTED trust vocabulary — what `getTrustStatus(score)` returns, and
+ * nothing else.
+ *
+ * ⚠️ It is NOT the type of `campaigns.trust_status`. That column holds the
+ * STORED vocabulary (`StoredTrustTier` in lib/trust-tiers.ts), the two share
+ * three words and differ on three, and the plurality value in production —
+ * `'Trusted'`, 133 of 314 measured — appears only in the stored one. A previous
+ * note called this union "wrong" for that reason. It is not wrong; it is a
+ * different vocabulary that was being read as the same one. The defect was the
+ * absence of a barrier between them, so:
+ *
+ *   · this type is never used to type a stored value, and
+ *   · `__tests__/trust-tiers.test.ts` fails if a computed status is written to
+ *     `trust_status`, or if the two unions' shared words drift apart.
+ *
+ * Widening this union to include `'Trusted'` would be the actual mistake: the
+ * scorer cannot produce it, so the extra member would be permanently
+ * unreachable while implying the reverse to every `switch` over the type.
+ */
 export type TrustStatus = 'Verified' | 'Strong Trust' | 'Needs More Info' | 'Under Review';
 
 export type TrustSignal = {

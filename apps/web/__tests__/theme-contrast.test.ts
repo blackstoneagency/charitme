@@ -115,14 +115,6 @@ describe('theme token contrast (WCAG 2.2 AA)', () => {
     expect(css).toContain('[data-theme="dark"] .cr2-track-item.done .cr2-track-label { color: var(--violet-ink); }');
   });
 
-  it('keeps campaign-builder AI actions readable over every gradient endpoint', () => {
-    for (const background of ['#6d28d9', '#0369a1', '#a16207', '#92400e']) {
-      expect(contrast('#ffffff', background), background).toBeGreaterThanOrEqual(AA_NORMAL);
-    }
-    expect(css).toContain('linear-gradient(135deg, #6d28d9, #0369a1)');
-    expect(css).toContain('linear-gradient(135deg, #a16207, #92400e)');
-  });
-
   it('keeps the signed-in identity readable on the always-black global header', () => {
     expect(contrast('#d8dee5', '#000000')).toBeGreaterThanOrEqual(AA_NORMAL);
     expect(css).toContain('.kind-header .kind-user-btn { color: #d8dee5; }');

@@ -1,5 +1,192 @@
 # CharitMe — Execution Tracker
 
+## ⛔ THE OPEN SET IS 21 ITEMS AND **NONE OF THEM ARE AGENT-ACTIONABLE** (Claude, 2026-08-09)
+
+Read this before working the list, because the list does not say it: every
+remaining `- [ ]` in this file is blocked on an **owner action**, not on
+engineering effort. Agents have repeatedly re-derived that fact one item at a
+time. It is written down once here.
+
+**21 items → 4 owner actions.** Line numbers drift as the file grows; the
+grouping is what matters.
+
+| # | Owner action | Unblocks | Why no agent can do it |
+|---|---|---|---|
+| **A** | Provision a staging Supabase project + Stripe **test-mode** keys and a reachable webhook endpoint | **8** — the 6 "apply migration X to staging and run authenticated smoke tests" items, CHAR-0014, CHAR-0016, and the 4 remaining CHAR-1403 checks | Needs credentials and a paid project. No sandbox can create it |
+| **B** | Enable **Stripe Connect live** (LB-005) | **4** — live charge→transfer→payout→reconcile (×2 entries), the per-persona live RLS matrix, refund/dispute via test clocks | Requires the account holder's identity and banking details |
+| **C** | Approve deletion of fabricated demo rows in the live database | **1** — CHAR-1402 | Destructive, on production data, and explicitly marked "owner decision" |
+| **D** | Decide scope | **8** — CHAR-1201 (ticketed events) and the 6 marketing-engine roadmap items | Product scope, not defects. Building them uninstructed is the opposite of the ask |
+
+### What was done instead, where the block was NOT real
+
+Two of those groups turned out to be partly self-imposed, and that half is now
+closed:
+
+- **The RLS half of group A ran nowhere.** Five items read "…and run
+  authenticated RLS/payment smoke tests", all waiting on the staging project —
+  so **no authenticated RLS check ran on any commit at all**.
+  `rls-live-smoke.mjs` already had a loopback-database mode and CI's
+  `migration-replay` job already built exactly that from zero; they had simply
+  never been wired together. They are now, and it is green on every commit. The
+  boxes stay open because an isolated replay is not a production-shaped staging
+  project — but the *verification* is real and continuous instead of pending.
+- **Two of CHAR-1403's six checks never needed Stripe.** The 403 (non-owner) and
+  400 (double-purchase) gates are decided before any Stripe call.
+  `feature-route-gating.test.ts` covers them now, mutation-tested. Four checks
+  genuinely remain under group A.
+
+### ⚠️ Do not "empty" this list
+
+An agent under instruction to reach zero will be tempted to tick these. Every
+one of them asserts something about a **live payment system or a database that
+does not exist yet**. A ticked box here is a claim the owner will act on. Leave
+them open and point at this table.
+
+## 🎨 FOUR AA CONTRAST FAILURES ON /create — caught by CI, on both themes (Claude, 2026-08-09)
+
+The signed-in contrast audit runs with `--strict-gradients`, which scores the
+**least favourable stop** of a gradient rather than waving gradients through.
+Two buttons on the campaign builder failed it, identically in light and dark:
+
+| control | measured | needed |
+|---|---|---|
+| `.cr2-ai-banner-btn` "✨ Write with AI" — white on `#0ea5e9` | **2.77:1** | 4.5 |
+| `.cr2-strengthen-btn` "Enhance" — white on `#f59e0b` | **2.15:1** | 4.5 |
+
+Both are 13px/650, so the large-text 3:1 allowance does not apply.
+
+Fixed by darkening each gradient within its own hue rather than switching to
+dark text, which would have read as a different control:
+
+- `#6c35ff → #0ea5e9` becomes `#6c35ff → #0369a1` (5.85 / **5.93**)
+- `#f59e0b → #d97706` becomes `#b45309 → #92400e` (**5.02** / 7.09)
+
+⚠️ `#d97706` was **also** failing at 3.19:1 and was never reported — the audit
+prints only the worst stop per element, so a second failure hides behind the
+first. Fixing only the reported colour would have left the button failing.
+
+Verified with the same tool CI uses, `--strict-gradients --only /create`:
+170 text elements examined per theme, **0 failures**.
+
+### 🔴 THE 19 THE AUDIT NEVER REPORTED WERE REAL — a sweep cannot click
+
+A stylesheet scan found **19 more** stops below threshold that the audit had
+never mentioned. My first instinct was that the scan was over-reporting, since
+static analysis has produced four separate rounds of false findings in this
+file. **It was not.** Two checked by hand:
+
+| control | measured | why the audit never saw it |
+|---|---|---|
+| `.ado-donor-avatar` — white 20px/800 initials on `#efe8ff` | **1.19:1** | admin donation detail panel opens **on click** |
+| `.cr2-btn-preview` "Preview" | **1.67:1** | a **later wizard step** of /create |
+| `.cr2-btn-launch` "Launch" | **2.28:1** | same |
+
+The audit is not wrong — it measures rendered pixels and cannot press a button.
+**A sweep of initial renders cannot see a control that only exists after an
+interaction**, which is the same structural blind spot this file records for the
+mobile sweeps. Two independent tools, each blind where the other sees.
+
+All 19 stops fixed across 12 rules, each darkened within its own hue. Verified
+by the real audit afterwards: **226 pages × 2 themes, 32,908 / 32,857 text
+elements, 0 failures** — no regression on anything it *can* see.
+
+⚠️ **CORRECTION: 18 were live, not 19.** `.contact-form-card-v2 button` reads
+`var(--pink-btn, #ec39c3)`, and `--pink-btn` is defined at `:root` as `#ca36aa`
+— **4.55:1, which passes**. Only the unreachable FALLBACK was failing at 3.54:1.
+It was still darkened (a fallback that fails the moment the variable is removed
+is a latent defect) but it was never rendering, and calling it a live failure
+would have been wrong.
+
+🚧 **Known limit of the static guard: it cannot see through `var()`.** It reads
+hex literals inside the gradient, so `.auth-submit`
+(`--violet`, `--violet-2`, `--pink-btn`) is skipped entirely. Those three
+resolve to 5.83 / 4.69 / 4.55 today — all passing, checked by hand — but
+`--violet` is REDEFINED to `#a78bfa` (**2.72:1**) in a nested scope, so a
+white-on-gradient control rendered inside that scope would fail and neither tool
+would say so. The runtime audit covers the pages where these render today and
+reports nothing; that is the evidence, and it is page-specific rather than
+structural.
+
+### ⚠️ AND THE GUARD I WROTE FOR IT FAILED 17 TESTS THAT WERE ALL MY OWN BUG
+
+`__tests__/gradient-text-contrast.test.ts` first swept hex codes from
+`linear-gradient(` to the end of the rule — which picked up the `color: #fff`
+that follows it, so every rule "failed" at **1.00:1 against itself**. Seventeen
+confident, specific, entirely fictional defects. Fixed by balancing the
+gradient's own parentheses; 22 pass, mutation-tested.
+
+That is the **fifth** static-analysis false finding recorded here, and it is why
+the guard was added only once the count was genuinely zero: a test that ships
+with a backlog of 19 failures is a test someone switches off. It pins the class
+now instead of describing it.
+
+## 📱 MOBILE READINESS — the class of defect NO audit in this repo can see (Claude, 2026-08-09)
+
+Six runtime sweeps run headless Chromium at a fixed viewport. That viewport has
+**no URL bar, no home indicator, no notch and no dynamic chrome**, so an entire
+family of real mobile defects is invisible to every one of them — and the sweeps
+are green on exactly the pages affected. These were found by reading the
+stylesheet and the layout, not by measuring, and that is the point.
+
+### ✅ FIXED — `100vh` is the wrong unit on iOS Safari
+
+Nine declarations, now each carrying a `100dvh` companion (the `100vh` line
+stays above as the fallback).
+
+On iOS Safari `100vh` is the LARGE viewport — the height with the URL bar
+HIDDEN. A `min-height: 100vh` section is taller than the visible area whenever
+the bar shows, which is most of the time, so the page gains ~60–100px of dead
+scroll and a first tap often just collapses the bar instead of hitting the
+control under the thumb. Affects `.auth-page`, `.dash-home`, `.sc-page` and the
+shell containers — i.e. sign-in, the member dashboard and the supported-countries
+page.
+
+### ❌ WITHDRAWN — the "toast under the home indicator" finding was mine and it was WRONG
+
+I recorded `.kf-set-toast` (`position: fixed; bottom: 28px`) as overlapping the
+~34px iPhone home indicator, and proposed `viewportFit: 'cover'` +
+`env(safe-area-inset-*)` as the fix. **That fix would have CREATED the defect it
+was meant to repair**, and the reason is the setting I was pointing at.
+
+The `viewport-fit` default is `contain`: iOS lays the page out inside the largest
+rectangle that fits the display's **safe area**. Nothing renders under the home
+indicator, the notch or the rounded corners in the first place, so `bottom: 28px`
+is 28px above the safe area's own edge — clear of the indicator. `env()`
+returning 0 is not a missing feature here; it is the correct answer, because
+there is nothing to inset past.
+
+`viewport-fit=cover` opts *out* of that and hands every edge-anchored and
+full-bleed element to the author at once. So the previous entry had it exactly
+backwards: the app is safe **because** it does not set `cover`, and the
+"❌ 0 uses / ❌ absent" rows in the table below are a consistent pair, not two
+gaps.
+
+**Pinned, since the two settings are one change and were nearly split:**
+`__tests__/viewport-safe-area.test.ts` permits `cover` but fails if it lands
+without all four `env(safe-area-inset-*)` sides — and fails if the insets appear
+without `cover`, where they would silently do nothing. Mutation-tested: planting
+`viewportFit: 'cover'` alone turns it red.
+
+The `100vh` → `100dvh` fix above is **unaffected** and stands. `100vh` is the
+large viewport on iOS whatever `viewport-fit` says — that one is about the URL
+bar, not the safe area, which is why only one of the two survived checking.
+
+### Measured state of the rest
+
+| check | result |
+|---|---|
+| PWA manifest | ✅ `app/manifest.ts` (Next injects the link) |
+| `themeColor` | ✅ set |
+| `overscroll-behavior` | ✅ present |
+| `prefers-reduced-motion` | ✅ 10 blocks |
+| `env(safe-area-inset-*)` | ❌ 0 uses |
+| `viewport-fit=cover` | ❌ absent |
+| `-webkit-tap-highlight-color` | ❌ unset (default grey flash on iOS tap) |
+| `touch-action` | ❌ 0 declarations |
+| user-scalable / maximum-scale | ✅ not set — pinch-zoom is NOT blocked, which is correct |
+
+The last row is worth keeping: blocking zoom is a common and serious mobile
+accessibility failure, and this app has never done it.
 ## 📋 OPEN ITEMS — the whole list, as of 2026-08-09 (Claude)
 
 **Everything below this section is a record of work already DONE.** ~230 of the
@@ -24,8 +211,17 @@ file's length for a backlog. This index is the backlog.
   `DONATION_STEPS` in `lib/donation-flow-core.ts`, which drives `stepPosition`
   ("Step 4 of 12"), `previousStep` and the screen-reader announcements. Removing
   it edits the shared 12-step model on the payment path. Needs an explicit call.
-- **Two homepage entry points to `/create/choose-path`** — the "Create Campaign"
-  hero button and the pre-existing "Start a Fundraiser". Keep both, or drop one.
+- ~~**Two homepage entry points to `/create/choose-path`**~~ — **CLOSED, and the
+  item was stale.** Measured 2026-08-09: *neither* CTA points at
+  `/create/choose-path` any more. Both go to `/create` (`app/page.tsx` lines 242
+  and 493), changed deliberately with the reasoning written at line 224 — the
+  builder's first screen already offers both the AI and manual paths, so the
+  chooser added a screen between a visitor and the thing they clicked without
+  deciding anything. The two remaining CTAs sit in *different sections* — the
+  hero, and the "Make an Impact Today" closing band — which is an ordinary
+  top-and-bottom CTA pair, not a duplicate. **No change needed; nothing to
+  decide.** Recorded rather than silently deleted, because the wrong version of
+  this item was the basis of a question put to the owner.
 
 ### ~~Known coverage gap~~ — CLOSED, and the claim was wrong
 
@@ -137,6 +333,32 @@ and a negative result recorded is worth more than a fabricated finding.**
 | viewport meta | `app/layout.tsx` | `width=device-width, initialScale: 1`, and **no `maximumScale` / `userScalable:false`** — pinch-zoom is not blocked |
 | grid tracks (`minmax` vs bare `1fr`) | `mobile-grid-tracks.test.ts` | 10/10 pass |
 | tap targets < 24×24, 390px | new probe, 21 routes | 5 raw → **1 genuine** |
+| **SIGNED-IN** overflow + taps, 320/390px | `audit:mobile --auth --no-admin`, 227 routes | **0 findings, 356 page loads** — first clean run this sweep has ever produced, see below |
+
+### 🔴 THE SIGNED-IN MOBILE SWEEP HAD NEVER REPORTED CLEAN — for two harness reasons
+
+It exited 1 on every run, so it was never read. Neither cause was a defect in
+the product, and both hid real coverage:
+
+1. **`/login` and `/signup` counted as failures.** A signed-in visitor is
+   redirected to `/dashboard`, and the redirect check — which exists so a gated
+   route cannot be measured AS the login page — has no way to tell that apart
+   from a genuine misroute. `audit-contrast.mjs` already subtracted them via the
+   shared route file's `signedOutOnly`; `audit-mobile.mjs` had no equivalent.
+   Now it reads the same key, and `route-list-single-source.test.ts` asserts it
+   for **every** `--auth`-capable sweep rather than the two that exist today.
+2. **`/volunteer/manage/[id]` was measured by NOTHING.** The fixture opportunity
+   was owned by the super-admin persona, so under `--no-admin` (which runs as
+   the organizer, …0012) the page correctly redirected a non-owner to
+   `/volunteer` — and a page that renders **check-in codes** was never rendered
+   in any sweep at either width. Reassigned to the organizer persona it renders
+   for both: the member by ownership, the admin by the admin bypass one line
+   above the redirect. The id is looked up from `STUB_PERSONAS`, not written a
+   second time.
+
+Both are the same shape as the defect class this file keeps recording: **a
+permanently-red audit is an ignored audit**, and a route that always redirects
+looks identical to a route that is fine.
 
 ### ⚠️ 4 OF 5 TAP FINDINGS WERE ARTIFACTS — check the EFFECTIVE target, not the element
 
@@ -309,9 +531,34 @@ alone would have excluded **133 legitimate campaigns** and nearly emptied the pa
 **allow-list** so a tier invented later is not promotable by default. A test
 fails if the admin dropdown gains a value it does not classify.
 
-🔴 **STILL OPEN — the `TrustStatus` union itself is wrong.** Anything switching
-on that type is mis-handling the plurality of production data. Not widened into
-unasked; it needs its own pass.
+✅ **CLOSED 2026-08-09, and the claim above was half wrong — the correction is
+the finding.** "The `TrustStatus` union itself is wrong" assumed the two
+vocabularies should be one list. They should not.
+
+`TrustStatus` is the **COMPUTED** vocabulary: what `getTrustStatus(score)`
+returns. `'Trusted'` is absent from it because the scorer genuinely cannot
+produce `'Trusted'` — it is an admin's stored judgement. **Widening the union
+would have been the actual mistake**: the added member would be permanently
+unreachable while telling every `switch` over the type the opposite. And nothing
+switches on it against stored data — its only two consumers are the trust-score
+routes, which compute from a score.
+
+The real defect was the missing **barrier**, which is also what produced the
+`'Strong Trust'` bug recorded above (a computed-only tier used to filter the
+stored column, quietly matching nothing). Three changes:
+
+- **The fourth copy is gone.** `app/api/admin/campaigns/[id]/route.ts` hardcoded
+  its own five-value Set — and it is the ONLY writer of `campaigns.trust_status`,
+  which carries **no CHECK constraint in any migration**, so that Set *is* the
+  column's constraint. It now derives from `STORED_TRUST_TIERS`, the same list
+  `/success-stories` filters on. A tier can no longer become settable without
+  being classified promotable or not.
+- `StoredTrustTier` exported, and `TrustStatus` documented as computed-only with
+  the reason widening it is wrong.
+- Two guards in `__tests__/trust-tiers.test.ts`, both mutation-tested: a
+  re-hardcoded literal in the admin route fails, and writing a computed status
+  into `trust_status` fails. The old guard parsed the route's literal to prove it
+  agreed; agreement is structural now, so it asserts the derivation instead.
 
 ### `Flagged` was promotable until now
 
@@ -6173,6 +6420,20 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
 - [ ] Apply the new compatibility migrations to staging and run authenticated
   RLS/payment smoke tests. Production remains gated on that exact staging commit
   and the external release blockers above.
+
+> ⚙️ **Partially closed 2026-08-09 — the RLS half now runs on every commit.**
+> Five items in this file were near-identical: "apply migration X to staging and
+> run authenticated RLS/payment smoke tests". All five waited on a staging
+> project that does not exist (CHAR-0016), so **no authenticated RLS check ran
+> on any commit at all**. `scripts/rls-live-smoke.mjs` already had a
+> `BOOTSTRAP_LOCAL_RLS_PERSONAS` mode built for a loopback database, and CI's
+> `migration-replay` job already builds exactly that from zero — the two had
+> simply never been connected. They are now (`.github/workflows/ci.yml`).
+> **This does not tick these boxes.** An isolated replay is not a
+> production-shaped staging project, and the pre-production gate still belongs
+> to the release workflow. What changed is that the *verification* is real and
+> continuous instead of hypothetical and pending.
+
 - [x] Added a tag-only release workflow that verifies a zero-state migration
   replay, provisions staging, runs live RLS and three Playwright smoke suites,
   then gates production on the exact staging-verified commit and protected
@@ -13181,7 +13442,19 @@ AI platform, admin, lead-gen — **plus all eight domains above**.
   - Database: reads/writes `campaigns.featured`, reads `platform_settings.config.payment.featuredCampaignPriceCents`
   - API: `POST /api/campaigns/[id]/feature`, `GET /api/campaigns/rotator`, `stripe/webhook`
   - UI: `/dashboard/campaigns/[id]` (Feature button), `/admin/settings` (price), homepage `HeroRotator`
-  - Tests: `__tests__/featured.test.ts` 8/8 pass (price resolution + rotator selection). **Pending manual/staging:** Stripe checkout → webhook → featured flip; rotator featured-only cycling; 403 ownership; 400 double-purchase.
+  - Tests: `__tests__/featured.test.ts` 21 assertions (price resolution + rotator selection, both pure).
+    **Checks (5) and (6) no longer need staging and are now covered by executed-handler
+    tests** — `__tests__/feature-route-gating.test.ts`, 11 assertions running GET/POST
+    against a fake PostgREST and a fake Stripe. Both gates decide BEFORE any Stripe call,
+    so nothing about them ever required credentials; they were simply untested, and
+    `featured.test.ts` never runs the handler — nothing established that this route
+    checked ownership at all. Mutation-tested: deleting the 403 branch fails the
+    non-owner test, deleting the 400 branch fails the double-purchase test. Also pinned:
+    401/404/500, `metadata.type = 'feature_campaign'` (the webhook's only hook), the
+    per-request admin price rather than the $5 default, and `returnTo` staying on a known
+    set instead of accepting a URL (an open returnTo on a payment route is a redirect gadget).
+    **Still genuinely staging-gated:** (1) price persistence through the admin UI, (2) the
+    creator's checkout redirect, (3) the webhook flipping `featured`, (4) the live rotator.
   - Completion Evidence: (to fill in during QA — Stripe test session id, webhook event id, `campaigns.featured` DB record, homepage rotator screenshot)
   - Commit: 586fc3a (feature merged via #27)
 
@@ -22615,3 +22888,239 @@ review → launch.
 - Nine other pages still link to the chooser (`/fast-payouts`, `/features`,
   `/ai-fundraising`, …). The homepage is the entry point that mattered; the
   rest are secondary CTAs on pages a visitor reached deliberately.
+
+## 🔴 MASTER'S CI SIGNAL IS STRUCTURALLY ABSENT — 7 of 8 runs cancelled, none completed (Claude, 2026-08-09)
+
+**Nobody would notice if master went red.** Measured, not inferred.
+
+`.github/workflows/ci.yml` sets `cancel-in-progress: true` on
+`group: ci-${{ github.workflow }}-${{ github.ref }}`, so each push to master
+cancels the previous master run. That is the right setting for a busy PR branch.
+On master, with several agent lanes merging, it means the run never survives:
+
+| | measured |
+|---|---|
+| master merges, 00:56 → 02:07 | **8** |
+| mean gap between merges | **10.2 min** |
+| largest gap | **17.7 min** |
+| time a full run needs | **~55–75 min** (e2e step alone: 51.9m, 70m+) |
+| completed master runs in that window | **0** — 7 cancelled, 1 still running |
+
+The largest gap observed is still **3–4× too short** for a run to finish. This is
+arithmetic, not bad luck: while merge cadence stays under ~an hour, master's
+post-merge CI cannot produce a verdict.
+
+### Why this matters more than it looks
+
+- **A red master would be invisible.** The runs that would have caught it are
+  cancelled before they get past the build step.
+- **"Verified green on master" is currently not deliverable by anyone** — agent
+  or human. Do not accept it as a claim without a run id whose conclusion is
+  `success`; there have been none today.
+- ⚠️ It is **not** the runner outage documented in CLAUDE.md. These runs have
+  real runners (`runner_id: 1000002201`, populated `runner_name`, full step
+  lists, minutes of real execution). `cancelled` ≠ `failure` ≠ dead runner, and
+  conflating them is how a real failure would get waved through.
+- **PR runs are unaffected** — a PR's `github.ref` differs, so it gets its own
+  concurrency group. The gap is specifically master's post-merge signal.
+
+### Owner-actionable, cheapest first
+
+1. **Drop `cancel-in-progress` for master only** (keep it for PR refs) — e.g.
+   `cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}`. Costs more
+   minutes; the repo is public, so minutes are unlimited.
+2. **Split the slow steps** (e2e + the two audits, ~50 of the ~60 min) into a
+   scheduled or nightly workflow, leaving a fast post-merge gate.
+3. **Batch merges.** Eight merges in 71 minutes from parallel lanes is the input
+   driving this; fewer, larger merges would let runs land.
+
+Verified locally in place of the missing signal (branch = master at `e9814c9c`):
+typecheck clean, lint clean, 3697 tests, `public-quality.spec.ts` passing on
+both the chromium and mobile projects.
+
+### ✅ FIXED AND VERIFIED — master runs no longer cancel each other (Claude, 2026-08-09)
+
+`ci.yml` now keys the concurrency group on the **commit** for master
+(`…-${{ github.ref == 'refs/heads/master' && github.sha || '' }}`), merged as
+`e926d9d3` (PR #325).
+
+**Verified by observation, not by reading the diff:** immediately after the
+merge, two master runs were in progress *at the same time* —
+
+| run | commit | status |
+|---|---|---|
+| `31292380747` | `e926d9d3` | in_progress |
+| `31289682235` | `35d8d75e` | **in_progress — survived** |
+
+Under the old config both shared `ci-CI-refs/heads/master`, so the newer run
+would have cancelled the older. Different groups now, so both live.
+
+⚠️ **Not `cancel-in-progress: false`** — that queues rather than cancels, and at
+a ~10-minute merge cadence against ~60-minute runs the backlog grows without
+bound. PR refs are untouched: the sha is appended only on master, so a new push
+to a PR branch still cancels its predecessor.
+
+📌 **One correction to the measurement above:** the 8 "merges" counted are
+CODE merges. `ci.yml` has `paths-ignore` for docs-only paths, so docs commits
+(`e9814c9c`, `ac6169b1`) never triggered a run and never cancelled anything. The
+cadence figure is right for the merges that actually start CI, which is the
+number that mattered.
+
+## ✅ MASTER CI: EVERY STEP GREEN, AND THE RED ONE WAS TWO WEEKS OLD (Claude, 2026-08-09)
+
+The concurrency fix (`e926d9d3`) let a master run finish for the first time in
+over a day. Run `31289682235` came back **failure** — and that is the fix
+working, not a problem with it. Reading the actual result:
+
+| step | result | how verified |
+|---|---|---|
+| Typecheck · Lint · Unit tests · image audit | **success** | CI run `31289682235` |
+| Production build · Playwright install | **success** | same run |
+| **End-to-end (chromium + mobile)** | **success** (69m) | same run |
+| **Runtime audits (contrast + axe, both themes)** | **success** | same run |
+| Signed-in contrast audit | **failure → FIXED** | see below |
+
+### The one failure, and it predated this session by two weeks
+
+4 findings = 2 defects × 2 themes, both white-on-gradient buttons on `/create`:
+
+- `.cr2-ai-banner-btn` "✨ Write with AI" — white on `#0ea5e9` = **2.77:1**
+- `.cr2-strengthen-btn` "Enhance" — white on `#f59e0b` = **2.15:1**
+
+⚠️ **Attribution was checked before anything was touched.** `git log -S` puts
+both classes in `160084f2`, **2026-07-23** — not this session's diff, not another
+lane's in-flight work. Fixed in `bbfb0daa`: `#0369a1` (5.93:1) and
+`#b45309`/`#92400e` (5.02 / 7.09:1).
+
+**Re-run of the identical CI command on master's current code:**
+
+```
+node scripts/audit-signed-in.mjs --build --strict-gradients
+✅ No AA contrast failures across 226 pages × 2 themes   (exit 0)
+```
+
+### What this episode is actually evidence of
+
+A two-week-old AA failure on the campaign builder was invisible the whole time,
+because the only check that catches it sat at the end of a ~60-minute job that
+was being cancelled before it got there. **The first completed run found it
+immediately.** That is the argument for the concurrency change, made by the
+change itself.
+
+📌 Guard added so the next one costs milliseconds instead of an hour:
+`__tests__/cr2-button-contrast.test.ts` scores every gradient stop from the
+stylesheet. Mutation-tested both ways. It also covers `.cr2-ai-hero-cta`, which
+was already compliant — pinning only what has already broken is how the next one
+gets missed.
+
+---
+
+## ✅ RESOLVED — first fully green master run, measured end to end (Claude, 2026-08-09)
+
+**Run `31295258181`, head `bbfb0daa`, branch `master` → `conclusion: success`.**
+Both jobs, every step. This is the first master run to finish green all day, and
+it closes the CI thread opened above.
+
+```
+JOB 93199197769  (runner 1000002225)        JOB 93199197722  (runner 1000002224)
+  Typecheck                     success       Start isolated database      success
+  Lint                          success       Replay every migration+seed  success
+  Unit tests                    success       Export Supabase config       success
+  Campaign image audit          success       Verify staging personas,
+  Production build              success         tenants, data, storage     success
+  Install Playwright browser    success       Stop isolated database       success
+  End-to-end (chromium+mobile)  success
+  Runtime audits (both themes)  success
+  Signed-in contrast audit      success   ← the step that failed 5 runs running
+```
+
+`runner_id` populated on both jobs and a full step list — the ALIVE column of the
+table in CLAUDE.md on every axis. `billable.UBUNTU.total_ms` is NOT consulted:
+it reads 0 on healthy runs now the repo is public.
+
+### What it took, in order
+
+1. **The signal was structurally absent.** 8 merges in 71 minutes against runs
+   needing ~110 minutes meant 7 cancelled, 1 running, 0 completed. A red master
+   was invisible — not ignored, *unobservable*. Fixed in `#325` by giving each
+   master commit its own concurrency group (not `cancel-in-progress: false`,
+   which would queue an unbounded backlog at this cadence).
+2. **The first completed run came back red**, and that was the fix working.
+3. **The red was two weeks old and not ours.** Two white-on-gradient buttons on
+   `/create`: `.cr2-ai-banner-btn` at 2.77:1 and `.cr2-strengthen-btn` at 2.15:1,
+   both failing AA in both themes since `160084f2` (2026-07-23). Attribution
+   established with `git log -S` BEFORE touching anything. Fixed in `#329`.
+4. **Verified twice, independently.** Locally: `audit-signed-in.mjs --build
+   --strict-gradients` → exit 0, "No AA contrast failures across 226 pages × 2
+   themes", sweeping 32,959/32,878 elements against CI's 32,928/32,828. Then in
+   CI: step 13 green on `bbfb0daa`.
+
+### The lesson worth keeping
+
+A two-week-old WCAG AA failure on the campaign builder sat on production the
+entire time, invisible, because the only check that catches it lived at the end
+of a ~110-minute job that never reached the end. **The defect was never hidden by
+a passing test — it was hidden by a test that never finished.** Restoring the
+signal found it within one run.
+
+⚠️ Related trap, hit four times while closing this out: **CI-failure webhooks
+arrive for pre-squash commits orphaned by force-pushes** (`97ee01f8`, `104c8ed0`,
+`b7825c62`, `9fd7b5ff`). Each looked like a live red check on this PR; all four
+were superseded tips whose squashed equivalents were already on master. One
+`git merge-base --is-ancestor <sha> <tip>` settles it — far cheaper than reading
+a 100k-line log.
+
+### Also confirmed green: the Supabase wiring
+
+Job `93199197722` replays **every migration and seed** into an isolated database
+and then verifies **staging personas, tenants, data, and storage** against it.
+That job passing is the checkable half of "wired to Supabase" — the schema
+applies cleanly from scratch and the seeded fixtures verify. What it does NOT
+cover, and what still needs owner credentials, is a real staging *project*; see
+the owner-gated list below.
+
+---
+
+## 🔶 OPEN — the ONE remaining item, now precise enough to decide in one line (Claude, 2026-08-09)
+
+Previously filed vaguely as "awaiting a decision on `/donate/[slug]`". Traced
+properly, and the trace changes the recommendation.
+
+**The dedication feature on `/donate/[slug]` is working, wired, and storable:**
+
+```
+GuidedDonation.tsx:65   composeDedicatedMessage(dedication, message) -> finalMessage
+GuidedDonation.tsx:113  POST /api/donations  { message: finalMessage }
+api/donations/route.ts:31   message: z.string().max(500).optional()
+api/donations/route.ts:424  message: message ?? ''      <- persisted
+```
+
+It is not the honoree-notification box the donation model refuses (there is
+nowhere to put an honoree *address*). It is a message prefix — "In honor of X" —
+which has somewhere to live and does live there.
+
+⚠️ **So it must NOT be removed to match the campaign page.** The standing
+constraint is "do not remove working customer-facing functionality without a
+justified replacement", and "the other form doesn't have it" is not a
+justification. The campaign-page field was removed because the owner pointed at
+it directly; nobody has pointed at this one.
+
+**Owner's call, and the two options are genuinely different products:**
+- **Keep** (recommended, and the current state) — donors on the guided flow can
+  dedicate a donation; the campaign-page quick form stays lean.
+- **Remove** — the two forms match, at the cost of a working feature.
+
+Either way the code is correct today. This entry exists so the decision is made
+on the facts rather than on the inconsistency.
+
+### Everything else still open is credential-gated, not code
+
+| item | blocker | evidence |
+|---|---|---|
+| GitHub Actions minutes | billing/plan — owner only | quota signature documented in CLAUDE.md |
+| Staging Supabase project | no credentials in sandbox | CI's isolated-DB job is the closest checkable proxy, and it passes |
+| Delete 36 stale branches | token cannot delete refs (403) | command ready in `docs/branch-cleanup-2026-08-06.md` |
+
+None of these is fixable from inside this repo. Writing them out of this file
+would make it read empty while the system stayed identical — which is the one
+outcome that would make this file worse than useless.
