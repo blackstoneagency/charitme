@@ -93,36 +93,53 @@ describe('the builder offers publishing as soon as it is possible', () => {
 describe('the flow asks for the publishable fields first', () => {
   const at = (s: CampaignStep) => CAMPAIGN_STEPS.indexOf(s);
 
-  it('title, story and goal come before everything optional', () => {
-    // They used to sit at 3, 4 and 6, with `basics` in front and `media` wedged
-    // between story and goal — five screens before a draft was publishable at
-    // all. This is the assertion that stops that creeping back.
-    const last = Math.max(at('title'), at('story'), at('goal'));
+  it('puts all three publish minimums on ONE screen', () => {
+    // They were three separate steps: three Continue presses and two page
+    // transitions to enter three fields. `essentials` holds all three, so a
+    // draft becomes publishable without leaving the first screen.
+    expect(CAMPAIGN_STEPS).toContain('essentials');
+    for (const gone of ['title', 'story', 'goal']) {
+      expect(CAMPAIGN_STEPS as readonly string[], `${gone} is still its own step`).not.toContain(gone);
+    }
+  });
+
+  it('puts that screen before everything optional', () => {
     for (const later of ['basics', 'media', 'rewards', 'payout', 'verify', 'review'] as const) {
-      expect(at(later), `${later} comes before a publish-minimum step`).toBeGreaterThan(last);
+      expect(at(later), `${later} comes before the essentials`).toBeGreaterThan(at('essentials'));
     }
   });
 
-  it('they are consecutive, so nothing interrupts the run to publishable', () => {
-    const idx = [at('title'), at('story'), at('goal')].sort((a, b) => a - b);
-    expect(idx[2] - idx[0]).toBe(2);
-  });
-
-  it('the builder opens on the first of them', () => {
+  it('the builder opens on it', () => {
     const builderSrc = readFileSync(resolve(__dirname, '..', 'app/create/page.tsx'), 'utf8');
-    expect(builderSrc).toContain("useState<WizardStep>('title')");
+    expect(builderSrc).toContain("useState<WizardStep>('essentials')");
   });
 
-  it('reordering did not rename anything, so live drafts still resolve', () => {
-    // The order changed; the KEYS did not. That distinction is what keeps a
-    // draft saved mid-flow rendering the screen it was on rather than a blank
-    // one — the failure mode campaign-flow-core's migration note describes.
-    for (const key of ['path', 'title', 'story', 'goal', 'basics', 'media', 'rewards', 'payout', 'verify', 'review', 'publish', 'share']) {
-      expect(normalizeStep(key), `${key} no longer resolves`).toBe(key);
-    }
-    // And the two older generations still migrate.
+  it('renders all three fields on that one screen', () => {
+    // Guards the guard: the step could exist and render nothing. Each of the
+    // three panels — title, story, goal — must be conditioned on it.
+    const builderSrc = readFileSync(resolve(__dirname, '..', 'app/create/page.tsx'), 'utf8');
+    expect((builderSrc.match(/\{step === 'essentials' && \(/g) ?? []).length).toBeGreaterThanOrEqual(4);
+  });
+
+  it('migrates the three old keys, so drafts in flight still render', () => {
+    // Drafts live 7 days in localStorage AND campaign_wizard_drafts, so people
+    // are holding these keys right now. An unmapped key renders no branch —
+    // a blank screen that looks exactly like their work being deleted.
+    expect(normalizeStep('title')).toBe('essentials');
+    expect(normalizeStep('story')).toBe('essentials');
+    expect(normalizeStep('goal')).toBe('essentials');
+    // And the earlier generations still migrate.
     expect(normalizeStep('category')).toBe('basics');
     expect(normalizeStep('summary')).toBe('review');
     expect(normalizeStep('live')).toBe('publish');
+    // Every current key still round-trips.
+    for (const k of CAMPAIGN_STEPS) expect(normalizeStep(k)).toBe(k);
+  });
+
+  it('never resolves to a step the wizard cannot render', () => {
+    for (const raw of ['title', 'story', 'goal', 'type', 'category', 'location', 'summary', 'live', 'nonsense', '']) {
+      const r = normalizeStep(raw);
+      if (r !== null) expect(CAMPAIGN_STEPS as readonly string[]).toContain(r);
+    }
   });
 });
