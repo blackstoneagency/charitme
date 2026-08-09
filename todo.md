@@ -22748,3 +22748,69 @@ change itself.
 stylesheet. Mutation-tested both ways. It also covers `.cr2-ai-hero-cta`, which
 was already compliant — pinning only what has already broken is how the next one
 gets missed.
+
+---
+
+## ✅ RESOLVED — first fully green master run, measured end to end (Claude, 2026-08-09)
+
+**Run `31295258181`, head `bbfb0daa`, branch `master` → `conclusion: success`.**
+Both jobs, every step. This is the first master run to finish green all day, and
+it closes the CI thread opened above.
+
+```
+JOB 93199197769  (runner 1000002225)        JOB 93199197722  (runner 1000002224)
+  Typecheck                     success       Start isolated database      success
+  Lint                          success       Replay every migration+seed  success
+  Unit tests                    success       Export Supabase config       success
+  Campaign image audit          success       Verify staging personas,
+  Production build              success         tenants, data, storage     success
+  Install Playwright browser    success       Stop isolated database       success
+  End-to-end (chromium+mobile)  success
+  Runtime audits (both themes)  success
+  Signed-in contrast audit      success   ← the step that failed 5 runs running
+```
+
+`runner_id` populated on both jobs and a full step list — the ALIVE column of the
+table in CLAUDE.md on every axis. `billable.UBUNTU.total_ms` is NOT consulted:
+it reads 0 on healthy runs now the repo is public.
+
+### What it took, in order
+
+1. **The signal was structurally absent.** 8 merges in 71 minutes against runs
+   needing ~110 minutes meant 7 cancelled, 1 running, 0 completed. A red master
+   was invisible — not ignored, *unobservable*. Fixed in `#325` by giving each
+   master commit its own concurrency group (not `cancel-in-progress: false`,
+   which would queue an unbounded backlog at this cadence).
+2. **The first completed run came back red**, and that was the fix working.
+3. **The red was two weeks old and not ours.** Two white-on-gradient buttons on
+   `/create`: `.cr2-ai-banner-btn` at 2.77:1 and `.cr2-strengthen-btn` at 2.15:1,
+   both failing AA in both themes since `160084f2` (2026-07-23). Attribution
+   established with `git log -S` BEFORE touching anything. Fixed in `#329`.
+4. **Verified twice, independently.** Locally: `audit-signed-in.mjs --build
+   --strict-gradients` → exit 0, "No AA contrast failures across 226 pages × 2
+   themes", sweeping 32,959/32,878 elements against CI's 32,928/32,828. Then in
+   CI: step 13 green on `bbfb0daa`.
+
+### The lesson worth keeping
+
+A two-week-old WCAG AA failure on the campaign builder sat on production the
+entire time, invisible, because the only check that catches it lived at the end
+of a ~110-minute job that never reached the end. **The defect was never hidden by
+a passing test — it was hidden by a test that never finished.** Restoring the
+signal found it within one run.
+
+⚠️ Related trap, hit four times while closing this out: **CI-failure webhooks
+arrive for pre-squash commits orphaned by force-pushes** (`97ee01f8`, `104c8ed0`,
+`b7825c62`, `9fd7b5ff`). Each looked like a live red check on this PR; all four
+were superseded tips whose squashed equivalents were already on master. One
+`git merge-base --is-ancestor <sha> <tip>` settles it — far cheaper than reading
+a 100k-line log.
+
+### Also confirmed green: the Supabase wiring
+
+Job `93199197722` replays **every migration and seed** into an isolated database
+and then verifies **staging personas, tenants, data, and storage** against it.
+That job passing is the checkable half of "wired to Supabase" — the schema
+applies cleanly from scratch and the seeded fixtures verify. What it does NOT
+cover, and what still needs owner credentials, is a real staging *project*; see
+the owner-gated list below.
