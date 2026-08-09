@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { EmptyState, BtnLink } from '../../../components/ui';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Organizer-side applicant review.
@@ -158,18 +159,28 @@ export default function VolunteerApplicantsClient() {
   }
 
   if (opportunities.length === 0) {
+    // Shared EmptyState, matching "Your applications" on this page rather than
+    // rendering the same idea as loose text.
     return (
-      <p style={{ color: 'var(--t3)', fontSize: 14 }}>
-        You haven&apos;t posted any volunteer opportunities yet.
-      </p>
+      <EmptyState
+        icon="📣"
+        title="No opportunities posted yet"
+        body="Post an opportunity and the people who apply to it will appear here."
+        // ⚠️ /volunteer/manage 404s — checked, not assumed. The manage route is
+        // per-opportunity (/volunteer/manage/[id]), so there is no index to link
+        // to. Sending someone to browse is honest; a dead CTA is not.
+        action={<BtnLink href="/volunteer">Browse opportunities</BtnLink>}
+      />
     );
   }
 
   if (applicants.length === 0) {
     return (
-      <p style={{ color: 'var(--t3)', fontSize: 14 }}>
-        No one has applied to your {opportunities.length === 1 ? 'opportunity' : 'opportunities'} yet.
-      </p>
+      <EmptyState
+        icon="🙌"
+        title="No applicants yet"
+        body={`Nobody has applied to your ${opportunities.length === 1 ? 'opportunity' : 'opportunities'} yet. Sharing the listing is the fastest way to reach volunteers.`}
+      />
     );
   }
 

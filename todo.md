@@ -3411,10 +3411,10 @@ skipped workflow leaves its check pending forever and would deadlock a docs-only
 PR. Nothing is required today, which is why this is safe now — recorded so the
 next person does not find out the hard way.
 
-## 🛑 SUPABASE STAGING — blocked, and the pending count is **39** (Claude, 2026-08-03)
+## 🛑 SUPABASE STAGING — blocked, and the pending count is **40** (Claude, 2026-08-03)
 
-**Live ledger rechecked 2026-08-09:** 126 local migration files against 87
-production ledger entries. The 39-file gap below is therefore a current
+**Live ledger rechecked 2026-08-09:** 127 local migration files against 87
+production ledger entries. The 40-file gap below is therefore a current
 measurement, not only historical arithmetic.
 
 **+1 on 2026-08-09: `20260831010000_user_nav_preferences.sql`.** One row per
@@ -3516,16 +3516,16 @@ that day**:
 dump confirmed the objects were absent, and a restored production clone applied
 all 18 in order and proved rollback.
 
-Eighteen migrations have been added since. So the count is arithmetic:
+Twenty-two migrations have been added since. So the count is arithmetic:
 
 ```
-126 local − 87 applied           = 39
-18 audited pending + 21 added    = 39   ✓ reconciles
+127 local − 87 applied           = 40
+18 audited pending + 22 added    = 40   ✓ reconciles
 ```
 
 All 18 audited-pending versions are still on disk under their original names.
 
-### ⚠️ Seven of the 37 are SECURITY hardening, not features
+### ⚠️ Seven of the 40 are SECURITY hardening, not features
 
 This is the part that changes the priority. Written, reviewed, merged — and
 **not live**:
@@ -23110,6 +23110,60 @@ review → launch.
   `/ai-fundraising`, …). The homepage is the entry point that mattered; the
   rest are secondary CTAs on pages a visitor reached deliberately.
 
+## 🧭 Dashboard page gutter — /dashboard/payment-methods and two others (2026-08-09)
+
+Reported on `/dashboard/payment-methods`: the "+ Add New Method" button sat at
+the far right of the window, ~700px from the sentence it was paired with, while
+the explanatory line under the title started 32px to the LEFT of that title.
+
+### One root cause, measured across all 55 dashboard routes
+`.kf-main` has **no horizontal padding**; `.kf-topbar` carries its own 32px. So
+any page rendering content straight into `.kf-main` — or overriding a
+container's padding shorthand — hangs outside the page's own margin on both
+sides.
+
+A browser sweep of every dashboard route found **3 pages** doing it:
+
+| page | why |
+|---|---|
+| `/dashboard/payment-methods` | body rendered directly into `.kf-main` |
+| `/dashboard/grants` | `padding: '4px 0'` on a `.kf-admin-dash` |
+| `/dashboard/volunteer` | same shorthand, same class |
+
+34 were already fine. **After the fix: 0.**
+
+⚠️ `padding: '4px 0'` is the interesting one. `.kf-admin-dash` already carries
+the correct gutter at all four breakpoints; the shorthand replaced it wholesale
+with 0. It is invisible in review — the class is right there in the same
+attribute — so a test now scans every dashboard page for that pattern.
+
+### The button moved into the TopBar's own slot
+Not a nudge: `TopBar` has an `actions` prop that `/grants`, `/volunteer` and
+`/donations` all use. Payment Methods had built a full-width `space-between`
+row below the topbar instead, which is what threw the button to the window
+edge. It now uses the same slot as every other page — and stays hidden when the
+read failed, because "Add a method" beside "we couldn't load your methods"
+invites acting on a page that just said it does not know the current state.
+
+### ⚠️ Two measurement mistakes worth recording
+My first sweep reported **37 of 37 pages misaligned**. It was measuring
+CONTAINER boxes, so a wrapper with internal padding looked broken while its
+content was fine. The second attempt still flagged `/recurring/cancel`, whose
+`padding: 32px` insets its text perfectly — fixed by measuring
+`rect.left + paddingLeft` rather than the border box. Only the third metric —
+*text whose content edge touches the content column* — was stable across runs.
+
+Three different numbers (37, 13, 3) from three metrics on unchanged code. The
+last one is the real one.
+
+### Wiring (what "wired to Supabase" means here, precisely)
+- `profiles.stripe_customer_id` ← Supabase, behind `requireUser()`
+- brand / last4 / expiry / default flag ← **Stripe at request time**, never stored
+- Add → `POST /api/stripe/portal` (401 without a session)
+- Remove → `DELETE /api/stripe/payment-methods` (401 without a session)
+
+The card of record deliberately lives at Stripe; only the pointer is ours. That
+is what keeps this page out of PCI scope, and it is not something to "fix".
 ## 🔴 MASTER'S CI SIGNAL IS STRUCTURALLY ABSENT — 7 of 8 runs cancelled, none completed (Claude, 2026-08-09)
 
 **Nobody would notice if master went red.** Measured, not inferred.

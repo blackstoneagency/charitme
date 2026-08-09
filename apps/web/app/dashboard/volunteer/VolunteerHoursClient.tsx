@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
+import { EmptyState, BtnLink } from '../../../components/ui';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Volunteer hours — the UI half of CHAR-1102.
@@ -124,12 +125,23 @@ export default function VolunteerHoursClient({ scope }: { scope: 'mine' | 'to-ve
   const { hours, totals } = data;
 
   if (hours.length === 0) {
-    return (
-      <p style={{ color: 'var(--t3)', fontSize: 14 }}>
-        {scope === 'mine'
-          ? 'You have no logged volunteer hours yet. Check in at a shift to start the clock.'
-          : 'No one has logged hours on your opportunities yet.'}
-      </p>
+    // The shared EmptyState card, not a bare <p>. "Your applications" on this
+    // same page already used it, so the four sections were rendering two
+    // different treatments of the same idea — a card for one, loose text for
+    // the rest. Same component now, so they cannot drift again.
+    return scope === 'mine' ? (
+      <EmptyState
+        icon="⏱️"
+        title="No logged hours yet"
+        body="Check in at a shift to start the clock — your hours appear here once they are recorded."
+        action={<BtnLink href="/volunteer">Find opportunities</BtnLink>}
+      />
+    ) : (
+      <EmptyState
+        icon="📋"
+        title="No hours to verify"
+        body="When someone logs hours on one of your opportunities, they arrive here for approval."
+      />
     );
   }
 

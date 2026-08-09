@@ -1813,6 +1813,26 @@ input, select, textarea, button { max-width: 100%; }
   gap: 28px;
   padding: 32px 32px 20px;
 }
+/* ── Dashboard page body ──────────────────────────────────────────────────────
+   The gutter every page under `.kf-main` needs, matching `.kf-topbar`'s at each
+   breakpoint.
+
+   ⚠️ It exists because `.kf-main` has no horizontal padding of its own and the
+   topbar carries its own 32px, so a page that renders content directly into
+   `.kf-main` sits 32px LEFT of its own title and runs to the right edge of the
+   window. Measured across all 55 dashboard routes, four pages did exactly that
+   — /dashboard/payment-methods (where it was reported), /grants, /volunteer and
+   /recurring/cancel — while 33 were fine because they happened to wrap in
+   `.kf-content-grid` or set their own inline margin.
+
+   A shared class rather than another inline `margin: '0 32px'`: those inline
+   copies are why the gutter is 32/18/16 in three places and why four pages
+   missed it entirely. */
+.kf-body { padding: 0 32px 32px; min-width: 0; }
+@media (max-width: 1100px) { .kf-body { padding: 0 18px 24px; } }
+@media (max-width: 900px)  { .kf-body { padding-left: 16px; padding-right: 16px; } }
+@media (max-width: 600px)  { .kf-body { padding: 0 16px 20px; } }
+
 .kf-topbar h1 { margin: 0; color: #090d35; font-size: 32px; line-height: 1; letter-spacing: -.04em; font-weight: 800; }
 .kf-topbar p { margin: 14px 0 0; color: #2c3760; font-size: 17px; }
 /* `min-width: 0` so this flex item may shrink below its content. Without it the
@@ -7565,6 +7585,26 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
    ========================================================================== */
 .mktg-page { background: #fff; overflow-x: clip; }
 [data-theme="dark"] .mktg-page { background: var(--bg); color: var(--t1); }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   `mktg-page` INSIDE the signed-in shell (`/profile`).
+
+   The wrapper is carried into the shell for one reason: 47 dark-theme rules in
+   this file are scoped to `.mktg-page`, and 8 of the utilities `/profile` uses
+   — text-slate-950, text-slate-700, text-emerald-700, text-red-700,
+   border-slate-200, border-slate-100, bg-red-50, bg-slate-300 — have no
+   unscoped dark rule. Without the wrapper they keep their LIGHT values on the
+   shell's dark surface, which is the site's default theme.
+
+   What the wrapper must NOT bring with it is its page background: inside
+   `.kf-main` that painted an opaque slab over the shell's own surface. Only the
+   background is cancelled; every colour rule above still applies.
+   ───────────────────────────────────────────────────────────────────────────── */
+.kf-main .mktg-page,
+[data-theme="dark"] .kf-main .mktg-page { background: transparent; }
+/* The shell already owns the page's horizontal padding and scroll container. */
+.kf-main .mktg-page > section > .container,
+.kf-main .mktg-page > .container { padding-left: 0; padding-right: 0; }
 
 /* surfaces */
 [data-theme="dark"] .mktg-page .bg-white { background: var(--s1) !important; }

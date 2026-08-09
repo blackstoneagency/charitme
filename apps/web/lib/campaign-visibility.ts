@@ -13,7 +13,7 @@ import { withQueryTimeout } from './query-timeout';
 // public campaign listings render on any DB state while still enforcing
 // public/non-deleted filtering wherever the columns are present.
 // ─────────────────────────────────────────────────────────────────────────────
-export type CampaignCols = { visibility: boolean; deletedAt: boolean };
+export type CampaignCols = { visibility: boolean; deletedAt: boolean; payoutReady: boolean };
 let _campaignCols: CampaignCols | null = null;
 
 /**
@@ -46,8 +46,21 @@ let _campaignCols: CampaignCols | null = null;
  */
 const PROBE_TIMEOUT_MS = 1_500;
 
-/** Fail-safe answer: apply every filter. Matches the `unknown` branch below. */
-const FAIL_TOWARD_PRIVACY: CampaignCols = { visibility: true, deletedAt: true };
+/**
+ * Fail-safe answer.
+ *
+ * ⚠️ `payoutReady` is the ONE field that fails the other way, and the asymmetry
+ * is deliberate. For `visibility` / `deletedAt`, applying a filter we are unsure
+ * about protects privacy — the cost of being wrong is a campaign missing from a
+ * grid. For `payout_ready` the cost is inverted: the column arrives in an
+ * owner-applied migration, so on every deploy before that migration runs the
+ * column does not exist. Filtering on a missing column is Postgres 42703, which
+ * fails the WHOLE query — every discovery page on the site would render empty.
+ *
+ * Not filtering leaves today's behaviour exactly as it is: a not-yet-donatable
+ * campaign stays listed. That is the status quo, not a new defect.
+ */
+const FAIL_TOWARD_PRIVACY: CampaignCols = { visibility: true, deletedAt: true, payoutReady: false };
 
 /**
  * The probe currently running, if any.
@@ -84,6 +97,7 @@ async function probeCampaignColumns(): Promise<CampaignCols> {
     Promise.all([
       supabaseAdmin.from('campaigns').select('visibility').limit(1),
       supabaseAdmin.from('campaigns').select('deleted_at').limit(1),
+      supabaseAdmin.from('campaigns').select('payout_ready').limit(1),
     ]),
     null,
     PROBE_TIMEOUT_MS,
@@ -93,18 +107,24 @@ async function probeCampaignColumns(): Promise<CampaignCols> {
   // freeze a guess in for the life of the process.
   if (probe.degraded || !probe.data) return FAIL_TOWARD_PRIVACY;
 
-  const [v, d] = probe.data;
+  const [v, d, p] = probe.data;
 
   const visibility = columnPresence(v.error);
   const deletedAt = columnPresence(d.error);
+  const payoutReady = columnPresence(p.error);
   const cols: CampaignCols = {
     visibility: shouldFilter(visibility),
     deletedAt: shouldFilter(deletedAt),
+    // NOT `shouldFilter`. That helper resolves "unknown" to true, which is right
+    // for the privacy filters and wrong here: filtering on a column that turns
+    // out to be absent is 42703, and 42703 empties every discovery page. Only a
+    // definitive "present" enables this filter.
+    payoutReady: payoutReady === 'present',
   };
 
-  // Cache only when BOTH answers are definitive; a transient blip must not be
+  // Cache only when ALL answers are definitive; a transient blip must not be
   // frozen in for the life of the process.
-  if (isCacheable(visibility) && isCacheable(deletedAt)) _campaignCols = cols;
+  if (isCacheable(visibility) && isCacheable(deletedAt) && isCacheable(payoutReady)) _campaignCols = cols;
   return cols;
 }
 
@@ -119,6 +139,38 @@ type AnyFilter = {
 /** Apply status=active plus visibility=public / deleted_at IS NULL where present. */
 export function applyLiveFilters<Q>(query: Q, cols: CampaignCols): Q {
   return applyVisibilityFilters((query as unknown as AnyFilter).eq('status', 'active') as unknown as Q, cols);
+}
+
+/**
+ * Drop campaigns that cannot actually take a donation right now.
+ *
+ * `status = 'active'` and an unexpired deadline say the campaign is RUNNING.
+ * They say nothing about whether money can reach anyone: a destination charge
+ * needs a verified, fully-onboarded connected account belonging to the
+ * beneficiary or the organizer. Without one the campaign page itself renders
+ * "Donations open soon" — while the same campaign sat in discovery grids
+ * indistinguishable from one you can give to. Measured on production: 1 of 12
+ * sampled live campaigns was in that state.
+ *
+ * ⚠️ Opt-IN, exactly like `applyNotExpired`, and for the same reason. An
+ * organizer's own dashboard, the admin console and the ledger must still show a
+ * campaign whose payout setup is incomplete — that is precisely the surface
+ * where they need to SEE it and fix it. Hiding it there would tell a fundraiser
+ * their campaign had vanished.
+ *
+ * ⚠️ Reads a stored column rather than joining. The predicate is an OR across
+ * two foreign keys (beneficiary OR organizer), which PostgREST cannot express;
+ * filtering after the fact in app code would break `.range()` pagination and
+ * `count: 'exact'`. See the migration for the full reasoning.
+ */
+export function applyDonatable<Q>(query: Q, cols: CampaignCols): Q {
+  // Absent column → no filter. The migration is applied by the owner, not by
+  // deploy, so this code ships BEFORE the column exists. Failing open keeps
+  // today's behaviour (campaigns listed) rather than emptying every discovery
+  // page the moment it deploys — the failure mode is a campaign that is listed
+  // but not yet donatable, which is exactly the status quo, not a new bug.
+  if (!cols.payoutReady) return query;
+  return (query as unknown as AnyFilter).eq('payout_ready', 'true') as unknown as Q;
 }
 
 /**
