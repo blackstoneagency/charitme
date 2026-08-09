@@ -256,7 +256,12 @@ describe('every category is visible without horizontal scrolling', () => {
     // auto-fill means one rule serves a 320px phone and a wide desktop; a fixed
     // column count would need a breakpoint per width and would still overflow
     // somewhere between them.
-    expect(railCss()).toMatch(/repeat\(auto-fill, minmax\(96px, 1fr\)\)/);
+    //
+    // ⚠️ The BASE value is the phone's, not the desktop's. This asserted
+    // `minmax(96px, 1fr)` while that was the only rule; the strip is now
+    // mobile-first, so 96px is the ≥900px step and the base is narrower.
+    expect(railCss()).toMatch(/repeat\(auto-fill, minmax\(64px, 1fr\)\)/);
+    expect(css).toMatch(/@media \(min-width: 900px\)[\s\S]{0,400}minmax\(96px, 1fr\)/);
   });
 
   it('drops the fixed tile width that forced the overflow', () => {
@@ -271,9 +276,40 @@ describe('every category is visible without horizontal scrolling', () => {
     expect(label).toMatch(/overflow-wrap: anywhere/);
   });
 
-  it('sizes down on a phone instead of shrinking to three per row', () => {
-    const mq = css.slice(css.indexOf('@media (max-width: 480px)', css.indexOf('.cbx-cats {')));
-    expect(mq.slice(0, mq.indexOf('\n}'))).toMatch(/\.cbx-cats \{[^}]*minmax\(78px, 1fr\)/);
+  it('gets four across on a phone from its BASE rule, not a shrink-down', () => {
+    // Same goal as before — four tiles per row at 320px rather than three — but
+    // reached the other way round. The old rule was desktop-first and stepped
+    // DOWN inside `@media (max-width: 480px)`, which also took the icon to 38px:
+    // the smallest screen got the smallest touch target. The base rule is now
+    // the phone's, and the media queries only add room.
+    expect(css).not.toMatch(/@media \(max-width: 480px\)[\s\S]{0,200}\.cbx-cats/);
+    // ⚠️ MEASURED in Chromium, not derived: 74px gave THREE columns at 320px
+    // and an 874px-tall strip. 64px gives four and ~600px. Arithmetic on the
+    // viewport width alone forgets the page gutter, the panel padding and the
+    // inter-tile gaps.
+    expect(railCss()).toMatch(/minmax\(64px, 1fr\)/);
+  });
+
+  it('never shrinks the touch target below 44px at any width', () => {
+    // WCAG 2.5.5. This is the regression the mobile-first rewrite fixes, so it
+    // is pinned rather than left to the runtime tap-target sweep: every
+    // declared icon size, in the base rule and in every media query, is >= 44.
+    const sizes = [...css.matchAll(/\.cbx-cat-icon \{[^}]*?width: (\d+)px/g)].map((m) => Number(m[1]));
+    expect(sizes.length, 'no .cbx-cat-icon width found — the selector moved').toBeGreaterThan(0);
+    for (const size of sizes) expect(size).toBeGreaterThanOrEqual(44);
+  });
+
+  it('separates the two filters it drives, so no pair reads as a duplicate', () => {
+    // "Emergency Aid" is `?cause=disaster-relief`; "Emergency" is
+    // `?category=Emergency`. Side by side in one wall they looked like the same
+    // tile twice and went somewhere different.
+    expect(code).toMatch(/Browse by cause/);
+    expect(code).toMatch(/Browse by category/);
+    // The cause group must not contain the category loop, or the grouping is
+    // cosmetic and the two can still interleave.
+    const causeGroup = code.slice(code.indexOf('cbx-causes-h'), code.indexOf('cbx-cats-h'));
+    expect(causeGroup).toMatch(/REFERENCE_TILES\.map/);
+    expect(causeGroup).not.toMatch(/CAMPAIGN_CATEGORIES\.map/);
   });
 
   it('still renders all 24 tiles: All, the five named ones, and every category', () => {
