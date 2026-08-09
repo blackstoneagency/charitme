@@ -3,7 +3,7 @@
  *
  * Extracted from the wizard component so the rules — and crucially *which field*
  * each failure belongs to — can be unit-tested. The builder can't be driven in a
- * test environment (`/create` is auth-gated and there's no database in CI), so
+ * test environment (publishing still requires auth and a database), so
  * without this the field-targeting would ship unverified.
  *
  * Thresholds come from `campaign-readiness.ts` (PUBLISH_MIN_*) — the same
