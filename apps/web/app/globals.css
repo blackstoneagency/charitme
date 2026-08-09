@@ -9336,7 +9336,7 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 }
 .cbx-checks { display: grid; gap: 9px; }
 .cbx-checks label { display: flex; align-items: center; gap: 9px; cursor: pointer; }
-.cbx-checks input { width: 15px; height: 15px; accent-color: var(--violet); cursor: pointer; flex: none; }
+.cbx-checks input { width: 20px; height: 20px; accent-color: var(--violet); cursor: pointer; flex: none; }
 .cbx-checks span { font-size: 13px; font-weight: 600; color: var(--t2); }
 
 .cbx-apply {
@@ -9906,7 +9906,7 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 .dn-load-error { font-size: 13px; color: var(--red-text); line-height: 1.5; }
 
 .dn-check { display: flex; align-items: flex-start; gap: 9px; font-size: 13px; color: var(--t2); cursor: pointer; }
-.dn-check input { margin-top: 2px; flex: none; }
+.dn-check input { width: 20px; height: 20px; accent-color: var(--violet); margin-top: 1px; flex: none; }
 .dn-dedicate {
   min-height: 42px; padding: 0 12px; border-radius: 11px;
   border: 1px solid var(--b2, #ddd7ee); background: var(--s1, #fff);
@@ -12362,4 +12362,21 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   .rr-help-panel > .rp-icon { order: 0; width: 64px; height: 64px; }
   .rr-steps-band .rp-section { padding-inline: 18px; }
   .rr-grants-live { padding: 14px; }
+}
+
+/* ── Mobile text floor ──────────────────────────────────────────────────────
+   Measured at 390x844: `.kind-footer h3` and `.kind-footer-links a` render at
+   11px on 109 of 113 pages, the app-store links at 10px on 104, and
+   `.foot-badge-sub` at 9px. That is the site's most-repeated text and the
+   hardest to read on a phone.
+
+   Raising the FLOOR here rather than editing the 129 `font-size: 10px|11px`
+   declarations in this file: those sizes are deliberate in dense desktop
+   chrome, and changing them globally would reflow tables and badge rows that
+   are fine at a desktop viewing distance. 12px is the floor going forward. */
+@media (max-width: 760px) {
+  .kind-footer h3,
+  .kind-footer-links a,
+  .kind-footer-apps a,
+  .foot-badge-sub { font-size: 12px; }
 }

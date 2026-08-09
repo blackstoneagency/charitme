@@ -1,6 +1,6 @@
 # CharitMe — Execution Tracker
 
-## 📱 END-TO-END MOBILE APP READINESS AUDIT — 4 parallel agents, 23 fixed, 1 RETRACTED, 7 open (Claude, 2026-08-09)
+## 📱 END-TO-END MOBILE APP READINESS AUDIT — 4 parallel agents, 26 fixed, 1 RETRACTED, 4 open (Claude, 2026-08-09)
 
 This is a PWA, not a native shell (`app/manifest.ts` + `public/sw.js` +
 `components/PWARegister.tsx`; no Capacitor/Expo in any package.json). So "mobile app
@@ -118,11 +118,6 @@ panel to use it. Recorded as unverified rather than claimed.
       dashboard blocks ride along on every public page (`.admin-*` 152 selectors,
       `.users-*` 176, `.cr2-*` 457). Route-scoping this is the single biggest mobile win
       available, and it is a real refactor — not a change to slip in beside a merge.
-- [ ] **10–11px body text sitewide.** `.kind-footer h3` and `.kind-footer-links a`
-      measure **11px on 109 of 113 pages**; `hello@charitme.com` is **10px** on 104;
-      `.foot-badge-sub` is **9px**. 129 `font-size: 10px|11px` declarations in
-      `app/globals.css`. Fix by raising the floor inside `@media (max-width: 760px)`
-      rather than editing 129 rules, and treat 12px as the site minimum.
 - [ ] **~25 of 113 pages carry 15–21px link/button targets** — `/campaigns` card
       titles (18px), `/glossary` (16 links at 18px), `/impact` (6 at 18px),
       `/for-donors`, `/matching`, `/supported-countries`. Worth one shared rule, not
@@ -130,21 +125,20 @@ panel to use it. Recorded as unverified rather than claimed.
       already fixed that one (`.auth-switch button` is now `min-height: 32px` with a
       focus ring), and it is exempt from WCAG 2.5.8 anyway under the inline
       exception since it sits inside a sentence. Do not re-fix it.
-- [ ] **Checkboxes render 13×13** on `/donate`, `/give`, `/volunteer` (15×15 on
-      `/campaigns`). The *effective* target passes because each is wrapped in a much
-      larger clickable `<label>`, so this is an affordance problem rather than a
-      blocker — but 13px is hard to aim at and hard to see.
 - [ ] **`MobileDonateCTA` is still UNVERIFIED at runtime.** It is gated on
       `isActive && payoutReady`, and no stub campaign has a connected Stripe account,
       so `.mobile-donate-bar` never mounts here — measured `null` on every attempt.
       Its 72px height is cleared by a hardcoded `.public-campaign { padding-bottom:
       80px }` guess that does not track a wrapping title, and it now needs the
       safe-area inset too. Re-measure against a campaign with `payoutReady === true`.
-- [ ] **Campaign covers over-fetch up to 18×** — a 1200 px source fills a 92 px box on
-      `/campaigns` list rows and a 68 px box in the carousel thumb strip; 88 of 155 `<img>`
-      across 12 routes carry no `srcset`. `next.config.js` already whitelists the remote
-      hosts, so `next/image` would fix it with no config change. Start with the two
-      thumbnail cases — those are the 13–18× ones.
+- [ ] **Campaign covers: the worst three sites are FIXED, the long tail is not.**
+      `/campaigns` row thumbs, its featured cards and the campaign carousel thumb strip
+      now route through the existing pure `optimizedCoverUrl()` helper (200 / 700 / 160
+      px requests) rather than serving the 1200 px original. Measured after: **0 raw
+      1200-wide covers left on /campaigns**, featured cards request 700×525.
+      ⚠️ Still open: the remaining `<img>` on other routes carry no `srcset`, so they
+      serve one fixed width to every device. `next.config.js` already whitelists the
+      hosts, so `next/image` needs no config change.
 
 ### ⚠️ HARNESS TRAP THAT INVALIDATED A WHOLE SWEEP
 
