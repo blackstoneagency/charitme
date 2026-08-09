@@ -707,6 +707,24 @@ export function buildFixtures() {
     _rpc: {
       increment_campaign_stats: null,
       get_campaign_stats: { total_raised: 4_820_000, total_backers: 1_284 },
+      // ⚠️ Without this the stub answers `null`, and `checkRateLimitDurable`
+      // treats anything that is not exactly `true` as "limit exceeded" — so
+      // every rate-limited endpoint returned **429 to every sweep, always**.
+      //
+      // It fails CLOSED and SILENTLY: `/donor`'s "Recommended for You" section
+      // simply did not render, so all six audits measured a /donor missing a
+      // whole section and reported it clean. Exactly the coverage hole this
+      // repo keeps finding — a green sweep over a page that is not all there.
+      //
+      // `true` = "allowed". A sweep must never be throttled: it is one browser
+      // making a handful of requests, and throttling it does not test the
+      // limiter, it just deletes content from the page being measured. The
+      // limiter itself is unit-tested separately.
+      //
+      // (`increment_campaign_stats` above is DEAD — CLAUDE.md records that it
+      // no longer exists as an RPC and nothing calls it. Left in place rather
+      // than removed in the same commit as an unrelated fix.)
+      check_rate_limit: true,
     },
 
     profiles,

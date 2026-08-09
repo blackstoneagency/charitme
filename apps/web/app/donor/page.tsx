@@ -157,9 +157,29 @@ export default async function DonorPortalPage() {
   // `active === label`. The page's own h1/subtitle are replaced by TopBar
   // rather than duplicated beneath it.
   return (
+    // ── Rendered INSIDE the app shell, with the left navigation ───────────────
+    //
+    // `/donor` is the destination of the sidebar's own "Giving History" entry
+    // (lib/persona-navigation.ts), and it was the only one of those entries that
+    // dropped the sidebar when you arrived. Opening your giving history from the
+    // menu therefore closed the menu — every sibling destination (Saved Causes,
+    // Tax Documents, Recurring Gifts) keeps it, so the odd one out read as the
+    // app losing its navigation rather than as a page that never had it.
+    //
+    // `active="Giving History"` must stay byte-identical to the label in
+    // persona-navigation.ts: the shell highlights by label match, so a reworded
+    // label silently un-highlights the row rather than failing.
     <CharitMeShell active="Giving History">
-      <TopBar title="Your Giving History" subtitle="All your donations, receipts, and recurring giving in one place." />
-    <div style={{ maxWidth: 800, margin: '0 auto', padding: '32px 24px' }}>
+      <TopBar
+        title="Your Giving History"
+        subtitle="All your donations, receipts, and recurring giving in one place."
+      />
+
+       {/* The shell owns the page gutter, so this only bounds the reading
+           measure. The old `margin: '0 auto'` centred the column against the
+           viewport — inside a shell that has a 264px sidebar, that reads as
+           off-centre, so the column is left-aligned within the content area. */}
+       <div className="kf-content-grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)', maxWidth: 860 }}>
 
       {unavailable && (
         <div
@@ -289,7 +309,7 @@ export default async function DonorPortalPage() {
       <div style={{ marginTop: 24, textAlign: 'center', fontSize: 13, color: 'var(--t3)' }}>
         Need help with a donation? <Link href="/contact" style={{ color: 'var(--brand-text)', fontWeight: 700 }}>Contact support</Link>
       </div>
-    </div>
+       </div>
     </CharitMeShell>
   );
 }

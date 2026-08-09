@@ -69,6 +69,28 @@ function MenuLinkIcon({ index }: { index: number }) {
 const SHELL_BYPASS = ['/dashboard', '/admin', '/profile', '/maintenance'];
 
 /**
+ * Bypassed at the EXACT path only, never for the subtree beneath it.
+ *
+ * `/donor` renders the same left-navigation shell the dashboard does, so it must
+ * not also get the marketing header — two stacked headers, with the account menu
+ * appearing twice.
+ *
+ * ⚠️ It cannot go in SHELL_BYPASS above, because that list matches
+ * `path.startsWith(p + '/')` and would take the chrome away from
+ * `/donor/receipt/[id]` and `/donor/tax-statement/[year]` as well. Those two are
+ * deliberately `pub-page simple-public` — printable financial documents, not app
+ * screens — and they are reached from emailed links, so their own header is the
+ * only navigation a visitor arriving cold actually has.
+ *
+ * ⚠️ Nor can it go in SHELL_WHEN_SIGNED_IN below, for the same prefix reason AND
+ * because that list is for PUBLIC pages that switch on session. `/donor` is
+ * gated — it redirects a signed-out visitor to /login — so there is no
+ * signed-out rendering of it to keep the marketing chrome for. The two lists
+ * answer different questions and both are needed.
+ */
+const SHELL_BYPASS_EXACT = ['/donor'];
+
+/**
  * Public routes that render the SIGNED-IN app shell (sidebar + top bar) once you
  * have a session, and the public marketing chrome when you do not.
  *
@@ -470,6 +492,7 @@ export function AppShell({
   const signedInForShell = hasSession === undefined ? (!authResolved || !!user) : hasSession;
   const bypass =
     SHELL_BYPASS.some((p) => path === p || path.startsWith(p + '/'))
+    || SHELL_BYPASS_EXACT.includes(path)
     || isEmbedRoute(path)
     || (shellWhenSignedIn && signedInForShell);
 
