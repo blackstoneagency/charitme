@@ -10,7 +10,7 @@
 -- progress bar never moves.
 --
 -- ⚠️ THE TRAP, restated from that migration's header because it is the whole
--- reason this is a drop-and-create rather than a `create or replace`:
+-- reason the legacy signature must be dropped before the replacement is defined:
 --
 --   `create or replace function record_donation(…, p_peer_fundraiser_id uuid
 --   default null)` does NOT replace the existing function. A different argument
@@ -21,9 +21,10 @@
 --   would start erroring — and since the handler rethrows so Stripe retries, it
 --   would keep erroring, on the money path, until someone noticed.
 --
--- So: DROP the exact 10-argument signature, then CREATE the 11-argument one, in
--- a single transaction (migrations run in one by default) so no window exists
--- where the function is missing and a webhook could 404 the RPC.
+-- So: DROP the exact 10-argument signature, then CREATE OR REPLACE the
+-- 11-argument one, in a single transaction (migrations run in one by default).
+-- OR REPLACE also tolerates a production database where the newer signature was
+-- introduced outside the migration ledger, without leaving both overloads live.
 --
 -- The body below is the existing function VERBATIM apart from three additions,
 -- marked `-- +peer`. Copying it wholesale is deliberate: the advisory lock, the
@@ -36,7 +37,7 @@ drop function if exists public.record_donation(
   text, uuid, uuid, bigint, bigint, bigint, text, boolean, text, text
 );
 
-create function public.record_donation(
+create or replace function public.record_donation(
   p_stripe_event_id text,
   p_campaign_id uuid,
   p_donor_id uuid,
@@ -127,6 +128,13 @@ exception when others then
   on conflict (stripe_event_id) do nothing;
   raise;
 end; $$;
+
+revoke all on function public.record_donation(
+  text, uuid, uuid, bigint, bigint, bigint, text, boolean, text, text, uuid
+) from public, anon, authenticated;
+grant execute on function public.record_donation(
+  text, uuid, uuid, bigint, bigint, bigint, text, boolean, text, text, uuid
+) to service_role;
 
 comment on function public.record_donation(
   text, uuid, uuid, bigint, bigint, bigint, text, boolean, text, text, uuid

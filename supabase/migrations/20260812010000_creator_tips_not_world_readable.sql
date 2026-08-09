@@ -31,6 +31,7 @@
 -- needs: a creator can see the tips they received.
 
 drop policy if exists public_creator_tips_read on public.creator_tips;
+drop policy if exists creator_tips_private on public.creator_tips;
 
 create policy creator_tips_private on public.creator_tips
   for select using (
