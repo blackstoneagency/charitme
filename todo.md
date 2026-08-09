@@ -48,6 +48,23 @@ All 19 stops fixed across 12 rules, each darkened within its own hue. Verified
 by the real audit afterwards: **226 pages × 2 themes, 32,908 / 32,857 text
 elements, 0 failures** — no regression on anything it *can* see.
 
+⚠️ **CORRECTION: 18 were live, not 19.** `.contact-form-card-v2 button` reads
+`var(--pink-btn, #ec39c3)`, and `--pink-btn` is defined at `:root` as `#ca36aa`
+— **4.55:1, which passes**. Only the unreachable FALLBACK was failing at 3.54:1.
+It was still darkened (a fallback that fails the moment the variable is removed
+is a latent defect) but it was never rendering, and calling it a live failure
+would have been wrong.
+
+🚧 **Known limit of the static guard: it cannot see through `var()`.** It reads
+hex literals inside the gradient, so `.auth-submit`
+(`--violet`, `--violet-2`, `--pink-btn`) is skipped entirely. Those three
+resolve to 5.83 / 4.69 / 4.55 today — all passing, checked by hand — but
+`--violet` is REDEFINED to `#a78bfa` (**2.72:1**) in a nested scope, so a
+white-on-gradient control rendered inside that scope would fail and neither tool
+would say so. The runtime audit covers the pages where these render today and
+reports nothing; that is the evidence, and it is page-specific rather than
+structural.
+
 ### ⚠️ AND THE GUARD I WROTE FOR IT FAILED 17 TESTS THAT WERE ALL MY OWN BUG
 
 `__tests__/gradient-text-contrast.test.ts` first swept hex codes from
@@ -152,8 +169,17 @@ file's length for a backlog. This index is the backlog.
   `DONATION_STEPS` in `lib/donation-flow-core.ts`, which drives `stepPosition`
   ("Step 4 of 12"), `previousStep` and the screen-reader announcements. Removing
   it edits the shared 12-step model on the payment path. Needs an explicit call.
-- **Two homepage entry points to `/create/choose-path`** — the "Create Campaign"
-  hero button and the pre-existing "Start a Fundraiser". Keep both, or drop one.
+- ~~**Two homepage entry points to `/create/choose-path`**~~ — **CLOSED, and the
+  item was stale.** Measured 2026-08-09: *neither* CTA points at
+  `/create/choose-path` any more. Both go to `/create` (`app/page.tsx` lines 242
+  and 493), changed deliberately with the reasoning written at line 224 — the
+  builder's first screen already offers both the AI and manual paths, so the
+  chooser added a screen between a visitor and the thing they clicked without
+  deciding anything. The two remaining CTAs sit in *different sections* — the
+  hero, and the "Make an Impact Today" closing band — which is an ordinary
+  top-and-bottom CTA pair, not a duplicate. **No change needed; nothing to
+  decide.** Recorded rather than silently deleted, because the wrong version of
+  this item was the basis of a question put to the owner.
 
 ### ~~Known coverage gap~~ — CLOSED, and the claim was wrong
 
@@ -22820,3 +22846,80 @@ review → launch.
 - Nine other pages still link to the chooser (`/fast-payouts`, `/features`,
   `/ai-fundraising`, …). The homepage is the entry point that mattered; the
   rest are secondary CTAs on pages a visitor reached deliberately.
+
+## 🔴 MASTER'S CI SIGNAL IS STRUCTURALLY ABSENT — 7 of 8 runs cancelled, none completed (Claude, 2026-08-09)
+
+**Nobody would notice if master went red.** Measured, not inferred.
+
+`.github/workflows/ci.yml` sets `cancel-in-progress: true` on
+`group: ci-${{ github.workflow }}-${{ github.ref }}`, so each push to master
+cancels the previous master run. That is the right setting for a busy PR branch.
+On master, with several agent lanes merging, it means the run never survives:
+
+| | measured |
+|---|---|
+| master merges, 00:56 → 02:07 | **8** |
+| mean gap between merges | **10.2 min** |
+| largest gap | **17.7 min** |
+| time a full run needs | **~55–75 min** (e2e step alone: 51.9m, 70m+) |
+| completed master runs in that window | **0** — 7 cancelled, 1 still running |
+
+The largest gap observed is still **3–4× too short** for a run to finish. This is
+arithmetic, not bad luck: while merge cadence stays under ~an hour, master's
+post-merge CI cannot produce a verdict.
+
+### Why this matters more than it looks
+
+- **A red master would be invisible.** The runs that would have caught it are
+  cancelled before they get past the build step.
+- **"Verified green on master" is currently not deliverable by anyone** — agent
+  or human. Do not accept it as a claim without a run id whose conclusion is
+  `success`; there have been none today.
+- ⚠️ It is **not** the runner outage documented in CLAUDE.md. These runs have
+  real runners (`runner_id: 1000002201`, populated `runner_name`, full step
+  lists, minutes of real execution). `cancelled` ≠ `failure` ≠ dead runner, and
+  conflating them is how a real failure would get waved through.
+- **PR runs are unaffected** — a PR's `github.ref` differs, so it gets its own
+  concurrency group. The gap is specifically master's post-merge signal.
+
+### Owner-actionable, cheapest first
+
+1. **Drop `cancel-in-progress` for master only** (keep it for PR refs) — e.g.
+   `cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}`. Costs more
+   minutes; the repo is public, so minutes are unlimited.
+2. **Split the slow steps** (e2e + the two audits, ~50 of the ~60 min) into a
+   scheduled or nightly workflow, leaving a fast post-merge gate.
+3. **Batch merges.** Eight merges in 71 minutes from parallel lanes is the input
+   driving this; fewer, larger merges would let runs land.
+
+Verified locally in place of the missing signal (branch = master at `e9814c9c`):
+typecheck clean, lint clean, 3697 tests, `public-quality.spec.ts` passing on
+both the chromium and mobile projects.
+
+### ✅ FIXED AND VERIFIED — master runs no longer cancel each other (Claude, 2026-08-09)
+
+`ci.yml` now keys the concurrency group on the **commit** for master
+(`…-${{ github.ref == 'refs/heads/master' && github.sha || '' }}`), merged as
+`e926d9d3` (PR #325).
+
+**Verified by observation, not by reading the diff:** immediately after the
+merge, two master runs were in progress *at the same time* —
+
+| run | commit | status |
+|---|---|---|
+| `31292380747` | `e926d9d3` | in_progress |
+| `31289682235` | `35d8d75e` | **in_progress — survived** |
+
+Under the old config both shared `ci-CI-refs/heads/master`, so the newer run
+would have cancelled the older. Different groups now, so both live.
+
+⚠️ **Not `cancel-in-progress: false`** — that queues rather than cancels, and at
+a ~10-minute merge cadence against ~60-minute runs the backlog grows without
+bound. PR refs are untouched: the sha is appended only on master, so a new push
+to a PR branch still cancels its predecessor.
+
+📌 **One correction to the measurement above:** the 8 "merges" counted are
+CODE merges. `ci.yml` has `paths-ignore` for docs-only paths, so docs commits
+(`e9814c9c`, `ac6169b1`) never triggered a run and never cancelled anything. The
+cadence figure is right for the merges that actually start CI, which is the
+number that mattered.
