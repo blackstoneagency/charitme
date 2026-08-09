@@ -68,6 +68,26 @@ function MenuLinkIcon({ index }: { index: number }) {
 // NOTE: /create is intentionally NOT bypassed — it now shows the global nav above its wizard
 const SHELL_BYPASS = ['/dashboard', '/admin', '/profile', '/maintenance'];
 
+/**
+ * Public routes that render the SIGNED-IN app shell (sidebar + top bar) once you
+ * have a session, and the public marketing chrome when you do not.
+ *
+ * These are the resource pages that appear in `RESOURCE_NAV` — a member reaches
+ * them from the sidebar, so landing on the marketing site instead is a jarring
+ * change of context that also loses the navigation they arrived by. Anonymous
+ * visitors must keep the marketing layout: the pages are publicly indexable, and
+ * showing a signed-out visitor an app sidebar full of "sign in to access" stubs
+ * would be a worse first impression than the marketing header.
+ *
+ * ⚠️ The route's own page component decides whether to render `CharitMeShell`,
+ * from the SERVER session. This list only tells the marketing chrome to get out
+ * of the way. The two are keyed on the same fact, but they learn it at different
+ * moments — the page during SSR, this component after its auth call resolves —
+ * so between hydration and that resolution a signed-in visitor would briefly get
+ * BOTH. `authResolved` below exists to prevent that; see the comment there.
+ */
+const SHELL_WHEN_SIGNED_IN = ['/fundraising-guide'];
+
 // Campaign embed widgets (/campaigns/[slug]/embed) are designed to run inside an
 // <iframe> on third-party sites — they render their own minimal layout and must
 // never include the site nav/footer.
@@ -403,6 +423,17 @@ export function AppShell({
   const footer = footerSettings ?? FOOTER_SETTINGS_DEFAULTS;
   const path = usePathname();
   const [user, setUser] = useState<User | null>(null);
+  /**
+   * Whether the auth call has come back yet — distinct from `!user`, which is
+   * ALSO true for the entire window before it resolves.
+   *
+   * Only consulted for SHELL_WHEN_SIGNED_IN routes. On those, the page has
+   * already server-rendered the app shell for a signed-in visitor, so drawing
+   * the marketing header before this resolves puts a full second header above it
+   * and then rips it away. Treating "not yet known" as "signed out" is exactly
+   * the bug; this makes the third state explicit.
+   */
+  const [authResolved, setAuthResolved] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
@@ -411,7 +442,15 @@ export function AppShell({
   const navRef = useRef<HTMLElement | null>(null);
   const headerRef = useRef<HTMLElement | null>(null);
   const supabase = useMemo(() => createClient(), []);
-  const bypass = SHELL_BYPASS.some((p) => path === p || path.startsWith(p + '/')) || isEmbedRoute(path);
+  const shellWhenSignedIn = SHELL_WHEN_SIGNED_IN.some((p) => path === p || path.startsWith(p + '/'));
+  // On these routes the marketing chrome is suppressed while the answer is
+  // UNKNOWN as well as when it is "signed in". The alternative — assume signed
+  // out until proven otherwise — renders the marketing header on top of the
+  // server-rendered app shell for every signed-in visitor, on every load.
+  const bypass =
+    SHELL_BYPASS.some((p) => path === p || path.startsWith(p + '/'))
+    || isEmbedRoute(path)
+    || (shellWhenSignedIn && (!authResolved || !!user));
 
   const displayName = ((user?.user_metadata?.full_name as string | undefined) ?? user?.email?.split('@')[0] ?? 'Account').split(' ')[0];
   const avatarInitial = (displayName[0] ?? 'A').toUpperCase();
@@ -422,8 +461,11 @@ export function AppShell({
   };
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data.user));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => setUser(session?.user ?? null));
+    supabase.auth.getUser().then(({ data }) => { setUser(data.user); setAuthResolved(true); });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setUser(session?.user ?? null);
+      setAuthResolved(true);
+    });
     return () => subscription.unsubscribe();
   }, [supabase]);
 
