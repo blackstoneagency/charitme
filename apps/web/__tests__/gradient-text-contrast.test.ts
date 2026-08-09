@@ -28,7 +28,16 @@ import path from 'node:path';
 // four rounds of false findings elsewhere in this repo.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const css = readFileSync(path.join(__dirname, '..', 'app', 'globals.css'), 'utf8');
+// ⚠️ ALL THREE sheets. The `.cr2-*` and `.admin-*`/`.users-*` rules were moved
+// out of globals.css so they stop shipping on every public route. This guard
+// caught that move itself — its rule count fell from 16 to 13 and it failed,
+// which is precisely the vacuous-pass it was written to prevent. Any future
+// extraction must be added here too.
+const css = [
+  path.join(__dirname, '..', 'app', 'globals.css'),
+  path.join(__dirname, '..', 'app', 'create', 'builder.css'),
+  path.join(__dirname, '..', 'app', 'admin', 'admin.css'),
+].map((f) => readFileSync(f, 'utf8')).join('\n');
 
 /** WCAG relative luminance. Matches the audit's own maths — verified against
  *  its reported 2.77:1 and 2.15:1 to the second decimal before being trusted. */

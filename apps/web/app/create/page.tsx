@@ -29,6 +29,9 @@ import StepPath from './StepPath';
 import StepRewards from './StepRewards';
 import StepVerify from './StepVerify';
 import { evaluateDonorView } from '../../lib/donor-preview';
+// Campaign-builder styles, scoped here rather than in globals.css so the
+// ~36KB of .cr2-* rules does not ship on every other public route.
+import './builder.css';
 
 /** A pristine wizard form — also what "start another campaign" resets to (F8). */
 const EMPTY_FORM: FormState = {
