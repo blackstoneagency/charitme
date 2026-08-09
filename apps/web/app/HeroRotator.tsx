@@ -305,7 +305,7 @@ export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero
 
         <h2 style={{ transition: 'opacity 0.3s', opacity: fading ? 0 : 1 }}>{heroTitle}</h2>
         <p style={{ transition: 'opacity 0.3s', opacity: fading ? 0 : 1 }}>
-          Organized by {campaign?.organizer_name ?? 'CharitMe Organizer'}
+          Organized by {campaign?.organizer_name ?? 'Campaign organizer'}
           <b aria-hidden="true" />
         </p>
 

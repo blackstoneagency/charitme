@@ -149,7 +149,7 @@ export default async function HomePage() {
   const heroItems: HeroSpotItem[] = await Promise.all(eligibleCampaigns.map(async (c) => ({
     slug: c.slug,
     title: c.title,
-    organizer: c.organizer_name ?? 'CharitMe Organizer',
+    organizer: c.organizer_name ?? 'Campaign organizer',
     cover: await resolveCampaignCover(c.cover_image_url, c.category, c.slug),
     fallbackCover: getCoverForCampaign(c.category, c.slug),
     currency: c.currency ?? 'usd',
@@ -344,7 +344,12 @@ export default async function HomePage() {
                 `getHomeData`, and the whole band is suppressed rather than shown
                 as zeroes when the read degrades (`shouldShowPlatformMetrics`). */}
             <dl className="mirror-metric-0"><div><dt><Icon name="heart" /> Raised for causes</dt><dd><CountUp value={metrics.raisedCents} kind="money" /></dd></div></dl>
-            <dl className="mirror-metric-1"><div><dt><Icon name="users" /> Lives impacted</dt><dd><CountUp value={metrics.donations} kind="int" /></dd></div></dl>
+            {/* ⚠️ "Donations", not "Lives impacted". `metrics.donations` is the count of
+                completed donations — a payment count, not a human outcome — and it
+                rendered the same 268 as the "Gifts given" tile above. Restating a
+                payment as a life changed is the kind of unearned claim this file's
+                own rule forbids: "labels that say exactly what was counted." */}
+            <dl className="mirror-metric-1"><div><dt><Icon name="users" /> Donations</dt><dd><CountUp value={metrics.donations} kind="int" /></dd></div></dl>
             <dl className="mirror-metric-2"><div><dt><Icon name="globe" /> Active causes</dt><dd><CountUp value={metrics.campaigns} kind="int" /></dd></div></dl>
             <dl className="mirror-metric-3"><div><dt><Icon name="shield" /> Average trust score</dt><dd><CountUp value={metrics.trustAvg} kind="percent" /></dd></div></dl>
           </div>

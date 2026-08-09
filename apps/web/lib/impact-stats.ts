@@ -112,7 +112,19 @@ const fetchImpactTiles = unstable_cache(
         ? (config.about as Record<string, unknown>)
         : {};
 
-      return parseImpactTiles(about.impactStats ?? DEFAULTS.about.impactStats);
+      // ⚠️ `[]`, NOT `DEFAULTS.about.impactStats`.
+      //
+      // This module's contract — stated in its own docstrings — is "[] when none
+      // are configured", so the caller can fall back to figures it MEASURED. The
+      // `?? DEFAULTS` did the opposite: an owner who had configured nothing got
+      // the hardcoded marketing literals (2.3M+ People Helped, 68K+ Lives
+      // Transformed, 98% Funds to Programs) rendered to donors as fact. Measured
+      // production reality is 352 active campaigns, $96,850 raised, 592 gifts —
+      // three orders of magnitude apart — and "98% to programs" contradicts /fees,
+      // which correctly says 0% platform fee.
+      //
+      // DEFAULTS stays as the seed the admin UI offers, which is what it is for.
+      return parseImpactTiles(about.impactStats ?? []);
     } catch {
       // supabaseAdmin throws on property access when its env is unset.
       return [];

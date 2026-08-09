@@ -97,7 +97,7 @@ function toLeaderboardCampaign(c: Record<string, unknown>, rank: number): Leader
     trustStatus: c.trust_status as string,
     nonprofitVerified: c.nonprofit_verified as boolean,
     location: (c.location as string | null) ?? null,
-    organizerName: (profile.full_name as string) || 'CharitMe Organizer',
+    organizerName: (profile.full_name as string) || 'Campaign organizer',
     organizerAvatarUrl: profile.avatar_url ?? null,
   };
 }
@@ -204,7 +204,7 @@ export async function getTopCampaigns(limit = 20): Promise<LeaderboardCampaign[]
       trustStatus: c.trust_status,
       nonprofitVerified: c.nonprofit_verified,
       location: c.location,
-      organizerName: profile.full_name || 'CharitMe Organizer',
+      organizerName: profile.full_name || 'Campaign organizer',
       organizerAvatarUrl: profile.avatar_url ?? null,
     };
   });

@@ -38,6 +38,11 @@ export const metadata: Metadata = {
     statusBarStyle: 'default',
     title: 'CharitMe',
   },
+  // `appleWebApp.capable` emits the modern unprefixed `mobile-web-app-capable`
+  // only. Older iOS reads the `apple-` prefixed name, and without it those
+  // versions open the installed icon in a Safari chrome instead of standalone.
+  // Measured on the served HTML: the prefixed meta was absent entirely.
+  other: { 'apple-mobile-web-app-capable': 'yes' },
 };
 
 export const viewport: Viewport = {

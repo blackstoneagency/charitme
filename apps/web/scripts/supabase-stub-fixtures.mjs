@@ -126,6 +126,11 @@ export function buildFixtures() {
   const defaultUser = personaUsers.find((user) => user.id === USER_ID);
   if (!defaultUser) throw new Error('The default audit persona is missing.');
 
+  const CAMPAIGN_LOCATIONS = [
+    'Austin, TX', 'Portland, OR', 'Chicago, IL', 'Toronto, ON', 'London, UK',
+    'Manchester, UK', 'Sydney, NSW', 'Auckland, NZ', 'Dublin, IE', 'Berlin, DE',
+  ];
+
   const campaigns = Array.from({ length: 120 }, (_, i) => {
     const goal = (Math.floor(rand() * 90) + 10) * 100_000;
     // Deliberately spread across the progress bar: some barely started, some
@@ -143,6 +148,13 @@ export function buildFixtures() {
         'enough to wrap across several lines so that line-height, truncation and ' +
         'text contrast are all exercised the way real body copy would exercise them.',
       category: CATEGORIES[i % CATEGORIES.length],
+      // `campaigns.location` exists in the schema and /impact-map, /search and
+      // /campaigns all read or filter on it, but no fixture carried one — so the
+      // map's primary section rendered "No locations recorded yet", "Distinct
+      // places" rendered "—", and the location filter could never match. Spread
+      // across several places so grouping and faceting actually have something
+      // to group.
+      location: CAMPAIGN_LOCATIONS[i % CAMPAIGN_LOCATIONS.length],
       goal_amount: goal,
       raised_amount: Math.round(goal * ratio),
       backer_count: Math.floor(rand() * 300),
@@ -342,7 +354,13 @@ export function buildFixtures() {
       starts_at: daysAgo(-14),
       ends_at: daysAgo(-13),
       created_by: USER_ID,
-      status: 'active',
+      // ⚠️ 'open', not 'active'. `volunteer_opportunities.status` allows only
+      // open | upcoming | closed, and every reader filters
+      // `.in('status', ['open','upcoming'])`. With 'active' the filter matched
+      // NOTHING, so /volunteer, /volunteer/[slug], the categories facet and the
+      // opportunity cards rendered a permanent zero-state and passed every audit
+      // having measured none of them. Same shape as the supported_countries bug.
+      status: 'open',
       deleted_at: null,
       created_at: daysAgo(20),
       updated_at: daysAgo(1),

@@ -241,6 +241,17 @@ input, select, textarea, button { max-width: 100%; }
   background: #000;
   backdrop-filter: none;
 }
+/* ⚠️ Sticky ONLY below the hamburger breakpoint, deliberately.
+   Measured on a 390x844 phone: after scrolling 2500px down a 10,571px page the
+   hamburger sat at y:-2224 and there was no other nav affordance on screen —
+   the only way back to navigation was BackToTop. On desktop the full nav bar is
+   always visible, so there is no equivalent defect, and pinning the header
+   sitewide would change what every contrast/focus sweep measures on 200+ pages
+   for no user benefit. Keeping it scoped puts the change where the evidence is. */
+@media (max-width: 1100px) {
+  .kind-header { position: sticky; top: 0; }
+}
+
 .kind-header > .container { height: 70px; display: flex; align-items: center; gap: 0; max-width: 1380px; padding-left: 24px; padding-right: 24px; }
 .kind-logo { display: inline-flex; align-items: center; gap: 9px; flex: 0 0 auto; margin-right: 18px; }
 .kind-logo > .kind-logo-img { width: 34px; height: 34px; display: block; flex: 0 0 auto; }
@@ -2141,7 +2152,11 @@ input, select, textarea, button { max-width: 100%; }
 .auth-separator { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 12px; font-weight: 650; text-transform: uppercase; letter-spacing: .08em; }
 .auth-separator::before, .auth-separator::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .auth-card label { display: grid; gap: 8px; color: #252c5c; font-size: 13px; font-weight: 700; }
-.auth-card input { width: 100%; border: 1px solid var(--line); border-radius: 14px; background: var(--s1); min-height: 48px; padding: 0 14px; color: var(--ink); outline: none; }
+/* ⚠️ 16px MINIMUM ON FOCUSABLE FIELDS — iOS Safari zooms the page in on focus
+   for anything smaller and never zooms back out, leaving the rest of the form
+   off-screen mid-task. Measured on a real 390x844 iPhone context; these were
+   12-15px. Font size here is a functional constraint, not styling. */
+.auth-card input { width: 100%; border: 1px solid var(--line); border-radius: 14px; background: var(--s1); min-height: 48px; padding: 0 14px; color: var(--ink); outline: none; font-size: 16px; }
 .auth-card input:focus { border-color: var(--brand-text); box-shadow: 0 0 0 4px rgba(109,53,255,.10); }
 .auth-error, .auth-success { border-radius: 14px; padding: 12px 14px; font-weight: 650; }
 .auth-error { background: var(--tint-rose); color: var(--red-text) !important; }
@@ -2354,7 +2369,11 @@ input, select, textarea, button { max-width: 100%; }
 
 /* Story card */
 .pc-story { padding: 28px; border: 1px solid var(--line); border-radius: 18px; background: rgba(255,255,255,.92); box-shadow: var(--shadow-sm); }
-.pc-story nav { display: flex; gap: 36px; border-bottom: 1px solid var(--line); margin: -4px -28px 28px; padding: 0 28px; }
+/* The only nested horizontal scroller on this page. Without containment a swipe
+   that reaches the end of the strip chains to the browser's back gesture, so a
+   donor flicking through tabs can leave the campaign. Measured scrollWidth 457
+   vs clientWidth 356 at 390px. Sibling strips already do this. */
+.pc-story nav { display: flex; gap: 36px; border-bottom: 1px solid var(--line); margin: -4px -28px 28px; padding: 0 28px; overscroll-behavior-inline: contain; }
 .pc-story nav a { padding: 16px 0; color: #4d567a; font-weight: 650; text-decoration: none; display: inline-block; }
 .pc-story nav .active { color: var(--brand-text); border-bottom: 3px solid var(--violet); }
 .pc-story h2 { margin: 0 0 18px; font-size: var(--fs-h3); letter-spacing: -.02em; }
@@ -2366,7 +2385,7 @@ input, select, textarea, button { max-width: 100%; }
 .pc-quick-share { border: 1px solid var(--b2); border-radius: 16px; padding: 20px; background: #fff; margin: 24px 0; }
 .pc-quick-share-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .pc-share-copy { display: flex; gap: 8px; margin-bottom: 16px; }
-.pc-share-copy input { flex: 1; padding: 9px 12px; border: 1px solid var(--b2); border-radius: 9px; font-size: 12px; color: var(--t3); background: var(--s1); }
+.pc-share-copy input { flex: 1; padding: 9px 12px; border: 1px solid var(--b2); border-radius: 9px; font-size: 16px; color: var(--t3); background: var(--s1); }
 .pc-share-copy button { padding: 9px 16px; border: none; border-radius: 9px; background: var(--violet); color: #fff; font-size: 12px; font-weight: 650; cursor: pointer; white-space: nowrap; }
 .pc-share-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
 .pc-share-tile { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--b2); border-radius: 12px; text-decoration: none; color: var(--t1); font-size: 13px; font-weight: 700; transition: background .15s; }
@@ -5270,7 +5289,7 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 .cr2-payout-subform-head p { margin: 0; font-size: 13px; color: var(--t3); line-height: 1.5; }
 .cr2-payout-trust-row { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: rgba(108,53,255,.06); border: 1px solid rgba(108,53,255,.15); border-radius: 10px; font-size: 12px; color: var(--brand-text); font-weight: 700; margin-bottom: 18px; }
 .cr2-payout-field-label { display: block; font-size: 12px; font-weight: 650; color: var(--t2); margin-bottom: 6px; }
-.cr2-payout-input { width: 100%; height: 44px; border: 1.5px solid var(--b2); border-radius: 10px; padding: 0 14px; font-size: 14px; background: var(--bg); color: var(--t1); box-sizing: border-box; margin-bottom: 14px; }
+.cr2-payout-input { width: 100%; height: 44px; border: 1.5px solid var(--b2); border-radius: 10px; padding: 0 14px; font-size: 16px; background: var(--bg); color: var(--t1); box-sizing: border-box; margin-bottom: 14px; }
 .cr2-payout-input:focus { outline: none; border-color: var(--brand-text); }
 .cr2-payout-input-prefix-wrap { position: relative; margin-bottom: 14px; }
 .cr2-payout-input-prefix { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 15px; font-weight: 700; color: var(--t3); pointer-events: none; }
@@ -9729,14 +9748,14 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 }
 .dn-money input {
   flex: 1; min-width: 0; border: 0; background: none; color: var(--t1);
-  font: inherit; font-size: 15px; font-weight: 700;
+  font: inherit; font-size: 16px; font-weight: 700;
 }
 .dn-money input:focus { outline: none; }
 .dn-select {
   min-width: 0; max-width: 100%;
   min-height: 44px; padding: 0 12px; border-radius: 11px;
   border: 1px solid var(--b2, #ddd7ee); background: var(--s1, #fff);
-  color: var(--t1); font: inherit; font-size: 14px;
+  color: var(--t1); font: inherit; font-size: 16px;
 }
 .dn-load-error { font-size: 13px; color: var(--red-text); line-height: 1.5; }
 
@@ -9745,7 +9764,7 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 .dn-dedicate {
   min-height: 42px; padding: 0 12px; border-radius: 11px;
   border: 1px solid var(--b2, #ddd7ee); background: var(--s1, #fff);
-  color: var(--t1); font: inherit; font-size: 14px;
+  color: var(--t1); font: inherit; font-size: 16px;
 }
 .dn-error { margin: 0; font-size: 13px; font-weight: 650; color: var(--red-text); }
 

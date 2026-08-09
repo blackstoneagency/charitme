@@ -652,10 +652,10 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             Organized by{' '}
             {creatorHandle ? (
               <Link href={`/creators/${creatorHandle}`} style={{ color: 'var(--ink)', fontWeight: 650, textDecoration: 'underline' }}>
-                {organizer.full_name ?? 'CharitMe Organizer'}
+                {organizer.full_name ?? 'Campaign organizer'}
               </Link>
             ) : (
-              <b style={{ color: 'var(--ink)', fontWeight: 650 }}>{organizer.full_name ?? 'CharitMe Organizer'}</b>
+              <b style={{ color: 'var(--ink)', fontWeight: 650 }}>{organizer.full_name ?? 'Campaign organizer'}</b>
             )}
             {/* ⚠️ This chip was UNCONDITIONAL — every campaign claimed "✓ Verified"
                 whether or not anything had been verified. It now renders only when
@@ -843,7 +843,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
                 {!organizer.avatar_url && (organizer.full_name?.[0] ?? 'C')}
               </div>
               <div className="pc-org-info">
-                <b>{organizer.full_name ?? 'CharitMe Organizer'}</b>
+                <b>{organizer.full_name ?? 'Campaign organizer'}</b>
                 <small>Organizer · {campaign.location ?? 'New York, USA'}</small>
               </div>
               {user ? (
