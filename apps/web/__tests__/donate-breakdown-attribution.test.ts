@@ -51,25 +51,30 @@ describe('the merged-row defect, reproduced exactly', () => {
   });
 });
 
-describe('the rendered breakdown keeps the two fees apart', () => {
-  it('still has a distinct CharitMe fee row', () => {
-    expect(code).toMatch(/label="CharitMe fee \(optional\)"/);
+describe('the rendered breakdown sums honestly', () => {
+  it('shows ONE fees line, matching the requested three-row shape', () => {
+    expect(code).toMatch(/value=\{money\(breakdown\.tip \+ breakdown\.processing\)\}/);
   });
 
-  it('the processing row renders ONLY the processing figure', () => {
-    // `breakdown.processing`, never a sum. A `breakdown.tip + breakdown.processing`
-    // here is the defect above, restored.
-    expect(code).toMatch(/value=\{money\(breakdown\.processing\)\}/);
-    expect(code, 'the processing row must not add the CharitMe fee into itself')
-      .not.toMatch(/money\(breakdown\.processing \+ breakdown\.tip\)/);
-    expect(code)
-      .not.toMatch(/money\(breakdown\.tip \+ breakdown\.processing\)/);
+  it('never names that sum after the processor', () => {
+    // ⚠️ THE invariant. Summing the two fees is fine; calling the sum
+    // "Processing fee" says Stripe took $127.29 when Stripe took $5.29.
+    //
+    // Checked as plain substrings rather than by parsing `label={...}`: the
+    // label is a ternary, so a regex expecting a quote straight after `label={`
+    // matched nothing and the first version of this assertion passed vacuously.
+    expect(code, 'the summed row must be labelled "Fees (estimated)"')
+      .toContain('Fees (estimated)');
+    expect(code, 'no row may call the combined figure a processing fee')
+      .not.toMatch(/Processing fee \(estimated\)/i);
   });
 
-  it('hides the CharitMe row only when it is exactly zero', () => {
-    // `> 0`, not truthiness or a rounding tolerance: any non-zero fee, however
-    // small, is money the donor is being asked for and must be itemised.
-    expect(code).toMatch(/\{breakdown\.tip > 0 && \(/);
+  it('keeps the split reachable, for pointer AND assistive tech', () => {
+    // A `title`-only tooltip is invisible to keyboard and screen-reader users,
+    // and this is the row where the itemisation actually matters.
+    expect(code).toMatch(/CharitMe fee \$\{money\(breakdown\.tip\)\} \+ processing \$\{money\(breakdown\.processing\)\}/);
+    expect(code).toMatch(/'aria-label': `\$\{label\}: \$\{value\}\. \$\{detail\}\.`/);
+    expect(code).toMatch(/title: detail/);
   });
 
   it('still states the total and what the recipient gets', () => {
@@ -88,8 +93,8 @@ describe('the zero-fee case is the clean three-row breakdown', () => {
       coverProcessing: true,
     });
     expect(b.supportCents).toBe(0);
-    // With the row hidden at zero, what remains is Donation / Processing /
-    // Recipient receives / You pay — the simple shape, reached honestly.
+    // The rendered shape is Donation / Fees (estimated) / Recipient receives /
+    // You pay in every case — three rows above the total, as requested.
     expect(b.processingCents).toBe(175);
     expect(b.totalChargedCents).toBe(5_175);
     expect(b.netToRecipientCents).toBe(5_000);
