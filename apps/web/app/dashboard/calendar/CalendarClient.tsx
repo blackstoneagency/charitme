@@ -162,7 +162,7 @@ export default function CalendarClient({
                     <div style={{ flex: '1 1 auto', minWidth: 0 }}>
                       <Link
                         href={e.href}
-                        style={{ color: 'var(--t1)', fontWeight: 600, fontSize: 14, textDecoration: 'none' }}
+                        style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, color: 'var(--t1)', fontWeight: 600, fontSize: 14, textDecoration: 'none' }}
                       >
                         {e.title}
                       </Link>
