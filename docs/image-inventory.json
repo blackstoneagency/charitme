@@ -16,17 +16,6 @@
       ]
     },
     {
-      "path": "screenshots/home.png",
-      "sha256": "e11a4ba22f4514be3004ff4ba296258c4f64a776601b92be5a62111b3774281c",
-      "status": "active",
-      "subject": "CharitMe homepage shown in its installable web app presentation",
-      "fit": "Wide PWA manifest screenshot",
-      "sourceType": "first-party",
-      "source": "Captured from the CharitMe application by apps/web/scripts/capture-manifest-screenshots.mjs",
-      "license": "CharitMe-owned application screenshot",
-      "uses": ["PWA manifest"]
-    },
-    {
       "path": "hero-child-crop.webp",
       "sha256": "92ad46b5f404909fdb1a987ffd4af10ae9d1bae3460bef058a761e8a2727aa57",
       "status": "active",
@@ -436,13 +425,13 @@
       "path": "screenshots/home.png",
       "sha256": "e11a4ba22f4514be3004ff4ba296258c4f64a776601b92be5a62111b3774281c",
       "status": "active",
-      "subject": "Screenshot of the CharitMe home page, captured from a local production build",
-      "fit": "PWA install prompt — the wide-form screenshot app stores and browsers show before install",
-      "sourceType": "generated",
-      "source": "scripts/capture-manifest-screenshots.mjs, added in commit 7b53f625",
-      "license": "CharitMe-owned product screenshot",
+      "subject": "CharitMe homepage shown in its installable web app presentation",
+      "fit": "Wide PWA manifest screenshot",
+      "sourceType": "first-party",
+      "source": "Captured from the CharitMe application by apps/web/scripts/capture-manifest-screenshots.mjs",
+      "license": "CharitMe-owned application screenshot",
       "uses": [
-        "/manifest.webmanifest via lib/manifest-screenshots.json"
+        "PWA manifest"
       ]
     }
   ]
