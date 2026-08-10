@@ -749,9 +749,28 @@ migration path is the one that works today.
   artifact, not absence). But its photos are Flickr/Wikimedia user uploads:
   **not reliably professional**, and using them would mean adding
   `live.staticflickr.com` to the production CSP *and* to `APPROVED_HOSTS` in
-  another lane's image-integrity gate. That is their design decision, and the
-  quality bar is one the goal explicitly sets ("professional"), so it was not
-  taken unilaterally.
+  another lane's image-integrity gate.
+- ⚠️ **The professional slice was measured, not dismissed.** Openverse also
+  indexes StockSnap (40k) and Rawpixel (1.27M), which ARE professional CC0
+  stock. I initially waved these away as "Flickr user uploads" — wrong, so I
+  counted them. Restricted to `source=stocksnap,rawpixel`, supply against demand:
+
+  | category | need | have | | category | need | have |
+  |---|---|---|---|---|---|---|
+  | Medical | 73 | 60 | | Memorial | 17 | **0** |
+  | Education | 73 | 21 | | Event | 17 | **0** |
+  | Faith | 73 | **1** | | Animal | 17 | **0** |
+  | Emergency | 23 | 2 | | Competition | 16 | **0** |
+  | Community | 22 | **0** | | Travel | 16 | 63 |
+  | Creative | 22 | 4 | | Business | 16 | 3 |
+  | Sports | 22 | **0** | | Wishes | 15 | **0** |
+  | Environment | 22 | 14 | | Nonprofit | 18 | **0** |
+  | Volunteer | 21 | 1 | | Family | 18 | 10 |
+
+  **~179 professional CC0 photos available against 501 needed, and nine
+  categories return ZERO.** Only Travel clears its requirement. So the
+  professional-CC0 route cannot cover the site — that is now a measurement, not
+  a judgement call, and it closes the last key-free option.
 
 ### Verified rather than assumed
 
