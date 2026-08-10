@@ -180,7 +180,34 @@ probe that taps and finds nothing looks identical to a panel that does not exist
 
 Because the panel now fits the viewport, a point outside it exists again — which is
 what makes the outside-tap dismissal reachable at all.
-- [ ] **One 518 KB stylesheet on every route, 94–98% unused.** `app/globals.css` →
+- [ ] **One 700 KB stylesheet on every route, 94–98% unused.** `app/globals.css` →
+
+      ✅ **PARTIAL, SAFE WIN LANDED 2026-08-10: 363 rules that can no longer match
+      anything are deleted — 703,954 → 667,395 B (36 KB, 5.1%).** That is larger than
+      the 32 KB the reverted route-scoping achieved, and it carries none of the
+      cascade risk: a rule with no possible element cannot be reordered against
+      anything. Mostly whole replaced surfaces — `.hiw-*` (old how-it-works),
+      `.aiw-*` (old AI wizard), `.dn-*` (pre-checkout donate form), `.kf-*` (old
+      builder preview), `.ai-console`, `.pc-payment-methods`, `.ac-tabs`.
+
+      Evidence rather than inference, because "unused" is exactly the claim that
+      is easy to get wrong: none of the 142 classes appears in any of the 112
+      public routes fetched at 200 from a real server, and none appears as a class
+      token anywhere in **47.8 MB of built `.next` JS/HTML** — which covers the
+      authenticated routes a public sweep cannot reach.
+
+      ⚠️ The detector treats a class as LIVE if its literal name appears **or any
+      prefix ending in `-` does**. That clause is load-bearing:
+      `kind-menu-layout-explore-causes` is written nowhere and composed as
+      `kind-menu-layout-${slug}`. Without it the scan reports 571 dead classes
+      instead of 142, and deleting on that basis unstyles the header's mega-menu.
+
+      `npm run audit:dead-css` reports; `--fix` rewrites.
+      `__tests__/dead-css.test.ts` ratchets it to zero and is mutation-tested in
+      both directions. **The remaining ~660 KB still needs the route-scoping
+      approach below, which is still unsolved.**
+
+      Original entry:
       518,233 B raw, render-blocking on every page. Chrome coverage: **2.1% used on
       `/search`, 2.8% on `/login`**. Still the biggest mobile win available.
 
