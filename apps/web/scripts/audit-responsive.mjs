@@ -22,6 +22,13 @@ import { chromiumLaunchOptions } from './lib/audit-browser.mjs';
 
 // Defaults to 3100, unlike its siblings — kept, since callers rely on it.
 const BASE = resolveBase(process.argv, 'http://127.0.0.1:3100');
+const argv = process.argv;
+const WITH_AUTH = argv.includes('--auth');
+const SKIP_ADMIN = process.env.AUDIT_SKIP_ADMIN === '1';
+const ONLY_GATED = process.env.AUDIT_ONLY_GATED === '1';
+const SKIP_DASHBOARD_ROOT = process.env.AUDIT_SKIP_DASHBOARD_ROOT === '1';
+const onlyArg = argv.includes('--only') ? argv[argv.indexOf('--only') + 1] : null;
+const ONLY = onlyArg ? onlyArg.split(',').map((value) => value.trim()).filter(Boolean) : null;
 
 // Preflight the target before sweeping.
 //
@@ -58,13 +65,42 @@ try {
 const ROUTES = JSON.parse(
   readFileSync(fileURLToPath(new URL('../e2e/public-routes.json', import.meta.url)), 'utf8'),
 );
-const PAGES = ROUTES.public.filter((r) => !r.includes('/embed'));
-// 320 = smallest phone still in common use; 1920 = standard desktop.
+const sessionCookie = process.env.STUB_SESSION_COOKIE
+  ? JSON.parse(process.env.STUB_SESSION_COOKIE)
+  : null;
+if (WITH_AUTH && !sessionCookie) {
+  console.error(
+    '✗ --auth was passed but STUB_SESSION_COOKIE is not set.\n' +
+    '  Run this through `npm run audit:responsive:signed-in`; otherwise every gated route redirects to /login.',
+  );
+  process.exit(2);
+}
+const signedOutOnly = new Set(ROUTES.signedOutOnly ?? []);
+const gated = ROUTES.authGated
+  ? [
+    ...(ROUTES.authGated.routes ?? []),
+    ...(ROUTES.authGated.consoles ?? []),
+    ...(ROUTES.authGated.dynamicSamples ?? []).map((sample) => sample.path),
+  ]
+  : [];
+let pages = WITH_AUTH
+  ? [...(ONLY_GATED ? [] : ROUTES.public.filter((route) => !signedOutOnly.has(route))), ...gated]
+  : [...ROUTES.public];
+if (ONLY) pages = pages.filter((route) => ONLY.includes(route));
+if (SKIP_ADMIN) pages = pages.filter((route) => !route.startsWith('/admin'));
+if (SKIP_DASHBOARD_ROOT) pages = pages.filter((route) => route.split('?')[0].replace(/\/$/, '') !== '/dashboard');
+if (pages.length === 0) {
+  console.error('✗ no routes selected — refusing to report a clean responsive run over nothing.');
+  process.exit(2);
+}
+
+// 320 = smallest common phone, 375 = current compact phone, 768 = tablet,
+// 1440 = standard desktop, and 1920 catches overly-stretched wide layouts.
 const VIEWPORTS = [
   { name: '320', width: 320, height: 640, isMobile: true },
-  // 768 covers the tablet/`max-width: 560px`-and-up breakpoints that neither the
-  // 320 nor the 1920 pass exercises — the /leaderboard row collapse lived here.
+  { name: '375', width: 375, height: 812, isMobile: true },
   { name: '768', width: 768, height: 1024, isMobile: false },
+  { name: '1440', width: 1440, height: 1000, isMobile: false },
   { name: '1920', width: 1920, height: 1080, isMobile: false },
 ];
 const THEMES = ['light', 'dark'];
@@ -85,9 +121,21 @@ for (const vp of VIEWPORTS) {
     await ctx.addInitScript((t) => {
       try { localStorage.setItem('charitme-theme-v2', t); } catch { /* ignore */ }
     }, theme);
-    const page = await ctx.newPage();
+    if (sessionCookie) {
+      await ctx.addCookies([{ name: sessionCookie.name, value: sessionCookie.value, url: BASE }]);
+    }
+    let page = await ctx.newPage();
 
-    for (const path of PAGES) {
+    for (const path of pages) {
+      const routePath = path.split('?')[0].replace(/\/$/, '') || '/';
+      if (SKIP_ADMIN && routePath.startsWith('/admin')) {
+        console.log(`SKIP ${vp.name}/${theme} ${path}: admin route under member session`);
+        continue;
+      }
+      if (SKIP_DASHBOARD_ROOT && routePath === '/dashboard') {
+        console.log(`SKIP ${vp.name}/${theme} ${path}: member landing route under admin session`);
+        continue;
+      }
       try {
         let response;
         try {
@@ -97,7 +145,10 @@ for (const vp of VIEWPORTS) {
             console.log(`· ${vp.name}/${theme} ${path} — SKIPPED (needs seeded data; navigation failed)`);
             continue;
           }
-          throw navigationError;
+          await page.close().catch(() => {});
+          page = await ctx.newPage();
+          response = await page.goto(BASE + path, { waitUntil: 'domcontentloaded', timeout: 25000 }).catch(() => null);
+          if (!response) throw navigationError;
         }
         // Measure the page we asked for, or report it — never something we were
         // sent to. A redirect to /login (or to an SSO wall on an external target)
@@ -129,7 +180,7 @@ for (const vp of VIEWPORTS) {
         // reports only the pathname here, so comparing it against the raw entry
         // reports every such route as a REDIRECT to itself and measures none of
         // them — a harness artifact that reads exactly like a real finding.
-        const asked = path.split('?')[0].replace(/\/$/, '') || '/';
+        const asked = routePath;
         if (landed !== asked) {
           console.log(`✗ ${vp.name}/${theme} ${path} — REDIRECTED to ${landed}; not measured`);
           findings++;
@@ -237,7 +288,13 @@ for (const vp of VIEWPORTS) {
               const b = el.getBoundingClientRect();
               return b.width >= 8 && b.height >= 8 && b.bottom > 0 && b.top < window.innerHeight;
             });
-          const nameOf = (el) => `${el.tagName.toLowerCase()}.${(typeof el.className === 'string' ? el.className : '').trim().split(/\s+/)[0] || '-'}`;
+          const nameOf = (el) => {
+            const tag = el.tagName.toLowerCase();
+            const className = (typeof el.className === 'string' ? el.className : '').trim().split(/\s+/)[0] || '-';
+            const text = (el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 42);
+            const identity = el.getAttribute('aria-label') || el.getAttribute('href') || el.getAttribute('name') || text;
+            return `${tag}.${className}${identity ? `[${identity}]` : ''}`;
+          };
           for (let i = 0; i < controls.length && overlaps.length < 3; i++) {
             for (let j = i + 1; j < controls.length && overlaps.length < 3; j++) {
               const a = controls[i], b = controls[j];
@@ -249,7 +306,8 @@ for (const vp of VIEWPORTS) {
               const area = ox * oy;
               const smaller = Math.min(ra.width * ra.height, rb.width * rb.height);
               if (smaller <= 0 || area / smaller < 0.15) continue;
-              overlaps.push(`${nameOf(a)} ∩ ${nameOf(b)} ${Math.round(ox)}x${Math.round(oy)}px`);
+              const rectOf = (rect) => `${Math.round(rect.left)},${Math.round(rect.top)},${Math.round(rect.width)}x${Math.round(rect.height)}`;
+              overlaps.push(`${nameOf(a)}@${rectOf(ra)} ∩ ${nameOf(b)}@${rectOf(rb)} ${Math.round(ox)}x${Math.round(oy)}px`);
             }
           }
 
@@ -295,7 +353,7 @@ for (const vp of VIEWPORTS) {
             const cs = getComputedStyle(el);
             if (cs.position === 'absolute' && !(el.innerText || '').trim()) continue;
             if (inScrollableRegion(el)) continue;
-            clipped.push(`${nameOf(el)}@${Math.round(b.right)}`);
+            clipped.push(`${nameOf(el)}@${Math.round(b.left)},${Math.round(b.top)},${Math.round(b.width)}x${Math.round(b.height)}→${Math.round(b.right)}`);
             if (clipped.length >= 3) break;
           }
 
@@ -322,7 +380,7 @@ for (const vp of VIEWPORTS) {
         console.log(`✗ ${vp.name}/${theme} ${path} — ERROR ${String(e.message).slice(0, 60)}`);
       }
     }
-    console.log(`· ${vp.name}px ${theme}: swept ${PAGES.length} pages`);
+    console.log(`· ${vp.name}px ${theme}: swept ${pages.length} pages${WITH_AUTH ? ' (public + signed-in)' : ''}`);
     await ctx.close();
   }
 }
@@ -335,6 +393,6 @@ if (notes.size) {
   for (const n of notes) console.log(`   · ${n}`);
 }
 console.log(findings === 0
-  ? `\n✅ No responsive/theme regressions across ${PAGES.length} pages × ${VIEWPORTS.length} viewports × ${THEMES.length} themes.`
+  ? `\n✅ No responsive/theme regressions across ${pages.length} pages × ${VIEWPORTS.length} viewports × ${THEMES.length} themes${WITH_AUTH ? ' (public + signed-in)' : ''}.`
   : `\n${findings} finding(s).`);
 process.exit(findings === 0 ? 0 : 1);

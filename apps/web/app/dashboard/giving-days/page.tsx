@@ -6,6 +6,7 @@ import { requireUser } from '../../../lib/auth';
 import { isAdmin } from '../../../lib/roles';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { listManageableGivingDays, ownedNonprofitIds } from '../../../lib/giving-days-server';
+import { EmptyState } from '../../../components/ui';
 import GivingDaysClient from './GivingDaysClient';
 
 export const dynamic = 'force-dynamic';
@@ -19,8 +20,10 @@ export const metadata: Metadata = { title: 'Giving Days | CharitMe' };
 // `giving_days_owner_write` policy, which does NOT run here: these reads go
 // through the service-role client.
 
-async function ownedNonprofits(userId: string): Promise<{ id: string; name: string }[]> {
+/** `null` = the ownership read failed. `[]` = this account owns no organisation. */
+async function ownedNonprofits(userId: string): Promise<{ id: string; name: string }[] | null> {
   const ids = await ownedNonprofitIds(userId);
+  if (ids === null) return null;
   if (ids.length === 0) return [];
   const { data } = await boundedQuery(() => supabaseAdmin
     .from('nonprofit_profiles')
@@ -37,6 +40,23 @@ export default async function DashboardGivingDaysPage() {
     ownedNonprofits(user.id),
     listManageableGivingDays(user.id, admin),
   ]);
+
+  // ⚠️ A failed ownership read is not an account without an organisation. With
+  // `[]` the client renders its "set one up first" empty state, which sends an
+  // existing owner to re-create something they already have.
+  if (nonprofits === null) {
+    return (
+      <CharitMeShell active="Giving Days">
+        <TopBar title="Giving Days" subtitle="A fixed window when your whole community gives together." />
+        <div style={{ padding: '0 32px 40px' }}>
+          <EmptyState
+            title="We could not load your organisations"
+            body="This is a read failure, not an empty account — your giving days are still there. Try again in a moment."
+          />
+        </div>
+      </CharitMeShell>
+    );
+  }
 
   return (
     <CharitMeShell active="Giving Days">

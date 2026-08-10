@@ -237,7 +237,7 @@ export default async function SearchPage({ searchParams }: Props) {
                 />
               ) : (
                 <CampaignGrid>
-                  {campaigns.rows.map((c) => <CampaignCard key={c.id} campaign={c} />)}
+                  {campaigns.rows.map((c) => <CampaignCard key={c.id} campaign={c} coverScope="search" />)}
                 </CampaignGrid>
               )}
             </section>

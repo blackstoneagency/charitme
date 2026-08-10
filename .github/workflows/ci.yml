@@ -129,6 +129,9 @@ jobs:
           REQUIRE_AUTHENTICATED_RLS_PERSONAS: 'true'
         run: npm run test:rls-live
 
+      - name: Campaign builder database smoke (isolated replay)
+        run: npm run test:campaign-builder-db
+
       - name: Stop isolated database
         if: always()
         run: npx supabase stop --no-backup || true
@@ -188,6 +191,9 @@ jobs:
 
       - name: Campaign image audit (static)
         run: npm run audit:campaign-images --workspace=apps/web
+
+      - name: Local image provenance and uniqueness audit
+        run: npm run audit:image-assets --workspace=apps/web
 
       - name: Production build
         run: npm run build --workspace=apps/web
@@ -264,11 +270,13 @@ jobs:
           npx next start -p 3000 &
           for i in $(seq 1 45); do curl -sf -o /dev/null http://127.0.0.1:3000/ && break; sleep 2; done
           # Run BOTH before failing, so one red sweep does not hide the other's
-          # findings — `set -e` would otherwise abort at the first failure and
-          # leave the second entirely unmeasured.
+          # findings. They are independent readers of the same built server and
+          # can safely execute together.
           set +e
-          npm run audit:contrast -- --base http://127.0.0.1:3000; contrast=$?
-          npm run audit:a11y     -- --base http://127.0.0.1:3000; a11y=$?
+          npm run audit:contrast -- --base http://127.0.0.1:3000 & contrast_pid=$!
+          npm run audit:a11y     -- --base http://127.0.0.1:3000 & a11y_pid=$!
+          wait "$contrast_pid"; contrast=$?
+          wait "$a11y_pid"; a11y=$?
           pkill -f "[n]ext-server" || true
           [ $contrast -ne 0 ] && echo "::error::contrast audit failed"
           [ $a11y -ne 0 ] && echo "::error::axe audit failed"
@@ -280,8 +288,16 @@ jobs:
           NEXT_PUBLIC_APP_URL: https://www.charitme.com
           SUPABASE_SERVICE_ROLE_KEY: placeholder-service-role-key
 
-      - name: Signed-in contrast audit (WCAG AA, both themes)
-        run: npm run audit:signed-in -- --port 3310 --stub-port 55432
+      # ⚠️ `--content-contracts` piggybacks on this step deliberately. It asserts
+      # each data-backed public route rendered a MINIMUM NUMBER OF REAL ITEMS —
+      # the thing a fixture bug removes and every other sweep passes anyway. Four
+      # separate fixture bugs in one session rendered clean empty states that
+      # contrast, axe, responsive and target-size all reported as perfect,
+      # because an empty page has nothing on it to fail. It needs a build pointed
+      # at the Supabase stub, which only exists in this step; a separate step
+      # would cost a second full `next build`.
+      - name: Signed-in contrast audit (WCAG AA, both themes) + route content contracts
+        run: npm run audit:signed-in -- --content-contracts --port 3310 --stub-port 55432
         working-directory: apps/web
 
       - name: Upload Playwright report on failure
@@ -291,3 +307,36 @@ jobs:
           name: playwright-report
           path: apps/web/playwright-report/
           retention-days: 7
+
+  visual-audits:
+    name: responsive and image integrity (${{ matrix.lane }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - lane: public
+            args: --public --build --page-images --mobile --responsive --strict-global
+          - lane: admin
+            args: --build --page-images --mobile --responsive --contrast --strict-gradients
+          - lane: member
+            args: --build --page-images --mobile --responsive --contrast --strict-gradients --no-admin
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+        working-directory: apps/web
+
+      - name: Run ${{ matrix.lane }} visual audit
+        run: node scripts/audit-signed-in.mjs ${{ matrix.args }} --port 3310 --stub-port 55432
+        working-directory: apps/web

@@ -13,7 +13,7 @@ import {
 import { listPublishedEvents } from '../../../lib/events';
 import { getCause } from '../../../lib/causes';
 import { remainingCapacity } from '../../../lib/events-core';
-import { getPhotosForCategory } from '../../../lib/photo-catalog';
+import { getPhotosForPage } from '../../../lib/photo-catalog';
 
 export const metadata: Metadata = {
   title: 'Events - Gather for Good',
@@ -50,7 +50,7 @@ export default async function EventsPage({ searchParams }: { searchParams?: Prom
     return `${event.title} ${event.description ?? ''} ${event.location ?? ''}`.toLowerCase().includes(query);
   });
   const virtualCount = allEvents.filter((event) => Boolean(event.virtual_url)).length;
-  const photos = getPhotosForCategory('Event', Math.max(events.length + 1, 6));
+  const photos = getPhotosForPage('Event', 'events-list', Math.max(events.length + 1, 6));
 
   return (
     <ReferencePage>

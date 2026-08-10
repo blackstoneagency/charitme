@@ -5,11 +5,9 @@ import {
   ReferenceHero,
   ReferenceIconGrid,
   ReferencePage,
-  ReferenceQuote,
   ReferenceSection,
-  ReferenceStats,
 } from '../../components/ReferenceMarketing';
-import { getPhotosForCategory } from '../../lib/photo-catalog';
+import { getPhotosForPage } from '../../lib/photo-catalog';
 import PartnerRoster from '../partner/PartnerRoster';
 
 export const metadata: Metadata = {
@@ -35,34 +33,36 @@ const REASONS = [
   { icon: 'heart', title: 'Make It Meaningful', body: 'Support the causes your employees and customers care about.' },
 ];
 
-const IMPACT = [
-  { icon: 'heart', value: '$48M+', label: 'Raised by corporate partners' },
-  { icon: 'people', value: '2,100+', label: 'Corporate partners worldwide' },
-  { icon: 'globe', value: '6.2M+', label: 'Lives positively impacted' },
-  { icon: 'hand', value: '1.8M+', label: 'Volunteer hours contributed' },
-];
+// ⚠️ The four figures that used to sit here — "$48M+ Raised by corporate
+// partners", "2,100+ Corporate partners worldwide", "6.2M+ Lives positively
+// impacted", "1.8M+ Volunteer hours contributed" — were INVENTED. None of them
+// appear anywhere in the data, and nothing in this schema records a life
+// impacted or a partner-attributed total. They were shown to prospective
+// corporate partners as fact.
+//
+// This is the same call already made for /about-us and /impact: a page may show
+// figures it can MEASURE, or none at all — never ones it made up. There is no
+// measurable equivalent for these four (matching_programs holds programs, not
+// attributed totals), so the band is gone rather than replaced with a number
+// that means something different from its label.
+//
+// If the owner wants these back, the mechanism already exists: make them
+// owner-authored with a `source_note`, the way `platform_impact_stats` drives
+// /impact, and render them only once published.
 
-const QUOTES = [
-  {
-    quote: 'CharitMe makes it simple for our employees to give back in ways that matter most to them.',
-    name: 'Erin W.',
-    context: 'Director of Corporate Responsibility',
-  },
-  {
-    quote: 'Our partnership strengthened our culture and deepened our commitment to the communities we serve.',
-    name: 'David L.',
-    context: 'VP, Global Impact',
-  },
-  {
-    quote: 'The platform is easy to use, the reporting is clear, and the impact is real.',
-    name: 'Maria G.',
-    context: 'Head of Social Impact',
-  },
-];
+// ⚠️ Three testimonials were REMOVED from here: "Erin W., Director of Corporate
+// Responsibility", "David L., VP, Global Impact" and "Maria G., Head of Social
+// Impact". No such partners exist and no testimonials table does either — they
+// were invented copy attributed to named individuals with job titles.
+//
+// Fabricated testimony about identifiable people is a different order of wrong
+// from a made-up total, which is why /impact has a test asserting its invented
+// vignettes never appear in the page source. Real, consented quotes can go in a
+// table and render from it.
 
 export default function CorporatePartnershipsPage() {
-  const businessPhotos = getPhotosForCategory('Business', 4);
-  const communityPhotos = getPhotosForCategory('Community', 3);
+  const businessPhotos = getPhotosForPage('Business', 'corporate-business', 4);
+  const communityPhotos = getPhotosForPage('Community', 'corporate-community', 3);
   const ways = [
     {
       icon: 'people',
@@ -139,16 +139,8 @@ export default function CorporatePartnershipsPage() {
           <ReferenceCardGrid items={ways} columns={4} />
         </ReferenceSection>
 
-        <ReferenceStats items={IMPACT} />
-
         <ReferenceSection title="Trusted by Purpose-Driven Companies" intro="Proud to partner with forward-thinking organizations across the globe.">
           <PartnerRoster />
-        </ReferenceSection>
-
-        <ReferenceSection title="What Our Partners Say" compact>
-          <div className="rr-quote-grid">
-            {QUOTES.map((quote) => <ReferenceQuote key={quote.name} {...quote} />)}
-          </div>
         </ReferenceSection>
 
         <ReferenceCta

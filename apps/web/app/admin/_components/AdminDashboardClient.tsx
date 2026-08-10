@@ -134,7 +134,7 @@ function SourceDonut({ sources, total }: { sources: SourceItem[]; total: string 
   const totalPct = sources.reduce((s, it) => s + it.pct, 0) || 100;
 
   return (
-    <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 32, padding: '10px 22px 20px' }}>
+    <div className="admin-source-donut" style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 32, padding: '10px 22px 20px' }}>
       <div style={{ position: 'relative', width: 150, height: 150, flexShrink: 0 }}>
         <svg viewBox="0 0 42 42" style={{ width: 150, height: 150, transform: 'rotate(-90deg)' }}>
           {sources.map((src, i) => {

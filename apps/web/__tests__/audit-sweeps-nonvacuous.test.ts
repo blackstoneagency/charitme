@@ -147,7 +147,7 @@ describe('signed-in audit integrity', () => {
     // needed: `/admin` renders only for an admin, `/dashboard` renders 200 only
     // for a non-admin. Probing the wrong one would either fail on a correct
     // build or pass on a build with no admin grant at all.
-    expect(signedInSource).toContain("const probePath = AS_MEMBER ? '/dashboard' : '/admin'");
+    expect(signedInSource).toContain("const probePath = AS_PUBLIC ? '/' : AS_MEMBER ? '/dashboard' : '/admin'");
     expect(signedInSource).toContain('`${BASE}${probePath}`');
   });
 
@@ -157,7 +157,7 @@ describe('signed-in audit integrity', () => {
     // only the env var changed the sweep stayed an admin and /dashboard kept
     // redirecting — which is how the member dashboard went unmeasured by every
     // audit in this repo.
-    expect(signedInSource).toContain("const AS_MEMBER = process.argv.slice(2).includes('--no-admin')");
+    expect(signedInSource).toContain("const AS_MEMBER = !AS_PUBLIC && argv.includes('--no-admin')");
     expect(signedInSource).toContain('00000000-0000-4000-8000-000000000012');
     // The stub resolves the persona from the bearer token, so that must switch too.
     expect(signedInSource).toContain("const USER_TOKEN = AS_MEMBER ? 'stub-organizer-access-token'");
@@ -190,7 +190,43 @@ describe('signed-in audit integrity', () => {
 
   it('enforces the signed-in contrast sweep in CI', () => {
     expect(ciWorkflow).toContain('Signed-in contrast audit (WCAG AA, both themes)');
-    expect(ciWorkflow).toContain('npm run audit:signed-in -- --port 3310 --stub-port 55432');
+    expect(ciWorkflow).toContain('npm run audit:signed-in -- --content-contracts --port 3310 --stub-port 55432');
+  });
+
+  // An audit nobody runs is decorative — the failure this repo already recorded
+  // for its e2e specs, where a real light-mode contrast bug reached production
+  // underneath a spec that passed by default because it never executed.
+  // audit:content-contracts was written and registered in package.json and for a
+  // while was wired into nothing, so this asserts BOTH halves: that CI invokes
+  // it, and that the harness actually spawns the script rather than accepting the
+  // flag and doing nothing.
+  it('enforces the route content contracts in CI', () => {
+    expect(ciWorkflow).toContain('--content-contracts');
+    expect(packageJson.scripts['audit:content-contracts']).toContain('audit-content-contracts.mjs');
+    expect(signedInSource).toContain("argv.includes('--content-contracts')");
+    expect(signedInSource).toContain("'scripts/audit-content-contracts.mjs', '--base', BASE");
+    // A non-zero exit from the contracts run must fail the step. Swallowing it
+    // would leave the flag present, the log reassuring, and the guard vacuous.
+    expect(signedInSource).toMatch(/content contracts failed[\s\S]{0,120}process\.exit\(1\)/);
+  });
+
+  it('enforces all three visual audit lanes in CI', () => {
+    expect(ciWorkflow).toContain('visual-audits:');
+    expect(ciWorkflow).toContain('args: --public --build --page-images --mobile --responsive --strict-global');
+    expect(ciWorkflow).toContain('args: --build --page-images --mobile --responsive --contrast --strict-gradients');
+    expect(ciWorkflow).toContain('args: --build --page-images --mobile --responsive --contrast --strict-gradients --no-admin');
+    expect(ciWorkflow).toContain('node scripts/audit-signed-in.mjs ${{ matrix.args }} --port 3310 --stub-port 55432');
+  });
+
+  it('allows cross-route reuse only when the rendered image names the same entity', () => {
+    const imageSource = read('audit-page-images.mjs');
+    const campaignCardSource = readFileSync(join(WEB_ROOT, 'components', 'CampaignCard.tsx'), 'utf8');
+    const campaignDetailSource = readFileSync(join(WEB_ROOT, 'app', 'campaigns', '[slug]', '(detail)', 'page.tsx'), 'utf8');
+    expect(imageSource).toContain("getAttribute('data-image-entity')");
+    expect(imageSource).toContain('usage.entities.size !== 1 || usage.entities.has(null)');
+    expect(imageSource).toContain('Global image uniqueness failures');
+    expect(campaignCardSource).toContain('data-image-entity={`campaign:${c.id}`}');
+    expect(campaignDetailSource).toContain('data-image-entity={`campaign:${c.id}`}');
   });
 
   it('makes the live authenticated axe sweep fail on broken pages or theme drift', () => {

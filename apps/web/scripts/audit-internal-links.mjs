@@ -120,6 +120,10 @@ const PREFIX_LIST_FILES = new Set([
 // so it stays short and explicit rather than becoming a dumping ground.
 const NOT_OURS = new Map([
   ['/doc/cor', 'SFTP directory on sftp.floridados.gov (lib/state-filings.ts)'],
+  [
+    '/storage/v1/object/public/campaign-media',
+    'Supabase Storage public-object path used to recover persisted campaign media',
+  ],
 ]);
 
 // Absolute-path strings that are not navigable routes.

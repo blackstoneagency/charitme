@@ -7,7 +7,7 @@ import {
   ReferencePage,
   ReferenceSection,
 } from '../../components/ReferenceMarketing';
-import { getPhotosForCategory } from '../../lib/photo-catalog';
+import { getPhotosForPage } from '../../lib/photo-catalog';
 
 export const metadata: Metadata = {
   title: 'For Nonprofits - Fundraising Tools and Support',
@@ -40,7 +40,7 @@ const RESOURCES = [
 ];
 
 export default function ForNonprofitsPage() {
-  const nonprofitPhotos = getPhotosForCategory('Nonprofit', 5);
+  const nonprofitPhotos = getPhotosForPage('Nonprofit', 'for-nonprofits', 5);
   const benefits = BENEFITS.map((benefit, index) => ({ ...benefit, image: nonprofitPhotos[index + 1] ?? nonprofitPhotos[0] }));
 
   return (

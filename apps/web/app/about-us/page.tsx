@@ -77,7 +77,7 @@ export default async function AboutUsPage() {
         title={`About ${companyName}`}
         heart
         lede={`We believe every person has the power to create a better tomorrow. ${companyName} is a global crowdfunding and fundraising platform that connects compassionate people with the causes that matter.`}
-        photo={getCoverForCategory('Family')}
+        photo={getCoverForCategory('Family', 'about-us-hero')}
         photoCategory="Family"
         photoKey="about-us"
         actions={
@@ -194,7 +194,7 @@ export default async function AboutUsPage() {
           </div>
           <div className="ab-story-media" aria-hidden="true">
             <CampaignImage
-              src={getCoverForCategory('Community')}
+              src={getCoverForCategory('Community', 'about-us-community')}
               category="Community"
               campaignKey="about-story"
               alt=""

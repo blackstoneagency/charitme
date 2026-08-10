@@ -1,5 +1,583 @@
 # CharitMe — Execution Tracker
 
+## Mobile-first and image-integrity audit — complete (Codex, 2026-08-10)
+
+This section is the current source of truth and supersedes the stale campaign
+builder and checkout release checkboxes immediately below. The audit is complete:
+tag `v0.1.15` passed the tagged release workflow, production Supabase reported up
+to date, and `www.charitme.com` serves the release workflow's exact verified SHA.
+
+### Scope and authoritative inventory
+
+- [x] Start a clean `codex/mobile-image-audit` worktree from current `origin/master`.
+- [x] Inventory **236** `page.tsx` files: 112 public samples, 10 standalone gated routes, 86 signed-in console samples, 8 intentional redirects, and 21 signed-in dynamic samples are tracked by the shared route registry.
+- [x] Inventory all 32 local public raster assets in `docs/image-inventory.json`; all have distinct SHA-256 hashes and reviewed provenance, license basis, subject, page fit, and use.
+- [x] Confirm the existing route-registry guard passes (42 focused route/image tests).
+- [x] Prove every public and signed-in route at phone, tablet, desktop, and wide-desktop widths in light and dark modes, with no clipping, overflow, overlapping controls, broken images, or undersized touch targets.
+  - [x] Public layout/theme sweep: 111 rendered routes passed at 320/375/768/1440/1920 and light/dark on 2026-08-09; data-dependent fixtures were explicitly skipped.
+  - [x] Public 44px touch-target sweep: 208 production-build page loads at 320/390 passed with zero overflow and zero standalone targets below 44px; eight seeded-data samples were explicitly unmeasured.
+  - [x] Admin sweep: 117 role-reachable pages passed at 320/375/768/1440/1920 in light and dark modes; the mobile gate recorded zero overflow and zero undersized standalone targets.
+  - [x] Member sweep: 68 role-reachable pages passed at 320/375/768/1440/1920 in light and dark modes with populated organizer campaign fixtures.
+  - [x] Strict signed-in contrast: the final member sweep examined 20,502 light-theme and 20,503 dark-theme text elements across 177 routes with zero AA failures; the full admin sweep is also green.
+- [x] Prove every rendered content image is unique, reachable, licensed/free for use, and semantically appropriate for its page or campaign.
+  - [x] Local gate: 32/32 files are hash-unique, licensed, documented, and visually reviewed; two off-subject heroes were retired and replaced.
+  - [x] Catalog gate: 117 IDs across 18 categories, zero shared images, and no Picsum/LoremFlickr fallback.
+  - [x] Public rendered-page gate: 115/115 routes exposed 377 distinct content images, no within-page or cross-page reuse, no broken images, no placeholders, and no Picsum/LoremFlickr output.
+  - [x] Signed-in rendered-page gate: 119 admin routes and 71 member routes reachable under their respective fixture personas rendered with zero within-page duplication; the one repeated cross-page asset is the same campaign cover preserving that campaign's identity across its dashboard, growth-plan, donor, and edit views. Inaccessible inventory entries are role redirects rather than unmeasured content.
+  - [x] Live production rendered-page gate: real campaign samples passed strict global uniqueness after campaign cards and similar-campaign recommendations were bound to their campaign entity IDs.
+- [x] Make both audits required CI/release gates and retain machine-readable evidence.
+  - [x] Added repeatable public/admin/member responsive, mobile, rendered-image, and local-asset commands.
+  - [x] Added the green responsive and image-integrity commands to both CI and the tagged release workflow.
+
+### Findings reproduced before edits
+
+- [x] `audit-mobile.mjs` hardcoded Linux Chromium; it now uses the repository's cross-platform browser resolver.
+- [x] Signed-in tablet/desktop/two-theme responsive coverage was missing; admin and member modes now use the complete route registry.
+- [x] The mobile gate accepted 24px targets; it now enforces the 44×44px product standard for standalone controls.
+- [x] `audit-campaign-images.mjs` allowed **10 cross-category duplicate photos**; any shared catalog image now fails.
+- [x] `getCoverForCampaign()` returned random Picsum imagery; it now returns deterministic unique subject-labelled first-party artwork.
+- [x] `/blog` and `/campaigns` repeated generic imagery; catalog expansion and stored-placeholder replacement now use unique subject keys.
+- [x] The root uniqueness audit now reports unavailable production credentials as a skipped production probe instead of printing a false all-unique success.
+- [x] `docs/image-attribution.md` covered only six portraits; all 32 local raster assets now have a machine-audited provenance and subject-fit ledger.
+
+### Execution order
+
+- [x] Repair and extend the exhaustive responsive harness; public coverage is green and admin/member commands are implemented.
+- [x] Replace permissive image checks with zero-duplicate, provenance, reachability, and subject-taxonomy gates.
+- [x] Fix every responsive finding in route batches and rerun all widths/themes.
+- [x] Replace random/duplicate/off-subject imagery with unique subject-matched free assets or honest campaign-specific generated fallback art.
+- [x] Apply production data changes through staging, release through the tagged workflow, and verify the exact production SHA plus live Supabase image inventory.
+
+## Donation checkout unification — active release (Codex, 2026-08-09)
+
+- [x] Replace every campaign, direct-donate, peer, embed, and portfolio donation form with the shared checkout and one money calculation.
+- [x] Load donation presets, the popular amount, CharitMe fee tiers/default, and processor estimates from normalized `platform_settings` data.
+- [x] Add authenticated Super Admin controls and a validated save route for every checkout pricing option.
+- [x] Reject stale pricing revisions before creating a Stripe Checkout session.
+- [x] Preserve exact custom CharitMe fees for one-time, recurring, and portfolio gifts and allocate portfolio fees to the cent in the webhook.
+- [x] Add the idempotent settings migration and rollback; 129 migrations and 41 rollback files are now tracked.
+- [x] Complete unit, integration, browser, accessibility, and responsive checkout validation.
+- [ ] Merge through `master`, apply both pending release migrations through staging and production, tag the release, and verify the production domain.
+
+Production is confirmed through `20260901000000_campaign_payout_ready`. The two
+release migrations awaiting the gated workflow are
+`20260902000000_unified_campaign_builder` and
+`20260902010000_donation_checkout_settings`.
+
+## Campaign builder rebuild — active release (Codex, 2026-08-09)
+
+The campaign-creation audit is documented in `docs/campaign-builder-audit.md`.
+The replacement is implemented on `codex/unified-campaign-builder` and is the
+current release priority; the older backlog classification below predates this
+explicit product request.
+
+- [x] Reduce campaign creation to exactly **Build with AI** and **Build Step by Step**.
+- [x] Converge both paths on one 12-screen builder, one campaign model, one preview, and one publish gate.
+- [x] Add AI prompt intake with optional voice, images, documents, and HTTP(S) links.
+- [x] Generate title, summary, story, category, goal, budget, tiers, FAQs, milestones, social copy, SEO copy, and cover guidance.
+- [x] Skip AI-generated questions that are already complete and ask only for missing launch data.
+- [x] Add debounced local plus Supabase autosave, multi-device resume, visible save state, and explicit Save & Exit.
+- [x] Add phone, desktop, social, and checkout previews.
+- [x] Require exact budget, cover media, policy acceptance, Stripe payout readiness, identity verification, and nonprofit verification when applicable.
+- [x] Add atomic Supabase campaign-graph creation, private source-document storage, draft versions, RLS, indexes, and rollback SQL.
+- [ ] Replay all migrations from zero and pass lint, typecheck, unit, integration, E2E, accessibility, and production build.
+- [ ] Merge through `master`, publish the release tag, and verify the production builder and database.
+
+### Production migration reconciliation — verified 2026-08-09
+
+Release `v0.1.9` passed zero-state replay and isolated staging, then production
+`supabase db push --include-all` completed every migration through
+`20260901000000_campaign_payout_ready`. The job failed only afterward while a
+redundant Vercel configuration call used an expired token; Vercel's GitHub
+integration independently deployed that exact `master` commit successfully.
+
+The older 39-file ledger section below is retained as its historical audit
+snapshot, not as current production state. Of 126 local migrations, production
+now has the first 125; only
+`20260902000000_unified_campaign_builder` remains for this release. The release
+workflow now proves both the exact Vercel deployment SHA and the SHA served by
+the production domain, without depending on the expired CLI token.
+
+## 📱 END-TO-END MOBILE APP READINESS AUDIT — 4 parallel agents, 29 fixed, 1 RETRACTED, 1 open (Claude, 2026-08-09)
+
+This is a PWA, not a native shell (`app/manifest.ts` + `public/sw.js` +
+`components/PWARegister.tsx`; no Capacitor/Expo in any package.json). So "mobile app
+readiness" means PWA installability, offline, and mobile-web ergonomics.
+
+🤝 **Read alongside "MOBILE READINESS AUDIT — the headline is that it is CLEAN"
+below, by a parallel agent.** The two are complementary, not contradictory: that
+sweep covered horizontal overflow, tap targets and viewport meta across 111 PUBLIC
+routes on a DATABASE-LESS build. This one covers PWA/service-worker, forms and
+keyboards, safe-area, data wiring and payload, against a POPULATED build including
+signed-in surfaces. Neither found what the other found because neither looked there.
+**THREE** of the parallel lanes' conclusions corrected claims in this entry — see the ⚠️ rows below. That is the point of running lanes in parallel: the second lane is the only thing that catches a confidently-measured finding whose PREMISE is wrong.
+
+Four read-only agents swept disjoint scopes against ONE populated build (Next + the
+Supabase stub) so nothing was audited twice: **PWA install/offline**, **layout & touch
+targets**, **forms/interaction/nav**, **data wiring & payload**. Every number below was
+measured in a real Chromium at a real phone viewport, not inferred.
+
+### 🔴 THE SERIOUS ONE: the service worker was caching whole pages marked `no-store`
+
+`public/sw.js` v2 cached every same-origin GET that was not `mode: 'navigate'`. Next's
+client-side navigations and prefetches are `mode: 'cors'` — so the rule swallowed
+**RSC page payloads**. Measured after ONE browse of `/`: **102 cache entries, 80 of them
+`?_rsc=`**, the largest **45,008 B** of `/campaigns`.
+
+Every page on this site answers `Cache-Control: private, no-cache, no-store` and its
+`Vary` list is `rsc, next-router-state-tree, next-router-prefetch,
+next-router-segment-prefetch, Accept-Encoding` — **`Cookie` is not in it**. The Cache API
+ignores `Cache-Control`, so those payloads were stored anyway, and two different sessions
+on one device produce the **same cache key**. Whoever loaded a route first won forever.
+
+The serving half was **proven, not theorised**: a hand-edited cached `/campaigns` body
+rendered in the live DOM after a browser restart, with no revalidation.
+
+⚠️ **The precache leaked too** — this one the audit had not reached. `/offline` renders
+the global header, which for a signed-in user contains their name, and `cache.addAll`
+fetches **with cookies**. It now uses `credentials: 'omit'`, which pins the signed-out shell.
+
+**Fixed:** caching is allowlisted. Cache-first only for content-hashed `/_next/static`;
+stale-while-revalidate for unhashed `/public` assets; nothing marked `no-store`/`private`
+or typed `text/x-component` is stored at all. `CACHE_VERSION` → **v3**, which is what
+evicts already-poisoned installs on activate. The stale-while-revalidate branch also
+retires the hand-bumped version that the re-encoded-logo incident needed.
+
+⚠️ **Deliberate non-fix:** an offline cold launch shows `/offline`, not a cached app
+shell. The shell is `private, no-store` and carries the signed-in header, so caching it
+to make offline nicer would reintroduce exactly the leak above. A worse offline
+experience is the correct trade.
+
+### ✅ Also fixed in this pass
+
+| what | evidence |
+|---|---|
+| iOS zoom-on-focus on **every auth field** | measured 13px on `/login` + `/signup` email/password/name; iOS zooms below 16px and never zooms back, leaving the form off-screen mid-task. Auth, donate, payout, dedication and share fields raised to 16px |
+| `/about-us` + `/success-stories` rendered **fabricated impact claims** | `lib/impact-stats.ts:115` fell back to hardcoded literals (`2.3M+ People Helped`, `98% Funds to Programs`) whenever the owner configured nothing — against a measured reality of 352 campaigns / $96,850 raised, and contradicting `/fees`. Its own docstring promised `[]`; it now returns `[]` |
+| `/impact-map` counted **every** `supported_countries` row under a "can pay out to" label | reported 20 while `/supported-countries`, filtering correctly, reported 15. Now `.eq('active',true).eq('can_fundraise',true)` |
+| homepage called a donation count **"Lives impacted"** | `metrics.donations` is a payment count, and rendered the same 268 as the "Gifts given" tile. Now "Donations" |
+| a missing organizer profile was attributed to **"CharitMe Organizer"** | 8 sites. The platform telling a donor it runs a stranger's fundraiser. Now "Campaign organizer" |
+| the mobile header scrolled away with **no other nav affordance** | at scroll 2500 on a 10,571px page the hamburger sat at `y:-2224`. Now `position: sticky` — **scoped to ≤1100px**, because desktop has no such defect and pinning it sitewide would change what every contrast/focus sweep measures on 200+ pages |
+| campaign tab strip could **chain a swipe to browser-back** | `scrollWidth 457` vs `clientWidth 356`; sibling strips already contain it. Added `overscroll-behavior-inline: contain` |
+| ⚠️ ~~no safe-area insets~~ — **RETRACTED, this finding was WRONG and the "fix" was reverted** | My agent reported every bottom-anchored fixed control sitting under the ~34px home indicator, and I opted into edge-to-edge with insets to fix it. A parallel lane's guard (`__tests__/viewport-safe-area.test.ts`) caught it. The DEFAULT already lays the page out inside the display's safe rectangle, so nothing renders under the indicator/notch and `env()` correctly returns 0 — there is nothing to inset past. Opting out makes every edge-anchored and full-bleed element the author's problem at once, so doing it while handling one inset on one element is **worse than leaving the default**. Reverted in full. ⚠️ The guard greps `layout.tsx` for the literal setting, so a comment that merely quotes it fails the test too — that cost an extra cycle. |
+| ⚠️ `/donate` custom-amount input measured **167.9 × 22.5** — but this is NOT the conformance failure my agent called it | The parallel audit **verified by tapping** that the 44px `.dn-money` wrapper focuses the input (`document.activeElement` → "Custom amount in US dollars"), so the EFFECTIVE target always passed. It was right and this entry's first draft was wrong. The `align-self: stretch` applied here is hygiene — it makes the measured element match the hit area so future sweeps stop re-flagging it — not a WCAG fix. **Measure what a thumb actually hits.** |
+| comment Like button **23.1 × 18**, breadcrumbs **19.5**, embed `<summary>` **18** | all under the 24px minimum; the Like button keeps its exact visual position via a compensating negative margin |
+| iOS install metas + manifest identity | added the legacy `apple-mobile-web-app-capable` (measured absent), `id: '/'`, and relaxed `orientation` off `portrait-primary` which locked out landscape everywhere including tablets |
+
+### 🧪 TWO ROUTES WERE PASSING EVERY AUDIT WHILE MEASURING NOTHING
+
+Both are **fixture** bugs, and both are the exact shape of the `supported_countries`
+failure already recorded in this file:
+
+- `volunteer_opportunities` fixture used `status: 'active'`. The column allows only
+  `open | upcoming | closed`, and every reader filters `.in('status',['open','upcoming'])`
+  — so `/volunteer`, `/volunteer/[slug]`, the categories facet and the opportunity cards
+  rendered a permanent zero-state. **The app was correct; the fixture could not match.**
+- No fixture campaign carried a `location`, so `/impact-map`'s primary section rendered
+  "No locations recorded yet" and the location filters on `/search` and `/campaigns` could
+  never match.
+
+Fixed and verified on a rebuild: `/volunteer` renders its opportunity, `/impact-map`
+renders real places. ⚠️ **Restart the stub after editing fixtures** — it loads them once
+at startup, which cost a full debugging cycle here.
+
+### ✅ SECOND FIX PASS — verified in a real touch browser (390×844, hasTouch)
+
+Verified against a **freshly restarted** server whose stylesheet resolves 200 (5,224 CSS
+rules applied — a sweep against the dead-hash state would have measured unstyled pages):
+
+| fix | verification |
+|---|---|
+| auth `autocomplete` | `/login` inputs now report `["email","current-password"]`; signup gets `name` + `new-password`. A wrong value here is worse than none — `new-password` on login makes a manager refuse to fill |
+| **zero** sub-16px fields left on `/login`, `/signup`, `/donate` | measured `[]` on all three. The only remaining sub-16px element is a 13×13 **checkbox**, whose effective target is its much larger wrapping label |
+| donate primary input `inputMode="decimal"`, bank fields `inputMode="numeric"` | the donate field a donor lands on had none while the secondary one did; both bank fields already strip non-digits in `onChange`, so the data was provably numeric |
+| mobile menu **closes on Escape** | measured `true` (was `false`) |
+| **search now has a mobile entry point** | the panel carries a real `role="search"` form; input visible, computed **16px** |
+
+⚠️ **The outside-tap half is NOT verifiable at this viewport** — see the panel-height item
+below. The handler is in place and correct, but a user cannot reach a point outside the
+panel to use it. Recorded as unverified rather than claimed.
+
+### ⏳ OPEN — real, measured, NOT yet fixed
+
+### ✅ MOBILE PANEL — collapsed, and now VERIFIED (was the 2303px item)
+
+The twenty cause links and twelve resource links sit in `<details>` disclosures
+(`components/AppShell.tsx`), 44px summaries with a count, and an explicit
+`.kind-mobile-group:not([open]) > a { display: none }` rather than trusting the UA
+default — the panel is a grid container and several author rules target
+`.kind-mobile a`.
+
+**Measured on a populated build, identical across 3 consecutive runs:**
+
+| | before | after |
+|---|---|---|
+| `.kind-header` bottom edge (844px viewport) | **y=2303** | **y=806** — fits the screen |
+| groups rendered / open | — | 5 / **0** |
+| links inside groups / visible | — | 41 / **0** |
+| top-level links visible | 45 | 4 |
+| links revealed by expanding one group | — | **9** (the control is not inert) |
+
+⚠️ The earlier "could not reproduce" note was MY error, not flakiness: those runs
+were against a build made BEFORE the explicit hide rule was added. Rebuild after a
+CSS change before concluding anything — the running server serves the old bundle.
+⚠️ `page.tap()` silently failed to open the panel where `page.click()` worked. A
+probe that taps and finds nothing looks identical to a panel that does not exist.
+⚠️ The pair is what matters: assert `groupsOpen === 0` AND
+`linksInGroupsVisible === 0`. Either alone passes on a broken control.
+
+Because the panel now fits the viewport, a point outside it exists again — which is
+what makes the outside-tap dismissal reachable at all.
+- [ ] **One 700 KB stylesheet on every route, 94–98% unused.** `app/globals.css` →
+
+      ✅ **PARTIAL, SAFE WIN LANDED 2026-08-10: 363 rules that can no longer match
+      anything are deleted — 703,954 → 667,395 B (36 KB, 5.1%).** That is larger than
+      the 32 KB the reverted route-scoping achieved, and it carries none of the
+      cascade risk: a rule with no possible element cannot be reordered against
+      anything. Mostly whole replaced surfaces — `.hiw-*` (old how-it-works),
+      `.aiw-*` (old AI wizard), `.dn-*` (pre-checkout donate form), `.kf-*` (old
+      builder preview), `.ai-console`, `.pc-payment-methods`, `.ac-tabs`.
+
+      Evidence rather than inference, because "unused" is exactly the claim that
+      is easy to get wrong: none of the 142 classes appears in any of the 112
+      public routes fetched at 200 from a real server, and none appears as a class
+      token anywhere in **47.8 MB of built `.next` JS/HTML** — which covers the
+      authenticated routes a public sweep cannot reach.
+
+      ⚠️ The detector treats a class as LIVE if its literal name appears **or any
+      prefix ending in `-` does**. That clause is load-bearing:
+      `kind-menu-layout-explore-causes` is written nowhere and composed as
+      `kind-menu-layout-${slug}`. Without it the scan reports 571 dead classes
+      instead of 142, and deleting on that basis unstyles the header's mega-menu.
+
+      `npm run audit:dead-css` reports; `--fix` rewrites.
+      `__tests__/dead-css.test.ts` ratchets it to zero and is mutation-tested in
+      both directions. **The remaining ~660 KB still needs the route-scoping
+      approach below, which is still unsolved.**
+
+      Original entry:
+      518,233 B raw, render-blocking on every page. Chrome coverage: **2.1% used on
+      `/search`, 2.8% on `/login`**. Still the biggest mobile win available.
+
+      ⚠️ **ATTEMPTED AND REVERTED (2026-08-09). Read this before trying again — the
+      obvious approach is wrong for a reason that is invisible until you measure it.**
+
+      Route-scoping worked mechanically: `.admin-*`/`.users-*` → `app/admin/admin.css`
+      (165 rules, 16,697 B), `.cr2-*` → `app/create/builder.css` (288 rules, 32,567 B),
+      `.cbx-*` → `app/campaigns/(list)/browse.css` (75 rules). Built global chunk fell
+      **506,671 → 474,110 B**, public routes loaded only the global chunk, and `/create`
+      and `/admin` correctly loaded theirs with rules applying. All of that was verified.
+
+      **It was reverted anyway, because leaving the at-rules behind INVERTS THE CASCADE.**
+      `globals.css` loads first; a route sheet loads after it. Move a family's BASE rules
+      into the later sheet while its `@media` overrides stay in `globals.css`, and the
+      base rule now wins at equal specificity — responsive behaviour runs backwards. The
+      exposure was real, not theoretical: 7 media blocks still referenced `.cbx-*`, 5
+      `.cr2-*`, 2 `.admin-*`, 3 `.users-*`.
+
+      Moving the media blocks too gets most of the way (5 guard failures → 2), but **not
+      all the way**: some blocks carry mixed selector lists, and 4 rules
+      (`.cr2-nav-publish-now`, `.users-kpi-row`, `.cbx-hero`, `.cbx-hero-art::after`) sit
+      nested deeper than a flat parser reaches. A partial migration keeps the hazard.
+
+      **The second obstacle is the test suite.** Every CSS guard in `__tests__` assumes ONE
+      stylesheet — they `readFileSync('app/globals.css')`. Six broke across the three
+      slices. Worse, concatenating the sheets for them is not a fix either: guards that
+      slice "from this selector to the next `body {`" then read across a file boundary.
+      ⚠️ And a shared helper introduced to solve it had `path.join(__dirname, '..')` where
+      it needed `'..','..'`, which made every guard using it **fail to COLLECT** — quietly
+      removing **67 tests** from the run while printing no failure line. `Tests 3850
+      passed` looked green. **Always compare the Test FILES count too, not just passes.**
+
+      If retried, the order is: (1) make the guards read CSS through one helper and assert
+      a rule-count floor, (2) move each family's base rules AND every at-rule referencing
+      it in the same commit, (3) verify a responsive rule still wins at its breakpoint in
+      a real browser — not just that the file loaded. `.rp-*` (221 rules) and `.pc-*` (225)
+      are NOT candidates under any approach: measured across 14 and 7 route trees plus
+      `components/`, they are shared chrome.
+
+- [x] **Small tap targets — measured block-level ones AND `/glossary` are now fixed.**
+      `.cbx-feat-body > h3 > a`, `.pc-donor-name > a`, `.pc-organizer > a`,
+      `.pc-ai > ul > li > a`, `.sc-info-link`, `.rr-program-empty > a` and
+      `.imp-area-body > h3 > a` now use `inline-flex` + `min-height: 24px`, which grows
+      the hit area without moving the text. Measured after, at 390×844 across
+      /campaigns, a campaign page, /supported-countries, /matching and /impact:
+      **13 elements matched, 0 still under 24px.**
+      ⚠️ A blanket `a { min-height: 24px }` was rejected deliberately — most links here
+      are inline text inside sentences, where WCAG's inline exception applies and a
+      min-height would break the line box.
+      ✅ **`/glossary` CLOSED (2026-08-09).** The 16 `dt > a` term links measured 18px;
+      all 16 now measure **exactly 24px**, verified in a real 390x844 touch browser
+      (`termsUnder24: []`). Sized INLINE on the element rather than via a `dt > a` rule:
+      this page's markup carries no class names, and a bare `dt > a` selector would reach
+      every definition list on the site — adding a class purely to hang a rule on was the
+      worse trade.
+      ⚠️ The "Read more" `dd > a` links stay at **16px on purpose**. They sit inside a
+      sentence, which WCAG 2.5.8 exempts under the inline exception — the same call the
+      parallel lane made for `.auth-switch button`. Enlarging them would break the
+      sentence's line rhythm to satisfy a rule that does not apply. Do not "fix" them.
+      ⚠️ Two selectors in my first draft (`.glossary-term > a`, `.imp-story-body > h3 > a`)
+      matched **nothing** — I had guessed the class names. A selector that matches
+      nothing passes every check while fixing nothing; always assert the match COUNT,
+      not just the absence of failures.
+### ✅ THE CAMPAIGN PAGE'S ENTIRE DONATE SURFACE WAS ABSENT FROM EVERY SWEEP
+
+`MobileDonateCTA` was recorded as "unverified — never mounts in the stub". The cause
+turned out to be bigger than the CTA: **`connected_accounts` had no fixture rows at
+all.** `payoutReady` is `!!resolvePayoutDestination(...)`, which needs a row with
+`verification_status = 'verified'` AND `charges_enabled`/`payouts_enabled`/
+`details_submitted` all true. With no rows, every campaign took the "payout setup in
+progress" branch — so **`DonateButton` AND the sticky `MobileDonateCTA` were missing
+from every campaign detail page in every audit**, and the page passed cleanly. It is
+why the donate card had to be measured via `/campaigns/[slug]/embed` instead.
+
+Fixed by seeding `connected_accounts` for the two personas. Measured on a populated
+rebuild of `/campaigns/stub-campaign-2`: `Choose an amount` ✓, `Give Once` ✓,
+`.mobile-donate-bar` ✓, and **zero** occurrences of the "payout setup" fallback.
+
+⚠️ This is the third instance of the same class in this audit (`supported_countries`,
+`volunteer_opportunities.status`, now `connected_accounts`): **a missing or
+unmatchable fixture removes a whole surface from the sweep, and the sweep reports
+green.** When a component "never mounts in the stub", treat that as a coverage bug to
+fix, not a note to file — the absent surface is exactly where defects survive.
+- [x] **Campaign covers — the three real offenders are FIXED, and the "long tail" was
+      MEASURED AND IS NOT A DEFECT.**
+      `/campaigns` row thumbs, its featured cards and the campaign carousel thumb strip
+      now route through the pure `optimizedCoverUrl()` helper (200 / 700 / 160 px)
+      rather than serving the 1200 px original. **0 raw 1200-wide covers left on
+      /campaigns.**
+
+      ⚠️ **THE OVER-FETCH RATIOS IN THE ORIGINAL AUDIT WERE OVERSTATED — they divided by
+      CSS pixels and ignored devicePixelRatio.** A 1200 px source in a 308 px box is not
+      3.9× over; on a DPR-3 phone that box needs **924 device pixels**, so it is 1.3×.
+      Re-measured on the remaining routes with the DPR correction applied:
+
+      | route | DPR 2 worst | DPR 3 worst | images ≥2× |
+      |---|---|---|---|
+      | `/` | 2.17× | 1.45× | 1 at DPR2, 0 at DPR3 |
+      | `/donate` | 1.69× | 1.12× | 0 |
+
+      `/search`, `/supporter-space`, `/success-stories`, `/gallery`, `/leaderboard` and
+      `/crisis` showed **zero** over-fetching images at either DPR. **Do not "optimise"
+      these** — shrinking a source already close to the device requirement makes the
+      image blurry on a retina phone, which is a worse outcome than a few surplus KB.
+
+      The three that WERE fixed remain justified: a 1200 px source in a 92 px thumb needs
+      276 device pixels at DPR 3, i.e. **4.3× over** — real, just not the "13–18×" the
+      first measurement claimed. ⚠️ Ratio thresholds on images must be computed in DEVICE
+      pixels, or you will chase phantom savings and ship blur.
+
+- [ ] **Manifest has no `screenshots`, so Chrome Android shows the minimal install
+      infobar instead of the rich install dialog.** Attempted 2026-08-09 and
+      ABANDONED, recorded so the next person knows the cost before starting.
+      Generating them from the running build is the obvious approach and it does
+      not work here: `page.screenshot()` times out at 30s on `/` and `/campaigns`
+      — the page never reaches Playwright's stability threshold, almost certainly
+      the hero carousel and the CountUp animations, and `animations: 'disabled'`
+      did not settle it. Worth doing only with a deliberate capture mode (freeze
+      the carousel, or a `?static=1` render path), and worth weighing against the
+      maintenance: screenshots are binary assets that go stale at every redesign,
+      for a richer install dialog on one platform.
+
+### 🛡️ THE SWEEPS COULD NOT TELL "CLEAN" FROM "EMPTY" — now they can
+
+Four fixture bugs in one session all shared one root cause: **no audit in this
+repo asked whether a page rendered its DATA.** They asked about contrast, axe,
+target size and overflow — all of which a zero-state page passes perfectly,
+because there is nothing on it to fail.
+
+⚠️ **`audit-contrast` HAS an empty-render check and it caught none of them.** It
+counts visible leaf text across `body *` — the whole document — against a floor
+of **1** (5 when authenticated). A page with a header, nav and footer clears
+that floor with an entirely empty main region. **Measuring the shell cannot
+detect missing content.**
+
+`scripts/audit-content-contracts.mjs` (`npm run audit:content-contracts`) asserts
+per route that a minimum number of REAL ITEMS is present, scoped to `<main>`.
+Mutation-tested: emptying the `grants` fixture makes it fail `/grants` alone
+while the other seven still pass.
+
+⚠️ **My first draft failed 3 routes and ALL THREE were artifacts** — the same
+7-of-7 rate the focus-order audit hit on its first run. `/supported-countries`
+renders `.sc-country-card` divs, not the `li, tr` I guessed; `/sponsor` and
+`/leaderboard` are client-rendered and were still showing skeletons when I
+measured. Both are fixed (verified selectors; a bounded wait for skeletons to
+clear, reported distinctly from "no data" because they are different problems).
+**A guard that cries wolf is worse than no guard.**
+
+⚠️ It also tripped `route-list-single-source`, correctly: the paths now come from
+`e2e/public-routes.json` and any contract naming a route absent from it exits 2.
+That guard's own message records why — five copies existed before, all five
+drifted, and two listed non-public routes, so the sweeps audited /login and
+passed.
+
+### ✅ /events, /grants AND /sponsor WERE MEASURING NOTHING — the FOURTH instance
+
+`fundraising_events`, `grants` and `sponsorship_opportunities` had **zero fixture
+rows**, so all three routes rendered clean empty states and passed every audit
+having measured none of their real markup. That is now the fourth instance of one
+class this session:
+
+| table | why it matched nothing |
+|---|---|
+| `supported_countries` | fixture used invented column names |
+| `volunteer_opportunities` | `status: 'active'`, but readers filter `open\|upcoming` |
+| `connected_accounts` | no rows ⇒ `payoutReady` false ⇒ the whole donate surface absent |
+| `fundraising_events`, `grants`, `sponsorship_opportunities` | no rows at all |
+
+⚠️ **A zero-state page passes contrast, axe, responsive and target-size checks
+perfectly, because there is nothing on it to fail.** "No fixture" is a COVERAGE
+BUG, not a gap to note.
+
+Each new fixture's `status` was checked against **both** the reader's filter and
+the table's CHECK constraint before writing it — a fixture that cannot match is
+worse than none, since it looks like coverage. Verified: events
+`.eq('status','published')` vs CHECK `draft|published|completed|cancelled`;
+grants `.in('status',['open','upcoming'])` vs CHECK `open|upcoming|closed`
+(fixtures deliberately span BOTH values so neither branch goes unmeasured);
+sponsorships `.eq('status','open')` vs CHECK `draft|open|closed|fulfilled|cancelled`.
+
+Measured after: `/events` 200 with 6 events rendered (72,628 B), `/grants` 200
+with 8 (95,971 B), `/sponsor` 200 with 6 (59,575 B) — previously all three were
+empty states.
+
+### ✅ TWO MORE AUDIT FINDINGS THAT THE TRACKER HAD LOST
+
+Both were in the data sweep's report and never actioned. Found by re-reading the
+**agents' original findings** against current code rather than the tracker — which
+is now twice that has surfaced something (see /corporate-partnerships below).
+
+**`/fast-payouts` claimed "40+ Countries" in three places** while
+`/supported-countries` rendered the real figure from `supported_countries` —
+measured **15** able to fundraise. Two pages, two answers to one factual
+question, and the hardcoded one is the one a visitor cannot check. "40+" was
+also a claim about **Stripe's** global coverage presented as CharitMe's, which
+is a different and larger number than the countries this platform has enabled.
+
+Now read through `lib/payout-countries.ts`, a single reader both pages can use
+— the same single-source-of-truth rule that CAMPAIGN_CATEGORIES and the
+impact-stats module already follow. It returns **`null`, not 0**, on a failed
+read, and the tile is DROPPED rather than rendered as "0 Countries": a database
+blip must not tell an organizer this platform pays out nowhere, on the page
+whose whole job is convincing them they will be paid.
+
+**`/api/campaigns/rotator` turned a failed count into a confident `0`** —
+`statsResult.error` was never checked. The visible outcome was right *by
+accident* (HeroRotator renders "—" for 0), which is exactly why it survived:
+correct output from a wrong value is the hardest kind to notice. Now `null` on
+error, with the consumer typed and rendering "—" for unknown.
+
+⚠️ **The rendered check could not prove the country fix.** The audit stub does
+not support `head: true` count queries, so the reader returns null and the tile
+is correctly omitted — identical to what a reader that ALWAYS returned null
+would produce. `__tests__/payout-country-count.test.ts` covers the branch a live
+database takes, which no local render can exercise.
+
+### ✅ /corporate-partnerships WAS SHOWING INVENTED FIGURES AND INVENTED PEOPLE
+
+Found while re-checking the audit's own findings rather than the tracker — it was
+flagged in the data sweep and never actioned. The page rendered, to prospective
+corporate partners, four figures that exist nowhere in the data:
+
+    $48M+ Raised by corporate partners · 2,100+ Corporate partners worldwide
+    6.2M+ Lives positively impacted    · 1.8M+ Volunteer hours contributed
+
+and three testimonials attributed to named individuals with job titles — "Erin W.,
+Director of Corporate Responsibility", "David L., VP, Global Impact", "Maria G.,
+Head of Social Impact". There is no testimonials table and no such partners.
+
+Both are removed. The figures follow the call already made for /about-us and
+/impact — **a page may show what it can MEASURE, or nothing; never what it made
+up** — and there is no measurable equivalent here (`matching_programs` holds
+programs, not attributed totals), so the band is gone rather than relabelled into
+a number that means something different from its caption. The quotes are a
+different order of wrong: fabricated testimony about identifiable people reads as
+verifiable and is not, which is why /impact already has a test asserting its
+invented vignettes never appear in page source.
+
+`__tests__/no-fabricated-partner-claims.test.ts` guards the literals and is
+mutation-tested — planting one figure and one name fails it. It asserts on the
+CONTENT, not the file's shape, so a future owner-authored, `source_note`-carrying
+stats band can legitimately return.
+
+Verified on a populated render: `/corporate-partnerships` returns 200, 59,537
+bytes, "Ways to Partner" intact, and **zero** occurrences of any of the eight
+fabricated strings.
+
+### ⚠️ A PR CAN END UP WITH NO CI RUN AND NO WAY TO GET ONE
+
+Two rules interact badly, and the result looks like "CI is just slow":
+
+1. `concurrency: cancel-in-progress: true` — every push cancels the in-flight run.
+2. `paths-ignore` includes `todo.md` — a docs-only push starts NO new run.
+
+So: push code → CI starts → push a `todo.md`-only follow-up → the code run is
+**cancelled** and nothing replaces it. Measured here: run `31328457709` on
+`77ad2ea1` (the /glossary fix) was cancelled at 18:18 by a docs commit, and the
+two later `todo.md` commits triggered nothing. The PR then sat at
+`mergeable_state: unstable` with **only the Vercel check**, indistinguishable
+from "CI has not started yet". The code was never verified and never would be.
+
+**The fix is `rerun_workflow_run` on the cancelled run**, not another push — the
+cancelled run's head differs from the current head only by ignored paths, so its
+result is valid for the code. Pushing a no-op to force a run also fails: an empty
+commit changes no paths and is ignored too.
+
+**Rule: land code and docs in ONE push, or push docs FIRST.** And when a PR shows
+only the Vercel check, check whether the last real run was `cancelled` before
+assuming it is still queued.
+
+### ⚠️ HARNESS TRAP THAT INVALIDATED A WHOLE SWEEP
+
+`next start` holds an in-memory prerendered-HTML cache. Running `npm run build`
+against a server that is already up replaces `.next/static/css/*`, and the running
+server keeps serving HTML that points at the OLD css hash — which now **400s**. Every
+page is then unstyled, and `audit:responsive` reported **440 findings**, all of them
+`stylesheet has 0 rules; page is UNSTYLED` — its own refusal-to-measure guard, not
+layout bugs. **Rebuild ⇒ restart the server**, and restart the STUB too after editing
+fixtures (it loads them once at startup). Both cost a full cycle here.
+
+### ✅ Measured CLEAN — do not redo
+
+- **Every manifest icon** returns 200 at its declared size, verified from real PNG IHDR
+  bytes rather than filenames (192/512/512-maskable/180 apple-touch). The maskable icon's
+  safe zone is correct: logo max radius 185.5 px vs the 204.8 px safe circle, **0 px
+  outside**. All installability criteria pass.
+- **No layout shift from images**: of 155 `<img>` across 12 routes only 2 lack a reserved
+  box, and both are 0×0 hidden elements. `scrollWidth === 390` on all 12 — no horizontal
+  overflow anywhere.
+- **Query columns are sound**: **4,463 column references** across `app/**` and `lib/**`
+  validated against `schema.sql` + every migration — **zero unknown columns or tables**,
+  and all 47 literal `.eq(col,'value')` filters satisfy their CHECK constraints. The
+  `supported_countries` class of bug does **not** recur in application code.
+- **Error handling is unusually good**: `/campaigns`, `/search`, `/donor-wall`,
+  `/impact-map`, `/volunteer` and `/impact` all distinguish "read failed" from "genuinely
+  empty". All **194 sitemap routes returned 200**.
+- **No hover-only controls** anywhere (scanned every `:hover` rule on 6 routes), **no
+  scroll lock or scroll trap**, mobile menu links are hit-testable by touch, and
+  `/login/mfa` is exemplary (`inputMode="numeric"`, `autocomplete="one-time-code"`, 24px).
+- `/api/*` is genuinely excluded from the SW and no cross-origin entry is cached.
+- **No horizontal overflow, verified properly.** `html, body { overflow-x: hidden }`
+  defeats the usual `scrollWidth` metric, so elements painted past the right edge were
+  measured directly: **0 clipped** across 56 verification measurements at 360/390/414 in
+  both themes. The 17 pages that looked like overflow were all correctly-built
+  `overflow-x: auto` scroll strips.
+- **0 obscured controls** across all 226 measurements — `elementFromPoint` at the centre
+  of every visible interactive element. Nothing is unclickable.
+- **0 fixed-element collisions** at full scroll-to-bottom on all 56 pages; exactly one
+  fixed element (back-to-top, 44×44) is ever on screen, and no bar permanently covers
+  the bottom of a scrolled page.
+- **Pinch zoom is not blocked** — no `user-scalable=no`, no `maximum-scale`.
+- Hamburger 42×42, theme toggle 36×36, `.kf-nav a` 44×44 — all pass.
+
+### 🧰 Two stub limitations that shape any re-run
+
+The stub **ignores `select=`** (returns all columns), so raw HTML sizes are an upper
+bound; and it **does not resolve embedded joins**, so lists whose mapper drops rows with a
+missing join look empty here. `/donor-wall` and `/community` are empty for that reason —
+**not app bugs**. Check both before filing anything from a stub measurement.
+
+---
 ## ⛔ THE OPEN SET IS 21 ITEMS AND **NONE OF THEM ARE AGENT-ACTIONABLE** (Claude, 2026-08-09)
 
 Read this before working the list, because the list does not say it: every
@@ -3214,12 +3792,35 @@ skipped workflow leaves its check pending forever and would deadlock a docs-only
 PR. Nothing is required today, which is why this is safe now — recorded so the
 next person does not find out the hard way.
 
-## 🛑 SUPABASE STAGING — blocked, and the pending count is **38** (Claude, 2026-08-03)
+## 🛑 SUPABASE STAGING — historical audit, and the file-derived upper-bound pending count is **43** (Claude, 2026-08-03)
 
-**Live ledger rechecked 2026-08-08:** `supabase migration list --linked`
-reported 124 local migration files and 87 production ledger entries (125 local as of
-2026-08-09). The 38-file
-gap below is therefore a current measurement, not only historical arithmetic.
+**Live ledger rechecked 2026-08-10:** 130 local migration files against 87
+production ledger entries. The 43-file upper-bound gap below is therefore a current
+measurement, not only historical arithmetic.
+
+**+1 on 2026-08-09: `20260831010000_user_nav_preferences.sql`.** One row per
+person holding their own sidebar layout, RLS-scoped to `user_id = auth.uid()`.
+⚠️ Applying it changes nothing a visitor or an existing user sees: the reader
+degrades to "no customization" on `42P01`, so every signed-in page renders the
+persona-default sidebar until someone actually saves a layout. Verified against a
+real PostgreSQL 16 — migration applies clean with all four policies; user 1 sees
+1 row and 0 of user 2's; a cross-user UPDATE affects 0 rows; the CHECK rejects a
+non-array (`hidden = '{}'` → `user_nav_preferences_hidden_is_array`).
+
+**+1 on 2026-08-08: `20260829010000_platform_impact_stats.sql`.** Adds
+`platform_impact_stats` and `platform_fund_allocation` — the owner-authored
+figures behind /impact's headline tiles and its Funds Distribution donut.
+
+⚠️ **Applying it changes nothing a visitor sees.** Both tables default to
+`published = false`, and `supabase/seed/platform_impact.sql` seeds the reference
+design's exact values UNPUBLISHED. /impact keeps rendering measured figures until
+an admin publishes a row and records its `source_note`. The donut additionally
+refuses to draw a set that does not sum to ~100%, because a partial breakdown
+looks complete while being wrong.
+
+The seed is idempotent and **never unpublishes** a figure already approved —
+verified against a real PostgreSQL 16: publish a row, re-run the seed, the row
+stays published.
 
 **+1 on 2026-08-08: `20260830000000_protect_verification_and_campaign_integrity.sql`.**
 Prevents browser sessions from self-verifying nonprofit profiles or uploaded
@@ -3280,8 +3881,8 @@ PDFs, which are not reconstructible from this schema.
 ⚠️ **Superseded in part — read the correction at the top of this file first.**
 The arithmetic below is sound and the drift guard on it is worth keeping, but the
 number it produces is a **file-derived upper bound, not the applied state**. At
-least two of the 37 are demonstrably live in production, measured against the
-running site. Treat 37 as "no more than 37", and establish the real set with
+least two of the 39 are demonstrably live in production, measured against the
+running site. Treat 39 as "no more than 39", and establish the real set with
 `supabase migration list --linked` before planning a release.
 
 **None of the four numbers previously in this file was right**, and the fifth —
@@ -3296,16 +3897,16 @@ that day**:
 dump confirmed the objects were absent, and a restored production clone applied
 all 18 in order and proved rollback.
 
-Twenty migrations have been added since. So the count is arithmetic:
+Twenty-five migrations have been added since. So the count is arithmetic:
 
 ```
-125 local − 87 applied           = 38
-18 audited pending + 20 added    = 38   ✓ reconciles
+130 local − 87 applied           = 43
+18 audited pending + 25 added    = 43   ✓ reconciles
 ```
 
 All 18 audited-pending versions are still on disk under their original names.
 
-### ⚠️ Seven of the 38 are SECURITY hardening, not features
+### ⚠️ Seven of the 43 are SECURITY hardening, not features
 
 This is the part that changes the priority. Written, reviewed, merged — and
 **not live**:
@@ -3340,7 +3941,7 @@ miscounting, it was adding migrations and leaving the old number in place.
 
 Owner action unchanged: upgrade Supabase, free a project slot, or provision
 staging elsewhere. Do not bypass the gate — the ledger's last line says so, and
-37 unverified migrations including seven privilege changes is exactly the case the
+43 unverified migrations including seven privilege changes is exactly the case the
 gate exists for.
 
 ## ⚪ `/certificate` — NOT a deferral; building it would require inventing data
@@ -16502,22 +17103,16 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
   `/api/stripe/connect` onboarding · destination-charge architecture · payout gate ·
   server-side fee math · recurring subscription state machine.
 
-## Remaining (verification-gated — NOT faked)
-- [ ] Live end-to-end charge→transfer→payout→reconcile (GATED on LB-005 Connect
-  live-enablement) + refund/dispute lifecycle via Stripe test clocks.
-- [x] Browser / mobile / accessibility / **load** tests — **DONE (2026-07-25).** The
-  sandbox does have a harness (Playwright + Chromium). Browser+a11y: Lighthouse on
-  **32 public pages, all 100**. Mobile: 390x844 emulation, tap targets 28 -> 0,
-  0 horizontal overflow. Responsive: `scripts/audit-responsive.mjs`, 17 pages x
-  3 viewports x 2 themes = 102 renders, 0 findings. Load: new
-  `scripts/load-test.mjs` (150 req @ concurrency 20 per path) — **0 errors on every
-  path**; see CHAR-SM35 for the one latency outlier it surfaced.
-- [ ] Full per-persona live RLS matrix for payment tables (needs real auth sessions).
-
 ## Verification-gated (NOT faked — needs Stripe live verification / staging)
+
+⚠️ This section and a near-identical "Remaining (verification-gated)" one above
+it were VERBATIM DUPLICATES, down to the completed [x] entry — the same work
+counted twice in the open set. Merged 2026-08-09; keep it as ONE list.
+
 - [ ] Live end-to-end charge→transfer→payout→reconcile (GATED on LB-005 Connect
   live-enablement).
 - [ ] Refund/dispute lifecycle via Stripe test clocks.
+- [ ] Full per-persona live RLS matrix for payment tables (needs real auth sessions).
 - [x] Browser / mobile / accessibility / **load** tests — **DONE (2026-07-25).** The
   sandbox does have a harness (Playwright + Chromium). Browser+a11y: Lighthouse on
   **32 public pages, all 100**. Mobile: 390x844 emulation, tap targets 28 -> 0,
@@ -23267,3 +23862,142 @@ editing it.
 
 Verified on both routes, signed out and in: shell no/yes, `<h1>` 1/1, wordmarks
 2/1, 0 page errors on all four.
+
+## ✅ The two donation checkboxes — traced end to end (2026-08-09)
+
+"Don't display my name or profile publicly on the fundraiser" (`anonymous`) and
+"Subscribe to receive emails" (`subscribeToUpdates`). Both work. Each survives
+four hops, and a break at ANY of them is invisible from the UI because Stripe
+Checkout succeeds either way — the donor only finds out when their name appears
+on a campaign they asked to be anonymous on.
+
+| hop | anonymous | subscribe |
+|---|---|---|
+| checkbox → state | `checked={anonymous}` | `checked={subscribeEmail}` |
+| state → request | `anonymous` | `subscribeToUpdates` |
+| request → Stripe metadata | `'1'`/`'0'` | `'1'`/`'0'` |
+| metadata → DB | `p_anonymous` on `record_donation` | `marketing_contacts.status` + `profiles.notification_marketing` |
+
+⚠️ **The `'1'`/`'0'` stringification is load-bearing.** Stripe metadata values are
+strings, so `String(false)` is `"false"` — truthy. A truthiness check anywhere on
+the read side would make every donation anonymous. Mutation-tested.
+
+### Where the subscribe box actually bites
+The send path filters on **`marketing_contacts.status === 'active'`** and
+`isSuppressed(email)`. `marketingStatusForOptIn(false)` returns `'unsubscribed'`,
+so declining creates a contact that cannot be marketed to — executed, not read.
+
+`profiles.notification_marketing` is written too, but **nothing in any send path
+reads it**; it is the donor-visible mirror on /profile. Worth knowing before
+anyone "fixes" a send filter to consult it, or assumes the checkbox is decorative
+because that column is not queried.
+
+⚠️ Declining deliberately does NOT downgrade an existing subscriber
+(`resolveContact` only ever upgrades to `'active'`). A donation is not a
+preference change, and someone who subscribed via the newsletter should not be
+dropped for giving without ticking a box.
+
+### Anonymity is honoured on every public surface
+Executed against the real mappers, not inspected: `mapRecentDonations` returns
+the real name without the box, `'Anonymous'` with it, **and** `'Anonymous'` for a
+donor whose profile is Private but who did not tick it — two independent gates,
+which have regressed before. `DonorWall`, `DonationTicker` and `CommentsList` all
+branch on the per-gift flag; exports and organizer notifications are covered by
+the existing `donor-privacy` suite.
+
+### 🔍 One observation, not a defect
+`aggregateSupporters` folds an anonymous gift's AMOUNT into a named supporter row
+if the same donor later gives openly — so an organizer sees "Real Name, 2 gifts,
+$525" and can infer the anonymous one. The checkbox promises no public display
+("publicly on the fundraiser") and the supporter list is the organizer's own CRM,
+so this does not break the stated promise, and per-gift anonymity is deliberate.
+Flagging it because most donors would not expect it. Changing it would affect
+organizer reconciliation, so it is a product call rather than a bug fix.
+
+### ❌ What could NOT be executed here, and why
+The four hops need a live Stripe Checkout session and a signed webhook. Neither
+exists in this sandbox. The donate form also renders only when
+`isActive && payoutReady`, and no seeded campaign is payout-ready — so it cannot
+be driven in a browser here either (confirmed: the stub's campaigns render the
+"ended" or non-payout state, exposing only the comment form's "Post anonymously"
+box). The suite records this next to the assertions it qualifies rather than
+letting a reader assume more coverage than exists.
+
+---
+
+### ✅ FIXED → RETESTED → VERIFIED — A-1: a failed ownership read authorized as "owns nothing" (Claude, 2026-08-10)
+
+| ID | Severity | Route | Problem | Root Cause | Fix | Test | Status |
+|---|---|---|---|---|---|---|---|
+| A-1 | High | `/api/crm/segments`, `/api/giving-days`, `/dashboard/segments`, `/dashboard/giving-days` | A database blip made a real owner unable to manage their own organisation, and told them so in a way that is both false and unretryable | `ownedNonprofitIds` swallowed its `error` and returned `[]`, which is indistinguishable from an account that owns nothing — and that value is the **authorization input**, not a display figure | returns `string[] \| null`; all four callers handle `null` explicitly and fail **closed with 503**, never 403 | `__tests__/ownership-read-fails-closed.test.ts` (10) | **VERIFIED** |
+
+**Why 503 and not 403.** Both refuse the write, so the security posture is
+identical — the difference is what the platform *claims*. 403 asserts a fact
+about ownership that was never established, and clients treat it as terminal, so
+a retry that would have succeeded never happens. 503 says the thing that is
+actually true: the check could not be performed.
+
+**Scope note.** The remedy crosses four call sites, three of which gate writes.
+An earlier attempt was reverted for exactly this reason — `tsc` surfaced the
+authorization sites only after the signature changed, and shipping the type
+change without them would have converted a wrong answer into a crash.
+
+**Two behaviours deliberately preserved:**
+- `[]` still means "owns nothing" and still yields 403. The fix must not open
+  anything, and a test asserts the stranger case in both routes.
+- An **admin** is not blocked by the failed read. `canManageGivingDay`
+  short-circuits on `isAdmin` and never consults the list, so failing their
+  request on a read it does not use would be gratuitous.
+
+**Testing note.** Each assertion checks the refusal *and* the status. A test that
+only checked "not 200" would have passed against the original bug — which is how
+this survived the earlier API-authorization sweep that counted guards rather than
+exercising them.
+
+**Still not executable here** (unchanged, and not what A-1 was): Stripe flows
+need test-mode keys, and the role/RLS matrix needs credentials per role.
+
+
+---
+
+### ✅ VERIFIED — every public route's content is downstream of a Supabase read (Claude, 2026-08-10)
+
+`npm run audit:data-wiring` renders all **112 public routes twice against one
+build** — once with the stub populated, once with every table emptied — and
+compares the visible text. A page whose content comes from a query collapses; a
+page built from an array literal is byte-identical.
+
+| | routes |
+|---|---|
+| change when the database empties | **104** |
+| stop existing entirely (200 → 404) | **8** |
+| identical and declared static by design | 0 |
+| **could not be compared** | **0** |
+
+**⚠️ THE FIRST RUN REPORTED A CLEAN RESULT OVER A TEN-ROUTE HOLE, AND THE
+HOMEPAGE WAS IN IT.** `/`, `/blog`, `/causes`, three `/causes/*`, `/gallery` and
+`/leaderboard` hit the 30s navigation timeout and dropped out of the comparison,
+leaving "96 wired, 0 unexplained" — which reads as a pass.
+
+The cause is not the app. `waitUntil: 'networkidle'` **cannot settle on a page
+that references an unreachable host**, and this sandbox has no route to the
+public internet; campaign covers point at picsum/Unsplash. The fix is blocking
+off-origin requests, not a longer timeout: the request fails instantly instead of
+hanging, so idle is reached honestly. It cannot distort the result either, because
+the comparison reads `innerText` and an image contributes no text.
+
+**A second group of 6 was the strongest evidence in the run, filed as a failure.**
+`/campaigns/…/embed|gallery|share|updates`, `/donate/[slug]` and the three
+`/thank-you/*` screens went **200 → 404**. There is no hardcoded page that 404s on
+an empty database. They now report separately as `disappeared`.
+
+**⚠️ What this does NOT prove, stated because the headline invites the stronger
+reading.** It proves each route's content is downstream of a read — not that
+EVERY section of it is. `/blog` scores as wired, and its surrounding data is; the
+post list itself is still the 10-entry `lib/blog-posts.ts` array and there is no
+`blog_posts` table in the schema (checked, not assumed). That is the same
+deliberate category as `lib/faq-content.ts` and the fee model in `@shared/fees`:
+authored prose, not fabricated data — no invented metrics, no fake testimonials.
+Moving it into Supabase buys editability without a deploy and costs a table, RLS,
+an admin editor, and a failure mode the current design cannot have — an empty
+table in production means an empty blog. Left as an owner's product call.

@@ -8,6 +8,7 @@ import { createClient } from '../../../lib/supabase-server';
 import { supabaseAdmin } from '../../../lib/supabase';
 import JoinTierButton from './JoinTierButton';
 import { formatMoneyShort, DEFAULT_CURRENCY } from '@shared/currencies';
+import { getDisplayCover } from '../../../lib/photo-catalog';
 import {
   redactPosts,
   isMembershipActive,
@@ -84,7 +85,7 @@ const getCampaigns = cache(async (userId: string) => {
   const supabase = await createClient();
   const { data } = await supabase
     .from('campaigns')
-    .select('id, slug, title, tagline, cover_image_url, raised_amount, goal_amount, backer_count')
+    .select('id, slug, title, tagline, category, cover_image_url, raised_amount, goal_amount, backer_count')
     .eq('user_id', userId)
     .eq('status', 'active')
     .eq('visibility', 'public')
@@ -385,16 +386,14 @@ export default async function CreatorPage({ params }: { params: Promise<{ handle
                       height: '100%',
                     }}
                   >
-                    {c.cover_image_url && (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img
-                        src={c.cover_image_url}
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                        style={{ width: '100%', height: 130, objectFit: 'cover', display: 'block', maxWidth: '100%' }}
-                      />
-                    )}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={getDisplayCover(c.cover_image_url, c.category, c.slug, 'creator-profile')}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      style={{ width: '100%', height: 130, objectFit: 'cover', display: 'block', maxWidth: '100%' }}
+                    />
                     <div style={{ padding: 14 }}>
                       <h3 style={{ margin: 0, fontSize: 14.5, fontWeight: 800, color: 'var(--t1)', lineHeight: 1.35 }}>
                         {c.title}

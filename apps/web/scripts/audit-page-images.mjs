@@ -21,7 +21,40 @@ import dataDependent from '../e2e/data-dependent-routes.json' with { type: 'json
 import { resolveBase } from './lib/audit-base.mjs';
 import { chromiumLaunchOptions } from './lib/audit-browser.mjs';
 
-const staticList = Array.isArray(routes) ? routes : (routes.routes ?? routes.public ?? []);
+const argv = process.argv;
+const WITH_AUTH = argv.includes('--auth');
+const SKIP_ADMIN = process.env.AUDIT_SKIP_ADMIN === '1';
+const ONLY_GATED = process.env.AUDIT_ONLY_GATED === '1';
+const SKIP_DASHBOARD_ROOT = process.env.AUDIT_SKIP_DASHBOARD_ROOT === '1';
+const onlyArg = argv.includes('--only') ? argv[argv.indexOf('--only') + 1] : null;
+const ONLY = onlyArg ? onlyArg.split(',').map((value) => value.trim()).filter(Boolean) : null;
+const STRICT_GLOBAL = argv.includes('--strict-global');
+const publicList = Array.isArray(routes) ? routes : (routes.routes ?? routes.public ?? []);
+const gatedList = (!Array.isArray(routes) && routes.authGated)
+  ? [
+    ...(routes.authGated.routes ?? []),
+    ...(routes.authGated.consoles ?? []),
+    ...(routes.authGated.dynamicSamples ?? []).map((sample) => sample.path),
+  ]
+  : [];
+const sessionCookie = process.env.STUB_SESSION_COOKIE
+  ? JSON.parse(process.env.STUB_SESSION_COOKIE)
+  : null;
+
+if (WITH_AUTH && !sessionCookie) {
+  console.error('Signed-in image audit requires STUB_SESSION_COOKIE. Run audit:page-images:signed-in.');
+  process.exit(2);
+}
+
+const signedOutOnly = new Set(routes.signedOutOnly ?? []);
+let staticList = WITH_AUTH
+  ? [...(ONLY_GATED ? [] : publicList.filter((route) => !signedOutOnly.has(typeof route === 'string' ? route : route.path))), ...gatedList]
+  : publicList;
+if (ONLY) staticList = staticList.filter((route) => ONLY.includes(typeof route === 'string' ? route : route.path));
+if (staticList.length === 0) {
+  console.error('No routes selected; refusing to report a clean image run over nothing.');
+  process.exit(2);
+}
 const BASE = resolveBase(process.argv);
 
 // Campaign detail pages are the highest-risk surface for repeated photos — a
@@ -82,11 +115,16 @@ function imageIdentity(raw) {
 
 const b = await chromium.launch(chromiumLaunchOptions());
 const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } });
+if (sessionCookie) {
+  await ctx.addCookies([{ name: sessionCookie.name, value: sessionCookie.value, url: BASE }]);
+}
 const page = await ctx.newPage();
 
 const withinPage = [];
 const seenAcross = new Map();
 const errors = [];
+const brokenImages = [];
+const placeholderImages = [];
 let analyzed = 0;
 
 const sampled = await sampleCampaignRoutes(page);
@@ -106,8 +144,8 @@ for (const r of list) {
     await page.waitForTimeout(300);
 
     const status = response?.status() ?? 0;
-    if (status === 404 && dataDependent.includes(path)) {
-      console.log(`· ${path} — SKIPPED (needs seeded data)`);
+    if (status >= 400 && dataDependent.includes(path)) {
+      console.log(`· ${path} — SKIPPED (needs seeded data, HTTP ${status})`);
       continue;
     }
     if (status >= 400) {
@@ -116,8 +154,35 @@ for (const r of list) {
       continue;
     }
 
-    const raw = await page.evaluate(() => {
+    const asked = path.split('?')[0].replace(/\/$/, '') || '/';
+    if (SKIP_ADMIN && asked.startsWith('/admin')) {
+      console.log(`SKIP ${path}: admin route under member session`);
+      continue;
+    }
+    if (SKIP_DASHBOARD_ROOT && asked === '/dashboard') {
+      console.log(`SKIP ${path}: member landing route under admin session`);
+      continue;
+    }
+    const landed = new URL(page.url()).pathname.replace(/\/$/, '') || '/';
+    if (landed !== asked) {
+      errors.push(`${path} (redirected to ${landed})`);
+      console.log(`! ${path}: redirected to ${landed}; nothing to measure`);
+      continue;
+    }
+
+    await page.evaluate(async () => {
+      const step = Math.max(window.innerHeight * 1.5, 900);
+      for (let y = 0; y < document.documentElement.scrollHeight; y += step) {
+        window.scrollTo(0, y);
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      }
+      window.scrollTo(0, 0);
+    });
+    await page.waitForTimeout(100);
+
+    const rendered = await page.evaluate(() => {
       const out = [];
+      const broken = [];
       for (const el of document.querySelectorAll('img')) {
         // Chrome that repeats by design. Identified by role/alt/class, not by
         // pattern-matching filenames, which breaks the moment an asset is renamed.
@@ -135,7 +200,10 @@ for (const r of list) {
           /logo|avatar|icon/i.test(cls) ||
           /logo|avatar/i.test(el.alt ?? '');
         if (isControl || isChrome) continue;
-        if (el.currentSrc || el.src) out.push(el.currentSrc || el.src);
+        const source = el.currentSrc || el.src;
+        const entity = el.getAttribute('data-image-entity') ?? el.closest('[data-image-entity]')?.getAttribute('data-image-entity') ?? null;
+        if (source) out.push({ source, entity });
+        if (source && el.complete && el.naturalWidth === 0) broken.push(source);
       }
       for (const el of document.querySelectorAll('*')) {
         const bg = getComputedStyle(el).backgroundImage;
@@ -150,20 +218,32 @@ for (const r of list) {
         if (el.closest('header, nav, footer') !== null) continue;
         if (el.closest('button, [role="button"]') !== null) continue;
         if (/logo|avatar|icon/i.test(bgCls)) continue;
-        out.push(m[1]);
+        const entity = el.getAttribute('data-image-entity') ?? el.closest('[data-image-entity]')?.getAttribute('data-image-entity') ?? null;
+        out.push({ source: m[1], entity });
       }
-      return out;
+      return { sources: out, broken };
     });
+
+    const raw = rendered.sources;
+    for (const source of rendered.broken) {
+      brokenImages.push({ path, source });
+      console.log(`BROKEN ${path}: ${source}`);
+    }
+    for (const { source } of raw.filter(({ source }) => /picsum|loremflickr/i.test(source))) {
+      placeholderImages.push({ path, source });
+      console.log(`PLACEHOLDER ${path}: ${source}`);
+    }
 
     analyzed++;
 
     const counts = new Map();
-    for (const src of raw) {
-      const id = imageIdentity(src);
+    for (const { source, entity } of raw) {
+      const id = imageIdentity(source);
       if (!id) continue;
       counts.set(id, (counts.get(id) ?? 0) + 1);
-      if (!seenAcross.has(id)) seenAcross.set(id, new Set());
-      seenAcross.get(id).add(path);
+      if (!seenAcross.has(id)) seenAcross.set(id, { paths: new Set(), entities: new Set() });
+      seenAcross.get(id).paths.add(path);
+      seenAcross.get(id).entities.add(entity);
     }
 
     const dupes = [...counts.entries()].filter(([, n]) => n > 1);
@@ -197,8 +277,22 @@ if (analyzed === 0) {
   process.exit(1);
 }
 
-const shared = [...seenAcross.entries()].filter(([, paths]) => paths.size > 1);
-console.log(`· ${seenAcross.size} distinct images; ${shared.length} appear on more than one page (allowed)`);
+const shared = [...seenAcross.entries()].filter(([, usage]) => usage.paths.size > 1);
+const unrelatedShared = shared.filter(([, usage]) => usage.entities.size !== 1 || usage.entities.has(null));
+if (STRICT_GLOBAL && unrelatedShared.length > 0) {
+  for (const [identity, usage] of unrelatedShared) {
+    process.stdout.write(`SHARED ${identity}: ${[...usage.paths].join(', ')}\n`);
+  }
+  process.stdout.write(`\nGlobal image uniqueness failures: ${unrelatedShared.length}\n`);
+  process.exit(1);
+}
+const sameEntityShared = shared.length - unrelatedShared.length;
+console.log(`· ${seenAcross.size} distinct images; ${sameEntityShared} repeat only for the same entity across pages (allowed)`);
+
+if (brokenImages.length || placeholderImages.length) {
+  console.log(`\nImage integrity failures: ${brokenImages.length} broken; ${placeholderImages.length} generic placeholder.`);
+  process.exit(1);
+}
 
 if (withinPage.length) {
   console.log(`\n❌ ${withinPage.length} duplicate image(s) within a single page`);

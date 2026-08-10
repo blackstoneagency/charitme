@@ -131,7 +131,13 @@ export async function GET() {
   // Last donation timestamp for the live badge
   type DonationRow = { created_at: string };
   const lastDonationAt = ((statsResult.data ?? []) as DonationRow[])[0]?.created_at ?? null;
-  const totalDonations = statsResult.count ?? 0;
+  // ⚠️ `null` on a failed read, not 0. `statsResult.error` was never checked, so
+  // a degraded count rendered as a confident "0 donations" — the sibling
+  // convention elsewhere in this codebase is `error ? null : count ?? 0`.
+  // The visible outcome happened to be right by accident (HeroRotator renders
+  // "—" for 0), which is exactly why this survived: correct output from a wrong
+  // value is the hardest kind of bug to notice.
+  const totalDonations = statsResult.error ? null : statsResult.count ?? 0;
 
   return NextResponse.json({ campaigns, lastDonationAt, totalDonations });
 }

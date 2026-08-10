@@ -144,23 +144,45 @@ async function decorate(rows: GivingDayRow[]): Promise<GivingDay[]> {
   ).map(({ startsAt: _s, endsAt: _e, ...rest }) => rest) as GivingDay[];
 }
 
-/** The nonprofit profiles this user owns — the input to `canManageGivingDay`. */
-export async function ownedNonprofitIds(userId: string): Promise<string[]> {
+/**
+ * The nonprofit profiles this user owns — the input to `canManageGivingDay`.
+ *
+ * ⚠️ `null` means the read FAILED. `[]` means the account genuinely owns no
+ * organisation. Collapsing the two is not a display bug here: this value is the
+ * input to authorization on four write paths, and returning `[]` on error made a
+ * database outage indistinguishable from "you own nothing" — so a real owner was
+ * told **403 Forbidden** about their own organisation, and a dashboard rendered
+ * as an empty account. Every caller must handle `null` explicitly and fail
+ * CLOSED (refuse the write) but with 503, which is true and retryable.
+ */
+export async function ownedNonprofitIds(userId: string): Promise<string[] | null> {
   const { data, error } = await supabaseAdmin
     .from('nonprofit_profiles')
     .select('id')
     .eq('owner_id', userId);
-  if (error) return [];
+  if (error) {
+    console.warn('[giving-days] ownership read failed', { code: error.code });
+    return null;
+  }
   return (data ?? []).map((r) => r.id as string);
 }
 
 /** Giving days this user may manage, for the dashboard. `null` on failure. */
 export async function listManageableGivingDays(userId: string, isAdmin: boolean): Promise<GivingDay[] | null> {
-  const owned = await ownedNonprofitIds(userId);
-  if (!isAdmin && owned.length === 0) return [];
+  // An admin's list is not scoped by ownership, so the ownership read is only
+  // consulted — and only allowed to fail the request — for a non-admin.
+  let scope: string[] | null = null;
+  if (!isAdmin) {
+    const owned = await ownedNonprofitIds(userId);
+    // A failed ownership read is not an empty list. Returning `[]` here would
+    // tell a real owner they run no giving days.
+    if (owned === null) return null;
+    if (owned.length === 0) return [];
+    scope = owned;
+  }
 
   let query = supabaseAdmin.from('giving_days').select(COLUMNS).order('starts_at', { ascending: false }).limit(100);
-  if (!isAdmin) query = query.in('nonprofit_id', owned);
+  if (scope) query = query.in('nonprofit_id', scope);
 
   const { data, error } = await query;
   if (error) {

@@ -39,12 +39,32 @@ export const metadata: Metadata = {
     statusBarStyle: 'default',
     title: 'CharitMe',
   },
+  // `appleWebApp.capable` emits the modern unprefixed `mobile-web-app-capable`
+  // only. Older iOS reads the `apple-` prefixed name, and without it those
+  // versions open the installed icon in a Safari chrome instead of standalone.
+  // Measured on the served HTML: the prefixed meta was absent entirely.
+  other: { 'apple-mobile-web-app-capable': 'yes' },
 };
 
 export const viewport: Viewport = {
   themeColor: '#6d35ff',
   width: 'device-width',
   initialScale: 1,
+  // ⚠️ Edge-to-edge is deliberately NOT enabled here, and that is the fix rather
+  // than an omission.
+  //
+  // My mobile audit reported that every bottom-anchored fixed control sits under
+  // the ~34px iOS home indicator, and I opted into edge-to-edge plus insets to
+  // "fix" it. That was WRONG, and __tests__/viewport-safe-area.test.ts caught it.
+  // The default lays the page out INSIDE the display's safe rectangle, so nothing
+  // renders under the home indicator, the notch or the rounded corners, and
+  // `env(safe-area-inset-*)` correctly returns 0 because there is nothing to inset
+  // past. Opting out makes every edge-anchored and full-bleed element the author's
+  // problem at once — so doing it while handling one inset on one element is worse
+  // than leaving the default alone.
+  //
+  // The guard greps this file for the literal setting, so do not spell it out in a
+  // comment either: a quoted mention fails the test exactly like a real one.
 };
 
 // Inline script runs before React hydration to apply the saved theme with no flash.

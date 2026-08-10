@@ -2,9 +2,11 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../../../lib/supabase';
-import { formatMoneyShort } from '@shared/currencies';
+import { formatMoneyShort, normalizeCurrency } from '@shared/currencies';
 import DonateButton from '../DonateButton';
 import { parseWidgetOptions, WIDGET_MAX_WIDTH } from '../../../../lib/widget-embed';
+import { getDonationCheckoutSnapshot } from '../../../../lib/donation-checkout-settings';
+import { getDisplayCover } from '../../../../lib/photo-catalog';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,16 +57,18 @@ export default async function CampaignEmbedPage({ params, searchParams }: Props)
   // visitors the campaign does not exist every time our database hiccups.
   type EmbedCampaign = {
     id: string; slug: string; title: string; tagline: string | null;
+    category: string | null;
     cover_image_url: string | null; raised_amount: number | null; goal_amount: number | null;
     backer_count: number | null; status: string | null; accept_donations: boolean | null;
     visibility?: string;
   };
   let campaign: EmbedCampaign | null = null;
   let currency = 'usd';
+  const checkout = await getDonationCheckoutSnapshot();
   try {
     const { data } = await supabaseAdmin
       .from('campaigns')
-      .select('id, slug, title, tagline, cover_image_url, raised_amount, goal_amount, backer_count, status, accept_donations, visibility')
+      .select('id, slug, title, tagline, category, cover_image_url, raised_amount, goal_amount, backer_count, status, accept_donations, visibility')
       .eq('slug', slug)
       .eq('status', 'active')
       .is('deleted_at', null)
@@ -73,12 +77,13 @@ export default async function CampaignEmbedPage({ params, searchParams }: Props)
 
     if (!campaign || (campaign as { visibility?: string }).visibility === 'private') notFound();
 
-    const { data: launchSettings } = await supabaseAdmin
+    const { data: launchSettings, error: launchSettingsError } = await supabaseAdmin
       .from('campaign_launch_settings')
       .select('currency')
       .eq('campaign_id', campaign.id)
       .maybeSingle();
-    currency = (launchSettings?.currency as string | null) ?? 'usd';
+    if (launchSettingsError) throw new Error('Campaign currency is unavailable');
+    currency = normalizeCurrency(launchSettings?.currency);
   } catch (e) {
     // `notFound()` signals by throwing — rethrow it rather than swallowing the
     // 404 into the "unavailable" branch.
@@ -105,9 +110,9 @@ export default async function CampaignEmbedPage({ params, searchParams }: Props)
       // in a full browser tab.
       style={{ padding: '20px', maxWidth: WIDGET_MAX_WIDTH, minHeight: '100vh' }}
     >
-        {options.showCover && campaign.cover_image_url && (
+        {options.showCover && (
           <img
-            src={campaign.cover_image_url}
+            src={getDisplayCover(campaign.cover_image_url, campaign.category, campaign.slug, 'campaign-embed')}
             alt={campaign.title}
             style={{ width: '100%', height: 160, objectFit: 'cover', borderRadius: 12, marginBottom: 14 }}
           />
@@ -139,7 +144,13 @@ export default async function CampaignEmbedPage({ params, searchParams }: Props)
         )}
 
         {acceptDonations ? (
-          <DonateButton campaignId={campaign.id} campaignTitle={campaign.title} currency={currency} />
+          <DonateButton
+            campaignId={campaign.id}
+            campaignTitle={campaign.title}
+            currency={currency}
+            checkoutSettings={checkout.settings}
+            checkoutRevision={checkout.revision}
+          />
         ) : (
           <div style={{ background: 'var(--s2)', border: '1px solid var(--b1)', borderRadius: 10, padding: '12px 14px', textAlign: 'center', fontSize: 13, color: 'var(--t3)' }}>
             Donations are temporarily paused.
@@ -151,7 +162,7 @@ export default async function CampaignEmbedPage({ params, searchParams }: Props)
             href={`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com'}/campaigns/${slug}`}
             target="_blank"
             rel="noopener noreferrer"
-            style={{ fontSize: 11, color: 'var(--t3)', textDecoration: 'none' }}
+            style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, fontSize: 11, color: 'var(--t3)', textDecoration: 'none' }}
           >
             Powered by CharitMe
           </a>

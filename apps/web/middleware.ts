@@ -24,7 +24,7 @@ export const PROTECTED = ['/create', '/dashboard', '/profile', '/admin'];
 // the Stripe Connect route all call `requireUser()`. A guest can therefore build
 // and preview, and is asked to sign in at PUBLISH, where identity first means
 // something: a campaign needs an owner.
-export const PUBLIC_EXCEPTIONS = ['/create/choose-path', '/create'];
+export const PUBLIC_EXCEPTIONS = ['/create/choose-path', '/create/ai', '/create'];
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
 /**
@@ -114,10 +114,10 @@ export async function middleware(request: NextRequest) {
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://js.stripe.com https://checkout.stripe.com`,
     "style-src 'self'",
     "style-src-attr 'unsafe-inline'",
-    "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://loremflickr.com https://picsum.photos https://fastly.picsum.photos",
+    "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://api.dicebear.com https://api.qrserver.com",
     "font-src 'self' data:",
     `connect-src 'self' ${supabaseOrigin} https://*.supabase.co https://api.stripe.com https://*.stripe.com wss://*.supabase.co`,
-    "frame-src 'self' https://js.stripe.com https://checkout.stripe.com https://hooks.stripe.com",
+    "frame-src 'self' https://js.stripe.com https://checkout.stripe.com https://hooks.stripe.com https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com",
     "worker-src 'self' blob:",
     frameAncestors,
   ].join('; ');
@@ -237,7 +237,7 @@ export async function middleware(request: NextRequest) {
   // ── Security headers ─────────────────────────────────────────────────
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(self), geolocation=()');
 
   // Framing / clickjacking protection.
   // Campaign embed widgets (`/campaigns/<slug>/embed`) are meant to be

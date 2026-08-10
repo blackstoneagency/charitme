@@ -95,7 +95,7 @@ export default async function InternshipListings() {
             messages get read, and they have led to offers before a posting existed.
           </p>
           <p style={{ marginTop: 16, fontSize: 14 }}>
-            <Link href="/contact" style={linkStyle}>Get in touch →</Link>
+            <Link href="/contact" style={actionLinkStyle}>Get in touch →</Link>
           </p>
           <p style={{ marginTop: 12, fontSize: 14, color: 'var(--t3)' }}>
             In the meantime, <Link href="/volunteer" style={linkStyle}>volunteer opportunities</Link> often
@@ -173,3 +173,9 @@ const badgeStyle = {
   background: 'var(--tint-amber)', color: 'var(--orange-text)',
 } as const;
 const linkStyle = { color: 'var(--brand-text)', fontWeight: 650 } as const;
+const actionLinkStyle = {
+  ...linkStyle,
+  display: 'inline-flex',
+  alignItems: 'center',
+  minHeight: 44,
+} as const;

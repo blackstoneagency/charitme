@@ -156,7 +156,7 @@ export default async function RecurringPage() {
                       <div>
                         <strong>
                           {camp ? (
-                            <Link href={`/campaigns/${camp.slug}`} style={{ color: 'var(--t1)', textDecoration: 'none' }}>
+                            <Link href={`/campaigns/${camp.slug}`} className="cm-touch-link" style={{ color: 'var(--t1)', textDecoration: 'none' }}>
                               {camp.title}
                             </Link>
                           ) : 'Unknown Campaign'}
@@ -183,6 +183,7 @@ export default async function RecurringPage() {
                     {sub.status === 'active' && sub.stripe_subscription_id && (
                       <Link
                         href={`/dashboard/recurring/cancel?sub=${sub.stripe_subscription_id}`}
+                        className="cm-touch-link"
                         style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', padding: '6px 14px', border: '1px solid var(--b2)', borderRadius: 8, textDecoration: 'none', background: 'var(--s1)', flexShrink: 0 }}>
                         Cancel
                       </Link>

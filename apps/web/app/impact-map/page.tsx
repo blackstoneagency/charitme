@@ -54,8 +54,16 @@ async function getMapData(): Promise<MapData | null> {
           cols,
         ).limit(5000)
       ),
+      // ⚠️ Filtered, because the LABEL on this number says "can pay out to".
+      // Unfiltered it counted every row — inactive countries and donate-only
+      // ones included — and reported 20 while /supported-countries, which
+      // filters correctly, reported 15 able to fundraise from the same data.
+      // Two pages, two answers, one of them not measuring what it claimed.
       boundedQuery(() =>
-        supabaseAdmin.from('supported_countries').select('id', { count: 'exact', head: true })
+        supabaseAdmin.from('supported_countries')
+          .select('id', { count: 'exact', head: true })
+          .eq('active', true)
+          .eq('can_fundraise', true)
       ),
     ]);
 

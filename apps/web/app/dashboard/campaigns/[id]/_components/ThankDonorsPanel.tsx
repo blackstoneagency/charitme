@@ -115,7 +115,7 @@ export default function ThankDonorsPanel({ campaignId }: { campaignId: string })
         </p>
       </div>
 
-      {error && <div style={{ padding: '12px 16px', background: 'rgba(255,59,95,.08)', border: '1px solid rgba(255,59,95,.28)', borderRadius: 10, color: 'var(--red)', fontSize: 14, fontWeight: 600 }}>⚠ {error}</div>}
+      {error && <div style={{ padding: '12px 16px', background: 'rgba(255,59,95,.08)', border: '1px solid rgba(255,59,95,.28)', borderRadius: 10, color: 'var(--red-text)', fontSize: 14, fontWeight: 600 }}>⚠ {error}</div>}
 
       {donations.length === 0 ? (
         <div style={{ padding: '48px 24px', textAlign: 'center', background: 'var(--s2)', borderRadius: 14, border: '1px solid var(--b2)' }}>

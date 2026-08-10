@@ -1,4 +1,5 @@
 'use client';
+import { optimizedCoverUrl } from '../../../lib/img-optimize';
 
 import React, { useState, useCallback } from 'react';
 
@@ -62,7 +63,7 @@ export default function CampaignCarousel({
               style={{ padding: 0, background: 'none' }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={s} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 6, display: 'block' }} />
+              <img src={optimizedCoverUrl(s, 160)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 6, display: 'block' }} />
             </button>
           ))}
         </div>

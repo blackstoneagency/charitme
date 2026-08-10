@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     title: 'Double Your Impact With Matching Gifts',
     description: 'Find out whether your employer will match your CharitMe donation.',
     url: 'https://www.charitme.com/matching',
-    images: [{ url: '/images/reference/matching-gifts-hero.webp' }],
+    images: [{ url: '/images/reference/matching-gifts-hero-v2.png' }],
     type: 'website',
   },
 };
@@ -74,7 +74,7 @@ export default async function MatchingPage({ searchParams }: { searchParams: Mat
         highlights={[
           { icon: 'shield', title: 'Secure. Easy. 100% Free.', body: 'We guide you every step of the way.' },
         ]}
-        image="/images/reference/matching-gifts-hero.webp"
+        image="/images/reference/matching-gifts-hero-v2.png"
         imageAlt="Two people holding a red heart together"
         callout={{
           icon: 'gift',

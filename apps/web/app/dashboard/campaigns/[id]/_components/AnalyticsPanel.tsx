@@ -62,7 +62,7 @@ export default function AnalyticsPanel({ campaignId }: { campaignId: string }) {
   }, [campaignId]);
 
   if (loading) return <div style={{ padding: '24px 0', color: 'var(--t3)', fontSize: 14 }}>Loading analytics…</div>;
-  if (error || !analytics) return <div style={{ padding: '24px 0', color: 'var(--red)', fontSize: 14 }}>{error || 'No data'}</div>;
+  if (error || !analytics) return <div style={{ padding: '24px 0', color: 'var(--red-text)', fontSize: 14 }}>{error || 'No data'}</div>;
 
   const { campaign, summary, dailyTrend, topSources, sharesByChannel } = analytics;
   const goalPct = pct(campaign.raised_amount, campaign.goal_amount);

@@ -1,115 +1,138 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// Campaign publish-readiness engine (pure, unit-testable).
-//
-// Real-time checklist of what a draft still needs, each item pointing at the exact
-// wizard step to fix it. `required` items mirror EXACTLY what POST /api/campaigns
-// enforces to publish (status='active'): title ≥ 3 chars, story ≥ 20 chars, goal
-// ≥ $1 — so `readyToPublish` never disagrees with the server. Everything else is a
-// recommendation that lifts the score but doesn't block publishing.
-// Sibling UI: rendered in the wizard's review step.
-// ─────────────────────────────────────────────────────────────────────────────
+import { formatMoneyShort } from '@shared/currencies';
 
-// Mirrors the wizard's step keys. 'type', 'category' and 'location' were merged
-// into a single 'basics' screen, so readiness items for those now deep-link there.
 export type ReadinessStep =
-  | 'basics' | 'story' | 'title' | 'goal' | 'media' | 'payout';
+  | 'purpose'
+  | 'beneficiary'
+  | 'category'
+  | 'location'
+  | 'goal'
+  | 'plan'
+  | 'story'
+  | 'media'
+  | 'settings'
+  | 'payout'
+  | 'verify';
 
-// ── Publish minimums — the SINGLE source of truth ────────────────────────────
-// Imported by both the readiness checklist below and the zod schema in
-// POST /api/campaigns, so the client checklist and the server gate can never
-// drift apart. Drafts are deliberately exempt: a draft may be saved at any
-// completeness, and is not public.
 export const PUBLISH_MIN_TITLE_CHARS = 3;
 export const PUBLISH_MIN_STORY_CHARS = 20;
 export const PUBLISH_MIN_GOAL_CENTS = 100;
 
-export interface ReadinessInput {
+export type ReadinessInput = {
   title: string;
   description: string;
   goalCents: number;
+  currency?: string;
   category: string;
   country: string;
   coverImageUrl: string;
-  forSelf: string;          // '' | 'true' | 'false'
+  forSelf: string;
   beneficiaryName: string;
+  beneficiaryRelationship: string;
   payoutLinked: boolean;
-}
+  useOfFundsComplete: boolean;
+  organizerComplete: boolean;
+  verificationComplete: boolean;
+  policyAccepted: boolean;
+};
 
-export interface ReadinessItem {
+export type ReadinessItem = {
   id: string;
   label: string;
   done: boolean;
-  required: boolean;        // blocks publishing when not done
+  required: boolean;
   step: ReadinessStep;
-  hint?: string;            // shown when not done
-}
+  hint?: string;
+};
 
-export interface ReadinessResult {
+export type ReadinessStatus = 'needs_attention' | 'ready_to_publish' | 'under_review' | 'published';
+
+export type ReadinessResult = {
   items: ReadinessItem[];
-  /** 0–100 — share of ALL applicable items complete (equal weight). */
   score: number;
-  /** True only when every REQUIRED item is complete (mirrors the publish API). */
   readyToPublish: boolean;
   missingRequired: ReadinessItem[];
-}
+  status: ReadinessStatus;
+};
 
-function has(v: string | undefined | null): boolean {
-  return !!v && v.trim().length > 0;
+function has(value: string | undefined | null): boolean {
+  return Boolean(value?.trim());
 }
 
 export function publishReadiness(input: ReadinessInput): ReadinessResult {
   const forSomeoneElse = input.forSelf === 'false';
-
   const items: ReadinessItem[] = [
     {
-      id: 'title', label: 'Campaign title', step: 'title', required: true,
+      id: 'title', label: 'Campaign title', step: 'purpose', required: true,
       done: input.title.trim().length >= PUBLISH_MIN_TITLE_CHARS,
-      hint: 'Add a clear title (at least 3 characters).',
+      hint: 'Add a clear title with at least 3 characters.',
     },
     {
-      id: 'story', label: 'Your story', step: 'story', required: true,
-      done: input.description.trim().length >= PUBLISH_MIN_STORY_CHARS,
-      hint: 'Write at least a couple of sentences about your cause.',
+      id: 'organizer', label: 'Organizer details', step: 'beneficiary', required: true,
+      done: input.organizerComplete,
+      hint: 'Sign in and complete the organizer name on your profile.',
+    },
+    {
+      id: 'beneficiary', label: 'Beneficiary details', step: 'beneficiary', required: true,
+      done: has(input.forSelf)
+        && (!forSomeoneElse || (has(input.beneficiaryName) && has(input.beneficiaryRelationship))),
+      hint: 'Tell donors who will benefit and your relationship to them.',
+    },
+    {
+      id: 'category', label: 'Category', step: 'category', required: true,
+      done: has(input.category),
+      hint: 'Choose a category so donors can find the campaign.',
+    },
+    {
+      id: 'location', label: 'Location', step: 'location', required: true,
+      done: has(input.country),
+      hint: 'Add the beneficiary location.',
     },
     {
       id: 'goal', label: 'Fundraising goal', step: 'goal', required: true,
       done: input.goalCents >= PUBLISH_MIN_GOAL_CENTS,
-      hint: 'Set a goal of at least $1.',
+      hint: `Set a goal of at least ${formatMoneyShort(PUBLISH_MIN_GOAL_CENTS, input.currency)}.`,
     },
     {
-      id: 'category', label: 'Category', step: 'basics', required: false,
-      done: has(input.category),
-      hint: 'Pick a category so donors can find your campaign.',
+      id: 'plan', label: 'Use of funds', step: 'plan', required: true,
+      done: input.useOfFundsComplete,
+      hint: 'Add a budget whose line items total the fundraising goal.',
     },
     {
-      id: 'location', label: 'Location', step: 'basics', required: false,
-      done: has(input.country),
-      hint: 'Add your country to build trust.',
+      id: 'story', label: 'Campaign story', step: 'story', required: true,
+      done: input.description.trim().length >= PUBLISH_MIN_STORY_CHARS,
+      hint: 'Write at least a couple of sentences about the need and impact.',
     },
     {
-      id: 'media', label: 'Cover photo', step: 'media', required: false,
+      id: 'media', label: 'Cover photo', step: 'media', required: true,
       done: has(input.coverImageUrl),
-      hint: 'Campaigns with a photo raise significantly more.',
+      hint: 'Upload a clear cover photo before publishing.',
     },
     {
-      id: 'payout', label: 'Payout method', step: 'payout', required: false,
+      id: 'policy', label: 'Policy acknowledgement', step: 'settings', required: true,
+      done: input.policyAccepted,
+      hint: 'Confirm the campaign is accurate and follows platform policies.',
+    },
+    {
+      id: 'payout', label: 'Verified payout account', step: 'payout', required: true,
       done: input.payoutLinked,
-      hint: 'Connect a payout method so you can receive donations.',
+      hint: 'Finish Stripe Connect onboarding so donations can be routed safely.',
+    },
+    {
+      id: 'verification', label: 'Required verification', step: 'verify', required: true,
+      done: input.verificationComplete,
+      hint: 'Complete identity verification and any organization checks before publishing.',
     },
   ];
 
-  // Only relevant when raising for someone else.
-  if (forSomeoneElse) {
-    items.splice(3, 0, {
-      id: 'beneficiary', label: 'Who it benefits', step: 'story', required: false,
-      done: has(input.beneficiaryName),
-      hint: 'Name the person or group you’re raising funds for.',
-    });
-  }
-
-  const doneCount = items.filter((i) => i.done).length;
+  const missingRequired = items.filter((item) => item.required && !item.done);
+  const doneCount = items.filter((item) => item.done).length;
   const score = Math.round((doneCount / items.length) * 100);
-  const missingRequired = items.filter((i) => i.required && !i.done);
-
-  return { items, score, readyToPublish: missingRequired.length === 0, missingRequired };
+  const readyToPublish = missingRequired.length === 0;
+  return {
+    items,
+    score,
+    readyToPublish,
+    missingRequired,
+    status: readyToPublish ? 'ready_to_publish' : 'needs_attention',
+  };
 }

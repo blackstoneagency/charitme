@@ -63,9 +63,24 @@ export default function GlossaryPage() {
                 key={t.term}
                 style={{ padding: '18px', border: '1px solid var(--b1)', borderRadius: 'var(--rl)', background: 'var(--s1)' }}
               >
+                {/* The term link is a STANDALONE control, not a link inside a
+                    sentence, so the inline exception does not cover it. It uses the
+                    product's 44px touch standard and is sized inline because this page's markup
+                    carries no classes and a bare `dt > a` rule would reach every
+                    definition list on the site. The "Read more" link below is left
+                    as-is on purpose: it sits within a sentence, which IS exempt. */}
                 <dt style={{ fontSize: '15px', fontWeight: 750, color: 'var(--t1)', marginBottom: '6px' }}>
                   {t.href ? (
-                    <Link href={t.href} style={{ color: 'var(--t1)', textDecoration: 'none' }}>
+                    <Link
+                      href={t.href}
+                      style={{
+                        color: 'var(--t1)',
+                        textDecoration: 'none',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        minHeight: 44,
+                      }}
+                    >
                       {t.term}
                     </Link>
                   ) : (

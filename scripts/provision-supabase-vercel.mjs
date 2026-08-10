@@ -172,6 +172,11 @@ async function main() {
     run(supabase, pushArgs);
   }
 
+  if (process.env.SKIP_VERCEL_CONFIGURATION === 'true') {
+    process.stdout.write('Skipped Vercel configuration; the verified GitHub integration owns production deployment.\n');
+    return;
+  }
+
   if (!vercelToken) {
     console.log('Skipped Vercel settings because VERCEL_TOKEN is not set.');
     return;

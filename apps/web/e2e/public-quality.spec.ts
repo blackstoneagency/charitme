@@ -5,6 +5,18 @@ import { PUBLIC_ROUTES, expectNoRedirect } from './public-routes';
 
 const INDEXABLE_PATHS = new Set(INDEXABLE_PUBLIC_ROUTES.map((route) => route.path));
 
+type DocumentAudit = {
+  language: string;
+  title: string;
+  description: string;
+  canonical: string;
+  robots: string;
+  unnamedButtons: number;
+  unnamedLinks: number;
+  imagesWithoutAlt: number;
+  horizontalOverflow: boolean;
+};
+
 // This accessibility sweep walks every public route in one test. Supabase-backed pages cost
 // several seconds each when the database is a placeholder (CI), so the default
 // 30s cap is far too tight — the sweep was timing out rather than failing on a
@@ -19,28 +31,33 @@ test('public routes meet baseline document accessibility', async ({ page, reques
   for (const route of usable) {
     const response = await page.goto(route, { waitUntil: 'domcontentloaded' });
     expect(response?.status(), route).toBeLessThan(400);
-    // A 307 to /login also arrives here as a 200 once followed, so the status
-    // check alone cannot tell us we are looking at `route`. This can.
-    expectNoRedirect(page, route);
-    await expect(page.locator('body'), route).toBeVisible();
+    const auditResult: { value: DocumentAudit | null } = { value: null };
+    await expect(async () => {
+      // A 307 to /login also arrives here as a 200 once followed, so the status
+      // check alone cannot tell us we are looking at `route`. This can.
+      expectNoRedirect(page, route);
+      await expect(page.locator('body'), route).toBeVisible();
+      auditResult.value = await page.evaluate(() => ({
+        language: document.documentElement.lang,
+        title: document.title.trim(),
+        description: document.querySelector<HTMLMetaElement>('meta[name="description"]')?.content.trim() ?? '',
+        canonical: document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.href ?? '',
+        robots: document.querySelector<HTMLMetaElement>('meta[name="robots"]')?.content ?? '',
+        unnamedButtons: Array.from(document.querySelectorAll('button')).filter((element) => {
+          const label = element.getAttribute('aria-label') ?? element.textContent ?? '';
+          return !label.trim() && !element.hasAttribute('aria-hidden');
+        }).length,
+        unnamedLinks: Array.from(document.querySelectorAll('a')).filter((element) => {
+          const label = element.getAttribute('aria-label') ?? element.textContent ?? '';
+          return !label.trim() && !element.hasAttribute('aria-hidden');
+        }).length,
+        imagesWithoutAlt: Array.from(document.querySelectorAll('img')).filter((element) => !element.hasAttribute('alt')).length,
+        horizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+      }));
+    }).toPass({ timeout: 10_000 });
 
-    const audit = await page.evaluate(() => ({
-      language: document.documentElement.lang,
-      title: document.title.trim(),
-      description: document.querySelector<HTMLMetaElement>('meta[name="description"]')?.content.trim() ?? '',
-      canonical: document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.href ?? '',
-      robots: document.querySelector<HTMLMetaElement>('meta[name="robots"]')?.content ?? '',
-      unnamedButtons: Array.from(document.querySelectorAll('button')).filter((element) => {
-        const label = element.getAttribute('aria-label') ?? element.textContent ?? '';
-        return !label.trim() && !element.hasAttribute('aria-hidden');
-      }).length,
-      unnamedLinks: Array.from(document.querySelectorAll('a')).filter((element) => {
-        const label = element.getAttribute('aria-label') ?? element.textContent ?? '';
-        return !label.trim() && !element.hasAttribute('aria-hidden');
-      }).length,
-      imagesWithoutAlt: Array.from(document.querySelectorAll('img')).filter((element) => !element.hasAttribute('alt')).length,
-      horizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
-    }));
+    const audit = auditResult.value;
+    if (!audit) throw new Error(`${route} document audit did not settle`);
 
     expect(audit.language, route).toBeTruthy();
     expect(audit.title, route).not.toBe('');

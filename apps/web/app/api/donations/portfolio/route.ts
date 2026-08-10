@@ -4,7 +4,7 @@ import { z } from 'zod';
 import type Stripe from 'stripe';
 import { createClient } from '../../../../lib/supabase-server';
 import { supabaseAdmin } from '../../../../lib/supabase';
-import { createCheckoutSession } from '../../../../lib/stripe';
+import { createCheckoutSession, checkoutPaymentMethodTypes } from '../../../../lib/stripe';
 import { checkRateLimit } from '../../../../lib/rate-limit';
 import { getAppOrigin } from '../../../../lib/auth-config';
 import {
@@ -13,6 +13,18 @@ import {
   MAX_PORTFOLIO_CAMPAIGNS,
   MIN_PORTFOLIO_SHARE_CENTS,
 } from '../../../../lib/portfolio-split';
+import {
+  MAX_DONATION_CENTS,
+  donorTip,
+  methodProcessingFee,
+  supportPercentFromCents,
+  type CheckoutPaymentMethod,
+} from '@shared/fees';
+import { getDonationCheckoutSnapshot } from '../../../../lib/donation-checkout-settings';
+import {
+  PayoutLookupUnavailableError,
+  resolvePayoutDestination,
+} from '../../../../lib/payout-destination';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,9 +66,14 @@ const PortfolioSchema = z.object({
   anonymous: z.boolean().optional(),
   message: z.string().max(500).optional(),
   donorEmail: z.string().email().optional(),
+  tipPercent: z.number().min(0).max(100).optional(),
+  tipCents: z.number().int().min(0).max(MAX_DONATION_CENTS).optional(),
+  coverProcessingFee: z.boolean().optional(),
+  paymentMethod: z.enum(['stripe', 'gpay', 'bank', 'card']).optional(),
+  checkoutRevision: z.string().trim().min(1).max(100).optional(),
 });
 
-interface CampaignRow {
+type CampaignRow = {
   id: string;
   slug: string;
   title: string;
@@ -64,7 +81,9 @@ interface CampaignRow {
   visibility: string;
   accept_donations: boolean | null;
   deadline: string | null;
-}
+  user_id: string;
+  beneficiary_profile_id: string | null;
+};
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -89,6 +108,22 @@ export async function POST(request: NextRequest) {
   }
 
   const { campaignIds, totalCents, parts, anonymous, message, donorEmail } = parsed.data;
+  const checkout = await getDonationCheckoutSnapshot();
+  if (parsed.data.checkoutRevision && parsed.data.checkoutRevision !== checkout.revision) {
+    return NextResponse.json(
+      { error: 'Donation pricing changed while this page was open. Refresh to review the current total.', code: 'CHECKOUT_CONFIG_CHANGED' },
+      { status: 409 },
+    );
+  }
+  const paymentMethod: CheckoutPaymentMethod = parsed.data.paymentMethod ?? 'stripe';
+  const tipCents = parsed.data.tipCents
+    ?? donorTip(totalCents, parsed.data.tipPercent ?? checkout.settings.defaultSupportPercent);
+  const tipPercent = parsed.data.tipCents !== undefined
+    ? supportPercentFromCents(totalCents, tipCents)
+    : (parsed.data.tipPercent ?? checkout.settings.defaultSupportPercent);
+  const processingFeeCents = parsed.data.coverProcessingFee === false
+    ? 0
+    : methodProcessingFee(totalCents + tipCents, paymentMethod, checkout.settings.methodFees);
 
   // Deduplicate BEFORE the existence lookup. `.in()` collapses duplicates, so a
   // list containing the same campaign twice comes back one row short and would
@@ -104,7 +139,7 @@ export async function POST(request: NextRequest) {
   // ── Every campaign must independently be able to receive this money ────────
   const { data: rows, error: campaignError } = await supabaseAdmin
     .from('campaigns')
-    .select('id, slug, title, status, visibility, accept_donations, deadline')
+    .select('id, slug, title, status, visibility, accept_donations, deadline, user_id, beneficiary_profile_id')
     .in('id', campaignIds)
     .is('deleted_at', null);
 
@@ -151,6 +186,37 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: split.message, code: split.code.toUpperCase() }, { status: 400 });
   }
 
+  try {
+    const destinations = await Promise.all(
+      campaigns.map((campaign) => resolvePayoutDestination(campaign)),
+    );
+    const unavailableIndex = destinations.findIndex((destination) => destination === null);
+    if (unavailableIndex >= 0) {
+      return NextResponse.json(
+        {
+          error: `"${campaigns[unavailableIndex]?.title ?? 'A selected campaign'}" is completing secure payout setup and cannot accept donations yet.`,
+          code: 'PAYOUT_NOT_READY',
+        },
+        { status: 409 },
+      );
+    }
+  } catch (error: unknown) {
+    if (error instanceof PayoutLookupUnavailableError) {
+      return NextResponse.json(
+        {
+          error: 'We could not verify every recipient just now. Nothing was charged - please try again.',
+          code: 'PAYOUT_LOOKUP_UNAVAILABLE',
+        },
+        { status: 503 },
+      );
+    }
+    console.error('[portfolio] payout readiness check failed');
+    return NextResponse.json(
+      { error: 'Could not verify every recipient.', code: 'PAYOUT_LOOKUP_UNAVAILABLE' },
+      { status: 503 },
+    );
+  }
+
   const origin = getAppOrigin();
   const titles = campaigns.map((c) => c.title);
   const label =
@@ -160,6 +226,7 @@ export async function POST(request: NextRequest) {
 
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
     mode: 'payment',
+    payment_method_types: checkoutPaymentMethodTypes(paymentMethod, 'payment'),
     line_items: [
       {
         quantity: 1,
@@ -172,6 +239,22 @@ export async function POST(request: NextRequest) {
           },
         },
       },
+      ...(tipCents > 0 ? [{
+        quantity: 1,
+        price_data: {
+          currency: 'usd',
+          unit_amount: tipCents,
+          product_data: { name: 'CharitMe fee', description: `${tipPercent}% optional support for CharitMe` },
+        },
+      }] : []),
+      ...(processingFeeCents > 0 ? [{
+        quantity: 1,
+        price_data: {
+          currency: 'usd',
+          unit_amount: processingFeeCents,
+          product_data: { name: 'Payment processing fee', description: `Estimated ${paymentMethod} processing cost` },
+        },
+      }] : []),
     ],
     ...(donorEmail ? { customer_email: donorEmail } : {}),
     success_url: `${origin}/give/thanks?portfolio=1&total=${totalCents}`,
@@ -186,6 +269,11 @@ export async function POST(request: NextRequest) {
       anonymous: anonymous ? '1' : '0',
       message: message ?? '',
       donationAmountCents: String(totalCents),
+      tipCents: String(tipCents),
+      tipPercent: String(tipPercent),
+      processingFeeCents: String(processingFeeCents),
+      paymentMethod,
+      checkoutRevision: checkout.revision,
     },
     payment_intent_data: {
       // NO transfer_data: the charge lands on the platform and the webhook fans
@@ -200,7 +288,11 @@ export async function POST(request: NextRequest) {
       sessionParams,
       `portfolio_${user?.id ?? 'guest'}_${totalCents}_${request.headers.get('idempotency-key') ?? crypto.randomUUID()}`,
     );
-    return NextResponse.json({ url: session.url, split: split.parts });
+    return NextResponse.json({
+      url: session.url,
+      split: split.parts,
+      breakdown: { donationCents: totalCents, tipCents, processingFeeCents },
+    });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Stripe error';
     console.error('[portfolio] Stripe error:', msg);

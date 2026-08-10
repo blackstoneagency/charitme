@@ -7,6 +7,7 @@ import { useMemo, useState, useTransition } from 'react';
 import { STORY_FILTERS, STORY_SORTS } from '../lib/home-story-options';
 import type { HomeCampaign, StoryFilterValue, StoryFilters, StorySortValue } from '../lib/home-types';
 import { formatMoneyCompact } from '@shared/currencies';
+import { getDisplayCover } from '../lib/photo-catalog';
 
 function storyTone(category: string | null): string {
   const value = (category ?? '').toLowerCase();
@@ -136,11 +137,11 @@ export default function HomeStoriesClient({ initialCampaigns, initialFilters }: 
       </div>
       <div className={`kind-story-track${isPending ? ' loading' : ''}`} role="region" aria-label="Live campaign stories" aria-live="polite">
         {campaigns.map((campaign) => {
-          const image = campaign.cover_image_url || null;
+          const image = getDisplayCover(campaign.cover_image_url, campaign.category, campaign.slug, 'home-stories');
           return (
             <article className="kind-story-card" key={campaign.slug}>
               <Link className={`kind-story-media ${storyTone(campaign.category)}`} href={`/campaigns/${campaign.slug}`}>
-                {image && <Image src={image} alt="" fill sizes="(max-width: 760px) 88vw, (max-width: 1020px) 48vw, 25vw" />}
+                <Image src={image} alt="" fill sizes="(max-width: 760px) 88vw, (max-width: 1020px) 48vw, 25vw" />
                 <span>{campaign.category ?? 'Campaign'}</span>
                 <em><Icon name="shield" className="h-3.5 w-3.5" /> {campaign.trust_status === 'Verified' ? 'Verified' : 'Trusted'}</em>
                 <i><Icon name="heart" className="h-6 w-6" /></i>

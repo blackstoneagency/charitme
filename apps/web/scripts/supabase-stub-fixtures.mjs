@@ -97,6 +97,9 @@ const uuid = (prefix, n) =>
 
 const daysAgo = (n) => new Date(Date.now() - n * 86_400_000).toISOString();
 
+const subjectCover = (category, key) =>
+  `/media/subject?${new URLSearchParams({ category, key }).toString()}`;
+
 const CATEGORIES = [
   'Medical', 'Memorial', 'Emergency', 'Nonprofit', 'Education', 'Animal',
   'Environment', 'Business', 'Community', 'Creative', 'Family', 'Sports',
@@ -135,8 +138,14 @@ export function buildFixtures() {
   const defaultUser = personaUsers.find((user) => user.id === USER_ID);
   if (!defaultUser) throw new Error('The default audit persona is missing.');
 
+  const CAMPAIGN_LOCATIONS = [
+    'Austin, TX', 'Portland, OR', 'Chicago, IL', 'Toronto, ON', 'London, UK',
+    'Manchester, UK', 'Sydney, NSW', 'Auckland, NZ', 'Dublin, IE', 'Berlin, DE',
+  ];
+
   const campaigns = Array.from({ length: 120 }, (_, i) => {
     const goal = (Math.floor(rand() * 90) + 10) * 100_000;
+    const category = CATEGORIES[i % CATEGORIES.length];
     // Deliberately spread across the progress bar: some barely started, some
     // funded past goal. A page that only ever renders 40%-full bars never
     // exercises the overflow/clamp path in ProgressBar.
@@ -151,14 +160,21 @@ export function buildFixtures() {
         'This campaign exists only inside the local audit stub. The copy is long ' +
         'enough to wrap across several lines so that line-height, truncation and ' +
         'text contrast are all exercised the way real body copy would exercise them.',
-      category: CATEGORIES[i % CATEGORIES.length],
+      category,
+      // `campaigns.location` exists in the schema and /impact-map, /search and
+      // /campaigns all read or filter on it, but no fixture carried one — so the
+      // map's primary section rendered "No locations recorded yet", "Distinct
+      // places" rendered "—", and the location filter could never match. Spread
+      // across several places so grouping and faceting actually have something
+      // to group.
+      location: CAMPAIGN_LOCATIONS[i % CAMPAIGN_LOCATIONS.length],
       goal_amount: goal,
       raised_amount: Math.round(goal * ratio),
       backer_count: Math.floor(rand() * 300),
       deadline: new Date(Date.now() + (i % 60) * 86_400_000).toISOString().slice(0, 10),
       status: ['active', 'active', 'active', 'draft', 'paused', 'completed'][i % 6],
-      cover_image_url: `https://picsum.photos/seed/stub-${i + 1}/1200/675`,
-      image_urls: [`https://picsum.photos/seed/stub-${i + 1}/1200/675`],
+      cover_image_url: subjectCover(category, `stub-${i + 1}`),
+      image_urls: [subjectCover(category, `stub-${i + 1}`)],
       trust_status: ['Verified', 'Trusted', 'Needs More Info'][i % 3],
       campaign_health_score: 40 + ((i * 7) % 60),
       payout_frozen: i % 29 === 0,
@@ -357,8 +373,28 @@ export function buildFixtures() {
       // and the manage page, check-in codes and all, was never measured by
       // anything. Owned by the organizer it renders for BOTH: the member by
       // ownership, the admin by the admin bypass on the line above the redirect.
+      // ⚠️ Every column OPPORTUNITY_PUBLIC_COLUMNS selects must be present, and
+      // the NOT NULL ones must carry a real value. `skills` is
+      // `text[] NOT NULL DEFAULT '{}'`, and VolunteerClient reads
+      // `opp.skills.length` directly — correctly, given that contract. Omitting
+      // it here made the row arrive as `undefined` and crashed /volunteer in both
+      // themes the moment the list stopped being empty.
+      skills: ['Packing', 'Logistics', 'Community outreach'],
+      country: 'US',
+      slots: 20,
+      slots_filled: 4,
+      time_commitment: '3 hours',
+      verified: true,
       created_by: ORGANIZER_ID,
-      status: 'active',
+      // ⚠️ 'open', not 'active'. `volunteer_opportunities.status` allows only
+      // open | upcoming | closed, and every LIST reader filters
+      // `.in('status', ['open','upcoming'])`. With 'active' that filter matched
+      // NOTHING, so /volunteer, /volunteer/[slug], the categories facet and the
+      // opportunity cards rendered a permanent zero-state and passed every audit
+      // having measured none of them. Same shape as the supported_countries bug.
+      // Orthogonal to the ownership fix above — that one is about the manage
+      // page, which is reached by id and never goes through this filter.
+      status: 'open',
       deleted_at: null,
       created_at: daysAgo(20),
       updated_at: daysAgo(1),
@@ -444,7 +480,7 @@ export function buildFixtures() {
       visibility: 'public',
       deleted_at: null,
       featured: true,
-      cover_image_url: `https://picsum.photos/seed/rot-${f.key}/1200/675`,
+      cover_image_url: subjectCover(campaigns[0].category, `rot-${f.key}`),
       deadline: f.deadline,
       goal_amount: f.goal_amount,
       raised_amount: f.raised_amount,
@@ -460,7 +496,7 @@ export function buildFixtures() {
       visibility: 'public',
       deleted_at: null,
       featured: true,
-      cover_image_url: `https://picsum.photos/seed/rot-live-${i}/1200/675`,
+      cover_image_url: subjectCover(campaigns[0].category, `rot-live-${i}`),
       deadline: new Date(Date.now() + 30 * ROTATOR_DAY).toISOString(),
       goal_amount: 1000000,
       raised_amount: 1000 * (i + 1),
@@ -480,10 +516,11 @@ export function buildFixtures() {
     '22222222-2222-4222-8222-222222222222',
   ];
   HEX_CAMPAIGN_IDS.forEach((id, i) => {
-    const coverImageUrl = `https://picsum.photos/seed/stub-hex-${i + 1}/1200/675`;
+    const coverImageUrl = subjectCover(campaigns[i].category, `stub-hex-${i + 1}`);
     campaigns.push({
       ...campaigns[i],
       id,
+      user_id: i === 0 ? ORGANIZER_ID : USER_ID,
       slug: `stub-hex-campaign-${i + 1}`,
       title: `Hex-id stub campaign ${i + 1}`,
       cover_image_url: coverImageUrl,
@@ -495,6 +532,11 @@ export function buildFixtures() {
       deleted_at: null,
     });
   });
+  campaign_updates.push(...campaign_updates.slice(0, 4).map((update, i) => ({
+    ...update,
+    id: uuid('hupd', i + 1),
+    campaign_id: HEX_CAMPAIGN_IDS[0],
+  })));
 
   // ── Public API keys ────────────────────────────────────────────────────────
   //
@@ -790,6 +832,7 @@ export function buildFixtures() {
     }),
 
     notifications: genericRows('notf', 30, (i) => ({
+      user_id: i % 2 === 0 ? ORGANIZER_ID : USER_ID,
       kind: ['donation', 'comment', 'payout', 'campaign', 'system'][i % 5],
       title: [
         'You received a new donation',
@@ -923,11 +966,53 @@ export function buildFixtures() {
         updated_at: daysAgo(1),
       },
     ],
+    // ⚠️ Load-bearing for the campaign page's donate surface. `payoutReady` is
+    // `!!resolvePayoutDestination(...)`, which needs a row here with
+    // verification_status 'verified' AND charges/payouts/details all true. With
+    // no rows at all, every campaign rendered the "payout setup in progress"
+    // branch instead of DonateButton + MobileDonateCTA — so the donate card and
+    // the sticky mobile CTA were absent from every sweep, and looked fine.
+    connected_accounts: [USER_ID, ORGANIZER_ID].filter(Boolean).map((userId, i) => ({
+      id: uuid('cacc', i + 1),
+      user_id: userId,
+      stripe_account_id: `acct_stub_${i + 1}`,
+      charges_enabled: true,
+      payouts_enabled: true,
+      details_submitted: true,
+      verification_status: 'verified',
+      created_at: daysAgo(300),
+      updated_at: daysAgo(2),
+    })),
     feature_flags: genericRows('flag', 10, (i) => ({
       key: `flag_${i + 1}`,
       enabled: i % 2 === 0,
       description: 'Fixture flag.',
     })),
+    // ⚠️ PUBLISHED here on purpose, unlike the SQL seed.
+    //
+    // supabase/seed/platform_impact.sql ships these rows with published = false,
+    // because publishing an impact or spend claim on the real site is a decision
+    // for whoever can source the numbers. The stub is a throwaway fixture
+    // database that exists so the audits can SEE the rendered markup — and the
+    // donut and headline tiles are unreachable while unpublished, so every sweep
+    // would measure a page missing the two sections most likely to have a
+    // contrast bug. That is exactly how a real 1.58:1 defect hid behind a route
+    // that 404s without data.
+    platform_impact_stats: [
+      { id: 'pis-0', value: '2.3M+',  label: 'People Helped',     icon: 0, sort_order: 0, published: true, source_note: 'fixture' },
+      { id: 'pis-1', value: '68K+',   label: 'Lives Transformed', icon: 1, sort_order: 1, published: true, source_note: 'fixture' },
+      { id: 'pis-2', value: '1,250+', label: 'Programs Funded',   icon: 2, sort_order: 2, published: true, source_note: 'fixture' },
+      { id: 'pis-3', value: '120+',   label: 'Countries Reached', icon: 3, sort_order: 3, published: true, source_note: 'fixture' },
+      { id: 'pis-4', value: '98%',    label: 'Funds to Programs', icon: 4, sort_order: 4, published: true, source_note: 'fixture' },
+    ],
+    // Sums to 100 — the reader REFUSES a set that does not, so a fixture that
+    // did not add up would silently render no donut and quietly un-audit it.
+    platform_fund_allocation: [
+      { id: 'pfa-0', label: 'Programs & Services', percent: 82, color_index: 0, sort_order: 0, published: true, source_note: 'fixture' },
+      { id: 'pfa-1', label: 'Fundraising',         percent: 10, color_index: 1, sort_order: 1, published: true, source_note: 'fixture' },
+      { id: 'pfa-2', label: 'Operations',          percent:  6, color_index: 2, sort_order: 2, published: true, source_note: 'fixture' },
+      { id: 'pfa-3', label: 'Other',               percent:  2, color_index: 3, sort_order: 3, published: true, source_note: 'fixture' },
+    ],
     // ⚠️ Every column here except `name` was invented. The real table has
     // `iso_code`/`can_fundraise`/`can_donate`/`currency_code`/`active`/
     // `sort_order`; this had `code`/`payouts_supported`/`currency`. The page
@@ -941,6 +1026,75 @@ export function buildFixtures() {
     // `can_fundraise` is false for a few rows on purpose — the page splits the
     // list into fundraising countries and donate-only ones, and a fixture where
     // every row is identical never renders the second group.
+    // ⚠️ These three tables had NO fixture rows at all, so /events, /grants and
+    // /sponsor rendered clean empty states and passed every audit having measured
+    // NOTHING — the fourth instance of that class this session, after
+    // supported_countries, volunteer_opportunities.status and connected_accounts.
+    //
+    // Every `status` below is checked against BOTH the reader's filter and the
+    // table's CHECK constraint, because a fixture that cannot match is worse than
+    // no fixture: it looks like coverage. Verified:
+    //   fundraising_events      reader .eq('status','published')      CHECK draft|published|completed|cancelled
+    //   grants                  reader .in('status',['open','upcoming']) CHECK open|upcoming|closed
+    //   sponsorship_opportunities reader .eq('status','open')         CHECK draft|open|closed|fulfilled|cancelled
+    fundraising_events: genericRows('evnt', 6, (i) => ({
+      created_by: ORGANIZER_ID,
+      campaign_id: uuid('camp', (i % 5) + 1),
+      title: `Stub fundraising event ${i + 1}`,
+      slug: `stub-event-${i + 1}`,
+      description: 'A populated event fixture so the events routes are actually measured.',
+      event_type: ['in_person', 'virtual', 'hybrid'][i % 3],
+      starts_at: daysAgo(-(i + 3)),
+      ends_at: daysAgo(-(i + 2)),
+      location: ['Austin, TX', 'Portland, OR', 'London, UK'][i % 3],
+      virtual_url: i % 3 === 0 ? null : 'https://example.invalid/stream',
+      cover_image_url: null,
+      capacity: 50 + i * 10,
+      status: 'published',
+      created_at: daysAgo(30 - i),
+      updated_at: daysAgo(1),
+    })),
+    grants: genericRows('grnt', 8, (i) => ({
+      slug: `stub-grant-${i + 1}`,
+      title: `Stub community grant ${i + 1}`,
+      funder_name: ['Stub Foundation', 'Example Trust', 'Sample Fund'][i % 3],
+      funder_type: ['foundation', 'government', 'corporate'][i % 3],
+      summary: 'A populated grant fixture so /grants renders rows instead of an empty state.',
+      category: CATEGORIES[i % CATEGORIES.length],
+      focus_areas: ['education', 'health'],
+      eligibility: 'Registered nonprofits and fiscally sponsored projects.',
+      eligible_entity_types: ['nonprofit'],
+      amount_min: 5_000,
+      amount_max: 50_000 + i * 1_000,
+      currency: 'usd',
+      location: 'United States',
+      country: 'US',
+      application_url: 'https://example.invalid/apply',
+      deadline_at: daysAgo(-(i + 14)),
+      rolling_deadline: i % 4 === 0,
+      // Both branches of the reader's filter, so neither goes unmeasured.
+      status: i % 3 === 0 ? 'upcoming' : 'open',
+      verified: i % 2 === 0,
+      source: 'stub',
+      deleted_at: null,
+      created_at: daysAgo(60 - i),
+      updated_at: daysAgo(2),
+    })),
+    sponsorship_opportunities: genericRows('spon', 6, (i) => ({
+      organizer_id: ORGANIZER_ID,
+      campaign_id: uuid('camp', (i % 5) + 1),
+      title: `Stub sponsorship opportunity ${i + 1}`,
+      description: 'A populated sponsorship fixture so /sponsor renders the marketplace.',
+      category: CATEGORIES[i % CATEGORIES.length],
+      benefits: ['Logo placement', 'Social mention'],
+      min_amount_cents: 250_00,
+      target_amount_cents: 5_000_00 + i * 100_00,
+      raised_amount_cents: i * 250_00,
+      currency: 'usd',
+      status: 'open',
+      created_at: daysAgo(45 - i),
+      updated_at: daysAgo(3),
+    })),
     supported_countries: genericRows('ctry', 20, (i) => ({
       name: ['United States', 'Canada', 'United Kingdom', 'Australia', 'New Zealand',
         'Ireland', 'Germany', 'France', 'Netherlands', 'Sweden'][i % 10],

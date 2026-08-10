@@ -46,6 +46,40 @@ export function splitEvenly(totalCents: number, campaignIds: readonly string[]):
   });
 }
 
+export function allocateCentsProportionally(totalCents: number, parts: readonly SplitPart[]): SplitPart[] {
+  if (parts.length === 0 || totalCents <= 0) {
+    return parts.map((part) => ({ campaignId: part.campaignId, amountCents: 0 }));
+  }
+  const weightCents = parts.reduce((sum, part) => sum + part.amountCents, 0);
+  if (weightCents <= 0) {
+    return splitEvenly(totalCents, parts.map((part) => part.campaignId));
+  }
+
+  const weight = BigInt(weightCents);
+  const total = BigInt(totalCents);
+  const allocated = parts.map((part, index) => {
+    const numerator = total * BigInt(part.amountCents);
+    return {
+      campaignId: part.campaignId,
+      amountCents: Number(numerator / weight),
+      remainder: numerator % weight,
+      index,
+    };
+  });
+  const remaining = totalCents - allocated.reduce((sum, part) => sum + part.amountCents, 0);
+  const priority = [...allocated].sort((a, b) => {
+    if (a.remainder === b.remainder) return a.index - b.index;
+    return a.remainder > b.remainder ? -1 : 1;
+  });
+  for (let index = 0; index < remaining; index += 1) {
+    const recipient = priority[index % priority.length];
+    if (recipient) recipient.amountCents += 1;
+  }
+
+  const byIndex = [...allocated].sort((a, b) => a.index - b.index);
+  return byIndex.map((part) => ({ campaignId: part.campaignId, amountCents: part.amountCents }));
+}
+
 export type SplitError =
   | { ok: false; code: 'no_campaigns'; message: string }
   | { ok: false; code: 'too_many'; message: string }

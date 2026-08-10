@@ -10,6 +10,8 @@ import { campaignColumns, applyLiveFilters } from '../../lib/campaign-visibility
 import { getRecentDonations } from '../../lib/home-data';
 import { getCoverForCategory } from '../../lib/photo-catalog';
 import DonateForm, { type DonateTarget } from './DonateForm';
+import { normalizeCurrency } from '@shared/currencies';
+import { getDonationCheckoutSnapshot } from '../../lib/donation-checkout-settings';
 
 export const metadata: Metadata = {
   title: 'Donate',
@@ -40,7 +42,22 @@ async function getTargets(): Promise<DonateTarget[] | null> {
         .limit(100),
     );
     if (error) return null;
-    return (data ?? []) as DonateTarget[];
+    const campaigns = (data ?? []) as Omit<DonateTarget, 'currency'>[];
+    if (campaigns.length === 0) return [];
+    const { data: launchRows, error: launchError } = await boundedQuery(() =>
+      supabaseAdmin
+        .from('campaign_launch_settings')
+        .select('campaign_id, currency')
+        .in('campaign_id', campaigns.map((campaign) => campaign.id)),
+    );
+    if (launchError) return null;
+    const currencies = new Map(
+      (launchRows ?? []).map((row) => [row.campaign_id, normalizeCurrency(row.currency)]),
+    );
+    return campaigns.map((campaign) => ({
+      ...campaign,
+      currency: currencies.get(campaign.id) ?? 'USD',
+    }));
   } catch {
     return null;
   }
@@ -113,7 +130,7 @@ function Ic({ name, className = 'dn-ic' }: { name: string; className?: string })
    CharitMe: there is no reviews or ratings table in this schema. */
 
 export default async function DonatePage() {
-  const [targets, donationCount, recent, platform] = await Promise.all([
+  const [targets, donationCount, recent, platform, checkout] = await Promise.all([
     getTargets(),
     getDonationCount(),
     getRecentDonations(3).catch(() => []),
@@ -123,6 +140,7 @@ export default async function DonatePage() {
     // figures to disagree. It returns EMPTY rather than throwing, so a failed
     // read renders em dashes and never takes the donation form with it.
     getCausesIndexData(),
+    getDonationCheckoutSnapshot(),
   ]);
 
   const targetsFailed = targets === null;
@@ -139,7 +157,7 @@ export default async function DonatePage() {
       <section className="dn-hero" aria-labelledby="dn-title">
         <div className="dn-hero-media" aria-hidden="true">
           <Image
-            src="/images/charitme-community-hero.png"
+            src={getCoverForCategory('Community', 'donate-hero')}
             alt=""
             fill
             priority
@@ -194,7 +212,12 @@ export default async function DonatePage() {
         </div>
 
         <div className="dn-hero-panel">
-          <DonateForm targets={targets ?? []} loadFailed={targetsFailed} />
+          <DonateForm
+            targets={targets ?? []}
+            loadFailed={targetsFailed}
+            checkoutSettings={checkout.settings}
+            checkoutRevision={checkout.revision}
+          />
         </div>
       </section>
 
@@ -224,7 +247,7 @@ export default async function DonatePage() {
             <li key={item.title} className="dn-impact-card">
               <span className="dn-impact-media">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={getCoverForCategory(item.category)} alt="" width={320} height={190} loading="lazy" decoding="async" />
+                <img src={getCoverForCategory(item.category, `donate-impact-${item.title}`)} alt="" width={320} height={190} loading="lazy" decoding="async" />
               </span>
               <span className="dn-impact-ic"><Ic name={item.icon} /></span>
               <h3>{item.title}</h3>

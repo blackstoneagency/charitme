@@ -108,10 +108,8 @@ export default function VolunteerClient({
           <option value="">All categories</option>
           {categories.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
-        {/* minHeight keeps the whole label — the actual tap target, since clicking
-            it toggles the box — at the 24px minimum of WCAG 2.2 SC 2.5.8 (AA).
-            It measured 113×20 at 320px. */}
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minHeight: 24, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
+        {/* The label is the effective checkbox target and follows the 44px product standard. */}
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minHeight: 44, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
           <input type="checkbox" checked={remoteOnly} onChange={(e) => setRemoteOnly(e.target.checked)} /> Remote only
         </label>
         {(query || category || remoteOnly) && (

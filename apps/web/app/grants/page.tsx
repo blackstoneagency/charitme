@@ -8,7 +8,7 @@ import {
   ReferenceSteps,
 } from '../../components/ReferenceMarketing';
 import { getGrantCategories, getPublicGrants } from '../../lib/grants-server';
-import { getPhotosForCategory } from '../../lib/photo-catalog';
+import { getPhotosForPage } from '../../lib/photo-catalog';
 import GrantsClient from './GrantsClient';
 
 export const metadata: Metadata = {
@@ -48,7 +48,7 @@ export default async function GrantsPage() {
     getPublicGrants(48).catch(() => []),
     getGrantCategories().catch(() => []),
   ]);
-  const photos = getPhotosForCategory('Education', 4);
+  const photos = getPhotosForPage('Education', 'grants', 4);
   const resources = [
     { icon: 'book', title: 'Grant Writing Guide', body: 'Step-by-step guidance for clear, competitive proposals.', action: 'Read the guide', href: '/guides', image: photos[0] },
     { icon: 'document', title: 'Templates & Samples', body: 'Practical templates and sample proposals to help you get started.', action: 'View templates', href: '/resources', image: photos[1] },

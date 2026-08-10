@@ -70,7 +70,7 @@ export default function RecommendedCampaigns() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 14 }}>
         {data.recommendations.map((r) => (
-          <Link key={r.id} href={`/campaigns/${r.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+          <Link key={r.id} href={`/campaigns/${r.slug}`} style={{ display: 'block', minHeight: 44, textDecoration: 'none', color: 'inherit' }}>
             <div style={{ border: '1px solid var(--b1, #f1f5f9)', borderRadius: 12, overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column' }}>
               <div style={{
                 height: 110, background: r.coverImageUrl ? `url(${r.coverImageUrl}) center/cover` : 'linear-gradient(135deg,#6c35ff,#4d1ee0)',

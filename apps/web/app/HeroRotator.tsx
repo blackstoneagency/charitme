@@ -53,7 +53,9 @@ export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero
   const [campaigns, setCampaigns]         = useState<RotatorCampaign[]>(seed);
   const [loading, setLoading]             = useState(seed.length === 0);
   const [lastDonationAt, setLastDonation] = useState<string | null>(null);
-  const [totalDonations, setTotalDonations] = useState(0);
+  // `null` means the count could not be READ, which is not the same as zero
+  // donations. Both render '—', but only one of them is a fact.
+  const [totalDonations, setTotalDonations] = useState<number | null>(0);
   const [active, setActive]       = useState(0);
   const [fading, setFading]       = useState(false);
   const [paused, setPaused]       = useState(false);
@@ -96,7 +98,7 @@ export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero
     try {
       const res = await fetch('/api/campaigns/rotator', { cache: 'no-store' });
       if (!res.ok) return;
-      const json = await res.json() as { campaigns?: RotatorCampaign[]; lastDonationAt?: string | null; totalDonations?: number };
+      const json = await res.json() as { campaigns?: RotatorCampaign[]; lastDonationAt?: string | null; totalDonations?: number | null };
       if (Array.isArray(json.campaigns) && json.campaigns.length > 0) {
         setCampaigns(json.campaigns);
         setActive(0);
@@ -270,7 +272,7 @@ export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
         <div>
           <strong style={{ transition: 'opacity 0.3s', opacity: fading ? 0 : 1 }}>
-            {totalDonations > 0 ? totalDonations.toLocaleString() : '—'}
+            {totalDonations !== null && totalDonations > 0 ? totalDonations.toLocaleString() : '—'}
           </strong>
           <span>Donations</span>
           <small style={{ transition: 'opacity 0.3s', opacity: fading ? 0 : 1 }}>
@@ -305,7 +307,7 @@ export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero
 
         <h2 style={{ transition: 'opacity 0.3s', opacity: fading ? 0 : 1 }}>{heroTitle}</h2>
         <p style={{ transition: 'opacity 0.3s', opacity: fading ? 0 : 1 }}>
-          Organized by {campaign?.organizer_name ?? 'CharitMe Organizer'}
+          Organized by {campaign?.organizer_name ?? 'Campaign organizer'}
           <b aria-hidden="true" />
         </p>
 

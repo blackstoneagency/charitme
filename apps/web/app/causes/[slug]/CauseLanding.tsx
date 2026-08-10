@@ -4,7 +4,7 @@ import CampaignImage from '../../../components/CampaignImage';
 import { causeBrowseHref, type Cause } from '../../../lib/causes';
 import { formatStat, formatMoneyStat, type CauseStats, type AuthoredStat } from '../../../lib/cause-landing';
 import { StatStrip } from '../../../components/IndexHero';
-import { getCoverForCategory } from '../../../lib/photo-catalog';
+import { getCoverForCampaign } from '../../../lib/photo-catalog';
 import HelpGlyph from '../../../components/HelpGlyph';
 
 /**
@@ -75,7 +75,7 @@ export default async function CauseLanding({
   authoredStats?: readonly AuthoredStat[];
 }) {
   const t = await getTranslator();
-  const heroPhoto = getCoverForCategory(cause.categories[0]);
+  const heroPhoto = getCoverForCampaign(cause.categories[0], `cause-hero-${cause.slug}`);
   // `heroCard: 'programs'` with no `programs` list falls back to the support
   // card rather than rendering an empty aside.
   const programs = cause.heroCard === 'programs' && cause.programs?.length ? cause.programs : null;
