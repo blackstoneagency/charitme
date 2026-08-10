@@ -32,21 +32,46 @@ const CreateSchema = z.object({
 
 const DeleteSchema = z.object({ id: z.string().uuid() });
 
+const unauthorized = () =>
+  NextResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 });
+
+/**
+ * ⚠️ 503, not 403. `ownedNonprofitIds` returns `null` when the ownership read
+ * itself failed, which is NOT "owns nothing". It used to swallow the error and
+ * return `[]`, so `canManageGivingDay` — which IS the authorization decision on
+ * this route — denied a real owner with 403 during a transient database fault.
+ * The write still fails closed; the status is now the true, retryable one.
+ */
+const ownershipUnavailable = () =>
+  NextResponse.json(
+    { error: 'Could not verify your organisations. Try again shortly.', code: 'OWNERSHIP_UNAVAILABLE' },
+    { status: 503 },
+  );
+
 async function actorFor(request: NextRequest) {
   void request;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+  if (!user) return { ok: false as const, response: unauthorized() };
   const [admin, owned] = await Promise.all([
     isAdmin(user.id, user.email),
     ownedNonprofitIds(user.id),
   ]);
-  return { userId: user.id, isAdmin: admin, ownedNonprofitIds: owned };
+  // An admin is authorized without reference to ownership (`canManageGivingDay`
+  // short-circuits on `isAdmin` and never reads the list), so a failed ownership
+  // read blocks only a non-admin. The `[]` below is therefore unreachable as an
+  // authorization input — it is not a failed count being rendered as zero.
+  if (!admin && owned === null) return { ok: false as const, response: ownershipUnavailable() };
+  return {
+    ok: true as const,
+    actor: { userId: user.id, isAdmin: admin, ownedNonprofitIds: owned ?? [] },
+  };
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const actor = await actorFor(request);
-  if (!actor) return NextResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 });
+  const ctx = await actorFor(request);
+  if (!ctx.ok) return ctx.response;
+  const actor = ctx.actor;
 
   const parsed = CreateSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
@@ -104,8 +129,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 }
 
 export async function DELETE(request: NextRequest): Promise<NextResponse> {
-  const actor = await actorFor(request);
-  if (!actor) return NextResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 });
+  const ctx = await actorFor(request);
+  if (!ctx.ok) return ctx.response;
+  const actor = ctx.actor;
 
   const parsed = DeleteSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {

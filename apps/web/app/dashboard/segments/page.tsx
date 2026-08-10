@@ -6,6 +6,7 @@ import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { ownedNonprofitIds } from '../../../lib/giving-days-server';
 import { listSegments, loadContacts } from '../../../lib/donor-segments-server';
+import { EmptyState } from '../../../components/ui';
 import SegmentsClient from './SegmentsClient';
 
 export const dynamic = 'force-dynamic';
@@ -20,6 +21,24 @@ export const metadata: Metadata = { title: 'Donor Segments | CharitMe' };
 export default async function DashboardSegmentsPage() {
   const user = await requireUser();
   const owned = await ownedNonprofitIds(user.id);
+
+  // ⚠️ `null` is a FAILED read, not an account that owns nothing. Falling
+  // through with `[]` rendered "this account does not own a nonprofit profile
+  // yet" — telling an owner their organisation is gone because a query blipped,
+  // and pointing them at a setup flow they have already completed.
+  if (owned === null) {
+    return (
+      <CharitMeShell active="Donor Segments">
+        <TopBar title="Donor Segments" subtitle="Saved rules over your contacts — who to email, and why." />
+        <div style={{ padding: '0 32px 40px' }}>
+          <EmptyState
+            title="We could not load your organisations"
+            body="This is a read failure, not an empty account — your segments are still there. Try again in a moment."
+          />
+        </div>
+      </CharitMeShell>
+    );
+  }
 
   const [nonprofitRows, segments, contacts] = await Promise.all([
     owned.length === 0
