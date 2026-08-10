@@ -35,8 +35,8 @@ with no claim is free. An item with a claim is someone else's — pick another.
 | Item | Claimed by | Since | State |
 |---|---|---|---|
 | Store listing art | claude/mobile | 2026-08-10 | ✅ done, released |
-| Native shells (TWA + Capacitor config) | claude/mobile | 2026-08-10 | 🔨 in progress |
-| Privacy declarations | — | | free |
+| Native shells (TWA + Capacitor config) | claude/mobile | 2026-08-10 | ✅ config done, released |
+| Privacy declarations | claude/mobile | 2026-08-10 | 🔨 in progress |
 | Tombstone migration apply | — | | 🔒 blocked on credentials, not on people |
 
 ⚠️ **Do not take "blocked on credentials" items.** They are not unclaimed work —
@@ -225,9 +225,19 @@ Deliberate: `master` deploys straight to production, and an irreversible delete
 must not arrive as a side effect of a merge. Set to `true` **after** the migration
 is applied. Until then the endpoint 404s and the UI keeps the review-queue flow.
 
-### 3. No native shells exist
-No Capacitor project, no Bubblewrap project, no Xcode project. This is the gap
-between "the website is store-ready" and "there is something to upload".
+### 3. Native shells — config landed, builds still need toolchains
+`twa-manifest.json` (Play) and `capacitor.config.ts` (iOS) are committed and
+generated to match `app/manifest.ts` field for field, with
+`docs/native-shells.md` for the build path.
+`__tests__/twa-manifest-sync.test.ts` keeps them in step — the TWA manifest is a
+COPY of manifest values, and drift there is invisible on the website and shows up
+only on a phone someone already installed.
+
+**Still open:** the builds themselves. Bubblewrap needs a JDK + Android SDK,
+Capacitor's iOS build needs Xcode on macOS; neither exists in this sandbox. The
+`ios/` and `android/` directories are deliberately NOT committed — they are
+generated artifacts, and a `.pbxproj` conflicting on every merge in a repo
+several agents write to hourly costs more than regenerating it.
 
 ### 4. Store credentials, which unblock the association files
 - Play App Signing SHA-256 → `ANDROID_SHA256_FINGERPRINT` + `ANDROID_PACKAGE_NAME`
@@ -236,11 +246,18 @@ between "the website is store-ready" and "there is something to upload".
   ends up present and wrong.
 - Apple `TEAMID.bundle.id` → `IOS_APP_ID`
 
-### 5. ⚠️ Apple Guideline 4.2 "minimum functionality"
-A web view in a native shell is the most common rejection for a site-as-app.
-Mitigation is native capability — push notifications, share sheet, biometric
-unlock — which is app work, not repo work. Flagged so it is a decision rather
-than a surprise at review.
+### 5. ⚠️ Apple Guideline 4.2 "minimum functionality" — the likeliest rejection
+`capacitor.config.ts` points the shell at `https://www.charitme.com` rather than
+bundling a static export, and **it has to**: this is a Next.js server — RSC,
+route handlers, Stripe webhooks, `force-dynamic` pages — so `next export` cannot
+produce an offline bundle. That leaves the app in exactly the shape Apple rejects
+as "a repackaged website".
+
+⚠️ **Shipping the config alone is likely to be rejected.** The mitigation is
+native capability, which is app work rather than repo work. Ranked by
+reviewer-visible value in `docs/native-shells.md`; **push notifications** are the
+strongest, being the one thing the site genuinely cannot do on iOS Safari and the
+one organisers actually want (donation alerts).
 
 ---
 
