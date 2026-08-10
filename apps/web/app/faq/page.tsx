@@ -67,7 +67,7 @@ export default async function FaqPage() {
         crumbs={[{ label: 'Home', href: '/' }, { label: 'FAQ' }]}
         title="Frequently asked questions"
         lede="Clear answers before you start — fees, payouts, trust scores, verification, AI tools and donor safety."
-        photo={getCoverForCategory('Community')}
+        photo={getCoverForCategory('Community', 'faq-hero')}
         photoCategory="Community"
         photoKey="faq"
         actions={<Link href="/contact" className="cx-btn-secondary">Contact support</Link>}

@@ -287,7 +287,7 @@ function ColorField({ id, label: text, value, onChange, disabled }: { id: string
       <label htmlFor={id} style={label}>{text}</label>
       <div style={{ display: 'flex', minWidth: 0, gap: 8, alignItems: 'center' }}>
         <input id={id} type="color" value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}
-          style={{ width: 44, height: 38, padding: 2, border: '1px solid #d1d5db', borderRadius: 8, cursor: disabled ? 'not-allowed' : 'pointer', background: 'var(--s1)' }} />
+          style={{ width: 44, minWidth: 44, height: 44, flexShrink: 0, padding: 2, border: '1px solid #d1d5db', borderRadius: 8, cursor: disabled ? 'not-allowed' : 'pointer', background: 'var(--s1)' }} />
         <input type="text" value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}
           aria-label={`${text} hex value`} style={{ ...field, fontFamily: 'ui-monospace, monospace' }} />
       </div>

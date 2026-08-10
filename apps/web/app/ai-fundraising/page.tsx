@@ -5,6 +5,7 @@ import { PublicIcon } from '../../components/PublicIcon';
 import { supabaseAdmin } from '../../lib/supabase';
 import { boundedQuery } from '../../lib/query-timeout';
 import { formatHomeCents } from '../../lib/home-utils';
+import { getDisplayCover } from '../../lib/photo-catalog';
 
 export const dynamic = 'force-dynamic';
 
@@ -242,10 +243,8 @@ export default async function AiFundraisingPage() {
           <div className="aif-showcase-grid">
             {showcase.map(c => (
               <Link key={c.slug} href={`/campaigns/${c.slug}`} className="aif-showcase-card">
-                {c.cover_image_url && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={c.cover_image_url} alt={c.title} />
-                )}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={getDisplayCover(c.cover_image_url, c.category, c.slug, 'ai-fundraising')} alt={c.title} />
                 <div className="aif-showcase-body">
                   <span className="aif-showcase-cat">{c.category}</span>
                   <h3>{c.title}</h3>

@@ -31,6 +31,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import ts from 'typescript';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CATALOG = join(__dirname, '..', 'lib', 'photo-catalog.ts');
@@ -46,62 +47,16 @@ const warn = (m) => warnings.push(m);
 
 const src = readFileSync(CATALOG, 'utf8');
 
-// ---------------------------------------------------------------------------
-// Parse the catalog by evaluating the module's exported structures. We avoid a
-// TS toolchain dependency by lightly transpiling the pieces we need: the `C`
-// alias map, the `unsplash()` helper, CATEGORY_PHOTOS, and FALLBACK_PHOTOS.
-// ---------------------------------------------------------------------------
-function evalCatalog(source) {
-  const BASE = 'https://images.unsplash.com/photo';
-  const Q = 'auto=format&fit=crop&w=800&q=80';
-  const QW = 'auto=format&fit=crop&w=1200&q=85';
-  const unsplash = (id, wide = false) => `${BASE}-${id}?${wide ? QW : Q}`;
-
-  // Pull the `const C = { ... };` alias map.
-  const cMatch = source.match(/const C = \{([\s\S]*?)\};/);
-  const C = {};
-  if (cMatch) {
-    for (const m of cMatch[1].matchAll(/(\w+):\s*'([^']+)'/g)) C[m[1]] = m[2];
-  }
-
-  // Extract a Record<...> object literal body by name.
-  const grab = (name) => {
-    const re = new RegExp(`export const ${name}[^=]*=\\s*(\\{[\\s\\S]*?\\n\\};|\\[[\\s\\S]*?\\n\\];)`);
-    const m = source.match(re);
-    return m ? m[1] : null;
-  };
-
-  // Turn a fragment referencing unsplash()/C into resolved URL strings.
-  const resolveList = (fragment) => {
-    const urls = [];
-    for (const call of fragment.matchAll(/unsplash\(\s*([^)]*?)\s*\)/g)) {
-      const args = call[1].split(',').map((s) => s.trim());
-      let idExpr = args[0];
-      const wide = args[1] === 'true';
-      let id;
-      if (idExpr.startsWith('C.')) id = C[idExpr.slice(2)];
-      else id = idExpr.replace(/^'|'$/g, '');
-      if (!id) throw new Error(`Unresolved id expression: ${idExpr}`);
-      urls.push(unsplash(id, wide));
-    }
-    return urls;
-  };
-
-  const catBody = grab('CATEGORY_PHOTOS');
-  const categories = {};
-  if (catBody) {
-    // Split into `Name: [ ... ],` blocks.
-    for (const block of catBody.matchAll(/(\w+):\s*\[([\s\S]*?)\]/g)) {
-      categories[block[1]] = resolveList(block[2]);
-    }
-  }
-  const fbBody = grab('FALLBACK_PHOTOS');
-  const fallback = fbBody ? resolveList(fbBody) : [];
-
-  return { categories, fallback };
+async function loadCatalog(source) {
+  const output = ts.transpileModule(source, {
+    compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+  const moduleUrl = `data:text/javascript;base64,${Buffer.from(output).toString('base64')}`;
+  const loaded = await import(moduleUrl);
+  return { categories: loaded.CATEGORY_PHOTOS ?? {}, fallback: loaded.FALLBACK_PHOTOS ?? [] };
 }
 
-const { categories, fallback } = evalCatalog(src);
+const { categories, fallback } = await loadCatalog(src);
 const catNames = Object.keys(categories);
 
 if (catNames.length === 0) fail('Parsed zero categories from photo-catalog.ts — parser or catalog broke.');
@@ -116,9 +71,16 @@ for (const [cat, pool] of Object.entries(categories)) {
 
   const seen = new Set();
   for (const url of pool) {
-    if (!APPROVED_HOSTS.includes(hostOf(url))) fail(`Category "${cat}": non-approved host in ${url}`);
-    if (!/[?&]w=\d+/.test(url)) fail(`Category "${cat}": missing width param in ${url}`);
-    if (!/[?&]q=\d+/.test(url)) warn(`Category "${cat}": missing quality param in ${url}`);
+    if (url.startsWith('/media/subject?')) {
+      const subjectUrl = new URL(url, 'https://www.charitme.com');
+      if (!subjectUrl.searchParams.get('category') || !subjectUrl.searchParams.get('key')) {
+        fail(`Category "${cat}": malformed first-party subject image ${url}`);
+      }
+    } else {
+      if (!APPROVED_HOSTS.includes(hostOf(url))) fail(`Category "${cat}": non-approved host in ${url}`);
+      if (!/[?&]w=\d+/.test(url)) fail(`Category "${cat}": missing width param in ${url}`);
+      if (!/[?&]q=\d+/.test(url)) warn(`Category "${cat}": missing quality param in ${url}`);
+    }
     const id = idOf(url);
     if (seen.has(id)) warn(`Category "${cat}": repeats photo ${id} within its own pool.`);
     seen.add(id);
@@ -133,34 +95,7 @@ for (const [id, cats] of Object.entries(coverToCats)) {
   if (cats.length > 1) fail(`Cover photo ${id} is shared by categories: ${cats.join(', ')} (covers must be distinct).`);
 }
 
-// ---- Cross-category duplicates ANYWHERE in the pools ----------------------
-// The cover check above only inspects pool[0], so a photo reused deeper in two
-// different category pools passed silently — yet a visitor browsing both
-// categories sees the same image. Measured when this check was added: 6 photos
-// are shared, one of them across 15 of the 18 categories. That is a real gap
-// against "every image unique", and it is NOT fixable by editing this file —
-// it needs 10+ curated replacement photos (live HTTP verification of candidate
-// IDs does work from here via `--live`; *finding* good replacements needs the
-// Unsplash search API key, i.e. UNSPLASH_ACCESS_KEY).
-//
-// So: the existing duplicates are a recorded BASELINE that warns, and any NEW
-// duplicate fails. That stops the problem growing while leaving it visible
-// instead of silently passing.
-const DUPLICATE_BASELINE = new Set([
-  '1469571486292-0ba58a3f068b', // 15 categories
-  '1488521787991-ed7bbaae773c', // 13
-  '1593113598332-cd288d649433', // 12
-  '1532629345422-7515f3d16bb6', // 10
-  '1509099836639-18ba1795216d', // 10
-  '1503454537195-1dcabb73ffb9', // 8
-  // Competition ↔ Sports share sports imagery (semantically adjacent, but still
-  // the same picture on two different category pages).
-  '1530549387789-4c1017266635',
-  '1571019614242-c5c5dee9f50b',
-  '1579952363873-27f3bade9f55',
-  '1596462502278-27bfdc403348',
-]);
-
+// ---- Cross-category duplicates anywhere in the pools ---------------------
 const idToCats = {};
 for (const [cat, pool] of Object.entries(categories)) {
   for (const url of pool) {
@@ -168,22 +103,14 @@ for (const [cat, pool] of Object.entries(categories)) {
   }
 }
 
-const foundDupes = [];
+let sharedPhotos = 0;
 for (const [id, catSet] of Object.entries(idToCats)) {
   if (catSet.size < 2) continue;
-  foundDupes.push(id);
+  sharedPhotos++;
   const cats = [...catSet].sort().join(', ');
-  if (DUPLICATE_BASELINE.has(id)) {
-    warn(`Known shared photo ${id} — used by ${catSet.size} categories (${cats}).`);
-  } else {
-    fail(`NEW cross-category duplicate: photo ${id} in ${cats}. Give each category its own images.`);
-  }
+  fail(`Cross-category duplicate: image ${id} in ${cats}. Give each category its own image.`);
 }
-const fixed = [...DUPLICATE_BASELINE].filter((id) => !foundDupes.includes(id));
-if (fixed.length > 0) {
-  warn(`${fixed.length} baseline duplicate(s) no longer shared — remove from DUPLICATE_BASELINE: ${fixed.join(', ')}`);
-}
-console.log(`Shared photos:       ${foundDupes.length} (baseline ${DUPLICATE_BASELINE.size}) — see docs/todo.md`);
+console.log(`Shared photos:       ${sharedPhotos} (required: 0)`);
 
 // ---- SQL migration images (what actually lands in the DB) -----------------
 // The catalog is the app-render source of truth, but campaign covers are also
@@ -218,7 +145,8 @@ const sqlDistinctIds = [...new Set(sqlUrls.map(idOf))];
 const allUrls = [...Object.values(categories).flat(), ...fallback];
 const distinctIds = [...new Set(allUrls.map(idOf))];
 // Union of catalog + SQL IDs for the live HTTP verification.
-const liveIds = [...new Set([...distinctIds, ...sqlDistinctIds])];
+const catalogUnsplashIds = allUrls.filter((url) => hostOf(url) === 'images.unsplash.com').map(idOf);
+const liveIds = [...new Set([...catalogUnsplashIds, ...sqlDistinctIds])];
 
 async function httpOk(url) {
   try {

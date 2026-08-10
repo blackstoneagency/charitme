@@ -166,7 +166,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
   return (
     <div style={{ padding: '0 32px 32px', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 22 }}>
       {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 18 }}>
+      <div className="audit-log-kpis" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 18 }}>
         {[
           { label: 'Total Events', value: totalEvents.toLocaleString(), icon: 'audit', tone: 'violet' as const },
           { label: 'Unique Users', value: uniqueUsers.toLocaleString(), icon: 'users', tone: 'green' as const },
@@ -184,7 +184,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
       </div>
 
       {/* Charts row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 320px)', gap: 18 }}>
+      <div className="audit-log-charts" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 320px)', gap: 18 }}>
         <section className="kf-card" style={{ overflow: 'hidden' }}>
           <div className="kf-card-head"><h2>Activity Over Time</h2><span style={{ color: 'var(--t3)', fontSize: 13 }}>Last 30 days</span></div>
           <div style={{ padding: '0 10px 8px' }}>
@@ -198,7 +198,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
       </div>
 
       {/* Recent feed + main table layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 280px) minmax(0, 1fr)', gap: 18, alignItems: 'start' }}>
+      <div className="audit-log-main" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 280px) minmax(0, 1fr)', gap: 18, alignItems: 'start' }}>
         {/* Recent activity feed */}
         <section className="kf-card" style={{ overflow: 'hidden' }}>
           <div className="kf-card-head"><h2>Recent Activity</h2></div>
@@ -241,7 +241,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
 
           {/* Filters */}
           <div style={{ padding: '0 20px 14px', display: 'flex', minWidth: 0, gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-            <label className="kf-search" style={{ width: 240, height: 40 }}>
+            <label className="kf-search" style={{ width: 240, maxWidth: '100%', minHeight: 44, flex: '1 0 100%' }}>
               <KFIcon name="search" />
               <input
                 placeholder="Search events..."
@@ -253,7 +253,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
               aria-label="Filter by category"
               value={categoryFilter}
               onChange={e => setCategoryFilter(e.target.value)}
-              style={{ height: 40, border: '1px solid #e0e4ef', borderRadius: 8, padding: '0 12px', fontSize: 12, background: 'var(--s1)', cursor: 'pointer' }}
+              style={{ height: 44, minWidth: 140, flex: '1 1 140px', border: '1px solid #e0e4ef', borderRadius: 8, padding: '0 12px', fontSize: 12, background: 'var(--s1)', cursor: 'pointer' }}
             >
               {categoryNames.map(c => <option key={c}>{c}</option>)}
             </select>
@@ -261,7 +261,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
               aria-label="Filter by status"
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
-              style={{ height: 40, border: '1px solid #e0e4ef', borderRadius: 8, padding: '0 12px', fontSize: 12, background: 'var(--s1)', cursor: 'pointer' }}
+              style={{ height: 44, minWidth: 140, flex: '1 1 140px', border: '1px solid #e0e4ef', borderRadius: 8, padding: '0 12px', fontSize: 12, background: 'var(--s1)', cursor: 'pointer' }}
             >
               <option>All</option>
               <option>Processed</option>

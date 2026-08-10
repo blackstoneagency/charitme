@@ -92,7 +92,7 @@ export default async function SavedCausesPage() {
   const [rows, t] = await Promise.all([getSaved(user.id), getTranslator()]);
 
   const covers = rows
-    ? await Promise.all(rows.map((c) => resolveCampaignCover(c.cover_image_url, c.category, c.slug)))
+    ? await Promise.all(rows.map((c) => resolveCampaignCover(c.cover_image_url, c.category, c.slug, 'dashboard-saved')))
     : [];
 
   return (

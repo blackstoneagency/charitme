@@ -6,17 +6,10 @@ import { supabaseAdmin } from './supabase';
 /**
  * Real uploaded campaign imagery, read from our OWN storage bucket.
  *
- * ⚠️ Finding, 2026-08-02: the public `campaign-media` bucket contains **500
- * uploaded WebP covers** under `covers/<slug>.webp` — verified reachable, ~35KB
- * each — while every row in `campaigns.cover_image_url` points at
- * `picsum.photos`. So the site renders a generic placeholder for every campaign
- * while a real, optimised, campaign-specific image sits unused in our own bucket.
- *
- * `lib/covers.ts` cannot find these: its preference order is stored URL → live
- * Unsplash → Picsum, and it never looks in storage. Rewiring that resolver
- * changes the cover on every card and every listing site-wide, so it is NOT done
- * here as a side effect of building a gallery — it is recorded in todo.md as its
- * own change. This module is the read side, used by the gallery only.
+ * The gallery checks the canonical `covers/<slug>.webp` object directly so an
+ * organizer upload wins over generated subject art whenever that object exists.
+ * Generic legacy cover URLs are replaced by the release migration and are never
+ * treated as organizer media.
  */
 
 const BUCKET = 'campaign-media';

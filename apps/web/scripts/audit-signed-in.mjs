@@ -63,6 +63,7 @@ const APP_PORT = Number(argOf('--port', '3000'));
 const STUB_PORT = Number(argOf('--stub-port', '54321'));
 const ONLY = argOf('--only', null);
 const AS_JSON = argv.includes('--json');
+const REUSE_STUB = argv.includes('--reuse-stub');
 const STUB_URL = `http://127.0.0.1:${STUB_PORT}`;
 const BASE = `http://127.0.0.1:${APP_PORT}`;
 // `--no-admin` swaps the fixture user, and it has to: clearing ADMIN_EMAILS is
@@ -70,7 +71,8 @@ const BASE = `http://127.0.0.1:${APP_PORT}`;
 // default fixture (…0001) carries ['donor','admin','super_admin']. Switching the
 // env var alone left the sweep an admin and `/dashboard` still redirecting —
 // which is exactly how this hole stayed invisible.
-const AS_MEMBER = process.argv.slice(2).includes('--no-admin');
+const AS_PUBLIC = argv.includes('--public');
+const AS_MEMBER = !AS_PUBLIC && argv.includes('--no-admin');
 const USER_ID = AS_MEMBER
   ? '00000000-0000-4000-8000-000000000012'   // organizer fixture: donor + organizer
   : '00000000-0000-4000-8000-000000000001';  // default fixture: admin + super_admin
@@ -154,13 +156,13 @@ process.on('exit', cleanup);
 process.on('SIGINT', () => { cleanup(); process.exit(130); });
 
 // ─── 1. stub ────────────────────────────────────────────────────────────────
-await Promise.all([
-  assertPortAvailable(APP_PORT, 'Next app'),
-  assertPortAvailable(STUB_PORT, 'Supabase stub'),
-]);
-spawnChild(process.execPath, ['scripts/supabase-stub.mjs', '--port', String(STUB_PORT)], {
-  stdio: ['ignore', 'ignore', 'inherit'],
-});
+await assertPortAvailable(APP_PORT, 'Next app');
+if (!REUSE_STUB) {
+  await assertPortAvailable(STUB_PORT, 'Supabase stub');
+  spawnChild(process.execPath, ['scripts/supabase-stub.mjs', '--port', String(STUB_PORT)], {
+    stdio: ['ignore', 'ignore', 'inherit'],
+  });
+}
 await waitForHttp(`${STUB_URL}/auth/v1/user`, 'supabase-stub');
 if (!AS_JSON) console.log(`· supabase-stub up on ${STUB_URL}`);
 
@@ -183,6 +185,7 @@ const env = {
   NEXT_PUBLIC_SUPABASE_URL: STUB_URL,
   NEXT_PUBLIC_SUPABASE_ANON_KEY: 'stub-anon-key',
   SUPABASE_SERVICE_ROLE_KEY: 'stub-service-key',
+  NEXT_PUBLIC_APP_URL: BASE,
   // Grants the fixture user the admin console. Without it /admin/* 302s to
   // /admin and the rest of the admin console drop out of the sweep.
   ADMIN_EMAILS: AS_MEMBER ? '' : 'audit-stub@charitme.local',
@@ -221,21 +224,21 @@ const sessionHeader = `${cookieName}=${cookieValue}`;
 // non-admin (an admin is redirected to /admin). Probing /admin in member mode
 // would fail on a correct build, and probing /dashboard in admin mode would
 // pass on a build with no admin grant at all.
-const probePath = AS_MEMBER ? '/dashboard' : '/admin';
+const probePath = AS_PUBLIC ? '/' : AS_MEMBER ? '/dashboard' : '/admin';
 const probe = await fetch(`${BASE}${probePath}`, {
-  headers: { cookie: sessionHeader },
+  headers: AS_PUBLIC ? {} : { cookie: sessionHeader },
   redirect: 'manual',
 });
 if (probe.status !== 200) {
   console.error(
-    `\n✗ ${probePath} answered ${probe.status} with the ${AS_MEMBER ? 'member' : 'admin'} stub session.\n` +
+    `\n✗ ${probePath} answered ${probe.status} with the ${AS_PUBLIC ? 'public' : AS_MEMBER ? 'member' : 'admin'} stub session.\n` +
     '  The build is almost certainly pointed at the real Supabase URL. Rebuild with:\n' +
     `    NEXT_PUBLIC_SUPABASE_URL=${STUB_URL} NEXT_PUBLIC_SUPABASE_ANON_KEY=stub-anon-key \\\n` +
     '    SUPABASE_SERVICE_ROLE_KEY=stub-service-key npm run build --workspace=apps/web\n',
   );
   process.exit(2);
 }
-if (!AS_JSON) console.log(`· signed-in probe: ${probePath} renders (200) as ${AS_MEMBER ? 'member' : 'admin'}`);
+if (!AS_JSON) console.log(`· runtime probe: ${probePath} renders (200) as ${AS_PUBLIC ? 'public' : AS_MEMBER ? 'member' : 'admin'}`);
 
 // ─── 4a. content contracts (optional, runs BEFORE the sweep) ────────────────
 //
@@ -265,39 +268,71 @@ if (argv.includes('--content-contracts')) {
 
 // ─── 4b. sweep ──────────────────────────────────────────────────────────────
 const MOBILE = argv.includes('--mobile');
+const RESPONSIVE = argv.includes('--responsive');
+const PAGE_IMAGES = argv.includes('--page-images');
+const CONTRAST = argv.includes('--contrast');
 // `--probe <path> [width]` explains ONE route instead of sweeping all of them:
 // the ancestor chain of the widest offender, with the properties that decide
 // whether each box can shrink. Reuses this harness because the interesting
 // overflows are all behind a session.
 const PROBE = argv.includes('--probe') ? argv[argv.indexOf('--probe') + 1] : null;
-const sweepArgs = PROBE
-  ? ['scripts/probe-overflow.mjs', BASE, PROBE, ...(argv.includes('--width') ? [argv[argv.indexOf('--width') + 1]] : [])]
-  : MOBILE
-  ? [
-    'scripts/audit-mobile.mjs',
-    BASE,
-    '--auth',
-    ...(ONLY ? ['--only', ONLY] : []),
-  ]
-  : [
-    'scripts/audit-contrast.mjs',
-    '--base', BASE,
-    '--auth',
-    ...(AS_JSON ? ['--json'] : []),
-    ...(ONLY ? ['--only', ONLY] : []),
-    ...(argv.includes('--strict-gradients') ? ['--strict-gradients'] : []),
-  ];
-const sweep = spawnChild(process.execPath, sweepArgs, {
-  env: {
-    ...env,
-    STUB_SESSION_COOKIE: JSON.stringify({ name: cookieName, value: cookieValue }),
-    // In member mode the /admin/* routes are legitimately unreachable, so the
-    // sweep must SKIP them rather than count ~104 correct redirects as failures.
-    // Left as failures the member run could never go green, and an audit that is
-    // permanently red is an audit nobody reads — the same lesson this repo has
-    // already learned twice.
-    AUDIT_SKIP_ADMIN: AS_MEMBER ? '1' : '',
-  },
-});
+const sweepArgs = [];
+if (PROBE) {
+  sweepArgs.push(['scripts/probe-overflow.mjs', BASE, PROBE, ...(argv.includes('--width') ? [argv[argv.indexOf('--width') + 1]] : [])]);
+} else {
+  if (PAGE_IMAGES) {
+    sweepArgs.push([
+      'scripts/audit-page-images.mjs', '--base', BASE,
+      ...(AS_PUBLIC ? [] : ['--auth']),
+      ...(argv.includes('--strict-global') ? ['--strict-global'] : []),
+      ...(ONLY ? ['--only', ONLY] : []),
+    ]);
+  }
+  if (MOBILE) {
+    sweepArgs.push(['scripts/audit-mobile.mjs', BASE, ...(AS_PUBLIC ? [] : ['--auth']), ...(ONLY ? ['--only', ONLY] : [])]);
+  }
+  if (RESPONSIVE) {
+    sweepArgs.push(['scripts/audit-responsive.mjs', '--base', BASE, ...(AS_PUBLIC ? [] : ['--auth']), ...(ONLY ? ['--only', ONLY] : [])]);
+  }
+  if (CONTRAST) {
+    sweepArgs.push([
+      'scripts/audit-contrast.mjs', '--base', BASE,
+      ...(AS_PUBLIC ? [] : ['--auth']),
+      ...(AS_JSON ? ['--json'] : []),
+      ...(ONLY ? ['--only', ONLY] : []),
+      ...(argv.includes('--strict-gradients') ? ['--strict-gradients'] : []),
+    ]);
+  }
+  if (sweepArgs.length === 0) {
+    sweepArgs.push([
+      'scripts/audit-contrast.mjs',
+      '--base', BASE,
+      ...(AS_PUBLIC ? [] : ['--auth']),
+      ...(AS_JSON ? ['--json'] : []),
+      ...(ONLY ? ['--only', ONLY] : []),
+      ...(argv.includes('--strict-gradients') ? ['--strict-gradients'] : []),
+    ]);
+  }
+}
 
-sweep.on('exit', (code) => { cleanup(); process.exit(code ?? 1); });
+const sweepEnv = {
+  ...env,
+  ...(AS_PUBLIC ? {} : { STUB_SESSION_COOKIE: JSON.stringify({ name: cookieName, value: cookieValue }) }),
+  // In member mode the /admin/* routes are legitimately unreachable, so the
+  // sweep must SKIP them rather than count ~104 correct redirects as failures.
+  // Left as failures the member run could never go green, and an audit that is
+  // permanently red is an audit nobody reads — the same lesson this repo has
+  // already learned twice.
+  AUDIT_SKIP_ADMIN: AS_MEMBER ? '1' : '',
+  AUDIT_ONLY_GATED: AS_PUBLIC || argv.includes('--include-public') ? '' : '1',
+  AUDIT_SKIP_DASHBOARD_ROOT: AS_PUBLIC || AS_MEMBER ? '' : '1',
+};
+
+try {
+  for (const args of sweepArgs) await runChild(process.execPath, args, { env: sweepEnv });
+  cleanup();
+} catch (error) {
+  cleanup();
+  console.error(error.message);
+  process.exit(1);
+}

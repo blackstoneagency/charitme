@@ -80,6 +80,7 @@ const ROUTE_DATA = JSON.parse(
 const WITH_AUTH = argv.includes('--auth');
 // Set by audit-signed-in.mjs --no-admin: /admin/* is out of scope for a member.
 const SKIP_ADMIN = process.env.AUDIT_SKIP_ADMIN === '1';
+const SKIP_DASHBOARD_ROOT = process.env.AUDIT_SKIP_DASHBOARD_ROOT === '1';
 const SESSION_COOKIE = process.env.STUB_SESSION_COOKIE ?? '';
 
 // The campaign-embed fixture needs seeded data; the e2e sweep covers it.
@@ -101,7 +102,12 @@ const GATED_PAGES = [
 // --auth: signed out, these are ordinary pages and must still be swept.
 const SIGNED_OUT_ONLY = new Set(ROUTE_DATA.signedOutOnly ?? []);
 const AUTH_PAGES = ALL_PAGES.filter((r) => !SIGNED_OUT_ONLY.has(r));
-const PAGES = ONLY ?? (WITH_AUTH ? [...AUTH_PAGES, ...GATED_PAGES] : ALL_PAGES);
+const selectedPages = ONLY ?? (WITH_AUTH ? [...AUTH_PAGES, ...GATED_PAGES] : ALL_PAGES);
+const PAGES = selectedPages.filter((route) => {
+  if (SKIP_ADMIN && route.startsWith('/admin')) return false;
+  if (SKIP_DASHBOARD_ROOT && route.split('?')[0].replace(/\/$/, '') === '/dashboard') return false;
+  return true;
+});
 const THEMES = ['light', 'dark'];
 
 if (WITH_AUTH && !SESSION_COOKIE) {

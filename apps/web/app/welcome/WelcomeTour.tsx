@@ -246,7 +246,7 @@ export default function WelcomeTour({
                 style={{ width: 18, height: 18, marginTop: 2, flex: '0 0 auto' }}
               />
               <span style={{ minWidth: 0 }}>
-                <label htmlFor="pref-updates" style={{ display: 'block', fontSize: 14, fontWeight: 700, color: 'var(--t1)', cursor: 'pointer' }}>
+                <label htmlFor="pref-updates" style={{ display: 'flex', alignItems: 'center', minHeight: 44, fontSize: 14, fontWeight: 700, color: 'var(--t1)', cursor: 'pointer' }}>
                   Campaign updates
                 </label>
                 <span id="pref-updates-help" style={{ fontSize: 13, color: 'var(--t3)' }}>
@@ -264,7 +264,7 @@ export default function WelcomeTour({
                 style={{ width: 18, height: 18, marginTop: 2, flex: '0 0 auto' }}
               />
               <span style={{ minWidth: 0 }}>
-                <label htmlFor="pref-marketing" style={{ display: 'block', fontSize: 14, fontWeight: 700, color: 'var(--t1)', cursor: 'pointer' }}>
+                <label htmlFor="pref-marketing" style={{ display: 'flex', alignItems: 'center', minHeight: 44, fontSize: 14, fontWeight: 700, color: 'var(--t1)', cursor: 'pointer' }}>
                   Occasional platform news
                 </label>
                 <span id="pref-marketing-help" style={{ fontSize: 13, color: 'var(--t3)' }}>

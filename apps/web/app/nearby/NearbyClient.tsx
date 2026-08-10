@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Btn, Card, Select, ProgressBar, EmptyState, Spinner } from '../../components/ui';
 import { formatDistance } from '../../lib/geo';
 import { formatMoneyShort, DEFAULT_CURRENCY } from '@shared/currencies';
+import { getDisplayCover } from '../../lib/photo-catalog';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Proximity discovery.
@@ -181,16 +182,14 @@ export default function NearbyClient() {
               <li key={c.id}>
                 <Card style={{ padding: 0, overflow: 'hidden', height: '100%' }}>
                   <Link href={`/campaigns/${c.slug}`} style={{ textDecoration: 'none', display: 'block' }}>
-                    {c.cover_image_url && (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img
-                        src={c.cover_image_url}
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                        style={{ width: '100%', height: 140, objectFit: 'cover', display: 'block' }}
-                      />
-                    )}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={getDisplayCover(c.cover_image_url, c.category, c.slug, 'nearby')}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      style={{ width: '100%', height: 140, objectFit: 'cover', display: 'block' }}
+                    />
                     <div style={{ padding: 16 }}>
                       <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
                         <span style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--violet-ink)' }}>

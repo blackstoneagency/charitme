@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { formatCents } from '../../../lib/stripe';
 import { DONOR_BADGES, computeMonthlyStreak, getGivingLevel, type DonorStats } from '../../../lib/gamification';
-import { getCoverForCampaign } from '../../../lib/photo-catalog';
+import { getDisplayCover } from '../../../lib/photo-catalog';
 import { optimizedCoverUrl } from '../../../lib/img-optimize';
 import type { Metadata } from 'next';
 
@@ -265,7 +265,7 @@ export default async function PublicDonorProfilePage({ params }: { params: Promi
                     if (!c) return null;
                     return (
                       <Link key={c.id} href={`/campaigns/${c.slug}`} className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:border-emerald-300 hover:shadow-md">
-                        <div className="h-28 w-full bg-slate-100 bg-cover bg-center" style={{ backgroundImage: `url(${optimizedCoverUrl(c.cover_image_url || getCoverForCampaign(c.category, c.slug), 480)})` }} />
+                        <div className="h-28 w-full bg-slate-100 bg-cover bg-center" style={{ backgroundImage: `url(${optimizedCoverUrl(getDisplayCover(c.cover_image_url, c.category, c.slug, 'donor-profile'), 480)})` }} />
                         <div className="p-3">
                           <div className="text-sm font-black text-slate-950 group-hover:text-emerald-700">{c.title}</div>
                         </div>

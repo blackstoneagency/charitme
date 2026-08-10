@@ -53,7 +53,7 @@ export default async function GuidedDonatePage({ params }: Props) {
   if (!campaign) notFound();
 
   const [cover, currency, checkout, payoutResult] = await Promise.all([
-    resolveCampaignCover(campaign.cover_image_url, campaign.category, campaign.slug),
+    resolveCampaignCover(campaign.cover_image_url, campaign.category, campaign.slug, 'donation-checkout'),
     getCampaignCurrency(campaign.id),
     getDonationCheckoutSnapshot(),
     resolvePayoutDestination(campaign)

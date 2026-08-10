@@ -6,6 +6,7 @@ import { boundedQuery } from '../../../lib/query-timeout';
 import { attachCampaignCurrencies } from '../../../lib/home-data';
 import { formatMoneyCompact } from '@shared/currencies';
 import { campaignTimeLabel } from '../../../lib/campaign-lifecycle';
+import { getDisplayCover } from '../../../lib/photo-catalog';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,18 +51,6 @@ function daysLeft(deadline: string | null, status: string | null): string {
   if (label === 'No deadline') return '—';
   if (label === 'Ended') return 'Ended';
   return label.replace(/^(\d+) days? left$/, '$1d left');
-}
-
-function categoryGradient(category: string | null): string {
-  const map: Record<string, string> = {
-    medical: 'linear-gradient(135deg,#e0f2fe,#7c3aed)',
-    environment: 'linear-gradient(135deg,#c7e8ff,#48769f)',
-    education: 'linear-gradient(135deg,#d1fae5,#0f766e)',
-    emergency: 'linear-gradient(135deg,#dbeafe,#f9a8d4)',
-    animals: 'linear-gradient(135deg,#fef3c7,#92400e)',
-    community: 'linear-gradient(135deg,#ede9fe,#4c1d95)',
-  };
-  return map[(category ?? '').toLowerCase()] ?? 'linear-gradient(135deg,#f0f4ff,#c7d2fe)';
 }
 
 function pillTone(status: string): string {
@@ -280,9 +269,11 @@ export default async function MyCampaignsPage({
                     c.goal_amount > 0
                       ? Math.min(100, Math.round((c.raised_amount / c.goal_amount) * 100))
                       : 0;
-                  const thumb = c.cover_image_url
-                    ? { backgroundImage: `url(${c.cover_image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-                    : { background: categoryGradient(c.category) };
+                  const thumb = {
+                    backgroundImage: `url(${getDisplayCover(c.cover_image_url, c.category, c.slug, 'dashboard-campaigns')})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                  };
 
                   return (
                     <div

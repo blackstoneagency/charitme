@@ -226,12 +226,13 @@ export default async function DonorPortalPage() {
         <div style={{ display: 'flex', minWidth: 0, flexWrap: 'wrap', gap: 10 }}>
           {taxYears.map(y => (
             <div key={y} style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 8, border: '1px solid var(--b1, #e8ecf4)', borderRadius: 'var(--r, 10px)', padding: '8px 12px' }}>
-              <Link href={`/donor/tax-statement/${y}`} style={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-text)', textDecoration: 'none' }}>
+              <Link href={`/donor/tax-statement/${y}`} className="cm-touch-link" style={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-text)', textDecoration: 'none' }}>
                 {y} statement
               </Link>
               <a
                 href={`/api/donor/tax-statement?year=${y}&format=csv`}
                 aria-label={`Download ${y} giving statement as CSV`}
+                className="cm-touch-link"
                 style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', textDecoration: 'none' }}
               >
                 CSV ↓
@@ -249,7 +250,7 @@ export default async function DonorPortalPage() {
         <div style={{ ...cardStyle, marginBottom: 24 }}>
           <h2 style={{ fontSize: 16, fontWeight: 650, margin: '0 0 16px', display: 'flex', flexWrap: 'wrap', minWidth: 0, justifyContent: 'space-between', alignItems: 'center' }}>
             Recurring Donations
-            <Link href="/dashboard/recurring" style={{ fontSize: 13, color: 'var(--brand-text)', fontWeight: 700, textDecoration: 'none' }}>
+            <Link href="/dashboard/recurring" className="cm-touch-link" style={{ fontSize: 13, color: 'var(--brand-text)', fontWeight: 700, textDecoration: 'none' }}>
               Manage →
             </Link>
           </h2>
@@ -261,7 +262,7 @@ export default async function DonorPortalPage() {
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 14 }}>
                       {camp ? (
-                        <Link href={`/campaigns/${camp.slug}`} style={{ color: 'var(--t1, #1a1a2e)', textDecoration: 'none' }}>{camp.title}</Link>
+                        <Link href={`/campaigns/${camp.slug}`} className="cm-touch-link" style={{ color: 'var(--t1, #1a1a2e)', textDecoration: 'none' }}>{camp.title}</Link>
                       ) : 'Campaign'}
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>
@@ -286,7 +287,7 @@ export default async function DonorPortalPage() {
                       color: r.status === 'active' ? 'var(--green-text)' : 'var(--red-text)',
                     }}>{r.status}</span>
                     {r.status === 'active' && r.stripe_subscription_id && (
-                      <Link href={`/dashboard/recurring/cancel?sub=${r.stripe_subscription_id}`}
+                      <Link href={`/dashboard/recurring/cancel?sub=${r.stripe_subscription_id}`} className="cm-touch-link"
                         style={{ fontSize: 12, color: 'var(--t3)', textDecoration: 'none', padding: '4px 10px', border: '1px solid var(--b2, #e2e8f0)', borderRadius: 8 }}>
                         Cancel
                       </Link>

@@ -147,7 +147,7 @@ describe('signed-in audit integrity', () => {
     // needed: `/admin` renders only for an admin, `/dashboard` renders 200 only
     // for a non-admin. Probing the wrong one would either fail on a correct
     // build or pass on a build with no admin grant at all.
-    expect(signedInSource).toContain("const probePath = AS_MEMBER ? '/dashboard' : '/admin'");
+    expect(signedInSource).toContain("const probePath = AS_PUBLIC ? '/' : AS_MEMBER ? '/dashboard' : '/admin'");
     expect(signedInSource).toContain('`${BASE}${probePath}`');
   });
 
@@ -157,7 +157,7 @@ describe('signed-in audit integrity', () => {
     // only the env var changed the sweep stayed an admin and /dashboard kept
     // redirecting — which is how the member dashboard went unmeasured by every
     // audit in this repo.
-    expect(signedInSource).toContain("const AS_MEMBER = process.argv.slice(2).includes('--no-admin')");
+    expect(signedInSource).toContain("const AS_MEMBER = !AS_PUBLIC && argv.includes('--no-admin')");
     expect(signedInSource).toContain('00000000-0000-4000-8000-000000000012');
     // The stub resolves the persona from the bearer token, so that must switch too.
     expect(signedInSource).toContain("const USER_TOKEN = AS_MEMBER ? 'stub-organizer-access-token'");
@@ -208,6 +208,14 @@ describe('signed-in audit integrity', () => {
     // A non-zero exit from the contracts run must fail the step. Swallowing it
     // would leave the flag present, the log reassuring, and the guard vacuous.
     expect(signedInSource).toMatch(/content contracts failed[\s\S]{0,120}process\.exit\(1\)/);
+  });
+
+  it('enforces all three visual audit lanes in CI', () => {
+    expect(ciWorkflow).toContain('visual-audits:');
+    expect(ciWorkflow).toContain('args: --public --build --page-images --mobile --responsive --strict-global');
+    expect(ciWorkflow).toContain('args: --build --page-images --mobile --responsive --contrast --strict-gradients --strict-global');
+    expect(ciWorkflow).toContain('args: --build --page-images --mobile --responsive --contrast --strict-gradients --strict-global --no-admin');
+    expect(ciWorkflow).toContain('node scripts/audit-signed-in.mjs ${{ matrix.args }} --port 3310 --stub-port 55432');
   });
 
   it('makes the live authenticated axe sweep fail on broken pages or theme drift', () => {

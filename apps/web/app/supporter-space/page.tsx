@@ -90,7 +90,7 @@ function Bucket({ heading, intro, campaigns, emptyBody }: { heading: string; int
       {campaigns.length === 0 ? (
         <EmptyState icon="♡" title="Nothing here right now" body={emptyBody} action={<Link href="/campaigns" className="rp-text-link">Browse all campaigns</Link>} />
       ) : (
-        <CampaignGrid>{campaigns.map((campaign) => <CampaignCard key={campaign.id} campaign={campaign} />)}</CampaignGrid>
+        <CampaignGrid>{campaigns.map((campaign) => <CampaignCard key={campaign.id} campaign={campaign} coverScope="supporter-space" />)}</CampaignGrid>
       )}
     </ReferenceSection>
   );

@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { CAUSES, POPULAR_CAUSES } from '../../lib/causes';
 import { getTranslator } from '../../lib/locale-server';
 import { getCausesIndexData } from '../../lib/causes-index';
-import { getCoverForCategory } from '../../lib/photo-catalog';
+import { getCoverForCampaign } from '../../lib/photo-catalog';
 import { IndexHero, StatStrip, statValue, moneyValue } from '../../components/IndexHero';
 import CausesBrowser, { type BrowseCause } from './CausesBrowser';
 import StayInformed from '../../components/StayInformed';
@@ -29,7 +29,7 @@ export default async function CausesPage() {
       // Same key the mega-menu renders, so the twenty names cannot drift apart.
       label: label === `nav.cause.${cause.slug}` ? cause.label : label,
       blurb: cause.blurb,
-      photo: getCoverForCategory(cause.categories[0]),
+      photo: getCoverForCampaign(cause.categories[0], `cause-card-${cause.slug}`),
       campaigns: figures?.campaigns,
       raisedCents: figures?.raisedCents,
       rank,
@@ -49,7 +49,7 @@ export default async function CausesPage() {
         crumbs={[{ label: t('nav.home'), href: '/' }, { label: t('nav.group.causes') }]}
         title={t('causes.page_title')}
         lede={t('causes.page_intro')}
-        photo={getCoverForCategory('Environment')}
+        photo={getCoverForCampaign('Environment', 'causes-index-hero')}
         photoCategory="Environment"
         photoKey="causes-index"
         card={{

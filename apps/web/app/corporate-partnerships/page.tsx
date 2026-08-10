@@ -7,7 +7,7 @@ import {
   ReferencePage,
   ReferenceSection,
 } from '../../components/ReferenceMarketing';
-import { getPhotosForCategory } from '../../lib/photo-catalog';
+import { getPhotosForPage } from '../../lib/photo-catalog';
 import PartnerRoster from '../partner/PartnerRoster';
 
 export const metadata: Metadata = {
@@ -61,8 +61,8 @@ const REASONS = [
 // table and render from it.
 
 export default function CorporatePartnershipsPage() {
-  const businessPhotos = getPhotosForCategory('Business', 4);
-  const communityPhotos = getPhotosForCategory('Community', 3);
+  const businessPhotos = getPhotosForPage('Business', 'corporate-business', 4);
+  const communityPhotos = getPhotosForPage('Community', 'corporate-community', 3);
   const ways = [
     {
       icon: 'people',

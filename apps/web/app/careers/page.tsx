@@ -68,7 +68,7 @@ export default function CareersPage() {
             hired from them before roles were posted.
           </p>
           <p style={{ marginTop: '16px' }}>
-            <Link href="/contact" style={{ fontSize: '14px', color: 'var(--green-text)', fontWeight: 700 }}>
+            <Link href="/contact" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, fontSize: '14px', color: 'var(--green-text)', fontWeight: 700 }}>
               Get in touch →
             </Link>
           </p>

@@ -1,5 +1,53 @@
 # CharitMe — Execution Tracker
 
+## Mobile-first and image-integrity audit — active (Codex, 2026-08-09)
+
+This section is the current source of truth and supersedes the stale campaign
+builder and checkout release checkboxes immediately below. Those releases are
+complete: `master` is `cae7f7a6ba4ddb6cca69c03be2817d4e82aaeacc`, tag
+`v0.1.11` passed release run `31341303171`, production Supabase reported up to
+date, and `www.charitme.com` serves that exact SHA.
+
+### Scope and authoritative inventory
+
+- [x] Start a clean `codex/mobile-image-audit` worktree from current `origin/master`.
+- [x] Inventory **236** `page.tsx` files: 112 public samples, 10 standalone gated routes, 86 signed-in console samples, 8 intentional redirects, and 21 signed-in dynamic samples are tracked by the shared route registry.
+- [x] Inventory all 32 local public raster assets in `docs/image-inventory.json`; all have distinct SHA-256 hashes and reviewed provenance, license basis, subject, page fit, and use.
+- [x] Confirm the existing route-registry guard passes (42 focused route/image tests).
+- [x] Prove every public and signed-in route at phone, tablet, desktop, and wide-desktop widths in light and dark modes, with no clipping, overflow, overlapping controls, broken images, or undersized touch targets.
+  - [x] Public layout/theme sweep: 111 rendered routes passed at 320/375/768/1440/1920 and light/dark on 2026-08-09; data-dependent fixtures were explicitly skipped.
+  - [x] Public 44px touch-target sweep: 208 production-build page loads at 320/390 passed with zero overflow and zero standalone targets below 44px; eight seeded-data samples were explicitly unmeasured.
+  - [x] Admin sweep: 117 role-reachable pages passed at 320/375/768/1440/1920 in light and dark modes; the mobile gate recorded zero overflow and zero undersized standalone targets.
+  - [x] Member sweep: 68 role-reachable pages passed at 320/375/768/1440/1920 in light and dark modes with populated organizer campaign fixtures.
+  - [x] Strict signed-in contrast: the final member sweep examined 20,502 light-theme and 20,503 dark-theme text elements across 177 routes with zero AA failures; the full admin sweep is also green.
+- [x] Prove every rendered content image is unique, reachable, licensed/free for use, and semantically appropriate for its page or campaign.
+  - [x] Local gate: 32/32 files are hash-unique, licensed, documented, and visually reviewed; two off-subject heroes were retired and replaced.
+  - [x] Catalog gate: 117 IDs across 18 categories, zero shared images, and no Picsum/LoremFlickr fallback.
+  - [x] Public rendered-page gate: 115/115 routes exposed 377 distinct content images, no within-page or cross-page reuse, no broken images, no placeholders, and no Picsum/LoremFlickr output.
+  - [x] Signed-in rendered-page gate: 119 admin routes and 71 member routes reachable under their respective fixture personas rendered with zero cross-page image reuse; inaccessible inventory entries are role redirects rather than unmeasured content.
+- [x] Make both audits required CI/release gates and retain machine-readable evidence.
+  - [x] Added repeatable public/admin/member responsive, mobile, rendered-image, and local-asset commands.
+  - [x] Added the green responsive and image-integrity commands to both CI and the tagged release workflow.
+
+### Findings reproduced before edits
+
+- [x] `audit-mobile.mjs` hardcoded Linux Chromium; it now uses the repository's cross-platform browser resolver.
+- [x] Signed-in tablet/desktop/two-theme responsive coverage was missing; admin and member modes now use the complete route registry.
+- [x] The mobile gate accepted 24px targets; it now enforces the 44×44px product standard for standalone controls.
+- [x] `audit-campaign-images.mjs` allowed **10 cross-category duplicate photos**; any shared catalog image now fails.
+- [x] `getCoverForCampaign()` returned random Picsum imagery; it now returns deterministic unique subject-labelled first-party artwork.
+- [x] `/blog` and `/campaigns` repeated generic imagery; catalog expansion and stored-placeholder replacement now use unique subject keys.
+- [x] The root uniqueness audit now reports unavailable production credentials as a skipped production probe instead of printing a false all-unique success.
+- [x] `docs/image-attribution.md` covered only six portraits; all 32 local raster assets now have a machine-audited provenance and subject-fit ledger.
+
+### Execution order
+
+- [x] Repair and extend the exhaustive responsive harness; public coverage is green and admin/member commands are implemented.
+- [x] Replace permissive image checks with zero-duplicate, provenance, reachability, and subject-taxonomy gates.
+- [x] Fix every responsive finding in route batches and rerun all widths/themes.
+- [x] Replace random/duplicate/off-subject imagery with unique subject-matched free assets or honest campaign-specific generated fallback art.
+- [ ] Apply production data changes through staging, release through the tagged workflow, and verify the exact production SHA plus live Supabase image inventory.
+
 ## Donation checkout unification — active release (Codex, 2026-08-09)
 
 - [x] Replace every campaign, direct-donate, peer, embed, and portfolio donation form with the shared checkout and one money calculation.
@@ -3744,10 +3792,10 @@ skipped workflow leaves its check pending forever and would deadlock a docs-only
 PR. Nothing is required today, which is why this is safe now — recorded so the
 next person does not find out the hard way.
 
-## 🛑 SUPABASE STAGING — historical audit, and the file-derived upper-bound pending count is **42** (Claude, 2026-08-03)
+## 🛑 SUPABASE STAGING — historical audit, and the file-derived upper-bound pending count is **43** (Claude, 2026-08-03)
 
-**Live ledger rechecked 2026-08-09:** 129 local migration files against 87
-production ledger entries. The 40-file gap below is therefore a current
+**Live ledger rechecked 2026-08-10:** 130 local migration files against 87
+production ledger entries. The 43-file upper-bound gap below is therefore a current
 measurement, not only historical arithmetic.
 
 **+1 on 2026-08-09: `20260831010000_user_nav_preferences.sql`.** One row per
@@ -3849,16 +3897,16 @@ that day**:
 dump confirmed the objects were absent, and a restored production clone applied
 all 18 in order and proved rollback.
 
-Twenty-two migrations have been added since. So the count is arithmetic:
+Twenty-five migrations have been added since. So the count is arithmetic:
 
 ```
-129 local − 87 applied           = 42
-18 audited pending + 22 added    = 40   ✓ reconciles
+130 local − 87 applied           = 43
+18 audited pending + 25 added    = 43   ✓ reconciles
 ```
 
 All 18 audited-pending versions are still on disk under their original names.
 
-### ⚠️ Seven of the 40 are SECURITY hardening, not features
+### ⚠️ Seven of the 43 are SECURITY hardening, not features
 
 This is the part that changes the priority. Written, reviewed, merged — and
 **not live**:
@@ -3893,7 +3941,7 @@ miscounting, it was adding migrations and leaving the old number in place.
 
 Owner action unchanged: upgrade Supabase, free a project slot, or provision
 staging elsewhere. Do not bypass the gate — the ledger's last line says so, and
-39 unverified migrations including seven privilege changes is exactly the case the
+43 unverified migrations including seven privilege changes is exactly the case the
 gate exists for.
 
 ## ⚪ `/certificate` — NOT a deferral; building it would require inventing data

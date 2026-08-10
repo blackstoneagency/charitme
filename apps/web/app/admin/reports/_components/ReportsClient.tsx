@@ -106,9 +106,9 @@ export default function ReportsClient({ reports, categories, totalReports, sched
   ];
 
   return (
-    <div style={{ padding: '0 32px 32px', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 22 }}>
+    <div className="admin-reports-layout" style={{ padding: '0 32px 32px', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 22 }}>
       {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 18 }}>
+      <div className="admin-reports-metrics" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 18 }}>
         {metrics.map((m) => (
           <article key={m.label} className="kf-card kf-metric">
             <div className={`kf-square ${m.tone}`}><KFIcon name={m.icon} /></div>
@@ -121,7 +121,7 @@ export default function ReportsClient({ reports, categories, totalReports, sched
       </div>
 
       {/* Two-column layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 300px) minmax(0, 1fr)', gap: 20, alignItems: 'start' }}>
+      <div className="admin-reports-columns" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 300px) minmax(0, 1fr)', gap: 20, alignItems: 'start' }}>
         {/* Left: category overview + donut */}
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 18 }}>
           {/* Category breakdown */}

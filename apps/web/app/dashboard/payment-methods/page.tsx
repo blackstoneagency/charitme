@@ -176,7 +176,7 @@ export default async function PaymentMethodsPage() {
           title="We couldn't load your payment methods"
           body="This is a problem on our side, not a sign that anything has changed on your account. Nothing has been removed. Please try again in a moment."
           action={
-            <Link href="/dashboard/payment-methods" style={{ color: 'var(--green-text)', fontWeight: 700, fontSize: '14px' }}>
+            <Link href="/dashboard/payment-methods" className="cm-touch-link" style={{ color: 'var(--green-text)', fontWeight: 700, fontSize: '14px' }}>
               Try again
             </Link>
           }

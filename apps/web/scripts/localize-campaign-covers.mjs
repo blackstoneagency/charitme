@@ -2,12 +2,10 @@
 /**
  * IMG-05 — move campaign covers off the external hotlink onto Supabase Storage.
  *
- * Every seeded cover currently points at picsum.photos. That is a live
- * third-party dependency on the most visible asset of every campaign: if picsum
- * rate-limits, changes ids, or goes down, every campaign image on the site breaks
- * at once. This downloads each cover, re-encodes it as WebP (much smaller than the
- * source JPEG), uploads it to the public `campaign-media` bucket under a stable
- * per-campaign path, and repoints `cover_image_url` / `image_urls` at it.
+ * Legacy externally hosted organizer covers can be localized into Supabase
+ * Storage for stable delivery. This downloads each real external cover,
+ * re-encodes it as WebP, uploads it under a stable per-campaign path, and
+ * repoints `cover_image_url` / `image_urls` at it.
  *
  *   node scripts/localize-campaign-covers.mjs [--limit N] [--concurrency 8] [--apply]
  *
@@ -34,7 +32,9 @@ const SUPA = env('NEXT_PUBLIC_SUPABASE_URL');
 const KEY = env('SUPABASE_SERVICE_ROLE_KEY');
 const H = { apikey: KEY, Authorization: `Bearer ${KEY}` };
 
-const isExternal = (u) => !!u && !u.includes('/storage/v1/object/public/');
+const isExternal = (u) => !!u
+  && !u.includes('/storage/v1/object/public/')
+  && !u.includes('charitme.com/media/subject');
 
 async function mapLimit(items, limit, fn) {
   const out = new Array(items.length); let i = 0;

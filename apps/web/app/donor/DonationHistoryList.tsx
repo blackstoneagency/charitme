@@ -117,7 +117,7 @@ export default function DonationHistoryList({
           <div style={{ fontSize: 32, marginBottom: 8 }}>💚</div>
           <p style={{ fontWeight: 700, margin: '0 0 4px' }}>No donations yet.</p>
           <p style={{ fontSize: 13 }}>Find a campaign to support below.</p>
-          <Link href="/campaigns" style={{ display: 'inline-block', marginTop: 12, padding: '10px 24px', background: 'var(--violet, #6c35ff)', color: '#fff', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
+          <Link href="/campaigns" className="cm-touch-link" style={{ marginTop: 12, padding: '0 24px', background: 'var(--violet, #6c35ff)', color: '#fff', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
             Browse Campaigns
           </Link>
         </div>
@@ -168,7 +168,7 @@ export default function DonationHistoryList({
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>
                     {camp ? (
-                      <Link href={`/campaigns/${camp.slug}`} style={{ color: 'var(--t1, #1a1a2e)', textDecoration: 'none' }}>{camp.title}</Link>
+                      <Link href={`/campaigns/${camp.slug}`} className="cm-touch-link" style={{ color: 'var(--t1, #1a1a2e)', textDecoration: 'none' }}>{camp.title}</Link>
                     ) : 'Campaign'}
                   </div>
                   {d.message && (
@@ -194,12 +194,12 @@ export default function DonationHistoryList({
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
                       {/* "Email receipt" alone gave a donor no way to LOOK at
                           the receipt — only to have it sent again and wait. */}
-                      <Link href={`/donor/receipt/${d.id}`}
+                      <Link href={`/donor/receipt/${d.id}`} className="cm-touch-link"
                         style={{ fontSize: 11, fontWeight: 600, color: 'var(--brand-text)', textDecoration: 'none' }}>
                         View receipt
                       </Link>
                       <ReceiptButton donationId={d.id} />
-                      <Link href={`/dashboard/refund?donation_id=${d.id}`}
+                      <Link href={`/dashboard/refund?donation_id=${d.id}`} className="cm-touch-link"
                         style={{ fontSize: 11, color: 'var(--t3)', textDecoration: 'none' }}>
                         Refund?
                       </Link>

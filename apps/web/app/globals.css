@@ -681,7 +681,7 @@ input, select, textarea, button { max-width: 100%; }
   width: 386px;
   height: 395px;
   border-radius: 13px;
-  background: url('/hero-child-crop.png') center / cover no-repeat;
+  background: url('/hero-child-crop.webp') center / cover no-repeat;
   box-shadow: 0 18px 42px rgba(70, 55, 120, .18);
 }
 .kind-campaign-card {
@@ -1839,10 +1839,12 @@ input, select, textarea, button { max-width: 100%; }
 
 .kf-topbar h1 { margin: 0; color: #090d35; font-size: 32px; line-height: 1; letter-spacing: -.04em; font-weight: 800; }
 .kf-topbar p { margin: 14px 0 0; color: #2c3760; font-size: 17px; }
+.kf-topbar > div:first-child { min-width: 0; flex: 1 1 auto; }
+.kf-topbar > div:first-child p { overflow-wrap: anywhere; }
 /* `min-width: 0` so this flex item may shrink below its content. Without it the
    row keeps its children's intrinsic width and pushes the top bar past the
    viewport, where the root clips instead of scrolling. */
-.kf-top-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; min-width: 0; }
+.kf-top-actions { display: flex; align-items: center; gap: 14px; flex: 0 0 auto; flex-wrap: wrap; min-width: 0; }
 .kf-shell-account-controls {
   margin-left: 0;
   display: flex;
@@ -1946,7 +1948,8 @@ input, select, textarea, button { max-width: 100%; }
 .kf-metric span, .kf-metric small { display: block; color: var(--t2); font-weight: 700; }
 .kf-metric strong { display: block; margin: 10px 0 8px; font-size: 28px; line-height: 1; font-weight: 800; }
 .kf-metric small { color: var(--green-text); font-size: 13px; }
-.kf-tabs { display: flex; align-items: center; gap: 26px; padding: 0 20px; border-bottom: 1px solid #eef0f7; }
+.kf-tabs { display: flex; align-items: center; gap: 26px; padding: 0 20px; border-bottom: 1px solid #eef0f7; overflow-x: auto; overflow-y: hidden; }
+.kf-tabs > * { flex: 0 0 auto; }
 .kf-tabs button {
   height: 54px;
   border: 0;
@@ -2577,8 +2580,8 @@ input, select, textarea, button { max-width: 100%; }
 .campaign-copy p { margin: 0 0 10px; color: #5b6584; font-size: 13px; font-weight: 500; }
 .campaign-copy p b { color: #10163f; font-weight: 700; }
 .campaign-status { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 6px; font-size: 11px; font-weight: 700; letter-spacing: .01em; }
-.campaign-status.active { color: #0f9d58; background: #e9f7ef; }
-.campaign-status.paused { color: #ef7c1a; background: #fdf0e3; }
+.campaign-status.active { color: var(--green-text); background: var(--green-light); }
+.campaign-status.paused { color: var(--orange-text); background: var(--s2); }
 .campaign-progress { height: 6px; border-radius: 999px; background: #eef0f7; overflow: hidden; }
 .campaign-progress span { display: block; height: 100%; border-radius: inherit; background: #6c35ff; }
 .campaign-stat { border-left: 1px solid #eef1f7; padding-left: 18px; }
@@ -2601,10 +2604,10 @@ input, select, textarea, button { max-width: 100%; }
 .campaign-menu-error { margin: 4px 8px 2px; color: #ff3158; font-size: 11.5px; font-weight: 750; }
 .campaign-footer { height: 46px; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--brand-text); font-size: 13px; font-weight: 600; }
 
-/* Mobile: the 7-column campaign row (img · copy · 3 stats · detail · menu) would
-   overflow a phone. Stack it — image+title+menu on the first row, then each stat
-   as an inline "label → value" line, then a full-width action. */
-@media (max-width: 640px) {
+/* The seven-column row needs about 940px of content width. The signed-in shell
+   keeps a sidebar on tablets and small laptops, so stack before that space is
+   exhausted rather than keying this layout to the outer viewport alone. */
+@media (max-width: 1199px) {
   .campaign-item {
     grid-template-columns: 72px minmax(0, 1fr) auto;
     gap: 12px;
@@ -3188,8 +3191,9 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 .recent-row b { color: #131a3d; font-size: 13px; font-weight: 600; line-height: 1.35; }
 .recent-row small { margin-top: 3px; color: #8a92ac; font-weight: 500; }
 .growth-strip { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(260px, 1.5fr) repeat(4, minmax(130px, 1fr)) 190px; align-items: center; gap: 22px; min-height: 88px; padding: 18px 22px; background: #fff; }
-/* Mobile: the six-column metrics strip (min ~970px) can't fit a phone — stack it. */
-@media (max-width: 760px) {
+/* The signed-in shell keeps a sidebar through tablet and small-desktop widths,
+   leaving less room than the viewport suggests for this six-column strip. */
+@media (max-width: 1360px) {
   .growth-strip { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); row-gap: 16px; min-height: 0; }
   .growth-strip > * { min-width: 0; }
 }
@@ -6922,10 +6926,12 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 
 /* Mobile (< 600px): full-width, sidebar becomes horizontal bottom bar or hide */
 @media (max-width: 600px) {
-  .kf-app { grid-template-columns: minmax(0, 1fr); grid-template-rows: 1fr auto; }
+  .kf-app { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
   .kf-sidebar {
-    position: fixed;
-    bottom: 0;
+    position: sticky;
+    grid-row: 1;
+    top: 0;
+    bottom: auto;
     left: 0;
     right: 0;
     top: auto;
@@ -6939,14 +6945,18 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
     overflow-y: hidden;
     gap: 4px;
     width: 100%;
-    justify-content: space-around;
+    justify-content: flex-start;
   }
   [data-theme="dark"] .kf-sidebar { border-top-color: var(--line); }
   .kf-logo { display: none; }
   .kf-user-chip { display: none; }
   .kf-section-label { display: none; }
   .kf-create { order: -1; width: 40px; height: 40px; padding: 0; border-radius: 12px; font-size: 0; }
-  .kf-nav { flex-direction: row; gap: 4px; }
+  .kf-nav { display: flex; flex-direction: row; flex-wrap: nowrap; flex: 0 0 auto; min-width: max-content; gap: 4px; }
+  .kf-nav-group { display: flex; flex: 0 0 auto; }
+  .kf-nav-item-row { gap: 0; }
+  .kf-nav-toggle,
+  .kf-nav-sub { display: none; }
   .kf-nav a { min-height: 44px; min-width: 44px; padding: 0; border-radius: 10px; }
   .kf-nav a span { display: none; }
   .kf-nav a em { display: none; }
@@ -6955,7 +6965,7 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
   .kf-back-to-dashboard { display: none; }
   .kf-logout-btn { display: none; }
   .kf-admin-nav { display: none; }
-  .kf-main { padding-bottom: 72px; }
+  .kf-main { grid-row: 2; padding-bottom: 0; }
   .kf-topbar { padding: 16px 16px 10px; min-height: auto; }
   .kf-topbar h1 { font-size: 24px; }
   .kf-topbar p { font-size: 14px; margin-top: 8px; }
@@ -6974,6 +6984,22 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
      instead, which is what the row already does at every other breakpoint. */
   .kf-row { grid-template-columns: 40px minmax(0, 1fr); gap: 10px; padding: 10px 14px; }
   .kf-row > *:nth-child(n+3) { grid-column: 2; }
+  .admin-reports-layout { padding: 0 14px 20px !important; }
+  .admin-reports-metrics,
+  .admin-reports-columns { grid-template-columns: minmax(0, 1fr) !important; }
+  .admin-reports-columns > * { min-width: 0; }
+  .admin-reports-columns .kf-search { width: 100% !important; }
+  .sys-activity-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+  }
+  .sys-activity-row > :nth-child(n+3) {
+    grid-column: 2;
+    justify-self: start;
+  }
+  .ai-coach-layout { height: auto !important; }
+  .ai-coach-messages { overflow: visible !important; }
 }
 
 @media (max-width: 900px) {
@@ -6986,6 +7012,10 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
   .kf-top-actions {
     justify-content: flex-start;
     flex-wrap: wrap;
+  }
+  .admin-source-donut {
+    flex-direction: column;
+    align-items: stretch !important;
   }
 }
 
@@ -10358,7 +10388,7 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   padding: 0 var(--gutter, 40px);
 }
 .ss-crumbs ol { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 0 0 26px; padding: 0; font-size: 13px; color: rgba(255,255,255,.62); }
-.ss-crumbs a { color: rgba(255,255,255,.62); text-decoration: none; }
+.ss-crumbs a { display: inline-flex; align-items: center; min-height: 44px; color: rgba(255,255,255,.62); text-decoration: none; }
 .ss-crumbs a:hover { color: #fff; text-decoration: underline; }
 .ss-crumbs li[aria-current='page'] { color: #fff; font-weight: 650; }
 .ss-hero-copy { max-width: 34rem; }
@@ -12239,4 +12269,79 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
   display: inline-flex;
   align-items: center;
   min-height: 24px;
+}
+
+.legal-page .legal-body li > a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+/* Mobile input is imprecise: every standalone interactive control exposes the
+   product-standard 44px hit area. Inline prose links remain inline because
+   dimensions do not alter non-replaced inline boxes. This final rule follows
+   page-specific CSS so legacy 32px/40px declarations cannot lower the standard. */
+@media (max-width: 640px) {
+  a[href] {
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+
+  button,
+  [role="button"],
+  [role="link"],
+  [role="tab"],
+  [role="checkbox"],
+  [role="switch"] {
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+
+  input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  select,
+  textarea {
+    min-height: 44px !important;
+  }
+
+  .kind-logo {
+    min-height: 44px;
+    padding-block: 5px;
+  }
+
+  .kind-menu {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  .pc-skeleton-block {
+    max-width: 100%;
+  }
+
+  label:has(input[type="checkbox"]),
+  label:has(input[type="radio"]) {
+    min-height: 44px;
+    align-items: center;
+  }
+}
+
+.cm-touch-link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+}
+
+@media (max-width: 700px) {
+  .email-template-layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .impact-budget-row {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .audit-log-kpis,
+  .audit-log-charts,
+  .audit-log-main {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
 }
