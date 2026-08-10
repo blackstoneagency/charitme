@@ -24063,12 +24063,38 @@ transaction, not four API calls that can half-fail.
 
 ### ⏳ Open, this repo can finish
 
-- [ ] **Manifest `screenshots`.** Previously abandoned: `page.screenshot()` timed
-      out at 30s on `/` and `/campaigns`, blamed on the hero carousel and CountUp.
-      ⚠️ That diagnosis is now in doubt — the identical symptom on the data-wiring
-      sweep turned out to be `networkidle` never settling because campaign covers
-      point at hosts this sandbox cannot reach. Being retested with off-origin
-      blocking. **Do not record the outcome until it is measured.**
+- [x] **Manifest `screenshots` — MEASURED, and the abandonment reason was wrong.**
+      The tracker recorded `page.screenshot()` timing out at 30s on `/` and
+      `/campaigns`, "almost certainly the hero carousel and the CountUp
+      animations". Re-measured: **`/` captures in 0.6–1.3s and `/campaigns` in
+      1.2–1.6s**, with and without off-origin blocking. The pages were never the
+      problem. The two settings that DO hang are the ones the earlier attempt
+      used: `waitUntil: 'networkidle'` (never settles — covers point at
+      unreachable hosts, the same root cause as the ten silently unmeasured
+      data-wiring routes) and `animations: 'disabled'`, which waits for CSS
+      animations to finish, and the hero carousel is infinite.
+      `scripts/capture-manifest-screenshots.mjs` captures at 780×1688 and writes
+      `lib/manifest-screenshots.json`, which `app/manifest.ts` reads — a
+      hand-kept list drifts, and its failure mode is a 404 *inside the install
+      dialog*, a surface no route test or link audit reaches.
+
+- [ ] **3 of the 4 screenshots cannot be captured HERE, and the capture script
+      now refuses them rather than shipping them.**
+      `/campaigns`, `/donate` and `/how-it-works` render **"Gifts given —"** in
+      this sandbox while production renders **592** (both checked by curl). The
+      em dash is this codebase's marker for a read that FAILED: the donations
+      count times out through the sandbox proxy where it does not in production.
+      Deterministic, not flaky — three consecutive cache-busted requests all
+      returned the dash.
+      ⚠️ Nothing downstream can catch this. The PNG is valid, the manifest is
+      valid, every test passes — it is a clean, well-composed phone screenshot
+      of a broken statistic, and it would have gone into the install dialog and
+      the store listing. The script now fails any shot whose `[class*=stat-value]`
+      reads as an em dash; the three bad PNGs from the first run were deleted.
+      **Re-run `npm run capture:screenshots` from an environment where that count
+      resolves** (a dev machine, or CI with database access) to add the other
+      three. One `narrow` screenshot is enough for Chrome's rich install dialog,
+      so this is not blocking — it is incomplete.
 - [ ] iOS `PrivacyInfo.xcprivacy` + App Privacy answers (donations, email,
       payment data are all collected).
 - [ ] Play Data safety declaration.
