@@ -27,6 +27,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
+import { recordAssets, summarize } from './lib/image-inventory.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const WEB_ROOT = join(HERE, '..');
@@ -234,6 +235,23 @@ for (const file of ['ios-icon-1024.png', 'play-icon-512.png', 'play-feature-grap
   if (meta.hasAlpha) throw new Error(`${file} still has an alpha channel — App Store Connect rejects this`);
   console.log(`  ${file}: ${meta.width}×${meta.height}, channels ${meta.channels}, alpha ${meta.hasAlpha}`);
 }
+
+// Record provenance in the same run that writes the pixels — see
+// scripts/lib/image-inventory.mjs for why this is not left to a human.
+console.log(summarize(recordAssets([
+  { path: 'store/ios-icon-1024.png', subject: 'CharitMe mark on the brand gradient, 1024x1024',
+    fit: 'App Store icon. Opaque (no alpha channel) because App Store Connect rejects one, and square because iOS applies its own mask',
+    source: 'Generated from public/CharitMe_Logo.png by apps/web/scripts/generate-store-art.mjs',
+    license: 'CharitMe-owned brand artwork', uses: ['App Store listing'] },
+  { path: 'store/play-icon-512.png', subject: 'CharitMe mark on the brand gradient, 512x512',
+    fit: 'Play Console store icon',
+    source: 'Generated from public/CharitMe_Logo.png by apps/web/scripts/generate-store-art.mjs',
+    license: 'CharitMe-owned brand artwork', uses: ['Play Store listing'] },
+  { path: 'store/play-feature-graphic.png', subject: 'CharitMe mark with the product name and positioning line, 1024x500',
+    fit: "Play feature graphic. Wording comes from the manifest's own description, so the listing cannot state something the app does not",
+    source: 'Generated from public/CharitMe_Logo.png by apps/web/scripts/generate-store-art.mjs',
+    license: 'CharitMe-owned brand artwork', uses: ['Play Store listing'] },
+])));
 
 // ⚠️ Named ASSETS.md, not README.md, on purpose. `ci-paths-ignore.test.ts`
 // scans scripts/ for quoted `*.md` names and treats any hit as a file the build

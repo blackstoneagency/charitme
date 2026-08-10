@@ -37,6 +37,7 @@ with no claim is free. An item with a claim is someone else's — pick another.
 | Store listing art | claude/mobile | 2026-08-10 | ✅ done, released — ⚠️ logo source corrected since, see Applied |
 | Native shells (TWA + Capacitor config) | claude/mobile | 2026-08-10 | ✅ config done, released |
 | Privacy declarations | claude/mobile | 2026-08-10 | ✅ done, released |
+| Per-device store screenshots | claude/mobile | 2026-08-10 | ✅ done, released |
 | Tombstone migration apply | — | | 🔓 OWNER, one paste — see Open #1; not blocked on a missing credential |
 
 ⚠️ **Do not take "blocked on credentials" items.** They are not unclaimed work —
@@ -179,6 +180,25 @@ Two things had to be solved to put it there, both measured:
   whole SVG, gradient *and* the old heart-and-hand, which showed through as a
   pale swoosh. `tile()` now strips the `<g>` group so only the gradient field
   remains, and throws if that group is not found.
+### Per-device listing screenshots — 12, at exact console sizes
+`npm run capture:screenshots -- --store` captures 4 screens across 3 device
+classes into `public/store/screenshots/`:
+
+| Device | Size |
+|---|---|
+| iPhone 6.7" | 1290×2796 |
+| iPhone 6.5" | 1242×2688 |
+| Play phone | 1080×1920 |
+
+⚠️ **Both consoles reject a size mismatch rather than scaling**, and the trap is
+Playwright's units: the viewport is CSS pixels and `deviceScaleFactor`
+multiplies. Passing `1290` with scale 3 yields a **3870px** image that looks
+correct in a file listing and fails on upload. The script divides by the scale;
+`__tests__/store-art.test.ts` asserts the written pixel dimensions, not the
+requested ones.
+
+The em-dash refusal applies here too — a listing screenshot showing a failed
+read is the worst place for one.
 
 ### Sign in with Apple — checked, already present
 Guideline 4.8 requires it wherever a third-party login is offered, and Google
@@ -340,11 +360,9 @@ Two findings worth keeping:
 
 **Still owner-side:** entering these answers in the two consoles.
 
-### Store listing art — per-device screenshots only
-The three generated assets are done (see Applied). What remains is **per-device
-screenshots** for each console's required display sizes, which the stores demand
-at specific resolutions (e.g. 6.7" and 5.5" iPhone). Those are captures, not
-generated art, and need the device frames the consoles specify.
+### Store listing art — ✅ complete
+Three generated assets plus **12 per-device listing screenshots**, all verified
+against the exact sizes each console demands. Nothing outstanding here.
 
 ---
 

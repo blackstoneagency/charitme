@@ -29,6 +29,7 @@
  * If a future run hangs again, suspect the wait condition before the page.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
+import { recordAssets, summarize } from './lib/image-inventory.mjs';
 import { join } from 'node:path';
 import { chromium } from '@playwright/test';
 import { resolveBase } from './lib/audit-base.mjs';
@@ -46,6 +47,23 @@ const OUT_DIR = join(WEB_ROOT, 'public', 'screenshots');
  */
 const VIEWPORT = { width: 390, height: 844 };
 const SCALE = 2;
+
+/**
+ * Store LISTING screenshots, at the exact pixel sizes each console demands.
+ *
+ * ⚠️ These are not the manifest screenshots above and cannot be reused as them:
+ * both consoles reject a size mismatch outright rather than scaling, and Chrome's
+ * install dialog wants a phone-shaped image rather than a 2796px-tall one.
+ *
+ * Sizes are the current required device classes. Apple asks for one set per
+ * supported display size; Play wants at least two phone screenshots between
+ * 320px and 3840px on the long edge.
+ */
+const STORE_DEVICES = [
+  { key: 'ios-6.7', width: 1290, height: 2796, scale: 3, label: 'iPhone 6.7"' },
+  { key: 'ios-6.5', width: 1242, height: 2688, scale: 3, label: 'iPhone 6.5"' },
+  { key: 'play-phone', width: 1080, height: 1920, scale: 2, label: 'Play phone' },
+];
 
 const SHOTS = [
   { file: 'home.png', path: '/', label: 'Discover campaigns to support' },
@@ -113,6 +131,78 @@ for (const shot of SHOTS) {
   }
 }
 
+/**
+ * ⚠️ Runs only with `--store`. The listing set is 12 captures at up to 2796px
+ * tall; making that the default would triple the time of a routine manifest
+ * refresh for assets that change once per release.
+ */
+if (process.argv.includes('--store')) {
+  const { mkdirSync: mkdir } = await import('node:fs');
+  const storeDir = join(WEB_ROOT, 'public', 'store', 'screenshots');
+  mkdir(storeDir, { recursive: true });
+  let ok = 0;
+  let bad = 0;
+
+  for (const device of STORE_DEVICES) {
+    // Divide by the scale factor: Playwright's viewport is in CSS pixels and
+    // `deviceScaleFactor` multiplies to device pixels. Passing 1290 as the
+    // viewport with scale 3 produces a 3870px image the store rejects.
+    const ctx = await browser.newContext({
+      viewport: { width: Math.round(device.width / device.scale), height: Math.round(device.height / device.scale) },
+      deviceScaleFactor: device.scale,
+      isMobile: true,
+      hasTouch: true,
+    });
+    for (const shot of SHOTS) {
+      const page = await ctx.newPage();
+      try {
+        const response = await page.goto(`${BASE}${shot.path}`, { waitUntil: 'load', timeout: 30_000 });
+        if ((response?.status() ?? 0) !== 200) throw new Error(`HTTP ${response?.status()}`);
+        await page.waitForTimeout(1200);
+        // Same refusal as above: a store listing must never show a failed read.
+        const broken = await page.evaluate(() =>
+          [...document.querySelectorAll('[class*="stat-value"]')]
+            .map((el) => el.textContent?.trim() ?? '')
+            .filter((text) => text === '\u2014'),
+        );
+        if (broken.length > 0) throw new Error(`${broken.length} statistic(s) render as an em dash`);
+        const file = `${device.key}-${shot.file}`;
+        await page.screenshot({ path: join(storeDir, file) });
+        ok++;
+      } catch (e) {
+        console.log(`✗ ${device.key} ${shot.path} — ${String(e.message).split('\n')[0].slice(0, 60)}`);
+        bad++;
+      } finally {
+        await page.close();
+      }
+    }
+    console.log(`· ${device.label.padEnd(14)} ${device.width}×${device.height}`);
+    await ctx.close();
+  }
+  console.log(`\nstore listing screenshots: ${ok} captured, ${bad} failed → public/store/screenshots/`);
+  // ⚠️ Record provenance in the SAME run that writes the pixels. Capturing
+  // without inventorying turned master red three times in one session, and
+  // because CI tests a PR against its merge with master it failed every open
+  // PR too — with an error none of their authors caused.
+  if (bad === 0) {
+    const recorded = STORE_DEVICES.flatMap((device) =>
+      SHOTS.map((shot) => ({
+        path: `store/screenshots/${device.key}-${shot.file}`,
+        subject: `${device.label} screenshot of CharitMe ${shot.path} at ${device.width}x${device.height}`,
+        fit: `Store listing screenshot: ${shot.label}`,
+        source: 'Captured from a local production build by apps/web/scripts/capture-manifest-screenshots.mjs --store',
+        license: "CharitMe-owned: a rendering of this application's own UI",
+        uses: [device.key.startsWith('ios') ? 'App Store listing' : 'Play Store listing'],
+      })),
+    );
+    console.log(summarize(recordAssets(recorded)));
+  }
+  if (bad > 0) {
+    await browser.close();
+    process.exit(1);
+  }
+}
+
 await browser.close();
 
 // The manifest reads this file, so the two can never disagree about which
@@ -124,6 +214,16 @@ const generated = {
   shots: captured.map((s) => ({ src: `/screenshots/${s.file}`, label: s.label })),
 };
 writeFileSync(join(WEB_ROOT, 'lib', 'manifest-screenshots.json'), `${JSON.stringify(generated, null, 2)}\n`);
+
+const manifestAssets = captured.map((shot) => ({
+  path: `screenshots/${shot.file}`,
+  subject: `Screenshot of CharitMe ${shot.path} at ${generated.width}x${generated.height}`,
+  fit: `Manifest screenshot, labelled "${shot.label}" in the Android install dialog`,
+  source: 'Captured from a local production build by apps/web/scripts/capture-manifest-screenshots.mjs',
+  license: "CharitMe-owned: a rendering of this application's own UI",
+  uses: ['PWA manifest'],
+}));
+console.log(summarize(recordAssets(manifestAssets)));
 
 console.log(`\n${captured.length}/${SHOTS.length} captured at ${generated.width}×${generated.height}`);
 if (failed.length) {
