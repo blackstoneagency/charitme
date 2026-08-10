@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import sharp from 'sharp';
 
@@ -48,6 +48,41 @@ describe('store listing art', () => {
       });
     });
   }
+
+  describe('per-device listing screenshots', () => {
+    const SHOTS = path.join(STORE, 'screenshots');
+    const DEVICES = [
+      { key: 'ios-6.7', width: 1290, height: 2796 },
+      { key: 'ios-6.5', width: 1242, height: 2688 },
+      { key: 'play-phone', width: 1080, height: 1920 },
+    ];
+
+    for (const device of DEVICES) {
+      it(`${device.key} images are exactly ${device.width}×${device.height}`, async () => {
+        // ⚠️ Both consoles REJECT a size mismatch rather than scaling it, and the
+        // trap is Playwright's units: the viewport is CSS pixels and
+        // `deviceScaleFactor` multiplies. Passing 1290 with scale 3 yields a
+        // 3870px image that looks right in a file listing and fails on upload.
+        const files = readdirSync(SHOTS).filter((f) => f.startsWith(`${device.key}-`));
+        expect(files.length, `no ${device.key} screenshots found`).toBeGreaterThan(0);
+        for (const file of files) {
+          const meta = await sharp(path.join(SHOTS, file)).metadata();
+          expect({ file, w: meta.width, h: meta.height }).toEqual({
+            file,
+            w: device.width,
+            h: device.height,
+          });
+        }
+      });
+    }
+
+    it('covers at least two screens per device, which Play requires', () => {
+      for (const device of DEVICES) {
+        const files = readdirSync(SHOTS).filter((f) => f.startsWith(`${device.key}-`));
+        expect(files.length).toBeGreaterThanOrEqual(2);
+      }
+    });
+  });
 
   it('the in-app icons are deliberately NOT treated this way', async () => {
     // Guards against someone "fixing" the PWA icons to match. A manifest icon is
