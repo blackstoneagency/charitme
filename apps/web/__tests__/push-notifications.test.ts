@@ -214,6 +214,33 @@ describe('the subscription endpoint is a capability, so it is guarded', () => {
   });
 });
 
+describe('the opt-in control is honest about when it cannot work', () => {
+  const optin = read('app/dashboard/notifications/PushOptIn.tsx');
+
+  it('renders NOTHING when push is unsupported or unconfigured', () => {
+    // A control that does nothing when tapped reads as a broken product — and on
+    // iOS a Safari tab genuinely cannot subscribe at all.
+    expect(optin).toMatch(/if \(state === 'checking' \|\| state === 'unsupported' \|\| state === 'unconfigured'\) return null;/);
+  });
+
+  it('rolls the browser subscription back when the server refuses it', () => {
+    // Otherwise the browser believes this device is subscribed while the server
+    // has no row: opted-in forever, receiving nothing.
+    expect(optin).toMatch(/await sub\.unsubscribe\(\)[\s\S]{0,200}setError/);
+  });
+
+  it('uses the AA-safe green, not the brand fill', () => {
+    // --green is #12a653 = 3.18:1 on white; this button is 14px/650, so AA needs
+    // 4.5:1. --green-dark is 5.73:1.
+    expect(optin).toContain('var(--green-dark)');
+    expect(optin).not.toMatch(/background:[^;]*var\(--green\)/);
+  });
+
+  it('keeps a 44px touch target', () => {
+    expect(optin).toMatch(/minHeight: 44/);
+  });
+});
+
 describe('the service worker version was bumped with the handlers', () => {
   it('is v4, so an existing install actually picks up push', () => {
     const sw = read('public/sw.js');
