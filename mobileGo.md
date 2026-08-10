@@ -36,7 +36,7 @@ with no claim is free. An item with a claim is someone else's — pick another.
 |---|---|---|---|
 | Store listing art | claude/mobile | 2026-08-10 | ✅ done, released |
 | Native shells (TWA + Capacitor config) | claude/mobile | 2026-08-10 | ✅ config done, released |
-| Privacy declarations | claude/mobile | 2026-08-10 | 🔨 in progress |
+| Privacy declarations | claude/mobile | 2026-08-10 | ✅ done, released |
 | Tombstone migration apply | — | | 🔒 blocked on credentials, not on people |
 
 ⚠️ **Do not take "blocked on credentials" items.** They are not unclaimed work —
@@ -263,13 +263,28 @@ one organisers actually want (donation alerts).
 
 ## 🟡 Open — not blocking
 
-### Privacy declarations
-- iOS `PrivacyInfo.xcprivacy` + App Privacy answers
-- Play Data safety form
+### Privacy declarations — ✅ answered, from the code
+`docs/store-privacy-declarations.md` holds both consoles' answers, derived from
+`assembleUserExport` (what the GDPR export actually returns) rather than from a
+template. `native/ios/PrivacyInfo.xcprivacy` is the machine-readable form — copy
+it into the Xcode project root after `npx cap add ios`.
 
-Both collect: email, donation/payment data, and campaign content. Neither exists
-yet; both are store-console forms rather than repo files, but the answers must
-match what the code actually collects.
+`__tests__/store-privacy-declarations.test.ts` ties the declaration to the code:
+add a table to the export and it fails until the declaration names it. It also
+asserts the single most consequential claim — "is data used to track you? No" —
+by failing if a third-party analytics SDK is ever installed.
+
+Two findings worth keeping:
+- ⚠️ **There is no third-party analytics or ad SDK at all** (verified by grep, not
+  memory). `MarketingTracker` posts to a first-party endpoint, keeps its visitor
+  id in `localStorage`, and honours an opt-out. So "used to track you" is
+  genuinely **No**, and no ATT prompt is needed.
+- ⚠️ **Play's "data shared" must still be Yes.** Sub-processors count as sharing
+  even though none is an ad network. **OpenAI is the one most likely to be
+  missed**: a user's campaign story is their content, and it leaves the platform
+  when they use an AI drafting feature.
+
+**Still owner-side:** entering these answers in the two consoles.
 
 ### Store listing art — per-device screenshots only
 The three generated assets are done (see Applied). What remains is **per-device
