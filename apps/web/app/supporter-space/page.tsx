@@ -98,10 +98,23 @@ function Bucket({ heading, intro, campaigns, emptyBody }: { heading: string; int
 
 export default async function SupporterSpacePage() {
   const buckets = await getBuckets();
-  const soonest = buckets?.closingSoon[0];
+  const displayBuckets = buckets ? (() => {
+    const seen = new Set<string>();
+    const takeNew = (campaigns: CampaignCardData[]) => campaigns.filter((campaign) => {
+      if (seen.has(campaign.id)) return false;
+      seen.add(campaign.id);
+      return true;
+    });
+    return {
+      closingSoon: takeNew(buckets.closingSoon),
+      verified: takeNew(buckets.verified),
+      furthest: takeNew(buckets.furthest),
+    };
+  })() : null;
+  const soonest = displayBuckets?.closingSoon[0];
   const soonestDays = soonest ? campaignDaysLeft(soonest.deadline) : null;
-  const visibleCampaigns = buckets
-    ? Array.from(new Map([...buckets.closingSoon, ...buckets.verified, ...buckets.furthest].map((campaign) => [campaign.id, campaign])).values())
+  const visibleCampaigns = displayBuckets
+    ? [...displayBuckets.closingSoon, ...displayBuckets.verified, ...displayBuckets.furthest]
     : [];
   const visibleCategories = new Set(visibleCampaigns.map((campaign) => campaign.category).filter(Boolean));
 
@@ -121,7 +134,7 @@ export default async function SupporterSpacePage() {
 
       <ReferenceStats items={[
         { icon: 'megaphone', value: visibleCampaigns.length.toLocaleString(), label: 'Active campaigns loaded' },
-        { icon: 'shield', value: (buckets?.verified.length ?? 0).toLocaleString(), label: 'Verified campaigns shown' },
+        { icon: 'shield', value: (displayBuckets?.verified.length ?? 0).toLocaleString(), label: 'Verified campaigns shown' },
         { icon: 'globe', value: visibleCategories.size.toLocaleString(), label: 'Cause areas represented' },
         { icon: 'clock', value: soonestDays !== null && soonestDays >= 0 ? `${soonestDays}d` : 'Live', label: 'Most urgent deadline' },
       ]} />
@@ -130,13 +143,13 @@ export default async function SupporterSpacePage() {
         <ReferenceIconGrid items={CAUSES} />
       </ReferenceSection>
 
-      {buckets === null ? (
+      {displayBuckets === null ? (
         <div className="rp-section"><EmptyState icon="!" title="We couldn't load campaigns just now" body="This is a temporary data problem, not an empty platform." action={<Link href="/supporter-space" className="rp-text-link">Try again</Link>} /></div>
       ) : (
         <>
-          <Bucket heading="Closing Soonest" intro="Campaigns with an approaching deadline, ordered from live campaign data." campaigns={buckets.closingSoon} emptyBody="No campaigns are closing in the near future." />
-          <Bucket heading="Identity Verified" intro="The fundraiser's identity has been confirmed and payouts are enabled." campaigns={buckets.verified} emptyBody="No verified campaigns are available right now." />
-          <Bucket heading="Furthest From Their Goal" intro="Campaigns that have raised the least and may not have reached many supporters yet." campaigns={buckets.furthest} emptyBody="No campaigns are available right now." />
+          <Bucket heading="Closing Soonest" intro="Campaigns with an approaching deadline, ordered from live campaign data." campaigns={displayBuckets.closingSoon} emptyBody="No campaigns are closing in the near future." />
+          <Bucket heading="Identity Verified" intro="The fundraiser's identity has been confirmed and payouts are enabled." campaigns={displayBuckets.verified} emptyBody="No verified campaigns are available right now." />
+          <Bucket heading="Furthest From Their Goal" intro="Campaigns that have raised the least and may not have reached many supporters yet." campaigns={displayBuckets.furthest} emptyBody="No campaigns are available right now." />
         </>
       )}
 

@@ -47,6 +47,7 @@ export default async function PartnerRoster() {
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={logo}
+                  data-image-entity={`sponsor:${sponsor.id}`}
                   alt=""
                   width={40}
                   height={40}
@@ -54,7 +55,14 @@ export default async function PartnerRoster() {
                   decoding="async"
                   style={{ width: 40, height: 40, objectFit: 'contain', flex: '0 0 auto' }}
                 />
-              ) : null}
+              ) : (
+                <span
+                  aria-hidden="true"
+                  style={{ width: 40, height: 40, borderRadius: 8, display: 'grid', placeItems: 'center', flex: '0 0 auto', background: 'var(--s3)', color: 'var(--t2)', fontSize: 15, fontWeight: 800 }}
+                >
+                  {sponsor.name.trim().slice(0, 1).toUpperCase() || '?'}
+                </span>
+              )}
               {/* The NAME is the accessible label, always present. The logo is
                   decorative (alt="") because a logo alt of the same name would
                   read the partner out twice to a screen reader. */}

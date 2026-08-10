@@ -201,7 +201,8 @@ for (const r of list) {
           /logo|avatar/i.test(el.alt ?? '');
         if (isControl || isChrome) continue;
         const source = el.currentSrc || el.src;
-        if (source) out.push(source);
+        const entity = el.getAttribute('data-image-entity') ?? el.closest('[data-image-entity]')?.getAttribute('data-image-entity') ?? null;
+        if (source) out.push({ source, entity });
         if (source && el.complete && el.naturalWidth === 0) broken.push(source);
       }
       for (const el of document.querySelectorAll('*')) {
@@ -217,7 +218,8 @@ for (const r of list) {
         if (el.closest('header, nav, footer') !== null) continue;
         if (el.closest('button, [role="button"]') !== null) continue;
         if (/logo|avatar|icon/i.test(bgCls)) continue;
-        out.push(m[1]);
+        const entity = el.getAttribute('data-image-entity') ?? el.closest('[data-image-entity]')?.getAttribute('data-image-entity') ?? null;
+        out.push({ source: m[1], entity });
       }
       return { sources: out, broken };
     });
@@ -227,7 +229,7 @@ for (const r of list) {
       brokenImages.push({ path, source });
       console.log(`BROKEN ${path}: ${source}`);
     }
-    for (const source of raw.filter((value) => /picsum|loremflickr/i.test(value))) {
+    for (const { source } of raw.filter(({ source }) => /picsum|loremflickr/i.test(source))) {
       placeholderImages.push({ path, source });
       console.log(`PLACEHOLDER ${path}: ${source}`);
     }
@@ -235,12 +237,13 @@ for (const r of list) {
     analyzed++;
 
     const counts = new Map();
-    for (const src of raw) {
-      const id = imageIdentity(src);
+    for (const { source, entity } of raw) {
+      const id = imageIdentity(source);
       if (!id) continue;
       counts.set(id, (counts.get(id) ?? 0) + 1);
-      if (!seenAcross.has(id)) seenAcross.set(id, new Set());
-      seenAcross.get(id).add(path);
+      if (!seenAcross.has(id)) seenAcross.set(id, { paths: new Set(), entities: new Set() });
+      seenAcross.get(id).paths.add(path);
+      seenAcross.get(id).entities.add(entity);
     }
 
     const dupes = [...counts.entries()].filter(([, n]) => n > 1);
@@ -274,15 +277,17 @@ if (analyzed === 0) {
   process.exit(1);
 }
 
-const shared = [...seenAcross.entries()].filter(([, paths]) => paths.size > 1);
-if (STRICT_GLOBAL && shared.length > 0) {
-  for (const [identity, paths] of shared) {
-    process.stdout.write(`SHARED ${identity}: ${[...paths].join(', ')}\n`);
+const shared = [...seenAcross.entries()].filter(([, usage]) => usage.paths.size > 1);
+const unrelatedShared = shared.filter(([, usage]) => usage.entities.size !== 1 || usage.entities.has(null));
+if (STRICT_GLOBAL && unrelatedShared.length > 0) {
+  for (const [identity, usage] of unrelatedShared) {
+    process.stdout.write(`SHARED ${identity}: ${[...usage.paths].join(', ')}\n`);
   }
-  process.stdout.write(`\nGlobal image uniqueness failures: ${shared.length}\n`);
+  process.stdout.write(`\nGlobal image uniqueness failures: ${unrelatedShared.length}\n`);
   process.exit(1);
 }
-console.log(`· ${seenAcross.size} distinct images; ${shared.length} appear on more than one page (allowed)`);
+const sameEntityShared = shared.length - unrelatedShared.length;
+console.log(`· ${seenAcross.size} distinct images; ${sameEntityShared} repeat only for the same entity across pages (allowed)`);
 
 if (brokenImages.length || placeholderImages.length) {
   console.log(`\nImage integrity failures: ${brokenImages.length} broken; ${placeholderImages.length} generic placeholder.`);
