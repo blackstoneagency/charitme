@@ -237,7 +237,33 @@ if (probe.status !== 200) {
 }
 if (!AS_JSON) console.log(`· signed-in probe: ${probePath} renders (200) as ${AS_MEMBER ? 'member' : 'admin'}`);
 
-// ─── 4. sweep ───────────────────────────────────────────────────────────────
+// ─── 4a. content contracts (optional, runs BEFORE the sweep) ────────────────
+//
+// `--content-contracts` runs scripts/audit-content-contracts.mjs against this
+// same server before the main sweep, and fails the whole run if it fails.
+//
+// ⚠️ It is bolted onto THIS harness rather than given its own CI step for one
+// reason: it needs a build pointed at the Supabase stub. The public "Runtime
+// audits" step builds against `placeholder.supabase.co`, where every data-backed
+// route renders an empty state — the exact condition this audit exists to catch,
+// so it would fail 8 of 8 routes there and mean nothing. Giving it its own step
+// would mean a second full `next build`, and Actions minutes are the binding
+// constraint on this repo. One build, one server, two readers.
+//
+// The routes it checks are PUBLIC; it does not use the session. It runs here
+// only because this is where a stub-backed server exists.
+if (argv.includes('--content-contracts')) {
+  if (!AS_JSON) console.log('\n· content contracts (public routes, stub-backed data)');
+  try {
+    await runChild(process.execPath, ['scripts/audit-content-contracts.mjs', '--base', BASE], { env });
+  } catch (contractError) {
+    console.error(`\n✗ content contracts failed: ${contractError.message}`);
+    cleanup();
+    process.exit(1);
+  }
+}
+
+// ─── 4b. sweep ──────────────────────────────────────────────────────────────
 const MOBILE = argv.includes('--mobile');
 // `--probe <path> [width]` explains ONE route instead of sweeping all of them:
 // the ancestor chain of the widest offender, with the properties that decide
