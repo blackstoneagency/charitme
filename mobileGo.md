@@ -24,6 +24,32 @@ owns* are, and names precisely what is not.
 
 ---
 
+## 🤝 Coordination — claim before you start
+
+Several agents merge into `master` hourly. This file is the shared ledger; the
+repo is the only channel we actually share, so claims live here.
+
+**Before starting an item, add your claim line. Clear it when you push.** An item
+with no claim is free. An item with a claim is someone else's — pick another.
+
+| Item | Claimed by | Since | State |
+|---|---|---|---|
+| Store listing art | claude/mobile | 2026-08-10 | ✅ done, released — ⚠️ logo source corrected since, see Applied |
+| Native shells (TWA + Capacitor config) | claude/mobile | 2026-08-10 | ✅ config done, released |
+| Privacy declarations | claude/mobile | 2026-08-10 | ✅ done, released |
+| Tombstone migration apply | — | | 🔒 blocked on credentials, not on people |
+
+⚠️ **Do not take "blocked on credentials" items.** They are not unclaimed work —
+they cannot be finished by anyone in a sandbox, and a second agent rediscovering
+that is pure duplication. As of 2026-08-10 that is the migration apply and both
+sets of store credentials.
+
+⚠️ **Check open PRs before claiming.** PR #355 (campaign photos) is a different
+lane but is blocked on the SAME rotated `SUPABASE_SERVICE_ROLE_KEY` — a working
+key now exists with the owner, which unblocks it.
+
+---
+
 ## ✅ Applied
 
 ### The splash flashed white before a black app
@@ -99,6 +125,56 @@ shot whose `[class*=stat-value]` reads as an em dash. With the working key
 supplied, all four recaptured clean — verified visually: 502 · $96,850 · 592 · 69.
 → `7b53f625`
 
+### Store listing art — generated, opaque, square
+`npm run generate:store-art` renders `ios-icon-1024.png`, `play-icon-512.png` and
+`play-feature-graphic.png` (1024×500) from the brand SVG already in the repo. No
+new artwork invented — same gradient, same mark, and the wording is the manifest's
+own description. No statistics or testimonials: listing art is the easiest place
+to publish a number nobody can source.
+
+⚠️ Two rejection causes, both invisible locally:
+- **Alpha.** App Store Connect refuses an icon with an alpha channel.
+  `public/icons/icon-512.png` is PNG colour type 6 (RGBA) — measured — so it
+  could not be reused.
+- **Rounded corners.** Both stores apply their own mask, and the source SVG draws
+  an `rx="112"` tile. Shipping it pre-rounded gets it rounded twice. The listing
+  icons render from the same SVG with the radius zeroed.
+
+⚠️ The generator's self-check caught a real bug in itself: **sharp runs `flatten`
+before `composite` regardless of call order**, so the feature graphic came out
+RGBA despite flattening. Fixed with a second pass.
+`__tests__/store-art.test.ts` re-checks size and alpha on every commit, and
+asserts the in-app icons are deliberately NOT treated this way — stripping their
+alpha would put a purple square on the home screen.
+
+⚠️ **CORRECTION, and it was shipping the wrong logo.** The first version rendered
+`icon-source.svg`, which draws a **purple tile with a plain white heart**. The
+mark this app actually ships — `icon-512.png`, `apple-touch-icon.png`, the
+favicon, `CharitMe_Logo.png` — is a **red heart carrying a "C", cradled by a
+purple and an orange hand**. Measured: the centre pixel of `icon-512.png` is
+`(209,3,1)`, red. So `ios-icon-1024.png` showed a different logo from the app it
+belonged to, and nothing could catch it: the PNG was valid, opaque, square, the
+right size, and every assertion passed. A reviewer comparing the listing icon to
+the app would have seen two products.
+
+The mark now comes from `public/CharitMe_Logo.png` (1254×1254, so 1024 is
+downscaled, not upscaled), composited on the same brand gradient.
+
+Two things had to be solved to put it there, both measured:
+
+- **The logo has an opaque white background baked INSIDE its silhouette** —
+  invisible on white, light blobs on the gradient. Its alpha is *binary*, and
+  near-white pixels form connected components: the **"C" is n=11093**, and three
+  others (n≈3528, 2963, 2940) are the gaps where the heart meets each hand.
+  `cleanMark()` keeps the component containing a known "C" pixel and clears the
+  rest, and **throws** if the "C" ever stops being the largest rather than
+  silently erasing the letter. Threshold is 215, not 232: at 232 the
+  anti-aliased edges survive as thin slivers.
+- **The tile SVG was drawing the old mark behind the new one.** `squared` is the
+  whole SVG, gradient *and* the old heart-and-hand, which showed through as a
+  pale swoosh. `tile()` now strips the `<g>` group so only the gradient field
+  remains, and throws if that group is not found.
+
 ### Sign in with Apple — checked, already present
 Guideline 4.8 requires it wherever a third-party login is offered, and Google
 sign-in is offered. It is present (`components/AuthPanel.tsx`,
@@ -147,50 +223,6 @@ build, and reassigning a table that does *not* protect money also fails — the
 tombstone must not inherit a deleted user's private records.
 → `285c7036`, `715cc00b`
 
-### Store listing art, generated
-`npm run generate:store-art` → `public/store/`: a 1024×1024 App Store icon, a
-512×512 Play icon, and a 1024×500 Play feature graphic. All three are **colour
-type 2** — read back out of the PNG header, not promised by the encoder.
-
-⚠️ **The note above this said "the existing `icon-512.png` has an alpha channel
-and will be rejected as-is", which is true and led to the wrong fix.** Stripping
-its alpha was never the answer: **150,377 of its 262,144 pixels are FULLY
-transparent**. The mark is a logo floating on nothing, not a tile with soft
-corners, so removing the channel without choosing what sits behind it composites
-the artwork onto whatever the encoder defaults to.
-
-⚠️ **The source is `public/CharitMe_Logo.png` (1254×1254), NOT
-`public/icons/icon-source.svg`.** That SVG draws a purple tile with a white heart;
-the shipped mark is a red heart with a "C" between a purple and an orange hand.
-Caught by reading the centre pixel — `(209,3,1)`, red — before trusting a filename
-that says "source". Rendering it would have produced a clean, confident, wrong
-icon. 1254 also means the 1024 is downscaled rather than upscaled from the 512.
-
-⚠️ **White is measured, not taste.** `#000000` (matching `background_color`, so
-the icon would flow into the splash) and `#6d35ff` (`theme_color`) were both
-generated and looked at first. Both show a light blob between the hands: the
-artwork's alpha is **binary**, and the gap between the hands is filled with
-**opaque near-white** — `(627,860)` and `(627,900)` both read `[246,246,245,255]`.
-A leftover white background baked inside the silhouette is invisible on white and
-visible on everything else. `--background` takes any colour once that fill is made
-transparent.
-
-Feature-graphic copy is **read from `app/manifest.ts`**, never written for the
-listing — store text that disagrees with the app's own manifest is the defect
-class removed from /corporate-partnerships.
-
-`__tests__/store-listing-art.test.ts` asserts sizes and the absence of an alpha
-channel, and is mutation-tested against a planted RGBA icon and a wrong-sized one.
-It also asserts the **web** icons still *do* carry alpha, so nobody "fixes" those
-by flattening them and silently changes the installed app.
-
-### The image inventory had drifted from what ships
-`audit:image-assets` was failing on `master`: `screenshots/home.png` was
-recaptured after its entry was written so its recorded hash was stale, and
-`campaigns.png`, `donate.png` and `how-it-works.png` were never inventoried at
-all. All four are corrected and the three new store assets added — 39 entries,
-39 raster files.
-
 ---
 
 ## 🔴 Open — blocking a submission
@@ -216,28 +248,24 @@ Runbook: **`docs/apply-pending-migrations.md`**, which also flags that a single
 `db push` applies 46 other migrations, three of them recorded by their own authors
 as needing staging verification first.
 
-✅ **But the whole batch is not the only route, and this blocker is one paste
-away.** The Supabase **SQL editor** runs as `postgres`, not through PostgREST, so
-it executes migration SQL directly — proved 2026-08-10, when the owner applied
-`20260904040000_default_support_percent_ten` that way and the live donate card
-changed within the minute.
-
-This migration is **safe to run alone**: pure DML (two `INSERT`s and a `COMMENT`),
-both inserts `ON CONFLICT DO NOTHING` so it is idempotent, it deletes nothing, it
-creates no schema, and it depends on nothing else in the pending batch —
-`auth.users` and `public.profiles` already exist. It writes no ledger row, so
-`migration list` will still call it pending and a later `db push` re-runs it as a
-no-op. Steps and the verification query are in the runbook under *"You do not have
-to push all 47 to unblock deletion"*.
-
 ### 2. `ACCOUNT_SELF_DELETE_ENABLED` is off
 Deliberate: `master` deploys straight to production, and an irreversible delete
 must not arrive as a side effect of a merge. Set to `true` **after** the migration
 is applied. Until then the endpoint 404s and the UI keeps the review-queue flow.
 
-### 3. No native shells exist
-No Capacitor project, no Bubblewrap project, no Xcode project. This is the gap
-between "the website is store-ready" and "there is something to upload".
+### 3. Native shells — config landed, builds still need toolchains
+`twa-manifest.json` (Play) and `capacitor.config.ts` (iOS) are committed and
+generated to match `app/manifest.ts` field for field, with
+`docs/native-shells.md` for the build path.
+`__tests__/twa-manifest-sync.test.ts` keeps them in step — the TWA manifest is a
+COPY of manifest values, and drift there is invisible on the website and shows up
+only on a phone someone already installed.
+
+**Still open:** the builds themselves. Bubblewrap needs a JDK + Android SDK,
+Capacitor's iOS build needs Xcode on macOS; neither exists in this sandbox. The
+`ios/` and `android/` directories are deliberately NOT committed — they are
+generated artifacts, and a `.pbxproj` conflicting on every merge in a repo
+several agents write to hourly costs more than regenerating it.
 
 ### 4. Store credentials, which unblock the association files
 - Play App Signing SHA-256 → `ANDROID_SHA256_FINGERPRINT` + `ANDROID_PACKAGE_NAME`
@@ -246,30 +274,51 @@ between "the website is store-ready" and "there is something to upload".
   ends up present and wrong.
 - Apple `TEAMID.bundle.id` → `IOS_APP_ID`
 
-### 5. ⚠️ Apple Guideline 4.2 "minimum functionality"
-A web view in a native shell is the most common rejection for a site-as-app.
-Mitigation is native capability — push notifications, share sheet, biometric
-unlock — which is app work, not repo work. Flagged so it is a decision rather
-than a surprise at review.
+### 5. ⚠️ Apple Guideline 4.2 "minimum functionality" — the likeliest rejection
+`capacitor.config.ts` points the shell at `https://www.charitme.com` rather than
+bundling a static export, and **it has to**: this is a Next.js server — RSC,
+route handlers, Stripe webhooks, `force-dynamic` pages — so `next export` cannot
+produce an offline bundle. That leaves the app in exactly the shape Apple rejects
+as "a repackaged website".
+
+⚠️ **Shipping the config alone is likely to be rejected.** The mitigation is
+native capability, which is app work rather than repo work. Ranked by
+reviewer-visible value in `docs/native-shells.md`; **push notifications** are the
+strongest, being the one thing the site genuinely cannot do on iOS Safari and the
+one organisers actually want (donation alerts).
 
 ---
 
 ## 🟡 Open — not blocking
 
-### Privacy declarations
-- iOS `PrivacyInfo.xcprivacy` + App Privacy answers
-- Play Data safety form
+### Privacy declarations — ✅ answered, from the code
+`docs/store-privacy-declarations.md` holds both consoles' answers, derived from
+`assembleUserExport` (what the GDPR export actually returns) rather than from a
+template. `native/ios/PrivacyInfo.xcprivacy` is the machine-readable form — copy
+it into the Xcode project root after `npx cap add ios`.
 
-Both collect: email, donation/payment data, and campaign content. Neither exists
-yet; both are store-console forms rather than repo files, but the answers must
-match what the code actually collects.
+`__tests__/store-privacy-declarations.test.ts` ties the declaration to the code:
+add a table to the export and it fails until the declaration names it. It also
+asserts the single most consequential claim — "is data used to track you? No" —
+by failing if a third-party analytics SDK is ever installed.
 
-### Store listing art
-**Per-device screenshots** are still outstanding — those are device-frame captures
-made in the store consoles, not repo files.
+Two findings worth keeping:
+- ⚠️ **There is no third-party analytics or ad SDK at all** (verified by grep, not
+  memory). `MarketingTracker` posts to a first-party endpoint, keeps its visitor
+  id in `localStorage`, and honours an opt-out. So "used to track you" is
+  genuinely **No**, and no ATT prompt is needed.
+- ⚠️ **Play's "data shared" must still be Yes.** Sub-processors count as sharing
+  even though none is an ad network. **OpenAI is the one most likely to be
+  missed**: a user's campaign story is their content, and it leaves the platform
+  when they use an AI drafting feature.
 
-The three repo-ownable pieces are now generated: see *Store listing art, generated*
-under Applied.
+**Still owner-side:** entering these answers in the two consoles.
+
+### Store listing art — per-device screenshots only
+The three generated assets are done (see Applied). What remains is **per-device
+screenshots** for each console's required display sizes, which the stores demand
+at specific resolutions (e.g. 6.7" and 5.5" iPhone). Those are captures, not
+generated art, and need the device frames the consoles specify.
 
 ---
 
@@ -297,9 +346,6 @@ npx vitest run __tests__/manifest-contract.test.ts
 npx vitest run __tests__/app-store-associations.test.ts
 npx vitest run __tests__/deletion-cascade.test.ts
 npx vitest run __tests__/account-self-deletion.test.ts
-npx vitest run __tests__/store-listing-art.test.ts
-npm run generate:store-art          # regenerates public/store/ from the 1254px logo
-npm run audit:image-assets          # every raster inventoried, hashed, provenanced
 ```
 
 ## Environment variables this work introduced

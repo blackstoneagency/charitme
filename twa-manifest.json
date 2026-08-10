@@ -1,0 +1,65 @@
+{
+  "packageId": "com.charitme.app",
+  "host": "www.charitme.com",
+  "name": "CharitMe — Intelligent Fundraising",
+  "launcherName": "CharitMe",
+  "display": "standalone",
+  "orientation": "portrait",
+  "themeColor": "#6d35ff",
+  "themeColorDark": "#000000",
+  "navigationColor": "#000000",
+  "navigationColorDark": "#000000",
+  "navigationDividerColor": "#000000",
+  "navigationDividerColorDark": "#000000",
+  "backgroundColor": "#000000",
+  "enableNotifications": false,
+  "startUrl": "/",
+  "iconUrl": "https://www.charitme.com/icons/icon-512.png",
+  "maskableIconUrl": "https://www.charitme.com/icons/icon-512-maskable.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "",
+    "alias": ""
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [
+    {
+      "name": "Start a fundraiser",
+      "shortName": "Fundraise",
+      "url": "/create/choose-path",
+      "chosenIconUrl": "https://www.charitme.com/icons/icon-192.png"
+    },
+    {
+      "name": "Browse campaigns",
+      "shortName": "Browse",
+      "url": "/campaigns",
+      "chosenIconUrl": "https://www.charitme.com/icons/icon-192.png"
+    },
+    {
+      "name": "Your dashboard",
+      "shortName": "Dashboard",
+      "url": "/dashboard",
+      "chosenIconUrl": "https://www.charitme.com/icons/icon-192.png"
+    }
+  ],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://www.charitme.com/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://www.charitme.com/",
+  "minSdkVersion": 21,
+  "appVersion": "1.0.0",
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "protocolHandlers": [],
+  "fileHandlers": [],
+  "launchHandlerClientMode": "navigate-existing",
+  "orientationLockEnabled": false
+}

@@ -18,11 +18,77 @@
       "sha256": "e9febc3d6ed0a2d4ae1fec9302c28cf45df279954786ea03893f3fefe17ffa64",
       "status": "active",
       "subject": "CharitMe homepage shown in its installable web app presentation",
-      "fit": "Wide PWA manifest screenshot",
+      "fit": "Mobile PWA manifest screenshot for campaign discovery",
       "sourceType": "first-party",
       "source": "Captured from the CharitMe application by apps/web/scripts/capture-manifest-screenshots.mjs",
       "license": "CharitMe-owned application screenshot",
       "uses": ["PWA manifest"]
+    },
+    {
+      "path": "screenshots/campaigns.png",
+      "sha256": "d44ef2e45603efe90bdf2dd7ad534dfe1465de200d14cdcc13e1a4e67e739fc7",
+      "status": "active",
+      "subject": "CharitMe campaign discovery page with search and platform impact totals",
+      "fit": "Mobile PWA manifest screenshot for browsing fundraisers",
+      "sourceType": "first-party",
+      "source": "Captured from the CharitMe application by apps/web/scripts/capture-manifest-screenshots.mjs",
+      "license": "CharitMe-owned application screenshot",
+      "uses": ["PWA manifest"]
+    },
+    {
+      "path": "screenshots/donate.png",
+      "sha256": "18a782f369f26fe955e5a933395db2b1858da5012b86b8a58fcda51d21a50b44",
+      "status": "active",
+      "subject": "CharitMe donation entry page with trust signals and campaign selection",
+      "fit": "Mobile PWA manifest screenshot for making a donation",
+      "sourceType": "first-party",
+      "source": "Captured from the CharitMe application by apps/web/scripts/capture-manifest-screenshots.mjs",
+      "license": "CharitMe-owned application screenshot",
+      "uses": ["PWA manifest"]
+    },
+    {
+      "path": "screenshots/how-it-works.png",
+      "sha256": "9fcb28bb52cee51f1876f6efbc52884c900331027d716e5deb70fb7e71201a8c",
+      "status": "active",
+      "subject": "CharitMe how-it-works page introducing the four-step fundraising journey",
+      "fit": "Mobile PWA manifest screenshot for understanding the platform",
+      "sourceType": "first-party",
+      "source": "Captured from the CharitMe application by apps/web/scripts/capture-manifest-screenshots.mjs",
+      "license": "CharitMe-owned application screenshot",
+      "uses": ["PWA manifest"]
+    },
+    {
+      "path": "store/ios-icon-1024.png",
+      "sha256": "84c9c2d6c9b14ea4f29cedda13bf11c6afecbdd379b30cdc9a56f8745f4b8134",
+      "status": "active",
+      "subject": "CharitMe heart-and-hand brand mark on an opaque purple field",
+      "fit": "App Store Connect listing icon at 1024 pixels",
+      "sourceType": "brand-owned",
+      "source": "Generated from CharitMe brand artwork by apps/web/scripts/generate-store-art.mjs",
+      "license": "CharitMe-owned brand artwork",
+      "uses": ["Apple App Store listing"]
+    },
+    {
+      "path": "store/play-feature-graphic.png",
+      "sha256": "1acf7efcc40d32f8c2f2cf1ed962b5c9132eb0dd64e12a92e5c8cd8b0ccc57ab",
+      "status": "active",
+      "subject": "CharitMe brand mark, wordmark, and fundraising value proposition",
+      "fit": "Google Play feature graphic at 1024 by 500 pixels",
+      "sourceType": "brand-owned",
+      "source": "Generated from CharitMe brand artwork by apps/web/scripts/generate-store-art.mjs",
+      "license": "CharitMe-owned brand artwork",
+      "uses": ["Google Play listing"]
+    },
+    {
+      "path": "store/play-icon-512.png",
+      "sha256": "79899736b9635dd1da93d2f1dab09b644aa0453145bfc919a42d9ace51a27868",
+      "status": "active",
+      "subject": "CharitMe heart-and-hand brand mark on an opaque purple field",
+      "fit": "Google Play listing icon at 512 pixels",
+      "sourceType": "brand-owned",
+      "source": "Generated from CharitMe brand artwork by apps/web/scripts/generate-store-art.mjs",
+      "license": "CharitMe-owned brand artwork",
+      "uses": ["Google Play listing"]
     },
     {
       "path": "hero-child-crop.webp",
@@ -364,72 +430,6 @@
       "source": "https://images.unsplash.com/photo-1531123897727-8f129e1688ce",
       "license": "Unsplash License: https://unsplash.com/license",
       "uses": ["/about-us"]
-    },
-    {
-      "path": "screenshots/campaigns.png",
-      "sha256": "d44ef2e45603efe90bdf2dd7ad534dfe1465de200d14cdcc13e1a4e67e739fc7",
-      "status": "active",
-      "subject": "Screenshot of CharitMe's campaign browse page at 780x1688",
-      "fit": "Manifest screenshot, labelled \"Browse fundraisers by cause\" in the Android install dialog",
-      "sourceType": "first-party",
-      "source": "Captured from a local production build by apps/web/scripts/capture-manifest-screenshots.mjs in commit 7b53f625",
-      "license": "CharitMe-owned: a rendering of this application's own UI",
-      "uses": ["PWA manifest"]
-    },
-    {
-      "path": "screenshots/donate.png",
-      "sha256": "18a782f369f26fe955e5a933395db2b1858da5012b86b8a58fcda51d21a50b44",
-      "status": "active",
-      "subject": "Screenshot of CharitMe's donation page at 780x1688",
-      "fit": "Manifest screenshot, labelled \"Give in seconds\" in the Android install dialog",
-      "sourceType": "first-party",
-      "source": "Captured from a local production build by apps/web/scripts/capture-manifest-screenshots.mjs in commit 7b53f625",
-      "license": "CharitMe-owned: a rendering of this application's own UI",
-      "uses": ["PWA manifest"]
-    },
-    {
-      "path": "screenshots/how-it-works.png",
-      "sha256": "9fcb28bb52cee51f1876f6efbc52884c900331027d716e5deb70fb7e71201a8c",
-      "status": "active",
-      "subject": "Screenshot of CharitMe's how-it-works page at 780x1688",
-      "fit": "Manifest screenshot, labelled \"Start your own fundraiser\" in the Android install dialog",
-      "sourceType": "first-party",
-      "source": "Captured from a local production build by apps/web/scripts/capture-manifest-screenshots.mjs in commit 7b53f625",
-      "license": "CharitMe-owned: a rendering of this application's own UI",
-      "uses": ["PWA manifest"]
-    },
-    {
-      "path": "store/app-store-icon-1024.png",
-      "sha256": "0ecdae566029425422b3e8b402a7b66c693df760f1c138f3a965868401939cff",
-      "status": "active",
-      "subject": "CharitMe mark on an opaque white field, 1024x1024",
-      "fit": "App Store icon. Opaque (colour type 2) because App Store Connect rejects an icon carrying an alpha channel; square because iOS applies its own squircle mask",
-      "sourceType": "first-party",
-      "source": "Generated from public/CharitMe_Logo.png by apps/web/scripts/generate-store-art.mjs",
-      "license": "CharitMe-owned brand artwork",
-      "uses": ["App Store listing"]
-    },
-    {
-      "path": "store/play-store-icon-512.png",
-      "sha256": "fdc975a589b0549bd7757f8ca89951398f5cd8acbd52891f578fbf4f956b635f",
-      "status": "active",
-      "subject": "CharitMe mark on an opaque white field, 512x512",
-      "fit": "Play Console store icon",
-      "sourceType": "first-party",
-      "source": "Generated from public/CharitMe_Logo.png by apps/web/scripts/generate-store-art.mjs",
-      "license": "CharitMe-owned brand artwork",
-      "uses": ["Play Store listing"]
-    },
-    {
-      "path": "store/play-feature-graphic-1024x500.png",
-      "sha256": "f49a39e3d545d64d83c19d708126629420a03e6e6f428629712b4cdde22d59b5",
-      "status": "active",
-      "subject": "CharitMe mark with the product name and positioning line, 1024x500",
-      "fit": "Play feature graphic. Every string is read from app/manifest.ts by the generator, never written for the listing",
-      "sourceType": "first-party",
-      "source": "Generated from public/CharitMe_Logo.png by apps/web/scripts/generate-store-art.mjs",
-      "license": "CharitMe-owned brand artwork",
-      "uses": ["Play Store listing"]
     }
   ]
 }
