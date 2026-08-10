@@ -120,6 +120,22 @@ describe('the assigner refuses to half-do the job', () => {
     expect(src).toContain("method: 'HEAD'");
   });
 
+  it('can emit a migration, so the DB half needs no service-role key', () => {
+    // The service-role key in .env.local now returns 401 (rotated). A migration
+    // is how today's covers were written in the first place, so it is the path
+    // that does not depend on a credential this session cannot have.
+    expect(src).toContain("EMIT_MIGRATION = argv.includes('--emit-migration')");
+    expect(src).toContain('supabase');
+    expect(src).toContain('rollbacks');
+  });
+
+  it('guards every generated UPDATE so it can never overwrite an upload', () => {
+    // The window that matters: an organizer uploads a cover between generating
+    // the file and applying it. The guard makes that row skip, not lose a photo.
+    expect(src).toMatch(/cover_image_url ilike '%\/media\/subject%'/);
+    expect(src).toMatch(/update public\.campaigns set cover_image_url[\s\S]*?and \$\{guard\}/);
+  });
+
   it('leaves organizer uploads alone', () => {
     expect(src).toContain('isGenerated');
     expect(src).toMatch(/already hold a real cover and are left untouched/);

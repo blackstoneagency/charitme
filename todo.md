@@ -698,6 +698,69 @@ the guard was added only once the count was genuinely zero: a test that ships
 with a backlog of 19 failures is a test someone switches off. It pins the class
 now instead of describing it.
 
+## 📷 CAMPAIGN PHOTOS — every cover is GENERATED ART, and one free key finishes it (Claude, 2026-08-10)
+
+Measured against production, not inferred: **502 campaigns, 501 holding a
+`/media/subject` cover.** That route draws a `next/og` gradient card with subject
+copy — it is not a photograph. Every URL is already distinct, so the gap is not
+linkage. It is that no campaign has a real photo.
+
+### Two defects that would have survived adding the key
+
+| | defect | consequence |
+|---|---|---|
+| 1 | a stored `/media/subject` cover counted as an ORGANIZER UPLOAD | it short-circuited the live-photo branch, so `UNSPLASH_ACCESS_KEY` would have changed **nothing** for all 501 |
+| 2 | `unsplashCoverForCampaign` claimed per-campaign uniqueness | measured: **222 of 502 (44.2%)** would get a DUPLICATE cover |
+
+The duplicate figure by category: Faith **50 of 73**, Education **49 of 73**,
+Medical **47 of 73**. Two causes, and a bigger pool only fixes the first —
+pigeonhole (73 > 30, now pooled to 90) and birthday collisions (73 draws from 90
+slots yields ~55 distinct). **No per-campaign function can fix the second**,
+because uniqueness is a property of the SET. It is now assigned globally by
+`scripts/assign-campaign-photos.mjs` and proven at production scale in
+`campaign-photo-plan.test.ts`: 501 campaigns → 501 distinct photos, stable across
+re-runs, every photo inside its own category.
+
+### 🔑 THE ONLY THING LEFT IS ONE FREE API KEY
+
+`UNSPLASH_ACCESS_KEY` (unsplash.com/developers, free tier). With it:
+
+```bash
+node scripts/assign-campaign-photos.mjs --emit-migration   # no DB credential needed
+```
+
+That writes a guarded migration plus its rollback; apply it on a normal deploy.
+`--commit` writes directly instead, but needs a service-role key —
+**the one in `.env.local` now returns `401 Unregistered API key`**, so the
+migration path is the one that works today.
+
+### 🚧 Why there is no key-free substitute — checked, not assumed
+
+- **`api.unsplash.com` IS reachable** from the sandbox: it answers `401` with
+  Unsplash's own OAuth error, not a proxy block. Only the credential is missing.
+- **Unsplash SEARCH is not reachable** — `unsplash.com` and its internal API both
+  return `307 Authorization required` at the agent proxy, so photo IDs cannot be
+  harvested. The repo + full git history yields **65** IDs, of which **19 are
+  already dead**; 45 distinct live IDs against 501 campaigns.
+- **Openverse indexes 52 sources and Unsplash is NOT one of them.** So there is
+  no key-free route to a CSP-approved photo host.
+- Openverse CC0 *does* have volume (240, the result cap, for well-formed
+  queries — my first pass read 0 for six categories and that was a query
+  artifact, not absence). But its photos are Flickr/Wikimedia user uploads:
+  **not reliably professional**, and using them would mean adding
+  `live.staticflickr.com` to the production CSP *and* to `APPROVED_HOSTS` in
+  another lane's image-integrity gate. That is their design decision, and the
+  quality bar is one the goal explicitly sets ("professional"), so it was not
+  taken unilaterally.
+
+### Verified rather than assumed
+
+- All **45** distinct Unsplash IDs in the catalog and migrations return **200 —
+  0 dead**.
+- The audit's "117 catalog IDs vs 45 live checks" is **not** an under-check: 117
+  counts every catalog entry including first-party subject URLs; 45 is every
+  entry actually on Unsplash. Suspected a gap, measured it away.
+
 ## 📱 MOBILE READINESS — the class of defect NO audit in this repo can see (Claude, 2026-08-09)
 
 Six runtime sweeps run headless Chromium at a fixed viewport. That viewport has
