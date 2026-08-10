@@ -162,7 +162,7 @@ export default async function CampaignEmbedPage({ params, searchParams }: Props)
             href={`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com'}/campaigns/${slug}`}
             target="_blank"
             rel="noopener noreferrer"
-            style={{ fontSize: 11, color: 'var(--t3)', textDecoration: 'none' }}
+            style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, fontSize: 11, color: 'var(--t3)', textDecoration: 'none' }}
           >
             Powered by CharitMe
           </a>

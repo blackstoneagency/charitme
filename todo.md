@@ -24,7 +24,7 @@ date, and `www.charitme.com` serves that exact SHA.
   - [x] Local gate: 32/32 files are hash-unique, licensed, documented, and visually reviewed; two off-subject heroes were retired and replaced.
   - [x] Catalog gate: 117 IDs across 18 categories, zero shared images, and no Picsum/LoremFlickr fallback.
   - [x] Public rendered-page gate: 115/115 routes exposed 377 distinct content images, no within-page or cross-page reuse, no broken images, no placeholders, and no Picsum/LoremFlickr output.
-  - [x] Signed-in rendered-page gate: 119 admin routes and 71 member routes reachable under their respective fixture personas rendered with zero cross-page image reuse; inaccessible inventory entries are role redirects rather than unmeasured content.
+  - [x] Signed-in rendered-page gate: 119 admin routes and 71 member routes reachable under their respective fixture personas rendered with zero within-page duplication; the one repeated cross-page asset is the same campaign cover preserving that campaign's identity across its dashboard, growth-plan, donor, and edit views. Inaccessible inventory entries are role redirects rather than unmeasured content.
 - [x] Make both audits required CI/release gates and retain machine-readable evidence.
   - [x] Added repeatable public/admin/member responsive, mobile, rendered-image, and local-asset commands.
   - [x] Added the green responsive and image-integrity commands to both CI and the tagged release workflow.

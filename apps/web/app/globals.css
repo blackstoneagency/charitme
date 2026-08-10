@@ -2387,15 +2387,15 @@ input, select, textarea, button { max-width: 100%; }
 /* Quick Share card */
 .pc-quick-share { border: 1px solid var(--b2); border-radius: 16px; padding: 20px; background: #fff; margin: 24px 0; }
 .pc-quick-share-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-.pc-share-copy { display: flex; gap: 8px; margin-bottom: 16px; }
-.pc-share-copy input { flex: 1; padding: 9px 12px; border: 1px solid var(--b2); border-radius: 9px; font-size: 16px; color: var(--t3); background: var(--s1); }
+.pc-share-copy { display: flex; width: 100%; min-width: 0; gap: 8px; margin-bottom: 16px; }
+.pc-share-copy input { flex: 1; width: 100%; min-width: 0; padding: 9px 12px; border: 1px solid var(--b2); border-radius: 9px; font-size: 16px; color: var(--t3); background: var(--s1); }
 .pc-share-copy button { padding: 9px 16px; border: none; border-radius: 9px; background: var(--violet); color: #fff; font-size: 12px; font-weight: 650; cursor: pointer; white-space: nowrap; }
-.pc-share-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.pc-share-grid { display: grid; width: 100%; min-width: 0; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
 .pc-share-tile { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--b2); border-radius: 12px; text-decoration: none; color: var(--t1); font-size: 13px; font-weight: 700; transition: background .15s; }
 .pc-share-tile:hover { background: var(--s2); }
 .pc-share-tile-icon { width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; font-size: 18px; flex-shrink: 0; font-weight: 800; }
 .pc-quick-share-qr { display: flex; gap: 16px; }
-.pc-quick-share-platforms { flex: 1; }
+.pc-quick-share-platforms { flex: 1; width: 100%; min-width: 0; }
 
 /* Impact Tracker sidebar */
 .pc-impact-card { border: 1px solid var(--b2); border-radius: 18px; background: #fff; padding: 24px; box-shadow: var(--shadow-sm); }
@@ -3642,6 +3642,13 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 .kf-setpanel-save:disabled { opacity: .55; cursor: default; }
 .kf-setpanel-save.saved { background: #0fa456; }
 .kf-setpanel-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+@media (max-width: 480px) {
+  .kf-setpanel-head { flex-direction: column; align-items: stretch; }
+  .kf-setpanel-title { min-width: 0; }
+  .kf-setpanel-title > div:last-child { min-width: 0; }
+  .kf-setpanel-head p { overflow-wrap: anywhere; }
+  .kf-setpanel-save { width: 100%; height: 44px; }
+}
 .kf-setrow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
 .kf-setrow.triple { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); }
 .kf-setrow.full { grid-template-columns: minmax(0, 1fr); }
@@ -11846,6 +11853,7 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 .rp-live-card > img, .rp-live-media img { width: 100%; height: 100%; object-fit: cover; }
 .rp-live-body { display: flex; min-width: 0; flex: 1; flex-direction: column; align-items: stretch; padding: 18px; }
 .rp-live-body h3 { margin: 0; color: var(--rp-text); font-size: 17px; font-weight: 800; line-height: 1.35; }
+.rp-live-body h3 a { display: inline-flex; align-items: center; min-height: 44px; }
 .rp-live-body h3 a:hover { color: #d7a6ff; }
 .rp-live-body > p { margin: 8px 0 0; color: var(--rp-muted); font-size: 12.5px; line-height: 1.5; }
 .rp-live-body > p a { color: #d26eff; font-weight: 750; }
@@ -11858,7 +11866,7 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 .rp-live-body > div:last-child strong { color: #80d998; font-size: 14px; }
 .rp-live-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .rp-live-tags span { display: inline-flex; align-items: center; min-height: 24px; padding: 0 8px; border-radius: 12px; background: #251844; color: #d7b6ff; font-size: 10.5px; font-weight: 750; text-transform: capitalize; }
-.rp-live-body > .rp-text-link { align-self: flex-start; margin-top: auto; padding-top: 16px; }
+.rp-live-body > .rp-text-link { display: inline-flex; align-items: center; min-height: 44px; align-self: flex-start; margin-top: auto; padding-top: 16px; }
 
 .rp-filters { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin-bottom: 22px; padding: 18px; border: 1px solid var(--rp-line); border-radius: 8px; background: var(--rp-panel); }
 .rp-filters label { display: grid; min-width: 0; gap: 6px; }
