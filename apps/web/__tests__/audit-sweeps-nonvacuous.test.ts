@@ -190,7 +190,24 @@ describe('signed-in audit integrity', () => {
 
   it('enforces the signed-in contrast sweep in CI', () => {
     expect(ciWorkflow).toContain('Signed-in contrast audit (WCAG AA, both themes)');
-    expect(ciWorkflow).toContain('npm run audit:signed-in -- --port 3310 --stub-port 55432');
+    expect(ciWorkflow).toContain('npm run audit:signed-in -- --content-contracts --port 3310 --stub-port 55432');
+  });
+
+  // An audit nobody runs is decorative — the failure this repo already recorded
+  // for its e2e specs, where a real light-mode contrast bug reached production
+  // underneath a spec that passed by default because it never executed.
+  // audit:content-contracts was written and registered in package.json and for a
+  // while was wired into nothing, so this asserts BOTH halves: that CI invokes
+  // it, and that the harness actually spawns the script rather than accepting the
+  // flag and doing nothing.
+  it('enforces the route content contracts in CI', () => {
+    expect(ciWorkflow).toContain('--content-contracts');
+    expect(packageJson.scripts['audit:content-contracts']).toContain('audit-content-contracts.mjs');
+    expect(signedInSource).toContain("argv.includes('--content-contracts')");
+    expect(signedInSource).toContain("'scripts/audit-content-contracts.mjs', '--base', BASE");
+    // A non-zero exit from the contracts run must fail the step. Swallowing it
+    // would leave the flag present, the log reassuring, and the guard vacuous.
+    expect(signedInSource).toMatch(/content contracts failed[\s\S]{0,120}process\.exit\(1\)/);
   });
 
   it('makes the live authenticated axe sweep fail on broken pages or theme drift', () => {

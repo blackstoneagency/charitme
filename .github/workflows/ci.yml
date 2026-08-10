@@ -285,8 +285,16 @@ jobs:
           NEXT_PUBLIC_APP_URL: https://www.charitme.com
           SUPABASE_SERVICE_ROLE_KEY: placeholder-service-role-key
 
-      - name: Signed-in contrast audit (WCAG AA, both themes)
-        run: npm run audit:signed-in -- --port 3310 --stub-port 55432
+      # ⚠️ `--content-contracts` piggybacks on this step deliberately. It asserts
+      # each data-backed public route rendered a MINIMUM NUMBER OF REAL ITEMS —
+      # the thing a fixture bug removes and every other sweep passes anyway. Four
+      # separate fixture bugs in one session rendered clean empty states that
+      # contrast, axe, responsive and target-size all reported as perfect,
+      # because an empty page has nothing on it to fail. It needs a build pointed
+      # at the Supabase stub, which only exists in this step; a separate step
+      # would cost a second full `next build`.
+      - name: Signed-in contrast audit (WCAG AA, both themes) + route content contracts
+        run: npm run audit:signed-in -- --content-contracts --port 3310 --stub-port 55432
         working-directory: apps/web
 
       - name: Upload Playwright report on failure
