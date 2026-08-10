@@ -3,6 +3,7 @@ import {
   PROCESSING_FEE_PERCENT,
   PROCESSING_FEE_FIXED_CENTS,
   SUGGESTED_SUPPORT_PERCENT,
+  SUPPORT_TIER_PERCENTS,
 } from '@shared/fees';
 
 /**
@@ -32,5 +33,20 @@ export const PROCESSING_FEE_COPY = `${PROCESSING_PERCENT_COPY} + ${PROCESSING_FI
 /** e.g. "0%" — the platform fee charged to organizers. */
 export const PLATFORM_FEE_COPY = `${PLATFORM_FEE_PERCENT}%`;
 
-/** e.g. "15%" — SUGGESTED, never required, and reducible to zero. */
+/** e.g. "10%" — SUGGESTED, never required, and reducible to zero. */
 export const SUGGESTED_SUPPORT_COPY = `${SUGGESTED_SUPPORT_PERCENT}%`;
+
+/**
+ * The rest of the ladder as prose — e.g. "15%, 12%, 8%, 5%, 3%, 1%, or 0%".
+ *
+ * /fees spelled this list out by hand next to the suggested figure, so moving
+ * the suggested rate left the sentence naming it twice: once as the suggestion
+ * and again among the alternatives. Derived from the same array the donate card
+ * renders, minus whichever rung is currently suggested.
+ */
+export const SUPPORT_ALTERNATIVES_COPY = (() => {
+  const others = SUPPORT_TIER_PERCENTS.filter((p) => p !== SUGGESTED_SUPPORT_PERCENT);
+  const head = others.slice(0, -1).map((p) => `${p}%`).join(', ');
+  const tail = `${others[others.length - 1]}%`;
+  return head ? `${head}, or ${tail}` : tail;
+})();

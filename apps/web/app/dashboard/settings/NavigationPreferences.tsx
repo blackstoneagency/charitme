@@ -137,7 +137,7 @@ export default function NavigationPreferences({ items }: { items: NavItem[] }) {
                     opacity: isHidden ? 0.55 : 1,
                   }}
                 >
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minHeight: 24, cursor: 'pointer', fontSize: 14, color: 'var(--t1)' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minHeight: 44, cursor: 'pointer', fontSize: 14, color: 'var(--t1)' }}>
                     <input
                       type="checkbox"
                       checked={!isHidden}
@@ -151,14 +151,14 @@ export default function NavigationPreferences({ items }: { items: NavItem[] }) {
                     onClick={() => move(item.href, -1)}
                     disabled={index === 0}
                     aria-label={`Move ${item.label} up`}
-                    style={{ minWidth: 32, minHeight: 32, borderRadius: 8, border: '1px solid var(--b2)', background: 'var(--s1)', color: 'var(--t2)', cursor: index === 0 ? 'not-allowed' : 'pointer' }}
+                    style={{ minWidth: 44, minHeight: 44, borderRadius: 8, border: '1px solid var(--b2)', background: 'var(--s1)', color: 'var(--t2)', cursor: index === 0 ? 'not-allowed' : 'pointer' }}
                   >↑</button>
                   <button
                     type="button"
                     onClick={() => move(item.href, 1)}
                     disabled={index === sorted.length - 1}
                     aria-label={`Move ${item.label} down`}
-                    style={{ minWidth: 32, minHeight: 32, borderRadius: 8, border: '1px solid var(--b2)', background: 'var(--s1)', color: 'var(--t2)', cursor: index === sorted.length - 1 ? 'not-allowed' : 'pointer' }}
+                    style={{ minWidth: 44, minHeight: 44, borderRadius: 8, border: '1px solid var(--b2)', background: 'var(--s1)', color: 'var(--t2)', cursor: index === sorted.length - 1 ? 'not-allowed' : 'pointer' }}
                   >↓</button>
                 </li>
               );
@@ -170,14 +170,14 @@ export default function NavigationPreferences({ items }: { items: NavItem[] }) {
               type="button"
               onClick={save}
               disabled={status === 'saving'}
-              style={{ minHeight: 40, padding: '0 18px', borderRadius: 10, border: 0, background: 'var(--violet)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
+              style={{ minHeight: 44, padding: '0 18px', borderRadius: 10, border: 0, background: 'var(--violet)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
             >
               {status === 'saving' ? 'Saving…' : 'Save navigation'}
             </button>
             <button
               type="button"
               onClick={reset}
-              style={{ minHeight: 40, padding: '0 16px', borderRadius: 10, border: '1px solid var(--b2)', background: 'transparent', color: 'var(--t2)', fontWeight: 650, fontSize: 14, cursor: 'pointer' }}
+              style={{ minHeight: 44, padding: '0 16px', borderRadius: 10, border: '1px solid var(--b2)', background: 'transparent', color: 'var(--t2)', fontWeight: 650, fontSize: 14, cursor: 'pointer' }}
             >
               Reset to default
             </button>

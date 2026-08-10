@@ -157,7 +157,7 @@ export default async function DonatePage() {
       <section className="dn-hero" aria-labelledby="dn-title">
         <div className="dn-hero-media" aria-hidden="true">
           <Image
-            src="/images/charitme-community-hero.png"
+            src={getCoverForCategory('Community', 'donate-hero')}
             alt=""
             fill
             priority
@@ -247,7 +247,7 @@ export default async function DonatePage() {
             <li key={item.title} className="dn-impact-card">
               <span className="dn-impact-media">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={getCoverForCategory(item.category)} alt="" width={320} height={190} loading="lazy" decoding="async" />
+                <img src={getCoverForCategory(item.category, `donate-impact-${item.title}`)} alt="" width={320} height={190} loading="lazy" decoding="async" />
               </span>
               <span className="dn-impact-ic"><Ic name={item.icon} /></span>
               <h3>{item.title}</h3>

@@ -9,7 +9,7 @@ import {
 } from '../../components/ReferenceMarketing';
 import { getHomeData } from '../../lib/home-data';
 import { formatHomeCents, shortHomeCount, shouldShowPlatformMetrics } from '../../lib/home-utils';
-import { getPhotosForCategory } from '../../lib/photo-catalog';
+import { getPhotosForPage } from '../../lib/photo-catalog';
 import PublishedReports from './PublishedReports';
 
 export const metadata: Metadata = {
@@ -39,7 +39,7 @@ export default async function ReportsPage() {
     metrics = null;
   }
   const measuredMetrics = metrics !== null && shouldShowPlatformMetrics(metrics, true) ? metrics : null;
-  const photos = getPhotosForCategory('Environment', 5);
+  const photos = getPhotosForPage('Environment', 'reports', 5);
 
   return (
     <ReferencePage>
@@ -49,7 +49,7 @@ export default async function ReportsPage() {
         title={<>Data. Insights.<br />Lasting Change.</>}
         lede="Explore in-depth reports, research, and data that shine a light on today's most important issues and power a better tomorrow."
         search={{ action: '/search', placeholder: 'Search reports, topics, or keywords...', hidden: [{ name: 'type', value: 'resources' }] }}
-        image="/images/reference/reports-hero.jpg"
+        image="/images/reference/reports-hero-v2.png"
         imageAlt="A community landscape representing long-term impact"
         callout={{ icon: 'chart', title: 'Evidence Drives Impact.', body: 'Access reliable research to make informed decisions and maximize your impact.' }}
         variant="catalog"

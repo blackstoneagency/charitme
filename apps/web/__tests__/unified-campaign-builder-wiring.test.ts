@@ -24,6 +24,8 @@ const databaseSmoke = read('../../scripts/campaign-builder-db-smoke.mjs');
 describe('campaign creation has exactly two primary paths', () => {
   it('offers AI and guided creation from the choice screen', () => {
     expect(chooser.match(/<PathCard/g)).toHaveLength(2);
+    expect(chooser).toContain('title="Build with AI"');
+    expect(chooser).toContain('title="Build Step by Step"');
     expect(chooser).toContain('href="/ai-campaign"');
     expect(chooser).toContain('href="/create?path=guided"');
   });

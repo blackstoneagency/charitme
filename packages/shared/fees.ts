@@ -2,8 +2,8 @@ export const PLATFORM_FEE_PERCENT = 0;
 // ── Donor support (optional "tip") ────────────────────────────────────────────
 // CharitMe charges organizers a 0% platform fee and is funded primarily by
 // OPTIONAL donor support. The support is always reducible — including to 0% —
-// with no dark patterns. 15% is merely the suggested default.
-export const SUGGESTED_SUPPORT_PERCENT = 15;
+// with no dark patterns. 10% is merely the suggested default.
+export const SUGGESTED_SUPPORT_PERCENT = 10;
 /** Quick-select ladder shown to donors, highest → zero. Support is never forced. */
 export const SUPPORT_TIER_PERCENTS = [15, 12, 10, 8, 5, 3, 1, 0] as const;
 /** Back-compat alias — the initial/fallback support percent. */
@@ -151,9 +151,21 @@ export function normalizeDonationCheckoutSettings(value: unknown): DonationCheck
     0,
     100,
   );
+  // ⚠️ When the configured value is not on the ladder, fall back to the
+  // platform's SUGGESTED rate before the ladder's first entry.
+  //
+  // This used to go straight to `supportTierPercents[0]`. The ladder is sorted
+  // high → low, so entry 0 is the LARGEST tier: a malformed or out-of-range
+  // setting silently preselected the biggest optional fee a donor could pay.
+  // That was invisible while the suggested rate and the top of the ladder were
+  // both 15% and they are no longer the same number. Defaulting a donor into
+  // the maximum on a bad config is the sort of dark pattern this file's own
+  // comments rule out.
   const defaultSupportPercent = supportTierPercents.includes(configuredSupport)
     ? configuredSupport
-    : (supportTierPercents[0] ?? fallback.defaultSupportPercent);
+    : supportTierPercents.includes(fallback.defaultSupportPercent)
+      ? fallback.defaultSupportPercent
+      : (supportTierPercents[0] ?? fallback.defaultSupportPercent);
   const methods = asRecord(raw.methodFees);
 
   return {

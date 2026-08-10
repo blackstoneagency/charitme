@@ -58,7 +58,10 @@ interface UtmProps {
 
 /* ── Tip tier presentation: icon + label per support % (matches design) ── */
 const ICON_STROKE = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
-function TipIcon({ name }: { name: string }) {
+type TipIconName =
+  | 'heartFill' | 'star' | 'thumb' | 'smile' | 'heart' | 'clap' | 'gift'
+  | 'none' | 'hand' | 'shield' | 'check' | 'lock' | 'shieldCheck';
+function TipIcon({ name }: { name: TipIconName }) {
   const p: Record<string, React.ReactNode> = {
     heartFill: <path d="M20.8 5.6a5 5 0 0 0-7.1 0L12 7.3l-1.7-1.7a5 5 0 1 0-7.1 7.1L12 21l8.8-8.3a5 5 0 0 0 0-7.1z" fill="currentColor" stroke="none" />,
     star: <polygon points="12 2.5 15 9 22 9.7 16.8 14.3 18.4 21 12 17.3 5.6 21 7.2 14.3 2 9.7 9 9" />,
@@ -75,16 +78,28 @@ function TipIcon({ name }: { name: string }) {
   };
   return <svg viewBox="0 0 24 24" width="100%" height="100%" style={ICON_STROKE as React.CSSProperties} aria-hidden>{name === 'shieldCheck' ? <><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" /><polyline points="8.5 12 11 14.3 16 9.3" /></> : p[name]}</svg>;
 }
-const TIP_TIER_PRESENTATION = [
-  { label: 'Recommended', icon: 'heartFill' },
-  { label: 'Great', icon: 'star' },
-  { label: 'Good', icon: 'thumb' },
-  { label: 'Nice', icon: 'smile' },
-  { label: 'Thanks', icon: 'heart' },
-  { label: 'Little bit', icon: 'clap' },
-  { label: 'Any help counts', icon: 'gift' },
-  { label: 'No fee', icon: 'none' },
-] as const;
+// ⚠️ Keyed by PERCENT, not by position.
+//
+// This list used to be a positional array indexed against
+// `checkout.supportTierPercents` — which is loaded from `platform_settings` and
+// is editable from /admin/super/settings. Any edit that inserted, removed or
+// reordered a tier silently slid every label one place along, so "Recommended"
+// would end up under whatever percentage happened to occupy that slot. The
+// labels are a claim about a specific rate, so they are attached to the rate.
+const TIP_TIER_PRESENTATION: Record<number, { label: string; icon: TipIconName }> = {
+  15: { label: 'Incredible!', icon: 'heartFill' },
+  12: { label: 'Great', icon: 'star' },
+  10: { label: 'Recommended', icon: 'thumb' },
+  8: { label: 'Nice', icon: 'smile' },
+  5: { label: 'Thanks', icon: 'heart' },
+  3: { label: 'Little bit', icon: 'clap' },
+  1: { label: 'Any help counts', icon: 'gift' },
+  0: { label: 'No fee', icon: 'none' },
+};
+// An admin can add a tier this map has never seen (say 20%). Rendering a blank
+// label there would look broken; borrowing a neighbour's label would be a
+// wrong claim. A neutral one is the only honest option.
+const TIP_TIER_FALLBACK = { label: 'Thank you', icon: 'heart' } as const;
 
 export default function DonateButton({
   campaignId,
@@ -567,9 +582,9 @@ export default function DonateButton({
 
               {/* Suggested tiers — icon + % + label */}
               <div role="radiogroup" aria-label="Optional CharitMe fee" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 6 }}>
-                {checkout.supportTierPercents.map((p, index) => {
+                {checkout.supportTierPercents.map((p) => {
                   const active = customTip === null && tipPercent === p;
-                  const meta = TIP_TIER_PRESENTATION[index] ?? TIP_TIER_PRESENTATION[TIP_TIER_PRESENTATION.length - 1];
+                  const meta = TIP_TIER_PRESENTATION[p] ?? TIP_TIER_FALLBACK;
                   return (
                     <button
                       key={p}
@@ -641,7 +656,7 @@ export default function DonateButton({
                       onClick={() => setCustomTip(null)}
                       style={{ border: 0, background: 'transparent', color: MU, fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
                     >
-                      Use %
+                      Use $
                     </button>
                   </div>
                   <p id="custom-tip-equiv" style={{ margin: '6px 0 0', fontSize: 11.5, color: MU }}>

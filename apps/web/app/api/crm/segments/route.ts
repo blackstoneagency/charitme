@@ -41,16 +41,35 @@ const CreateSchema = z.object({
 
 const IdSchema = z.object({ id: z.string().uuid() });
 
+const unauthorized = () =>
+  NextResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 });
+
+/**
+ * ⚠️ 503, not 403. `ownedNonprofitIds` returns `null` when the ownership read
+ * itself failed, which is NOT the same as "owns nothing". It used to swallow
+ * that error and return `[]`, so a database blip turned into a 403 telling a
+ * fundraiser they do not own their own organisation — a false, unactionable and
+ * unretryable answer to a transient fault. The write is still refused (fail
+ * closed), but the status says what actually happened.
+ */
+const ownershipUnavailable = () =>
+  NextResponse.json(
+    { error: 'Could not verify your organisations. Try again shortly.', code: 'OWNERSHIP_UNAVAILABLE' },
+    { status: 503 },
+  );
+
 async function caller() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  return { user, owned: await ownedNonprofitIds(user.id) };
+  if (!user) return { ok: false as const, response: unauthorized() };
+  const owned = await ownedNonprofitIds(user.id);
+  if (owned === null) return { ok: false as const, response: ownershipUnavailable() };
+  return { ok: true as const, user, owned };
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const ctx = await caller();
-  if (!ctx) return NextResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 });
+  if (!ctx.ok) return ctx.response;
 
   const parsed = CreateSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
@@ -100,7 +119,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 /** Recompute an existing segment's membership from its saved rules. */
 export async function PATCH(request: NextRequest): Promise<NextResponse> {
   const ctx = await caller();
-  if (!ctx) return NextResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 });
+  if (!ctx.ok) return ctx.response;
 
   const parsed = IdSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
@@ -121,7 +140,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
 
 export async function DELETE(request: NextRequest): Promise<NextResponse> {
   const ctx = await caller();
-  if (!ctx) return NextResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 });
+  if (!ctx.ok) return ctx.response;
 
   const parsed = IdSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {

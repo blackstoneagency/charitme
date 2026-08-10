@@ -15,6 +15,7 @@ const GIVING_HISTORY = { label: 'Giving History', href: '/donor', icon: 'gift' }
 const SAVED_CAUSES = { label: 'Saved Causes', href: '/dashboard/saved', icon: 'heart' } as const;
 const TAX_DOCUMENTS = { label: 'Tax Documents', href: '/dashboard/tax', icon: 'doc' } as const;
 const VOLUNTEERING = { label: 'Volunteering', href: '/dashboard/volunteer', icon: 'team' } as const;
+const EVENT_TICKETS = { label: 'My Tickets', href: '/dashboard/tickets', icon: 'calendar' } as const;
 const MESSAGES = { label: 'Messages', href: '/dashboard/messages', icon: 'chat' } as const;
 const SETTINGS = { label: 'Settings', href: '/dashboard/settings', icon: 'gear' } as const;
 
@@ -28,6 +29,7 @@ const DONOR_NAV: readonly DashboardNavItem[] = [
   // saved cards is almost always a recurring donation that is about to fail on
   // an expiring one.
   { label: 'Payment Methods', href: '/dashboard/payment-methods', icon: 'wallet' },
+  EVENT_TICKETS,
   VOLUNTEERING,
   { label: 'Referrals', href: '/dashboard/referrals', icon: 'crown' },
   SETTINGS,
@@ -48,6 +50,7 @@ const ORGANIZER_NAV: readonly DashboardNavItem[] = [
   // Aggregates dates that already exist across campaigns, fundraising_events and
   // grant_deadlines — no new table, so nothing here is inert in production.
   { label: 'Calendar', href: '/dashboard/calendar', icon: 'stack' },
+  EVENT_TICKETS,
   { label: 'Tasks', href: '/dashboard/tasks', icon: 'check' },
   // Aggregates campaign_media, verification_documents and grant_documents —
   // all applied tables, so nothing here is inert.
@@ -91,6 +94,7 @@ const BENEFICIARY_NAV: readonly DashboardNavItem[] = [
   GIVING_HISTORY,
   SAVED_CAUSES,
   TAX_DOCUMENTS,
+  EVENT_TICKETS,
   VOLUNTEERING,
   MESSAGES,
   SETTINGS,
@@ -106,6 +110,7 @@ const STAFF_NAV: readonly DashboardNavItem[] = [
   DASHBOARD,
   GIVING_HISTORY,
   TAX_DOCUMENTS,
+  EVENT_TICKETS,
   MESSAGES,
   SETTINGS,
 ];

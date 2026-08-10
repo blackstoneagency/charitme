@@ -8,7 +8,7 @@ import {
   ReferenceSection,
 } from '../../components/ReferenceMarketing';
 import { BLOG_POSTS } from '../../lib/blog-posts';
-import { getPhotosForCategory } from '../../lib/photo-catalog';
+import { getPhotosForPage } from '../../lib/photo-catalog';
 
 export const metadata: Metadata = {
   title: 'CharitMe Blog',
@@ -28,7 +28,7 @@ const TOPICS = [
 ];
 
 export default function BlogPage() {
-  const photos = getPhotosForCategory('Community', Math.max(BLOG_POSTS.length + 1, 6));
+  const photos = getPhotosForPage('Community', 'blog', Math.max(BLOG_POSTS.length + 1, 6));
   const posts = BLOG_POSTS.map((post, index) => ({
     icon: 'book',
     title: post.title,

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Btn, Input, Textarea, Select, Badge, EmptyState } from '../../../components/ui';
 import type { EventWithCounts, RegistrationWithCheckin } from '../../../lib/events';
+import { dollarsInputToCents } from '../../../lib/events-core';
 
 function toLocalInput(): string {
   const d = new Date(Date.now() + 7 * 86_400_000);
@@ -19,6 +20,10 @@ function CreateForm({ eventTypes, onCreated }: { eventTypes: string[]; onCreated
   const [location, setLocation] = useState('');
   const [virtualUrl, setVirtualUrl] = useState('');
   const [capacity, setCapacity] = useState('');
+  const [admission, setAdmission] = useState<'free' | 'paid'>('free');
+  const [ticketTitle, setTicketTitle] = useState('General admission');
+  const [ticketPrice, setTicketPrice] = useState('25.00');
+  const [ticketQuantity, setTicketQuantity] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,6 +31,7 @@ function CreateForm({ eventTypes, onCreated }: { eventTypes: string[]; onCreated
     setSaving(true);
     setError(null);
     try {
+      const ticketPriceCents = dollarsInputToCents(ticketPrice);
       const res = await fetch('/api/events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -38,6 +44,13 @@ function CreateForm({ eventTypes, onCreated }: { eventTypes: string[]; onCreated
           virtual_url: virtualUrl || null,
           capacity: capacity ? Number(capacity) : null,
           status: 'published',
+          tickets: admission === 'paid' && ticketPriceCents !== null
+            ? [{
+                title: ticketTitle,
+                price_cents: ticketPriceCents,
+                quantity_limit: ticketQuantity ? Number(ticketQuantity) : null,
+              }]
+            : [],
         }),
       });
       const json = await res.json().catch(() => ({}));
@@ -50,6 +63,10 @@ function CreateForm({ eventTypes, onCreated }: { eventTypes: string[]; onCreated
       setLocation('');
       setVirtualUrl('');
       setCapacity('');
+      setAdmission('free');
+      setTicketTitle('General admission');
+      setTicketPrice('25.00');
+      setTicketQuantity('');
       onCreated();
     } catch {
       setError('Network error. Please try again.');
@@ -58,7 +75,15 @@ function CreateForm({ eventTypes, onCreated }: { eventTypes: string[]; onCreated
     }
   }
 
-  const valid = title.trim().length >= 3 && !!startsAt;
+  const parsedTicketPrice = dollarsInputToCents(ticketPrice);
+  const valid = title.trim().length >= 3
+    && !!startsAt
+    && (admission === 'free' || (
+      ticketTitle.trim().length > 0
+      && parsedTicketPrice !== null
+      && parsedTicketPrice >= 50
+      && (!ticketQuantity || Number(ticketQuantity) >= 1)
+    ));
 
   return (
     <div style={{ border: '1px solid var(--b2)', borderRadius: 'var(--rl)', padding: 20, marginBottom: 32 }}>
@@ -73,6 +98,37 @@ function CreateForm({ eventTypes, onCreated }: { eventTypes: string[]; onCreated
           <Input label="Starts" type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
           <Input label="Capacity (blank = unlimited)" type="number" min={1} value={capacity} onChange={(e) => setCapacity(e.target.value)} />
         </div>
+        <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
+          <legend style={{ fontSize: 13, fontWeight: 700, color: 'var(--t2)', marginBottom: 8 }}>Admission</legend>
+          <div style={{ display: 'inline-grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', border: '1px solid var(--b2)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
+            {(['free', 'paid'] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                aria-pressed={admission === mode}
+                onClick={() => setAdmission(mode)}
+                style={{
+                  minWidth: 104,
+                  minHeight: 44,
+                  border: 0,
+                  background: admission === mode ? 'var(--green-btn)' : 'var(--s1)',
+                  color: admission === mode ? '#fff' : 'var(--t2)',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                {mode === 'free' ? 'Free RSVP' : 'Paid ticket'}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+        {admission === 'paid' && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14 }}>
+            <Input label="Ticket name" value={ticketTitle} onChange={(e) => setTicketTitle(e.target.value)} />
+            <Input label="Price (USD)" inputMode="decimal" value={ticketPrice} onChange={(e) => setTicketPrice(e.target.value)} />
+            <Input label="Tickets available" type="number" min={1} value={ticketQuantity} onChange={(e) => setTicketQuantity(e.target.value)} placeholder="Unlimited" />
+          </div>
+        )}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
           <Input label="Location (optional)" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Venue, City" />
           <Input label="Virtual link (optional)" value={virtualUrl} onChange={(e) => setVirtualUrl(e.target.value)} placeholder="https://…" />

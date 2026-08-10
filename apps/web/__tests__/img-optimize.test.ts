@@ -2,16 +2,14 @@ import { describe, it, expect } from 'vitest';
 import { optimizedCoverUrl } from '../lib/img-optimize';
 
 describe('optimizedCoverUrl', () => {
-  it('rewrites a picsum id cover to a sized WebP', () => {
-    expect(optimizedCoverUrl('https://picsum.photos/id/42/800/600', 400)).toBe('https://picsum.photos/id/42/400/300.webp');
-  });
-
-  it('rewrites a picsum seed cover', () => {
-    expect(optimizedCoverUrl('https://picsum.photos/seed/cm-abc/800/600', 480)).toBe('https://picsum.photos/seed/cm-abc/480/360.webp');
-  });
-
-  it('handles a picsum url that already has an extension/query', () => {
-    expect(optimizedCoverUrl('https://picsum.photos/id/7/800/600.jpg?x=1', 320)).toBe('https://picsum.photos/id/7/320/240.webp?x=1');
+  it('replaces every generic placeholder provider with first-party subject art', () => {
+    const picsum = optimizedCoverUrl('https://picsum.photos/id/42/800/600', 400);
+    const seeded = optimizedCoverUrl('https://picsum.photos/seed/cm-abc/800/600', 480);
+    const lorem = optimizedCoverUrl('https://loremflickr.com/800/450/hospital', 400);
+    expect(picsum).toMatch(/^\/media\/subject\?category=Community&key=legacy-/);
+    expect(seeded).toMatch(/^\/media\/subject\?category=Community&key=legacy-/);
+    expect(lorem).toMatch(/^\/media\/subject\?category=Community&key=legacy-/);
+    expect(new Set([picsum, seeded, lorem]).size).toBe(3);
   });
 
   it('adds sizing + webp params to an Unsplash url', () => {
@@ -29,7 +27,6 @@ describe('optimizedCoverUrl', () => {
   });
 
   it('leaves unknown hosts unchanged', () => {
-    expect(optimizedCoverUrl('https://loremflickr.com/800/450/hospital', 400)).toBe('https://loremflickr.com/800/450/hospital');
     expect(optimizedCoverUrl('data:image/svg+xml,abc', 400)).toBe('data:image/svg+xml,abc');
   });
 
@@ -40,7 +37,7 @@ describe('optimizedCoverUrl', () => {
   });
 
   it('clamps the width to a sane range', () => {
-    expect(optimizedCoverUrl('https://picsum.photos/id/1/800/600', 5)).toContain('/160/120.webp');
-    expect(optimizedCoverUrl('https://picsum.photos/id/1/800/600', 9999)).toContain('/1600/1200.webp');
+    expect(optimizedCoverUrl('https://images.unsplash.com/photo-1', 5)).toContain('w=160');
+    expect(optimizedCoverUrl('https://images.unsplash.com/photo-1', 9999)).toContain('w=1600');
   });
 });

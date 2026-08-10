@@ -88,16 +88,16 @@ export default function BannerClient({
             <div style={{ background: s.useLevelColors ? 'linear-gradient(90deg,#0f9d58,#19b86a)' : s.backgroundColor, color: s.textColor }}>
               <div style={{
                 maxWidth: 1200, margin: '0 auto', padding: `${s.paddingYPx}px 16px`,
-                display: 'flex', minWidth: 0, alignItems: 'center', gap: 12,
+                display: 'flex', minWidth: 0, alignItems: 'center', gap: 12, flexWrap: 'wrap',
                 justifyContent: s.textAlign === 'center' ? 'center' : s.textAlign === 'right' ? 'flex-end' : 'flex-start',
                 fontSize: s.fontSizePx, fontFamily: s.fontFamily, fontWeight: s.fontWeight,
                 letterSpacing: s.letterSpacingEm ? `${s.letterSpacingEm}em` : undefined,
                 textTransform: s.uppercase ? 'uppercase' : undefined,
               }}>
-                <strong style={{ fontWeight: s.titleFontWeight, fontSize: s.titleFontSizePx }}>
+                <strong style={{ minWidth: 0, maxWidth: '100%', overflowWrap: 'anywhere', fontWeight: s.titleFontWeight, fontSize: s.titleFontSizePx }}>
                   {s.contentTitle || 'Latest active announcement'}
                 </strong>
-                <span style={{ opacity: 0.92 }}>
+                <span style={{ minWidth: 0, maxWidth: '100%', overflowWrap: 'anywhere', opacity: 0.92 }}>
                   {s.contentBody || 'Custom copy is blank, so the newest active announcement will appear here.'}
                 </span>
                 {(s.contentLinkUrl || s.contentLinkLabel) && (
@@ -105,7 +105,7 @@ export default function BannerClient({
                     {s.contentLinkLabel || 'Learn more'} →
                   </a>
                 )}
-                {s.dismissible && <span style={{ marginLeft: 'auto', opacity: 0.85, fontSize: 18, lineHeight: 1 }}>×</span>}
+                {s.dismissible && <span style={{ marginLeft: 'auto', flexShrink: 0, opacity: 0.85, fontSize: 18, lineHeight: 1 }}>×</span>}
               </div>
             </div>
           ) : (
@@ -287,7 +287,7 @@ function ColorField({ id, label: text, value, onChange, disabled }: { id: string
       <label htmlFor={id} style={label}>{text}</label>
       <div style={{ display: 'flex', minWidth: 0, gap: 8, alignItems: 'center' }}>
         <input id={id} type="color" value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}
-          style={{ width: 44, height: 38, padding: 2, border: '1px solid #d1d5db', borderRadius: 8, cursor: disabled ? 'not-allowed' : 'pointer', background: 'var(--s1)' }} />
+          style={{ width: 44, minWidth: 44, height: 44, flexShrink: 0, padding: 2, border: '1px solid #d1d5db', borderRadius: 8, cursor: disabled ? 'not-allowed' : 'pointer', background: 'var(--s1)' }} />
         <input type="text" value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}
           aria-label={`${text} hex value`} style={{ ...field, fontFamily: 'ui-monospace, monospace' }} />
       </div>

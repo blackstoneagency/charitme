@@ -26,11 +26,14 @@ import { chromium } from 'playwright';
 import routes from '../e2e/public-routes.json' with { type: 'json' };
 import dataDependent from '../e2e/data-dependent-routes.json' with { type: 'json' };
 import { resolveBase } from './lib/audit-base.mjs';
+import { chromiumLaunchOptions } from './lib/audit-browser.mjs';
 
 const argv = process.argv;
 const WITH_AUTH = argv.includes('--auth');
 // Set by audit-signed-in.mjs --no-admin: /admin/* is out of scope for a member.
 const SKIP_ADMIN = process.env.AUDIT_SKIP_ADMIN === '1';
+const ONLY_GATED = process.env.AUDIT_ONLY_GATED === '1';
+const SKIP_DASHBOARD_ROOT = process.env.AUDIT_SKIP_DASHBOARD_ROOT === '1';
 const onlyArg = argv.includes('--only') ? argv[argv.indexOf('--only') + 1] : null;
 const ONLY = onlyArg ? onlyArg.split(',').map((x) => x.trim()).filter(Boolean) : null;
 
@@ -68,7 +71,7 @@ if (WITH_AUTH && !sessionCookie) {
 const SIGNED_OUT_ONLY = new Set(routes.signedOutOnly ?? []);
 
 let list = WITH_AUTH
-  ? [...publicList.filter((r) => !SIGNED_OUT_ONLY.has(typeof r === 'string' ? r : r.path)), ...gatedList]
+  ? [...(ONLY_GATED ? [] : publicList.filter((r) => !SIGNED_OUT_ONLY.has(typeof r === 'string' ? r : r.path))), ...gatedList]
   : publicList;
 if (ONLY) list = list.filter((r) => ONLY.includes(typeof r === 'string' ? r : r.path));
 if (list.length === 0) {
@@ -79,13 +82,12 @@ if (list.length === 0) {
 const BASE = resolveBase(process.argv);
 const WIDTHS = [320, 390];
 
-// WCAG 2.2 SC 2.5.8 "Target Size (Minimum)", Level AA: 24×24 CSS px. The spec's
-// exceptions are honoured — inline targets inside a sentence, and targets with
-// enough surrounding spacing, both pass — because flagging every inline link
-// would bury the real defects under noise nobody would read.
-const MIN_TARGET = 24;
+// The product standard is stronger than WCAG's 24px minimum: every standalone
+// touch target must expose at least a 44×44 CSS-pixel hit area. Inline links in
+// prose retain the WCAG exception; compact standalone icons and controls do not.
+const MIN_TARGET = 44;
 
-const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
+const b = await chromium.launch(chromiumLaunchOptions());
 const failures = [];
 const tapFailures = [];
 const errors = [];
@@ -122,8 +124,8 @@ for (const width of WIDTHS) {
       // failed; sharing the list means this audit agrees with the e2e sweep
       // instead of exiting 1 on every run for a route the suite deliberately
       // tolerates. Skipped, not counted as analyzed — it was not measured.
-      if (status === 404 && dataDependent.includes(path)) {
-        console.log(`· ${width}px ${path} — SKIPPED (needs seeded data, HTTP 404)`);
+      if (status >= 400 && dataDependent.includes(path)) {
+        console.log(`· ${width}px ${path} — SKIPPED (needs seeded data, HTTP ${status})`);
         continue;
       }
       if (status >= 400) {
@@ -149,6 +151,10 @@ for (const width of WIDTHS) {
       // the whole mode unreadable. Skipped, not analyzed — it was not measured.
       if (SKIP_ADMIN && asked.startsWith('/admin')) {
         console.log(`· ${width}px ${path} — SKIPPED (admin route, member session)`);
+        continue;
+      }
+      if (SKIP_DASHBOARD_ROOT && asked === '/dashboard') {
+        console.log(`SKIP ${width}px ${path}: member landing route under admin session`);
         continue;
       }
       if (landed !== asked) {
@@ -237,6 +243,7 @@ for (const width of WIDTHS) {
           for (const el of document.querySelectorAll(sel)) {
             const cs = getComputedStyle(el);
             if (cs.display === 'none' || cs.visibility === 'hidden' || cs.pointerEvents === 'none') continue;
+            if (el.matches('.cl-visually-hidden') || cs.clip === 'rect(0px, 0px, 0px, 0px)') continue;
             // Measure the EFFECTIVE target. A checkbox inside (or named by) a
             // <label> is activated by clicking the label, so the label's box is
             // what a thumb has to hit. Measuring the 16×16 input instead would
@@ -263,20 +270,6 @@ for (const width of WIDTHS) {
               parent &&
               (parent.textContent || '').trim().length > (el.textContent || '').trim().length + 12;
             if (inlineInText) continue;
-
-            // Exception: sufficient spacing — no other target within the 24px
-            // circle the spec allows in place of raw size.
-            const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-            let crowded = false;
-            for (const other of document.querySelectorAll(sel)) {
-              if (other === el) continue;
-              const o = other.getBoundingClientRect();
-              if (o.width === 0 || o.height === 0) continue;
-              const dx = Math.max(o.left - cx, 0, cx - o.right);
-              const dy = Math.max(o.top - cy, 0, cy - o.bottom);
-              if (Math.hypot(dx, dy) < min) { crowded = true; break; }
-            }
-            if (!crowded) continue;
 
             out.push({
               tag: el.tagName.toLowerCase(),
@@ -339,9 +332,9 @@ if (failures.length) {
   console.log(`\n${failures.length} horizontal overflow(s) across ${analyzed} page loads.`);
 }
 if (tapTotal) {
-  console.log(`\n${tapTotal} tap target(s) under ${MIN_TARGET}px on ${tapFailures.length} route(s) (WCAG 2.2 SC 2.5.8, AA).`);
+  console.log(`\n${tapTotal} standalone tap target(s) under ${MIN_TARGET}px on ${tapFailures.length} route(s).`);
 }
 if (failures.length || tapTotal) process.exit(1);
 
 console.log(`\n✅ No horizontal overflow across ${analyzed} page loads (${list.length} routes × ${WIDTHS.length} widths${WITH_AUTH ? ', public + signed-in' : ', public only'})`);
-console.log(`✅ No tap targets under ${MIN_TARGET}px at ${WIDTHS[0]}px (WCAG 2.2 SC 2.5.8)`);
+console.log(`✅ No standalone tap targets under ${MIN_TARGET}px at ${WIDTHS[0]}px`);

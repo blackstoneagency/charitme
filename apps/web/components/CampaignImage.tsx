@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { getCoverForCategory, getCoverForCampaign } from '../lib/photo-catalog';
+import { getCoverForCategory, getCoverForCampaign, isPlaceholderCover } from '../lib/photo-catalog';
 import { optimizedCoverUrl } from '../lib/img-optimize';
 
 /**
@@ -39,10 +39,11 @@ export default function CampaignImage({
     ? getCoverForCampaign(category, campaignKey)
     : getCoverForCategory(category);
   const fallback = optimizedCoverUrl(rawFallback, targetW);
-  const initial = src?.startsWith('/')
-    ? src
-    : src?.startsWith('http')
-      ? optimizedCoverUrl(src, targetW)
+  const usableSource = src?.trim() && !isPlaceholderCover(src) ? src.trim() : null;
+  const initial = usableSource?.startsWith('/')
+    ? usableSource
+    : usableSource?.startsWith('http')
+      ? optimizedCoverUrl(usableSource, targetW)
       : fallback;
   const [current, setCurrent] = useState(initial);
   const [stage, setStage] = useState<0 | 1 | 2>(initial === fallback ? 1 : 0);

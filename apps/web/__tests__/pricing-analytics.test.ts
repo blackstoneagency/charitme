@@ -51,13 +51,13 @@ describe('computePricingAnalytics', () => {
 
   it('counts "support reduction" as donations below the suggested tier', () => {
     const a = computePricingAnalytics([
-      row(10_000, 1_500), // 15% — at suggested, NOT reduced
+      row(10_000, 1_500), // 15% — above suggested, NOT reduced
       row(10_000, 800), // 8% — reduced
       row(10_000, 0), // 0% — reduced + zero
       row(10_000, 2_000), // 20% — above, NOT reduced
     ]);
-    expect(SUGGESTED_SUPPORT_PERCENT).toBe(15);
-    expect(a.supportReductionPercent).toBe(50); // 2 of 4 below 15%
+    expect(SUGGESTED_SUPPORT_PERCENT).toBe(10);
+    expect(a.supportReductionPercent).toBe(50); // 2 of 4 below 10%
     expect(a.zeroSupportPercent).toBe(25); // 1 of 4 left nothing
   });
 

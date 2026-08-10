@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Btn, Textarea, Badge, Card } from '../../components/ui';
+import { DELETION_CONFIRMATION, isConfirmed } from '../../lib/account-deletion';
+import { Btn, Input, Textarea, Badge, Card } from '../../components/ui';
 import type { PrivacyRequest } from '../../lib/privacy-core';
 
 const STATUS_COLOR: Record<string, 'gray' | 'green' | 'red' | 'blue'> = {
@@ -13,10 +14,22 @@ const STATUS_COLOR: Record<string, 'gray' | 'green' | 'red' | 'blue'> = {
   cancelled: 'gray',
 };
 
-export default function PrivacyCenter({ initialRequests }: { initialRequests: PrivacyRequest[] }) {
+export default function PrivacyCenter({
+  initialRequests,
+  selfDeleteEnabled,
+}: {
+  initialRequests: PrivacyRequest[];
+  // ⚠️ Resolved on the SERVER and passed down. Reading the flag in the client
+  // would need a NEXT_PUBLIC_ variable, which is baked into the bundle at build
+  // time — so switching the flag would need a redeploy, and the value would be
+  // readable by anyone. A prop keeps it a runtime decision.
+  selfDeleteEnabled: boolean;
+}) {
   const router = useRouter();
   const [exporting, setExporting] = useState(false);
   const [deleteNote, setDeleteNote] = useState('');
+  const [confirmPhrase, setConfirmPhrase] = useState('');
+  const [deleteError, setDeleteError] = useState('');
   const [confirming, setConfirming] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -86,6 +99,39 @@ export default function PrivacyCenter({ initialRequests }: { initialRequests: Pr
 
   const hasOpenDeletion = initialRequests.some((r) => r.type === 'deletion' && (r.status === 'pending' || r.status === 'in_progress'));
 
+  /**
+   * Immediate, self-service deletion — App Store 5.1.1(v) requires the user to
+   * initiate AND complete it in the app.
+   *
+   * The endpoint refuses when the account has received donations, because
+   * deleting the auth user cascades through profiles -> campaigns -> donations
+   * and would erase other people's financial records. That refusal is surfaced
+   * verbatim rather than flattened into "something went wrong": it is permanent
+   * until the campaigns are settled, so a generic error leaves the user with
+   * nothing to act on.
+   */
+  async function deleteNow() {
+    setSubmitting(true);
+    setDeleteError('');
+    try {
+      const res = await fetch('/api/account/delete', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ confirm: confirmPhrase }),
+      });
+      if (res.ok) {
+        // The session is gone server-side; a full navigation avoids rendering
+        // authenticated chrome for an account that no longer exists.
+        window.location.href = '/?deleted=1';
+        return;
+      }
+      const body = await res.json().catch(() => null);
+      setDeleteError(body?.error ?? 'Could not delete your account.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {message && (
@@ -116,7 +162,42 @@ export default function PrivacyCenter({ initialRequests }: { initialRequests: Pr
           Request permanent deletion of your personal data. For legal reasons, records of completed
           transactions are retained but no longer linked to your identity. This cannot be undone.
         </p>
-        {hasOpenDeletion ? (
+        {selfDeleteEnabled ? (
+          /* Immediate deletion. The typed phrase is deliberate: a single
+             confirm button is one mis-tap from an irreversible action. */
+          !confirming ? (
+            <Btn variant="danger" onClick={() => setConfirming(true)}>
+              Delete my account
+            </Btn>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <Input
+                label={`Type ${DELETION_CONFIRMATION} to confirm`}
+                value={confirmPhrase}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setConfirmPhrase(e.target.value); setDeleteError(''); }}
+                placeholder={DELETION_CONFIRMATION}
+                autoComplete="off"
+              />
+              {deleteError && (
+                <p role="alert" style={{ fontSize: 13.5, color: 'var(--red-text)', margin: 0, lineHeight: 1.55 }}>
+                  {deleteError}
+                </p>
+              )}
+              <div style={{ display: 'flex', minWidth: 0, gap: 10 }}>
+                <Btn
+                  variant="danger"
+                  disabled={submitting || !isConfirmed(confirmPhrase)}
+                  onClick={() => void deleteNow()}
+                >
+                  {submitting ? 'Deleting…' : 'Permanently delete'}
+                </Btn>
+                <Btn variant="ghost" disabled={submitting} onClick={() => { setConfirming(false); setConfirmPhrase(''); setDeleteError(''); }}>
+                  Cancel
+                </Btn>
+              </div>
+            </div>
+          )
+        ) : hasOpenDeletion ? (
           <p style={{ fontSize: 14, color: 'var(--t2)', fontWeight: 600 }}>
             You have an open deletion request under review.
           </p>

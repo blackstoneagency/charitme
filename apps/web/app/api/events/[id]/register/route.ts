@@ -50,6 +50,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
       .from('event_registrations')
       .select('quantity')
       .eq('event_id', id)
+      .in('status', ['pending', 'confirmed', 'refund_pending', 'partially_refunded', 'disputed'])
       .limit(event.capacity);
     registeredQty = (regs ?? []).reduce((s, r) => s + (r.quantity as number), 0);
   }

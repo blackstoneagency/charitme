@@ -2,6 +2,7 @@ import 'server-only';
 import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
 import { requireAdmin } from '../../../lib/auth';
 import { getPricingAnalytics } from '../../../lib/pricing-analytics';
+import { SUGGESTED_SUPPORT_COPY } from '../../../lib/fee-copy';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,7 +38,7 @@ export default async function AdminPricingPage() {
           <Stat label="Support revenue" value={money(a.supportRevenueCents)} sub="optional donor support → CharitMe" />
           <Stat label="Avg donation" value={money(a.averageDonationCents)} />
           <Stat label="Avg support %" value={`${a.averageSupportPercent}%`} sub={`effective ${a.effectiveSupportPercent}%`} />
-          <Stat label="Support reduction" value={`${a.supportReductionPercent}%`} sub="below suggested 15%" />
+          <Stat label="Support reduction" value={`${a.supportReductionPercent}%`} sub={`below suggested ${SUGGESTED_SUPPORT_COPY}`} />
           <Stat label="Zero support" value={`${a.zeroSupportPercent}%`} sub="left no support" />
         </div>
 

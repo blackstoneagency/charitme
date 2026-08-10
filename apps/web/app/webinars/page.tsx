@@ -114,7 +114,7 @@ export default async function WebinarsPage() {
                 style={{ padding: '20px', border: '1px solid var(--b1)', borderRadius: 'var(--rl)', background: 'var(--s1)', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '8px' }}
               >
                 <h3 style={{ fontSize: '17px', fontWeight: 750, color: 'var(--t1)', lineHeight: 1.3 }}>
-                  <Link href={`/events/${e.slug}`} style={{ color: 'var(--t1)', textDecoration: 'none' }}>
+                  <Link href={`/events/${e.slug}`} style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, color: 'var(--t1)', textDecoration: 'none' }}>
                     {e.title}
                   </Link>
                 </h3>
@@ -125,7 +125,7 @@ export default async function WebinarsPage() {
                   </p>
                 )}
                 <p style={{ marginTop: '4px' }}>
-                  <Link href={`/events/${e.slug}`} style={{ fontSize: '14px', color: 'var(--green-text)', fontWeight: 700 }}>
+                  <Link href={`/events/${e.slug}`} style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, fontSize: '14px', color: 'var(--green-text)', fontWeight: 700 }}>
                     Register free →
                   </Link>
                 </p>

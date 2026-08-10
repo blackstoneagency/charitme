@@ -9,7 +9,7 @@ import {
 } from '../../components/ReferenceMarketing';
 import { getHomeData } from '../../lib/home-data';
 import { formatHomeCents, shortHomeCount, shouldShowPlatformMetrics } from '../../lib/home-utils';
-import { getPhotosForCategory } from '../../lib/photo-catalog';
+import { getPhotosForPage } from '../../lib/photo-catalog';
 
 export const metadata: Metadata = {
   title: 'All Ways to Take Part',
@@ -40,7 +40,7 @@ export default async function GetInvolvedPage() {
     metrics = null;
   }
   const measuredMetrics = metrics !== null && shouldShowPlatformMetrics(metrics, true) ? metrics : null;
-  const photos = getPhotosForCategory('Volunteer', 6);
+  const photos = getPhotosForPage('Volunteer', 'get-involved', 6);
   const stories = [
     { icon: 'heart', title: 'One Gift Became a Community Effort', body: 'A supporter shared a local campaign and helped it reach an entirely new network.', action: 'Explore campaigns', href: '/campaigns', image: photos[1] },
     { icon: 'hand', title: 'Skills Turned Into Service', body: 'Volunteers matched their experience to a nonprofit that needed hands-on help.', action: 'Volunteer', href: '/volunteer', image: photos[2] },

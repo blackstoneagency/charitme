@@ -99,7 +99,9 @@ export default async function CampaignUpdatesPage({ params }: Props) {
   const updates = await loadUpdates(campaign.id);
   const origin = getAppOrigin();
   const campaignUrl = `${origin}/campaigns/${slug}`;
-  const cover = await resolveCampaignCover(campaign.cover_image_url, campaign.category, campaign.slug);
+  const qrTarget = `${campaignUrl}?utm_source=qr`;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qrTarget)}&color=6c35ff&bgcolor=ffffff&margin=10`;
+  const cover = await resolveCampaignCover(campaign.cover_image_url, campaign.category, campaign.slug, 'campaign-updates');
 
   const goal = Number(campaign.goal_amount ?? 0);
   const raised = Number(campaign.raised_amount ?? 0);
@@ -193,7 +195,7 @@ export default async function CampaignUpdatesPage({ params }: Props) {
               campaignId={campaign.id}
               campaignUrl={campaignUrl}
               campaignTitle={campaign.title}
-              qrUrl={`${campaignUrl}?utm_source=qr`}
+              qrUrl={qrUrl}
               qrPosterId={`qr-updates-${campaign.id}`}
             />
           </div>

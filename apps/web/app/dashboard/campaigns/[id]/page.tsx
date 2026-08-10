@@ -8,6 +8,7 @@ import CampaignWorkspace from './_components/CampaignWorkspace';
 import FeatureCampaignButton from './_components/FeatureCampaignButton';
 import { resolveFeaturePriceCents } from '../../../../lib/featured';
 import { campaignTimeLabel } from '../../../../lib/campaign-lifecycle';
+import { getDisplayCover } from '../../../../lib/photo-catalog';
 
 export const dynamic = 'force-dynamic';
 
@@ -164,16 +165,12 @@ export default async function CampaignDetailPage({
         <div className="kf-card" style={{ padding: 24 }}>
           <div style={{ display: 'flex', minWidth: 0, alignItems: 'flex-start', gap: 20, flexWrap: 'wrap' }}>
             {/* Cover image */}
-            {campaign.cover_image_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={campaign.cover_image_url}
-                alt={campaign.title}
-                style={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 12, flexShrink: 0 }}
-              />
-            ) : (
-              <div style={{ width: 96, height: 96, borderRadius: 12, background: 'linear-gradient(135deg,#ede9fe,#6c35ff)', flexShrink: 0 }} />
-            )}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={getDisplayCover(campaign.cover_image_url, campaign.category, campaign.slug, 'dashboard-campaign-detail')}
+              alt={campaign.title}
+              style={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 12, flexShrink: 0 }}
+            />
 
             <div style={{ flex: 1, minWidth: 200 }}>
               <div style={{ display: 'flex', minWidth: 0, gap: 8, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>

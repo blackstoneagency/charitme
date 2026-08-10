@@ -1,0 +1,22 @@
+{
+  "width": 780,
+  "height": 1688,
+  "shots": [
+    {
+      "src": "/screenshots/home.png",
+      "label": "Discover campaigns to support"
+    },
+    {
+      "src": "/screenshots/campaigns.png",
+      "label": "Browse fundraisers by cause"
+    },
+    {
+      "src": "/screenshots/donate.png",
+      "label": "Give in seconds"
+    },
+    {
+      "src": "/screenshots/how-it-works.png",
+      "label": "Start your own fundraiser"
+    }
+  ]
+}

@@ -148,6 +148,7 @@
     "routes": [
       "/achievements",
       "/donor",
+      "/events/check-in",
       "/events/manage",
       "/impact/manage",
       "/matching/manage",
@@ -195,6 +196,7 @@
       "/admin/super/activity",
       "/admin/super/announcements",
       "/admin/super/banner",
+      "/admin/super/demo-data",
       "/admin/super/flags",
       "/admin/super/roles",
       "/admin/super/settings",
@@ -239,6 +241,7 @@
       "/dashboard/tasks",
       "/dashboard/tax",
       "/dashboard/team",
+      "/dashboard/tickets",
       "/dashboard/tools",
       "/dashboard/updates",
       "/dashboard/updates/new",
@@ -294,59 +297,59 @@
       },
       {
         "template": "/dashboard/campaigns/[id]",
-        "path": "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001"
+        "path": "/dashboard/campaigns/11111111-1111-4111-8111-111111111111"
       },
       {
         "template": "/dashboard/campaigns/[id]/analytics",
-        "path": "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/analytics"
+        "path": "/dashboard/campaigns/11111111-1111-4111-8111-111111111111/analytics"
       },
       {
         "template": "/dashboard/campaigns/[id]/edit",
-        "path": "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/edit"
+        "path": "/dashboard/campaigns/11111111-1111-4111-8111-111111111111/edit"
       },
       {
         "template": "/dashboard/campaigns/[id]/faqs",
-        "path": "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/faqs"
+        "path": "/dashboard/campaigns/11111111-1111-4111-8111-111111111111/faqs"
       },
       {
         "template": "/dashboard/campaigns/[id]/ledger",
-        "path": "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/ledger"
+        "path": "/dashboard/campaigns/11111111-1111-4111-8111-111111111111/ledger"
       },
       {
         "template": "/dashboard/campaigns/[id]/milestones",
-        "path": "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/milestones"
+        "path": "/dashboard/campaigns/11111111-1111-4111-8111-111111111111/milestones"
       },
       {
         "template": "/dashboard/campaigns/[id]/payout-setup",
-        "path": "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/payout-setup"
+        "path": "/dashboard/campaigns/11111111-1111-4111-8111-111111111111/payout-setup"
       },
       {
         "template": "/dashboard/campaigns/[id]/rewards",
-        "path": "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/rewards"
+        "path": "/dashboard/campaigns/11111111-1111-4111-8111-111111111111/rewards"
       },
       {
         "template": "/dashboard/campaigns/[id]/settings",
-        "path": "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/settings"
+        "path": "/dashboard/campaigns/11111111-1111-4111-8111-111111111111/settings"
       },
       {
         "template": "/dashboard/campaigns/[id]/share",
-        "path": "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/share"
+        "path": "/dashboard/campaigns/11111111-1111-4111-8111-111111111111/share"
       },
       {
         "template": "/dashboard/campaigns/[id]/supporters",
-        "path": "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/supporters"
+        "path": "/dashboard/campaigns/11111111-1111-4111-8111-111111111111/supporters"
       },
       {
         "template": "/dashboard/campaigns/[id]/thank-donors",
-        "path": "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/thank-donors"
+        "path": "/dashboard/campaigns/11111111-1111-4111-8111-111111111111/thank-donors"
       },
       {
         "template": "/dashboard/campaigns/[id]/updates",
-        "path": "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/updates"
+        "path": "/dashboard/campaigns/11111111-1111-4111-8111-111111111111/updates"
       },
       {
         "template": "/dashboard/campaigns/[id]/widget",
-        "path": "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/widget"
+        "path": "/dashboard/campaigns/11111111-1111-4111-8111-111111111111/widget"
       },
       {
         "template": "/dashboard/tax/fundraiser/[year]",

@@ -262,7 +262,14 @@ export default function AdminGrantsClient() {
                     <span style={{ fontSize: 12, color: 'var(--t3)' }}>{g.funder_name}</span>
                   </div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    <a href={`/grants/${g.slug}`} target="_blank" rel="noreferrer">{g.title}</a>
+                    <a
+                      href={`/grants/${g.slug}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44 }}
+                    >
+                      {g.title}
+                    </a>
                   </div>
                 </div>
                 <div style={{ display: 'flex', minWidth: 0, gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>

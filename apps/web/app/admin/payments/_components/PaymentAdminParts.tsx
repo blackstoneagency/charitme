@@ -106,7 +106,7 @@ export function PaymentTable({ rows, baseHref = '/admin/payments/campaign-flows'
                 <td style={td}><Pill value={row.payout_status} /></td>
                 <td style={td}><Pill value={row.reconciliation_status} /></td>
                 <td style={td}>
-                  <Link href={`${baseHref}/${row.campaign_id ?? 'unknown'}/transactions/${row.id}`} style={{ color: 'var(--brand-text)', fontWeight: 700 }}>Open</Link>
+                  <Link href={`${baseHref}/${row.campaign_id ?? 'unknown'}/transactions/${row.id}`} className="cm-touch-link" style={{ color: 'var(--brand-text)', fontWeight: 700 }}>Open</Link>
                 </td>
               </tr>
             ))}

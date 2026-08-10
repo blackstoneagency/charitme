@@ -30,9 +30,14 @@ describe('netToFundraiser (0% platform fee promise)', () => {
 });
 
 describe('donor support model', () => {
-  it('suggests 15% support and always allows opting down to 0', () => {
-    expect(DEFAULT_DONOR_TIP_PERCENT).toBe(15);
-    expect(TIP_OPTIONS[0]).toBe(15);          // suggested first
+  it('suggests 10% support and always allows opting down to 0', () => {
+    expect(DEFAULT_DONOR_TIP_PERCENT).toBe(10);
+    // ⚠️ The ladder's FIRST entry is not the suggested one. It used to be, and
+    // the comment here said "suggested first", which is how the two ideas got
+    // conflated: the ladder is ordered high → low so the reduce-support choices
+    // are always visible, while the suggested rate is now the third rung.
+    expect(TIP_OPTIONS[0]).toBe(15);          // top of the ladder
+    expect(TIP_OPTIONS).toContain(DEFAULT_DONOR_TIP_PERCENT); // suggested is on it
     expect(TIP_OPTIONS).toContain(0);         // opt-out always available
     expect([...TIP_OPTIONS]).toEqual([15, 12, 10, 8, 5, 3, 1, 0]);
   });
@@ -110,10 +115,15 @@ describe('methodProcessingFee — per-method rates (server/client authoritative)
 });
 
 describe('donor support model (transparency-first, no dark patterns)', () => {
-  it('suggests 15% but the ladder always reaches 0%', () => {
-    expect(SUGGESTED_SUPPORT_PERCENT).toBe(15);
-    expect(DEFAULT_DONOR_TIP_PERCENT).toBe(15);
+  it('suggests 10% but the ladder always reaches 0%', () => {
+    expect(SUGGESTED_SUPPORT_PERCENT).toBe(10);
+    expect(DEFAULT_DONOR_TIP_PERCENT).toBe(10);
+    // The ladder still OPENS at 15% — the suggested default moved down it, the
+    // ladder itself did not shrink. A donor who wants to give more still can.
     expect(SUPPORT_TIER_PERCENTS[0]).toBe(15);
+    // The suggested rate has to be reachable from the ladder, or the preselected
+    // tier renders as no tier at all.
+    expect(SUPPORT_TIER_PERCENTS).toContain(SUGGESTED_SUPPORT_PERCENT);
     expect(SUPPORT_TIER_PERCENTS).toContain(0);
     // descending so the reduce-support choices are always visible
     const arr = [...SUPPORT_TIER_PERCENTS];

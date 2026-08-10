@@ -16,7 +16,7 @@ import {
   ReferenceStats,
   ReferenceSteps,
 } from '../../components/ReferenceMarketing';
-import { getPhotosForCategory } from '../../lib/photo-catalog';
+import { getPhotosForPage } from '../../lib/photo-catalog';
 
 export const metadata: Metadata = {
   title: 'Team Fundraising',
@@ -93,7 +93,7 @@ export default async function TeamsPage({ searchParams }: { searchParams?: Promi
   const sp = (await searchParams) ?? {};
   const cause = typeof sp.cause === 'string' ? getCause(sp.cause) : undefined;
   const data = await getTeams(cause?.categories);
-  const photos = getPhotosForCategory('Community', 14);
+  const photos = getPhotosForPage('Community', 'teams', 14);
 
   return (
     <ReferencePage>

@@ -24,11 +24,13 @@ export const CAUSE_PAGE_SIZE = 6;
 export default function CauseCampaignList({
   initial,
   categories,
+  causeSlug,
   hasMore: initialHasMore,
   seeMoreLabel,
 }: {
   initial: CampaignCardData[];
   categories: readonly string[];
+  causeSlug: string;
   hasMore: boolean;
   seeMoreLabel: string;
 }) {
@@ -91,6 +93,7 @@ export default function CauseCampaignList({
             key={c.id}
             campaign={c}
             variant="feature"
+            coverScope={`cause-${causeSlug}`}
             // At most three rings per page. /causes/people-in-need spans three
             // categories and came back with SIX of six cards highlighted, which
             // distinguishes nothing. Computed over the whole rendered list, not

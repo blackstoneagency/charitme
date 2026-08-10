@@ -136,6 +136,9 @@ async function handleEvent(event: Stripe.Event) {
     case 'checkout.session.completed':
       await handleCheckoutComplete(event.id, event.data.object as Stripe.Checkout.Session);
       break;
+    case 'checkout.session.expired':
+      await handleCheckoutExpired(event.data.object as Stripe.Checkout.Session);
+      break;
 
     // ── Recurring / invoice ───────────────────────────────────────────────────
     case 'invoice.payment_succeeded':
@@ -224,6 +227,26 @@ async function handleEvent(event: Stripe.Event) {
 // ─────────────────────────────────────────────────────────────────────────────
 async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.Session) {
   const meta = (session.metadata ?? {}) as Record<string, string>;
+
+  if (meta.type === 'event_ticket' && meta.registrationId) {
+    if (session.payment_status !== 'paid') {
+      throw new Error('Event ticket checkout completed without a paid payment status.');
+    }
+    const paymentIntentId = typeof session.payment_intent === 'string'
+      ? session.payment_intent
+      : session.payment_intent?.id ?? null;
+    if (!paymentIntentId) throw new Error('Paid event ticket checkout has no payment intent.');
+
+    const { data, error } = await supabaseAdmin.rpc('confirm_event_ticket_registration', {
+      p_registration_id: meta.registrationId,
+      p_stripe_checkout_session_id: session.id,
+      p_stripe_payment_intent_id: paymentIntentId,
+    });
+    if (error || data !== true) {
+      throw new Error('Paid event ticket registration could not be confirmed.');
+    }
+    return;
+  }
 
   // ── Creator membership ────────────────────────────────────────────────────
   //
@@ -728,6 +751,17 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
   }
 }
 
+async function handleCheckoutExpired(session: Stripe.Checkout.Session) {
+  const meta = (session.metadata ?? {}) as Record<string, string>;
+  if (meta.type !== 'event_ticket' || !meta.registrationId) return;
+
+  const { error } = await supabaseAdmin.rpc('release_event_ticket_reservation', {
+    p_registration_id: meta.registrationId,
+    p_stripe_checkout_session_id: session.id,
+  });
+  if (error) throw new Error('Expired event ticket reservation could not be released.');
+}
+
 // ── Stripe API-shape compatibility helpers ────────────────────────────────────
 // The Stripe SDK's TypeScript types follow its pinned API version (2026-06-24),
 // but webhook *payloads* use the API version configured on the endpoint, which
@@ -1026,6 +1060,18 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
   const piId = typeof charge.payment_intent === 'string' ? charge.payment_intent : null;
   if (!piId) return;
 
+  const { data: eventTicketRefunded, error: eventTicketRefundError } = await supabaseAdmin.rpc(
+    'apply_event_ticket_refund',
+    {
+      p_stripe_payment_intent_id: piId,
+      p_refunded_cents: charge.amount_refunded ?? 0,
+    },
+  );
+  if (eventTicketRefundError) {
+    throw new Error('Refunded event ticket could not be reconciled; letting Stripe retry.');
+  }
+  if (eventTicketRefunded === true) return;
+
   const isFullRefund = charge.refunded;
   const newStatus = isFullRefund ? 'refunded' : 'completed'; // partial keeps completed
 
@@ -1163,6 +1209,19 @@ async function handleDisputeCreated(dispute: Stripe.Dispute) {
   const piId = typeof dispute.payment_intent === 'string' ? dispute.payment_intent : null;
   if (!piId) return;
 
+  const { data: eventTicketDisputed, error: eventTicketDisputeError } = await supabaseAdmin.rpc(
+    'apply_event_ticket_dispute',
+    {
+      p_stripe_payment_intent_id: piId,
+      p_stripe_dispute_id: dispute.id,
+      p_outcome: 'opened',
+    },
+  );
+  if (eventTicketDisputeError) {
+    throw new Error('Event ticket dispute could not be recorded; letting Stripe retry.');
+  }
+  if (eventTicketDisputed === true) return;
+
   await supabaseAdmin.from('donations')
     .update({ status: 'disputed', updated_at: new Date().toISOString() })
     .eq('stripe_payment_intent_id', piId);
@@ -1249,6 +1308,19 @@ async function handleDisputeClosed(dispute: Stripe.Dispute) {
   if (!piId) return;
 
   const won = dispute.status === 'won';
+
+  const { data: eventTicketDisputed, error: eventTicketDisputeError } = await supabaseAdmin.rpc(
+    'apply_event_ticket_dispute',
+    {
+      p_stripe_payment_intent_id: piId,
+      p_stripe_dispute_id: dispute.id,
+      p_outcome: won ? 'won' : 'lost',
+    },
+  );
+  if (eventTicketDisputeError) {
+    throw new Error('Event ticket dispute outcome could not be recorded; letting Stripe retry.');
+  }
+  if (eventTicketDisputed === true) return;
 
   await supabaseAdmin.from('donations')
     .update({

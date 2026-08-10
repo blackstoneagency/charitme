@@ -30,7 +30,7 @@ import CommentForm from '../CommentForm';
 import CommentsList, { type WallComment } from '../CommentsList';
 import SaveCampaignButton from '../SaveCampaignButton';
 import CampaignAssistant from '../CampaignAssistant';
-import { getPhotosForCategory, getCoverForCampaign } from '../../../../lib/photo-catalog';
+import { getPhotosForPage, getDisplayCover } from '../../../../lib/photo-catalog';
 import { optimizedCoverUrl } from '../../../../lib/img-optimize';
 import { computeImpact } from '../../../../lib/donation-optimizer';
 import { campaignLifecycle, campaignTimeLabel } from '../../../../lib/campaign-lifecycle';
@@ -312,7 +312,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com';
   const campaignUrl = `${ORIGIN}/campaigns/${slug}`;
   const description = campaign.tagline ?? campaign.description?.slice(0, 160) ?? '';
-  const image = campaign.cover_image_url ?? getCoverForCampaign(campaign.category, campaign.slug);
+  const image = getDisplayCover(campaign.cover_image_url, campaign.category, campaign.slug, 'campaign-detail');
   const isDemo = isDemoCampaign(campaign as { is_demo?: unknown });
 
   return {
@@ -442,7 +442,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
   };
   const timeLabel = campaignTimeLabel(lifecycleInput, RENDER_TIME);
   const isActive = campaignLifecycle(lifecycleInput, RENDER_TIME) === 'active';
-  const cover = campaign.cover_image_url || getCoverForCampaign(campaign.category, campaign.slug);
+  const cover = getDisplayCover(campaign.cover_image_url, campaign.category, campaign.slug, 'campaign-detail');
   const videoUrl: string | null = (campaign as { video_url?: string | null }).video_url ?? null;
   const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com';
   const campaignUrl = `${ORIGIN}/campaigns/${campaign.slug}`;
@@ -552,7 +552,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
   const galleryImages: string[] =
     rawImageUrls.length >= 4
       ? rawImageUrls
-      : getPhotosForCategory(campaign.category, 4);
+      : getPhotosForPage(campaign.category, `campaign-${campaign.slug}-gallery`, 4);
 
   // AI impact projection
   const campaignStats = {
@@ -1072,9 +1072,12 @@ export default async function CampaignPage({ params, searchParams }: Props) {
               return (
                 <Link key={c.id} href={`/campaigns/${c.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                   <div style={{ border: '1px solid var(--b1, #f1f5f9)', borderRadius: 12, overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--s1, #fff)' }}>
-                    <div style={{
-                      height: 130, background: `url(${optimizedCoverUrl(c.cover_image_url || getCoverForCampaign(c.category, c.slug), 420)}) center/cover`,
-                    }} />
+                    <div
+                      data-image-entity={`campaign:${c.id}`}
+                      style={{
+                      height: 130, background: `url(${optimizedCoverUrl(getDisplayCover(c.cover_image_url, c.category, c.slug, 'campaign-detail-similar'), 420)}) center/cover`,
+                      }}
+                    />
                     <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
                       {c.category && <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--brand-text)', textTransform: 'uppercase', letterSpacing: 0.4 }}>{c.category}</span>}
                       <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--t1, #1a1a2e)', lineHeight: 1.3 }}>{c.title}</div>

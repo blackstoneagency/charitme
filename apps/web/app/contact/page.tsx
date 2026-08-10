@@ -71,7 +71,7 @@ export default async function ContactPage() {
         crumbs={[{ label: 'Home', href: '/' }, { label: 'Contact' }]}
         title="Contact us"
         lede="Whether you are launching a campaign, supporting one, or just have a question — a real person reads every message, and every message becomes a tracked ticket."
-        photo={getCoverForCategory('Community')}
+        photo={getCoverForCategory('Community', 'contact-hero')}
         photoCategory="Community"
         photoKey="contact"
         actions={
