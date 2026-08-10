@@ -38,6 +38,7 @@ with no claim is free. An item with a claim is someone else's — pick another.
 | Native shells (TWA + Capacitor config) | claude/mobile | 2026-08-10 | ✅ config done, released |
 | Privacy declarations | claude/mobile | 2026-08-10 | ✅ done, released |
 | Per-device store screenshots | claude/mobile | 2026-08-10 | ✅ done, released |
+| Push notifications (Guideline 4.2) | claude/mobile | 2026-08-10 | ✅ web push done, released |
 | Tombstone migration apply | — | | 🔒 blocked on credentials, not on people |
 
 ⚠️ **Do not take "blocked on credentials" items.** They are not unclaimed work —
@@ -267,7 +268,41 @@ several agents write to hourly costs more than regenerating it.
   ends up present and wrong.
 - Apple `TEAMID.bundle.id` → `IOS_APP_ID`
 
-### 5. ⚠️ Apple Guideline 4.2 "minimum functionality" — the likeliest rejection
+### 5. ⚠️ Apple Guideline 4.2 — Web Push built; iOS still needs APNs
+
+**Built (`2026-08-10`):** donation alerts over Web Push (VAPID), end to end —
+`push_subscriptions` table with RLS, `POST/DELETE /api/push/subscribe`, service
+worker `push` + `notificationclick` handlers, and an opt-in control in dashboard
+settings. Covers **Chrome, Android and the Play TWA**.
+
+⚠️ **It does NOT cover the iOS App Store build.** Capacitor's WKWebView is not
+Safari and has no Web Push; an iOS shell needs **APNs device tokens**. The table
+already carries them (`platform` + `device_token`, with a CHECK enforcing the two
+shapes) and `pushToUser` skips non-`web` rows rather than pretending to deliver —
+so the remaining iOS work is registration plus an APNs sender, not a redesign.
+
+Design decisions worth keeping:
+- **Push rides on `notify()`**, the single choke point every in-app notification
+  already flows through. One integration point rather than a push call bolted
+  onto fifteen routes — and the push and the in-app row cannot describe the same
+  event differently.
+- **Awaited, not fire-and-forget.** An un-awaited promise in a serverless handler
+  is cancelled when the response returns, so delivery would depend on how fast
+  the rest of the request finished.
+- **Pruning only on 404/410.** Deleting a subscription on a 500 or 429 would
+  silently unsubscribe every user during a push-service outage, and nobody would
+  learn their alerts had stopped.
+- **Never prompts on load.** The browser dialog opens only from a click. A user
+  who declines the in-app button can be asked again; one who declines the browser
+  dialog cannot be asked ever again without visiting site settings by hand.
+
+**Needs from the owner:** `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`
+(`npx web-push generate-vapid-keys`) and the migration applied. Until both, the
+subscribe endpoint 404s and the settings control does not render at all — an
+opt-in that cannot subscribe is worse than none, because the permission it spends
+cannot be re-requested.
+
+### 5b. ⚠️ The underlying 4.2 shape is unchanged
 `capacitor.config.ts` points the shell at `https://www.charitme.com` rather than
 bundling a static export, and **it has to**: this is a Next.js server — RSC,
 route handlers, Stripe webhooks, `force-dynamic` pages — so `next export` cannot
@@ -342,6 +377,9 @@ npx vitest run __tests__/account-self-deletion.test.ts
 ## Environment variables this work introduced
 
 ```
+VAPID_PUBLIC_KEY                # npx web-push generate-vapid-keys
+VAPID_PRIVATE_KEY               # server-only; never exposed to the client
+VAPID_SUBJECT                   # optional; mailto: contact for the push service
 ANDROID_PACKAGE_NAME            # e.g. com.charitme.app
 ANDROID_SHA256_FINGERPRINT      # Play Console → Setup → App integrity, colon-separated hex
 IOS_APP_ID                      # TEAMID.bundle.id

@@ -164,3 +164,58 @@ self.addEventListener('fetch', (event) => {
 
   // Anything else: let the network handle it, uncached.
 });
+
+// ─── Push ────────────────────────────────────────────────────────────────────
+//
+// Delivered by lib/push-server.ts, which builds the payload from the SAME
+// NotificationDraft as the in-app notification row, so the two cannot describe
+// one event differently.
+//
+// ⚠️ `showNotification` is not optional. A browser that receives a push and
+// shows nothing is treated as abusing the permission, and Chrome revokes push
+// for the origin after repeated silent pushes. So every branch below — including
+// a malformed payload — ends in a visible notification.
+self.addEventListener('push', (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch {
+    payload = {};
+  }
+
+  const title = payload.title || 'CharitMe';
+  const options = {
+    body: payload.body || 'You have a new update.',
+    icon: '/icons/icon-192.png',
+    // Android shows this monochrome in the status bar.
+    badge: '/icons/icon-192.png',
+    // Collapses repeats: five gifts in a minute replace one another rather than
+    // stacking five banners.
+    tag: payload.tag || 'charitme',
+    renotify: true,
+    data: { url: payload.url || '/dashboard/notifications' },
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// ⚠️ Focus an EXISTING tab rather than always opening a new one. Tapping three
+// donation alerts should not leave three copies of the dashboard open.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = (event.notification.data && event.notification.data.url) || '/dashboard/notifications';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+      for (const client of windows) {
+        // Same-origin check: `client.url` is whatever page is open, and
+        // navigating a cross-origin window is neither possible nor desirable.
+        if (new URL(client.url).origin === self.location.origin && 'focus' in client) {
+          client.navigate(target);
+          return client.focus();
+        }
+      }
+      return self.clients.openWindow(target);
+    }),
+  );
+});
