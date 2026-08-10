@@ -24,6 +24,32 @@ owns* are, and names precisely what is not.
 
 ---
 
+## 🤝 Coordination — claim before you start
+
+Several agents merge into `master` hourly. This file is the shared ledger; the
+repo is the only channel we actually share, so claims live here.
+
+**Before starting an item, add your claim line. Clear it when you push.** An item
+with no claim is free. An item with a claim is someone else's — pick another.
+
+| Item | Claimed by | Since | State |
+|---|---|---|---|
+| Store listing art | claude/mobile | 2026-08-10 | ✅ done, released |
+| Native shells (TWA + Capacitor config) | claude/mobile | 2026-08-10 | 🔨 in progress |
+| Privacy declarations | — | | free |
+| Tombstone migration apply | — | | 🔒 blocked on credentials, not on people |
+
+⚠️ **Do not take "blocked on credentials" items.** They are not unclaimed work —
+they cannot be finished by anyone in a sandbox, and a second agent rediscovering
+that is pure duplication. As of 2026-08-10 that is the migration apply and both
+sets of store credentials.
+
+⚠️ **Check open PRs before claiming.** PR #355 (campaign photos) is a different
+lane but is blocked on the SAME rotated `SUPABASE_SERVICE_ROLE_KEY` — a working
+key now exists with the owner, which unblocks it.
+
+---
+
 ## ✅ Applied
 
 ### The splash flashed white before a black app
@@ -98,6 +124,28 @@ that would have gone straight into the store listing. The script now refuses any
 shot whose `[class*=stat-value]` reads as an em dash. With the working key
 supplied, all four recaptured clean — verified visually: 502 · $96,850 · 592 · 69.
 → `7b53f625`
+
+### Store listing art — generated, opaque, square
+`npm run generate:store-art` renders `ios-icon-1024.png`, `play-icon-512.png` and
+`play-feature-graphic.png` (1024×500) from the brand SVG already in the repo. No
+new artwork invented — same gradient, same mark, and the wording is the manifest's
+own description. No statistics or testimonials: listing art is the easiest place
+to publish a number nobody can source.
+
+⚠️ Two rejection causes, both invisible locally:
+- **Alpha.** App Store Connect refuses an icon with an alpha channel.
+  `public/icons/icon-512.png` is PNG colour type 6 (RGBA) — measured — so it
+  could not be reused.
+- **Rounded corners.** Both stores apply their own mask, and the source SVG draws
+  an `rx="112"` tile. Shipping it pre-rounded gets it rounded twice. The listing
+  icons render from the same SVG with the radius zeroed.
+
+⚠️ The generator's self-check caught a real bug in itself: **sharp runs `flatten`
+before `composite` regardless of call order**, so the feature graphic came out
+RGBA despite flattening. Fixed with a second pass.
+`__tests__/store-art.test.ts` re-checks size and alpha on every commit, and
+asserts the in-app icons are deliberately NOT treated this way — stripping their
+alpha would put a purple square on the home screen.
 
 ### Sign in with Apple — checked, already present
 Guideline 4.8 requires it wherever a third-party login is offered, and Google
@@ -206,10 +254,11 @@ Both collect: email, donation/payment data, and campaign content. Neither exists
 yet; both are store-console forms rather than repo files, but the answers must
 match what the code actually collects.
 
-### Store listing art
-1024×1024 iOS icon **without alpha** (the existing `icon-512.png` has an alpha
-channel and will be rejected as-is), Play 512×512 icon, 1024×500 feature graphic,
-per-device screenshots.
+### Store listing art — per-device screenshots only
+The three generated assets are done (see Applied). What remains is **per-device
+screenshots** for each console's required display sizes, which the stores demand
+at specific resolutions (e.g. 6.7" and 5.5" iPhone). Those are captures, not
+generated art, and need the device frames the consoles specify.
 
 ---
 
