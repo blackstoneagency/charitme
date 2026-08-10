@@ -49,6 +49,7 @@ describe('dashboard persona navigation', () => {
         '/dashboard',
         '/donor',
         '/dashboard/tax',
+        '/dashboard/tickets',
         '/dashboard/messages',
         '/dashboard/settings',
       ]);

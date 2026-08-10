@@ -16,6 +16,7 @@
       "/dashboard/team",
       "/dashboard/settings",
       "/dashboard/tax",
+      "/dashboard/tickets",
       "/dashboard/volunteer",
       "/dashboard/grants",
       "/dashboard/referrals",
@@ -23,6 +24,10 @@
       "/dashboard/ai-coach",
       "/dashboard/ai-growth-plan",
       "/dashboard/corporate"
+    ],
+    "events": [
+      "/events/check-in",
+      "/events/manage"
     ],
     "admin": [
       "/admin",

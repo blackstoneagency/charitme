@@ -148,6 +148,7 @@
     "routes": [
       "/achievements",
       "/donor",
+      "/events/check-in",
       "/events/manage",
       "/impact/manage",
       "/matching/manage",
@@ -195,6 +196,7 @@
       "/admin/super/activity",
       "/admin/super/announcements",
       "/admin/super/banner",
+      "/admin/super/demo-data",
       "/admin/super/flags",
       "/admin/super/roles",
       "/admin/super/settings",
@@ -239,6 +241,7 @@
       "/dashboard/tasks",
       "/dashboard/tax",
       "/dashboard/team",
+      "/dashboard/tickets",
       "/dashboard/tools",
       "/dashboard/updates",
       "/dashboard/updates/new",

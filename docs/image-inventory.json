@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "verifiedOn": "2026-08-09",
+  "verifiedOn": "2026-08-10",
   "assets": [
     {
       "path": "CharitMe_Logo.png",
@@ -12,6 +12,17 @@
       "source": "Repository owner upload in commit d69e3996f2da16249baa5d663cfedd693c231842",
       "license": "CharitMe-owned brand artwork",
       "uses": ["/brand-assets"]
+    },
+    {
+      "path": "screenshots/home.png",
+      "sha256": "e11a4ba22f4514be3004ff4ba296258c4f64a776601b92be5a62111b3774281c",
+      "status": "active",
+      "subject": "CharitMe homepage shown in its installable web app presentation",
+      "fit": "Wide PWA manifest screenshot",
+      "sourceType": "first-party",
+      "source": "Captured from the CharitMe application by apps/web/scripts/capture-manifest-screenshots.mjs",
+      "license": "CharitMe-owned application screenshot",
+      "uses": ["PWA manifest"]
     },
     {
       "path": "hero-child-crop.webp",
