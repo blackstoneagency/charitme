@@ -23908,3 +23908,48 @@ exercising them.
 
 **Still not executable here** (unchanged, and not what A-1 was): Stripe flows
 need test-mode keys, and the role/RLS matrix needs credentials per role.
+
+
+---
+
+### ✅ VERIFIED — every public route's content is downstream of a Supabase read (Claude, 2026-08-10)
+
+`npm run audit:data-wiring` renders all **112 public routes twice against one
+build** — once with the stub populated, once with every table emptied — and
+compares the visible text. A page whose content comes from a query collapses; a
+page built from an array literal is byte-identical.
+
+| | routes |
+|---|---|
+| change when the database empties | **104** |
+| stop existing entirely (200 → 404) | **8** |
+| identical and declared static by design | 0 |
+| **could not be compared** | **0** |
+
+**⚠️ THE FIRST RUN REPORTED A CLEAN RESULT OVER A TEN-ROUTE HOLE, AND THE
+HOMEPAGE WAS IN IT.** `/`, `/blog`, `/causes`, three `/causes/*`, `/gallery` and
+`/leaderboard` hit the 30s navigation timeout and dropped out of the comparison,
+leaving "96 wired, 0 unexplained" — which reads as a pass.
+
+The cause is not the app. `waitUntil: 'networkidle'` **cannot settle on a page
+that references an unreachable host**, and this sandbox has no route to the
+public internet; campaign covers point at picsum/Unsplash. The fix is blocking
+off-origin requests, not a longer timeout: the request fails instantly instead of
+hanging, so idle is reached honestly. It cannot distort the result either, because
+the comparison reads `innerText` and an image contributes no text.
+
+**A second group of 6 was the strongest evidence in the run, filed as a failure.**
+`/campaigns/…/embed|gallery|share|updates`, `/donate/[slug]` and the three
+`/thank-you/*` screens went **200 → 404**. There is no hardcoded page that 404s on
+an empty database. They now report separately as `disappeared`.
+
+**⚠️ What this does NOT prove, stated because the headline invites the stronger
+reading.** It proves each route's content is downstream of a read — not that
+EVERY section of it is. `/blog` scores as wired, and its surrounding data is; the
+post list itself is still the 10-entry `lib/blog-posts.ts` array and there is no
+`blog_posts` table in the schema (checked, not assumed). That is the same
+deliberate category as `lib/faq-content.ts` and the fee model in `@shared/fees`:
+authored prose, not fabricated data — no invented metrics, no fake testimonials.
+Moving it into Supabase buys editability without a deploy and costs a table, RLS,
+an admin editor, and a failure mode the current design cannot have — an empty
+table in production means an empty blog. Left as an owner's product call.

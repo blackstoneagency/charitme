@@ -121,9 +121,35 @@ function normalise(text) {
   return text.replace(/\s+/g, ' ').trim();
 }
 
+/**
+ * ⚠️ `networkidle` CANNOT SETTLE on a page that references an unreachable host,
+ * and this sandbox has no route to the public internet. Campaign covers point at
+ * picsum/Unsplash, so `/`, `/blog`, `/causes`, `/causes/*`, `/gallery` and
+ * `/leaderboard` — 10 routes including the HOMEPAGE — hit the 30s timeout and
+ * dropped out of the comparison entirely. The sweep then printed a clean result
+ * over a hole, which is this repo's most repeated failure: a surface that never
+ * renders is a surface no audit is measuring.
+ *
+ * Blocking off-origin requests is the fix rather than a longer timeout: the
+ * request never hangs, so idle is reached honestly. It cannot distort the
+ * result, because the comparison reads `innerText` and an image contributes no
+ * text either way.
+ */
+async function blockOffOrigin(page) {
+  const origin = new URL(BASE).host;
+  await page.route('**/*', (route) => {
+    const host = (() => {
+      try { return new URL(route.request().url()).host; } catch { return ''; }
+    })();
+    if (host && host !== origin) return route.abort();
+    return route.continue();
+  });
+}
+
 async function textOf(browser, path) {
   const page = await browser.newPage();
   try {
+    await blockOffOrigin(page);
     const response = await page.goto(`${BASE}${path}`, { waitUntil: 'networkidle', timeout: 30_000 });
     const status = response?.status() ?? 0;
     // ⚠️ Always assert the status. A failed navigation renders Chromium's error
@@ -146,6 +172,16 @@ const browser = await chromium.launch({
 const wired = [];
 const identical = [];
 const skipped = [];
+/**
+ * `200 → 404` is the STRONGEST wiring evidence there is, and it was being filed
+ * as "could not be compared".
+ *
+ * A campaign sub-page or a Stripe thank-you screen that stops existing when its
+ * row disappears cannot be reading a literal — there is no hardcoded page that
+ * 404s on an empty database. Six routes landed here, and burying them among the
+ * genuine failures made the sweep look 6 routes less conclusive than it was.
+ */
+const disappeared = [];
 
 // Both passes run against the same server. Sweep populated first so a crash
 // mid-run leaves the stub in its normal state for whatever runs next.
@@ -162,6 +198,11 @@ await setStubEmpty(false);
 for (const path of ROUTES) {
   const full = fullPass.get(path);
   const empty = emptyPass.get(path);
+
+  if (full.status === 200 && (empty.status === 404 || empty.status === 410)) {
+    disappeared.push({ path, empty: empty.status });
+    continue;
+  }
 
   if (full.text === null || empty.text === null) {
     skipped.push({ path, full: full.status, empty: empty.status, error: full.error ?? empty.error });
@@ -181,9 +222,10 @@ const unexplained = identical.filter((r) => !(r.path in STATIC_BY_DESIGN));
 const explained = identical.filter((r) => r.path in STATIC_BY_DESIGN);
 
 if (AS_JSON) {
-  console.log(JSON.stringify({ wired, identical, unexplained, skipped }, null, 2));
+  console.log(JSON.stringify({ wired, disappeared, identical, unexplained, skipped }, null, 2));
 } else {
   console.log(`\n· ${wired.length} routes change when the database empties — their content is downstream of a read`);
+  console.log(`· ${disappeared.length} stop existing entirely (200 → 404) — the strongest wiring evidence available`);
   console.log(`· ${explained.length} are identical and declared static by design`);
   if (skipped.length) {
     console.log(`\n⚠ ${skipped.length} could not be compared (non-200 in one or both runs):`);
