@@ -24001,3 +24001,113 @@ authored prose, not fabricated data — no invented metrics, no fake testimonial
 Moving it into Supabase buys editability without a deploy and costs a table, RLS,
 an admin editor, and a failure mode the current design cannot have — an empty
 table in production means an empty blog. Left as an owner's product call.
+
+---
+
+## 📱 APP STORE / PLAY STORE READINESS (Claude, 2026-08-10)
+
+Scope note: this repo is a Next.js **website**. Neither store accepts a URL — Play
+needs a signed AAB (a TWA generated from the manifest is the usual route here),
+Apple needs a native binary. So "ready to publish" splits into *files this repo
+owns* and *artifacts that require a developer account and a build machine*. Only
+the first kind can be finished here; the second is listed so nothing is assumed
+done.
+
+### ✅ Landed
+
+- [x] **The splash flashed white before a black app.** `background_color` was
+      `#fbfaff` while the app opens dark (`layout.tsx` sets `data-theme="dark"`
+      unless a stored choice says otherwise; dark `--bg` is `#000000`). That field
+      is painted *before* a byte of the app renders. Invisible in a browser —
+      only an installed app has a splash. Now `#000000`, and
+      `__tests__/manifest-contract.test.ts` reads the value out of `globals.css`
+      rather than restating it, so a theme change cannot silently undo it.
+- [x] **`scope`, `lang`, `dir`, and three home-screen shortcuts.** Bubblewrap
+      reads `scope` to decide which links the Android build claims; an inferred
+      value can move underneath the project. Each shortcut is asserted against a
+      real page file (route groups included — `app/campaigns/(list)/page.tsx` is
+      missed by a plain path join). A shortcut that 404s is a dead control on the
+      home screen, where no surface in the app can explain it.
+- [x] **`/.well-known/assetlinks.json` and `/.well-known/apple-app-site-association`.**
+      Both **404 until configured**, deliberately: each asserts an identity this
+      repo cannot derive, and a placeholder fails as "verification did not
+      succeed" — which reads as a store-console problem and sends you to the
+      wrong place. A malformed fingerprint is rejected exactly like an unset one.
+      iOS paths exclude `/api/*`, `/thank-you/*`, `/auth/*` **before** claiming
+      `/campaigns/*` and `/donate/*`: a universal link that swallows a Stripe
+      return strands the donor in an app screen that cannot finish the checkout
+      the browser was mid-way through, after the money has moved. iOS takes the
+      LAST match, so the order is load-bearing and tested.
+- [x] **Sign in with Apple is already offered** alongside Google
+      (`components/AuthPanel.tsx`, `app/api/auth/signin/route.ts`). Guideline 4.8
+      requires it wherever a third-party login is offered, and it would have been
+      a certain rejection. Checked rather than assumed — it is present.
+
+### 🚨 BLOCKER — account deletion is a REQUEST, not a deletion (App Store 5.1.1(v))
+
+`/privacy-center` offers **"Request account deletion"**, which files a row for an
+admin to action (`POST /api/privacy/requests` with `type: 'deletion'`) and then
+shows *"You have an open deletion request under review."*
+
+Apple requires an app that supports account creation to let the user **initiate
+and complete** deletion from inside the app. A queue a human must service is
+accepted only in narrow regulated cases, and "we retain transaction records" is
+not one of them — that is handled by anonymising the records, which this flow
+already promises in its own copy.
+
+This is the single highest-severity store item and it is software-controllable.
+⚠️ It is also **destructive and irreversible against a live database holding real
+donations**, so it needs: anonymise the profile, detach donations from identity
+while retaining the financial record, then remove the auth user — as one
+transaction, not four API calls that can half-fail.
+
+### ⏳ Open, this repo can finish
+
+- [x] **Manifest `screenshots` — MEASURED, and the abandonment reason was wrong.**
+      The tracker recorded `page.screenshot()` timing out at 30s on `/` and
+      `/campaigns`, "almost certainly the hero carousel and the CountUp
+      animations". Re-measured: **`/` captures in 0.6–1.3s and `/campaigns` in
+      1.2–1.6s**, with and without off-origin blocking. The pages were never the
+      problem. The two settings that DO hang are the ones the earlier attempt
+      used: `waitUntil: 'networkidle'` (never settles — covers point at
+      unreachable hosts, the same root cause as the ten silently unmeasured
+      data-wiring routes) and `animations: 'disabled'`, which waits for CSS
+      animations to finish, and the hero carousel is infinite.
+      `scripts/capture-manifest-screenshots.mjs` captures at 780×1688 and writes
+      `lib/manifest-screenshots.json`, which `app/manifest.ts` reads — a
+      hand-kept list drifts, and its failure mode is a 404 *inside the install
+      dialog*, a surface no route test or link audit reaches.
+
+- [ ] **3 of the 4 screenshots cannot be captured HERE, and the capture script
+      now refuses them rather than shipping them.**
+      `/campaigns`, `/donate` and `/how-it-works` render **"Gifts given —"** in
+      this sandbox while production renders **592** (both checked by curl). The
+      em dash is this codebase's marker for a read that FAILED: the donations
+      count times out through the sandbox proxy where it does not in production.
+      Deterministic, not flaky — three consecutive cache-busted requests all
+      returned the dash.
+      ⚠️ Nothing downstream can catch this. The PNG is valid, the manifest is
+      valid, every test passes — it is a clean, well-composed phone screenshot
+      of a broken statistic, and it would have gone into the install dialog and
+      the store listing. The script now fails any shot whose `[class*=stat-value]`
+      reads as an em dash; the three bad PNGs from the first run were deleted.
+      **Re-run `npm run capture:screenshots` from an environment where that count
+      resolves** (a dev machine, or CI with database access) to add the other
+      three. One `narrow` screenshot is enough for Chrome's rich install dialog,
+      so this is not blocking — it is incomplete.
+- [ ] iOS `PrivacyInfo.xcprivacy` + App Privacy answers (donations, email,
+      payment data are all collected).
+- [ ] Play Data safety declaration.
+
+### 🔒 Cannot be finished here — needs an account and a build machine
+
+- [ ] Signed AAB (TWA via Bubblewrap) and the Play signing SHA-256, which is what
+      unblocks `assetlinks.json`.
+- [ ] Xcode project/archive and `IOS_APP_ID` (`TEAMID.bundle.id`), which unblocks
+      the association file.
+- [ ] Store listing art: 1024×1024 iOS icon **without alpha**, Play 512×512 icon,
+      1024×500 feature graphic, per-device screenshots.
+- [ ] ⚠️ **Apple Guideline 4.2 "minimum functionality" risk.** A web view in a
+      native shell is the most common rejection for a site-as-app. Mitigations are
+      native capability (push, share, biometric unlock) rather than anything in
+      this repo — flagged so it is a decision, not a surprise.
