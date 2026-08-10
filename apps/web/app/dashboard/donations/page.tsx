@@ -4,20 +4,16 @@ import DegradedReadNotice from '../../../components/DegradedReadNotice';
 // Note: this page shows donations received by the organizer's campaigns.
 // Donors can request refunds for their own donations at /dashboard/refund.
 import { requireUser } from '../../../lib/auth';
-import { supabaseAdmin } from '../../../lib/supabase';
+import { createClient } from '../../../lib/supabase-server';
 import { boundedQuery } from '../../../lib/query-timeout';
 import { formatMoneyCompact } from '@shared/currencies';
+import { decodeKeysetCursor, encodeKeysetCursor, type KeysetCursor } from '../../../lib/keyset-cursor';
 
 export const dynamic = 'force-dynamic';
 
 // ─────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────
-type CampaignRef = {
-  id: string;
-  title: string;
-};
-
 type Donation = {
   id: string;
   amount_cents: number;
@@ -29,16 +25,21 @@ type Donation = {
   campaign_id: string;
 };
 
-type Profile = {
-  id: string;
-  full_name: string | null;
-};
-
 // Enriched for display
 type EnrichedDonation = Donation & {
   donorName: string;
   campaignTitle: string;
 };
+
+type DonationSummary = {
+  total_raised_cents: number;
+  donation_count: number;
+  unique_donor_count: number;
+  average_donation_cents: number;
+  one_time_donation_count: number;
+};
+
+const PAGE_SIZE = 50;
 
 // ─────────────────────────────────────────────
 // Helpers
@@ -87,118 +88,77 @@ function initials(name: string): string {
 }
 
 // ─────────────────────────────────────────────
-// Data fetch
+// Page
 // ─────────────────────────────────────────────
-// `failed` separates "this read did not happen" from "this organizer has had no
-// donations". Collapsing the two renders a confident $0 raised / 0 donors to
-// someone whose campaign is funded.
-async function fetchDonationsData(userId: string): Promise<{
+async function fetchDonationPage(
+  userId: string,
+  activeTab: string,
+  cursor: KeysetCursor | null,
+): Promise<{
   donations: EnrichedDonation[];
-  campaignMap: Map<string, string>;
+  summary: DonationSummary | null;
+  hasMore: boolean;
   failed: boolean;
 }> {
   try {
-    // Step 1: get user's campaigns
-    const { data: campData, error: campError } = await boundedQuery(() =>
-      supabaseAdmin
-        .from('campaigns')
-        .select('id,title')
-        .eq('user_id', userId),
-    );
+    const supabase = await createClient();
+    const [summaryResult, pageResult] = await Promise.all([
+      boundedQuery(() => supabase.rpc('organizer_donation_summary', { p_user_id: userId })),
+      activeTab === 'top-donors'
+        ? boundedQuery(() => supabase.rpc('organizer_top_donors', {
+            p_user_id: userId,
+            p_limit: 20,
+          }))
+        : boundedQuery(() => supabase.rpc('organizer_donation_page', {
+            p_user_id: userId,
+            p_before_created_at: cursor?.createdAt ?? null,
+            p_before_id: cursor?.id ?? null,
+            p_limit: PAGE_SIZE + 1,
+            p_one_time_only: activeTab === 'one-time',
+          })),
+    ]);
 
-    if (campError || !campData) {
-      return { donations: [], campaignMap: new Map(), failed: true };
-    }
-    if (campData.length === 0) {
-      // Genuinely no campaigns — zeros here are true.
-      return { donations: [], campaignMap: new Map(), failed: false };
-    }
-
-    const campaigns = campData as CampaignRef[];
-    const campaignMap = new Map<string, string>(
-      campaigns.map((c) => [c.id, c.title]),
-    );
-    const campaignIds = campaigns.map((c) => c.id);
-
-    // Step 2: get completed donations
-    const { data: donData, error: donError } = await boundedQuery(() =>
-      supabaseAdmin
-        .from('donations')
-        .select('id,amount_cents,currency,status,created_at,anonymous,donor_id,campaign_id')
-        .in('campaign_id', campaignIds)
-        .eq('status', 'completed')
-        .order('created_at', { ascending: false })
-        .limit(200),
-    );
-
-    if (donError || !donData) {
-      return { donations: [], campaignMap, failed: true };
+    if (summaryResult.error || pageResult.error || !summaryResult.data || !pageResult.data) {
+      return { donations: [], summary: null, hasMore: false, failed: true };
     }
 
-    const rawDonations = donData as Donation[];
-
-    // Step 3: fetch donor profiles for non-anonymous donations
-    const uniqueDonorIds = [
-      ...new Set(
-        rawDonations
-          .filter((d) => d.donor_id && !d.anonymous)
-          .map((d) => d.donor_id as string),
-      ),
-    ];
-
-    const profileMap = new Map<string, string>();
-
-    if (uniqueDonorIds.length > 0) {
-      const { data: profileData } = await boundedQuery(() =>
-        supabaseAdmin
-          .from('profiles')
-          .select('id,full_name')
-          .in('id', uniqueDonorIds),
-      );
-
-      for (const p of (profileData ?? []) as Profile[]) {
-        if (p.full_name) profileMap.set(p.id, p.full_name);
-      }
-    }
-
-    const donations: EnrichedDonation[] = rawDonations.map((d) => ({
-      ...d,
-      donorName:
-        d.anonymous || !d.donor_id
-          ? 'Anonymous'
-          : (profileMap.get(d.donor_id) ?? 'Anonymous'),
-      campaignTitle: campaignMap.get(d.campaign_id) ?? 'Unknown Campaign',
+    const summaryRows = summaryResult.data as unknown as DonationSummary[];
+    const rows = pageResult.data as unknown as Array<Donation & {
+      donor_name: string;
+      campaign_title: string;
+    }>;
+    const hasMore = activeTab !== 'top-donors' && rows.length > PAGE_SIZE;
+    const donations = rows.slice(0, PAGE_SIZE).map((donation) => ({
+      ...donation,
+      donorName: donation.donor_name,
+      campaignTitle: donation.campaign_title,
     }));
-
-    return { donations, campaignMap, failed: false };
+    return { donations, summary: summaryRows[0] ?? null, hasMore, failed: false };
   } catch {
-    return { donations: [], campaignMap: new Map(), failed: true };
+    return { donations: [], summary: null, hasMore: false, failed: true };
   }
 }
 
-// ─────────────────────────────────────────────
-// Page
-// ─────────────────────────────────────────────
 export default async function DonationsPage({
   searchParams,
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const user = await requireUser();
-  const [{ donations, failed: unavailable }, params] = await Promise.all([
-    fetchDonationsData(user.id),
-    searchParams,
-  ]);
-
-  const activeTab = String(params.tab ?? 'all').toLowerCase();
+  const [user, params] = await Promise.all([requireUser(), searchParams]);
+  const requestedTab = String(params.tab ?? 'all').toLowerCase();
+  const activeTab = ['all', 'one-time', 'top-donors'].includes(requestedTab) ? requestedTab : 'all';
+  const cursor = decodeKeysetCursor(params.cursor);
+  const { donations, summary, hasMore, failed: unavailable } = await fetchDonationPage(
+    user.id,
+    activeTab,
+    cursor,
+  );
 
   // Metrics
-  const totalRaised = donations.reduce((s, d) => s + d.amount_cents, 0);
-  const donationCount = donations.length;
-  const uniqueDonors = new Set(
-    donations.filter((d) => d.donor_id !== null && d.donorName !== 'Anonymous').map((d) => d.donor_id),
-  ).size;
-  const avgDonation = donationCount > 0 ? Math.round(totalRaised / donationCount) : 0;
+  const totalRaised = summary?.total_raised_cents ?? 0;
+  const donationCount = summary?.donation_count ?? 0;
+  const uniqueDonors = summary?.unique_donor_count ?? 0;
+  const avgDonation = summary?.average_donation_cents ?? 0;
 
   const metrics = [
     {
@@ -211,7 +171,7 @@ export default async function DonationsPage({
     {
       label: 'Donations',
       value: unavailable ? '—' : donationCount.toLocaleString(),
-      change: unavailable ? 'unavailable' : 'completed',
+      change: unavailable ? 'unavailable' : 'all completed gifts',
       icon: 'stack',
       tone: 'green' as const,
     },
@@ -271,6 +231,11 @@ export default async function DonationsPage({
     filtered = donations;
   }
 
+  const lastDonation = donations.at(-1);
+  const nextCursor = hasMore && lastDonation
+    ? encodeKeysetCursor({ createdAt: lastDonation.created_at, id: lastDonation.id })
+    : null;
+
   return (
     <CharitMeShell active="Donations">
       <TopBar
@@ -326,12 +291,8 @@ export default async function DonationsPage({
             <div className="kf-tabs">
               {tabDefs.map(({ key, label }) => {
                 let count = 0;
-                if (key === 'all') count = donations.length;
-                else if (key === 'one-time')
-                  count = donations.filter((d) => {
-                    const k = d.donor_id ?? `anon-${d.id}`;
-                    return (donorDonationCount.get(k) ?? 0) === 1;
-                  }).length;
+                if (key === 'all') count = donationCount;
+                else if (key === 'one-time') count = summary?.one_time_donation_count ?? 0;
                 else if (key === 'top-donors') count = Math.min(20, uniqueDonors);
 
                 return (
@@ -494,12 +455,26 @@ export default async function DonationsPage({
             {filtered.length > 0 && (
               <div
                 className="kf-table-footer"
-                style={{ padding: '12px 20px', fontSize: 13, color: 'var(--t3)' }}
+                style={{ padding: '12px 20px', fontSize: 13, color: 'var(--t3)', display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}
               >
-                Showing {filtered.length}{' '}
-                {activeTab === 'top-donors'
-                  ? 'top donors'
-                  : `of ${donations.length} donations`}
+                <span>
+                  Showing {filtered.length}{' '}
+                  {activeTab === 'top-donors'
+                    ? 'top donors'
+                    : `of ${(activeTab === 'one-time' ? summary?.one_time_donation_count : summary?.donation_count) ?? filtered.length} donations`}
+                </span>
+                <span style={{ display: 'flex', gap: 8 }}>
+                  {cursor && (
+                    <Link href={`?tab=${activeTab}`} className="kf-outline" style={{ display: 'inline-flex', minHeight: 44, alignItems: 'center', textDecoration: 'none' }}>
+                      First page
+                    </Link>
+                  )}
+                  {nextCursor && (
+                    <Link href={`?tab=${activeTab}&cursor=${encodeURIComponent(nextCursor)}`} className="kf-outline" style={{ display: 'inline-flex', minHeight: 44, alignItems: 'center', textDecoration: 'none' }}>
+                      Next page
+                    </Link>
+                  )}
+                </span>
               </div>
             )}
           </section>

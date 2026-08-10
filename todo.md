@@ -1,5 +1,45 @@
 # CharitMe — Execution Tracker
 
+## Immediate completion release candidate — local gates complete, release pending (Codex, 2026-08-10)
+
+This is the current execution handoff. The implementation is complete locally;
+the unchecked items are external release gates and must not be reported as
+production-complete until the tagged workflow records them.
+
+- [x] Paid event registration is end to end: free and paid tiers, atomic inventory
+  reservations, Stripe Checkout destination charges, webhook confirmation,
+  attendee ticket wallet and QR, organizer check-in, refunds, disputes, expiry,
+  idempotency, RLS, and rollback SQL.
+- [x] Donation and payout dashboards use exact aggregate RPCs plus stable keyset
+  pagination instead of the former 200/100-row reporting windows.
+- [x] Super Admin has a reversible demo-data workflow that previews and labels only
+  known seed campaigns, blocks linked Stripe payments, and archives only explicitly
+  labeled rows with typed confirmation and audit logging.
+- [x] Volunteer check-in codes are no longer readable through authenticated table
+  selects; organizer workflows retain access through ownership-checked server code.
+- [x] The isolated staging matrix now covers donor/organizer/admin/outsider payment
+  RLS, event reservation/refund/dispute inventory, volunteer hours and verification,
+  profile synchronization, tenants, storage, and campaign creation.
+- [x] Browser route registries include event check-in, ticket wallet, and demo cleanup;
+  the signed-in audit supports authenticated focus-order checks and cross-platform
+  browser resolution.
+- [x] Local verification: lint and typecheck pass; production build renders 224
+  routes; 355 Vitest files / 4,034 tests pass; migration replay applies 133/133 with
+  all 171 tables protected by RLS; rollback rehearsal reports zero failures; all six
+  independent personas pass identity/navigation/admin-boundary checks; the new member
+  surfaces pass 5 viewports × 2 themes, AA contrast, image integrity, touch targets,
+  and 504 keyboard stops; the Super Admin surface passes the same matrix and 82
+  keyboard stops; Playwright reports 86 passed and 6 declared skips.
+- [ ] Open the PR, pass repository CI, and merge through `master`.
+- [ ] Run the expanded platform matrix against the release workflow's isolated
+  staging Supabase instance. Production currently has 87 ledger entries against 133
+  local migration files, so the file-derived upper-bound pending count remains 46.
+- [ ] Run Stripe test-mode feature purchase, event checkout, webhook replay,
+  charge-to-transfer-to-payout reconciliation, refund, and dispute/test-clock flows
+  with staging test credentials. Production credentials are never used for this gate.
+- [ ] Tag the merged commit, allow the release workflow to apply production
+  migrations and deploy, then verify `www.charitme.com` serves that exact SHA.
+
 ## Mobile-first and image-integrity audit — complete (Codex, 2026-08-10)
 
 This section is the current source of truth and supersedes the stale campaign
@@ -3874,10 +3914,10 @@ skipped workflow leaves its check pending forever and would deadlock a docs-only
 PR. Nothing is required today, which is why this is safe now — recorded so the
 next person does not find out the hard way.
 
-## 🛑 SUPABASE STAGING — historical audit, and the file-derived upper-bound pending count is **43** (Claude, 2026-08-03)
+## 🛑 SUPABASE STAGING — historical audit, and the file-derived upper-bound pending count is **46** (Claude, 2026-08-03)
 
-**Live ledger rechecked 2026-08-10:** 130 local migration files against 87
-production ledger entries. The 43-file upper-bound gap below is therefore a current
+**Live ledger rechecked 2026-08-10:** 133 local migration files against 87
+production ledger entries. The 46-file upper-bound gap below is therefore a current
 measurement, not only historical arithmetic.
 
 **+1 on 2026-08-09: `20260831010000_user_nav_preferences.sql`.** One row per
@@ -3979,16 +4019,16 @@ that day**:
 dump confirmed the objects were absent, and a restored production clone applied
 all 18 in order and proved rollback.
 
-Twenty-five migrations have been added since. So the count is arithmetic:
+Twenty-eight migrations have been added since. So the count is arithmetic:
 
 ```
-130 local − 87 applied           = 43
-18 audited pending + 25 added    = 43   ✓ reconciles
+133 local − 87 applied           = 46
+18 audited pending + 28 added    = 46   ✓ reconciles
 ```
 
 All 18 audited-pending versions are still on disk under their original names.
 
-### ⚠️ Seven of the 43 are SECURITY hardening, not features
+### ⚠️ Eight of the 46 are SECURITY hardening, not features
 
 This is the part that changes the priority. Written, reviewed, merged — and
 **not live**:
@@ -4000,6 +4040,7 @@ This is the part that changes the priority. Written, reviewed, merged — and
 - `20260813000000_donor_message_anonymity_contract`
 - `20260814010000_harden_role_and_team_boundaries`
 - `20260830000000_protect_verification_and_campaign_integrity`
+- `20260904020000_volunteer_checkin_code_privacy`
 
 The staging blocker is not only holding back features; it is holding back RLS and
 privilege hardening in production. Several others (`tasks`, `custom_domains`,
@@ -4023,7 +4064,7 @@ miscounting, it was adding migrations and leaving the old number in place.
 
 Owner action unchanged: upgrade Supabase, free a project slot, or provision
 staging elsewhere. Do not bypass the gate — the ledger's last line says so, and
-43 unverified migrations including seven privilege changes is exactly the case the
+46 unverified migrations including eight privilege changes is exactly the case the
 gate exists for.
 
 ## ⚪ `/certificate` — NOT a deferral; building it would require inventing data
@@ -24137,7 +24178,51 @@ accepted only in narrow regulated cases, and "we retain transaction records" is
 not one of them — that is handled by anonymising the records, which this flow
 already promises in its own copy.
 
-This is the single highest-severity store item and it is software-controllable.
+✅ **BUILT 2026-08-10, behind `ACCOUNT_SELF_DELETE_ENABLED` (default OFF).**
+
+🚨 **AND IT UNCOVERED A FAR WORSE HAZARD THAN THE ONE IT WAS FIXING.** The
+one-line implementation — `supabaseAdmin.auth.admin.deleteUser(id)` — cascades
+through the schema's real foreign keys:
+
+```
+auth.users  DELETE
+  └─ profiles.id             ON DELETE CASCADE
+      └─ campaigns.user_id   ON DELETE CASCADE
+          └─ donations.campaign_id ON DELETE CASCADE
+```
+
+so deleting ONE fundraiser's account erases **every donation ever made to
+them** — other people's money, their receipts, and the rows every public total
+is computed from. It fails silently: the delete succeeds, the pages still
+render, the totals are just smaller. It also contradicts what `/privacy-center`
+promises in its own copy. `donations.donor_id` is `ON DELETE SET NULL`, so
+donations the user MADE were never at risk; the hazard is entirely in donations
+they RECEIVED.
+
+The implementation therefore **refuses rather than cascades**, and the refusal
+is the feature:
+- `POST /api/account/delete` counts donations received first and aborts on any
+  number but zero — **including "could not count"**, because an unknown number
+  of donations is not zero donations (`lib/account-deletion.ts`).
+- Order is inverted from the obvious one: anonymise the profile → detach the
+  user's own donations → delete the auth user LAST. A failure midway leaves an
+  anonymised account that can still sign in — recoverable and visibly wrong.
+  The reverse order leaves financial records destroyed and nothing to notice.
+- Confirmation is the typed phrase `DELETE MY ACCOUNT`, never a boolean: one
+  replayed request must not be able to delete an account that has no undo.
+- The refusal message names the reason, since it is permanent until the
+  campaigns are settled.
+
+⚠️ **Still OFF.** `master` deploys straight to production, so the flag is what
+makes this shippable without arming it — until it is set, the endpoint 404s and
+`/privacy-center` keeps today's review-queue flow. 9 tests cover the refusal,
+both directions (a real zero still deletes).
+
+⚠️ **A donor with no campaigns can delete; a fundraiser who has received money
+cannot** — they are routed to support. Whether Apple accepts that split for the
+fundraiser case is unverified and is the remaining open question. The proper fix
+is a tombstone owner so campaigns survive the delete, which needs a schema
+change to `campaigns_user_id_fkey`, not application code.
 ⚠️ It is also **destructive and irreversible against a live database holding real
 donations**, so it needs: anonymise the profile, detach donations from identity
 while retaining the financial record, then remove the auth user — as one

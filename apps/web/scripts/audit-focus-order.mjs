@@ -29,12 +29,40 @@ import { resolveBase } from './lib/audit-base.mjs';
 import { chromiumLaunchOptions } from './lib/audit-browser.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const ROUTES = JSON.parse(
+const ROUTE_DATA = JSON.parse(
   readFileSync(join(HERE, '..', 'e2e', 'public-routes.json'), 'utf8'),
-).public;
+);
 
 const BASE = resolveBase(process.argv);
+const WITH_AUTH = process.argv.includes('--auth');
+const onlyIndex = process.argv.indexOf('--only');
+const ONLY = onlyIndex > -1
+  ? process.argv[onlyIndex + 1].split(',').map((route) => route.trim()).filter(Boolean)
+  : null;
+const SESSION_COOKIE = process.env.STUB_SESSION_COOKIE ?? '';
+const SKIP_ADMIN = process.env.AUDIT_SKIP_ADMIN === '1';
+const SKIP_DASHBOARD_ROOT = process.env.AUDIT_SKIP_DASHBOARD_ROOT === '1';
+const ONLY_GATED = process.env.AUDIT_ONLY_GATED === '1';
+const signedOutOnly = new Set(ROUTE_DATA.signedOutOnly ?? []);
+const publicRoutes = ROUTE_DATA.public.filter((route) => !WITH_AUTH || !signedOutOnly.has(route));
+const gatedRoutes = [
+  ...ROUTE_DATA.authGated.routes,
+  ...ROUTE_DATA.authGated.consoles,
+  ...ROUTE_DATA.authGated.dynamicSamples.map((sample) => sample.path),
+];
+const selectedRoutes = ONLY ?? (WITH_AUTH
+  ? [...(ONLY_GATED ? [] : publicRoutes), ...gatedRoutes]
+  : publicRoutes);
+const ROUTES = selectedRoutes.filter((route) => {
+  if (SKIP_ADMIN && route.startsWith('/admin')) return false;
+  if (SKIP_DASHBOARD_ROOT && route.split('?')[0].replace(/\/$/, '') === '/dashboard') return false;
+  return true;
+});
 const MAX_TABS = 90;
+
+if (WITH_AUTH && !SESSION_COOKIE) {
+  throw new Error('--auth needs STUB_SESSION_COOKIE. Run this through audit-signed-in.mjs.');
+}
 
 const browser = await chromium.launch(chromiumLaunchOptions());
 
@@ -43,10 +71,23 @@ let pagesSwept = 0;
 let stopsSeen = 0;
 
 for (const theme of ['light', 'dark']) {
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  if (SESSION_COOKIE) {
+    const { name, value } = JSON.parse(SESSION_COOKIE);
+    await context.addCookies([{ name, value, url: BASE }]);
+  }
   for (const route of ROUTES) {
-    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
     try {
-      await page.goto(BASE + route, { waitUntil: 'domcontentloaded', timeout: 20000 });
+      const response = await page.goto(BASE + route, { waitUntil: 'domcontentloaded', timeout: 20000 });
+      if (response?.status() !== 200) {
+        throw new Error(`HTTP ${response?.status() ?? 0}`);
+      }
+      const requestedPath = route.split('?')[0].replace(/\/$/, '') || '/';
+      const landedPath = new URL(page.url()).pathname.replace(/\/$/, '') || '/';
+      if (requestedPath !== landedPath) {
+        throw new Error(`redirected to ${landedPath}`);
+      }
       await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), theme);
       await page.waitForTimeout(120);
 
@@ -78,6 +119,7 @@ for (const theme of ['light', 'dark']) {
           })();
 
           return {
+            index: Array.from(document.querySelectorAll('a,button,input,select,textarea,[tabindex]')).indexOf(el),
             tag: el.tagName,
             partnerVisible,
             // DOCUMENT coordinates, not viewport. Tabbing auto-scrolls, so a
@@ -101,6 +143,16 @@ for (const theme of ['light', 'dark']) {
         });
 
         if (!stop) break; // focus left the document — Tab reached the browser UI
+        const priorStop = seen.findLastIndex((item) => item.index === stop.index);
+        const distinctSincePrior = priorStop >= 0
+          ? new Set(seen.slice(priorStop).map((item) => item.index))
+          : new Set();
+        const wrappedToTop = seen.length >= 10
+          && stop.docY < 200
+          && seen[seen.length - 1].docY > 500;
+        if ((priorStop >= 0 && distinctSincePrior.size >= 3) || wrappedToTop) {
+          break; // Chromium wrapped to an earlier control after reaching the end.
+        }
         seen.push(stop);
 
         // A trap means focus makes NO PROGRESS through the document. Matching on
@@ -109,8 +161,8 @@ for (const theme of ['light', 'dark']) {
         // not a trap at all — focus continues past it. Compare position instead,
         // which is what "progress" actually means.
         const n = seen.length;
-        if (n >= 8) {
-          const recent = seen.slice(-8);
+        if (n >= 16) {
+          const recent = seen.slice(-16);
           const distinct = new Set(recent.map((s) => `${s.docY}:${s.x}:${s.name}`));
           if (distinct.size <= 2) { trapped = true; break; }
         }
@@ -135,11 +187,17 @@ for (const theme of ['light', 'dark']) {
       // jump is normal (a menu closing, a footer link returning to a dialog);
       // repeated ones mean the DOM order and the visual order disagree.
       let backJumps = 0;
+      const backJumpDetails = [];
       for (let i = 1; i < seen.length; i++) {
-        if (seen[i].docY < seen[i - 1].docY - 400) backJumps++;
+        if (seen[i].docY < seen[i - 1].docY - 400) {
+          backJumps++;
+          backJumpDetails.push(
+            `${seen[i - 1].tag}.${seen[i - 1].cls}@${seen[i - 1].docY} -> ${seen[i].tag}.${seen[i].cls}@${seen[i].docY}`,
+          );
+        }
       }
       if (backJumps > 2) {
-        problems.push(`${route} [${theme}] focus order jumps upward ${backJumps}× — DOM order disagrees with visual order`);
+        problems.push(`${route} [${theme}] focus order jumps upward ${backJumps}× — ${backJumpDetails.join('; ')}`);
       }
 
       pagesSwept++;
@@ -149,6 +207,7 @@ for (const theme of ['light', 'dark']) {
     await page.close();
   }
   console.log(`· ${theme}: swept ${ROUTES.length} routes`);
+  await context.close();
 }
 
 await browser.close();

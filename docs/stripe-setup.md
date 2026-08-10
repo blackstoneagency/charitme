@@ -8,6 +8,7 @@
    `https://YOUR_DOMAIN/api/stripe/connect`
 5. Subscribe to:
    - `checkout.session.completed`
+   - `checkout.session.expired`
    - `payment_intent.succeeded`
    - `payment_intent.payment_failed`
    - `account.updated`

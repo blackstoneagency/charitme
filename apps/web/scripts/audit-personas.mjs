@@ -30,36 +30,50 @@ const LABELS = {
 };
 const EXPECTED_NAV = {
   donor: [
-    '/dashboard', '/donor', '/dashboard/tax', '/dashboard/recurring',
+    '/dashboard', '/donor', '/dashboard/saved', '/dashboard/tax',
+    '/dashboard/recurring', '/dashboard/payment-methods', '/dashboard/tickets',
     '/dashboard/volunteer', '/dashboard/referrals', '/dashboard/settings',
+    '/fundraising-guide', '/resources', '/events', '/help',
   ],
   organizer: [
-    '/dashboard', '/dashboard/campaigns', '/dashboard/ai-growth-plan',
-    '/dashboard/ai-coach', '/dashboard/donations', '/dashboard/tax',
-    '/dashboard/donor', '/dashboard/grants', '/dashboard/volunteer',
-    '/dashboard/corporate', '/dashboard/referrals', '/dashboard/updates',
+    '/dashboard', '/dashboard/campaigns', '/dashboard/tools', '/dashboard/forms',
+    '/dashboard/calendar', '/dashboard/tickets', '/dashboard/tasks',
+    '/dashboard/documents', '/dashboard/ai-growth-plan', '/dashboard/ai-coach',
+    '/dashboard/donations', '/dashboard/tax', '/dashboard/donor',
+    '/dashboard/grants', '/dashboard/volunteer', '/dashboard/corporate',
+    '/dashboard/referrals', '/dashboard/updates', '/dashboard/creator',
     '/dashboard/payouts', '/dashboard/analytics', '/dashboard/messages',
-    '/dashboard/team', '/dashboard/integrations', '/dashboard/settings',
+    '/dashboard/team', '/dashboard/integrations', '/dashboard/developers',
+    '/dashboard/webhooks', '/dashboard/domains', '/dashboard/giving-days',
+    '/dashboard/segments', '/dashboard/buttons', '/dashboard/settings',
+    '/fundraising-guide', '/resources', '/events', '/help',
   ],
   beneficiary: [
-    '/dashboard', '/dashboard/beneficiary', '/donor', '/dashboard/tax',
-    '/dashboard/volunteer', '/dashboard/messages', '/dashboard/settings',
+    '/dashboard', '/dashboard/beneficiary', '/donor', '/dashboard/saved',
+    '/dashboard/tax', '/dashboard/tickets', '/dashboard/volunteer',
+    '/dashboard/messages', '/dashboard/settings', '/fundraising-guide',
+    '/resources', '/events', '/help',
   ],
   nonprofit: [
     '/dashboard', '/dashboard/nonprofit', '/dashboard/campaigns',
+    '/dashboard/tools', '/dashboard/forms', '/dashboard/calendar',
+    '/dashboard/tickets', '/dashboard/tasks', '/dashboard/documents',
     '/dashboard/ai-growth-plan', '/dashboard/ai-coach', '/dashboard/donations',
     '/dashboard/tax', '/dashboard/donor', '/dashboard/grants',
     '/dashboard/volunteer', '/dashboard/corporate', '/dashboard/referrals',
-    '/dashboard/updates', '/dashboard/payouts', '/dashboard/analytics',
-    '/dashboard/messages', '/dashboard/team', '/dashboard/integrations',
-    '/dashboard/settings',
+    '/dashboard/updates', '/dashboard/creator', '/dashboard/payouts',
+    '/dashboard/analytics', '/dashboard/messages', '/dashboard/team',
+    '/dashboard/integrations', '/dashboard/developers', '/dashboard/webhooks',
+    '/dashboard/domains', '/dashboard/giving-days', '/dashboard/segments',
+    '/dashboard/buttons', '/dashboard/settings', '/fundraising-guide',
+    '/resources', '/events', '/help',
   ],
   admin: [
-    '/dashboard', '/donor', '/dashboard/tax', '/dashboard/messages',
+    '/dashboard', '/donor', '/dashboard/tax', '/dashboard/tickets', '/dashboard/messages',
     '/dashboard/settings',
   ],
   super_admin: [
-    '/dashboard', '/donor', '/dashboard/tax', '/dashboard/messages',
+    '/dashboard', '/donor', '/dashboard/tax', '/dashboard/tickets', '/dashboard/messages',
     '/dashboard/settings',
   ],
 };
@@ -67,6 +81,7 @@ const routeManifest = JSON.parse(
   readFileSync(new URL('../e2e/public-routes.json', import.meta.url), 'utf8'),
 );
 const knownAuthenticatedRoutes = new Set([
+  ...routeManifest.public,
   ...routeManifest.authGated.routes,
   ...routeManifest.authGated.consoles,
 ]);
