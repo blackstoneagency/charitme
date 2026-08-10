@@ -47,6 +47,23 @@ const OUT_DIR = join(WEB_ROOT, 'public', 'screenshots');
 const VIEWPORT = { width: 390, height: 844 };
 const SCALE = 2;
 
+/**
+ * Store LISTING screenshots, at the exact pixel sizes each console demands.
+ *
+ * ⚠️ These are not the manifest screenshots above and cannot be reused as them:
+ * both consoles reject a size mismatch outright rather than scaling, and Chrome's
+ * install dialog wants a phone-shaped image rather than a 2796px-tall one.
+ *
+ * Sizes are the current required device classes. Apple asks for one set per
+ * supported display size; Play wants at least two phone screenshots between
+ * 320px and 3840px on the long edge.
+ */
+const STORE_DEVICES = [
+  { key: 'ios-6.7', width: 1290, height: 2796, scale: 3, label: 'iPhone 6.7"' },
+  { key: 'ios-6.5', width: 1242, height: 2688, scale: 3, label: 'iPhone 6.5"' },
+  { key: 'play-phone', width: 1080, height: 1920, scale: 2, label: 'Play phone' },
+];
+
 const SHOTS = [
   { file: 'home.png', path: '/', label: 'Discover campaigns to support' },
   { file: 'campaigns.png', path: '/campaigns', label: 'Browse fundraisers by cause' },
@@ -110,6 +127,61 @@ for (const shot of SHOTS) {
     console.log(`✗ ${shot.path.padEnd(16)} ${String(e.message).split('\n')[0].slice(0, 70)}`);
   } finally {
     await page.close();
+  }
+}
+
+/**
+ * ⚠️ Runs only with `--store`. The listing set is 12 captures at up to 2796px
+ * tall; making that the default would triple the time of a routine manifest
+ * refresh for assets that change once per release.
+ */
+if (process.argv.includes('--store')) {
+  const { mkdirSync: mkdir } = await import('node:fs');
+  const storeDir = join(WEB_ROOT, 'public', 'store', 'screenshots');
+  mkdir(storeDir, { recursive: true });
+  let ok = 0;
+  let bad = 0;
+
+  for (const device of STORE_DEVICES) {
+    // Divide by the scale factor: Playwright's viewport is in CSS pixels and
+    // `deviceScaleFactor` multiplies to device pixels. Passing 1290 as the
+    // viewport with scale 3 produces a 3870px image the store rejects.
+    const ctx = await browser.newContext({
+      viewport: { width: Math.round(device.width / device.scale), height: Math.round(device.height / device.scale) },
+      deviceScaleFactor: device.scale,
+      isMobile: true,
+      hasTouch: true,
+    });
+    for (const shot of SHOTS) {
+      const page = await ctx.newPage();
+      try {
+        const response = await page.goto(`${BASE}${shot.path}`, { waitUntil: 'load', timeout: 30_000 });
+        if ((response?.status() ?? 0) !== 200) throw new Error(`HTTP ${response?.status()}`);
+        await page.waitForTimeout(1200);
+        // Same refusal as above: a store listing must never show a failed read.
+        const broken = await page.evaluate(() =>
+          [...document.querySelectorAll('[class*="stat-value"]')]
+            .map((el) => el.textContent?.trim() ?? '')
+            .filter((text) => text === '\u2014'),
+        );
+        if (broken.length > 0) throw new Error(`${broken.length} statistic(s) render as an em dash`);
+        const file = `${device.key}-${shot.file}`;
+        await page.screenshot({ path: join(storeDir, file) });
+        ok++;
+      } catch (e) {
+        console.log(`✗ ${device.key} ${shot.path} — ${String(e.message).split('\n')[0].slice(0, 60)}`);
+        bad++;
+      } finally {
+        await page.close();
+      }
+    }
+    console.log(`· ${device.label.padEnd(14)} ${device.width}×${device.height}`);
+    await ctx.close();
+  }
+  console.log(`\nstore listing screenshots: ${ok} captured, ${bad} failed → public/store/screenshots/`);
+  if (bad > 0) {
+    await browser.close();
+    process.exit(1);
   }
 }
 

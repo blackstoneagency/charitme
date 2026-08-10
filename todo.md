@@ -3918,7 +3918,32 @@ next person does not find out the hard way.
 
 **Live ledger rechecked 2026-08-10:** 134 local migration files against 87
 production ledger entries. The 47-file upper-bound gap below is therefore a current
+## 🛑 SUPABASE STAGING — historical audit, and the file-derived upper-bound pending count is **48** (Claude, 2026-08-03)
+
+**Live ledger rechecked 2026-08-10:** 135 local migration files against 87
+production ledger entries. The 48-file upper-bound gap below is therefore a current
 measurement, not only historical arithmetic.
+
+⚠️ The newest of them, `20260904030000_deleted_user_tombstone`, is a
+**precondition for self-service account deletion** — until it is applied,
+`POST /api/account/delete` refuses with `TOMBSTONE_MISSING` (503) rather than
+deleting, because there would be nowhere to move a departing user's campaigns
+and the delete would cascade into other people's donations.
+
+**+1 on 2026-08-10: `20260904040000_default_support_percent_ten.sql`.** Moves the
+stored `defaultSupportPercent` from 15 to 10 so the live donate card matches the
+code default. ⚠️ Conditional on the stored value still being exactly 15, so it
+never discards a rate an owner chose from /admin/super/settings, and re-running it
+is a no-op. Not publicly probeable in the positive direction — see the entry in
+`scripts/probe-production-migrations.mjs` for why reading 10% proves nothing.
+⚠️ It was renumbered from `20260904000000` on merge: master had landed
+`20260904000000_paid_event_tickets` under the identical version prefix, and
+`schema_migrations` is keyed on version, so one of the two would have been
+recorded and the other silently skipped.
+**APPLIED TO PRODUCTION 2026-08-10** by the owner via the SQL editor, confirmed by
+reading the value back (10) and by the live donate card rendering `+ 10%` and a
+$5.00 fee on a $50 gift. The ledger will not show it — it was applied as SQL, not
+through `db push` — so a later push re-runs it as a no-op.
 
 **+1 on 2026-08-09: `20260831010000_user_nav_preferences.sql`.** One row per
 person holding their own sidebar layout, RLS-scoped to `user_id = auth.uid()`.
@@ -4019,11 +4044,13 @@ that day**:
 dump confirmed the objects were absent, and a restored production clone applied
 all 18 in order and proved rollback.
 
-Twenty-eight migrations have been added since. So the count is arithmetic:
+Thirty migrations have been added since. So the count is arithmetic:
 
 ```
 134 local − 87 applied           = 47
 18 audited pending + 29 added    = 47   ✓ reconciles
+135 local − 87 applied           = 48
+18 audited pending + 30 added    = 48   ✓ reconciles
 ```
 
 All 18 audited-pending versions are still on disk under their original names.
@@ -24218,11 +24245,45 @@ makes this shippable without arming it — until it is set, the endpoint 404s an
 `/privacy-center` keeps today's review-queue flow. 9 tests cover the refusal,
 both directions (a real zero still deletes).
 
-⚠️ **A donor with no campaigns can delete; a fundraiser who has received money
-cannot** — they are routed to support. Whether Apple accepts that split for the
-fundraiser case is unverified and is the remaining open question. The proper fix
-is a tombstone owner so campaigns survive the delete, which needs a schema
-change to `campaigns_user_id_fkey`, not application code.
+✅ **TOMBSTONE OWNER BUILT — every account can now delete, fundraisers included.**
+
+The earlier version refused deletion outright once an account had received
+donations. Safe, but it left a fundraiser permanently unable to delete their
+account — the exact thing 5.1.1(v) requires. The tombstone makes the delete both
+safe AND complete.
+
+⚠️ **The cascade is COMPUTED from `supabase/schema.sql`, not hand-listed, and the
+computation found four paths I would not have found by reading it.** Deleting one
+`profiles` row reaches **87 tables**; 15 money-bearing tables sit on 6 distinct
+first hops:
+
+```
+campaigns.user_id           -> donations, donation_receipts, refunds,
+                               recurring_donations, transparency_ledger_items,
+                               fundraising_events -> event_tickets, auction_bids
+creator_profiles.user_id    -> digital_products -> product_orders,
+                               membership_tiers -> member_subscriptions,
+                               creator_tips, commission_requests
+nonprofit_profiles.owner_id -> tax_receipts
+payouts.user_id · matching_claims.employee_id · subscriptions.user_id
+```
+
+Reassigning the FIRST hop severs every path beneath it, so the deletion moves
+those six columns to `00000000-0000-4000-8000-0000deadbeef` and only then deletes
+the auth user.
+
+`__tests__/deletion-cascade.test.ts` is a **ratchet in both directions**: a new
+foreign key that opens a seventh path to money fails the build, and reassigning a
+table that does NOT protect money also fails — the tombstone must not inherit a
+deleted user's private records. The tombstone cannot be signed into (no usable
+password, unconfirmed email, `banned_until = infinity`) and the migration is
+replay-safe.
+
+⚠️ **The migration is NOT applied to production** (it is #44 in the pending
+ledger). Until it is, `POST /api/account/delete` refuses with `TOMBSTONE_MISSING`
+(503) instead of deleting — an unapplied migration disables the feature rather
+than corrupting anything. `tombstonePresent` is `boolean | null` and `null`
+refuses too: "could not confirm it exists" is not "it exists".
 ⚠️ It is also **destructive and irreversible against a live database holding real
 donations**, so it needs: anonymise the profile, detach donations from identity
 while retaining the financial record, then remove the auth user — as one
@@ -24245,26 +24306,15 @@ transaction, not four API calls that can half-fail.
       hand-kept list drifts, and its failure mode is a 404 *inside the install
       dialog*, a surface no route test or link audit reaches.
 
-- [ ] **3 of the 4 screenshots cannot be captured HERE, and the capture script
-      now refuses them rather than shipping them.**
-      `/campaigns`, `/donate` and `/how-it-works` render **"Gifts given —"** in
-      this sandbox while production renders **592** (both checked by curl). The
-      em dash is this codebase's marker for a read that FAILED: the donations
-      count times out through the sandbox proxy where it does not in production.
-      Deterministic, not flaky — three consecutive cache-busted requests all
-      returned the dash.
-      ⚠️ Nothing downstream can catch this. The PNG is valid, the manifest is
-      valid, every test passes — it is a clean, well-composed phone screenshot
-      of a broken statistic, and it would have gone into the install dialog and
-      the store listing. The script now fails any shot whose `[class*=stat-value]`
-      reads as an em dash; the three bad PNGs from the first run were deleted.
-      **Re-run `npm run capture:screenshots` from an environment where that count
-      resolves** (a dev machine, or CI with database access) to add the other
-      three. One `narrow` screenshot is enough for Chrome's rich install dialog,
-      so this is not blocking — it is incomplete.
-- [ ] iOS `PrivacyInfo.xcprivacy` + App Privacy answers (donations, email,
-      payment data are all collected).
-- [ ] Play Data safety declaration.
+- [x] **All 4 manifest screenshots captured (2026-08-10).** The first run shipped
+      1 of 4: `/campaigns`, `/donate` and `/how-it-works` rendered "Gifts given —"
+      while production rendered 592. ⚠️ Cause was NOT a slow query as first
+      recorded — it was a dead `SUPABASE_SERVICE_ROLE_KEY` in `.env.local`
+      (production answered `"Unregistered API key"`). With a working key supplied,
+      all four recaptured clean and were verified visually: 502 · $96,850 · 592 · 69.
+      The capture script's em-dash guard is what stopped three broken store
+      screenshots from shipping — the PNGs were valid, the manifest was valid, and
+      every test passed.
 
 ### 🔒 Cannot be finished here — needs an account and a build machine
 

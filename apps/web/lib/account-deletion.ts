@@ -29,14 +29,20 @@
  * `donations.donor_id` is `ON DELETE SET NULL`, so donations the user MADE are
  * safe. The hazard is entirely in donations they RECEIVED.
  *
- * So this module's rule is: **anonymise the identity, never cascade the
- * records** — and when the two cannot be separated, REFUSE and say why rather
- * than delete and hope.
+ * So the rule is: **anonymise the identity, never cascade the records.** The
+ * records that lead to money are first REASSIGNED to a tombstone profile
+ * (`lib/deletion-cascade.ts`), which severs every path before the delete runs.
+ *
+ * ⚠️ An earlier version of this module refused deletion outright whenever the
+ * account had received donations. That was safe but wrong: it left a fundraiser
+ * permanently unable to delete their account, which is the very thing App Store
+ * 5.1.1(v) requires. The tombstone is what makes the delete both safe AND
+ * complete.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
 /** Why a deletion could not be completed. Each maps to a specific user message. */
-export type DeletionRefusal = 'DISABLED' | 'ACCOUNT_HAS_DONATIONS' | 'NOT_CONFIRMED';
+export type DeletionRefusal = 'DISABLED' | 'TOMBSTONE_MISSING' | 'NOT_CONFIRMED';
 
 /**
  * Off unless explicitly switched on.
@@ -66,17 +72,22 @@ export function isConfirmed(value: unknown): boolean {
 }
 
 export interface DeletionPreconditions {
-  /** Donations RECEIVED by campaigns this account owns. */
-  donationsReceived: number | null;
+  /**
+   * Does the tombstone profile exist? `null` = could not check.
+   *
+   * Without it there is nowhere to move the account's campaigns, payouts and
+   * subscriptions, so the delete would cascade into other people's donations.
+   */
+  tombstonePresent: boolean | null;
 }
 
 /**
  * Can this account be deleted without taking financial records with it?
  *
- * ⚠️ `null` means the count could not be READ, and it refuses. An unknown
- * number of donations is not zero donations — treating it as zero is precisely
- * the mistake that would cascade. This is the same fail-closed rule the
- * ownership read follows for authorization.
+ * ⚠️ `null` means the check itself failed, and it REFUSES. "We could not
+ * confirm the tombstone exists" is not "the tombstone exists" — and optimism
+ * here deletes other people's donation records. Same fail-closed rule as the
+ * ownership read that gates authorization.
  */
 export function refusalFor(
   pre: DeletionPreconditions,
@@ -84,7 +95,7 @@ export function refusalFor(
 ): DeletionRefusal | null {
   if (!opts.enabled) return 'DISABLED';
   if (!opts.confirmed) return 'NOT_CONFIRMED';
-  if (pre.donationsReceived === null || pre.donationsReceived > 0) return 'ACCOUNT_HAS_DONATIONS';
+  if (pre.tombstonePresent !== true) return 'TOMBSTONE_MISSING';
   return null;
 }
 
@@ -95,10 +106,10 @@ export function refusalMessage(refusal: DeletionRefusal): string {
       return 'Self-service deletion is not enabled.';
     case 'NOT_CONFIRMED':
       return `Type "${DELETION_CONFIRMATION}" to confirm.`;
-    case 'ACCOUNT_HAS_DONATIONS':
-      // Deliberately explains the reason. "Something went wrong" here would send
-      // the user to support with no idea what to say, for a refusal that is
-      // permanent until their campaigns are settled.
-      return 'Your campaigns have received donations, which are financial records we must keep. Contact support to close your account so those records stay intact and unlinked from you.';
+    case 'TOMBSTONE_MISSING':
+      // An operator problem, not the user's: the migration has not been applied.
+      // Phrased as retryable because it is — nothing about this account blocks
+      // the deletion.
+      return 'Account deletion is temporarily unavailable. Please try again shortly.';
   }
 }
