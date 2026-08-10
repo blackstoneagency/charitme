@@ -50,12 +50,11 @@ const declaredHandlers = [...SRC.matchAll(/^async function (handle\w+)\(/gm)]
   .map((m) => m[1])
   .filter((n) => n !== 'handleEvent');
 
-// Snapshot of the LIVE endpoint's enabled_events, read from the Stripe API on
-// 2026-07-27 (https://www.charitme.com/api/stripe/webhook, status: enabled).
-// Hardcoded deliberately: a test must not depend on network or on a secret key.
-// If the endpoint's subscriptions change, update this list in the same commit.
+// Required event contract for the live endpoint. Hardcoded deliberately: a test
+// must not depend on network or on a secret key. Release verification compares
+// the endpoint to this contract before paid features are declared live.
 const SUBSCRIBED_EVENTS = [
-  'transfer.failed', 'checkout.session.completed', 'invoice.payment_succeeded',
+  'transfer.failed', 'checkout.session.completed', 'checkout.session.expired', 'invoice.payment_succeeded',
   'invoice.payment_failed', 'payment_intent.succeeded', 'payment_intent.payment_failed',
   'charge.succeeded', 'charge.updated', 'charge.refunded', 'charge.dispute.created',
   'charge.dispute.closed', 'customer.subscription.created', 'customer.subscription.updated',
@@ -147,6 +146,25 @@ describe('recurring renewal accounting contract', () => {
   it('fails the webhook when the donation write fails', () => {
     expect(SRC).toContain("throw new Error('Recurring donation renewal could not be recorded.')");
     expect(SRC).toContain("throw new Error('Recurring renewal payment reporting failed.')");
+  });
+});
+
+describe('event ticket payment lifecycle contract', () => {
+  it('reconciles refunds and disputes before donation accounting', () => {
+    const refundStart = SRC.indexOf('async function handleChargeRefunded');
+    const disputeStart = SRC.indexOf('async function handleDisputeCreated');
+    const disputeClosedStart = SRC.indexOf('async function handleDisputeClosed');
+    const subscriptionStart = SRC.indexOf('async function handleSubscriptionUpdated');
+    const refund = SRC.slice(refundStart, disputeStart);
+    const disputeOpened = SRC.slice(disputeStart, disputeClosedStart);
+    const disputeClosed = SRC.slice(disputeClosedStart, subscriptionStart);
+
+    expect(refund).toContain("'apply_event_ticket_refund'");
+    expect(disputeOpened).toContain("'apply_event_ticket_dispute'");
+    expect(disputeClosed).toContain("'apply_event_ticket_dispute'");
+    expect(refund.indexOf("'apply_event_ticket_refund'")).toBeLessThan(refund.indexOf(".from('donations')"));
+    expect(disputeOpened.indexOf("'apply_event_ticket_dispute'")).toBeLessThan(disputeOpened.indexOf(".from('donations')"));
+    expect(disputeClosed.indexOf("'apply_event_ticket_dispute'")).toBeLessThan(disputeClosed.indexOf(".from('donations')"));
   });
 });
 

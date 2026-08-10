@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "verifiedOn": "2026-08-09",
+  "verifiedOn": "2026-08-10",
   "assets": [
     {
       "path": "CharitMe_Logo.png",
@@ -12,6 +12,17 @@
       "source": "Repository owner upload in commit d69e3996f2da16249baa5d663cfedd693c231842",
       "license": "CharitMe-owned brand artwork",
       "uses": ["/brand-assets"]
+    },
+    {
+      "path": "screenshots/home.png",
+      "sha256": "e11a4ba22f4514be3004ff4ba296258c4f64a776601b92be5a62111b3774281c",
+      "status": "active",
+      "subject": "CharitMe homepage shown in its installable web app presentation",
+      "fit": "Wide PWA manifest screenshot",
+      "sourceType": "first-party",
+      "source": "Captured from the CharitMe application by apps/web/scripts/capture-manifest-screenshots.mjs",
+      "license": "CharitMe-owned application screenshot",
+      "uses": ["PWA manifest"]
     },
     {
       "path": "hero-child-crop.webp",
@@ -353,17 +364,6 @@
       "source": "https://images.unsplash.com/photo-1531123897727-8f129e1688ce",
       "license": "Unsplash License: https://unsplash.com/license",
       "uses": ["/about-us"]
-    },
-    {
-      "path": "screenshots/home.png",
-      "sha256": "e11a4ba22f4514be3004ff4ba296258c4f64a776601b92be5a62111b3774281c",
-      "status": "active",
-      "subject": "Screenshot of CharitMe's own home page at 1280x720",
-      "fit": "Manifest screenshots entry; without it Chrome on Android shows the one-line install infobar instead of the rich install dialog",
-      "sourceType": "first-party",
-      "source": "Captured from a local production build by apps/web/scripts/capture-manifest-screenshots.mjs in commit 7b53f625",
-      "license": "CharitMe-owned: a rendering of this application's own UI",
-      "uses": ["PWA manifest"]
     }
   ]
 }

@@ -44,6 +44,12 @@ export interface EventRegistration {
   attendee_name: string | null;
   quantity: number;
   amount_cents: number;
+  status: 'pending' | 'confirmed' | 'refund_pending' | 'partially_refunded' | 'refunded' | 'cancelled' | 'disputed';
+  stripe_payment_intent_id: string | null;
+  stripe_checkout_session_id: string | null;
+  ticket_code: string;
+  currency: string;
+  refunded_cents: number;
   created_at: string;
 }
 
@@ -77,6 +83,17 @@ export function slugifyTitle(title: string): string {
 
 // ── Validation schemas ────────────────────────────────────────────────────────
 
+export const EventTicketInputSchema = z
+  .object({
+    title: z.string().trim().min(1).max(120),
+    price_cents: z.number().int().min(0).max(100_000_000),
+    quantity_limit: z.number().int().min(1).max(1_000_000).optional().nullable(),
+  })
+  .refine((ticket) => ticket.price_cents === 0 || ticket.price_cents >= 50, {
+    message: 'Paid tickets must cost at least 50 cents',
+    path: ['price_cents'],
+  });
+
 export const EventCreateSchema = z
   .object({
     title: z.string().trim().min(3).max(160),
@@ -90,6 +107,7 @@ export const EventCreateSchema = z
     capacity: z.number().int().min(1).max(1_000_000).optional().nullable(),
     campaign_id: z.string().uuid().optional().nullable(),
     status: z.enum(['draft', 'published']).default('published'),
+    tickets: z.array(EventTicketInputSchema).max(10).default([]),
   })
   .refine((v) => !v.ends_at || new Date(v.ends_at) >= new Date(v.starts_at), {
     message: 'ends_at must be on or after starts_at',
@@ -114,6 +132,26 @@ export const RegistrationCreateSchema = z.object({
   attendee_name: z.string().trim().max(160).optional().nullable(),
   attendee_email: z.string().email().max(240).optional().nullable(),
 });
+
+export const EventTicketCheckoutSchema = z.object({
+  ticket_id: z.string().uuid(),
+  quantity: z.number().int().min(1).max(20).default(1),
+  attendee_name: z.string().trim().max(160).optional().nullable(),
+  attendee_email: z.string().email().max(240).optional().nullable(),
+  request_key: z.string().uuid(),
+});
+
+export function dollarsInputToCents(value: string): number | null {
+  const normalized = value.trim();
+  if (!/^\d{1,7}(?:\.\d{0,2})?$/.test(normalized)) return null;
+  const [whole, fraction = ''] = normalized.split('.');
+  const cents = Number(whole) * 100 + Number(`${fraction}00`.slice(0, 2));
+  return Number.isSafeInteger(cents) ? cents : null;
+}
+
+export function isBeforeEventStart(startsAt: string, now: Date = new Date()): boolean {
+  return new Date(startsAt).getTime() > now.getTime();
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Ticket tiers.

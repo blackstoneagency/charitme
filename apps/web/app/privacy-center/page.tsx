@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { requireUser } from '../../lib/auth';
 import { listUserRequests } from '../../lib/privacy';
 import PrivacyCenter from './PrivacyCenter';
+import { accountSelfDeleteEnabled } from '../../lib/account-deletion';
 
 export const metadata: Metadata = {
   title: 'Privacy Center — Your Data',
@@ -24,7 +25,7 @@ export default async function PrivacyCenterPage() {
           your account be deleted.
         </p>
       </div>
-      <PrivacyCenter initialRequests={requests} />
+      <PrivacyCenter initialRequests={requests} selfDeleteEnabled={accountSelfDeleteEnabled()} />
     </div>
   );
 }

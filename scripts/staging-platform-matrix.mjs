@@ -644,7 +644,295 @@ async function verifyCampaignData() {
   await expectRows(persona('admin').client.from('tax_receipts').select('id').eq('id', receipt.id), 1, 'tax receipt admin read');
 
   pass('campaign, task, message, donation, and tax receipt RLS');
-  return { campaign };
+  return { campaign, donation };
+}
+
+async function verifyPaymentRls(campaign, donation) {
+  const organizer = persona('organizer');
+  const donor = persona('donor');
+  const outsider = persona('outsider');
+  const adminPersona = persona('admin');
+
+  const payment = await dataOrFail(
+    admin.from('campaign_payments').insert({
+      campaign_id: campaign.id,
+      campaign_owner_id: organizer.id,
+      donor_id: donor.id,
+      processor: 'stripe',
+      processor_payment_intent_id: `pi_matrix_${runId}`,
+      processor_checkout_session_id: `cs_matrix_${runId}`,
+      gross_amount: 5000,
+      tip_amount: 500,
+      processor_fee_amount: 100,
+      platform_fee_amount: 500,
+      campaign_owner_net_amount: 4900,
+      payment_status: 'succeeded',
+      transfer_status: 'created',
+      settlement_status: 'available',
+      reconciliation_status: 'reconciled',
+      paid_at: new Date(now).toISOString(),
+    }).select('id').single(),
+    'service campaign payment create',
+  );
+
+  const breakdown = await dataOrFail(
+    admin.from('campaign_payment_breakdowns').insert({
+      campaign_payment_id: payment.id,
+      campaign_id: campaign.id,
+      campaign_owner_id: organizer.id,
+      donor_id: donor.id,
+      gross_amount: 5000,
+      tip_amount: 500,
+      processor_fee_amount: 100,
+      platform_fee_amount: 500,
+      owner_net_amount: 4900,
+    }).select('id').single(),
+    'service payment breakdown create',
+  );
+
+  const transfer = await dataOrFail(
+    admin.from('campaign_owner_transfers').insert({
+      campaign_payment_id: payment.id,
+      campaign_id: campaign.id,
+      campaign_owner_id: organizer.id,
+      donor_id: donor.id,
+      processor_object_id: `tr_matrix_${runId}`,
+      gross_amount: 5000,
+      owner_net_amount: 4900,
+      status: 'created',
+    }).select('id').single(),
+    'service owner transfer create',
+  );
+
+  for (const [table, id] of [
+    ['campaign_payments', payment.id],
+    ['campaign_payment_breakdowns', breakdown.id],
+    ['campaign_owner_transfers', transfer.id],
+  ]) {
+    await expectRows(organizer.client.from(table).select('id').eq('id', id), 1, `${table} owner read`);
+    await expectRows(donor.client.from(table).select('id').eq('id', id), 0, `${table} donor internal-data isolation`);
+    await expectRows(outsider.client.from(table).select('id').eq('id', id), 0, `${table} outsider isolation`);
+    await expectRows(adminPersona.client.from(table).select('id').eq('id', id), 1, `${table} admin read`);
+    await expectNoMutation(
+      organizer.client.from(table).update({ metadata: { tampered: true } }).eq('id', id).select('id'),
+      `${table} owner mutation denied`,
+    );
+  }
+
+  const payout = await dataOrFail(
+    organizer.client.from('payouts').insert({
+      campaign_id: campaign.id,
+      user_id: organizer.id,
+      amount_cents: 4900,
+      payout_speed: 'standard',
+    }).select('id').single(),
+    'organizer payout request create',
+  );
+  await expectRows(organizer.client.from('payouts').select('id').eq('id', payout.id), 1, 'payout owner read');
+  await expectRows(donor.client.from('payouts').select('id').eq('id', payout.id), 0, 'payout donor isolation');
+  await expectRows(outsider.client.from('payouts').select('id').eq('id', payout.id), 0, 'payout outsider isolation');
+  await expectRows(adminPersona.client.from('payouts').select('id').eq('id', payout.id), 1, 'payout admin read');
+  await expectRows(donor.client.from('donations').select('id').eq('id', donation.id), 1, 'donor retains public-facing payment record');
+  pass('donor, organizer, admin, and outsider payment RLS');
+}
+
+async function reserveTicket(eventId, ticketId, attendee, quantity) {
+  const checkoutToken = randomUUID();
+  const reserved = await rowsOrFail(
+    admin.rpc('reserve_event_ticket', {
+      p_event_id: eventId,
+      p_ticket_id: ticketId,
+      p_attendee_id: attendee.id,
+      p_attendee_email: attendee.email,
+      p_attendee_name: `Platform Matrix ${attendee.key}`,
+      p_quantity: quantity,
+      p_checkout_token: checkoutToken,
+    }),
+    `reserve ticket ${attendee.key}`,
+  );
+  if (!reserved[0]?.registration_id) fail(`reserve ticket ${attendee.key}`, 'missing registration id');
+  const sessionId = `cs_event_${attendee.key}_${runId}`;
+  await dataOrFail(
+    admin.rpc('attach_event_ticket_checkout', {
+      p_registration_id: reserved[0].registration_id,
+      p_checkout_token: checkoutToken,
+      p_stripe_checkout_session_id: sessionId,
+    }),
+    `attach ticket checkout ${attendee.key}`,
+  );
+  const paymentIntentId = `pi_event_${attendee.key}_${runId}`;
+  await dataOrFail(
+    admin.rpc('confirm_event_ticket_registration', {
+      p_registration_id: reserved[0].registration_id,
+      p_stripe_checkout_session_id: sessionId,
+      p_stripe_payment_intent_id: paymentIntentId,
+    }),
+    `confirm ticket ${attendee.key}`,
+  );
+  return { id: reserved[0].registration_id, paymentIntentId };
+}
+
+async function verifyPaidEvents(campaign) {
+  const organizer = persona('organizer');
+  const donor = persona('donor');
+  const beneficiary = persona('beneficiary');
+  const outsider = persona('outsider');
+  const start = new Date(now + 14 * day).toISOString();
+  const end = new Date(now + 14 * day + 3 * 60 * 60 * 1000).toISOString();
+
+  const event = await dataOrFail(
+    organizer.client.from('fundraising_events').insert({
+      created_by: organizer.id,
+      campaign_id: campaign.id,
+      title: 'Platform Matrix Gala',
+      slug: `platform-matrix-gala-${runId}`,
+      event_type: 'gala',
+      starts_at: start,
+      ends_at: end,
+      capacity: 10,
+      status: 'published',
+    }).select('id').single(),
+    'event organizer create',
+  );
+  const ticket = await dataOrFail(
+    organizer.client.from('event_tickets').insert({
+      event_id: event.id,
+      title: 'General admission',
+      price_cents: 2500,
+      quantity_limit: 10,
+    }).select('id').single(),
+    'paid ticket organizer create',
+  );
+
+  await expectDenied(
+    donor.client.from('event_registrations').insert({
+      event_id: event.id,
+      ticket_id: ticket.id,
+      attendee_id: donor.id,
+      amount_cents: 2500,
+      status: 'confirmed',
+    }),
+    'paid registration direct insert denied',
+  );
+  await expectDenied(
+    donor.client.rpc('reserve_event_ticket', {
+      p_event_id: event.id,
+      p_ticket_id: ticket.id,
+      p_attendee_id: donor.id,
+      p_attendee_email: donor.email,
+      p_attendee_name: 'Browser bypass',
+      p_quantity: 1,
+      p_checkout_token: randomUUID(),
+    }),
+    'ticket reservation RPC browser access denied',
+  );
+
+  const donorRegistration = await reserveTicket(event.id, ticket.id, donor, 2);
+  const beneficiaryRegistration = await reserveTicket(event.id, ticket.id, beneficiary, 1);
+  await expectRows(donor.client.from('event_registrations').select('id').eq('id', donorRegistration.id), 1, 'ticket attendee read');
+  await expectRows(organizer.client.from('event_registrations').select('id').in('id', [donorRegistration.id, beneficiaryRegistration.id]), 2, 'ticket organizer attendee read');
+  await expectRows(outsider.client.from('event_registrations').select('id').in('id', [donorRegistration.id, beneficiaryRegistration.id]), 0, 'ticket outsider isolation');
+
+  const donorDisputeId = `dp_event_donor_${runId}`;
+  await dataOrFail(admin.rpc('apply_event_ticket_dispute', {
+    p_stripe_payment_intent_id: donorRegistration.paymentIntentId,
+    p_stripe_dispute_id: donorDisputeId,
+    p_outcome: 'opened',
+  }), 'ticket dispute open');
+  await dataOrFail(admin.rpc('apply_event_ticket_dispute', {
+    p_stripe_payment_intent_id: donorRegistration.paymentIntentId,
+    p_stripe_dispute_id: donorDisputeId,
+    p_outcome: 'won',
+  }), 'ticket dispute won');
+
+  const beneficiaryDisputeId = `dp_event_beneficiary_${runId}`;
+  await dataOrFail(admin.rpc('apply_event_ticket_dispute', {
+    p_stripe_payment_intent_id: beneficiaryRegistration.paymentIntentId,
+    p_stripe_dispute_id: beneficiaryDisputeId,
+    p_outcome: 'opened',
+  }), 'second ticket dispute open');
+  await dataOrFail(admin.rpc('apply_event_ticket_dispute', {
+    p_stripe_payment_intent_id: beneficiaryRegistration.paymentIntentId,
+    p_stripe_dispute_id: beneficiaryDisputeId,
+    p_outcome: 'lost',
+  }), 'ticket dispute lost');
+  await dataOrFail(admin.rpc('apply_event_ticket_refund', {
+    p_stripe_payment_intent_id: donorRegistration.paymentIntentId,
+    p_refunded_cents: 5000,
+  }), 'ticket full refund');
+
+  const finalRows = await rowsOrFail(
+    admin.from('event_registrations').select('id,status,dispute_status').in('id', [donorRegistration.id, beneficiaryRegistration.id]),
+    'ticket final lifecycle read',
+  );
+  const donorFinal = finalRows.find((row) => row.id === donorRegistration.id);
+  const beneficiaryFinal = finalRows.find((row) => row.id === beneficiaryRegistration.id);
+  if (donorFinal?.status !== 'refunded' || donorFinal?.dispute_status !== 'won') fail('ticket refund after won dispute state');
+  if (beneficiaryFinal?.status !== 'cancelled' || beneficiaryFinal?.dispute_status !== 'lost') fail('ticket lost dispute state');
+  const inventory = await dataOrFail(admin.from('event_tickets').select('sold_count').eq('id', ticket.id).single(), 'ticket inventory read');
+  if (inventory.sold_count !== 0) fail('ticket inventory released exactly once', `received ${inventory.sold_count}`);
+  pass('paid event inventory, checkout, refund, dispute, and RLS lifecycle');
+}
+
+async function verifyVolunteerHours(campaign) {
+  const organizer = persona('organizer');
+  const donor = persona('donor');
+  const outsider = persona('outsider');
+  const start = new Date(now + day).toISOString();
+  const end = new Date(now + day + 2 * 60 * 60 * 1000).toISOString();
+
+  const opportunity = await dataOrFail(
+    organizer.client.from('volunteer_opportunities').insert({
+      slug: `platform-matrix-volunteer-${runId}`,
+      title: 'Platform Matrix Volunteer Shift',
+      org_name: 'Platform Matrix',
+      campaign_id: campaign.id,
+      status: 'open',
+      created_by: organizer.id,
+    }).select('id').single(),
+    'volunteer opportunity organizer create',
+  );
+  const shift = await dataOrFail(
+    organizer.client.from('volunteer_shifts').insert({
+      opportunity_id: opportunity.id,
+      title: 'Sorting donations',
+      starts_at: start,
+      ends_at: end,
+      capacity: 10,
+      checkin_code: `MATRIX${runId.slice(0, 6)}`,
+      created_by: organizer.id,
+    }).select('id').single(),
+    'volunteer shift organizer create',
+  );
+  await expectRows(donor.client.from('volunteer_shifts').select('id,title').eq('id', shift.id), 1, 'volunteer safe shift read');
+  await expectDenied(donor.client.from('volunteer_shifts').select('checkin_code').eq('id', shift.id), 'volunteer check-in code hidden from browser roles');
+
+  const hours = await dataOrFail(
+    donor.client.from('volunteer_hours').insert({
+      shift_id: shift.id,
+      opportunity_id: opportunity.id,
+      volunteer_user_id: donor.id,
+      checked_in_at: start,
+      checked_out_at: end,
+      hours: 2,
+      source: 'check_in',
+    }).select('id,status').single(),
+    'volunteer hours create',
+  );
+  if (hours.status !== 'pending') fail('volunteer hours safe default');
+  await expectDenied(
+    donor.client.from('volunteer_hours').update({ status: 'verified' }).eq('id', hours.id).select('id'),
+    'volunteer self-verification blocked',
+  );
+  const verified = await dataOrFail(
+    organizer.client.from('volunteer_hours').update({ status: 'verified' }).eq('id', hours.id).select('status,verified_by').single(),
+    'volunteer organizer verification',
+  );
+  if (verified.status !== 'verified' || verified.verified_by !== organizer.id) fail('volunteer verification attribution');
+  await expectRows(donor.client.from('volunteer_hours').select('id').eq('id', hours.id), 1, 'volunteer own hours read');
+  await expectRows(organizer.client.from('volunteer_hours').select('id').eq('id', hours.id), 1, 'volunteer organizer hours read');
+  await expectRows(outsider.client.from('volunteer_hours').select('id').eq('id', hours.id), 0, 'volunteer hours outsider isolation');
+  pass('volunteer shifts, check-in privacy, verified hours, and RLS');
 }
 
 async function upload(client, bucket, path, contentType, label) {
@@ -732,7 +1020,10 @@ async function run() {
     await establishSessions();
     await verifyProfilesAndPlans();
     await verifyTenants();
-    const { campaign } = await verifyCampaignData();
+    const { campaign, donation } = await verifyCampaignData();
+    await verifyPaymentRls(campaign, donation);
+    await verifyPaidEvents(campaign);
+    await verifyVolunteerHours(campaign);
     await verifyStorage(campaign);
     pass('staging platform matrix complete');
   } finally {

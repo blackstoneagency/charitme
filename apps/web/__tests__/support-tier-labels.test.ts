@@ -30,7 +30,7 @@ const donateCard = readFileSync(
   'utf8',
 );
 const migration = readFileSync(
-  path.join(WEB, '..', '..', 'supabase', 'migrations', '20260904000000_default_support_percent_ten.sql'),
+  path.join(WEB, '..', '..', 'supabase', 'migrations', '20260904040000_default_support_percent_ten.sql'),
   'utf8',
 );
 

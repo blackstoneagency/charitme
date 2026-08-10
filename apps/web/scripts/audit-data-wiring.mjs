@@ -63,6 +63,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { chromium } from '@playwright/test';
 import { resolveBase } from './lib/audit-base.mjs';
+import { chromiumLaunchOptions } from './lib/audit-browser.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const argv = process.argv;
@@ -165,9 +166,7 @@ async function textOf(browser, path) {
   }
 }
 
-const browser = await chromium.launch({
-  executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH ?? '/opt/pw-browsers/chromium',
-});
+const browser = await chromium.launch(chromiumLaunchOptions());
 
 const wired = [];
 const identical = [];

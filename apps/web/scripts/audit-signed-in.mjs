@@ -271,6 +271,7 @@ const MOBILE = argv.includes('--mobile');
 const RESPONSIVE = argv.includes('--responsive');
 const PAGE_IMAGES = argv.includes('--page-images');
 const CONTRAST = argv.includes('--contrast');
+const FOCUS_ORDER = argv.includes('--focus-order');
 // `--probe <path> [width]` explains ONE route instead of sweeping all of them:
 // the ancestor chain of the widest offender, with the properties that decide
 // whether each box can shrink. Reuses this harness because the interesting
@@ -301,6 +302,13 @@ if (PROBE) {
       ...(AS_JSON ? ['--json'] : []),
       ...(ONLY ? ['--only', ONLY] : []),
       ...(argv.includes('--strict-gradients') ? ['--strict-gradients'] : []),
+    ]);
+  }
+  if (FOCUS_ORDER) {
+    sweepArgs.push([
+      'scripts/audit-focus-order.mjs', '--base', BASE,
+      ...(AS_PUBLIC ? [] : ['--auth']),
+      ...(ONLY ? ['--only', ONLY] : []),
     ]);
   }
   if (sweepArgs.length === 0) {

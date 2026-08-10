@@ -60,7 +60,18 @@ create schema if not exists auth;
 create schema if not exists storage;
 create schema if not exists supabase_migrations;
 create table if not exists supabase_migrations.schema_migrations (version text primary key, statements text[], name text);
-create table if not exists auth.users (id uuid primary key default gen_random_uuid(), email text unique, raw_user_meta_data jsonb, raw_app_meta_data jsonb, created_at timestamptz default now());
+create table if not exists auth.users (
+  instance_id uuid,
+  id uuid primary key default gen_random_uuid(),
+  aud text,
+  role text,
+  email text unique,
+  email_confirmed_at timestamptz,
+  raw_user_meta_data jsonb,
+  raw_app_meta_data jsonb,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
 create or replace function auth.uid() returns uuid language sql stable as $$ select null::uuid $$;
 create or replace function auth.role() returns text language sql stable as $$ select 'authenticated'::text $$;
 create or replace function auth.jwt() returns jsonb language sql stable as $$ select '{}'::jsonb $$;
@@ -75,7 +86,7 @@ cat > "$WORK/run.sh" <<RUNNER
 ok=0; bad=0
 for f in \$(ls $WORK/mig/*.sql | sort); do
   v=\$(basename "\$f" | cut -d_ -f1)
-  if psql -h $WORK/sock -p $PORT -U postgres -q -v ON_ERROR_STOP=1 -f "\$f" > $WORK/last.log 2>&1; then
+  if psql -h $WORK/sock -p $PORT -U postgres -q -v ON_ERROR_STOP=1 --single-transaction -f "\$f" > $WORK/last.log 2>&1; then
     ok=\$((ok+1))
     psql -h $WORK/sock -p $PORT -U postgres -q -c \
       "insert into supabase_migrations.schema_migrations(version) values ('\$v') on conflict do nothing;" >/dev/null 2>&1

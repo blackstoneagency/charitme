@@ -1,6 +1,6 @@
 -- Restore the suggested donor support default to 15%.
 --
--- Mirror of 20260904000000_default_support_percent_ten.sql, and conditional for
+-- Mirror of 20260904040000_default_support_percent_ten.sql, and conditional for
 -- the same reason: it only reverts the value if it is still exactly the 10 that
 -- migration wrote, so an owner who has since chosen a different rate from
 -- /admin/super/settings keeps it.

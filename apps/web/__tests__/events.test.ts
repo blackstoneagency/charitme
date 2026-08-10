@@ -5,7 +5,9 @@ import {
   isRegistrationOpen,
   slugifyTitle,
   EventCreateSchema,
+  EventTicketCheckoutSchema,
   RegistrationCreateSchema,
+  dollarsInputToCents,
 } from '../lib/events-core';
 
 const NOW = new Date('2026-07-19T12:00:00Z');
@@ -75,6 +77,36 @@ describe('validation schemas', () => {
     expect(r.success).toBe(true);
     if (r.success) expect(r.data.quantity).toBe(1);
     expect(RegistrationCreateSchema.safeParse({ quantity: 99 }).success).toBe(false);
+  });
+  it('validates paid ticket tiers and Stripe checkout keys', () => {
+    expect(EventCreateSchema.safeParse({
+      title: 'Spring Gala',
+      starts_at: FUTURE,
+      tickets: [{ title: 'General admission', price_cents: 2500, quantity_limit: 100 }],
+    }).success).toBe(true);
+    expect(EventCreateSchema.safeParse({
+      title: 'Spring Gala',
+      starts_at: FUTURE,
+      tickets: [{ title: 'Invalid', price_cents: 49 }],
+    }).success).toBe(false);
+    expect(EventTicketCheckoutSchema.safeParse({
+      ticket_id: '11111111-1111-4111-8111-111111111111',
+      request_key: '22222222-2222-4222-8222-222222222222',
+      quantity: 2,
+    }).success).toBe(true);
+  });
+});
+
+describe('dollarsInputToCents', () => {
+  it('converts decimal input without floating-point money math', () => {
+    expect(dollarsInputToCents('25')).toBe(2500);
+    expect(dollarsInputToCents('25.5')).toBe(2550);
+    expect(dollarsInputToCents('25.05')).toBe(2505);
+  });
+  it('rejects ambiguous or over-precise values', () => {
+    expect(dollarsInputToCents('25.005')).toBeNull();
+    expect(dollarsInputToCents('-1')).toBeNull();
+    expect(dollarsInputToCents('twenty')).toBeNull();
   });
 });
 

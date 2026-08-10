@@ -20,7 +20,8 @@ async function registeredQtyByEvent(eventIds: string[]): Promise<Map<string, num
   const { data } = await supabaseAdmin
     .from('event_registrations')
     .select('event_id, quantity')
-    .in('event_id', eventIds);
+    .in('event_id', eventIds)
+    .in('status', ['pending', 'confirmed', 'refund_pending', 'partially_refunded', 'disputed']);
   for (const r of data ?? []) {
     map.set(r.event_id as string, (map.get(r.event_id as string) ?? 0) + (r.quantity as number));
   }
@@ -118,7 +119,8 @@ export async function attendeeRegisteredQty(eventId: string, attendeeId: string)
     .from('event_registrations')
     .select('quantity')
     .eq('event_id', eventId)
-    .eq('attendee_id', attendeeId);
+    .eq('attendee_id', attendeeId)
+    .in('status', ['pending', 'confirmed', 'refund_pending', 'partially_refunded', 'disputed']);
   return (data ?? []).reduce((sum, r) => sum + (r.quantity as number), 0);
 }
 
