@@ -24222,10 +24222,16 @@ transaction, not four API calls that can half-fail.
       now refuses them rather than shipping them.**
       `/campaigns`, `/donate` and `/how-it-works` render **"Gifts given —"** in
       this sandbox while production renders **592** (both checked by curl). The
-      em dash is this codebase's marker for a read that FAILED: the donations
-      count times out through the sandbox proxy where it does not in production.
-      Deterministic, not flaky — three consecutive cache-busted requests all
-      returned the dash.
+      em dash is this codebase's marker for a read that FAILED.
+
+      ⚠️ **CORRECTION (2026-08-10).** This entry first said the count "times out
+      through the sandbox proxy". That was a guess and it is WRONG. The real
+      cause: the `SUPABASE_SERVICE_ROLE_KEY` in `.env.local` is dead —
+      production answers `{"message":"Unregistered API key"}`. It is not the key
+      the owner created; only Vercel has that one. Anon reads return 200, so
+      every anon-path figure renders and every `supabaseAdmin`-path figure shows
+      a dash. Same symptom, different cause, and the wrong one sends the next
+      person to look at query performance instead of credentials.
       ⚠️ Nothing downstream can catch this. The PNG is valid, the manifest is
       valid, every test passes — it is a clean, well-composed phone screenshot
       of a broken statistic, and it would have gone into the install dialog and
