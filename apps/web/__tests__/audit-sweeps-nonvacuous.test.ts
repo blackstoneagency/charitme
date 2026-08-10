@@ -218,6 +218,13 @@ describe('signed-in audit integrity', () => {
     expect(ciWorkflow).toContain('node scripts/audit-signed-in.mjs ${{ matrix.args }} --port 3310 --stub-port 55432');
   });
 
+  it('allows cross-route reuse only when the rendered image names the same entity', () => {
+    const imageSource = read('audit-page-images.mjs');
+    expect(imageSource).toContain("getAttribute('data-image-entity')");
+    expect(imageSource).toContain('usage.entities.size !== 1 || usage.entities.has(null)');
+    expect(imageSource).toContain('Global image uniqueness failures');
+  });
+
   it('makes the live authenticated axe sweep fail on broken pages or theme drift', () => {
     expect(authedSource).toContain('chromium.executablePath()');
     expect(authedSource).toContain('response.status() >= 400');

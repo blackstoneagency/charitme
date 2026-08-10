@@ -30,7 +30,17 @@ export function isDisplayable(sponsor: Sponsor): boolean {
  * missing often enough to leave broken images across the strip.
  */
 export function sponsorLogoUrl(sponsor: Sponsor): string | null {
-  if (sponsor.logo_url?.startsWith('http')) return sponsor.logo_url;
+  if (sponsor.logo_url?.startsWith('http')) {
+    try {
+      const host = new URL(sponsor.logo_url).hostname.toLowerCase();
+      if (host === 'logo.clearbit.com' || host.includes('picsum.photos') || host.includes('loremflickr.com')) {
+        return null;
+      }
+      return sponsor.logo_url;
+    } catch {
+      return null;
+    }
+  }
   if (!sponsor.website) return null;
   try {
     const host = new URL(sponsor.website).hostname;

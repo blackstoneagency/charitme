@@ -123,6 +123,7 @@ export function CampaignCard({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={optimizedCoverUrl(getDisplayCover(c.cover_image_url, c.category, c.slug, coverScope), 700)}
+            data-image-entity={`campaign:${c.id}`}
             alt=""
             loading="lazy"
             decoding="async"
@@ -167,6 +168,7 @@ export function CampaignCard({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={optimizedCoverUrl(getDisplayCover(c.cover_image_url, c.category, c.slug, coverScope), 700)}
+            data-image-entity={`campaign:${c.id}`}
             alt=""
             loading="lazy"
             decoding="async"

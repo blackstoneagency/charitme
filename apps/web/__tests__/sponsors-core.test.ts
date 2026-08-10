@@ -39,6 +39,12 @@ describe('sponsorLogoUrl', () => {
     expect(url).toContain('sz=128');
   });
 
+  it('refuses retired logo services and generic placeholder photos', () => {
+    expect(sponsorLogoUrl(sponsor({ logo_url: 'https://logo.clearbit.com/example.com' }))).toBeNull();
+    expect(sponsorLogoUrl(sponsor({ logo_url: 'https://picsum.photos/seed/demo/240/120' }))).toBeNull();
+    expect(sponsorLogoUrl(sponsor({ logo_url: 'https://loremflickr.com/240/120' }))).toBeNull();
+  });
+
   it('returns null rather than a broken image for a malformed website', () => {
     expect(sponsorLogoUrl(sponsor({ website: 'not a url' }))).toBeNull();
     expect(sponsorLogoUrl(sponsor())).toBeNull();
