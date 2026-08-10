@@ -3642,6 +3642,13 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 .kf-setpanel-save:disabled { opacity: .55; cursor: default; }
 .kf-setpanel-save.saved { background: #0fa456; }
 .kf-setpanel-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+@media (max-width: 480px) {
+  .kf-setpanel-head { flex-direction: column; align-items: stretch; }
+  .kf-setpanel-title { min-width: 0; }
+  .kf-setpanel-title > div:last-child { min-width: 0; }
+  .kf-setpanel-head p { overflow-wrap: anywhere; }
+  .kf-setpanel-save { width: 100%; height: 44px; }
+}
 .kf-setrow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
 .kf-setrow.triple { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); }
 .kf-setrow.full { grid-template-columns: minmax(0, 1fr); }
