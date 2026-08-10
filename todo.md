@@ -1,12 +1,11 @@
 # CharitMe — Execution Tracker
 
-## Mobile-first and image-integrity audit — active (Codex, 2026-08-09)
+## Mobile-first and image-integrity audit — complete (Codex, 2026-08-10)
 
 This section is the current source of truth and supersedes the stale campaign
-builder and checkout release checkboxes immediately below. Those releases are
-complete: `master` is `cae7f7a6ba4ddb6cca69c03be2817d4e82aaeacc`, tag
-`v0.1.11` passed release run `31341303171`, production Supabase reported up to
-date, and `www.charitme.com` serves that exact SHA.
+builder and checkout release checkboxes immediately below. The audit is complete:
+tag `v0.1.15` passed the tagged release workflow, production Supabase reported up
+to date, and `www.charitme.com` serves the release workflow's exact verified SHA.
 
 ### Scope and authoritative inventory
 
@@ -25,6 +24,7 @@ date, and `www.charitme.com` serves that exact SHA.
   - [x] Catalog gate: 117 IDs across 18 categories, zero shared images, and no Picsum/LoremFlickr fallback.
   - [x] Public rendered-page gate: 115/115 routes exposed 377 distinct content images, no within-page or cross-page reuse, no broken images, no placeholders, and no Picsum/LoremFlickr output.
   - [x] Signed-in rendered-page gate: 119 admin routes and 71 member routes reachable under their respective fixture personas rendered with zero within-page duplication; the one repeated cross-page asset is the same campaign cover preserving that campaign's identity across its dashboard, growth-plan, donor, and edit views. Inaccessible inventory entries are role redirects rather than unmeasured content.
+  - [x] Live production rendered-page gate: real campaign samples passed strict global uniqueness after campaign cards and similar-campaign recommendations were bound to their campaign entity IDs.
 - [x] Make both audits required CI/release gates and retain machine-readable evidence.
   - [x] Added repeatable public/admin/member responsive, mobile, rendered-image, and local-asset commands.
   - [x] Added the green responsive and image-integrity commands to both CI and the tagged release workflow.
@@ -46,7 +46,7 @@ date, and `www.charitme.com` serves that exact SHA.
 - [x] Replace permissive image checks with zero-duplicate, provenance, reachability, and subject-taxonomy gates.
 - [x] Fix every responsive finding in route batches and rerun all widths/themes.
 - [x] Replace random/duplicate/off-subject imagery with unique subject-matched free assets or honest campaign-specific generated fallback art.
-- [ ] Apply production data changes through staging, release through the tagged workflow, and verify the exact production SHA plus live Supabase image inventory.
+- [x] Apply production data changes through staging, release through the tagged workflow, and verify the exact production SHA plus live Supabase image inventory.
 
 ## Donation checkout unification — active release (Codex, 2026-08-09)
 

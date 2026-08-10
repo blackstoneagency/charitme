@@ -1072,9 +1072,12 @@ export default async function CampaignPage({ params, searchParams }: Props) {
               return (
                 <Link key={c.id} href={`/campaigns/${c.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                   <div style={{ border: '1px solid var(--b1, #f1f5f9)', borderRadius: 12, overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--s1, #fff)' }}>
-                    <div style={{
+                    <div
+                      data-image-entity={`campaign:${c.id}`}
+                      style={{
                       height: 130, background: `url(${optimizedCoverUrl(getDisplayCover(c.cover_image_url, c.category, c.slug, 'campaign-detail-similar'), 420)}) center/cover`,
-                    }} />
+                      }}
+                    />
                     <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
                       {c.category && <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--brand-text)', textTransform: 'uppercase', letterSpacing: 0.4 }}>{c.category}</span>}
                       <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--t1, #1a1a2e)', lineHeight: 1.3 }}>{c.title}</div>
