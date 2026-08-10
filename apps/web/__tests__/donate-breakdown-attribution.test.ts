@@ -107,7 +107,9 @@ describe('the zero-fee case is the clean three-row breakdown', () => {
       method: 'stripe',
       coverProcessing: true,
     });
-    expect(b.supportCents).toBe(750);
-    expect(b.totalChargedCents).toBe(5_947);
+    // 10% of $50.00 — the suggested rate, not the top of the ladder.
+    expect(b.supportCents).toBe(500);
+    // $50.00 + $5.00 support + 2.9% & 30c on that subtotal.
+    expect(b.totalChargedCents).toBe(5_690);
   });
 });

@@ -116,7 +116,7 @@ describe('the fee model behind the UI is real, and shared with the server', () =
     // Support is optional and never forced — one click from zero.
     expect([...SUPPORT_TIER_PERCENTS]).toEqual([15, 12, 10, 8, 5, 3, 1, 0]);
     expect(SUPPORT_TIER_PERCENTS).toContain(0);
-    expect(SUGGESTED_SUPPORT_PERCENT).toBe(15);
+    expect(SUGGESTED_SUPPORT_PERCENT).toBe(10);
   });
 
   it('quotes the same per-method rates the screenshots show', () => {

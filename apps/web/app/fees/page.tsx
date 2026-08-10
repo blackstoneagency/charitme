@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { DEFAULT_OG_IMAGE } from '../../lib/public-routes';
 import Link from 'next/link';
-import { PROCESSING_FEE_COPY } from '../../lib/fee-copy';
+import { PROCESSING_FEE_COPY, SUGGESTED_SUPPORT_COPY, SUPPORT_ALTERNATIVES_COPY } from '../../lib/fee-copy';
 
 export const metadata: Metadata = {
   title: 'Fee Policy — 0% Platform Fee | CharitMe',
@@ -48,7 +48,7 @@ export default function FeePolicyPage() {
           choose to add on top of their gift to keep the platform running. Support is:
         </p>
         <ul>
-          <li><strong>Optional.</strong> Suggested at 15%, but a donor may set it to 12%, 10%, 8%, 5%, 3%, 1%, or 0%.</li>
+          <li><strong>Optional.</strong> Suggested at {SUGGESTED_SUPPORT_COPY}, but a donor may set it to {SUPPORT_ALTERNATIVES_COPY}.</li>
           <li><strong>Always reducible to 0%</strong>, in one tap, with no dark patterns and nothing hidden.</li>
           <li><strong>Separate from the gift.</strong> Support never reduces what the recipient receives.</li>
         </ul>
