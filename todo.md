@@ -24055,7 +24055,51 @@ accepted only in narrow regulated cases, and "we retain transaction records" is
 not one of them — that is handled by anonymising the records, which this flow
 already promises in its own copy.
 
-This is the single highest-severity store item and it is software-controllable.
+✅ **BUILT 2026-08-10, behind `ACCOUNT_SELF_DELETE_ENABLED` (default OFF).**
+
+🚨 **AND IT UNCOVERED A FAR WORSE HAZARD THAN THE ONE IT WAS FIXING.** The
+one-line implementation — `supabaseAdmin.auth.admin.deleteUser(id)` — cascades
+through the schema's real foreign keys:
+
+```
+auth.users  DELETE
+  └─ profiles.id             ON DELETE CASCADE
+      └─ campaigns.user_id   ON DELETE CASCADE
+          └─ donations.campaign_id ON DELETE CASCADE
+```
+
+so deleting ONE fundraiser's account erases **every donation ever made to
+them** — other people's money, their receipts, and the rows every public total
+is computed from. It fails silently: the delete succeeds, the pages still
+render, the totals are just smaller. It also contradicts what `/privacy-center`
+promises in its own copy. `donations.donor_id` is `ON DELETE SET NULL`, so
+donations the user MADE were never at risk; the hazard is entirely in donations
+they RECEIVED.
+
+The implementation therefore **refuses rather than cascades**, and the refusal
+is the feature:
+- `POST /api/account/delete` counts donations received first and aborts on any
+  number but zero — **including "could not count"**, because an unknown number
+  of donations is not zero donations (`lib/account-deletion.ts`).
+- Order is inverted from the obvious one: anonymise the profile → detach the
+  user's own donations → delete the auth user LAST. A failure midway leaves an
+  anonymised account that can still sign in — recoverable and visibly wrong.
+  The reverse order leaves financial records destroyed and nothing to notice.
+- Confirmation is the typed phrase `DELETE MY ACCOUNT`, never a boolean: one
+  replayed request must not be able to delete an account that has no undo.
+- The refusal message names the reason, since it is permanent until the
+  campaigns are settled.
+
+⚠️ **Still OFF.** `master` deploys straight to production, so the flag is what
+makes this shippable without arming it — until it is set, the endpoint 404s and
+`/privacy-center` keeps today's review-queue flow. 9 tests cover the refusal,
+both directions (a real zero still deletes).
+
+⚠️ **A donor with no campaigns can delete; a fundraiser who has received money
+cannot** — they are routed to support. Whether Apple accepts that split for the
+fundraiser case is unverified and is the remaining open question. The proper fix
+is a tombstone owner so campaigns survive the delete, which needs a schema
+change to `campaigns_user_id_fkey`, not application code.
 ⚠️ It is also **destructive and irreversible against a live database holding real
 donations**, so it needs: anonymise the profile, detach donations from identity
 while retaining the financial record, then remove the auth user — as one
