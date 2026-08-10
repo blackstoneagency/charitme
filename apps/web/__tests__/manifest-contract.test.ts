@@ -87,6 +87,19 @@ describe('web app manifest', () => {
     expect((m.shortcuts ?? []).length).toBeLessThanOrEqual(4);
   });
 
+  it('advertises at least one narrow screenshot, and every file exists', () => {
+    // Chrome shows the one-line infobar instead of the rich install dialog
+    // without a `narrow` entry, and a listed file that is not on disk 404s
+    // INSIDE the install dialog — a surface no route test or link audit reaches.
+    const shots = m.screenshots ?? [];
+    expect(shots.length).toBeGreaterThan(0);
+    expect(shots.some((s) => s.form_factor === 'narrow')).toBe(true);
+    for (const shot of shots) {
+      expect(existsSync(path.join(WEB_ROOT, 'public', shot.src!)), `${shot.src} is advertised but missing`).toBe(true);
+      expect(shot.sizes, 'a screenshot with no declared size is ignored').toMatch(/^\d+x\d+$/);
+    }
+  });
+
   it('knows a real route from a fabricated one', () => {
     // Guards the guard. `routeExists` returning true unconditionally would make
     // the shortcut assertion vacuous.
