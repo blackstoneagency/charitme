@@ -39,6 +39,7 @@ with no claim is free. An item with a claim is someone else's — pick another.
 | Privacy declarations | claude/mobile | 2026-08-10 | ✅ done, released |
 | Per-device store screenshots | claude/mobile | 2026-08-10 | ✅ done, released |
 | Tombstone migration apply | — | | 🔒 blocked on credentials, not on people |
+| Web Push: SW handler + subscriptions + donation alert | claude/github-integration | 2026-08-10 | 🚧 in progress |
 
 ⚠️ **Do not take "blocked on credentials" items.** They are not unclaimed work —
 they cannot be finished by anyone in a sandbox, and a second agent rediscovering
@@ -46,8 +47,22 @@ that is pure duplication. As of 2026-08-10 that is the migration apply and both
 sets of store credentials.
 
 ⚠️ **Check open PRs before claiming.** PR #355 (campaign photos) is a different
-lane but is blocked on the SAME rotated `SUPABASE_SERVICE_ROLE_KEY` — a working
-key now exists with the owner, which unblocks it.
+lane. It is **no longer blocked**: it needed no service-role key in the end —
+covers are assigned by a generated migration
+(`20260904020001_campaign_real_cover_photos.sql`, 501 campaigns → 501 distinct
+CC0 photographs), which applies on a normal deploy.
+
+⚠️ **`audit:image-assets` is RED on master right now** — 51 rasters under
+`public/` against 39 inventory entries, the 12 store screenshots being unlisted.
+PR #358's head carries the same 39, so the repair is still in flight in the
+store-art lane. Flagged here rather than fixed from another branch, because a
+competing edit to that file is what caused the last duplicate-entry failure.
+
+**Scope note on the Web Push claim above.** It is the SERVER and SERVICE WORKER
+half only: subscription storage, a send path, and one real trigger. It does not
+touch `@capacitor/push-notifications`, the native shells, or anything needing a
+JDK/Xcode — that half stays with whoever picks up the native builds, and this
+work is the backend it would reuse.
 
 ---
 
