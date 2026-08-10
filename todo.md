@@ -3832,11 +3832,17 @@ skipped workflow leaves its check pending forever and would deadlock a docs-only
 PR. Nothing is required today, which is why this is safe now — recorded so the
 next person does not find out the hard way.
 
-## 🛑 SUPABASE STAGING — historical audit, and the file-derived upper-bound pending count is **46** (Claude, 2026-08-03)
+## 🛑 SUPABASE STAGING — historical audit, and the file-derived upper-bound pending count is **47** (Claude, 2026-08-03)
 
-**Live ledger rechecked 2026-08-10:** 133 local migration files against 87
-production ledger entries. The 46-file upper-bound gap below is therefore a current
+**Live ledger rechecked 2026-08-10:** 134 local migration files against 87
+production ledger entries. The 47-file upper-bound gap below is therefore a current
 measurement, not only historical arithmetic.
+
+⚠️ The newest of them, `20260904030000_deleted_user_tombstone`, is a
+**precondition for self-service account deletion** — until it is applied,
+`POST /api/account/delete` refuses with `TOMBSTONE_MISSING` (503) rather than
+deleting, because there would be nowhere to move a departing user's campaigns
+and the delete would cascade into other people's donations.
 
 **+1 on 2026-08-09: `20260831010000_user_nav_preferences.sql`.** One row per
 person holding their own sidebar layout, RLS-scoped to `user_id = auth.uid()`.
@@ -3940,8 +3946,8 @@ all 18 in order and proved rollback.
 Twenty-eight migrations have been added since. So the count is arithmetic:
 
 ```
-133 local − 87 applied           = 46
-18 audited pending + 28 added    = 46   ✓ reconciles
+134 local − 87 applied           = 47
+18 audited pending + 29 added    = 47   ✓ reconciles
 ```
 
 All 18 audited-pending versions are still on disk under their original names.
@@ -24136,11 +24142,45 @@ makes this shippable without arming it — until it is set, the endpoint 404s an
 `/privacy-center` keeps today's review-queue flow. 9 tests cover the refusal,
 both directions (a real zero still deletes).
 
-⚠️ **A donor with no campaigns can delete; a fundraiser who has received money
-cannot** — they are routed to support. Whether Apple accepts that split for the
-fundraiser case is unverified and is the remaining open question. The proper fix
-is a tombstone owner so campaigns survive the delete, which needs a schema
-change to `campaigns_user_id_fkey`, not application code.
+✅ **TOMBSTONE OWNER BUILT — every account can now delete, fundraisers included.**
+
+The earlier version refused deletion outright once an account had received
+donations. Safe, but it left a fundraiser permanently unable to delete their
+account — the exact thing 5.1.1(v) requires. The tombstone makes the delete both
+safe AND complete.
+
+⚠️ **The cascade is COMPUTED from `supabase/schema.sql`, not hand-listed, and the
+computation found four paths I would not have found by reading it.** Deleting one
+`profiles` row reaches **87 tables**; 15 money-bearing tables sit on 6 distinct
+first hops:
+
+```
+campaigns.user_id           -> donations, donation_receipts, refunds,
+                               recurring_donations, transparency_ledger_items,
+                               fundraising_events -> event_tickets, auction_bids
+creator_profiles.user_id    -> digital_products -> product_orders,
+                               membership_tiers -> member_subscriptions,
+                               creator_tips, commission_requests
+nonprofit_profiles.owner_id -> tax_receipts
+payouts.user_id · matching_claims.employee_id · subscriptions.user_id
+```
+
+Reassigning the FIRST hop severs every path beneath it, so the deletion moves
+those six columns to `00000000-0000-4000-8000-0000deadbeef` and only then deletes
+the auth user.
+
+`__tests__/deletion-cascade.test.ts` is a **ratchet in both directions**: a new
+foreign key that opens a seventh path to money fails the build, and reassigning a
+table that does NOT protect money also fails — the tombstone must not inherit a
+deleted user's private records. The tombstone cannot be signed into (no usable
+password, unconfirmed email, `banned_until = infinity`) and the migration is
+replay-safe.
+
+⚠️ **The migration is NOT applied to production** (it is #44 in the pending
+ledger). Until it is, `POST /api/account/delete` refuses with `TOMBSTONE_MISSING`
+(503) instead of deleting — an unapplied migration disables the feature rather
+than corrupting anything. `tombstonePresent` is `boolean | null` and `null`
+refuses too: "could not confirm it exists" is not "it exists".
 ⚠️ It is also **destructive and irreversible against a live database holding real
 donations**, so it needs: anonymise the profile, detach donations from identity
 while retaining the financial record, then remove the auth user — as one

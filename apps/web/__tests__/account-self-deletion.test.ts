@@ -55,39 +55,39 @@ describe('confirmation', () => {
 });
 
 describe('refusing rather than cascading', () => {
-  it('refuses when the account has received donations', () => {
-    expect(refusalFor({ donationsReceived: 1 }, ON)).toBe('ACCOUNT_HAS_DONATIONS');
-    expect(refusalFor({ donationsReceived: 4_000 }, ON)).toBe('ACCOUNT_HAS_DONATIONS');
+  it('refuses when the tombstone is absent', () => {
+    // Nowhere to move the campaigns, payouts and subscriptions to — so the
+    // delete would cascade into other people's donations.
+    expect(refusalFor({ tombstonePresent: false }, ON)).toBe('TOMBSTONE_MISSING');
   });
 
-  it('refuses when the count could not be READ', () => {
-    // ⚠️ The one that matters. An unknown number of donations is not zero
-    // donations, and treating null as 0 is exactly what cascades. Same
-    // fail-closed rule as the ownership read.
-    expect(refusalFor({ donationsReceived: null }, ON)).toBe('ACCOUNT_HAS_DONATIONS');
+  it('refuses when the tombstone check itself FAILED', () => {
+    // ⚠️ The one that matters. "We could not confirm it exists" is not "it
+    // exists", and optimism here destroys financial records. Same fail-closed
+    // rule as the ownership read.
+    expect(refusalFor({ tombstonePresent: null }, ON)).toBe('TOMBSTONE_MISSING');
   });
 
-  it('allows deletion when the account has genuinely received none', () => {
-    // The other half: a real zero is a real answer, and a donor who never ran a
-    // campaign must still be able to delete their account. A guard that refused
-    // everything would pass every test above while shipping nothing.
-    expect(refusalFor({ donationsReceived: 0 }, ON)).toBeNull();
+  it('allows deletion once the tombstone is in place', () => {
+    // The other half. A guard that refused everything would pass every test
+    // above while making the feature impossible — which is the bug the earlier
+    // "refuse if they have donations" version actually shipped.
+    expect(refusalFor({ tombstonePresent: true }, ON)).toBeNull();
   });
 
   it('checks the flag and the confirmation before anything else', () => {
-    expect(refusalFor({ donationsReceived: 0 }, { enabled: false, confirmed: true })).toBe('DISABLED');
-    expect(refusalFor({ donationsReceived: 0 }, { enabled: true, confirmed: false })).toBe('NOT_CONFIRMED');
+    expect(refusalFor({ tombstonePresent: true }, { enabled: false, confirmed: true })).toBe('DISABLED');
+    expect(refusalFor({ tombstonePresent: true }, { enabled: true, confirmed: false })).toBe('NOT_CONFIRMED');
   });
 });
 
 describe('what the user is told', () => {
-  it('explains the donation refusal instead of saying something went wrong', () => {
-    const message = refusalMessage('ACCOUNT_HAS_DONATIONS');
-    // The refusal is permanent until the campaigns are settled, so a generic
-    // error would send the user to support with nothing to say.
-    expect(message).toMatch(/donation/i);
-    expect(message).toMatch(/support/i);
-    expect(message).not.toMatch(/something went wrong/i);
+  it('describes the tombstone refusal as the temporary operator problem it is', () => {
+    // Nothing about the user's account blocks this, so it must not read as a
+    // judgement on them — and it IS retryable, unlike the old permanent refusal.
+    const message = refusalMessage('TOMBSTONE_MISSING');
+    expect(message).toMatch(/try again/i);
+    expect(message).not.toMatch(/your campaigns|donation/i);
   });
 
   it('quotes the phrase the user has to type', () => {

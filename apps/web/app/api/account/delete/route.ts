@@ -9,6 +9,7 @@ import {
   refusalFor,
   refusalMessage,
 } from '../../../../lib/account-deletion';
+import { TOMBSTONE_PROFILE_ID, TOMBSTONE_REASSIGNMENTS } from '../../../../lib/deletion-cascade';
 
 /**
  * POST /api/account/delete — the user deletes their own account.
@@ -22,15 +23,20 @@ import {
  * deleting the auth user first would take the profile, then the campaigns, then
  * every donation ever made to them.
  *
- *   1. COUNT donations received. Refuse on any number but zero — including
- *      "could not count".
+ *   1. REASSIGN the six columns that lead to money to the tombstone profile,
+ *      so the cascade below finds nothing of value attached to this account.
  *   2. Anonymise the profile, so identity is gone even if step 4 fails.
  *   3. Detach donations the user MADE from their identity.
  *   4. Delete the auth user LAST, once nothing is left to cascade into.
  *
- * A failure between 2 and 4 leaves an anonymised account that can still sign in
+ * A failure between 1 and 4 leaves an anonymised account that can still sign in
  * — recoverable, and visibly wrong. The reverse order leaves financial records
  * destroyed and nothing to notice it.
+ *
+ * ⚠️ Step 1 must verify the tombstone EXISTS before touching anything. If the
+ * migration has not been applied, reassigning to a missing profile fails on a
+ * foreign key — but only for some of the six tables, leaving the account half
+ * moved with no way back. Checked first, refused as a whole.
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const supabase = await createClient();
@@ -45,40 +51,51 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const body = (await request.json().catch(() => null)) as { confirm?: unknown } | null;
   const confirmed = isConfirmed(body?.confirm);
 
-  // Donations RECEIVED — via the campaigns this account owns. A head-only exact
-  // count: it transfers no rows and cannot be a sample.
-  let donationsReceived: number | null = null;
+  // Is the tombstone there? Without it, reassignment is impossible and deleting
+  // would cascade — so this is a precondition, not a detail.
+  let tombstonePresent: boolean | null = null;
   try {
-    const { data: campaigns, error: campaignsError } = await supabaseAdmin
-      .from('campaigns')
+    const { data, error } = await supabaseAdmin
+      .from('profiles')
       .select('id')
-      .eq('user_id', user.id);
-    if (campaignsError) throw campaignsError;
-
-    const campaignIds = (campaigns ?? []).map((c) => c.id as string);
-    if (campaignIds.length === 0) {
-      donationsReceived = 0;
-    } else {
-      const { count, error } = await supabaseAdmin
-        .from('donations')
-        .select('id', { count: 'exact', head: true })
-        .in('campaign_id', campaignIds);
-      if (error) throw error;
-      // `count` is `number | null`; a null count is an unknown, not a zero, and
-      // `refusalFor` refuses on it.
-      donationsReceived = count;
-    }
+      .eq('id', TOMBSTONE_PROFILE_ID)
+      .maybeSingle();
+    // `null` on error, never `false`: "we could not check" is not "it is absent",
+    // and both refuse, but only one of them is worth alerting on.
+    tombstonePresent = error ? null : Boolean(data);
   } catch {
-    donationsReceived = null;
+    tombstonePresent = null;
   }
 
-  const refusal = refusalFor({ donationsReceived }, { enabled, confirmed });
+  const refusal = refusalFor({ tombstonePresent }, { enabled, confirmed });
   if (refusal) {
-    const status = refusal === 'NOT_CONFIRMED' ? 400 : 409;
+    const status = refusal === 'NOT_CONFIRMED' ? 400 : refusal === 'TOMBSTONE_MISSING' ? 503 : 409;
     return NextResponse.json({ error: refusalMessage(refusal), code: refusal }, { status });
   }
 
-  // 2. Identity first.
+  // 1. Move everything that leads to money onto the tombstone.
+  //
+  // The set is derived from the schema in `lib/deletion-cascade.ts` and pinned
+  // by a test, because four of the six paths are long enough that nobody would
+  // find them by reading the schema — `creator_profiles -> digital_products ->
+  // product_orders` among them.
+  for (const { table, column } of TOMBSTONE_REASSIGNMENTS) {
+    const { error } = await supabaseAdmin
+      .from(table)
+      .update({ [column]: TOMBSTONE_PROFILE_ID })
+      .eq(column, user.id);
+    if (error) {
+      console.warn('[account-delete] reassignment failed', { table, column, code: error.code });
+      // Stop before the delete. A partial reassignment is recoverable; a delete
+      // after a partial reassignment is not.
+      return NextResponse.json(
+        { error: 'Could not delete your account', code: 'REASSIGN_FAILED' },
+        { status: 503 },
+      );
+    }
+  }
+
+  // 2. Identity.
   const { error: profileError } = await supabaseAdmin
     .from('profiles')
     .update(anonymizedProfilePatch(user.id))
