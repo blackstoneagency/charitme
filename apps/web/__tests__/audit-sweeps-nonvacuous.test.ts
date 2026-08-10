@@ -220,9 +220,13 @@ describe('signed-in audit integrity', () => {
 
   it('allows cross-route reuse only when the rendered image names the same entity', () => {
     const imageSource = read('audit-page-images.mjs');
+    const campaignCardSource = readFileSync(join(WEB_ROOT, 'components', 'CampaignCard.tsx'), 'utf8');
+    const campaignDetailSource = readFileSync(join(WEB_ROOT, 'app', 'campaigns', '[slug]', '(detail)', 'page.tsx'), 'utf8');
     expect(imageSource).toContain("getAttribute('data-image-entity')");
     expect(imageSource).toContain('usage.entities.size !== 1 || usage.entities.has(null)');
     expect(imageSource).toContain('Global image uniqueness failures');
+    expect(campaignCardSource).toContain('data-image-entity={`campaign:${c.id}`}');
+    expect(campaignDetailSource).toContain('data-image-entity={`campaign:${c.id}`}');
   });
 
   it('makes the live authenticated axe sweep fail on broken pages or theme drift', () => {
