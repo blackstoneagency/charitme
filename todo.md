@@ -23617,14 +23617,12 @@ which have regressed before. `DonorWall`, `DonationTicker` and `CommentsList` al
 branch on the per-gift flag; exports and organizer notifications are covered by
 the existing `donor-privacy` suite.
 
-### 🔍 One observation, not a defect
-`aggregateSupporters` folds an anonymous gift's AMOUNT into a named supporter row
-if the same donor later gives openly — so an organizer sees "Real Name, 2 gifts,
-$525" and can infer the anonymous one. The checkbox promises no public display
-("publicly on the fundraiser") and the supporter list is the organizer's own CRM,
-so this does not break the stated promise, and per-gift anonymity is deliberate.
-Flagging it because most donors would not expect it. Changing it would affect
-organizer reconciliation, so it is a product call rather than a bug fix.
+### 🔍 One observation → **fixed, see the section at the end of this file**
+`aggregateSupporters` folded an anonymous gift's AMOUNT into a named supporter
+row if the same donor later gave openly — an organizer saw "Real Name, 2 gifts,
+$525" and could infer the anonymous one. Called a product question at the time;
+the owner called it a bug. Fixed 2026-08-10 — **the anonymous gift in the
+organizer supporter list**, below.
 
 ### ❌ What could NOT be executed here, and why
 The four hops need a live Stripe Checkout session and a signed webhook. Neither
@@ -23634,3 +23632,75 @@ be driven in a browser here either (confirmed: the stub's campaigns render the
 "ended" or non-payout state, exposing only the comment form's "Post anonymously"
 box). The suite records this next to the assertions it qualifies rather than
 letting a reader assume more coverage than exists.
+
+## ✅ The anonymous gift in the organizer supporter list (Claude, 2026-08-10)
+
+Reported as "fix the anonymous gift showing in the organizer supporter list" —
+the observation logged above, escalated to a defect.
+
+**The leak.** `/api/campaigns/[id]/supporters` already redacted per gift: an
+anonymous gift, or one from a donor whose Profile Visibility is Private, came
+through as `name: 'Anonymous donor'`. Then `aggregateSupporters` collapsed
+everything to one row per person and **un-redacted it**:
+
+```ts
+if (!d.anonymous && d.name) { existing.name = d.name; existing.anonymous = false; }
+```
+
+One open gift was enough to relabel the whole row, while `giftCount` and
+`totalCents` kept summing every gift. The organizer read "Real Name · 2 gifts ·
+$525" beside a public donor wall showing Real Name's single $25 — leaving exactly
+one candidate for the anonymous $500. The redaction was real; the aggregation
+undid it.
+
+**The fix is a split, and it is a DISPLAY split only.** Anonymity is part of the
+grouping key in a new `supporterListRows`, so anonymous money never lands in a
+named row. `aggregateSupporters` is untouched and stays one-row-per-person,
+because it is what `/engage` targets — splitting there would mail the same
+address twice. Both live in `lib/organizer-marketing.ts` with the difference
+stated on each.
+
+⚠️ **Splitting the rows is worthless if either half can rejoin them**, and two
+fields could:
+- the **masked address**. `gu***@ex***.com` on both rows hands the link straight
+  back to any organizer who already knows the donor's email. Anonymous rows now
+  carry `emailMasked: null` — and the panel says `contactable · address hidden`,
+  not "no email on file", which would be a lie.
+- the **React key**. `anon:<donor_id>` ships to the browser next to the same
+  donor's `open:<donor_id>`. Anonymous rows get a positional `anon-N` instead.
+
+Both are asserted, and both mutations are caught.
+
+**The route also stopped half-redacting.** It blanked `name` for a Private
+profile but passed the raw `anonymous` flag through, so a Private donor's gifts
+filed into the *named* bucket that merely had no name — and kept their masked
+address under the words "Anonymous donor". One `hideIdentity` flag now drives
+both fields.
+
+**Measured, not read** — real route, real component, stub Supabase, campaign
+`camp0000-…-000000000001` (one donor, 1 anonymous + 3 open gifts):
+
+| | before | after |
+|---|---|---|
+| rows | `Guest Donor 0 · 4 gifts · $90 · gu***@ex***.com` | `Guest Donor 0 · 3 · $85 · gu***@ex***.com` **+** `Anonymous donor · 1 · $5 · address hidden` |
+| anonymous row carries | — | no name, no address, no donor id |
+| `/engage` recipients | 1 | **1** (unchanged — the split is display-only) |
+
+Console clean, no duplicate-key warnings. The "Supporters" KPI stays
+person-level, so rows can outnumber it; a caption above the table says why, since
+an organizer reconciling the two numbers by hand is the exact move the split
+prevents.
+
+### 🧪 The fixtures could not have caught this, and now can
+`supabase-stub-fixtures.mjs` dealt 400 gifts round-robin across 120 campaigns and
+set `anonymous: i % 6 === 0`. **6 divides 120**, so every gift on a campaign
+landed on the same residue — each campaign was entirely anonymous or entirely
+named, and no sweep could render an organizer surface holding both. Now `i % 7`
+(40 mixed campaigns).
+
+Guest gifts (a fifth of the table) also had no `offline_donor_email`/`_name`, so
+they keyed on `donor_id ?? email ?? null` and were **dropped** — the supporter
+list rendered under every sweep with the guest half missing and nothing reachable
+in it. Both columns are populated now.
+
+Also fixed in passing: the send button read "Send to 1 supporters".

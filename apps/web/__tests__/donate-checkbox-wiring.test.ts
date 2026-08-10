@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { mapRecentDonations } from '../lib/home-data';
-import { aggregateSupporters } from '../lib/organizer-marketing';
+import { aggregateSupporters, supporterListRows } from '../lib/organizer-marketing';
 import { marketingStatusForOptIn } from '../lib/marketing-core';
 
 const read = (p: string) => readFileSync(resolve(__dirname, '..', p), 'utf8');
@@ -116,20 +116,66 @@ describe('anonymity actually hides the donor — executed, not read', () => {
   });
 
   it('hides the name in the organizer supporter list too', () => {
-    const supporters = aggregateSupporters([
+    const rows = supporterListRows([
       { email: 'a@b.c', name: 'Real Name', anonymous: true, amount_cents: 5000, created_at: '2026-08-09T00:00:00Z' },
     ] as never);
-    expect(supporters[0]!.name).toBe('Anonymous donor');
+    expect(rows[0]!.name).toBe('Anonymous donor');
   });
 
-  it('lets a later non-anonymous gift from the same donor restore the name', () => {
-    // Deliberate: anonymity is per GIFT. Someone who gave anonymously once and
-    // openly later has not asked to be hidden forever.
-    const supporters = aggregateSupporters([
+  it('keeps a later open gift from un-hiding the anonymous one', () => {
+    // Anonymity is per GIFT — someone who gave anonymously once and openly
+    // later has not asked to be hidden forever, so the open gift IS named.
+    //
+    // But this used to be one merged row reading "Real Name · 2 gifts · $75",
+    // which handed the organizer the anonymous gift by arithmetic: the public
+    // donor wall shows Real Name's $25, so the other $50 is hers too. Two rows,
+    // and the anonymous one carries nothing that points back at her.
+    const rows = supporterListRows([
       { email: 'a@b.c', name: 'Real Name', anonymous: true, amount_cents: 5000, created_at: '2026-08-01T00:00:00Z' },
       { email: 'a@b.c', name: 'Real Name', anonymous: false, amount_cents: 2500, created_at: '2026-08-05T00:00:00Z' },
     ] as never);
-    expect(supporters[0]!.name).toBe('Real Name');
+    expect(rows.map(r => [r.name, r.totalCents])).toEqual([
+      ['Anonymous donor', 5000],
+      ['Real Name', 2500],
+    ]);
+    expect(rows.find(r => r.anonymous)!.emailMasked).toBeNull();
+  });
+
+  it('still mails that donor once, not twice', () => {
+    // The split is a DISPLAY split. Targeting stays one row per person —
+    // otherwise the fix quietly doubles every organizer email to anyone who has
+    // ever given both ways.
+    const targets = aggregateSupporters([
+      { email: 'a@b.c', name: 'Real Name', anonymous: true, amount_cents: 5000, created_at: '2026-08-01T00:00:00Z' },
+      { email: 'a@b.c', name: 'Real Name', anonymous: false, amount_cents: 2500, created_at: '2026-08-05T00:00:00Z' },
+    ] as never);
+    expect(targets).toHaveLength(1);
+    expect(targets[0]!.giftCount).toBe(2);
+  });
+
+  it('the organizer API ships the redacted rows, not the targeting ones', () => {
+    // Both live in the same module and have nearly the same shape, so the wrong
+    // import compiles, passes type-check, and reinstates the leak.
+    const route = read('app/api/campaigns/[id]/supporters/route.ts')
+      .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    expect(route).toMatch(/supporters: listRows\.slice\(0, 200\)/);
+    expect(route).toMatch(/const listRows = supporterListRows\(rows\)/);
+    expect(route).not.toMatch(/supporters: supporters\.slice/);
+    // …and does not mask addresses itself. `supporterListRows` withholds them
+    // on anonymous rows; a second masking site here would put them back.
+    expect(route).not.toMatch(/maskEmail/);
+  });
+
+  it('redacts a Private profile by the same flag, not half of it', () => {
+    // Two settings, one decision: the per-gift `anonymous` box and account-wide
+    // Profile Visibility. Blanking only `name` and passing the raw `anonymous`
+    // through would file a Private donor's gifts into the NAMED bucket — which
+    // then shows their masked address under the words "Anonymous donor".
+    const route = read('app/api/campaigns/[id]/supporters/route.ts')
+      .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    expect(route).toMatch(/const hideIdentity = d\.anonymous \|\| !\(profile\?\.show_public_profile \?\? true\)/);
+    expect(route).toMatch(/^\s+anonymous: hideIdentity,$/m);
+    expect(route).toMatch(/^\s+name: hideIdentity \?/m);
   });
 });
 
