@@ -23634,3 +23634,37 @@ be driven in a browser here either (confirmed: the stub's campaigns render the
 "ended" or non-payout state, exposing only the comment form's "Post anonymously"
 box). The suite records this next to the assertions it qualifies rather than
 letting a reader assume more coverage than exists.
+
+---
+
+### ✅ FIXED → RETESTED → VERIFIED — A-1: a failed ownership read authorized as "owns nothing" (Claude, 2026-08-10)
+
+| ID | Severity | Route | Problem | Root Cause | Fix | Test | Status |
+|---|---|---|---|---|---|---|---|
+| A-1 | High | `/api/crm/segments`, `/api/giving-days`, `/dashboard/segments`, `/dashboard/giving-days` | A database blip made a real owner unable to manage their own organisation, and told them so in a way that is both false and unretryable | `ownedNonprofitIds` swallowed its `error` and returned `[]`, which is indistinguishable from an account that owns nothing — and that value is the **authorization input**, not a display figure | returns `string[] \| null`; all four callers handle `null` explicitly and fail **closed with 503**, never 403 | `__tests__/ownership-read-fails-closed.test.ts` (10) | **VERIFIED** |
+
+**Why 503 and not 403.** Both refuse the write, so the security posture is
+identical — the difference is what the platform *claims*. 403 asserts a fact
+about ownership that was never established, and clients treat it as terminal, so
+a retry that would have succeeded never happens. 503 says the thing that is
+actually true: the check could not be performed.
+
+**Scope note.** The remedy crosses four call sites, three of which gate writes.
+An earlier attempt was reverted for exactly this reason — `tsc` surfaced the
+authorization sites only after the signature changed, and shipping the type
+change without them would have converted a wrong answer into a crash.
+
+**Two behaviours deliberately preserved:**
+- `[]` still means "owns nothing" and still yields 403. The fix must not open
+  anything, and a test asserts the stranger case in both routes.
+- An **admin** is not blocked by the failed read. `canManageGivingDay`
+  short-circuits on `isAdmin` and never consults the list, so failing their
+  request on a read it does not use would be gratuitous.
+
+**Testing note.** Each assertion checks the refusal *and* the status. A test that
+only checked "not 200" would have passed against the original bug — which is how
+this survived the earlier API-authorization sweep that counted guards rather than
+exercising them.
+
+**Still not executable here** (unchanged, and not what A-1 was): Stripe flows
+need test-mode keys, and the role/RLS matrix needs credentials per role.
