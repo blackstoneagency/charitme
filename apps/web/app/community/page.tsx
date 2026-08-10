@@ -132,7 +132,7 @@ export default async function CommunityPage() {
           icon="⚠️"
           title="We couldn't load the community feed just now"
           body="This is a problem on our side, not a quiet week. Please refresh in a moment."
-          action={<Link href="/community" style={{ fontSize: '14px', color: 'var(--green-text)', fontWeight: 600 }}>Try again</Link>}
+          action={<Link href="/community" style={{ display: 'inline-flex', minHeight: 44, alignItems: 'center', fontSize: '14px', color: 'var(--green-text)', fontWeight: 600 }}>Try again</Link>}
         />
       ) : (
         <>
@@ -142,7 +142,7 @@ export default async function CommunityPage() {
                 icon="📣"
                 title="No updates posted yet"
                 body="Organiser updates appear here as soon as they are published."
-                action={<Link href="/campaigns" style={{ fontSize: '14px', color: 'var(--green-text)', fontWeight: 600 }}>Browse campaigns</Link>}
+                action={<Link href="/campaigns" style={{ display: 'inline-flex', minHeight: 44, alignItems: 'center', fontSize: '14px', color: 'var(--green-text)', fontWeight: 600 }}>Browse campaigns</Link>}
               />
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '12px' }}>
@@ -156,7 +156,7 @@ export default async function CommunityPage() {
                     </p>
                     <p style={{ fontSize: '12.5px', color: 'var(--t4)', marginTop: '10px' }}>
                       on{' '}
-                      <Link href={`/campaigns/${u.campaignSlug}`} style={{ color: 'var(--green-text)', fontWeight: 650 }}>
+                      <Link href={`/campaigns/${u.campaignSlug}`} style={{ display: 'inline-flex', minHeight: 44, alignItems: 'center', color: 'var(--green-text)', fontWeight: 650 }}>
                         {u.campaignTitle}
                       </Link>
                     </p>
@@ -172,7 +172,7 @@ export default async function CommunityPage() {
                 icon="🌱"
                 title="No donations yet"
                 body="Gifts appear here as they arrive."
-                action={<Link href="/donate" style={{ fontSize: '14px', color: 'var(--green-text)', fontWeight: 600 }}>Be the first</Link>}
+                action={<Link href="/donate" style={{ display: 'inline-flex', minHeight: 44, alignItems: 'center', fontSize: '14px', color: 'var(--green-text)', fontWeight: 600 }}>Be the first</Link>}
               />
             ) : (
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '8px' }}>
@@ -181,7 +181,7 @@ export default async function CommunityPage() {
                     <span style={{ flex: 1, minWidth: 0, fontSize: '14px', color: 'var(--t1)' }}>
                       <strong style={{ fontWeight: 700 }}>{d.name}</strong>{' '}
                       <span style={{ color: 'var(--t3)' }}>gave to</span>{' '}
-                      <Link href={`/campaigns/${d.campaignSlug}`} style={{ color: 'var(--green-text)', fontWeight: 650, textDecoration: 'none' }}>
+                      <Link href={`/campaigns/${d.campaignSlug}`} style={{ display: 'inline-flex', minHeight: 44, alignItems: 'center', color: 'var(--green-text)', fontWeight: 650, textDecoration: 'none' }}>
                         {d.campaignTitle}
                       </Link>
                     </span>
