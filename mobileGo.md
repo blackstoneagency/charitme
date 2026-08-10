@@ -52,11 +52,12 @@ covers are assigned by a generated migration
 (`20260904020001_campaign_real_cover_photos.sql`, 501 campaigns → 501 distinct
 CC0 photographs), which applies on a normal deploy.
 
-⚠️ **`audit:image-assets` is RED on master right now** — 51 rasters under
-`public/` against 39 inventory entries, the 12 store screenshots being unlisted.
-PR #358's head carries the same 39, so the repair is still in flight in the
-store-art lane. Flagged here rather than fixed from another branch, because a
-competing edit to that file is what caused the last duplicate-entry failure.
+✅ **`audit:image-assets` is GREEN again on master** — 51 rasters, 51 entries.
+It was red for a while (the 12 store screenshots unlisted) and the store-art lane
+landed the repair themselves. Flagged here rather than fixed from another branch,
+and that was the right call: a competing edit to that exact file is what produced
+a duplicate-entry failure earlier the same day. Waiting cost nothing; fixing it
+twice would have cost a red gate for everyone.
 
 **Scope note on the Web Push claim above.** It is the SERVER and SERVICE WORKER
 half only: subscription storage, a send path, and one real trigger. It does not
