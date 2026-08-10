@@ -104,7 +104,11 @@ describe('the assigner refuses to half-do the job', () => {
   });
 
   it('refuses to write a non-distinct assignment', () => {
-    expect(src).toMatch(/urls\.size !== assignments\.length[\s\S]*?Refusing to write/);
+    // The distinctness check moved into scripts/lib/campaign-photo-plan.mjs so it
+    // could be tested at production scale (campaign-photo-plan.test.ts). What
+    // matters here is that the SCRIPT still consults it and still refuses.
+    expect(src).toContain('planIsDistinct');
+    expect(src).toMatch(/!planIsDistinct\(assignments\)[\s\S]*?Refusing to write/);
   });
 
   it('refuses to write when a category is short of photos', () => {

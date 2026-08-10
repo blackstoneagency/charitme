@@ -47,6 +47,7 @@
 
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { isGeneratedCover, planAssignments, planIsDistinct } from './lib/campaign-photo-plan.mjs';
 
 const argv = process.argv.slice(2);
 const COMMIT = argv.includes('--commit');
@@ -101,16 +102,6 @@ const CATEGORY_QUERY = {
   Wishes: 'hope inspiration sky',
 };
 const FALLBACK_QUERY = 'charity community help';
-
-const isGenerated = (url) => {
-  if (!url) return true;
-  if (/(?:picsum\.photos|loremflickr\.com)/i.test(url)) return true;
-  try {
-    return new URL(url, 'https://www.charitme.com').pathname === '/media/subject';
-  } catch {
-    return false;
-  }
-};
 
 async function readAllCampaigns() {
   const out = [];
@@ -180,8 +171,8 @@ async function main() {
   const campaigns = LIMIT > 0 ? all.slice(0, LIMIT) : all;
   console.log(`· read ${all.length} campaigns${LIMIT ? ` (sampling ${campaigns.length})` : ''}`);
 
-  const uploaded = campaigns.filter((c) => !isGenerated(c.cover_image_url));
-  const needPhoto = campaigns.filter((c) => isGenerated(c.cover_image_url));
+  const uploaded = campaigns.filter((c) => !isGeneratedCover(c.cover_image_url));
+  const needPhoto = campaigns.filter((c) => isGeneratedCover(c.cover_image_url));
   console.log(`· ${uploaded.length} already hold a real cover and are left untouched`);
   console.log(`· ${needPhoto.length} hold generated art and need a real photo`);
 
@@ -207,34 +198,24 @@ async function main() {
     process.exit(3);
   }
 
-  const assignments = [];
-  const shortfall = [];
-  for (const [cat, list] of byCategory) {
-    const pool = await poolFor(cat, list.length);
-    if (pool.length < list.length) {
-      shortfall.push(`${cat}: ${list.length} campaigns but only ${pool.length} distinct photos`);
-    }
-    // Stable order (created_at asc from the query) → stable ordinal → the same
-    // campaign keeps the same photo across re-runs.
-    list.forEach((c, i) => {
-      const photo = pool[i];
-      if (photo) assignments.push({ campaign: c, photo });
-    });
-  }
+  const pools = new Map();
+  for (const [cat, list] of byCategory) pools.set(cat, await poolFor(cat, list.length));
+
+  const { assignments, shortfall } = planAssignments(needPhoto, pools);
 
   if (shortfall.length) {
     console.error('\n✗ Not enough distinct photos to give every campaign its own:');
-    shortfall.forEach((s) => console.error(`    ${s}`));
+    shortfall.forEach((s) => console.error(`    ${s.category}: ${s.campaigns} campaigns but only ${s.photos} distinct photos`));
     console.error('  Refusing to assign — a partial run would leave duplicates behind.');
     process.exit(1);
   }
 
-  const urls = new Set(assignments.map((a) => a.photo.url));
-  if (urls.size !== assignments.length) {
+  if (!planIsDistinct(assignments)) {
+    const urls = new Set(assignments.map((a) => a.photo.url));
     console.error(`\n✗ assignment is not distinct: ${assignments.length} campaigns → ${urls.size} photos. Refusing to write.`);
     process.exit(1);
   }
-  console.log(`· assigned ${assignments.length} campaigns ${urls.size} DISTINCT photos`);
+  console.log(`· assigned ${assignments.length} campaigns ${assignments.length} DISTINCT photos`);
 
   let bad = 0;
   for (const a of assignments) {

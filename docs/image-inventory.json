@@ -11,7 +11,9 @@
       "sourceType": "brand-owned",
       "source": "Repository owner upload in commit d69e3996f2da16249baa5d663cfedd693c231842",
       "license": "CharitMe-owned brand artwork",
-      "uses": ["/brand-assets"]
+      "uses": [
+        "/brand-assets"
+      ]
     },
     {
       "path": "hero-child-crop.webp",
@@ -22,7 +24,10 @@
       "sourceType": "first-party",
       "source": "Project design asset optimized in commit 8053438f39ae7479d616cd278075145bbce66703",
       "license": "CharitMe-owned project artwork",
-      "uses": ["/", "campaign hero fallback"]
+      "uses": [
+        "/",
+        "campaign hero fallback"
+      ]
     },
     {
       "path": "logo.png",
@@ -33,7 +38,12 @@
       "sourceType": "brand-owned",
       "source": "Brand asset introduced in commit 172da33ba9d61eab72eb321acc6a2cc12ac793e4",
       "license": "CharitMe-owned brand artwork",
-      "uses": ["global shell", "/login", "donation checkout", "/brand-assets"]
+      "uses": [
+        "global shell",
+        "/login",
+        "donation checkout",
+        "/brand-assets"
+      ]
     },
     {
       "path": "icons/apple-touch-icon.png",
@@ -44,7 +54,9 @@
       "sourceType": "brand-owned",
       "source": "PWA brand derivative added in commit 42673ae4361a151afa83aa9b72d74942cd483683",
       "license": "CharitMe-owned brand artwork",
-      "uses": ["browser and installed app chrome"]
+      "uses": [
+        "browser and installed app chrome"
+      ]
     },
     {
       "path": "icons/icon-192.png",
@@ -55,7 +67,10 @@
       "sourceType": "brand-owned",
       "source": "PWA brand derivative added in commit 42673ae4361a151afa83aa9b72d74942cd483683",
       "license": "CharitMe-owned brand artwork",
-      "uses": ["PWA manifest", "/maintenance"]
+      "uses": [
+        "PWA manifest",
+        "/maintenance"
+      ]
     },
     {
       "path": "icons/icon-512-maskable.png",
@@ -66,7 +81,9 @@
       "sourceType": "brand-owned",
       "source": "PWA brand derivative added in commit 42673ae4361a151afa83aa9b72d74942cd483683",
       "license": "CharitMe-owned brand artwork",
-      "uses": ["PWA manifest"]
+      "uses": [
+        "PWA manifest"
+      ]
     },
     {
       "path": "icons/icon-512.png",
@@ -77,7 +94,10 @@
       "sourceType": "brand-owned",
       "source": "PWA brand derivative added in commit 42673ae4361a151afa83aa9b72d74942cd483683",
       "license": "CharitMe-owned brand artwork",
-      "uses": ["PWA manifest", "site structured data"]
+      "uses": [
+        "PWA manifest",
+        "site structured data"
+      ]
     },
     {
       "path": "images/charitme-community-hero.png",
@@ -88,7 +108,10 @@
       "sourceType": "first-party",
       "source": "Repository owner project artwork in commit 33f2e54f3fc5ed35f1d56a3f6d9b2afb44060e86",
       "license": "CharitMe-owned project artwork",
-      "uses": ["/", "/donate"]
+      "uses": [
+        "/",
+        "/donate"
+      ]
     },
     {
       "path": "images/charitme-maintenance-barricade.webp",
@@ -99,7 +122,9 @@
       "sourceType": "first-party",
       "source": "Repository owner project artwork in commit a4c05cdc0732ab3f2366afcfd9bcc4aae7ef2f98",
       "license": "CharitMe-owned project artwork",
-      "uses": ["/maintenance"]
+      "uses": [
+        "/maintenance"
+      ]
     },
     {
       "path": "images/reference/blog-hero.jpg",
@@ -110,7 +135,9 @@
       "sourceType": "first-party",
       "source": "Repository owner reference artwork in commit 2f70ccf56a6260d17e2b0db41905a6aaf7c79398",
       "license": "CharitMe-owned project artwork",
-      "uses": ["/blog"]
+      "uses": [
+        "/blog"
+      ]
     },
     {
       "path": "images/reference/corporate-partnerships-hero.webp",
@@ -121,7 +148,9 @@
       "sourceType": "first-party",
       "source": "Repository owner reference artwork in commit 95e8f45c88b87559cd51927d76a870dae1452db7",
       "license": "CharitMe-owned project artwork",
-      "uses": ["/corporate-partnerships"]
+      "uses": [
+        "/corporate-partnerships"
+      ]
     },
     {
       "path": "images/reference/events-hero.jpg",
@@ -132,7 +161,9 @@
       "sourceType": "first-party",
       "source": "Repository owner reference artwork in commit 2f70ccf56a6260d17e2b0db41905a6aaf7c79398",
       "license": "CharitMe-owned project artwork",
-      "uses": ["/events"]
+      "uses": [
+        "/events"
+      ]
     },
     {
       "path": "images/reference/fundraising-guide-hero.jpg",
@@ -143,7 +174,9 @@
       "sourceType": "first-party",
       "source": "Repository owner reference artwork in commit 2f70ccf56a6260d17e2b0db41905a6aaf7c79398",
       "license": "CharitMe-owned project artwork",
-      "uses": ["/fundraising-guide"]
+      "uses": [
+        "/fundraising-guide"
+      ]
     },
     {
       "path": "images/reference/get-involved-hero.jpg",
@@ -154,7 +187,9 @@
       "sourceType": "first-party",
       "source": "Repository owner reference artwork in commit 2f70ccf56a6260d17e2b0db41905a6aaf7c79398",
       "license": "CharitMe-owned project artwork",
-      "uses": ["/get-involved"]
+      "uses": [
+        "/get-involved"
+      ]
     },
     {
       "path": "images/reference/grants-hero.webp",
@@ -165,7 +200,9 @@
       "sourceType": "first-party",
       "source": "Repository owner reference artwork in commit 95e8f45c88b87559cd51927d76a870dae1452db7",
       "license": "CharitMe-owned project artwork",
-      "uses": ["/grants"]
+      "uses": [
+        "/grants"
+      ]
     },
     {
       "path": "images/reference/impact-education-hero.jpg",
@@ -176,7 +213,9 @@
       "sourceType": "first-party",
       "source": "Repository owner reference artwork in commit 2f70ccf56a6260d17e2b0db41905a6aaf7c79398",
       "license": "CharitMe-owned project artwork",
-      "uses": ["/impact-education"]
+      "uses": [
+        "/impact-education"
+      ]
     },
     {
       "path": "images/reference/matching-gifts-hero-v2.png",
@@ -187,7 +226,9 @@
       "sourceType": "openai-imagegen",
       "source": "OpenAI ImageGen output created 2026-08-09 for this repository",
       "license": "CharitMe-owned generated output",
-      "uses": ["/matching"]
+      "uses": [
+        "/matching"
+      ]
     },
     {
       "path": "images/reference/matching-gifts-hero.webp",
@@ -209,7 +250,9 @@
       "sourceType": "first-party",
       "source": "Repository owner reference artwork in commit 2f70ccf56a6260d17e2b0db41905a6aaf7c79398",
       "license": "CharitMe-owned project artwork",
-      "uses": ["/for-nonprofits"]
+      "uses": [
+        "/for-nonprofits"
+      ]
     },
     {
       "path": "images/reference/partner-hero.jpg",
@@ -220,7 +263,9 @@
       "sourceType": "first-party",
       "source": "Repository owner reference artwork in commit 2f70ccf56a6260d17e2b0db41905a6aaf7c79398",
       "license": "CharitMe-owned project artwork",
-      "uses": ["/partner"]
+      "uses": [
+        "/partner"
+      ]
     },
     {
       "path": "images/reference/reports-hero-v2.png",
@@ -231,7 +276,9 @@
       "sourceType": "openai-imagegen",
       "source": "OpenAI ImageGen output created 2026-08-09 for this repository",
       "license": "CharitMe-owned generated output",
-      "uses": ["/reports"]
+      "uses": [
+        "/reports"
+      ]
     },
     {
       "path": "images/reference/reports-hero.jpg",
@@ -253,7 +300,9 @@
       "sourceType": "first-party",
       "source": "Repository owner reference artwork in commit 2f70ccf56a6260d17e2b0db41905a6aaf7c79398",
       "license": "CharitMe-owned project artwork",
-      "uses": ["/supporter-space"]
+      "uses": [
+        "/supporter-space"
+      ]
     },
     {
       "path": "images/reference/teams-hero.jpg",
@@ -264,7 +313,9 @@
       "sourceType": "first-party",
       "source": "Repository owner reference artwork in commit 2f70ccf56a6260d17e2b0db41905a6aaf7c79398",
       "license": "CharitMe-owned project artwork",
-      "uses": ["/teams"]
+      "uses": [
+        "/teams"
+      ]
     },
     {
       "path": "images/reference/verification-hero.jpg",
@@ -275,7 +326,9 @@
       "sourceType": "first-party",
       "source": "Repository owner reference artwork in commit 2f70ccf56a6260d17e2b0db41905a6aaf7c79398",
       "license": "CharitMe-owned project artwork",
-      "uses": ["/verification"]
+      "uses": [
+        "/verification"
+      ]
     },
     {
       "path": "images/reference/volunteer-hero.jpg",
@@ -286,7 +339,9 @@
       "sourceType": "first-party",
       "source": "Repository owner reference artwork in commit 2f70ccf56a6260d17e2b0db41905a6aaf7c79398",
       "license": "CharitMe-owned project artwork",
-      "uses": ["/volunteer"]
+      "uses": [
+        "/volunteer"
+      ]
     },
     {
       "path": "images/team/aisha-khan.jpg",
@@ -297,7 +352,9 @@
       "sourceType": "unsplash",
       "source": "https://images.unsplash.com/photo-1573496799652-408c2ac9fe98",
       "license": "Unsplash License: https://unsplash.com/license",
-      "uses": ["/about-us"]
+      "uses": [
+        "/about-us"
+      ]
     },
     {
       "path": "images/team/david-lee.jpg",
@@ -308,7 +365,9 @@
       "sourceType": "unsplash",
       "source": "https://images.unsplash.com/photo-1566492031773-4f4e44671857",
       "license": "Unsplash License: https://unsplash.com/license",
-      "uses": ["/about-us"]
+      "uses": [
+        "/about-us"
+      ]
     },
     {
       "path": "images/team/emily-carter.jpg",
@@ -319,7 +378,9 @@
       "sourceType": "unsplash",
       "source": "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e",
       "license": "Unsplash License: https://unsplash.com/license",
-      "uses": ["/about-us"]
+      "uses": [
+        "/about-us"
+      ]
     },
     {
       "path": "images/team/james-wilson.jpg",
@@ -330,7 +391,9 @@
       "sourceType": "unsplash",
       "source": "https://images.unsplash.com/photo-1560250097-0b93528c311a",
       "license": "Unsplash License: https://unsplash.com/license",
-      "uses": ["/about-us"]
+      "uses": [
+        "/about-us"
+      ]
     },
     {
       "path": "images/team/michael-patel.jpg",
@@ -341,7 +404,9 @@
       "sourceType": "unsplash",
       "source": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d",
       "license": "Unsplash License: https://unsplash.com/license",
-      "uses": ["/about-us"]
+      "uses": [
+        "/about-us"
+      ]
     },
     {
       "path": "images/team/sarah-johnson.jpg",
@@ -352,7 +417,22 @@
       "sourceType": "unsplash",
       "source": "https://images.unsplash.com/photo-1531123897727-8f129e1688ce",
       "license": "Unsplash License: https://unsplash.com/license",
-      "uses": ["/about-us"]
+      "uses": [
+        "/about-us"
+      ]
+    },
+    {
+      "path": "screenshots/home.png",
+      "sha256": "e11a4ba22f4514be3004ff4ba296258c4f64a776601b92be5a62111b3774281c",
+      "status": "active",
+      "subject": "Screenshot of the CharitMe home page, captured from a local production build",
+      "fit": "PWA install prompt — the wide-form screenshot app stores and browsers show before install",
+      "sourceType": "generated",
+      "source": "scripts/capture-manifest-screenshots.mjs, added in commit 7b53f625",
+      "license": "CharitMe-owned product screenshot",
+      "uses": [
+        "/manifest.webmanifest via lib/manifest-screenshots.json"
+      ]
     }
   ]
 }
