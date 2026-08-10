@@ -3792,11 +3792,18 @@ skipped workflow leaves its check pending forever and would deadlock a docs-only
 PR. Nothing is required today, which is why this is safe now — recorded so the
 next person does not find out the hard way.
 
-## 🛑 SUPABASE STAGING — historical audit, and the file-derived upper-bound pending count is **43** (Claude, 2026-08-03)
+## 🛑 SUPABASE STAGING — historical audit, and the file-derived upper-bound pending count is **44** (Claude, 2026-08-03)
 
-**Live ledger rechecked 2026-08-10:** 130 local migration files against 87
-production ledger entries. The 43-file upper-bound gap below is therefore a current
+**Live ledger rechecked 2026-08-10:** 131 local migration files against 87
+production ledger entries. The 44-file upper-bound gap below is therefore a current
 measurement, not only historical arithmetic.
+
+**+1 on 2026-08-10: `20260904000000_default_support_percent_ten.sql`.** Moves the
+stored `defaultSupportPercent` from 15 to 10 so the live donate card matches the
+code default. ⚠️ Conditional on the stored value still being exactly 15, so it
+never discards a rate an owner chose from /admin/super/settings, and re-running it
+is a no-op. Not publicly probeable in the positive direction — see the entry in
+`scripts/probe-production-migrations.mjs` for why reading 10% proves nothing.
 
 **+1 on 2026-08-09: `20260831010000_user_nav_preferences.sql`.** One row per
 person holding their own sidebar layout, RLS-scoped to `user_id = auth.uid()`.
@@ -3897,11 +3904,11 @@ that day**:
 dump confirmed the objects were absent, and a restored production clone applied
 all 18 in order and proved rollback.
 
-Twenty-five migrations have been added since. So the count is arithmetic:
+Twenty-six migrations have been added since. So the count is arithmetic:
 
 ```
-130 local − 87 applied           = 43
-18 audited pending + 25 added    = 43   ✓ reconciles
+131 local − 87 applied           = 44
+18 audited pending + 26 added    = 44   ✓ reconciles
 ```
 
 All 18 audited-pending versions are still on disk under their original names.
