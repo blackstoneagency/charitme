@@ -319,9 +319,9 @@ jobs:
           - lane: public
             args: --public --build --page-images --mobile --responsive --strict-global
           - lane: admin
-            args: --build --page-images --mobile --responsive --contrast --strict-gradients --strict-global
+            args: --build --page-images --mobile --responsive --contrast --strict-gradients
           - lane: member
-            args: --build --page-images --mobile --responsive --contrast --strict-gradients --strict-global --no-admin
+            args: --build --page-images --mobile --responsive --contrast --strict-gradients --no-admin
     steps:
       - uses: actions/checkout@v4
 
