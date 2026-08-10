@@ -39,7 +39,7 @@ with no claim is free. An item with a claim is someone else's — pick another.
 | Privacy declarations | claude/mobile | 2026-08-10 | ✅ done, released |
 | Per-device store screenshots | claude/mobile | 2026-08-10 | ✅ done, released |
 | Tombstone migration apply | — | | 🔒 blocked on credentials, not on people |
-| Web Push: SW handler + subscriptions + donation alert | claude/github-integration | 2026-08-10 | 🚧 in progress |
+| Web Push: SW handler + subscriptions + donation alert | claude/github-integration | 2026-08-10 | ✅ done, pushed |
 
 ⚠️ **Do not take "blocked on credentials" items.** They are not unclaimed work —
 they cannot be finished by anyone in a sandbox, and a second agent rediscovering
@@ -283,6 +283,45 @@ several agents write to hourly costs more than regenerating it.
 - Apple `TEAMID.bundle.id` → `IOS_APP_ID`
 
 ### 5. ⚠️ Apple Guideline 4.2 "minimum functionality" — the likeliest rejection
+
+✅ **The server half of push notifications now exists** (claude/github-integration,
+2026-08-10) — the capability this section ranks first, and the one an organiser
+actually wants.
+
+| piece | where |
+|---|---|
+| `push_subscriptions` table, RLS owner-only, + rollback | `supabase/migrations/20260904020002_push_subscriptions.sql` |
+| `push` + `notificationclick` handlers | `public/sw.js` (**bumped to v4**) |
+| VAPID send path, fails soft | `lib/push.ts` |
+| Pure payload/policy helpers | `lib/push-core.ts` |
+| Authenticated subscribe/unsubscribe | `POST|DELETE /api/push/subscribe` |
+| Real trigger: donation → organiser alert | `app/api/stripe/webhook/route.ts` |
+
+**Owner action to switch it on:** generate a VAPID pair
+(`npx web-push generate-vapid-keys`) and set `NEXT_PUBLIC_VAPID_PUBLIC_KEY`,
+`VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`. Absent them the feature is simply OFF —
+`/api/push/subscribe` answers 503 and the send path returns `skipped`, so nothing
+errors. The migration must also be applied (it is #50 in the pending ledger).
+
+⚠️ **This does NOT close item 5 on its own.** It ships push for an Android TWA
+and an installed iOS 16.4+ PWA. The Capacitor shell still needs
+`@capacitor/push-notifications` wired to APNs, which needs Xcode — that half
+stays with whoever takes the native builds, and this is the backend it reuses.
+
+Three decisions worth keeping, each of which is a way this could have hurt someone:
+- **The click target is a same-origin PATH, enforced twice** — once when the
+  payload is built and again in the service worker. A notification wears the
+  site's name and icon, so a payload able to set an arbitrary URL would be a
+  branded phishing surface. Neither side trusts the other.
+- **The alert never names the donor.** It renders on a lock screen in front of
+  whoever holds the phone; an anonymous donation stays anonymous there too. The
+  payload has no donor field at all, so there is nothing to leak.
+- **Only 404/410 expire a subscription.** Treating 429/5xx as "gone" would let
+  one bad afternoon at a push service silently unsubscribe every user.
+
+---
+
+#### The original problem statement, unchanged:
 `capacitor.config.ts` points the shell at `https://www.charitme.com` rather than
 bundling a static export, and **it has to**: this is a Next.js server — RSC,
 route handlers, Stripe webhooks, `force-dynamic` pages — so `next export` cannot

@@ -14,6 +14,8 @@ import { postDonation, postRefund, postDisputeLoss, openReconciliationException 
 import { boundedQuery } from '../../../../lib/query-timeout';
 import { resolveRecurringRenewalAmounts } from '../../../../lib/recurring-payment';
 import { normalizeReceiptEmail } from '../../../../lib/tax-receipt-access';
+import { sendPushToUser } from '../../../../lib/push';
+import { buildDonationPush } from '../../../../lib/push-core';
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -507,6 +509,35 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
         );
       } catch (e) {
         console.warn('[ledger] donation posting failed (non-blocking):', e);
+      }
+    }
+
+    // Push the organiser a donation alert.
+    //
+    // ⚠️ BEST-EFFORT BY CONSTRUCTION, and it has to be. This webhook records
+    // money; `sendPushToUser` never throws and is not awaited for its result
+    // beyond the try, so a slow push service, an absent VAPID key or an
+    // unapplied migration cannot turn a recorded donation into a 500 that Stripe
+    // then retries. Guarded by `alreadyDone` for the same reason receipts are:
+    // a redelivered event must not buzz the organiser's phone a second time.
+    if (!alreadyDone) {
+      try {
+        const { data: pushCampaign } = await supabaseAdmin
+          .from('campaigns')
+          .select('user_id, title, slug')
+          .eq('id', meta.campaignId)
+          .maybeSingle();
+        const organiserId = (pushCampaign as { user_id?: string } | null)?.user_id;
+        if (organiserId) {
+          await sendPushToUser(organiserId, buildDonationPush({
+            amountCents,
+            campaignTitle: (pushCampaign as { title?: string }).title ?? 'your campaign',
+            campaignSlug: (pushCampaign as { slug?: string }).slug ?? '',
+            currency,
+          }));
+        }
+      } catch (e) {
+        console.warn('[push] donation alert failed (non-blocking):', e);
       }
     }
 

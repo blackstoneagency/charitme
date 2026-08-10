@@ -32,7 +32,7 @@ production-complete until the tagged workflow records them.
   keyboard stops; Playwright reports 86 passed and 6 declared skips.
 - [ ] Open the PR, pass repository CI, and merge through `master`.
 - [ ] Run the expanded platform matrix against the release workflow's isolated
-  staging Supabase instance. Production currently has 87 ledger entries against 134
+  staging Supabase instance. Production currently has 87 ledger entries against 137
   local migration files, so the file-derived upper-bound pending count remains 46.
 - [ ] Run Stripe test-mode feature purchase, event checkout, webhook replay,
   charge-to-transfer-to-payout reconciliation, refund, and dispute/test-clock flows
@@ -3914,14 +3914,10 @@ skipped workflow leaves its check pending forever and would deadlock a docs-only
 PR. Nothing is required today, which is why this is safe now — recorded so the
 next person does not find out the hard way.
 
-## 🛑 SUPABASE STAGING — historical audit, and the file-derived upper-bound pending count is **47** (Claude, 2026-08-03)
+## 🛑 SUPABASE STAGING — historical audit, and the file-derived upper-bound pending count is **50** (Claude, 2026-08-03)
 
-**Live ledger rechecked 2026-08-10:** 134 local migration files against 87
-production ledger entries. The 47-file upper-bound gap below is therefore a current
-## 🛑 SUPABASE STAGING — historical audit, and the file-derived upper-bound pending count is **48** (Claude, 2026-08-03)
-
-**Live ledger rechecked 2026-08-10:** 135 local migration files against 87
-production ledger entries. The 48-file upper-bound gap below is therefore a current
+**Live ledger rechecked 2026-08-10:** 137 local migration files against 87
+production ledger entries. The 50-file upper-bound gap below is therefore a current
 measurement, not only historical arithmetic.
 
 ⚠️ The newest of them, `20260904030000_deleted_user_tombstone`, is a
@@ -4047,10 +4043,8 @@ all 18 in order and proved rollback.
 Thirty migrations have been added since. So the count is arithmetic:
 
 ```
-134 local − 87 applied           = 47
-18 audited pending + 29 added    = 47   ✓ reconciles
-135 local − 87 applied           = 48
-18 audited pending + 30 added    = 48   ✓ reconciles
+137 local − 87 applied           = 50
+18 audited pending + 32 added    = 50   ✓ reconciles
 ```
 
 All 18 audited-pending versions are still on disk under their original names.
