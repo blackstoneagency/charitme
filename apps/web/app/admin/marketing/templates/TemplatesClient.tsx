@@ -101,7 +101,7 @@ export default function TemplatesClient({
           body="Create one to control what your automations send."
         />
       ) : (
-        <div style={{ display: 'grid', gap: 20, gridTemplateColumns: 'minmax(0, 300px) minmax(0, 1fr)' }}>
+        <div className="email-template-layout" style={{ display: 'grid', gap: 20, gridTemplateColumns: 'minmax(0, 300px) minmax(0, 1fr)' }}>
           <nav aria-label="Email templates" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16, alignContent: 'start' }}>
             {byCategory.map(([category, list]) => (
               <div key={category}>

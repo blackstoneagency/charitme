@@ -1,109 +1,134 @@
 #!/usr/bin/env node
 /**
- * Resolve perceptual duplicate campaign covers found by audit-image-dupes.mjs.
- *
- * Different Lorem Picsum ids can resolve to visually identical photos, so
- * URL-level uniqueness is not enough. This hashes every cover, finds conflicting
- * campaigns, and reassigns each conflict to a replacement id whose *hash* is
- * verified distinct from every kept image before it is written.
+ * Replace perceptually duplicated campaign covers with unique first-party art.
  *
  *   node scripts/fix-image-dupes.mjs [--threshold 5] [--apply]
  *
- * Without --apply it is a dry run.
+ * The dry run hashes every current cover and reports proposed repairs. Applying
+ * writes only deterministic CharitMe `/media/subject` URLs; this tool never adds
+ * an unlicensed stock provider or overwrites the first image in a duplicate set.
  */
+import { readFileSync } from 'node:fs';
 import sharp from 'sharp';
-import fs from 'node:fs';
 
-const arg = (n, d) => { const i = process.argv.indexOf(`--${n}`); return i > -1 && process.argv[i + 1] ? Number(process.argv[i + 1]) : d; };
+const arg = (name, fallback) => {
+  const index = process.argv.indexOf(`--${name}`);
+  return index > -1 && process.argv[index + 1] ? Number(process.argv[index + 1]) : fallback;
+};
 const THRESHOLD = arg('threshold', 5);
 const APPLY = process.argv.includes('--apply');
 
 function env(key) {
   if (process.env[key]) return process.env[key];
-  const txt = fs.readFileSync(new URL('../.env.local', import.meta.url), 'utf8');
-  const m = txt.match(new RegExp(`^${key}\\s*=\\s*(.+)$`, 'm'));
-  return m ? m[1].trim().replace(/^["']|["']$/g, '') : '';
+  try {
+    const text = readFileSync(new URL('../.env.local', import.meta.url), 'utf8');
+    const match = text.match(new RegExp(`^${key}\\s*=\\s*(.+)$`, 'm'));
+    return match ? match[1].trim().replace(/^["']|["']$/g, '') : '';
+  } catch {
+    return '';
+  }
 }
-const SUPA = env('NEXT_PUBLIC_SUPABASE_URL');
-const KEY = env('SUPABASE_SERVICE_ROLE_KEY');
-const H = { apikey: KEY, Authorization: `Bearer ${KEY}` };
 
-async function dhash(buf) {
-  const px = await sharp(buf).greyscale().resize(9, 8, { fit: 'fill' }).raw().toBuffer();
+const SUPABASE_URL = env('NEXT_PUBLIC_SUPABASE_URL');
+const SERVICE_ROLE_KEY = env('SUPABASE_SERVICE_ROLE_KEY');
+if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
+  throw new Error('NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required');
+}
+const headers = { apikey: SERVICE_ROLE_KEY, Authorization: `Bearer ${SERVICE_ROLE_KEY}` };
+
+async function differenceHash(buffer) {
+  const pixels = await sharp(buffer).greyscale().resize(9, 8, { fit: 'fill' }).raw().toBuffer();
   let bits = 0n;
-  for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) bits = (bits << 1n) | (px[y * 9 + x] > px[y * 9 + x + 1] ? 1n : 0n);
+  for (let y = 0; y < 8; y++) {
+    for (let x = 0; x < 8; x++) {
+      bits = (bits << 1n) | (pixels[y * 9 + x] > pixels[y * 9 + x + 1] ? 1n : 0n);
+    }
+  }
   return bits;
 }
-const hamming = (a, b) => { let x = a ^ b, n = 0; while (x) { n += Number(x & 1n); x >>= 1n; } return n; };
-async function hashUrl(u) {
-  const r = await fetch(u, { redirect: 'follow' });
-  if (!r.ok) return null;
-  return dhash(Buffer.from(await r.arrayBuffer()));
-}
-async function mapLimit(items, limit, fn) {
-  const out = new Array(items.length); let i = 0;
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
-    while (i < items.length) { const idx = i++; out[idx] = await fn(items[idx]); }
-  }));
-  return out;
+
+function hamming(first, second) {
+  let value = first ^ second;
+  let count = 0;
+  while (value) {
+    count += Number(value & 1n);
+    value >>= 1n;
+  }
+  return count;
 }
 
-// 1. Hash every current cover.
-const rows = await (await fetch(`${SUPA}/rest/v1/campaigns?select=id,slug,cover_image_url&cover_image_url=not.is.null&order=created_at.asc&limit=1000`, { headers: H })).json();
-console.log(`Hashing ${rows.length} covers…`);
-const hashed = (await mapLimit(rows, 16, async (r) => {
-  const h = await hashUrl(r.cover_image_url).catch(() => null);
-  return h === null ? null : { ...r, hash: h };
+async function hashUrl(url) {
+  const response = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(20_000) });
+  if (!response.ok) return null;
+  return differenceHash(Buffer.from(await response.arrayBuffer()));
+}
+
+async function mapLimit(items, limit, operation) {
+  const output = new Array(items.length);
+  let cursor = 0;
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (cursor < items.length) {
+      const index = cursor++;
+      output[index] = await operation(items[index]);
+    }
+  }));
+  return output;
+}
+
+const response = await fetch(
+  `${SUPABASE_URL}/rest/v1/campaigns?select=id,slug,category,cover_image_url&cover_image_url=not.is.null&order=created_at.asc&limit=1000`,
+  { headers, signal: AbortSignal.timeout(30_000) },
+);
+if (!response.ok) throw new Error(`Campaign read failed with HTTP ${response.status}`);
+const rows = await response.json();
+process.stdout.write(`Hashing ${rows.length} campaign covers...\n`);
+
+const hashed = (await mapLimit(rows, 12, async (row) => {
+  const imageHash = await hashUrl(row.cover_image_url).catch(() => null);
+  return imageHash === null ? null : { ...row, imageHash };
 })).filter(Boolean);
 
-// 2. Greedily keep the first of each conflicting cluster; the rest need new images.
 const kept = [];
 const conflicts = [];
 for (const row of hashed) {
-  const clash = kept.find((k) => hamming(k.hash, row.hash) <= THRESHOLD);
+  const clash = kept.find((candidate) => hamming(candidate.imageHash, row.imageHash) <= THRESHOLD);
   if (clash) conflicts.push({ ...row, clashesWith: clash.slug });
   else kept.push(row);
 }
-console.log(`Distinct: ${kept.length} | need replacement: ${conflicts.length}`);
-if (conflicts.length === 0) { console.log('✅ Nothing to fix.'); process.exit(0); }
 
-// 3. Candidate ids from the Picsum catalogue that are not already in use.
-const usedIds = new Set(rows.map((r) => (r.cover_image_url.match(/picsum\.photos\/id\/(\d+)\//) || [])[1]).filter(Boolean));
-const catalogue = [];
-for (let p = 1; p <= 10; p++) {
-  const list = await (await fetch(`https://picsum.photos/v2/list?page=${p}&limit=100`)).json();
-  if (!list.length) break;
-  for (const it of list) if (!usedIds.has(String(it.id))) catalogue.push(Number(it.id));
-}
-console.log(`Unused candidate ids: ${catalogue.length}`);
-
-// 4. Assign, verifying each replacement's hash against everything kept so far.
-const updates = [];
-let ci = 0;
-for (const c of conflicts) {
-  let assigned = null;
-  while (ci < catalogue.length && !assigned) {
-    const id = catalogue[ci++];
-    const url = `https://picsum.photos/id/${id}/800/600`;
-    const h = await hashUrl(url).catch(() => null);
-    if (h === null) continue;
-    if (kept.some((k) => hamming(k.hash, h) <= THRESHOLD)) continue; // still a dupe — skip
-    kept.push({ slug: c.slug, hash: h });
-    assigned = url;
-  }
-  if (!assigned) { console.log(`  !! no unique replacement found for ${c.slug}`); continue; }
-  updates.push({ id: c.id, slug: c.slug, from: c.cover_image_url, to: assigned, clashedWith: c.clashesWith });
-  console.log(`  ${c.slug}: ${c.cover_image_url.split('/id/')[1]} → ${assigned.split('/id/')[1]}  (clashed with ${c.clashesWith})`);
-}
-
-if (!APPLY) { console.log(`\nDRY RUN — ${updates.length} update(s). Re-run with --apply.`); process.exit(0); }
-
-for (const u of updates) {
-  const r = await fetch(`${SUPA}/rest/v1/campaigns?id=eq.${u.id}`, {
-    method: 'PATCH',
-    headers: { ...H, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
-    body: JSON.stringify({ cover_image_url: u.to, image_urls: [u.to] }),
+const updates = conflicts.map((row) => {
+  const query = new URLSearchParams({
+    category: row.category?.trim() || 'Community',
+    key: `repair-${row.slug || row.id}-${row.id}`,
   });
-  if (!r.ok) console.log(`  FAILED ${u.slug}: ${r.status}`);
+  return {
+    id: row.id,
+    slug: row.slug,
+    clashesWith: row.clashesWith,
+    cover: `https://www.charitme.com/media/subject?${query}`,
+  };
+});
+
+process.stdout.write(`Distinct covers kept: ${kept.length}; duplicate covers to repair: ${updates.length}\n`);
+if (updates.length > 0) {
+  process.stdout.write(`${updates.map((update) => `  ${update.slug} conflicts with ${update.clashesWith}`).join('\n')}\n`);
 }
-console.log(`\n✅ Applied ${updates.length} replacement cover(s).`);
+if (updates.length === 0) process.exit(0);
+if (!APPLY) {
+  process.stdout.write(`DRY RUN: ${updates.length} update(s). Re-run with --apply.\n`);
+  process.exit(0);
+}
+
+let failures = 0;
+for (const update of updates) {
+  const patch = await fetch(`${SUPABASE_URL}/rest/v1/campaigns?id=eq.${encodeURIComponent(update.id)}`, {
+    method: 'PATCH',
+    headers: { ...headers, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+    body: JSON.stringify({ cover_image_url: update.cover, image_urls: [update.cover] }),
+    signal: AbortSignal.timeout(20_000),
+  });
+  if (!patch.ok) failures++;
+}
+
+if (failures > 0) throw new Error(`${failures} campaign cover repair(s) failed`);
+process.stdout.write(`Applied ${updates.length} unique first-party replacement cover(s).\n`);

@@ -9,6 +9,7 @@ import { formatHomeCents, normalizeStoryFilters, shortHomeCount } from './home-u
 import { campaignColumns, applyLiveFilters } from './campaign-visibility';
 import { selectRotatorCampaigns } from './featured';
 import { campaignDaysLeft } from './campaign-lifecycle';
+import { getDisplayCover } from './photo-catalog';
 
 const INDIVIDUAL_CATEGORIES: string[] = CAMPAIGN_CATEGORIES.filter(category =>
   !['Nonprofit', 'Community', 'Environment', 'Volunteer', 'Event'].includes(category),
@@ -303,13 +304,12 @@ async function getHomeDataUncached(filters: StoryFilters): Promise<{
   };
 
   const rawRotatorCampaigns = ((rotatorRaw ?? []) as RawRotator[])
-    .filter(c => c.cover_image_url && c.cover_image_url.startsWith('http'))
     .map(c => ({
       id: c.id,
       slug: c.slug,
       title: c.title,
       category: c.category,
-      cover_image_url: c.cover_image_url!,
+      cover_image_url: getDisplayCover(c.cover_image_url, c.category, c.slug, 'home-rotator-data'),
       goal_amount: c.goal_amount,
       raised_amount: c.raised_amount,
       backer_count: c.backer_count,

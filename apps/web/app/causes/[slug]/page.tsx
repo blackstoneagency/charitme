@@ -11,7 +11,7 @@ import { EmptyState } from '../../../components/ui';
 import { getTranslator } from '../../../lib/locale-server';
 import { getCauseStats, getCauseStories, getAuthoredStats } from '../../../lib/cause-landing';
 import CampaignImage from '../../../components/CampaignImage';
-import { getCoverForCategory, getPhotosForCategory } from '../../../lib/photo-catalog';
+import { getCoverForCampaign, getDisplayCover, getPhotosForPage } from '../../../lib/photo-catalog';
 import { formatMoneyCompact } from '@shared/currencies';
 import CauseLanding, { CauseCtaBand } from './CauseLanding';
 import HelpGlyph from '../../../components/HelpGlyph';
@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (!cause) return { title: 'Cause not found' };
 
   const canonical = `https://www.charitme.com/causes/${cause.slug}`;
-  const image = getCoverForCategory(cause.categories[0]);
+  const image = getCoverForCampaign(cause.categories[0], `cause-hero-${cause.slug}`);
   const title = `${cause.label} Fundraisers`;
 
   return {
@@ -321,6 +321,7 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
             <CauseCampaignList
               initial={campaigns.slice(0, PAGE_SIZE)}
               categories={cause.categories}
+              causeSlug={cause.slug}
               hasMore={campaigns.length > PAGE_SIZE}
               seeMoreLabel={t('cause.see_more')}
             />
@@ -347,7 +348,7 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
               <li className="cl-helps-card" key={h.title}>
                 <div className="cl-helps-media" aria-hidden="true">
                   <CampaignImage
-                    src={getPhotosForCategory(cause.categories[0], cause.helps!.length)[i] ?? null}
+                    src={getPhotosForPage(cause.categories[0], `${cause.slug}-help`, cause.helps!.length)[i] ?? null}
                     category={cause.categories[0]}
                     campaignKey={`${cause.slug}-help-${i}`}
                     alt=""
@@ -425,7 +426,7 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
                 >
                   <span className="cl-story-media">
                     <CampaignImage
-                      src={story.cover}
+                      src={getDisplayCover(story.cover, story.category, story.slug ?? story.id, `cause-${cause.slug}-story`)}
                       category={story.category}
                       campaignKey={story.slug ?? story.id}
                       alt=""

@@ -37,6 +37,12 @@ jobs:
       - name: Unit and integration tests
         run: npm test --workspace=apps/web
 
+      - name: Campaign image catalog audit
+        run: npm run audit:campaign-images --workspace=apps/web
+
+      - name: Local image provenance and uniqueness audit
+        run: npm run audit:image-assets --workspace=apps/web
+
       - name: Production build
         run: npm run build --workspace=apps/web
         env:
@@ -151,6 +157,13 @@ jobs:
         working-directory: apps/web
         env:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+
+      - name: Run public responsive and image-integrity gates
+        working-directory: apps/web
+        run: |
+          node scripts/audit-page-images.mjs --base http://127.0.0.1:3000 --strict-global
+          node scripts/audit-mobile.mjs http://127.0.0.1:3000
+          node scripts/audit-responsive.mjs --base http://127.0.0.1:3000
 
       - name: Record staging-verified commit
         id: candidate

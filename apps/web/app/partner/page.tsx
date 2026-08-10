@@ -8,7 +8,7 @@ import {
   ReferenceQuote,
   ReferenceSection,
 } from '../../components/ReferenceMarketing';
-import { getPhotosForCategory } from '../../lib/photo-catalog';
+import { getPhotosForPage } from '../../lib/photo-catalog';
 import PartnerRoster from './PartnerRoster';
 
 export const metadata: Metadata = {
@@ -33,7 +33,7 @@ const PARTNERSHIPS = [
 ];
 
 export default async function PartnerPage() {
-  const photos = getPhotosForCategory('Community', 5);
+  const photos = getPhotosForPage('Community', 'partner', 5);
   const cards = PARTNERSHIPS.map((item, index) => ({ ...item, image: photos[index + 1] ?? photos[0] }));
 
   return (

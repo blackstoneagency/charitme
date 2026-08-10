@@ -6,7 +6,7 @@ import { formatMoneyCompact } from '@shared/currencies';
 import JsonLd from '../components/JsonLd';
 import { isRotatorEligible } from '../lib/featured';
 import { withQueryTimeout } from '../lib/query-timeout';
-import { getCoverForCategory, getCoverForCampaign } from '../lib/photo-catalog';
+import { getCoverForCategory, getCoverForCampaign, getDisplayCover } from '../lib/photo-catalog';
 import { getCause } from '../lib/causes';
 import { getCategoryStats, getHomeData, getRecentDonations } from '../lib/home-data';
 import { getHomeStories } from '../lib/home-stories';
@@ -150,7 +150,7 @@ export default async function HomePage() {
     slug: c.slug,
     title: c.title,
     organizer: c.organizer_name ?? 'Campaign organizer',
-    cover: await resolveCampaignCover(c.cover_image_url, c.category, c.slug),
+    cover: await resolveCampaignCover(c.cover_image_url, c.category, c.slug, 'home-hero'),
     fallbackCover: getCoverForCampaign(c.category, c.slug),
     currency: c.currency ?? 'usd',
     trust: c.campaign_health_score ?? 0,
@@ -314,7 +314,7 @@ export default async function HomePage() {
                   <Link href={`/causes/${cause.slug}`}>
                     <div className="mirror-cause-media">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={getCoverForCategory(cause.categories[0])} alt="" width={360} height={250} loading="lazy" decoding="async" />
+                      <img src={getCoverForCategory(cause.categories[0], `home-cause-${cause.slug}`)} alt="" width={360} height={250} loading="lazy" decoding="async" />
                       <span><Icon name={card.icon} /></span>
                     </div>
                     <div className="mirror-cause-copy">
@@ -414,7 +414,7 @@ export default async function HomePage() {
                 <span className="mirror-story-media">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={leadStory.cover ?? getCoverForCampaign(leadStory.category, leadStory.slug)}
+                    src={getDisplayCover(leadStory.cover, leadStory.category, leadStory.slug, 'home-lead-story')}
                     alt=""
                     width={560}
                     height={340}
@@ -482,7 +482,7 @@ export default async function HomePage() {
             <div className="mirror-impact-media" aria-hidden="true">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={impactStory.cover ?? getCoverForCampaign(impactStory.category, impactStory.slug)}
+                src={getDisplayCover(impactStory.cover, impactStory.category, impactStory.slug, 'home-impact-story')}
                 alt=""
                 width={560}
                 height={300}

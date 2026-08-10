@@ -16,7 +16,7 @@ import { getTopDonors } from '../../../lib/leaderboard';
 import { getRecentDonations } from '../../../lib/home-data';
 import { formatCents } from '../../../lib/stripe';
 import { optimizedCoverUrl } from '../../../lib/img-optimize';
-import { getCoverForCategory } from '../../../lib/photo-catalog';
+import { getCoverForCategory, getDisplayCover } from '../../../lib/photo-catalog';
 import { StatStrip, statValue, moneyValue } from '../../../components/IndexHero';
 import { getCausesIndexData } from '../../../lib/causes-index';
 import { pageWindow } from '../../../lib/pagination';
@@ -502,7 +502,7 @@ export default async function CampaignsPage({ searchParams }: Props) {
             heading beside it already carries the meaning. */}
         <div className="cbx-hero-art" aria-hidden="true">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={getCoverForCategory('Community')} alt="" loading="eager" />
+          <img src={getCoverForCategory('Community', 'campaigns-list-hero')} alt="" loading="eager" />
         </div>
       </section>
 
@@ -696,10 +696,8 @@ export default async function CampaignsPage({ searchParams }: Props) {
                   return (
                     <article key={c.id} className="cbx-feat">
                       <Link href={`/campaigns/${c.slug}`} className="cbx-feat-media">
-                        {c.cover_image_url
-                          // eslint-disable-next-line @next/next/no-img-element
-                          ? <img src={optimizedCoverUrl(c.cover_image_url, 700)} alt="" loading="lazy" />
-                          : <span className="cbx-feat-ph" aria-hidden="true" />}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={optimizedCoverUrl(getDisplayCover(c.cover_image_url, c.category, c.slug, 'campaigns-list-featured'), 700)} alt="" loading="lazy" />
                         {c.category && <span className="cbx-feat-badge">{c.category}</span>}
                       </Link>
                       <div className="cbx-feat-body">
@@ -768,10 +766,8 @@ export default async function CampaignsPage({ searchParams }: Props) {
                 return (
                   <li key={c.id} className="cbx-row">
                     <Link href={`/campaigns/${c.slug}`} className="cbx-row-media" aria-hidden="true" tabIndex={-1}>
-                      {c.cover_image_url
-                        // eslint-disable-next-line @next/next/no-img-element
-                        ? <img src={optimizedCoverUrl(c.cover_image_url, 200)} alt="" loading="lazy" />
-                        : <span className="cbx-feat-ph" />}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={optimizedCoverUrl(getDisplayCover(c.cover_image_url, c.category, c.slug, 'campaigns-list-compact'), 200)} alt="" loading="lazy" />
                     </Link>
                     <div className="cbx-row-body">
                       {c.category && <span className="cbx-row-badge">{c.category}</span>}

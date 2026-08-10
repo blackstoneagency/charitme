@@ -7,7 +7,7 @@ import {
   ReferenceSection,
   ReferenceStats,
 } from '../../components/ReferenceMarketing';
-import { getPhotosForCategory } from '../../lib/photo-catalog';
+import { getPhotosForPage } from '../../lib/photo-catalog';
 
 export const metadata: Metadata = {
   title: 'Impact Education',
@@ -34,7 +34,7 @@ const WHY = [
 ];
 
 export default function ImpactEducationPage() {
-  const photos = getPhotosForCategory('Education', 6);
+  const photos = getPhotosForPage('Education', 'impact-education', 6);
   const whyCards = WHY.map((item, index) => ({ ...item, image: photos[index + 1] ?? photos[0] }));
 
   return (

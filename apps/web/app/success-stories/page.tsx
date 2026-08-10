@@ -6,7 +6,7 @@ import { boundedQuery } from '../../lib/query-timeout';
 import { campaignColumns, applyVisibilityFilters } from '../../lib/campaign-visibility';
 import { getCause, type Cause, type HelpIcon } from '../../lib/causes';
 import HelpGlyph from '../../components/HelpGlyph';
-import { getCoverForCampaign } from '../../lib/photo-catalog';
+import { getCoverForCampaign, getDisplayCover } from '../../lib/photo-catalog';
 import { optimizedCoverUrl } from '../../lib/img-optimize';
 import { formatMoneyStat, formatStat } from '../../lib/cause-landing';
 import { StatStrip } from '../../components/IndexHero';
@@ -333,7 +333,7 @@ export default async function SuccessStoriesPage({
                       <span className="ss-feat-media">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={optimizedCoverUrl(s.cover || getCoverForCampaign(s.category, s.slug), 700)}
+                          src={optimizedCoverUrl(getDisplayCover(s.cover, s.category, s.slug, 'success-stories-featured'), 700)}
                           alt=""
                         />
                         {s.category && <span className="ss-feat-chip">{s.category}</span>}
@@ -377,7 +377,7 @@ export default async function SuccessStoriesPage({
                         <span className="ss-more-media">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
-                            src={optimizedCoverUrl(s.cover || getCoverForCampaign(s.category, s.slug), 420)}
+                            src={optimizedCoverUrl(getDisplayCover(s.cover, s.category, s.slug, 'success-stories-grid'), 420)}
                             alt=""
                           />
                           {s.category && <span className="ss-feat-chip">{s.category}</span>}

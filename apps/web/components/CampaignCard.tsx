@@ -19,7 +19,7 @@ import { formatCents } from '../lib/stripe';
 // local copy that would round differently.
 import { formatMoneyCompact } from '@shared/currencies';
 import { STORED_TRUST_TIERS } from '../lib/trust-tiers';
-import { getCoverForCampaign } from '../lib/photo-catalog';
+import { getDisplayCover } from '../lib/photo-catalog';
 import { optimizedCoverUrl } from '../lib/img-optimize';
 import { campaignDaysLeft, campaignTimeLabel } from '../lib/campaign-lifecycle';
 import { DEMO_BADGE_LABEL } from '../lib/demo-campaign';
@@ -57,6 +57,7 @@ export function CampaignCard({
   currency = 'usd',
   variant = 'full',
   highlightFeatured = true,
+  coverScope,
 }: {
   campaign: CampaignCardData;
   currency?: string;
@@ -70,6 +71,8 @@ export function CampaignCard({
    * flag, its position, and its paid placement are all untouched.
    */
   highlightFeatured?: boolean;
+  /** Replaces known stock catalog media with a route-specific first-party cover. */
+  coverScope?: string;
   /**
    * `full` is the dense listing card: trust score, donor count, goal tiles and
    * the countdown. `feature` is the quieter card from the cause-landing
@@ -119,7 +122,7 @@ export function CampaignCard({
         <div className="cc-feature-media">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={optimizedCoverUrl(c.cover_image_url || getCoverForCampaign(c.category ?? undefined, c.slug), 700)}
+            src={optimizedCoverUrl(getDisplayCover(c.cover_image_url, c.category, c.slug, coverScope), 700)}
             alt=""
             loading="lazy"
             decoding="async"
@@ -163,7 +166,7 @@ export function CampaignCard({
         <div style={{ height: '190px', position: 'relative', flexShrink: 0, overflow: 'hidden', background: 'var(--s3)' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={optimizedCoverUrl(c.cover_image_url || getCoverForCampaign(c.category ?? undefined, c.slug), 700)}
+            src={optimizedCoverUrl(getDisplayCover(c.cover_image_url, c.category, c.slug, coverScope), 700)}
             alt=""
             loading="lazy"
             decoding="async"

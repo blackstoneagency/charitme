@@ -28,7 +28,7 @@ const pages = {
 describe('reference resource pages', () => {
   it.each([
     ['corporate', 'public/images/reference/corporate-partnerships-hero.webp'],
-    ['matching', 'public/images/reference/matching-gifts-hero.webp'],
+    ['matching', 'public/images/reference/matching-gifts-hero-v2.png'],
     ['grants', 'public/images/reference/grants-hero.webp'],
   ] as const)('%s uses a production-sized local hero image', (page, imagePath) => {
     expect(pages[page]).toContain(`/${imagePath.replace('public/', '')}`);

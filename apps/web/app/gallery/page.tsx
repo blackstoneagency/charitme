@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../lib/supabase';
 import { boundedQuery } from '../../lib/query-timeout';
 import { campaignColumns, applyLiveFilters } from '../../lib/campaign-visibility';
-import { getCoverForCampaign } from '../../lib/photo-catalog';
+import { getDisplayCover } from '../../lib/photo-catalog';
 import { optimizedCoverUrl } from '../../lib/img-optimize';
 import { PageBody, PageHero, Section, CtaBand } from '../../components/PageShell';
 import { EmptyState } from '../../components/ui';
@@ -56,7 +56,7 @@ export default async function GalleryPage() {
   // gallery drops a duplicate rather than displaying it twice.
   const seen = new Set<string>();
   const unique = (items ?? []).filter((c) => {
-    const src = c.cover_image_url || getCoverForCampaign(c.category ?? undefined, c.slug);
+    const src = getDisplayCover(c.cover_image_url, c.category, c.slug, 'gallery-featured');
     if (seen.has(src)) return false;
     seen.add(src);
     return true;
@@ -113,7 +113,7 @@ export default async function GalleryPage() {
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={optimizedCoverUrl(c.cover_image_url || getCoverForCampaign(c.category ?? undefined, c.slug), 500)}
+                    src={optimizedCoverUrl(getDisplayCover(c.cover_image_url, c.category, c.slug, 'gallery-grid'), 500)}
                     alt=""
                     loading="lazy"
                     decoding="async"

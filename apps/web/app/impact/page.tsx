@@ -6,7 +6,7 @@ import JsonLd from '../../components/JsonLd';
 import StayInformed from '../../components/StayInformed';
 import { getImpactOverview, fallbackAreas, type ImpactArea } from '../../lib/impact-overview';
 import { StatStrip, statValue, moneyValue } from '../../components/IndexHero';
-import { getCoverForCategory } from '../../lib/photo-catalog';
+import { getCoverForCampaign } from '../../lib/photo-catalog';
 import { safeJsonLd } from '../../lib/json-ld';
 import { CHARITME_ORIGIN } from '../../lib/public-routes';
 import { seoMetadata } from '../../lib/seo';
@@ -51,7 +51,7 @@ function AreaCard({ area }: { area: ImpactArea }) {
           rule (`aria-hidden-focus`). The image stays clickable for a mouse. */}
       <Link href={`/causes/${cause.slug}`} className="imp-area-media" aria-hidden="true" tabIndex={-1}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={getCoverForCategory(cause.label)} alt="" loading="lazy" />
+        <img src={getCoverForCampaign(cause.label, `impact-${cause.slug}`)} alt="" loading="lazy" />
         <span className="imp-area-badge" aria-hidden="true">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 1 0-7.8 7.8l1.1 1L12 21l7.7-7.7 1.1-1a5.5 5.5 0 0 0 0-7.8z" />
@@ -123,7 +123,7 @@ export default async function ImpactPage() {
           </div>
           <div className="imp-hero-art" aria-hidden="true">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={getCoverForCategory('Community')} alt="" loading="eager" />
+            <img src={getCoverForCampaign('Community', 'impact-hero')} alt="" loading="eager" />
           </div>
         </section>
 
@@ -226,7 +226,7 @@ export default async function ImpactPage() {
                 <article className="imp-story" key={s.plan.id}>
                   <Link href={`/impact/${s.campaign.slug}`} className="imp-story-media" aria-hidden="true" tabIndex={-1}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={getCoverForCategory(s.campaign.title)} alt="" loading="lazy" />
+                    <img src={getCoverForCampaign('Community', `impact-story-${s.campaign.slug}`)} alt="" loading="lazy" />
                   </Link>
                   <div className="imp-story-body">
                     <h3><Link href={`/impact/${s.campaign.slug}`}>{s.plan.title || s.campaign.title}</Link></h3>

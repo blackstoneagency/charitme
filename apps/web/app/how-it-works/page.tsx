@@ -5,7 +5,7 @@ import CampaignImage from '../../components/CampaignImage';
 import { IndexHero, StatStrip, statValue, moneyValue } from '../../components/IndexHero';
 import { getCausesIndexData } from '../../lib/causes-index';
 import { getHowItWorksFaqs } from '../../lib/how-it-works';
-import { getCoverForCategory, getPhotosForCategory } from '../../lib/photo-catalog';
+import { getCoverForCategory, getPhotosForPage } from '../../lib/photo-catalog';
 import HowItWorksFaq from './HowItWorksFaq';
 
 export const metadata: Metadata = {
@@ -66,7 +66,7 @@ const TRUST_POINTS = [
 export default async function HowItWorksPage() {
   // Independent reads, so they run together rather than in series.
   const [platform, faqs] = await Promise.all([getCausesIndexData(), getHowItWorksFaqs(5)]);
-  const ripplePhotos = getPhotosForCategory('Community', RIPPLE.length);
+  const ripplePhotos = getPhotosForPage('Community', 'how-it-works-ripple', RIPPLE.length);
 
   return (
     <div className="hw-page">
@@ -75,7 +75,7 @@ export default async function HowItWorksPage() {
         title="How it works"
         heart
         lede="CharitMe makes it easy to create change. Whether you want to donate, fundraise, or start a campaign, we are here to guide you every step of the way."
-        photo={getCoverForCategory('Volunteer')}
+        photo={getCoverForCategory('Volunteer', 'how-it-works-hero')}
         photoCategory="Volunteer"
         photoKey="how-it-works"
       />
@@ -172,7 +172,7 @@ export default async function HowItWorksPage() {
             </Link>
             <span className="hw-trust-media" aria-hidden="true">
               <CampaignImage
-                src={getCoverForCategory('Family')}
+                src={getCoverForCategory('Family', 'how-it-works-family')}
                 category="Family"
                 campaignKey="hiw-trust"
                 alt=""

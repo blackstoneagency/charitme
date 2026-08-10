@@ -132,7 +132,7 @@ export default async function TrustSafetyPage() {
                   <tr key={f.id} style={{ borderTop: i > 0 ? '1px solid #f0f4f8' : undefined }}>
                     <td style={{ padding: '12px 16px' }}>
                       {f.campaigns ? (
-                        <Link href={`/campaigns/${f.campaigns.slug}`} style={{ color: 'var(--t1)', fontWeight: 600, textDecoration: 'none' }}>
+                        <Link href={`/campaigns/${f.campaigns.slug}`} className="cm-touch-link" style={{ color: 'var(--t1)', fontWeight: 600, textDecoration: 'none' }}>
                           {f.campaigns.title}
                         </Link>
                       ) : <span style={{ color: 'var(--t3)' }}>Unknown</span>}
@@ -182,7 +182,7 @@ export default async function TrustSafetyPage() {
                   <tr key={r.id} style={{ borderTop: i > 0 ? '1px solid #f0f4f8' : undefined }}>
                     <td style={{ padding: '12px 16px' }}>
                       {r.campaigns ? (
-                        <Link href={`/campaigns/${r.campaigns.slug}`} style={{ color: 'var(--t1)', fontWeight: 600, textDecoration: 'none' }}>
+                        <Link href={`/campaigns/${r.campaigns.slug}`} className="cm-touch-link" style={{ color: 'var(--t1)', fontWeight: 600, textDecoration: 'none' }}>
                           {r.campaigns.title}
                         </Link>
                       ) : <span style={{ color: 'var(--t3)' }}>Unknown</span>}
@@ -197,7 +197,7 @@ export default async function TrustSafetyPage() {
                       {new Date(r.created_at).toLocaleDateString()}
                     </td>
                     <td style={{ padding: '12px 16px', display: 'flex', minWidth: 0, gap: 8 }}>
-                      <Link href={`/admin/campaigns?report=${r.id}`}
+                      <Link href={`/admin/campaigns?report=${r.id}`} className="cm-touch-link"
                         style={{ fontSize: 12, padding: '5px 12px', background: 'var(--s2)', color: 'var(--brand-text)', borderRadius: 8, fontWeight: 700, textDecoration: 'none' }}>
                         Review
                       </Link>
@@ -229,7 +229,7 @@ export default async function TrustSafetyPage() {
                 {frozen.map((c, i) => (
                   <tr key={c.id} style={{ borderTop: i > 0 ? '1px solid #f0f4f8' : undefined }}>
                     <td style={{ padding: '12px 16px' }}>
-                      <Link href={`/campaigns/${c.slug}`} style={{ color: 'var(--t1)', fontWeight: 600, textDecoration: 'none' }}>
+                      <Link href={`/campaigns/${c.slug}`} className="cm-touch-link" style={{ color: 'var(--t1)', fontWeight: 600, textDecoration: 'none' }}>
                         {c.title}
                       </Link>
                     </td>

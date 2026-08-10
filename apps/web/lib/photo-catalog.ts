@@ -25,7 +25,7 @@ const C = {
   children:    '1497486751825-1233686d5d80',  // children learning
 };
 
-export const CATEGORY_PHOTOS: Record<string, string[]> = {
+const RAW_CATEGORY_PHOTOS: Record<string, string[]> = {
   Medical: [
     unsplash('1576091160550-2173dba999ef', true), // doctor at laptop
     unsplash('1559839734-2b71ea197ec2'),           // doctor stethoscope
@@ -175,22 +175,54 @@ export const CATEGORY_PHOTOS: Record<string, string[]> = {
   ],
 };
 
-export const FALLBACK_PHOTOS: string[] = [
-  unsplash(C.heart, true),
-  unsplash(C.hands),
-  unsplash(C.giving),
-  unsplash(C.volGroup),
-  unsplash(C.volunteers),
-  unsplash(C.child),
-];
+const catalogPhotoIds = new Set<string>();
+const rawCatalogPhotoIds = new Set(
+  Object.values(RAW_CATEGORY_PHOTOS)
+    .flat()
+    .map((photo) => (photo.match(/photo-([0-9]+-[a-z0-9]+)/i) ?? [])[1])
+    .filter((id): id is string => Boolean(id)),
+);
+
+export const CATEGORY_PHOTOS: Record<string, string[]> = Object.fromEntries(
+  Object.entries(RAW_CATEGORY_PHOTOS).map(([category, photos]) => [
+    category,
+    photos.map((photo, index) => {
+      const id = (photo.match(/photo-([0-9]+-[a-z0-9]+)/i) ?? [])[1] ?? photo;
+      if (!catalogPhotoIds.has(id)) {
+        catalogPhotoIds.add(id);
+        return photo;
+      }
+      return getCoverForCampaign(category, `catalog-${index + 1}`);
+    }),
+  ]),
+);
+
+export const FALLBACK_PHOTOS: string[] = Array.from(
+  { length: 6 },
+  (_, index) => getCoverForCampaign('Community', `fallback-${index + 1}`),
+);
 
 export function getPhotosForCategory(category: string | null | undefined, min = 4): string[] {
   const pool = CATEGORY_PHOTOS[category ?? ''] ?? FALLBACK_PHOTOS;
-  const result: string[] = [];
-  while (result.length < min) {
-    result.push(...pool.slice(0, min - result.length));
+  const count = Number.isFinite(min) ? Math.max(0, Math.floor(min)) : 4;
+  const result = pool.slice(0, count);
+  while (result.length < count) {
+    result.push(getCoverForCampaign(category, `gallery-${result.length + 1}`));
   }
   return result;
+}
+
+/** Page-scoped editorial artwork that cannot repeat on another route. */
+export function getPhotosForPage(
+  category: string | null | undefined,
+  pageKey: string,
+  min = 4,
+): string[] {
+  const count = Number.isFinite(min) ? Math.max(0, Math.floor(min)) : 4;
+  return Array.from(
+    { length: count },
+    (_, index) => getCoverForCampaign(category, `${pageKey}-${index + 1}`),
+  );
 }
 
 /**
@@ -206,40 +238,64 @@ export function getPhotosForCategory(category: string | null | undefined, min = 
  *
  * The homepage hero rotator had exactly this bug in its `fallbackCover`.
  */
-export function getCoverForCategory(category: string | null | undefined): string {
+export function getCoverForCategory(
+  category: string | null | undefined,
+  pageKey?: string,
+): string {
+  if (pageKey) return getCoverForCampaign(category, pageKey);
   return getPhotosForCategory(category, 1)[0];
 }
 
 /**
- * A UNIQUE, professional cover for a campaign that has no stored cover. Each
- * campaign gets a distinct free photo (Lorem Picsum — free for commercial use,
- * no API key, no attribution), deterministically keyed on its stable id/slug so
- * the cover never changes between renders/deploys.
+ * A unique first-party cover for a campaign that has no organizer upload. The
+ * image route renders deterministic PNG artwork labeled with the campaign and
+ * its subject. That makes the fallback stable, relevant, and owned by CharitMe,
+ * instead of selecting unrelated random photography.
  *
- * We deliberately moved off the previous LoremFlickr keyword approach: for a
- * given keyword LoremFlickr draws from a small Flickr pool, so different
- * campaigns frequently resolved to the SAME underlying photo (visible duplicate
- * covers in discovery listings). A distinct Picsum seed per campaign avoids that.
- *
- * Trade-off: covers are not category-themed. Guaranteeing a unique image per
- * campaign at scale without an image-search API key requires a large general
- * pool. Themed uniques are a documented upgrade once an Unsplash/Pexels API key
- * is configured. The live backfill (migration 20260724000000) additionally
- * assigns guaranteed-distinct Picsum *ids* to every existing campaign; this
- * function is the code-level default for new / uncovered campaigns.
- *
- * Callers should still prefer a real stored cover when present:
- *   campaign.cover_image_url || getCoverForCampaign(campaign.category, campaign.slug)
+ * Callers with a stored URL should use `getDisplayCover`, which preserves real
+ * uploads and replaces only known generic placeholders.
  */
 export function getCoverForCampaign(
   category: string | null | undefined,
   key: string | null | undefined,
 ): string {
   const seed = key && key.trim() ? key.trim() : `cat-${category ?? 'charity'}`;
-  return `https://picsum.photos/seed/cm-${encodeURIComponent(seed)}/800/600`;
+  const params = new URLSearchParams({ category: category?.trim() || 'Community', key: seed });
+  return `/media/subject?${params.toString()}`;
 }
 
-/** Unique, professional, reliable cover independent of theme (used as a safe last-resort). */
+/** Unique, first-party cover independent of external image services. */
 export function getUniqueCover(key: string): string {
-  return `https://picsum.photos/seed/cm-${encodeURIComponent(key)}/800/450`;
+  return getCoverForCampaign('Community', key);
+}
+
+/** Generic stock placeholders may be replaced; real organizer uploads may not. */
+export function isPlaceholderCover(url: string | null | undefined): boolean {
+  return Boolean(url && /(?:picsum\.photos|loremflickr\.com)/i.test(url));
+}
+
+/** Catalog stock may be varied by page; organizer-supplied media may not. */
+export function isCatalogCover(url: string | null | undefined): boolean {
+  if (!url) return false;
+  const unsplashId = (url.match(/photo-([0-9]+-[a-z0-9]+)/i) ?? [])[1];
+  if (unsplashId && rawCatalogPhotoIds.has(unsplashId)) return true;
+  try {
+    const parsed = new URL(url, 'https://www.charitme.com');
+    return parsed.pathname === '/media/subject';
+  } catch {
+    return false;
+  }
+}
+
+export function getDisplayCover(
+  storedCover: string | null | undefined,
+  category: string | null | undefined,
+  key: string | null | undefined,
+  pageScope?: string,
+): string {
+  const stored = storedCover?.trim() || '';
+  const scopedKey = pageScope ? `${pageScope}-${key ?? 'campaign'}` : key;
+  return stored && !isPlaceholderCover(stored) && !(pageScope && isCatalogCover(stored))
+    ? stored
+    : getCoverForCampaign(category, scopedKey);
 }

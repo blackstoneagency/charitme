@@ -9,12 +9,14 @@
  *      so no two campaigns/media/sponsors show the same picture.
  *
  * Read-only. The DB check needs SUPABASE_ACCESS_TOKEN + SUPABASE_PROJECT_REF and
- * is skipped (not failed) when they are absent, so the static check still runs in
- * plain CI. Reads apps/web/.env.local when vars are not already in the env.
+ * is reported as unverified when they are absent. CI must either provide them or
+ * explicitly request a static-only run. Reads apps/web/.env.local when vars are
+ * not already in the env.
  *
  * Usage:
  *   node scripts/image-uniqueness-audit.mjs           # report
  *   node scripts/image-uniqueness-audit.mjs --ci      # exit 1 on any duplicate
+ *   node scripts/image-uniqueness-audit.mjs --ci --static-only
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -107,33 +109,47 @@ async function auditDb(env) {
 
 async function main() {
   const ci = process.argv.includes('--ci');
+  const staticOnly = process.argv.includes('--static-only');
   const env = loadEnv();
   let failed = false;
+  let dbVerified = false;
 
   const stat = auditStatic();
-  console.log(`Static assets under apps/web/public: ${stat.count} images`);
+  process.stdout.write(`Static assets under apps/web/public: ${stat.count} images\n`);
   if (stat.dupes.length) {
     failed = true;
-    console.log(`  *** ${stat.dupes.length} byte-identical duplicate group(s):`);
-    for (const g of stat.dupes) console.log(`    ${g.join('  ==  ')}`);
+    process.stdout.write(`  *** ${stat.dupes.length} byte-identical duplicate group(s):\n`);
+    process.stdout.write(`${stat.dupes.map((g) => `    ${g.join('  ==  ')}`).join('\n')}\n`);
   } else {
-    console.log('  no byte-identical duplicates.');
+    process.stdout.write('  no byte-identical duplicates.\n');
   }
 
   if (env.SUPABASE_ACCESS_TOKEN && env.SUPABASE_PROJECT_REF) {
-    console.log('\nLive DB image columns:');
-    for (const r of await auditDb(env)) {
-      if (r.error) { console.log(`  ${r.table}.${r.column}: (query failed — skipped)`); continue; }
+    process.stdout.write('\nLive DB image columns:\n');
+    const results = await auditDb(env);
+    dbVerified = results.every((result) => !result.error);
+    for (const r of results) {
+      if (r.error) {
+        process.stdout.write(`  ${r.table}.${r.column}: query failed — NOT VERIFIED\n`);
+        failed = true;
+        continue;
+      }
       const tag = r.ok ? 'OK' : '*** DUPLICATES';
-      console.log(`  ${r.table}.${r.column}: ${r.distinct}/${r.nonnull} unique  ${r.dupCount ? `(${r.dupCount} repeated) ` : ''}${tag}`);
+      process.stdout.write(`  ${r.table}.${r.column}: ${r.distinct}/${r.nonnull} unique  ${r.dupCount ? `(${r.dupCount} repeated) ` : ''}${tag}\n`);
       if (!r.ok) failed = true;
     }
   } else {
-    console.log('\nLive DB image check skipped (no SUPABASE_ACCESS_TOKEN / SUPABASE_PROJECT_REF).');
+    process.stdout.write('\nLive DB image check NOT VERIFIED (no SUPABASE_ACCESS_TOKEN / SUPABASE_PROJECT_REF).\n');
+    if (ci && !staticOnly) failed = true;
   }
 
-  console.log(failed ? '\nRESULT: duplicates found.' : '\nRESULT: all images unique.');
+  const result = failed
+    ? 'FAILED: duplicate images or an unverified required check.'
+    : dbVerified
+      ? 'PASSED: static assets and live database image columns are unique.'
+      : 'PARTIAL: static assets are unique; live database images were not checked.';
+  process.stdout.write(`\nRESULT: ${result}\n`);
   if (ci && failed) process.exit(1);
 }
 
-main().catch((e) => { console.error(e.message); process.exit(2); });
+main().catch((e) => { process.stderr.write(`${e.message}\n`); process.exit(2); });

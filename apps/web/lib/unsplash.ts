@@ -6,8 +6,8 @@ import 'server-only';
 // When UNSPLASH_ACCESS_KEY is configured we can assign each campaign a distinct,
 // on-theme, professional photo (free under the Unsplash License — commercial use
 // OK, no attribution required, though we surface the photographer so callers can
-// credit if they wish). Without a key, callers fall back to the unique Lorem
-// Picsum covers in lib/photo-catalog.ts (getCoverForCampaign).
+// credit if they wish). Without a key, callers fall back to unique first-party
+// subject artwork from lib/photo-catalog.ts (getCoverForCampaign).
 //
 // The pure helpers (categoryQuery / unsplashCoverUrl) are unit-tested; the
 // network call (searchUnsplashCovers) degrades gracefully to [] on any failure
@@ -131,7 +131,7 @@ export async function searchUnsplashCovers(query: string, count = 30, page = 1):
  * A single themed cover for a campaign, deterministically keyed on `seed` so the
  * same campaign always resolves to the same photo and distinct campaigns in a
  * category get distinct photos (uniqueness). Returns null when no key is set or
- * the search yields nothing — callers fall back to the Picsum/catalog cover.
+ * the search yields nothing — callers fall back to first-party subject art.
  */
 export async function unsplashCoverForCampaign(
   category: string | null | undefined,

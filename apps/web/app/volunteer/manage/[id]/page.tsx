@@ -73,7 +73,7 @@ export default async function ManageShiftsPage({ params }: { params: Promise<{ i
   return (
     <div className="container" style={{ padding: '40px 24px', maxWidth: 980 }}>
       <div style={{ marginBottom: 8 }}>
-        <Link href="/volunteer" style={{ fontSize: 13, fontWeight: 700, color: 'var(--t3)', textDecoration: 'none' }}>
+        <Link href="/volunteer" className="cm-touch-link" style={{ fontSize: 13, fontWeight: 700, color: 'var(--t3)', textDecoration: 'none' }}>
           ← Volunteer opportunities
         </Link>
       </div>

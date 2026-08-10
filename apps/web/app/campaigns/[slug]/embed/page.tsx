@@ -6,6 +6,7 @@ import { formatMoneyShort, normalizeCurrency } from '@shared/currencies';
 import DonateButton from '../DonateButton';
 import { parseWidgetOptions, WIDGET_MAX_WIDTH } from '../../../../lib/widget-embed';
 import { getDonationCheckoutSnapshot } from '../../../../lib/donation-checkout-settings';
+import { getDisplayCover } from '../../../../lib/photo-catalog';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,6 +57,7 @@ export default async function CampaignEmbedPage({ params, searchParams }: Props)
   // visitors the campaign does not exist every time our database hiccups.
   type EmbedCampaign = {
     id: string; slug: string; title: string; tagline: string | null;
+    category: string | null;
     cover_image_url: string | null; raised_amount: number | null; goal_amount: number | null;
     backer_count: number | null; status: string | null; accept_donations: boolean | null;
     visibility?: string;
@@ -66,7 +68,7 @@ export default async function CampaignEmbedPage({ params, searchParams }: Props)
   try {
     const { data } = await supabaseAdmin
       .from('campaigns')
-      .select('id, slug, title, tagline, cover_image_url, raised_amount, goal_amount, backer_count, status, accept_donations, visibility')
+      .select('id, slug, title, tagline, category, cover_image_url, raised_amount, goal_amount, backer_count, status, accept_donations, visibility')
       .eq('slug', slug)
       .eq('status', 'active')
       .is('deleted_at', null)
@@ -108,9 +110,9 @@ export default async function CampaignEmbedPage({ params, searchParams }: Props)
       // in a full browser tab.
       style={{ padding: '20px', maxWidth: WIDGET_MAX_WIDTH, minHeight: '100vh' }}
     >
-        {options.showCover && campaign.cover_image_url && (
+        {options.showCover && (
           <img
-            src={campaign.cover_image_url}
+            src={getDisplayCover(campaign.cover_image_url, campaign.category, campaign.slug, 'campaign-embed')}
             alt={campaign.title}
             style={{ width: '100%', height: 160, objectFit: 'cover', borderRadius: 12, marginBottom: 14 }}
           />

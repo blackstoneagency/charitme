@@ -45,7 +45,7 @@ export default function AiCoachPage() {
   }, []);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messages.length > 0) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const loadHistory = useCallback(async () => {
@@ -148,7 +148,7 @@ export default function AiCoachPage() {
         subtitle="Get expert fundraising advice, content, and strategy — powered by AI."
       />
 
-      <div className="kf-flow-pad" style={{ display: 'flex', height: 'calc(100vh - 140px)', flexDirection: 'column' }}>
+      <div className="kf-flow-pad ai-coach-layout" style={{ display: 'flex', height: 'calc(100vh - 140px)', flexDirection: 'column' }}>
 
         {/* Campaign selector */}
         {campaigns.length > 0 && (
@@ -181,7 +181,7 @@ export default function AiCoachPage() {
         ) : null}
 
         {/* Messages */}
-        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 16 }}>
+        <div className="ai-coach-messages" style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 16 }}>
 
           {messages.length === 0 && (
             <div style={{ padding: '24px 0' }}>

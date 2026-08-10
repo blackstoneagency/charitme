@@ -5,7 +5,7 @@ import { boundedQuery } from '../../lib/query-timeout';
 import { campaignColumns, applyLiveFilters } from '../../lib/campaign-visibility';
 import { ProgressBar, Card, EmptyState } from '../../components/ui';
 import { formatCents } from '../../lib/stripe';
-import { getCoverForCampaign } from '../../lib/photo-catalog';
+import { getDisplayCover } from '../../lib/photo-catalog';
 import { optimizedCoverUrl } from '../../lib/img-optimize';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -148,7 +148,7 @@ export default async function CrisisPage() {
           }}
         >
           {rows.map((c) => {
-            const cover = optimizedCoverUrl(c.cover_image_url ?? getCoverForCampaign('Emergency', c.id), 600);
+            const cover = optimizedCoverUrl(getDisplayCover(c.cover_image_url, 'Emergency', c.id, 'crisis'), 600);
             return (
               <li key={c.id}>
                 <Card style={{ padding: 0, overflow: 'hidden', height: '100%' }}>
@@ -183,7 +183,7 @@ export default async function CrisisPage() {
       )}
 
       <p style={{ marginTop: 28, fontSize: 14 }}>
-        <Link href="/campaigns?category=Emergency" style={{ color: 'var(--violet-ink)', fontWeight: 700 }}>
+        <Link href="/campaigns?category=Emergency" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, color: 'var(--violet-ink)', fontWeight: 700 }}>
           Search and filter every emergency fundraiser →
         </Link>
       </p>

@@ -87,7 +87,7 @@ export default async function CampaignSharePage({ params }: Props) {
   const campaignUrl = campaignShareUrl(origin, slug);
   const stats = await loadShareStats(campaign.id);
   const impact = stats ? describeShareImpact(stats) : null;
-  const cover = await resolveCampaignCover(campaign.cover_image_url, campaign.category, campaign.slug);
+  const cover = await resolveCampaignCover(campaign.cover_image_url, campaign.category, campaign.slug, 'campaign-share');
 
   const raised = Number(campaign.raised_amount ?? 0);
   const goal = Number(campaign.goal_amount ?? 0);
