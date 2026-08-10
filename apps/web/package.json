@@ -26,6 +26,7 @@
     "audit:responsive:signed-in:member": "node scripts/audit-signed-in.mjs --build --responsive --no-admin",
     "audit:focus-order": "node scripts/audit-focus-order.mjs",
     "audit:image-dupes": "node scripts/audit-image-dupes.mjs",
+    "generate:store-art": "node scripts/generate-store-art.mjs",
     "audit:image-assets": "node scripts/audit-image-assets.mjs",
     "audit:signed-in": "node scripts/audit-signed-in.mjs --build --strict-gradients",
     "audit:content-contracts": "node scripts/audit-content-contracts.mjs",

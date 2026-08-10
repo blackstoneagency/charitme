@@ -147,6 +147,50 @@ build, and reassigning a table that does *not* protect money also fails — the
 tombstone must not inherit a deleted user's private records.
 → `285c7036`, `715cc00b`
 
+### Store listing art, generated
+`npm run generate:store-art` → `public/store/`: a 1024×1024 App Store icon, a
+512×512 Play icon, and a 1024×500 Play feature graphic. All three are **colour
+type 2** — read back out of the PNG header, not promised by the encoder.
+
+⚠️ **The note above this said "the existing `icon-512.png` has an alpha channel
+and will be rejected as-is", which is true and led to the wrong fix.** Stripping
+its alpha was never the answer: **150,377 of its 262,144 pixels are FULLY
+transparent**. The mark is a logo floating on nothing, not a tile with soft
+corners, so removing the channel without choosing what sits behind it composites
+the artwork onto whatever the encoder defaults to.
+
+⚠️ **The source is `public/CharitMe_Logo.png` (1254×1254), NOT
+`public/icons/icon-source.svg`.** That SVG draws a purple tile with a white heart;
+the shipped mark is a red heart with a "C" between a purple and an orange hand.
+Caught by reading the centre pixel — `(209,3,1)`, red — before trusting a filename
+that says "source". Rendering it would have produced a clean, confident, wrong
+icon. 1254 also means the 1024 is downscaled rather than upscaled from the 512.
+
+⚠️ **White is measured, not taste.** `#000000` (matching `background_color`, so
+the icon would flow into the splash) and `#6d35ff` (`theme_color`) were both
+generated and looked at first. Both show a light blob between the hands: the
+artwork's alpha is **binary**, and the gap between the hands is filled with
+**opaque near-white** — `(627,860)` and `(627,900)` both read `[246,246,245,255]`.
+A leftover white background baked inside the silhouette is invisible on white and
+visible on everything else. `--background` takes any colour once that fill is made
+transparent.
+
+Feature-graphic copy is **read from `app/manifest.ts`**, never written for the
+listing — store text that disagrees with the app's own manifest is the defect
+class removed from /corporate-partnerships.
+
+`__tests__/store-listing-art.test.ts` asserts sizes and the absence of an alpha
+channel, and is mutation-tested against a planted RGBA icon and a wrong-sized one.
+It also asserts the **web** icons still *do* carry alpha, so nobody "fixes" those
+by flattening them and silently changes the installed app.
+
+### The image inventory had drifted from what ships
+`audit:image-assets` was failing on `master`: `screenshots/home.png` was
+recaptured after its entry was written so its recorded hash was stale, and
+`campaigns.png`, `donate.png` and `how-it-works.png` were never inventoried at
+all. All four are corrected and the three new store assets added — 39 entries,
+39 raster files.
+
 ---
 
 ## 🔴 Open — blocking a submission
@@ -171,6 +215,20 @@ password, neither of which is present.
 Runbook: **`docs/apply-pending-migrations.md`**, which also flags that a single
 `db push` applies 46 other migrations, three of them recorded by their own authors
 as needing staging verification first.
+
+✅ **But the whole batch is not the only route, and this blocker is one paste
+away.** The Supabase **SQL editor** runs as `postgres`, not through PostgREST, so
+it executes migration SQL directly — proved 2026-08-10, when the owner applied
+`20260904040000_default_support_percent_ten` that way and the live donate card
+changed within the minute.
+
+This migration is **safe to run alone**: pure DML (two `INSERT`s and a `COMMENT`),
+both inserts `ON CONFLICT DO NOTHING` so it is idempotent, it deletes nothing, it
+creates no schema, and it depends on nothing else in the pending batch —
+`auth.users` and `public.profiles` already exist. It writes no ledger row, so
+`migration list` will still call it pending and a later `db push` re-runs it as a
+no-op. Steps and the verification query are in the runbook under *"You do not have
+to push all 47 to unblock deletion"*.
 
 ### 2. `ACCOUNT_SELF_DELETE_ENABLED` is off
 Deliberate: `master` deploys straight to production, and an irreversible delete
@@ -207,9 +265,11 @@ yet; both are store-console forms rather than repo files, but the answers must
 match what the code actually collects.
 
 ### Store listing art
-1024×1024 iOS icon **without alpha** (the existing `icon-512.png` has an alpha
-channel and will be rejected as-is), Play 512×512 icon, 1024×500 feature graphic,
-per-device screenshots.
+**Per-device screenshots** are still outstanding — those are device-frame captures
+made in the store consoles, not repo files.
+
+The three repo-ownable pieces are now generated: see *Store listing art, generated*
+under Applied.
 
 ---
 
@@ -237,6 +297,9 @@ npx vitest run __tests__/manifest-contract.test.ts
 npx vitest run __tests__/app-store-associations.test.ts
 npx vitest run __tests__/deletion-cascade.test.ts
 npx vitest run __tests__/account-self-deletion.test.ts
+npx vitest run __tests__/store-listing-art.test.ts
+npm run generate:store-art          # regenerates public/store/ from the 1254px logo
+npm run audit:image-assets          # every raster inventoried, hashed, provenanced
 ```
 
 ## Environment variables this work introduced
