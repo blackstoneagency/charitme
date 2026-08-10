@@ -37,12 +37,17 @@ with no claim is free. An item with a claim is someone else's — pick another.
 | Store listing art | claude/mobile | 2026-08-10 | ✅ done, released — ⚠️ logo source corrected since, see Applied |
 | Native shells (TWA + Capacitor config) | claude/mobile | 2026-08-10 | ✅ config done, released |
 | Privacy declarations | claude/mobile | 2026-08-10 | ✅ done, released |
-| Tombstone migration apply | — | | 🔒 blocked on credentials, not on people |
+| Tombstone migration apply | — | | 🔓 OWNER, one paste — see Open #1; not blocked on a missing credential |
 
 ⚠️ **Do not take "blocked on credentials" items.** They are not unclaimed work —
 they cannot be finished by anyone in a sandbox, and a second agent rediscovering
-that is pure duplication. As of 2026-08-10 that is the migration apply and both
-sets of store credentials.
+that is pure duplication. As of 2026-08-10 that is both sets of store credentials.
+
+⚠️ **The tombstone apply is no longer one of them.** It was listed as blocked on a
+credential; it is not. The Supabase SQL editor runs as `postgres` and executes
+migration SQL directly, which the owner used on 2026-08-10 to apply
+`20260904040000`. Still an OWNER action — but a two-minute one, not an
+unreachable one. Detail in Open #1.
 
 ⚠️ **Check open PRs before claiming.** PR #355 (campaign photos) is a different
 lane but is blocked on the SAME rotated `SUPABASE_SERVICE_ROLE_KEY` — a working
@@ -247,6 +252,27 @@ password, neither of which is present.
 Runbook: **`docs/apply-pending-migrations.md`**, which also flags that a single
 `db push` applies 46 other migrations, three of them recorded by their own authors
 as needing staging verification first.
+
+✅ **CORRECTION: it is not blocked on a credential the owner lacks — it is one
+paste.** The note above is right that *this sandbox* cannot apply it and that
+PostgREST cannot run DDL. It is wrong as a conclusion about the **owner**: the
+Supabase **SQL editor** runs as `postgres`, not through PostgREST, so it executes
+migration SQL directly. Demonstrated 2026-08-10 — the owner applied
+`20260904040000_default_support_percent_ten` that way, read the value back as
+`10`, and the live donate card changed within the minute.
+
+This migration is safe to run **alone**: pure DML (two `INSERT`s and a
+`COMMENT`), both `ON CONFLICT (id) DO NOTHING` so idempotent, it deletes nothing,
+creates no schema, and depends on nothing else pending — `auth.users` and
+`public.profiles` already exist, and `profiles` has no `NOT NULL` column without a
+default beyond the four it supplies. So it does **not** drag in the other 46, and
+none of the three staging-gated migrations are involved.
+
+⚠️ Two limits: it writes no `schema_migrations` row, so `migration list` will
+still call it pending and a later `db push` re-runs it as a no-op; and this route
+is **not** a general substitute for `db push` — it suits this file because it is
+idempotent, self-contained and destroys nothing. Steps and the verification query
+are in the runbook under *"You do not have to push all 47 to unblock deletion"*.
 
 ### 2. `ACCOUNT_SELF_DELETE_ENABLED` is off
 Deliberate: `master` deploys straight to production, and an irreversible delete
