@@ -1,14 +1,14 @@
 import Link from 'next/link';
 import { CharitMeShell, TopBar, MetricGrid, KFIcon } from '../../../components/CharitMeShellServer';
 import { requireUser } from '../../../lib/auth';
-import { supabaseAdmin } from '../../../lib/supabase';
+import { createClient } from '../../../lib/supabase-server';
 import { boundedQuery } from '../../../lib/query-timeout';
-import { attachCampaignCurrencies } from '../../../lib/home-data';
 import { formatMoneyShort } from '@shared/currencies';
 import RequestPayoutButton from './RequestPayoutButton';
 import PayoutConciergeCard from './PayoutConciergeCard';
 import FeeOptimizerCard from './FeeOptimizerCard';
 import DegradedReadNotice from '../../../components/DegradedReadNotice';
+import { decodeKeysetCursor, encodeKeysetCursor } from '../../../lib/keyset-cursor';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,12 +26,18 @@ type PayoutRow = {
   payout_speed: PayoutSpeed;
   status: PayoutStatus;
   created_at: string;
+  campaign_title: string;
 };
 
-type CampaignIdTitle = {
-  id: string;
-  title: string;
+type PayoutSummary = {
+  paid_out_cents: number;
+  pending_cents: number;
+  month_cents: number;
+  fee_cents: number;
+  payout_count: number;
 };
+
+const PAGE_SIZE = 50;
 
 // ─────────────────────────────────────────────
 // Helpers
@@ -71,13 +77,6 @@ function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-function startOfMonth(): string {
-  const d = new Date();
-  d.setDate(1);
-  d.setHours(0, 0, 0, 0);
-  return d.toISOString();
-}
-
 // ─────────────────────────────────────────────
 // Page
 // ─────────────────────────────────────────────
@@ -88,15 +87,19 @@ export default async function PayoutsPage({
 }) {
   const [user, params] = await Promise.all([requireUser(), searchParams]);
   const userId = user.id;
-  const activeTab = (typeof params.tab === 'string' ? params.tab : 'all').toLowerCase();
+  const requestedTab = (typeof params.tab === 'string' ? params.tab : 'all').toLowerCase();
+  const activeTab = ['all', 'paid', 'pending', 'failed'].includes(requestedTab) ? requestedTab : 'all';
+  const cursor = decodeKeysetCursor(params.cursor);
+  const supabase = await createClient();
 
   // Fetch active campaigns with available balance for the request payout widget
   const [
     { data: activeCampaignData, error: activeCampaignError },
     { data: payoutData, error: payoutError },
+    { data: payoutSummaryData, error: payoutSummaryError },
   ] = await Promise.all([
     boundedQuery(() =>
-      supabaseAdmin
+      supabase
         .from('campaigns')
         .select('id, title, raised_amount')
         .eq('user_id', userId)
@@ -106,57 +109,61 @@ export default async function PayoutsPage({
         .limit(20),
     ),
     boundedQuery(() =>
-      supabaseAdmin
-        .from('payouts')
-        .select('id,campaign_id,amount_cents,fee_cents,payout_speed,status,created_at')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(100),
+      supabase.rpc('organizer_payout_page', {
+        p_user_id: userId,
+        p_status_group: activeTab,
+        p_before_created_at: cursor?.createdAt ?? null,
+        p_before_id: cursor?.id ?? null,
+        p_limit: PAGE_SIZE + 1,
+      }),
     ),
+    boundedQuery(() => supabase.rpc('organizer_payout_summary', { p_user_id: userId })),
   ]);
-  const activeCampaigns = await attachCampaignCurrencies(
-    (activeCampaignData ?? []) as { id: string; title: string; raised_amount: number }[],
-  );
-  const payouts = (payoutData ?? []) as PayoutRow[];
-  const loadFailed = Boolean(payoutError || !payoutData);
+  const activeCampaignRows = (activeCampaignData ?? []) as Array<{
+    id: string;
+    title: string;
+    raised_amount: number;
+  }>;
+  const payoutRows = (payoutData ?? []) as unknown as PayoutRow[];
+  const hasMore = payoutRows.length > PAGE_SIZE;
+  const payouts = payoutRows.slice(0, PAGE_SIZE);
+  const payoutSummary = ((payoutSummaryData ?? []) as unknown as PayoutSummary[])[0] ?? null;
+  const loadFailed = Boolean(payoutError || !payoutData || payoutSummaryError || !payoutSummaryData || !payoutSummary);
   let detailsFailed = Boolean(activeCampaignError || !activeCampaignData);
-
-  // Step 2: fetch campaign titles + currencies for all payout campaign IDs
-  const campaignIds = [...new Set(payouts.map((p) => p.campaign_id))];
-  let campaignTitleMap = new Map<string, string>();
+  const campaignIds = [...new Set([
+    ...activeCampaignRows.map((campaign) => campaign.id),
+    ...payouts.map((payout) => payout.campaign_id),
+  ])];
   let campaignCurrencyMap = new Map<string, string | null>();
   if (campaignIds.length > 0) {
-    const { data: campaignData, error: campaignError } = await boundedQuery(() =>
-      supabaseAdmin
-        .from('campaigns')
-        .select('id,title')
-        .in('id', campaignIds),
+    const { data: currencyData, error: currencyError } = await boundedQuery(() =>
+      supabase
+        .from('campaign_launch_settings')
+        .select('campaign_id,currency')
+        .in('campaign_id', campaignIds),
     );
-    if (campaignError || !campaignData) detailsFailed = true;
-    const campaigns = (campaignData ?? []) as CampaignIdTitle[];
-    campaignTitleMap = new Map(campaigns.map((c) => [c.id, c.title]));
-    const withCurrencies = await attachCampaignCurrencies(campaigns);
-    campaignCurrencyMap = new Map(withCurrencies.map((c) => [c.id, c.currency]));
+    if (currencyError || !currencyData) detailsFailed = true;
+    campaignCurrencyMap = new Map(
+      (currencyData ?? []).map((row) => [row.campaign_id, row.currency]),
+    );
   }
+  const activeCampaigns = activeCampaignRows.map((campaign) => ({
+    ...campaign,
+    currency: campaignCurrencyMap.get(campaign.id) ?? null,
+  }));
+  const campaignTitleMap = new Map(payouts.map((payout) => [payout.campaign_id, payout.campaign_title]));
 
   // Metrics
-  const monthStart = startOfMonth();
-  const totalPaid = payouts
-    .filter((p) => p.status === 'paid')
-    .reduce((sum, p) => sum + p.amount_cents, 0);
-  const totalPending = payouts
-    .filter((p) => p.status === 'requested' || p.status === 'approved')
-    .reduce((sum, p) => sum + p.amount_cents, 0);
-  const thisMonth = payouts
-    .filter((p) => p.created_at >= monthStart)
-    .reduce((sum, p) => sum + p.amount_cents, 0);
-  const totalFees = payouts.reduce((sum, p) => sum + p.fee_cents, 0);
+  const totalPaid = payoutSummary?.paid_out_cents ?? 0;
+  const totalPending = payoutSummary?.pending_cents ?? 0;
+  const thisMonth = payoutSummary?.month_cents ?? 0;
+  const totalFees = payoutSummary?.fee_cents ?? 0;
 
   const metrics = [
-    { label: 'Paid Out', value: loadFailed ? '—' : fmtCents(totalPaid), change: loadFailed ? 'unavailable' : 'latest 100 payouts', icon: 'wallet', tone: 'violet' as const },
+    { label: 'Paid Out', value: loadFailed ? '—' : fmtCents(totalPaid), change: loadFailed ? 'unavailable' : 'all completed payouts', icon: 'wallet', tone: 'violet' as const },
     { label: 'Pending', value: loadFailed ? '—' : fmtCents(totalPending), change: loadFailed ? 'unavailable' : 'requested + approved', icon: 'gift', tone: 'orange' as const },
     { label: 'This Month', value: loadFailed ? '—' : fmtCents(thisMonth), change: loadFailed ? 'unavailable' : new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }), icon: 'chart', tone: 'green' as const },
-    { label: 'Fees Paid', value: loadFailed ? '—' : fmtCents(totalFees), change: loadFailed ? 'unavailable' : 'latest 100 payouts', icon: 'doc', tone: 'blue' as const },
+    { label: 'Fees Paid', value: loadFailed ? '—' : fmtCents(totalFees), change: loadFailed ? 'unavailable' : 'all payout fees', icon: 'doc', tone: 'blue' as const },
   ];
 
   // Tab filtering
@@ -179,6 +186,11 @@ export default async function PayoutsPage({
     { key: 'pending', label: 'Pending' },
     { key: 'failed', label: 'Failed' },
   ];
+
+  const lastPayout = payouts.at(-1);
+  const nextCursor = hasMore && lastPayout
+    ? encodeKeysetCursor({ createdAt: lastPayout.created_at, id: lastPayout.id })
+    : null;
 
   return (
     <CharitMeShell active="Payouts">
@@ -248,7 +260,7 @@ export default async function PayoutsPage({
               {filtered.map((payout) => {
                 const tone = statusTone(payout.status);
                 const speedLabel = SPEED_LABELS[payout.payout_speed] ?? payout.payout_speed;
-                const campaignTitle = campaignTitleMap.get(payout.campaign_id) ?? 'Unknown Campaign';
+                const campaignTitle = campaignTitleMap.get(payout.campaign_id) ?? payout.campaign_title;
                 const payoutCurrency = campaignCurrencyMap.get(payout.campaign_id) ?? 'usd';
                 return (
                   <div key={payout.id} className="kf-row">
@@ -281,10 +293,26 @@ export default async function PayoutsPage({
             </div>
           ) : null}
 
-          <div className="kf-table-footer">
-            {loadFailed
-              ? 'Payout count unavailable'
-              : `${filtered.length} payout${filtered.length !== 1 ? 's' : ''}`}
+          <div className="kf-table-footer" style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+            <span>
+              {loadFailed
+                ? 'Payout count unavailable'
+                : `${filtered.length} shown of ${payoutSummary?.payout_count ?? filtered.length} total payouts`}
+            </span>
+            {!loadFailed && (
+              <span style={{ display: 'flex', gap: 8 }}>
+                {cursor && (
+                  <Link href={`?tab=${activeTab}`} className="kf-outline" style={{ display: 'inline-flex', minHeight: 44, alignItems: 'center', textDecoration: 'none' }}>
+                    First page
+                  </Link>
+                )}
+                {nextCursor && (
+                  <Link href={`?tab=${activeTab}&cursor=${encodeURIComponent(nextCursor)}`} className="kf-outline" style={{ display: 'inline-flex', minHeight: 44, alignItems: 'center', textDecoration: 'none' }}>
+                    Next page
+                  </Link>
+                )}
+              </span>
+            )}
           </div>
         </section>
       </div>

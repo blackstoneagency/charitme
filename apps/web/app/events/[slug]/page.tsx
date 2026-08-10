@@ -147,6 +147,7 @@ export default async function EventDetailPage({ params }: PageProps) {
           alreadyRegistered={alreadyRegistered}
           slug={e.slug}
           free={free}
+          tickets={tickets}
         />
       </div>
     </div>

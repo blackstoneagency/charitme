@@ -42,6 +42,7 @@ CASES=(
   "20260818000000:COLUMNS:profiles.locale"
   "20260812000000:INDEXES:campaign_owner_transfers_processor_object_uidx,campaign_payment_refunds_processor_object_uidx,campaign_processor_fees_processor_object_uidx,marketing_suppression_email_plain_uq"
   "20260814000000:COLUMNS:marketing_audit_logs.org_id,marketing_automations.org_id,marketing_campaign_plans.org_id,marketing_campaigns.org_id,marketing_consent.org_id,marketing_contacts.org_id,marketing_email_templates.org_id,marketing_events.org_id,marketing_forms.org_id,marketing_goals.org_id,marketing_opportunities.org_id,marketing_referrals.org_id,marketing_segments.org_id,marketing_suppression_list.org_id,marketing_utm_links.org_id"
+  "20260904000000:COLUMNS:event_registrations.status,event_registrations.stripe_checkout_session_id,event_registrations.checkout_token,event_registrations.reservation_expires_at,event_registrations.currency,event_registrations.ticket_code,event_registrations.refunded_cents,event_registrations.stripe_dispute_id,event_registrations.dispute_status,event_registrations.dispute_closed_at,event_registrations.confirmed_at,event_registrations.cancelled_at,event_registrations.refunded_at"
 )
 
 FAILURES=0
@@ -71,7 +72,18 @@ do $$ begin
 end $$;
 create schema if not exists auth; create schema if not exists storage; create schema if not exists supabase_migrations;
 create table if not exists supabase_migrations.schema_migrations (version text primary key, statements text[], name text);
-create table if not exists auth.users (id uuid primary key default gen_random_uuid(), email text unique, raw_user_meta_data jsonb, raw_app_meta_data jsonb, created_at timestamptz default now());
+create table if not exists auth.users (
+  instance_id uuid,
+  id uuid primary key default gen_random_uuid(),
+  aud text,
+  role text,
+  email text unique,
+  email_confirmed_at timestamptz,
+  raw_user_meta_data jsonb,
+  raw_app_meta_data jsonb,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
 create or replace function auth.uid() returns uuid language sql stable as $$ select null::uuid $$;
 create or replace function auth.role() returns text language sql stable as $$ select 'authenticated'::text $$;
 create or replace function auth.jwt() returns jsonb language sql stable as $$ select '{}'::jsonb $$;
@@ -85,7 +97,7 @@ SQL
 #!/bin/bash
 for f in \$(ls $WORK/mig/*.sql | sort); do
   v=\$(basename "\$f" | cut -d_ -f1)
-  psql -h $WORK/sock -p $PORT -U postgres -q -v ON_ERROR_STOP=1 -f "\$f" > $WORK/err.log 2>&1 || { echo "APPLY FAILED: \$(basename \$f)"; grep -m1 ERROR $WORK/err.log; exit 1; }
+  psql -h $WORK/sock -p $PORT -U postgres -q -v ON_ERROR_STOP=1 --single-transaction -f "\$f" > $WORK/err.log 2>&1 || { echo "APPLY FAILED: \$(basename \$f)"; grep -m1 ERROR $WORK/err.log; exit 1; }
   psql -h $WORK/sock -p $PORT -U postgres -q -c "insert into supabase_migrations.schema_migrations(version) values ('\$v') on conflict do nothing;" >/dev/null 2>&1
 done
 APPLY
@@ -124,7 +136,7 @@ APPLY
     echo "✗ $VERSION — target table(s) absent BEFORE rollback:$MISSING_BEFORE (test would be vacuous)"
     FAILURES=$((FAILURES+1))
   else
-    su postgres -c "psql -h $WORK/sock -p $PORT -U postgres -q -v ON_ERROR_STOP=1 -f $WORK/rollback.sql" >/dev/null
+    su postgres -c "psql -h $WORK/sock -p $PORT -U postgres -q -v ON_ERROR_STOP=1 --single-transaction -f $WORK/rollback.sql" >/dev/null
     STILL=""
     for t in ${TARGETS//,/ }; do
       [ "$(exists_target "$t")" = "0" ] || STILL="$STILL $t"

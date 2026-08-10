@@ -40,6 +40,7 @@ const OWNER_SCOPED: Readonly<Record<string, string>> = {
   'lib/referrals.ts': 'ids the viewer already holds from their referral rows',
   'lib/marketing-engine.ts': 'internal marketing engine, not a public surface',
   'lib/marketing-command-center.ts': 'internal admin surface',
+  'lib/demo-data-admin.ts': 'super-admin demo review intentionally includes private and archived campaigns',
   'lib/marketing-opportunities.ts': 'internal admin surface',
   'lib/ai-context.ts': 'internal AI context builder, admin-gated',
   'lib/contact-page.ts': 'internal contact routing',

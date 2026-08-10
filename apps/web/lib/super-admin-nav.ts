@@ -24,5 +24,6 @@ export const SUPER_ADMIN_NAV: readonly (readonly [string, string, string])[] = [
   ['Platform Settings', '/admin/super/settings', 'gear'],
   ['Announcements', '/admin/super/announcements', 'bell'],
   ['Banner', '/admin/super/banner', 'flag'],
+  ['Demo Data', '/admin/super/demo-data', 'list'],
   ['Activity Log', '/admin/super/activity', 'list'],
 ] as const;
