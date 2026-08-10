@@ -353,6 +353,17 @@
       "source": "https://images.unsplash.com/photo-1531123897727-8f129e1688ce",
       "license": "Unsplash License: https://unsplash.com/license",
       "uses": ["/about-us"]
+    },
+    {
+      "path": "screenshots/home.png",
+      "sha256": "e11a4ba22f4514be3004ff4ba296258c4f64a776601b92be5a62111b3774281c",
+      "status": "active",
+      "subject": "Screenshot of CharitMe's own home page at 1280x720",
+      "fit": "Manifest screenshots entry; without it Chrome on Android shows the one-line install infobar instead of the rich install dialog",
+      "sourceType": "first-party",
+      "source": "Captured from a local production build by apps/web/scripts/capture-manifest-screenshots.mjs in commit 7b53f625",
+      "license": "CharitMe-owned: a rendering of this application's own UI",
+      "uses": ["PWA manifest"]
     }
   ]
 }
