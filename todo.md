@@ -24218,32 +24218,15 @@ transaction, not four API calls that can half-fail.
       hand-kept list drifts, and its failure mode is a 404 *inside the install
       dialog*, a surface no route test or link audit reaches.
 
-- [ ] **3 of the 4 screenshots cannot be captured HERE, and the capture script
-      now refuses them rather than shipping them.**
-      `/campaigns`, `/donate` and `/how-it-works` render **"Gifts given —"** in
-      this sandbox while production renders **592** (both checked by curl). The
-      em dash is this codebase's marker for a read that FAILED.
-
-      ⚠️ **CORRECTION (2026-08-10).** This entry first said the count "times out
-      through the sandbox proxy". That was a guess and it is WRONG. The real
-      cause: the `SUPABASE_SERVICE_ROLE_KEY` in `.env.local` is dead —
-      production answers `{"message":"Unregistered API key"}`. It is not the key
-      the owner created; only Vercel has that one. Anon reads return 200, so
-      every anon-path figure renders and every `supabaseAdmin`-path figure shows
-      a dash. Same symptom, different cause, and the wrong one sends the next
-      person to look at query performance instead of credentials.
-      ⚠️ Nothing downstream can catch this. The PNG is valid, the manifest is
-      valid, every test passes — it is a clean, well-composed phone screenshot
-      of a broken statistic, and it would have gone into the install dialog and
-      the store listing. The script now fails any shot whose `[class*=stat-value]`
-      reads as an em dash; the three bad PNGs from the first run were deleted.
-      **Re-run `npm run capture:screenshots` from an environment where that count
-      resolves** (a dev machine, or CI with database access) to add the other
-      three. One `narrow` screenshot is enough for Chrome's rich install dialog,
-      so this is not blocking — it is incomplete.
-- [ ] iOS `PrivacyInfo.xcprivacy` + App Privacy answers (donations, email,
-      payment data are all collected).
-- [ ] Play Data safety declaration.
+- [x] **All 4 manifest screenshots captured (2026-08-10).** The first run shipped
+      1 of 4: `/campaigns`, `/donate` and `/how-it-works` rendered "Gifts given —"
+      while production rendered 592. ⚠️ Cause was NOT a slow query as first
+      recorded — it was a dead `SUPABASE_SERVICE_ROLE_KEY` in `.env.local`
+      (production answered `"Unregistered API key"`). With a working key supplied,
+      all four recaptured clean and were verified visually: 502 · $96,850 · 592 · 69.
+      The capture script's em-dash guard is what stopped three broken store
+      screenshots from shipping — the PNGs were valid, the manifest was valid, and
+      every test passed.
 
 ### 🔒 Cannot be finished here — needs an account and a build machine
 
