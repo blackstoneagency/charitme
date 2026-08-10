@@ -1015,6 +1015,75 @@ export function buildFixtures() {
     // `can_fundraise` is false for a few rows on purpose — the page splits the
     // list into fundraising countries and donate-only ones, and a fixture where
     // every row is identical never renders the second group.
+    // ⚠️ These three tables had NO fixture rows at all, so /events, /grants and
+    // /sponsor rendered clean empty states and passed every audit having measured
+    // NOTHING — the fourth instance of that class this session, after
+    // supported_countries, volunteer_opportunities.status and connected_accounts.
+    //
+    // Every `status` below is checked against BOTH the reader's filter and the
+    // table's CHECK constraint, because a fixture that cannot match is worse than
+    // no fixture: it looks like coverage. Verified:
+    //   fundraising_events      reader .eq('status','published')      CHECK draft|published|completed|cancelled
+    //   grants                  reader .in('status',['open','upcoming']) CHECK open|upcoming|closed
+    //   sponsorship_opportunities reader .eq('status','open')         CHECK draft|open|closed|fulfilled|cancelled
+    fundraising_events: genericRows('evnt', 6, (i) => ({
+      created_by: ORGANIZER_ID,
+      campaign_id: uuid('camp', (i % 5) + 1),
+      title: `Stub fundraising event ${i + 1}`,
+      slug: `stub-event-${i + 1}`,
+      description: 'A populated event fixture so the events routes are actually measured.',
+      event_type: ['in_person', 'virtual', 'hybrid'][i % 3],
+      starts_at: daysAgo(-(i + 3)),
+      ends_at: daysAgo(-(i + 2)),
+      location: ['Austin, TX', 'Portland, OR', 'London, UK'][i % 3],
+      virtual_url: i % 3 === 0 ? null : 'https://example.invalid/stream',
+      cover_image_url: null,
+      capacity: 50 + i * 10,
+      status: 'published',
+      created_at: daysAgo(30 - i),
+      updated_at: daysAgo(1),
+    })),
+    grants: genericRows('grnt', 8, (i) => ({
+      slug: `stub-grant-${i + 1}`,
+      title: `Stub community grant ${i + 1}`,
+      funder_name: ['Stub Foundation', 'Example Trust', 'Sample Fund'][i % 3],
+      funder_type: ['foundation', 'government', 'corporate'][i % 3],
+      summary: 'A populated grant fixture so /grants renders rows instead of an empty state.',
+      category: CATEGORIES[i % CATEGORIES.length],
+      focus_areas: ['education', 'health'],
+      eligibility: 'Registered nonprofits and fiscally sponsored projects.',
+      eligible_entity_types: ['nonprofit'],
+      amount_min: 5_000,
+      amount_max: 50_000 + i * 1_000,
+      currency: 'usd',
+      location: 'United States',
+      country: 'US',
+      application_url: 'https://example.invalid/apply',
+      deadline_at: daysAgo(-(i + 14)),
+      rolling_deadline: i % 4 === 0,
+      // Both branches of the reader's filter, so neither goes unmeasured.
+      status: i % 3 === 0 ? 'upcoming' : 'open',
+      verified: i % 2 === 0,
+      source: 'stub',
+      deleted_at: null,
+      created_at: daysAgo(60 - i),
+      updated_at: daysAgo(2),
+    })),
+    sponsorship_opportunities: genericRows('spon', 6, (i) => ({
+      organizer_id: ORGANIZER_ID,
+      campaign_id: uuid('camp', (i % 5) + 1),
+      title: `Stub sponsorship opportunity ${i + 1}`,
+      description: 'A populated sponsorship fixture so /sponsor renders the marketplace.',
+      category: CATEGORIES[i % CATEGORIES.length],
+      benefits: ['Logo placement', 'Social mention'],
+      min_amount_cents: 250_00,
+      target_amount_cents: 5_000_00 + i * 100_00,
+      raised_amount_cents: i * 250_00,
+      currency: 'usd',
+      status: 'open',
+      created_at: daysAgo(45 - i),
+      updated_at: daysAgo(3),
+    })),
     supported_countries: genericRows('ctry', 20, (i) => ({
       name: ['United States', 'Canada', 'United Kingdom', 'Australia', 'New Zealand',
         'Ireland', 'Germany', 'France', 'Netherlands', 'Sweden'][i % 10],

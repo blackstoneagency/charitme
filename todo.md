@@ -180,13 +180,48 @@ probe that taps and finds nothing looks identical to a panel that does not exist
 
 Because the panel now fits the viewport, a point outside it exists again — which is
 what makes the outside-tap dismissal reachable at all.
-- [ ] **One 518 KB stylesheet on every route, 94–98% unused.** `app/globals.css` is 676 KB
-      / 12,199 lines → 518,233 B raw, 89 KB gz, render-blocking on every page. Chrome
-      coverage: **2.1% used on `/search`, 2.8% on `/login`** (14 KB of 506 KB). Admin and
-      dashboard blocks ride along on every public page (`.admin-*` 152 selectors,
-      `.users-*` 176, `.cr2-*` 457). Route-scoping this is the single biggest mobile win
-      available, and it is a real refactor — not a change to slip in beside a merge.
-- [ ] **Small tap targets: the measured block-level ones are FIXED; `/glossary` is not.**
+- [ ] **One 518 KB stylesheet on every route, 94–98% unused.** `app/globals.css` →
+      518,233 B raw, render-blocking on every page. Chrome coverage: **2.1% used on
+      `/search`, 2.8% on `/login`**. Still the biggest mobile win available.
+
+      ⚠️ **ATTEMPTED AND REVERTED (2026-08-09). Read this before trying again — the
+      obvious approach is wrong for a reason that is invisible until you measure it.**
+
+      Route-scoping worked mechanically: `.admin-*`/`.users-*` → `app/admin/admin.css`
+      (165 rules, 16,697 B), `.cr2-*` → `app/create/builder.css` (288 rules, 32,567 B),
+      `.cbx-*` → `app/campaigns/(list)/browse.css` (75 rules). Built global chunk fell
+      **506,671 → 474,110 B**, public routes loaded only the global chunk, and `/create`
+      and `/admin` correctly loaded theirs with rules applying. All of that was verified.
+
+      **It was reverted anyway, because leaving the at-rules behind INVERTS THE CASCADE.**
+      `globals.css` loads first; a route sheet loads after it. Move a family's BASE rules
+      into the later sheet while its `@media` overrides stay in `globals.css`, and the
+      base rule now wins at equal specificity — responsive behaviour runs backwards. The
+      exposure was real, not theoretical: 7 media blocks still referenced `.cbx-*`, 5
+      `.cr2-*`, 2 `.admin-*`, 3 `.users-*`.
+
+      Moving the media blocks too gets most of the way (5 guard failures → 2), but **not
+      all the way**: some blocks carry mixed selector lists, and 4 rules
+      (`.cr2-nav-publish-now`, `.users-kpi-row`, `.cbx-hero`, `.cbx-hero-art::after`) sit
+      nested deeper than a flat parser reaches. A partial migration keeps the hazard.
+
+      **The second obstacle is the test suite.** Every CSS guard in `__tests__` assumes ONE
+      stylesheet — they `readFileSync('app/globals.css')`. Six broke across the three
+      slices. Worse, concatenating the sheets for them is not a fix either: guards that
+      slice "from this selector to the next `body {`" then read across a file boundary.
+      ⚠️ And a shared helper introduced to solve it had `path.join(__dirname, '..')` where
+      it needed `'..','..'`, which made every guard using it **fail to COLLECT** — quietly
+      removing **67 tests** from the run while printing no failure line. `Tests 3850
+      passed` looked green. **Always compare the Test FILES count too, not just passes.**
+
+      If retried, the order is: (1) make the guards read CSS through one helper and assert
+      a rule-count floor, (2) move each family's base rules AND every at-rule referencing
+      it in the same commit, (3) verify a responsive rule still wins at its breakpoint in
+      a real browser — not just that the file loaded. `.rp-*` (221 rules) and `.pc-*` (225)
+      are NOT candidates under any approach: measured across 14 and 7 route trees plus
+      `components/`, they are shared chrome.
+
+- [x] **Small tap targets — measured block-level ones AND `/glossary` are now fixed.**
       `.cbx-feat-body > h3 > a`, `.pc-donor-name > a`, `.pc-organizer > a`,
       `.pc-ai > ul > li > a`, `.sc-info-link`, `.rr-program-empty > a` and
       `.imp-area-body > h3 > a` now use `inline-flex` + `min-height: 24px`, which grows
@@ -196,10 +231,16 @@ what makes the outside-tap dismissal reachable at all.
       ⚠️ A blanket `a { min-height: 24px }` was rejected deliberately — most links here
       are inline text inside sentences, where WCAG's inline exception applies and a
       min-height would break the line box.
-      ⚠️ **Still open: `/glossary`** — `dt > a` at 18px and the "Read more" `dd > a` at
-      16px. Its markup is entirely inline-styled with no class names, so scoping needs a
-      class added to the page first; a bare `dt > a` rule would reach every definition
-      list on the site.
+      ✅ **`/glossary` CLOSED (2026-08-09).** The 16 `dt > a` term links measured 18px;
+      all 16 now measure **exactly 24px**, verified in a real 390x844 touch browser
+      (`termsUnder24: []`). Sized INLINE on the element rather than via a `dt > a` rule:
+      this page's markup carries no class names, and a bare `dt > a` selector would reach
+      every definition list on the site — adding a class purely to hang a rule on was the
+      worse trade.
+      ⚠️ The "Read more" `dd > a` links stay at **16px on purpose**. They sit inside a
+      sentence, which WCAG 2.5.8 exempts under the inline exception — the same call the
+      parallel lane made for `.auth-switch button`. Enlarging them would break the
+      sentence's line rhythm to satisfy a rule that does not apply. Do not "fix" them.
       ⚠️ Two selectors in my first draft (`.glossary-term > a`, `.imp-story-body > h3 > a`)
       matched **nothing** — I had guessed the class names. A selector that matches
       nothing passes every check while fixing nothing; always assert the match COUNT,
@@ -224,14 +265,192 @@ rebuild of `/campaigns/stub-campaign-2`: `Choose an amount` ✓, `Give Once` ✓
 unmatchable fixture removes a whole surface from the sweep, and the sweep reports
 green.** When a component "never mounts in the stub", treat that as a coverage bug to
 fix, not a note to file — the absent surface is exactly where defects survive.
-- [ ] **Campaign covers: the worst three sites are FIXED, the long tail is not.**
+- [x] **Campaign covers — the three real offenders are FIXED, and the "long tail" was
+      MEASURED AND IS NOT A DEFECT.**
       `/campaigns` row thumbs, its featured cards and the campaign carousel thumb strip
-      now route through the existing pure `optimizedCoverUrl()` helper (200 / 700 / 160
-      px requests) rather than serving the 1200 px original. Measured after: **0 raw
-      1200-wide covers left on /campaigns**, featured cards request 700×525.
-      ⚠️ Still open: the remaining `<img>` on other routes carry no `srcset`, so they
-      serve one fixed width to every device. `next.config.js` already whitelists the
-      hosts, so `next/image` needs no config change.
+      now route through the pure `optimizedCoverUrl()` helper (200 / 700 / 160 px)
+      rather than serving the 1200 px original. **0 raw 1200-wide covers left on
+      /campaigns.**
+
+      ⚠️ **THE OVER-FETCH RATIOS IN THE ORIGINAL AUDIT WERE OVERSTATED — they divided by
+      CSS pixels and ignored devicePixelRatio.** A 1200 px source in a 308 px box is not
+      3.9× over; on a DPR-3 phone that box needs **924 device pixels**, so it is 1.3×.
+      Re-measured on the remaining routes with the DPR correction applied:
+
+      | route | DPR 2 worst | DPR 3 worst | images ≥2× |
+      |---|---|---|---|
+      | `/` | 2.17× | 1.45× | 1 at DPR2, 0 at DPR3 |
+      | `/donate` | 1.69× | 1.12× | 0 |
+
+      `/search`, `/supporter-space`, `/success-stories`, `/gallery`, `/leaderboard` and
+      `/crisis` showed **zero** over-fetching images at either DPR. **Do not "optimise"
+      these** — shrinking a source already close to the device requirement makes the
+      image blurry on a retina phone, which is a worse outcome than a few surplus KB.
+
+      The three that WERE fixed remain justified: a 1200 px source in a 92 px thumb needs
+      276 device pixels at DPR 3, i.e. **4.3× over** — real, just not the "13–18×" the
+      first measurement claimed. ⚠️ Ratio thresholds on images must be computed in DEVICE
+      pixels, or you will chase phantom savings and ship blur.
+
+- [ ] **Manifest has no `screenshots`, so Chrome Android shows the minimal install
+      infobar instead of the rich install dialog.** Attempted 2026-08-09 and
+      ABANDONED, recorded so the next person knows the cost before starting.
+      Generating them from the running build is the obvious approach and it does
+      not work here: `page.screenshot()` times out at 30s on `/` and `/campaigns`
+      — the page never reaches Playwright's stability threshold, almost certainly
+      the hero carousel and the CountUp animations, and `animations: 'disabled'`
+      did not settle it. Worth doing only with a deliberate capture mode (freeze
+      the carousel, or a `?static=1` render path), and worth weighing against the
+      maintenance: screenshots are binary assets that go stale at every redesign,
+      for a richer install dialog on one platform.
+
+### 🛡️ THE SWEEPS COULD NOT TELL "CLEAN" FROM "EMPTY" — now they can
+
+Four fixture bugs in one session all shared one root cause: **no audit in this
+repo asked whether a page rendered its DATA.** They asked about contrast, axe,
+target size and overflow — all of which a zero-state page passes perfectly,
+because there is nothing on it to fail.
+
+⚠️ **`audit-contrast` HAS an empty-render check and it caught none of them.** It
+counts visible leaf text across `body *` — the whole document — against a floor
+of **1** (5 when authenticated). A page with a header, nav and footer clears
+that floor with an entirely empty main region. **Measuring the shell cannot
+detect missing content.**
+
+`scripts/audit-content-contracts.mjs` (`npm run audit:content-contracts`) asserts
+per route that a minimum number of REAL ITEMS is present, scoped to `<main>`.
+Mutation-tested: emptying the `grants` fixture makes it fail `/grants` alone
+while the other seven still pass.
+
+⚠️ **My first draft failed 3 routes and ALL THREE were artifacts** — the same
+7-of-7 rate the focus-order audit hit on its first run. `/supported-countries`
+renders `.sc-country-card` divs, not the `li, tr` I guessed; `/sponsor` and
+`/leaderboard` are client-rendered and were still showing skeletons when I
+measured. Both are fixed (verified selectors; a bounded wait for skeletons to
+clear, reported distinctly from "no data" because they are different problems).
+**A guard that cries wolf is worse than no guard.**
+
+⚠️ It also tripped `route-list-single-source`, correctly: the paths now come from
+`e2e/public-routes.json` and any contract naming a route absent from it exits 2.
+That guard's own message records why — five copies existed before, all five
+drifted, and two listed non-public routes, so the sweeps audited /login and
+passed.
+
+### ✅ /events, /grants AND /sponsor WERE MEASURING NOTHING — the FOURTH instance
+
+`fundraising_events`, `grants` and `sponsorship_opportunities` had **zero fixture
+rows**, so all three routes rendered clean empty states and passed every audit
+having measured none of their real markup. That is now the fourth instance of one
+class this session:
+
+| table | why it matched nothing |
+|---|---|
+| `supported_countries` | fixture used invented column names |
+| `volunteer_opportunities` | `status: 'active'`, but readers filter `open\|upcoming` |
+| `connected_accounts` | no rows ⇒ `payoutReady` false ⇒ the whole donate surface absent |
+| `fundraising_events`, `grants`, `sponsorship_opportunities` | no rows at all |
+
+⚠️ **A zero-state page passes contrast, axe, responsive and target-size checks
+perfectly, because there is nothing on it to fail.** "No fixture" is a COVERAGE
+BUG, not a gap to note.
+
+Each new fixture's `status` was checked against **both** the reader's filter and
+the table's CHECK constraint before writing it — a fixture that cannot match is
+worse than none, since it looks like coverage. Verified: events
+`.eq('status','published')` vs CHECK `draft|published|completed|cancelled`;
+grants `.in('status',['open','upcoming'])` vs CHECK `open|upcoming|closed`
+(fixtures deliberately span BOTH values so neither branch goes unmeasured);
+sponsorships `.eq('status','open')` vs CHECK `draft|open|closed|fulfilled|cancelled`.
+
+Measured after: `/events` 200 with 6 events rendered (72,628 B), `/grants` 200
+with 8 (95,971 B), `/sponsor` 200 with 6 (59,575 B) — previously all three were
+empty states.
+
+### ✅ TWO MORE AUDIT FINDINGS THAT THE TRACKER HAD LOST
+
+Both were in the data sweep's report and never actioned. Found by re-reading the
+**agents' original findings** against current code rather than the tracker — which
+is now twice that has surfaced something (see /corporate-partnerships below).
+
+**`/fast-payouts` claimed "40+ Countries" in three places** while
+`/supported-countries` rendered the real figure from `supported_countries` —
+measured **15** able to fundraise. Two pages, two answers to one factual
+question, and the hardcoded one is the one a visitor cannot check. "40+" was
+also a claim about **Stripe's** global coverage presented as CharitMe's, which
+is a different and larger number than the countries this platform has enabled.
+
+Now read through `lib/payout-countries.ts`, a single reader both pages can use
+— the same single-source-of-truth rule that CAMPAIGN_CATEGORIES and the
+impact-stats module already follow. It returns **`null`, not 0**, on a failed
+read, and the tile is DROPPED rather than rendered as "0 Countries": a database
+blip must not tell an organizer this platform pays out nowhere, on the page
+whose whole job is convincing them they will be paid.
+
+**`/api/campaigns/rotator` turned a failed count into a confident `0`** —
+`statsResult.error` was never checked. The visible outcome was right *by
+accident* (HeroRotator renders "—" for 0), which is exactly why it survived:
+correct output from a wrong value is the hardest kind to notice. Now `null` on
+error, with the consumer typed and rendering "—" for unknown.
+
+⚠️ **The rendered check could not prove the country fix.** The audit stub does
+not support `head: true` count queries, so the reader returns null and the tile
+is correctly omitted — identical to what a reader that ALWAYS returned null
+would produce. `__tests__/payout-country-count.test.ts` covers the branch a live
+database takes, which no local render can exercise.
+
+### ✅ /corporate-partnerships WAS SHOWING INVENTED FIGURES AND INVENTED PEOPLE
+
+Found while re-checking the audit's own findings rather than the tracker — it was
+flagged in the data sweep and never actioned. The page rendered, to prospective
+corporate partners, four figures that exist nowhere in the data:
+
+    $48M+ Raised by corporate partners · 2,100+ Corporate partners worldwide
+    6.2M+ Lives positively impacted    · 1.8M+ Volunteer hours contributed
+
+and three testimonials attributed to named individuals with job titles — "Erin W.,
+Director of Corporate Responsibility", "David L., VP, Global Impact", "Maria G.,
+Head of Social Impact". There is no testimonials table and no such partners.
+
+Both are removed. The figures follow the call already made for /about-us and
+/impact — **a page may show what it can MEASURE, or nothing; never what it made
+up** — and there is no measurable equivalent here (`matching_programs` holds
+programs, not attributed totals), so the band is gone rather than relabelled into
+a number that means something different from its caption. The quotes are a
+different order of wrong: fabricated testimony about identifiable people reads as
+verifiable and is not, which is why /impact already has a test asserting its
+invented vignettes never appear in page source.
+
+`__tests__/no-fabricated-partner-claims.test.ts` guards the literals and is
+mutation-tested — planting one figure and one name fails it. It asserts on the
+CONTENT, not the file's shape, so a future owner-authored, `source_note`-carrying
+stats band can legitimately return.
+
+Verified on a populated render: `/corporate-partnerships` returns 200, 59,537
+bytes, "Ways to Partner" intact, and **zero** occurrences of any of the eight
+fabricated strings.
+
+### ⚠️ A PR CAN END UP WITH NO CI RUN AND NO WAY TO GET ONE
+
+Two rules interact badly, and the result looks like "CI is just slow":
+
+1. `concurrency: cancel-in-progress: true` — every push cancels the in-flight run.
+2. `paths-ignore` includes `todo.md` — a docs-only push starts NO new run.
+
+So: push code → CI starts → push a `todo.md`-only follow-up → the code run is
+**cancelled** and nothing replaces it. Measured here: run `31328457709` on
+`77ad2ea1` (the /glossary fix) was cancelled at 18:18 by a docs commit, and the
+two later `todo.md` commits triggered nothing. The PR then sat at
+`mergeable_state: unstable` with **only the Vercel check**, indistinguishable
+from "CI has not started yet". The code was never verified and never would be.
+
+**The fix is `rerun_workflow_run` on the cancelled run**, not another push — the
+cancelled run's head differs from the current head only by ignored paths, so its
+result is valid for the code. Pushing a no-op to force a run also fails: an empty
+commit changes no paths and is ignored too.
+
+**Rule: land code and docs in ONE push, or push docs FIRST.** And when a PR shows
+only the Vercel check, check whether the last real run was `cancelled` before
+assuming it is still queued.
 
 ### ⚠️ HARNESS TRAP THAT INVALIDATED A WHOLE SWEEP
 
@@ -16809,22 +17028,16 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
   `/api/stripe/connect` onboarding · destination-charge architecture · payout gate ·
   server-side fee math · recurring subscription state machine.
 
-## Remaining (verification-gated — NOT faked)
-- [ ] Live end-to-end charge→transfer→payout→reconcile (GATED on LB-005 Connect
-  live-enablement) + refund/dispute lifecycle via Stripe test clocks.
-- [x] Browser / mobile / accessibility / **load** tests — **DONE (2026-07-25).** The
-  sandbox does have a harness (Playwright + Chromium). Browser+a11y: Lighthouse on
-  **32 public pages, all 100**. Mobile: 390x844 emulation, tap targets 28 -> 0,
-  0 horizontal overflow. Responsive: `scripts/audit-responsive.mjs`, 17 pages x
-  3 viewports x 2 themes = 102 renders, 0 findings. Load: new
-  `scripts/load-test.mjs` (150 req @ concurrency 20 per path) — **0 errors on every
-  path**; see CHAR-SM35 for the one latency outlier it surfaced.
-- [ ] Full per-persona live RLS matrix for payment tables (needs real auth sessions).
-
 ## Verification-gated (NOT faked — needs Stripe live verification / staging)
+
+⚠️ This section and a near-identical "Remaining (verification-gated)" one above
+it were VERBATIM DUPLICATES, down to the completed [x] entry — the same work
+counted twice in the open set. Merged 2026-08-09; keep it as ONE list.
+
 - [ ] Live end-to-end charge→transfer→payout→reconcile (GATED on LB-005 Connect
   live-enablement).
 - [ ] Refund/dispute lifecycle via Stripe test clocks.
+- [ ] Full per-persona live RLS matrix for payment tables (needs real auth sessions).
 - [x] Browser / mobile / accessibility / **load** tests — **DONE (2026-07-25).** The
   sandbox does have a harness (Playwright + Chromium). Browser+a11y: Lighthouse on
   **32 public pages, all 100**. Mobile: 390x844 emulation, tap targets 28 -> 0,

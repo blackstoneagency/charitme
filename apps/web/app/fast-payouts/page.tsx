@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { countPayoutCountries } from '../../lib/payout-countries';
 
 export const metadata: Metadata = {
   title: 'Fast Payouts — Stripe Verified Payouts',
@@ -7,12 +8,24 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://www.charitme.com/fast-payouts' },
 };
 
-const STATS = [
-  { value: 'Free', label: 'Standard payout' },
-  { value: '2 days', label: 'Standard speed' },
-  { value: '1%', label: 'Same-day fee' },
-  { value: '40+', label: 'Countries' },
-];
+// ⚠️ The country figure is MEASURED, not written here. It used to read "40+"
+// while /supported-countries rendered the real number from the same table —
+// 15 able to fundraise. Two pages, two answers to one factual question, and
+// the hardcoded one is the one a visitor cannot check.
+//
+// `countPayoutCountries()` returns null when the read fails, and the tile is
+// dropped rather than shown as 0: "0 Countries" on the page that convinces an
+// organizer they will get paid is worse than one fewer tile.
+function buildStats(payoutCountries: number | null) {
+  return [
+    { value: 'Free', label: 'Standard payout' },
+    { value: '2 days', label: 'Standard speed' },
+    { value: '1%', label: 'Same-day fee' },
+    ...(payoutCountries !== null
+      ? [{ value: String(payoutCountries), label: payoutCountries === 1 ? 'Country' : 'Countries' }]
+      : []),
+  ];
+}
 
 const VERIFICATION_STEPS = [
   { step: '01', icon: '🔗', title: 'Connect a Stripe account', body: 'Click "Connect payouts" from your dashboard. CharitMe opens the Stripe Express onboarding flow — takes 2–3 minutes for most users.' },
@@ -32,7 +45,10 @@ const TRUST_POINTS = [
   'Bank-level encryption for all financial data',
   'Automated fraud detection and risk scoring',
   'Secure identity verification and KYC compliance',
-  'Support for 40+ countries and all major currencies',
+  // The country count was removed from this line rather than made dynamic:
+  // it is a static list, and the measured figure already appears in the stats
+  // tile above. One number, one place.
+  'Support for international payouts and all major currencies',
 ];
 
 const HOLDS = [
@@ -43,13 +59,18 @@ const HOLDS = [
 
 const PAYOUT_FAQS = [
   { q: 'Why is there a 7-day hold for new accounts?', a: 'New fundraiser accounts have a 7-day payout hold on their first campaign to allow for fraud review and donor dispute resolution. This is standard practice across all major crowdfunding platforms. Established accounts with prior verified campaigns are not subject to this hold.' },
-  { q: 'What countries support payouts?', a: 'CharitMe supports payouts in all countries where Stripe Connect Express is available — 40+ countries. Payout timing, currency, and method depend on your country and Stripe Connect rules.' },
+  // "40+" removed: that was a claim about Stripe's global coverage being
+  // presented as CharitMe's, which is a different and larger number than the
+  // countries this platform has actually enabled.
+  { q: 'What countries support payouts?', a: 'CharitMe supports payouts in the countries listed on our Supported Countries page, using Stripe Connect Express. Payout timing, currency, and method depend on your country and Stripe Connect rules.' },
   { q: 'Why would my payout be frozen?', a: 'Payouts are frozen if your campaign is under trust review, if Stripe flags unusual activity on your connected account, or if a donor dispute is filed. You will be notified and can respond within 48 hours.' },
   { q: 'What is the difference between same-day and instant payouts?', a: 'Standard payouts process in 2 business days. Same-day payouts (1% fee) process on the same business day. Instant payouts (1.5% fee) transfer to an eligible debit card or bank account in minutes. Instant payouts require low-risk verified accounts only.' },
   { q: 'Does CharitMe ever hold my money?', a: 'CharitMe is not a money transmitter and does not hold campaign funds. Donations are processed by Stripe and held in your Stripe Connect balance until payout. CharitMe instructs Stripe to transfer funds on the schedule you choose.' },
 ];
 
-export default function FastPayoutsPage() {
+export default async function FastPayoutsPage() {
+  const payoutCountries = await countPayoutCountries();
+  const STATS = buildStats(payoutCountries);
   return (
     <div className="fp">
       {/* Hero */}

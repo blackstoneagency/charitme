@@ -23,6 +23,7 @@
     "audit:focus-order": "node scripts/audit-focus-order.mjs",
     "audit:image-dupes": "node scripts/audit-image-dupes.mjs",
     "audit:signed-in": "node scripts/audit-signed-in.mjs --build --strict-gradients",
+    "audit:content-contracts": "node scripts/audit-content-contracts.mjs",
     "audit:personas": "node scripts/audit-personas.mjs --build",
     "audit:a11y": "node scripts/audit-a11y.mjs",
     "audit:authed": "node scripts/audit-authed.mjs",
