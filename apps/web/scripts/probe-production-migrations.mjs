@@ -70,6 +70,25 @@ const NIL_UUID = '00000000-0000-0000-0000-000000000000';
 /** @type {Probe[]} */
 const PROBES = [
   {
+    migration: '20260904020001_campaign_real_cover_photos',
+    proves: 'campaign covers are real CC0 photographs, not generated cards',
+    firstCreatedIn: '20260904020001_campaign_real_cover_photos',
+    path: '/api/campaigns?limit=100&sort=newest',
+    // Before: every cover is a first-party `/media/subject` card. After: the 501
+    // campaigns the migration names carry an images.rawpixel.com photo.
+    //
+    // A MAJORITY rather than "all" or "any". "Any" would pass on a single
+    // organizer upload that happened to be hosted there; "all" would flip to
+    // "not applied" the moment somebody creates a campaign after the migration
+    // ran, since new rows still get a generated card. Half is unreachable
+    // before application (it was 0 of 502) and stable long after.
+    ok: (b) => Array.isArray(b?.campaigns)
+      && b.campaigns.length > 0
+      && b.campaigns.filter((c) => /images\.rawpixel\.com/.test(c?.cover_image_url ?? '')).length
+        > b.campaigns.length / 2,
+    control: { path: '/api/campaigns?category=not-a-real-category', status: 400 },
+  },
+  {
     migration: '20260831000000_seed_priority_cause_catalogs',
     proves: 'campaigns priority cause catalog rows',
     firstCreatedIn: '20260831000000_seed_priority_cause_catalogs',

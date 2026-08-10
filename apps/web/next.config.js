@@ -9,6 +9,8 @@ const nextConfig = {
     remotePatterns: [
       { protocol: 'https', hostname: '**.supabase.co' },
       { protocol: 'https', hostname: 'images.unsplash.com' },
+      // CC0 campaign covers assigned by scripts/assign-campaign-photos.mjs.
+      { protocol: 'https', hostname: 'images.rawpixel.com' },
     ],
   },
   async headers() {

@@ -36,7 +36,11 @@ import ts from 'typescript';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CATALOG = join(__dirname, '..', 'lib', 'photo-catalog.ts');
 const MIGRATIONS_DIR = join(__dirname, '..', '..', '..', 'supabase', 'migrations');
-const APPROVED_HOSTS = ['images.unsplash.com'];
+// `images.rawpixel.com` serves the CC0 covers assigned by
+// scripts/assign-campaign-photos.mjs. CC0 is a public-domain dedication —
+// no attribution, no share-alike, commercial use fine — so it clears the same
+// bar as the Unsplash License that got the first host approved.
+const APPROVED_HOSTS = ['images.unsplash.com', 'images.rawpixel.com'];
 const MIN_POOL = 4;
 const LIVE = process.argv.includes('--live');
 
