@@ -73,6 +73,40 @@ function serialize(inventory) {
  */
 export function recordAssets(assets) {
   const inventory = JSON.parse(readFileSync(INVENTORY, 'utf8'));
+
+  // ⚠️ De-duplicate by path FIRST, because a git merge can produce duplicates
+  // that neither side wrote. Two lanes now record entries here, and when both
+  // describe the same new asset the `ort` strategy appends both lists rather
+  // than merging them by key — JSON has no notion of "same record". That is
+  // exactly what happened: master's #359 inventoried the 12 device screenshots
+  // while this branch inventoried them too, and the merge produced 63 entries
+  // for 51 files, which the audit rejects as duplicates.
+  //
+  // Keeping the entry whose hash matches disk means a repaired-by-merge file
+  // heals on the next generator run instead of needing another hand edit.
+  const deduped = [];
+  const kept = new Map();
+  for (const asset of inventory.assets) {
+    const previous = kept.get(asset.path);
+    if (!previous) {
+      kept.set(asset.path, asset);
+      deduped.push(asset);
+      continue;
+    }
+    const onDisk = existsSync(path.join(PUBLIC_DIR, asset.path))
+      ? sha256(path.join(PUBLIC_DIR, asset.path))
+      : null;
+    // Prefer whichever copy actually describes the bytes on disk.
+    if (onDisk !== null && asset.sha256 === onDisk && previous.sha256 !== onDisk) {
+      deduped[deduped.indexOf(previous)] = asset;
+      kept.set(asset.path, asset);
+    }
+  }
+  if (deduped.length !== inventory.assets.length) {
+    console.log(`· image inventory: dropped ${inventory.assets.length - deduped.length} duplicate entr(ies) left by a merge`);
+    inventory.assets = deduped;
+  }
+
   const byPath = new Map(inventory.assets.map((a) => [a.path, a]));
   const added = [];
   const updated = [];
