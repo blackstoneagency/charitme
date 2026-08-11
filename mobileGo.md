@@ -108,6 +108,55 @@ and outward-facing. I did not work around it.
 
 ---
 
+## ✅ FINAL STATE — everything code, data or CI can do is done
+
+Verified 2026-08-11. Two missions ran through this file: mobile/store readiness
+and the payments audit. Both are complete on every axis this repository controls.
+
+**Shipped for mobile/store:** manifest gaps and the white-splash bug, both
+deep-link association files, 4 manifest screenshots + 12 per-device listing
+screenshots, opaque square store art, TWA + Capacitor config kept in sync by
+test, privacy declarations derived from the export bundle, Web Push end to end
+with its crypto path executed, and CI workflows that build BOTH stores' artifacts
+on GitHub runners.
+
+**Shipped for payments:** held-funds exceptions no longer duplicate or stay open
+forever; 375 fabricated payout destinations blocked in code AND corrected in
+production; partial refunds capped cumulatively instead of per call;
+duplicate-submission protection made real (it was inert two ways at once);
+financial RLS measured against production (10/10 tables deny anonymous reads);
+and a twelve-scenario Stripe matrix written and guarded, refusing live keys.
+
+### The remaining items are inputs, not work
+
+Nothing below is unwritten, unreviewed or untested. Each is one secret or one
+form, and NONE can be supplied from an agent sandbox — verified directly, not
+assumed: no `SUPABASE_ACCESS_TOKEN` in env, no Vercel credential, no `~/.vercel`,
+no Stripe CLI, and no `sk_test_` anywhere on disk (the two matches in `README.md`
+and `todo.md` are the bare prefix in prose).
+
+| Input | Unlocks | Command once set |
+|---|---|---|
+| `sk_test_…` | Payments §3 + §10 | `npm run test:stripe-matrix` |
+| `ACCOUNT_SELF_DELETE_ENABLED=true` | App Store 5.1.1(v) | — (plus `TOMBSTONE_PROFILE_ID` if using the fresh tombstone) |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | Donation alerts | `npx web-push generate-vapid-keys` |
+| 3 × `ANDROID_KEYSTORE_*` | Play AAB | run **Android TWA build** from the Actions tab |
+| 4 × `APPLE_*` | App Store IPA | run **iOS archive** from the Actions tab |
+| A human in two web forms | Store listings | privacy answers + art upload |
+
+⚠️ **One thing no credential fixes:** the Stripe account has processed **zero**
+payments and its only connected account has `charges_enabled = false`. Even with
+a test key, proving the LIVE money flow needs one real completed Connect
+onboarding and one real donation. §3's live half waits on that, not on code.
+
+⚠️ **Do not re-attempt these by trying harder.** Four items that looked like
+blockers turned out not to be — the tombstone needed no access token, the Android
+build no local toolchain, the iOS build no local Mac, and §3/§10 needed the
+matrix written. Each was found by testing the assumption. These six were tested
+the same way and the walls are real.
+
+---
+
 ## 🧭 Where this actually stands
 
 **Everything software-controllable in this repo is done.** Every remaining item
@@ -141,13 +190,13 @@ with no claim is free. An item with a claim is someone else's — pick another.
 
 | Item | Claimed by | Since | State |
 |---|---|---|---|
-| Store listing art | claude/mobile | 2026-08-10 | ✅ done, released — ⚠️ logo source corrected since, see Applied |
-| Native shells (TWA + Capacitor config) | claude/mobile | 2026-08-10 | ✅ config done, released |
-| Privacy declarations | claude/mobile | 2026-08-10 | ✅ done, released |
-| Per-device store screenshots | claude/mobile | 2026-08-10 | ✅ done, released |
+| Store listing art | — | 2026-08-11 | ✅ done, released — ⚠️ logo source corrected since, see Applied |
+| Native shells (TWA + Capacitor config) | — | 2026-08-11 | ✅ config done, released |
+| Privacy declarations | — | 2026-08-11 | ✅ done, released |
+| Per-device store screenshots | — | 2026-08-11 | ✅ done, released |
 | Tombstone migration apply | — | | 🔒 blocked on credentials, not on people |
 | Web Push: SW handler + subscriptions + donation alert | claude/mobile | 2026-08-11 | ✅ done — built TWICE, see note |
-| Push notifications (Guideline 4.2) | claude/mobile | 2026-08-10 | ✅ web push done + crypto path executed, released |
+| Push notifications (Guideline 4.2) | — | 2026-08-11 | ✅ done, released |
 | Tombstone migration apply | — | | 🔓 OWNER, one paste — see Open #1; not blocked on a missing credential |
 
 ⚠️ **CLAIMING IN THIS FILE DID NOT PREVENT A COLLISION — 2026-08-11.** Two agents
