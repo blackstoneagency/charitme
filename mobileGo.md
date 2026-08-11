@@ -36,10 +36,10 @@ measured, not guessed:
 
 | Blocked on | Item | What was actually tried |
 |---|---|---|
-| `SUPABASE_ACCESS_TOKEN` or DB password | Apply the 49 pending migrations | CLI returns `Access token not provided`; `~/.supabase` empty; service-role key cannot run DDL — PostgREST executes RPCs, not schema changes |
+| `SUPABASE_ACCESS_TOKEN` | Apply the tombstone migration | **Now one command, not 49.** `node scripts/apply-one-migration.mjs 20260904030000_deleted_user_tombstone --commit` applies that migration alone and records it in the ledger. It refuses any migration containing DROP/DELETE/TRUNCATE, so it cannot be pointed at the two dedupe migrations by mistake |
 | Owner env var | `ACCOUNT_SELF_DELETE_ENABLED=true` | Depends on the tombstone migration above |
 | Owner env var | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | A local keypair was generated and the full crypto path executed offline — see below. Production keys must be the owner's |
-| JDK + Android SDK | Bubblewrap AAB | Config generated and sync-tested; the build needs toolchains |
+| Play signing secrets | Bubblewrap AAB | **No longer a toolchain problem.** `.github/workflows/android-twa.yml` builds it on a runner that has the JDK and Android SDK. Needs `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` in Actions secrets; run it from the Actions tab |
 | macOS + Xcode | iOS archive | Same |
 | Play Console / Apple Developer | Signing fingerprint, `IOS_APP_ID` | Association files are written and 404 until configured, deliberately |
 | Store consoles | Entering privacy answers, uploading art | Answers derived and art generated; entry is a human in a web form |
