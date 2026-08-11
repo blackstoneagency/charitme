@@ -125,9 +125,9 @@ measured, not guessed:
 | Owner env var | `ACCOUNT_SELF_DELETE_ENABLED=true` | Depends on the tombstone migration above |
 | Owner env var | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | A local keypair was generated and the full crypto path executed offline — see below. Production keys must be the owner's |
 | Play signing secrets | Bubblewrap AAB | **No longer a toolchain problem.** `.github/workflows/android-twa.yml` builds it on a runner that has the JDK and Android SDK. Needs `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` in Actions secrets; run it from the Actions tab |
-| macOS + Xcode | iOS archive | Same |
+| Apple Developer secrets | iOS archive | **No longer a toolchain problem.** `.github/workflows/ios-archive.yml` runs on a `macos-14` runner with Xcode preinstalled: adds the Capacitor project, installs the privacy manifest, signs, archives and exports an IPA. Needs `APPLE_CERTIFICATE_P12_BASE64`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_PROVISIONING_PROFILE_BASE64`, `APPLE_TEAM_ID` |
 | Play Console / Apple Developer | Signing fingerprint, `IOS_APP_ID` | Association files are written and 404 until configured, deliberately |
-| Store consoles | Entering privacy answers, uploading art | Answers derived and art generated; entry is a human in a web form |
+| Store consoles | Entering privacy answers, uploading art | Answers derived and art generated; entry is a human in a web form — the one item with no software seam at all |
 
 ---
 
@@ -354,7 +354,7 @@ Deliberate: `master` deploys straight to production, and an irreversible delete
 must not arrive as a side effect of a merge. Set to `true` **after** the migration
 is applied. Until then the endpoint 404s and the UI keeps the review-queue flow.
 
-### 3. Native shells — config landed, builds still need toolchains
+### 3. Native shells — config landed, and both builds now run in CI
 `twa-manifest.json` (Play) and `capacitor.config.ts` (iOS) are committed and
 generated to match `app/manifest.ts` field for field, with
 `docs/native-shells.md` for the build path.
@@ -362,10 +362,19 @@ generated to match `app/manifest.ts` field for field, with
 COPY of manifest values, and drift there is invisible on the website and shows up
 only on a phone someone already installed.
 
-**Still open:** the builds themselves. Bubblewrap needs a JDK + Android SDK,
-Capacitor's iOS build needs Xcode on macOS; neither exists in this sandbox. The
-`ios/` and `android/` directories are deliberately NOT committed — they are
-generated artifacts, and a `.pbxproj` conflicting on every merge in a repo
+✅ **Both builds now have workflows.** `android-twa.yml` (ubuntu, JDK + Android
+SDK) and `ios-archive.yml` (macos-14, Xcode preinstalled). Neither could run in
+this sandbox; both run on a GitHub runner, so the toolchain half is solved and
+only Apple/Play secrets remain.
+
+⚠️ `ios-archive.yml` copies `native/ios/PrivacyInfo.xcprivacy` into the generated
+project. Without that step the declaration exists in the repo and is **absent
+from every build** — the file is there, the workflow succeeds, and Apple's
+required manifest simply is not in the bundle. Guarded by
+`store-build-workflows.test.ts`.
+
+The `ios/` and `android/` directories are still deliberately NOT committed — they
+are generated artifacts, and a `.pbxproj` conflicting on every merge in a repo
 several agents write to hourly costs more than regenerating it.
 
 ### 4. Store credentials, which unblock the association files
