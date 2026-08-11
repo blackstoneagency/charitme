@@ -1,24 +1,26 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const webhook = readFileSync(join(here, '..', 'app/api/stripe/webhook/route.ts'), 'utf8');
-const portfolio = readFileSync(join(here, '..', 'app/api/donations/portfolio/route.ts'), 'utf8');
 
 // ─────────────────────────────────────────────────────────────────────────────
-// "CharitMe never holds donation funds" is true of every route EXCEPT portfolio
-// gifts, and that exception is forced rather than chosen: Stripe's
-// `transfer_data.destination` takes exactly ONE connected account, and a
-// portfolio gift splits across several campaigns. So the charge lands on the
-// platform balance and the webhook fans it out.
+// Portfolio split gifts are WITHDRAWN — the checkout that created them is gone,
+// so no new portfolio charge can ever land on CharitMe's balance.
 //
-// That makes two things load-bearing:
+// ⚠️ THIS FILE IS NOT OBSOLETE, AND THE HANDLER IT GUARDS MUST NOT BE DELETED
+// WITH THE FEATURE. A Stripe Checkout Session lives ~24 hours. A donor who
+// opened the portfolio checkout before the withdrawal shipped can still PAY
+// after it. For those sessions the money behaves exactly as it always did: it
+// lands on the platform balance and the webhook has to fan it out.
 //
-//   1. The route must refuse to charge at all unless EVERY campaign can be paid,
-//      so the fan-out has a destination for each line.
-//   2. When a transfer still does not happen, the obligation must be RECORDED —
+// So the two things that were load-bearing still are, for as long as one unpaid
+// portfolio session could exist:
+//
+//   1. The webhook must record one donation per campaign and move the money.
+//   2. When a transfer does not happen, the obligation must be RECORDED —
 //      otherwise CharitMe is holding donor money with no record of whose it is.
 //
 // ⚠️ (2) was a `console.warn` and a `console.error`. The comment above them said
@@ -26,19 +28,22 @@ const portfolio = readFileSync(join(here, '..', 'app/api/donations/portfolio/rou
 // retried by an operator" — but nothing scheduled the payment, and the operator
 // had only a log line. Money could sit on the platform balance indefinitely,
 // invisible. That is the difference between briefly holding funds and holding
-// them unaccountably.
+// them unaccountably. Withdrawing the feature does not settle the sessions
+// already in flight; this does.
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('portfolio refuses to charge money it cannot route', () => {
-  it('checks payout readiness for EVERY campaign before charging', () => {
-    expect(portfolio).toMatch(/campaigns\.map\(\(campaign\) => resolvePayoutDestination\(campaign\)\)/);
-    expect(portfolio).toMatch(/PAYOUT_NOT_READY/);
+describe('the portfolio checkout is withdrawn', () => {
+  it('no route can create a new portfolio session', () => {
+    expect(existsSync(join(here, '..', 'app/api/donations/portfolio/route.ts')),
+      'the portfolio charge route is back — it puts donor money on the platform balance')
+      .toBe(false);
   });
 
-  it('declines rather than guessing when readiness cannot be determined', () => {
-    // Same rule as /api/donations: "could not check" is not "not set up".
-    expect(portfolio).toMatch(/PayoutLookupUnavailableError/);
-    expect(portfolio).toMatch(/PAYOUT_LOOKUP_UNAVAILABLE/);
+  it('the settle path survives the withdrawal', () => {
+    // The asymmetry is the point: creating is gone, settling is not. Removing
+    // both at once would strand any session paid after the deploy.
+    expect(webhook).toMatch(/meta\.portfolio === '1'/);
+    expect(webhook).toMatch(/handlePortfolioComplete/);
   });
 });
 

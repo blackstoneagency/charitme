@@ -31,13 +31,18 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 // is the review, and it cannot be silenced by adding a route, only by deciding
 // which kind of money it moves.
 //
-// ⚠️ PORTFOLIO IS THE ONE EXCEPTION AND IT IS FORCED, NOT CHOSEN. Stripe's
-// `transfer_data.destination` takes exactly ONE connected account; a portfolio
-// gift splits across several campaigns. So it charges to the platform balance
-// and the webhook fans out. It is listed as its own kind rather than quietly
-// filed under PLATFORM, because it is the only place CharitMe genuinely does
-// hold donor money — briefly, and now with a durable record when a leg fails
-// (see `portfolio-held-funds.test.ts`).
+// ⚠️ THERE IS NO LONGER A THIRD KIND. Portfolio split gifts were the one route
+// that could not be a destination charge — Stripe's `transfer_data.destination`
+// takes exactly ONE connected account, and a split gift has several — so it
+// charged to the platform balance and the webhook fanned the money out. That
+// made it the only place CharitMe genuinely held donor funds. The feature is
+// withdrawn, and with it the exception: EVERY remaining route either routes to a
+// connected account or is CharitMe's own revenue.
+//
+// The `fan-out` kind is deliberately still defined and still asserted to be
+// EMPTY. Deleting it would make reintroducing a platform-balance charge a
+// question of adding a route; leaving it means reintroducing one has to say so
+// out loud, in this file, in a kind whose emptiness is the current promise.
 // ─────────────────────────────────────────────────────────────────────────────
 
 type Kind = 'routed' | 'platform' | 'fan-out';
@@ -50,10 +55,6 @@ const EXPECTED: Record<string, { kind: Kind; why: string }> = {
   'app/api/donations/recurring/route.ts': {
     kind: 'routed',
     why: 'same as a one-off donation, on a subscription',
-  },
-  'app/api/donations/portfolio/route.ts': {
-    kind: 'fan-out',
-    why: 'splits across several campaigns, which one destination cannot express',
   },
   'app/api/events/[id]/tickets/checkout/route.ts': {
     kind: 'routed',
@@ -101,7 +102,7 @@ describe('every charge-creating route is classified', () => {
     // is renamed, the calls move behind a wrapper), discovery silently returns
     // few or no files and every assertion below passes vacuously.
     expect(routes.length, 'charge-route discovery found almost nothing — the pattern has drifted')
-      .toBeGreaterThanOrEqual(7);
+      .toBeGreaterThanOrEqual(6);
   });
 
   it('has no route moving money without a decision recorded here', () => {
@@ -185,27 +186,29 @@ describe('platform-revenue routes are the ONLY ones that may charge to CharitMe'
   });
 });
 
-describe('the fan-out exception stays exceptional', () => {
+describe('no route charges to the platform balance any more', () => {
   const fanOut = Object.entries(EXPECTED).filter(([, v]) => v.kind === 'fan-out').map(([p]) => p);
 
-  it('is exactly one route', () => {
-    // If a second route ever needs to hold funds, that is an architecture
-    // decision worth making deliberately rather than by adding a line here.
-    expect(fanOut).toEqual(['app/api/donations/portfolio/route.ts']);
+  it('is EMPTY — CharitMe holds nobody else\'s money', () => {
+    // The whole promise, in one assertion. Portfolio split gifts were the only
+    // route that landed donor money on CharitMe's balance; withdrawing them
+    // removed the exception rather than shrinking it.
+    expect(fanOut).toEqual([]);
   });
 
-  it('still gates on EVERY recipient being payable before it charges', () => {
-    // It cannot use one destination, but it can refuse to take money it has no
-    // route for — which is what keeps the hold brief rather than indefinite.
-    const src = read(fanOut[0]);
-    expect(src).toMatch(/PAYOUT_NOT_READY/);
-    expect(src).toMatch(/PayoutLookupUnavailableError/);
+  it('the withdrawn portfolio checkout is really gone', () => {
+    expect(routes, 'a portfolio charge route is back')
+      .not.toContain('app/api/donations/portfolio/route.ts');
   });
 
-  it('records the obligation when a leg cannot be paid', () => {
-    // The webhook fans out; a failed leg leaves CharitMe holding money it owes.
-    // That must be a row someone can act on, not a log line.
+  it('but the webhook can STILL settle a session created before the withdrawal', () => {
+    // ⚠️ Not dead code, and deleting it loses money. Checkout Sessions live ~24h,
+    // so a portfolio session opened before the withdrawal shipped can still be
+    // PAID after it. Without this handler that donation is never recorded and the
+    // money sits on the platform balance with nothing saying whose it is —
+    // precisely the failure withdrawing the feature was meant to end.
     const webhook = read('app/api/stripe/webhook/route.ts');
+    expect(webhook).toMatch(/handlePortfolioComplete/);
     expect(webhook).toMatch(/recordHeldFunds\(/);
     expect(webhook).toMatch(/reconciliation_exceptions/);
   });

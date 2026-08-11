@@ -72,7 +72,6 @@ const LEARN = [
   { icon: 'search', title: 'Read a Campaign', body: 'Know what to look for and which warning signs deserve attention.', action: 'Start learning', href: '/impact-education' },
   { icon: 'shield', title: 'Verification Process', body: 'See what CharitMe checks before money moves.', action: 'How verification works', href: '/verification' },
   { icon: 'dollar', title: 'Where Money Goes', body: 'Read the full fee and payment-processing breakdown.', action: 'View fees', href: '/fees' },
-  { icon: 'heart', title: 'Give to Many', body: 'Split one gift across several campaigns with one checkout.', action: 'Build a giving bundle', href: '/give' },
 ];
 
 const CAUSES = [
@@ -167,10 +166,10 @@ export default async function SupporterSpacePage() {
 
       <ReferenceCta
         icon="heart"
-        title="Give Once, Support Several Causes"
-        body="Split one amount across multiple campaigns and keep the experience simple."
+        title="Find a Cause Worth Backing"
+        body="Browse active fundraisers and give directly to the people running them."
         actions={[
-          { label: 'Give to Many Causes', href: '/give' },
+          { label: 'Browse Campaigns', href: '/campaigns' },
           { label: 'Other Ways to Help', href: '/get-involved', variant: 'secondary' },
         ]}
       />

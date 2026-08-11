@@ -24523,3 +24523,58 @@ portfolio architecture decision, and the event-ticket fee rate — tickets route
 100% to the organizer and CharitMe absorbs Stripe's cost, which is a deliberate
 fee posture nobody has documented. Setting one is a fee change, which requires
 explicit requirements.
+
+### ✅ DONE — Claude, 2026-08-11 — portfolio split gifts withdrawn; event tickets now carry a 10% fee
+
+**Portfolio split gifts are gone.** They were the only route where CharitMe
+genuinely held donor money: Stripe's `transfer_data.destination` takes exactly
+ONE connected account, and a split gift has several, so the charge landed on the
+platform balance and the webhook fanned it out afterwards. Withdrawn rather than
+re-architected.
+
+Removed: `POST /api/donations/portfolio`, the `/give` builder UI, and every link
+into it (footer "Ways to Give", supporter-space tile + CTA, the campaigns-list
+rail, the sitemap entry, the e2e route list).
+
+`/give` is a **permanent redirect to `/campaigns`**, not a deletion: it was an
+indexed canonical URL linked from three surfaces, and it was the withdrawn
+checkout's Stripe `cancel_url`.
+
+⚠️ **The webhook's settle path is deliberately KEPT, and must not be deleted with
+the feature.** A Checkout Session lives ~24h, so a portfolio session opened
+before this shipped can still be PAID after it. Without `handlePortfolioComplete`
+that donation is never recorded and the money sits on the platform balance with
+nothing saying whose it is — exactly the failure the withdrawal was meant to end.
+`portfolio-held-funds.test.ts` now asserts the asymmetry directly: the charge
+route must NOT exist, the settle path must. It can go once no unpaid portfolio
+session can remain.
+
+`money-routing-inventory` keeps the `fan-out` kind **defined and asserted
+EMPTY**. Deleting it would make reintroducing a platform-balance charge a matter
+of adding a route; leaving it means reintroducing one has to say so out loud.
+
+**Event tickets now take a 10% CharitMe commission.** The route set a payout
+destination but NO `application_fee_amount`, so CharitMe collected nothing on a
+ticket sale and still absorbed Stripe's processing cost — every ticket sold lost
+money. `EVENT_TICKET_FEE_PERCENT` + `eventTicketFee()` live in `@shared/fees`;
+the fee is computed from the RESERVATION total (already verified against
+`price_cents × quantity`), so it cannot be taken on a price the buyer is not
+being charged. Still a destination charge: the organizer nets total − fee.
+
+⚠️ **ASSUMPTION, flagged for confirmation.** The instruction was "update the
+events tickets without a 10% share at me fee", dictated. It is read as WITH a 10%
+CharitMe fee — a rate is only named to specify one, and it answers the open
+question this file recorded ("needs the intended rate from the user"). If the
+intent was the opposite, it is one constant: set `EVENT_TICKET_FEE_PERCENT = 0`.
+
+`__tests__/event-ticket-money-flow.test.ts` (13 tests) executes the route.
+Mutation-tested: removing the fee fails 4 tests, computing it per-unit instead of
+per-order fails 4, `floor` instead of `round` fails 1.
+
+⚠️ **One mutation initially passed and the fix was a design change, not a bigger
+assertion.** Deleting the `[0, total]` clamp changed nothing, because at 10% the
+clamp can never bind — it was dead code that a test claimed to cover. The rate is
+now a parameter with a default, so a >100% rate reaches the clamp and the guard
+is genuinely exercised.
+
+**Suite: 4257 tests / 376 files**, typecheck and lint clean.

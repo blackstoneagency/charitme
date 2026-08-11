@@ -279,12 +279,37 @@ if (analyzed === 0) {
 
 const shared = [...seenAcross.entries()].filter(([, usage]) => usage.paths.size > 1);
 const unrelatedShared = shared.filter(([, usage]) => usage.entities.size !== 1 || usage.entities.has(null));
-if (STRICT_GLOBAL && unrelatedShared.length > 0) {
+// ⚠️ THIS WAS "0 SHARED IMAGES ACROSS PAGES, OR FAIL", AND IT IS UNSATISFIABLE.
+//
+// The sweep covers 115 public routes. The photo catalog holds 45 photographs. An
+// image that may appear on only one route therefore needs 115+ photographs, and
+// no arrangement of 45 can satisfy it.
+//
+// It passed once, for a bad reason: every uncovered slot rendered GENERATED ART
+// (`/media/subject?…`), which carries no `unsplash:` identity and so was never
+// counted. The gate was green precisely because the site showed coloured blocks
+// with text on them instead of photographs — the defect fixed in #362, and the
+// one the product owner explicitly asked to be rid of.
+//
+// So it becomes a RATCHET. It does not pretend the variety is sufficient; it
+// stops it degrading, and the number below is the standing debt.
+const MAX_UNRELATED_SHARED = 29;
+if (STRICT_GLOBAL && unrelatedShared.length > MAX_UNRELATED_SHARED) {
   for (const [identity, usage] of unrelatedShared) {
     process.stdout.write(`SHARED ${identity}: ${[...usage.paths].join(', ')}\n`);
   }
-  process.stdout.write(`\nGlobal image uniqueness failures: ${unrelatedShared.length}\n`);
+  process.stdout.write(
+    `\nGlobal image uniqueness failures: ${unrelatedShared.length}, up from ${MAX_UNRELATED_SHARED}.\n`
+    + 'This ratchet only moves down. Clearing it needs more photographs — curated\n'
+    + 'catalog IDs, or UNSPLASH_ACCESS_KEY set so live themed covers resolve per\n'
+    + 'campaign — not a wider spread of the ones already here.\n',
+  );
   process.exit(1);
+}
+if (STRICT_GLOBAL) {
+  process.stdout.write(
+    `· ${unrelatedShared.length} images appear on unrelated pages (ratchet: ≤ ${MAX_UNRELATED_SHARED})\n`,
+  );
 }
 const sameEntityShared = shared.length - unrelatedShared.length;
 console.log(`· ${seenAcross.size} distinct images; ${sameEntityShared} repeat only for the same entity across pages (allowed)`);
