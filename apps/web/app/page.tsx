@@ -366,7 +366,12 @@ export default async function HomePage() {
                 own rule forbids: "labels that say exactly what was counted." */}
             <dl className="mirror-metric-1"><div><dt><Icon name="users" /> Donations</dt><dd><CountUp value={metrics.donations} kind="int" /></dd></div></dl>
             <dl className="mirror-metric-2"><div><dt><Icon name="globe" /> Active causes</dt><dd><CountUp value={metrics.campaigns} kind="int" /></dd></div></dl>
-            <dl className="mirror-metric-3"><div><dt><Icon name="shield" /> Average trust score</dt><dd><CountUp value={metrics.trustAvg} kind="percent" /></dd></div></dl>
+            {/* ⚠️ A fourth tile, "Average trust score", was removed here on the
+                owner's instruction. The band is now three metrics wide and the
+                grid track count in `globals.css` was cut to match — a stale
+                `repeat(4, …)` would leave an empty column with a divider in it.
+                `metrics.trustAvg` is still read and still rendered, in the hero
+                proof slot above; this removed the tile, not the figure. */}
           </div>
         </section>
       )}

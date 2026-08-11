@@ -3038,7 +3038,7 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 .mirror-cause:nth-child(6) strong { color: #ff9a59; }
 
 .mirror-metrics { padding-block: 22px; background: #050c16; }
-.mirror-metric-grid { display: grid; grid-template-columns: 1.35fr repeat(4, minmax(0, 1fr)); }
+.mirror-metric-grid { display: grid; grid-template-columns: 1.35fr repeat(3, minmax(0, 1fr)); }
 .mirror-metric-grid > * { min-width: 0; min-height: 92px; padding: 13px 22px; border-right: 1px solid var(--mh-line); }
 .mirror-metric-grid > :last-child { border-right: 0; }
 .mirror-metric-intro { display: flex; gap: 14px; align-items: center; }
@@ -3053,7 +3053,6 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 .mirror-metric-grid dl:nth-of-type(1) dd { color: #ff4c88; }
 .mirror-metric-grid dl:nth-of-type(2) dd { color: #f7a521; }
 .mirror-metric-grid dl:nth-of-type(3) dd { color: #82dc48; }
-.mirror-metric-grid dl:nth-of-type(4) dd { color: #b46aff; }
 
 .mirror-proof { padding-block: var(--band-pad); }
 /* One column since the spotlight campaign card was removed from this section.
@@ -3121,11 +3120,10 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 [data-theme="light"] .mirror-metric-grid dl:nth-of-type(1) dd { color: #c51f5d; }
 [data-theme="light"] .mirror-metric-grid dl:nth-of-type(2) dd { color: #9a4a06; }
 [data-theme="light"] .mirror-metric-grid dl:nth-of-type(3) dd { color: #28751f; }
-[data-theme="light"] .mirror-metric-grid dl:nth-of-type(4) dd { color: #7137b3; }
 
 @media (max-width: 1100px) {
   .mirror-cause-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .mirror-metric-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .mirror-metric-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .mirror-metric-intro { grid-column: 1 / -1; min-height: 74px; border-right: 0; border-bottom: 1px solid var(--mh-line); }
   .mirror-trust-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 22px; }
   .mirror-trust article:nth-child(3) { border-right: 0; }
@@ -11347,7 +11345,6 @@ a.partner-roster-link:hover { border-color: var(--b2); background: var(--s2); }
 .mirror-metric-0 dt svg { color: #ff4d8d; }
 .mirror-metric-1 dt svg { color: #ff9d3d; }
 .mirror-metric-2 dt svg { color: #3ddc97; }
-.mirror-metric-3 dt svg { color: #8b7bff; }
 
 /* ── Stories that inspire hope ──────────────────────────────────────────── */
 .mirror-stories-head {
