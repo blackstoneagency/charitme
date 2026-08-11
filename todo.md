@@ -1,6 +1,6 @@
 # CharitMe — Execution Tracker
 
-## Stripe Connect funds-flow integrity release - active (Codex, 2026-08-11)
+## Stripe Connect funds-flow integrity release - complete (Codex, 2026-08-11)
 
 - [x] Prove the implementation uses Stripe Connect destination charges with
   server-owned `application_fee_amount` and `transfer_data.destination`.
@@ -13,18 +13,23 @@
   reservation and campaign-stat RPCs with a matching rollback migration.
 - [x] Pass the real Stripe sandbox matrix: 12/12 scenarios, every difference
   $0.00, one failed payout proved, and a separate $100.00 bank payout paid.
-- [x] Pass TypeScript, ESLint, the full 387-file / 4,406-test suite, the
+- [x] Pass TypeScript, ESLint, the full 390-file / 4,526-test suite, the
   production build, credential scan, and live 12-table financial RLS audit.
 - [x] Verify the manually applied production SQL created every required column,
-  table, RPC, unique index, RLS setting, and policy. Migration inventory is
-  138/140 ledgered; upstream tombstone repair `20260906000000` and Stripe
-  integrity migration `20260906010000` remain for the release workflow.
-- [ ] Pass zero-state migration replay and rollback rehearsal in GitHub's Docker
-  release jobs; Docker is not installed on this Windows host.
-- [ ] Open and merge the PR through `master`, verify repository CI, then publish
-  a version tag through the release workflow.
-- [ ] Verify isolated staging migration/smoke evidence, production migration,
-  deployment SHA, and `www.charitme.com` before declaring production complete.
+  table, RPC, unique index, RLS setting, and policy. The production migration
+  ledger is now 140/140 with no local-only or remote-only entries.
+- [x] Pass zero-state migration replay in GitHub's Docker release job; retain the
+  matching rollback migration for an operator-controlled rollback rehearsal.
+- [x] Merge the funds-flow and release-gate fixes through `master`, verify
+  repository CI, and publish version tags through the release workflow.
+- [x] Verify isolated staging migration/smoke evidence, production migration,
+  deployment SHA, and `www.charitme.com` for final tag `v0.1.29` before declaring
+  production complete.
+
+Release `v0.1.29` passed the complete release workflow at commit
+`89d2b312a866340b901a9ec0f54f75116da5ab4b`. Production provisioning reported
+the database up to date, and the exact-SHA verifier confirmed that commit live
+at `https://www.charitme.com`.
 
 ## Immediate completion release candidate — local gates complete, release pending (Codex, 2026-08-10)
 

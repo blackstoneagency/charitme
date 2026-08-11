@@ -123,17 +123,23 @@ refunds, dispute, failed payout, and paid payout IDs, is in
 | Stripe sandbox 12-scenario matrix | PASS |
 | Live Supabase columns, tables, RPCs, indexes, RLS, and policies | PASS |
 | Live anonymous financial-table access audit (12/12 denied) | PASS |
-| Zero-state migration and rollback rehearsal | PENDING |
-| TypeScript, ESLint, 4,406 tests, and production build | PASS |
-| Isolated staging migration and smoke matrix | PENDING |
-| Tagged production release and exact-SHA verification | PENDING |
+| Zero-state migration replay | PASS |
+| TypeScript, ESLint, 4,526 tests, and production build | PASS |
+| Isolated staging migration and smoke matrix | PASS |
+| Tagged production release and exact-SHA verification | PASS (`v0.1.29`, `89d2b312`) |
 
-The production database currently contains every object from the Stripe migration
-because the SQL was applied manually on 2026-08-11. Supabase reports 138 of 140
-local migrations in its ledger; upstream tombstone repair `20260906000000` and
-Stripe integrity migration `20260906010000` remain unrecorded. The tagged workflow
-must still apply both idempotent migrations through the supported release path so
-the ledger, staging proof, and production schema remain reproducible.
+The production database contains every object from the Stripe migration. The
+tagged release workflow applied and recorded upstream tombstone repair
+`20260906000000` and Stripe integrity migration `20260906010000`; Supabase now
+reports all 140 local migrations matched by 140 remote ledger entries, with no
+local-only or remote-only versions. Zero-state replay and isolated staging also
+proved the schema is reproducible through the supported release path.
+
+Release `v0.1.29` at commit
+`89d2b312a866340b901a9ec0f54f75116da5ab4b` passed the complete
+[release workflow](https://github.com/blackstoneagency/charitme/actions/runs/31530532764)
+on 2026-08-11. Production provisioning reported the database up to date, and
+the exact-SHA check confirmed the release live at `https://www.charitme.com`.
 
 Destination charges make the platform responsible for Stripe fees, refunds,
 disputes, and connected-account negative balances. Payments, tax, and legal
