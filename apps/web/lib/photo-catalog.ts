@@ -183,24 +183,63 @@ const rawCatalogPhotoIds = new Set(
     .filter((id): id is string => Boolean(id)),
 );
 
+/**
+ * ⚠️ Dedup is WITHIN a category, not across all of them.
+ *
+ * This used to enforce GLOBAL uniqueness, and the way it achieved that was to
+ * replace every cross-category repeat with `getCoverForCampaign(...)` — a
+ * generated subject card, not a photograph. Measured before this change: **45
+ * real photos and 66 generated placeholders**, with Sports, Community, Family,
+ * Nonprofit and Volunteer at ZERO real photos each. Those are exactly the
+ * categories whose campaigns render as a coloured block with the title printed
+ * across it.
+ *
+ * The trade was backwards. The shared entries (`C.volunteers`, `C.hands`,
+ * `C.heart`…) are deliberately generic charitable imagery chosen to suit ANY
+ * cause, so reusing one in a second category costs a visitor nothing — they see
+ * one campaign at a time, not two category pools side by side. A generated
+ * placeholder costs them the photograph entirely.
+ *
+ * `__tests__/cover-uniqueness.test.ts` states the actual requirement: "Cross-
+ * category sharing is a known, accepted limit of the verified-ID pool.
+ * Repetition inside a single pool is not." That is what this now implements —
+ * the global constraint was self-imposed and nothing asked for it.
+ */
 export const CATEGORY_PHOTOS: Record<string, string[]> = Object.fromEntries(
-  Object.entries(RAW_CATEGORY_PHOTOS).map(([category, photos]) => [
-    category,
-    photos.map((photo, index) => {
-      const id = (photo.match(/photo-([0-9]+-[a-z0-9]+)/i) ?? [])[1] ?? photo;
-      if (!catalogPhotoIds.has(id)) {
+  Object.entries(RAW_CATEGORY_PHOTOS).map(([category, photos]) => {
+    const seenInCategory = new Set<string>();
+    return [
+      category,
+      photos.filter((photo) => {
+        const id = (photo.match(/photo-([0-9]+-[a-z0-9]+)/i) ?? [])[1] ?? photo;
+        if (seenInCategory.has(id)) return false;
+        seenInCategory.add(id);
         catalogPhotoIds.add(id);
-        return photo;
-      }
-      return getCoverForCampaign(category, `catalog-${index + 1}`);
-    }),
-  ]),
+        return true;
+      }),
+    ];
+  }),
 );
 
-export const FALLBACK_PHOTOS: string[] = Array.from(
-  { length: 6 },
-  (_, index) => getCoverForCampaign('Community', `fallback-${index + 1}`),
-);
+/**
+ * The pool used when a category has no entry of its own.
+ *
+ * ⚠️ Was six generated subject cards — 6 of 6 placeholders — so an unrecognised
+ * category rendered NO photography at all. Built from the Community pool
+ * instead, which is real, verified imagery and the most broadly applicable
+ * theme in the catalog. Falls back to generated art only if that pool were ever
+ * empty, which the well-formedness test forbids.
+ */
+export const FALLBACK_PHOTOS: string[] = (
+  CATEGORY_PHOTOS.Community?.length
+    ? CATEGORY_PHOTOS.Community
+    // `generatedSubjectArt`, NOT `getCoverForCampaign`: the latter calls
+    // pickCatalogPhoto, which reads FALLBACK_PHOTOS — still in its temporal dead
+    // zone here. Unreachable today (Community is never empty, and a test
+    // forbids it), but a ReferenceError at module load is not a failure mode to
+    // leave armed.
+    : Array.from({ length: 6 }, (_, index) => generatedSubjectArt('Community', `fallback-${index + 1}`))
+).slice(0, 6);
 
 export function getPhotosForCategory(category: string | null | undefined, min = 4): string[] {
   const pool = CATEGORY_PHOTOS[category ?? ''] ?? FALLBACK_PHOTOS;
@@ -219,10 +258,16 @@ export function getPhotosForPage(
   min = 4,
 ): string[] {
   const count = Number.isFinite(min) ? Math.max(0, Math.floor(min)) : 4;
-  return Array.from(
-    { length: count },
-    (_, index) => getCoverForCampaign(category, `${pageKey}-${index + 1}`),
-  );
+  // ⚠️ Every entry used to be generated art, so a page built from this helper
+  // showed no photography at all. Real photos are drawn from the category pool
+  // and rotated by page key, so two pages using the same category still differ.
+  const pool = CATEGORY_PHOTOS[category ?? ''] ?? FALLBACK_PHOTOS;
+  if (!pool.length) {
+    return Array.from({ length: count }, (_, i) => getCoverForCampaign(category, `${pageKey}-${i + 1}`));
+  }
+  let offset = 0;
+  for (let i = 0; i < pageKey.length; i += 1) offset = (offset * 31 + pageKey.charCodeAt(i)) >>> 0;
+  return Array.from({ length: count }, (_, index) => pool[(offset + index) % pool.length]!);
 }
 
 /**
@@ -255,7 +300,34 @@ export function getCoverForCategory(
  * Callers with a stored URL should use `getDisplayCover`, which preserves real
  * uploads and replaces only known generic placeholders.
  */
+/**
+ * A cover for a campaign or a piece of page artwork.
+ *
+ * ⚠️ This returned GENERATED SUBJECT ART for every call, and 24 call sites use
+ * it, so the entire site rendered coloured blocks with text printed across them
+ * instead of photographs.
+ *
+ * It now returns a real photograph from the themed catalog, selected by seed so
+ * the choice is stable per key and spread across the pool. Generated art
+ * survives only for a category with no pool at all, and as the shape this
+ * helper still produces via `generatedSubjectArt` for callers that genuinely
+ * need a guaranteed-unique image.
+ *
+ * ⚠️ The cost, stated rather than hidden: a photograph is NOT unique per
+ * campaign. There are ~111 verified photographs and ~500 live campaigns, so two
+ * campaigns in one category can share an image. Uniqueness was only ever
+ * achievable by not using photographs — which is the defect being removed. A
+ * shared photograph is worth more to a donor than a unique non-photograph.
+ */
 export function getCoverForCampaign(
+  category: string | null | undefined,
+  key: string | null | undefined,
+): string {
+  return pickCatalogPhoto(category, key) ?? generatedSubjectArt(category, key);
+}
+
+/** The generated fallback, kept for categories with no photographic pool. */
+export function generatedSubjectArt(
   category: string | null | undefined,
   key: string | null | undefined,
 ): string {
@@ -271,6 +343,17 @@ export function getUniqueCover(key: string): string {
 
 /** Generic stock placeholders may be replaced; real organizer uploads may not. */
 export function isPlaceholderCover(url: string | null | undefined): boolean {
+  // ⚠️ `/media/subject` belongs here, and its absence was the whole reason
+  // production served generated art everywhere. Every campaign's stored
+  // `cover_image_url` was backfilled to that route by a migration, and because
+  // this predicate did not recognise it, `resolveCampaignCover` treated it as a
+  // REAL ORGANIZER UPLOAD and short-circuited before any photograph was
+  // considered. Measured on production: 0 Unsplash images and 27 `/media/subject`
+  // URLs on a single campaign page.
+  //
+  // It is generated art keyed on a category and a slug — by definition a
+  // placeholder, and overridable by anything better.
+  if (url && /^\/media\/subject(\?|$)/.test(url.trim())) return true;
   return Boolean(url && /(?:picsum\.photos|loremflickr\.com)/i.test(url));
 }
 
@@ -287,6 +370,35 @@ export function isCatalogCover(url: string | null | undefined): boolean {
   }
 }
 
+/**
+ * A REAL themed photograph for a campaign, chosen deterministically from the
+ * category's pool so it is stable across renders and spread across the pool
+ * rather than always landing on the first entry.
+ *
+ * ⚠️ This cannot be unique per campaign, and pretending otherwise is what
+ * produced the placeholders. There are ~111 verified photographs and ~500 live
+ * campaigns; per-campaign uniqueness is only achievable by GENERATING art,
+ * which is what `getCoverForCampaign` does and why every Sports campaign
+ * rendered as a coloured block with its title printed across it. A photograph
+ * shared with another campaign is worth more to a donor than a unique
+ * non-photograph, so the pool is spread instead of faked.
+ */
+export function pickCatalogPhoto(
+  category: string | null | undefined,
+  key: string | null | undefined,
+): string | null {
+  const pool = CATEGORY_PHOTOS[category ?? ''] ?? FALLBACK_PHOTOS;
+  if (!pool.length) return null;
+  const seed = (key && key.trim()) ? key.trim() : `cat-${category ?? 'charity'}`;
+  // FNV-1a: stable across processes, unlike a hash seeded by insertion order.
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < seed.length; i += 1) {
+    hash ^= seed.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return pool[hash % pool.length] ?? null;
+}
+
 export function getDisplayCover(
   storedCover: string | null | undefined,
   category: string | null | undefined,
@@ -295,7 +407,7 @@ export function getDisplayCover(
 ): string {
   const stored = storedCover?.trim() || '';
   const scopedKey = pageScope ? `${pageScope}-${key ?? 'campaign'}` : key;
-  return stored && !isPlaceholderCover(stored) && !(pageScope && isCatalogCover(stored))
-    ? stored
-    : getCoverForCampaign(category, scopedKey);
+  if (stored && !isPlaceholderCover(stored) && !(pageScope && isCatalogCover(stored))) return stored;
+  // A photograph first; generated art only if the category has no pool at all.
+  return pickCatalogPhoto(category, scopedKey) ?? getCoverForCampaign(category, scopedKey);
 }
