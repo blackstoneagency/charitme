@@ -24262,3 +24262,61 @@ transaction, not four API calls that can half-fail.
       native shell is the most common rejection for a site-as-app. Mitigations are
       native capability (push, share, biometric unlock) rather than anything in
       this repo — flagged so it is a decision, not a surprise.
+
+---
+
+## 🖼 NO PLACEHOLDERS LEFT — 112 routes swept, 0 generated, 539 photographs (Claude, 2026-08-11)
+
+Follow-up measurement for `7398e597`. The PR reported 5 pages; this is the whole
+public surface, against a production build:
+
+```
+swept 112 public routes
+generated placeholders: 0
+real photographs:       539
+routes still showing placeholders: NONE
+```
+
+Before the fix the same surface rendered generated subject art everywhere — a
+single production campaign page served **27** `/media/subject` URLs and **zero**
+photographs.
+
+### The three causes, because one fix would not have done it
+
+1. `isPlaceholderCover()` matched picsum/loremflickr but NOT `/media/subject`,
+   and a migration had backfilled every `cover_image_url` to that route — so
+   generated art was treated as a real organizer upload and short-circuited
+   every photograph.
+2. `CATEGORY_PHOTOS` enforced GLOBAL uniqueness across pools and could only
+   satisfy it by substituting generated art: 45 real / 66 placeholders, with
+   Sports, Community, Family, Nonprofit and Volunteer at ZERO real photos.
+3. `getCoverForCampaign` returned generated art unconditionally, across 24 call
+   sites.
+
+Catalog after: **111 real photographs, 0 placeholders**, every category covered.
+
+### ⚠️ The ceiling, and who can lift it
+
+A photograph is NOT unique per campaign — ~111 verified photos against ~500 live
+campaigns — so two campaigns in a category can share one. Per-campaign
+uniqueness was only ever achievable by NOT using photographs, which was the
+defect. Four tests asserting it were rewritten to pin what still holds
+(determinism, pool spread, no repeat inside one gallery), each quoting the old
+assertion.
+
+**`UNSPLASH_ACCESS_KEY` is unset in production.** That is the whole reason step 2
+of `resolveCampaignCover` — live, unique, themed photos per campaign — never
+fires. Setting it removes the sharing entirely. Owner action.
+
+### ✅ A previously-recorded blocker has LIFTED
+
+`__tests__/cover-uniqueness.test.ts` recorded that new Unsplash IDs "cannot be
+verified without egress to images.unsplash.com (currently refused by the sandbox
+proxy)". **That egress now works** — verified 200 for real IDs and 404 for a
+fabricated one, and 39 candidate IDs confirmed resolvable.
+
+⚠️ Still NOT actionable by a bot: nothing reachable from the sandbox reveals what
+a photo DEPICTS. `unsplash.com/photos/<id>` returns no usable metadata here. So
+enlarging the themed pools needs someone who can see the images — assigning
+subject-unknown photos to named categories risks a wedding photo on a medical
+campaign, which is worse than a correct shared one.
