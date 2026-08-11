@@ -17,11 +17,11 @@
       "path": "screenshots/home.png",
       "sha256": "1eafdb03e0b9aa88963ddcdbe86e998ded748bb49e0fd520efafadef3341812b",
       "status": "active",
-      "subject": "CharitMe homepage shown in its installable web app presentation",
-      "fit": "Mobile PWA manifest screenshot for campaign discovery",
+      "subject": "Screenshot of CharitMe / at 780x1688",
+      "fit": "Manifest screenshot, labelled \"Discover campaigns to support\" in the Android install dialog",
       "sourceType": "first-party",
-      "source": "Captured from the CharitMe application by apps/web/scripts/capture-manifest-screenshots.mjs",
-      "license": "CharitMe-owned application screenshot",
+      "source": "Captured from a local production build by apps/web/scripts/capture-manifest-screenshots.mjs",
+      "license": "CharitMe-owned: a rendering of this application's own UI",
       "uses": ["PWA manifest"]
     },
     {
@@ -59,7 +59,7 @@
     },
     {
       "path": "store/ios-icon-1024.png",
-      "sha256": "a56da08290ae9c6045d90550b8a4e73ee35e6890c50a548f6fbc5baacd6222fa",
+      "sha256": "84c9c2d6c9b14ea4f29cedda13bf11c6afecbdd379b30cdc9a56f8745f4b8134",
       "status": "active",
       "subject": "CharitMe heart-and-hand brand mark on an opaque purple field",
       "fit": "App Store Connect listing icon at 1024 pixels",
@@ -70,7 +70,7 @@
     },
     {
       "path": "store/play-feature-graphic.png",
-      "sha256": "575826c17a4983be5ce0f29ba491669c56b12121d326e3a004f4882535f68f33",
+      "sha256": "1acf7efcc40d32f8c2f2cf1ed962b5c9132eb0dd64e12a92e5c8cd8b0ccc57ab",
       "status": "active",
       "subject": "CharitMe brand mark, wordmark, and fundraising value proposition",
       "fit": "Google Play feature graphic at 1024 by 500 pixels",
@@ -81,7 +81,7 @@
     },
     {
       "path": "store/play-icon-512.png",
-      "sha256": "7c2fbb89871334c25dc8cb3b90bb84174034acd29ab955f821f357d2dff62d61",
+      "sha256": "79899736b9635dd1da93d2f1dab09b644aa0453145bfc919a42d9ace51a27868",
       "status": "active",
       "subject": "CharitMe heart-and-hand brand mark on an opaque purple field",
       "fit": "Google Play listing icon at 512 pixels",

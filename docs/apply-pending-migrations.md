@@ -78,6 +78,44 @@ flagged by their authors as needing **staging verification before production**:
 They are not mine and I have not verified them. A single `db push` applies them
 alongside everything else, which is worth knowing before running one command.
 
+## You do not have to push all 47 to unblock deletion
+
+⚠️ **The framing above — "even a live service-role key would not do it; PostgREST
+executes RPCs, not DDL" — is correct about the API and wrong as a conclusion about
+the owner.** The Supabase **SQL editor** runs as `postgres`, not through PostgREST,
+so it executes anything a migration contains. This was proved on 2026-08-10: the
+owner applied `20260904040000_default_support_percent_ten` that way, read the value
+back as `10`, and the live donate card changed within the minute.
+
+That matters here because the tombstone is the *only* migration blocking
+self-service deletion, and it is **safe to run alone**:
+
+- It is **pure DML** — two `INSERT`s and one `COMMENT`. No table, column, type,
+  policy or index is created, so nothing later in the batch depends on it and it
+  depends on nothing earlier. `auth.users` and `public.profiles` both already
+  exist in production.
+- Both inserts carry `ON CONFLICT (id) DO NOTHING`, so it is **idempotent** and
+  running it twice is a no-op.
+- It **deletes nothing**. Neither of the two row-destroying dedupe migrations
+  above is involved.
+- `public.profiles` has no `NOT NULL` column without a default beyond the four it
+  supplies, so the insert cannot fail on a missing field.
+
+Paste `supabase/migrations/20260904030000_deleted_user_tombstone.sql` into the SQL
+editor for project `yanexccimwooursawynm`, run it, then run the verification block
+below.
+
+⚠️ **Two things this route does NOT do.**
+
+1. **It writes no `schema_migrations` row.** `supabase migration list` will still
+   call it pending, and a later `db push` will run it again — harmless *for this
+   migration* because of the `ON CONFLICT` clauses, but do not generalise that to
+   the rest of the batch.
+2. **It is not a substitute for `db push`.** It is appropriate here because this
+   file is idempotent, self-contained and destroys nothing. A migration that
+   creates schema, or that depends on an earlier unapplied one, needs the ordered
+   push.
+
 ## After the push
 
 ```sql
