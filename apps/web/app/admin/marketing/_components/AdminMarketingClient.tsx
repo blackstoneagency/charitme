@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import SeoAeoClient, { type SeoRow, type AeoRow, type SeoAeoCoverage } from '../seo/_components/SeoAeoClient';
+import Link from 'next/link';
 
 /* ── shared styles ── */
 const card: React.CSSProperties = { background: 'var(--s1)', border: '1px solid var(--line)', borderRadius: 14, padding: '20px 24px', marginBottom: 16 };
@@ -125,24 +126,24 @@ function OverviewTab({ overview, go }: { overview: React.ComponentProps<typeof A
   return (
     <div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 14, marginBottom: 20 }}>
-        <a href="/admin/marketing/command-center" style={{ ...card, display: 'block', textDecoration: 'none', background: 'linear-gradient(135deg,var(--cta-from),var(--cta-to))', borderColor: 'transparent', marginBottom: 0 }}>
+        <Link href="/admin/marketing/command-center" style={{ ...card, display: 'block', textDecoration: 'none', background: 'linear-gradient(135deg,var(--cta-from),var(--cta-to))', borderColor: 'transparent', marginBottom: 0 }}>
           <div style={{ fontSize: 12, fontWeight: 800, color: '#fff', textTransform: 'uppercase', letterSpacing: '.05em' }}>Marketing OS</div>
           <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', marginTop: 4 }}>Command Center →</div>
           <div style={{ fontSize: 13, color: '#fff', marginTop: 4 }}>What changed overnight, active goals, and what needs attention — live.</div>
-        </a>
-        <a href="/admin/marketing/goals" style={{ ...card, display: 'block', textDecoration: 'none', background: 'var(--s2)', borderColor: '#e9deff', marginBottom: 0 }}>
+        </Link>
+        <Link href="/admin/marketing/goals" style={{ ...card, display: 'block', textDecoration: 'none', background: 'var(--s2)', borderColor: '#e9deff', marginBottom: 0 }}>
           <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--brand-text)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Goals</div>
           <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--brand-text)', marginTop: 4 }}>Set an outcome →</div>
           <div style={{ fontSize: 13, color: 'var(--t2)', marginTop: 4 }}>Describe a business objective in plain English; the OS turns it into a measurable goal.</div>
-        </a>
+        </Link>
         {/* marketing_email_templates had no UI at all — the automations runner
             picked a template by category and sent it, with nothing able to show
             an admin what that copy actually said. */}
-        <a href="/admin/marketing/templates" style={{ ...card, display: 'block', textDecoration: 'none', background: 'var(--s2)', marginBottom: 0 }}>
+        <Link href="/admin/marketing/templates" style={{ ...card, display: 'block', textDecoration: 'none', background: 'var(--s2)', marginBottom: 0 }}>
           <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--t2)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Email</div>
           <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--t1)', marginTop: 4 }}>Templates →</div>
           <div style={{ fontSize: 13, color: 'var(--t2)', marginTop: 4 }}>The copy your automations send. Edit subject, preview text and body.</div>
-        </a>
+        </Link>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 20 }}>
         {kpis.map(k => (

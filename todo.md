@@ -24818,3 +24818,66 @@ The new migration uses `DO UPDATE`.
 Guards added in `__tests__/deletion-cascade.test.ts`, all three mutation-tested:
 drop the token columns → fails; `DO UPDATE` → `DO NOTHING` → fails; repair loses
 its `IS NULL` scope → fails.
+
+
+---
+
+## ❌ CATCH-ALL 404 ROUTES UNDER /admin AND /dashboard — TRIED, MEASURED, REVERTED (2026-08-11)
+
+**Do not add `app/admin/[...slug]/page.tsx` or `app/dashboard/[...slug]/page.tsx`.
+They shadow every real route in both consoles.** This is written down because the
+idea is correct in theory, the Next.js documentation supports it, and the failure
+only shows up in a browser.
+
+### The gap it was meant to close (still open)
+
+A segment's `not-found.tsx` only catches `notFound()` thrown from INSIDE that
+segment. A URL matching **no route at all** never enters the segment, so it falls
+through to the root `app/not-found.tsx` — the marketing 404. Measured:
+
+| request | status | renders | header |
+|---|---|---|---|
+| `/admin/no-such-admin-page` | 404 | ROOT marketing 404 | ❌ |
+| `/dashboard/no-such-page` | 404 | ROOT marketing 404 | ❌ |
+
+So a signed-in admin who mistypes a URL gets a headerless page whose only links
+("Back to home", "Browse campaigns") lead **out** of the console.
+
+### Why the fix was reverted
+
+A catch-all that calls `notFound()` does put the request inside the segment, and
+that half worked perfectly — all four unmatched-URL cases rendered the correct
+segment not-found **with** the header. But it also **swallowed real pages**:
+
+| request | expected | actually rendered |
+|---|---|---|
+| `/admin/users` | the real page | **ADMIN not-found** |
+| `/admin/marketing` | the real page | **ADMIN not-found** |
+| `/admin/super/flags` | the real page | **ADMIN not-found** |
+| `/dashboard/payouts` | the real page | **DASHBOARD not-found** |
+| `/dashboard/tax` | the real page | **DASHBOARD not-found** |
+
+6/11 cases correct — i.e. the admin console and the dashboard were **entirely
+broken**. Next's documented precedence (static → dynamic → catch-all) did not
+hold here; the catch-all won. The root cause is unidentified and does not need to
+be: the measurement is enough to say the approach does not work in this app.
+
+⚠️ The reverted files carried a comment asserting "This cannot shadow a real
+page." That claim was **false**, and only a browser sweep caught it — a build,
+typecheck, lint and the full 4632-test suite all passed with both consoles
+serving 404s for every page.
+
+### If someone tries again
+
+Verify with a real signed-in browser sweep that asserts **which page rendered**,
+not just that a header is present — every one of those five broken routes still
+rendered `.kf-logo` and `.kf-top-actions`, because the not-found page has them
+too. Check for a marker unique to the real page.
+
+### What was kept
+
+The 8 internal `<a href="/admin/…">` / `<a href="/dashboard/…">` tags that
+`@next/next/no-html-link-for-pages` flagged once the catch-alls made those paths
+resolvable. They are now `<Link>`, so they navigate client-side instead of
+triggering a full page reload. Genuine pre-existing defects the experiment
+surfaced, and they stand on their own.

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 
 const card: React.CSSProperties = { background: 'var(--s1)', border: '1px solid #eef0f7', borderRadius: 14, padding: '18px 22px', marginBottom: 14 };
 const btn: React.CSSProperties = { padding: '9px 18px', background: '#6c35ff', color: '#fff', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 650, cursor: 'pointer' };
@@ -156,7 +157,7 @@ function Detail({ planId }: { planId: string }) {
     <div style={{ padding: '0 20px 48px', maxWidth: 900 }}>
       {notice && <div style={{ ...card, padding: '12px 18px', background: notice.startsWith('❌') ? 'var(--tint-red)' : '#f0fdf4', borderColor: notice.startsWith('❌') ? '#fecdd3' : '#bbf7d0', fontWeight: 700, fontSize: 13, color: notice.startsWith('❌') ? 'var(--red-text)' : 'var(--green-text)' }}>{notice}</div>}
 
-      <a href="/admin/marketing/campaign-plans" style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand-text)', textDecoration: 'none' }}>← All plans</a>
+      <Link href="/admin/marketing/campaign-plans" style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand-text)', textDecoration: 'none' }}>← All plans</Link>
 
       <div style={{ ...card, marginTop: 10 }}>
         <div style={{ display: 'flex', minWidth: 0, justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>

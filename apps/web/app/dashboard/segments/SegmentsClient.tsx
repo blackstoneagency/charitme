@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { describeRules, isContradictory, isEmptyRuleSet, type SegmentRules } from '../../../lib/donor-segments-core';
+import Link from 'next/link';
 
 type Nonprofit = { id: string; name: string };
 type Segment = { id: string; name: string; rules: SegmentRules; memberCount: number; createdAt: string };
@@ -120,7 +121,7 @@ export default function SegmentsClient({
     return (
       <p style={{ fontSize: 14.5, color: 'var(--t2)', maxWidth: 620, lineHeight: 1.65 }}>
         Segments belong to a nonprofit profile, and this account does not own one
-        yet. Set one up under <a href="/dashboard/nonprofit">Your Organization</a> and
+        yet. Set one up under <Link href="/dashboard/nonprofit">Your Organization</Link> and
         this page turns on.
       </p>
     );

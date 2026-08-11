@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { STATE_FEED_SOURCES, type StateFeedCode } from '../../../../lib/state-filings';
+import Link from 'next/link';
 
 export interface LeadRow {
   id: string;
@@ -497,9 +498,9 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
                           {l.email ? <a href={`mailto:${l.email}`} style={{ color: 'var(--brand-text)', textDecoration: 'none' }}>✉️ {l.email}</a> : <span style={{ color: 'var(--t3)' }}>✉️ —</span>}
                           {l.phone ? <span style={{ color: 'var(--t2)' }}>📞 {l.phone}</span> : <span style={{ color: 'var(--t3)' }}>📞 —</span>}
                           {l.marketing_contact_id && (
-                            <a href="/admin/marketing?tab=campaigns" title="Targetable via the 'New Business Leads' segment" style={{ color: 'var(--brand-text)', textDecoration: 'none', fontWeight: 700 }}>
+                            <Link href="/admin/marketing?tab=campaigns" title="Targetable via the 'New Business Leads' segment" style={{ color: 'var(--brand-text)', textDecoration: 'none', fontWeight: 700 }}>
                               📣 In Marketing
-                            </a>
+                            </Link>
                           )}
                         </div>
                       ) : (
