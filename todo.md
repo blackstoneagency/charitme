@@ -3832,7 +3832,7 @@ skipped workflow leaves its check pending forever and would deadlock a docs-only
 PR. Nothing is required today, which is why this is safe now — recorded so the
 next person does not find out the hard way.
 
-## 🛑 SUPABASE STAGING — historical audit, and the file-derived upper-bound pending count is **49** (Claude, 2026-08-03)
+## 🛑 SUPABASE STAGING — historical audit, and the file-derived upper-bound pending count is **50** (Claude, 2026-08-03)
 
 **Live ledger rechecked 2026-08-10:** 135 local migration files against 87
 production ledger entries. The 48-file upper-bound gap below is therefore a current
@@ -3843,6 +3843,13 @@ measurement, not only historical arithmetic.
 the safe state: the send path catches its own errors, so push is simply silent
 and nothing else changes. Not publicly probeable — RLS-scoped to the owner, and
 the only surface that could differ is behind auth *and* a VAPID keypair.
+
+**+1 on 2026-08-11: `20260905010000_share_events_native_channels.sql`** (→ 50).
+Widens `share_events_channel_check` to admit `messenger` and `native`. ⚠️ The API
+deliberately does NOT depend on it: it inserts the true channel and, on 23514,
+retries once as `facebook`/`other`. Applying it upgrades the data; not applying
+it costs precision, not events — which matters, because losing the event is
+exactly the bug this fixes.
 
 ⚠️ The newest of them, `20260904030000_deleted_user_tombstone`, is a
 **precondition for self-service account deletion** — until it is applied,
@@ -3967,8 +3974,8 @@ all 18 in order and proved rollback.
 Thirty-one migrations have been added since. So the count is arithmetic:
 
 ```
-136 local − 87 applied           = 49
-18 audited pending + 31 added    = 49   ✓ reconciles
+137 local − 87 applied           = 50
+18 audited pending + 32 added    = 50   ✓ reconciles
 ```
 
 All 18 audited-pending versions are still on disk under their original names.

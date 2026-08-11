@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface Props {
   campaignId: string;
@@ -10,7 +10,7 @@ interface Props {
   qrPosterId: string;
 }
 
-type Channel = 'facebook' | 'messenger' | 'linkedin' | 'twitter' | 'whatsapp' | 'email' | 'link';
+type Channel = 'facebook' | 'messenger' | 'linkedin' | 'twitter' | 'whatsapp' | 'email' | 'link' | 'native';
 
 // Messenger's Send dialog requires our own registered Facebook app whose
 // domain whitelist includes this site — without one the dialog errors out,
@@ -77,6 +77,12 @@ export default function ShareButtons({ campaignId, campaignUrl, campaignTitle, q
   const embedInputRef = useRef<HTMLInputElement>(null);
   const [copied, setCopied] = useState(false);
   const [embedCopied, setEmbedCopied] = useState(false);
+  // Detected AFTER mount, never during render: `navigator` does not exist on the
+  // server, so branching on it in the render body is a hydration mismatch.
+  const [canNativeShare, setCanNativeShare] = useState(false);
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- feature detection is only valid in the browser
+  useEffect(() => { setCanNativeShare(typeof navigator !== 'undefined' && typeof navigator.share === 'function'); }, []);
 
   const embedCode = `<iframe src="${campaignUrl}/embed" width="400" height="500" style="border:0;border-radius:12px;max-width:100%" title="Donate to ${escapeAttr(campaignTitle)}"></iframe>`;
 
@@ -99,6 +105,29 @@ export default function ShareButtons({ campaignId, campaignUrl, campaignTitle, q
       setTimeout(() => setCopied(false), 2000);
     });
     recordShare('link');
+  };
+
+  /**
+   * The OS share sheet — every app on the phone, not the seven we hardcoded.
+   *
+   * `mobileGo.md` item 5 ranks this second only to push among the things that
+   * stop an installed shell reading as "a repackaged website": a grid of
+   * `target="_blank"` links into facebook.com is exactly the interaction that
+   * gives that away.
+   */
+  const handleNativeShare = async () => {
+    try {
+      await navigator.share({ title: campaignTitle, text: campaignTitle, url: campaignUrl });
+      recordShare('native');
+    } catch (err) {
+      // Dismissing the sheet rejects with AbortError. Counting that as a share
+      // would inflate attribution with every time someone changed their mind —
+      // and this panel is what an organizer uses to decide where to put effort.
+      if ((err as { name?: string }).name === 'AbortError') return;
+      // Anything else (no permission, no target app): fall back to the copy path
+      // rather than leaving the tap dead.
+      handleCopy();
+    }
   };
 
   const handleCopyEmbed = () => {
@@ -131,6 +160,25 @@ export default function ShareButtons({ campaignId, campaignUrl, campaignTitle, q
 
           {/* Social tiles */}
           <div className="pc-share-grid">
+            {/* First, and only where the OS actually provides a sheet. Rendering
+                it unconditionally would leave a dead tile on every desktop
+                browser without navigator.share. */}
+            {canNativeShare && (
+              <button
+                type="button"
+                className="pc-share-tile"
+                onClick={() => void handleNativeShare()}
+              >
+                {/* Surface tokens, not a hex pair. The tiles beside this one are
+                    allowed their literals because those ARE the platforms' brand
+                    colours; the OS sheet has no brand, so it follows the theme
+                    and stays legible in dark mode. */}
+                <span className="pc-share-tile-icon" style={{ background: 'var(--s3)', color: 'var(--brand-text)' }}>
+                  ↗
+                </span>
+                Share…
+              </button>
+            )}
             {TILES.map(tile => (
               <a
                 key={tile.channel}
