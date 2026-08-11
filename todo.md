@@ -19952,8 +19952,17 @@ someone who is paying; only a date that has demonstrably passed revokes. A lapse
 now resolves as `'expired'` rather than its stale stored status. 9 tests, including
 the boundary instant and every non-entitling status.
 
-**Still open on this line:** `lib/trust-signals.ts` (79 loc) is the last
-security/money-adjacent module with no test.
+**Still open on this line:** `lib/trust-signals.ts` is the last
+security/money-adjacent module with no BEHAVIOURAL test.
+🔵 **CLAIMED 2026-08-11 (Claude, wcu7oh) — in progress.** Claiming before writing
+code, which is what this file asks for and what I had just failed to do: I had
+already written a `/glossary` tap-target fix before discovering a parallel lane
+had landed the same thing, with an explicit "do not fix the Read more links"
+note my change violated. That work was thrown away.
+⚠️ `__tests__/trust-risk-signal.test.ts` looks like coverage and is not — it
+`readFileSync`s this module as SOURCE TEXT and exercises `calculateTrustScore`,
+which lives elsewhere. The one export here, `buildCampaignTrustInput`, has never
+been executed by a test.
 
 ### 🔒 SECURITY — the public-listing privacy filter failed OPEN (Claude, 2026-07-26)
 Found by asking which `lib/` modules have **no test at all** (17 of 122) and starting
