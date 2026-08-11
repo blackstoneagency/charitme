@@ -58,7 +58,18 @@ BEGIN
     -- $2, so no password can ever verify against this literal.
     'NO_LOGIN',
     NULL,                       -- never confirmed: blocks magic-link sign-in
-    'infinity'::timestamptz,    -- and banned regardless
+    -- ⚠️ A FINITE far-future timestamp, NOT 'infinity'.
+    --
+    -- `'infinity'::timestamptz` is valid PostgreSQL and was the obvious choice.
+    -- GoTrue cannot serialise it to JSON, so the auth row becomes permanently
+    -- UNREADABLE through the Auth Admin API: getUserById, updateUserById and
+    -- deleteUser all return 500 for that id, forever. Measured against
+    -- production after this migration was applied — a real user id returns a
+    -- clean 404, a random id returns 404, and only the tombstone returns 500.
+    --
+    -- The row is still there and still unusable for sign-in, but it can no
+    -- longer be audited or repaired with anything except raw SQL.
+    '2999-12-31 00:00:00+00'::timestamptz,
     '{"provider":"tombstone","providers":["tombstone"]}'::jsonb,
     '{"tombstone":true}'::jsonb,
     now(), now(), false
