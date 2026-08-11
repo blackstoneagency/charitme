@@ -19952,13 +19952,26 @@ someone who is paying; only a date that has demonstrably passed revokes. A lapse
 now resolves as `'expired'` rather than its stale stored status. 9 tests, including
 the boundary instant and every non-entitling status.
 
-**Still open on this line:** `lib/trust-signals.ts` is the last
+**Was the last untested one on this line:** `lib/trust-signals.ts`, the final
 security/money-adjacent module with no BEHAVIOURAL test.
-🔵 **CLAIMED 2026-08-11 (Claude, wcu7oh) — in progress.** Claiming before writing
-code, which is what this file asks for and what I had just failed to do: I had
-already written a `/glossary` tap-target fix before discovering a parallel lane
-had landed the same thing, with an explicit "do not fix the Read more links"
-note my change violated. That work was thrown away.
+✅ **DONE 2026-08-11 (Claude, wcu7oh).** `__tests__/trust-signals.test.ts`, 18
+tests, executing `buildCampaignTrustInput` against a recording stub rather than
+reading its source. Mutation-tested on the two security-critical behaviours:
+restoring the `riskRes.count ?? 0` default fails 2, and dropping
+`.eq('visibility','public')` fails 1.
+What it pins: a failed risk read stays UNKNOWN (`risk_flag_count: null`) and
+never becomes a clean bill of health, while a measured 0 stays 0; the
+prior-campaign count excludes private, unlisted, soft-deleted and self;
+`eq('public')` rather than `neq('private')`, which are different questions;
+the self-beneficiary shortcut issues ONE profile lookup, not two; account age
+floors at 0 under clock skew; and `admin_review_status` is 'approved' only for
+`trust_status === 'Verified'`.
+Claimed here before any code was written — which is what this file asks for, and
+what I had just failed to do on the previous item: a `/glossary` tap-target fix
+was fully written before I discovered a parallel lane had already landed it,
+carrying an explicit "do not fix the Read more links" note that my change
+violated. That work was thrown away. Claiming first cost one push; not claiming
+first cost an afternoon.
 ⚠️ `__tests__/trust-risk-signal.test.ts` looks like coverage and is not — it
 `readFileSync`s this module as SOURCE TEXT and exercises `calculateTrustScore`,
 which lives elsewhere. The one export here, `buildCampaignTrustInput`, has never
