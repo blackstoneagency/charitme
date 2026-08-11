@@ -8,6 +8,7 @@ import {
   MONEY_BEARING,
   TOMBSTONE_REASSIGNMENTS,
   TOMBSTONE_PROFILE_ID,
+  tombstoneProfileId,
 } from '../lib/deletion-cascade';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -90,6 +91,29 @@ describe('the tombstone reassignment set covers every path to money', () => {
     for (const table of ['product_orders', 'tax_receipts', 'event_tickets']) {
       expect(reached.has(table), `${table} should be reachable — this test is checking the wrong thing`).toBe(true);
       expect(MONEY_BEARING).toContain(table);
+    }
+  });
+});
+
+describe('the tombstone id can be moved without database access', () => {
+  // ⚠️ This exists because the live tombstone's auth row is poisoned:
+  // `banned_until = 'infinity'` cannot be serialised by GoTrue, so every Admin
+  // API call for that id returns 500 and only raw SQL can repair it. The
+  // override turns that recovery into one environment variable.
+  it('defaults to the migration id', () => {
+    expect(tombstoneProfileId({})).toBe(TOMBSTONE_PROFILE_ID);
+  });
+
+  it('accepts a well-formed override', () => {
+    const fresh = '00000000-0000-4000-8000-00000000dead';
+    expect(tombstoneProfileId({ TOMBSTONE_PROFILE_ID: fresh })).toBe(fresh);
+  });
+
+  it('IGNORES a malformed override rather than trusting it', () => {
+    // A bad id points every reassignment at a row that does not exist and fails
+    // on the foreign key — mid-deletion, after the profile has been anonymised.
+    for (const bad of ['', '   ', 'not-a-uuid', '123', '00000000-0000-4000-8000']) {
+      expect(tombstoneProfileId({ TOMBSTONE_PROFILE_ID: bad })).toBe(TOMBSTONE_PROFILE_ID);
     }
   });
 });

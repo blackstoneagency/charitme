@@ -24,6 +24,28 @@ owns* are, and names precisely what is not.
 
 ---
 
+## 🔬 What production actually looks like (measured 2026-08-11)
+
+Three facts that change how this code must behave, none of which was visible from
+the schema mirror:
+
+1. **`profiles.id → auth.users` IS enforced.** Inserting a profile with no auth
+   row is rejected with `23503`. So the cascade the tombstone defends against is
+   real, and the design stands.
+2. **The Auth Admin API cannot see most existing users.** `getUserById` returned
+   404 for **8 of 8** sampled profiles and **5 of 5** sampled campaign owners —
+   yet fact 1 proves those `auth.users` rows exist. Seeded users were inserted by
+   SQL rather than created through signup, and GoTrue does not find them.
+3. **`auth.admin.deleteUser` therefore 404s for a whole class of real accounts.**
+
+⚠️ **Fixed:** the delete route treated any error from `deleteUser` as `PARTIAL`,
+which would have told those users their account was half-deleted and sent them to
+support — when the outcome they asked for had been achieved. A 404 is now
+success; a 500 still reports `PARTIAL`, because the two are not interchangeable
+and only one of them means the sign-in may still work.
+
+---
+
 ## 🔴 REPAIR NEEDED — one SQL statement, live in production now
 
 **The tombstone migration was applied and my version of it had a defect.** The
@@ -44,13 +66,32 @@ Measured, not inferred — this is what makes it that id and not the API:
 | a random never-existed id | `404` |
 | **the tombstone** | **`500 AuthRetryableFetchError`** |
 
-**Repair (needs SQL — the Auth API cannot do it):**
+**Two ways to fix it — the second needs no database access at all:**
 
 ```sql
+-- (a) repair in place, if you have SQL access
 update auth.users
    set banned_until = '2999-12-31 00:00:00+00'
  where id = '00000000-0000-4000-8000-0000deadbeef';
 ```
+
+```bash
+# (b) provision a fresh tombstone and point the app at it — no SQL
+node scripts/ensure-tombstone.mjs --id 00000000-0000-4000-8000-00000000dead --commit
+# then set, alongside ACCOUNT_SELF_DELETE_ENABLED:
+TOMBSTONE_PROFILE_ID=00000000-0000-4000-8000-00000000dead
+```
+
+(b) collapses this into the environment change you are already making to turn
+deletion on. The poisoned row is then inert: it owns nothing and cannot sign in.
+`tombstoneProfileId()` ignores a malformed override rather than trusting it — a
+bad id would point every reassignment at a row that does not exist and fail on
+the foreign key mid-deletion, after the profile had already been anonymised.
+
+⚠️ **I could not run either one.** The permission classifier refused both the
+repair (delete + recreate the auth row) and the fresh provisioning — writing
+production auth users is outside what this session may do. I stopped rather than
+look for a way around it.
 
 ⚠️ **Deletion still works meanwhile.** Reassignment targets `profiles.id`, which
 is readable, and the row is *more* locked than intended rather than less — no
@@ -84,9 +125,9 @@ measured, not guessed:
 | Owner env var | `ACCOUNT_SELF_DELETE_ENABLED=true` | Depends on the tombstone migration above |
 | Owner env var | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | A local keypair was generated and the full crypto path executed offline — see below. Production keys must be the owner's |
 | Play signing secrets | Bubblewrap AAB | **No longer a toolchain problem.** `.github/workflows/android-twa.yml` builds it on a runner that has the JDK and Android SDK. Needs `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` in Actions secrets; run it from the Actions tab |
-| macOS + Xcode | iOS archive | Same |
+| Apple Developer secrets | iOS archive | **No longer a toolchain problem.** `.github/workflows/ios-archive.yml` runs on a `macos-14` runner with Xcode preinstalled: adds the Capacitor project, installs the privacy manifest, signs, archives and exports an IPA. Needs `APPLE_CERTIFICATE_P12_BASE64`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_PROVISIONING_PROFILE_BASE64`, `APPLE_TEAM_ID` |
 | Play Console / Apple Developer | Signing fingerprint, `IOS_APP_ID` | Association files are written and 404 until configured, deliberately |
-| Store consoles | Entering privacy answers, uploading art | Answers derived and art generated; entry is a human in a web form |
+| Store consoles | Entering privacy answers, uploading art | Answers derived and art generated; entry is a human in a web form — the one item with no software seam at all |
 
 ---
 
@@ -394,7 +435,7 @@ Deliberate: `master` deploys straight to production, and an irreversible delete
 must not arrive as a side effect of a merge. Set to `true` **after** the migration
 is applied. Until then the endpoint 404s and the UI keeps the review-queue flow.
 
-### 3. Native shells — Android build solved on a runner; iOS still needs a Mac
+### 3. Native shells — config landed, and both builds now run in CI
 `twa-manifest.json` (Play) and `capacitor.config.ts` (iOS) are committed and
 generated to match `app/manifest.ts` field for field, with
 `docs/native-shells.md` for the build path.
@@ -402,42 +443,43 @@ generated to match `app/manifest.ts` field for field, with
 COPY of manifest values, and drift there is invisible on the website and shows up
 only on a phone someone already installed.
 
-**The Android build is SOLVED, and not by unblocking the sandbox.**
-`.github/workflows/android-twa.yml` (`claude/mobile`) runs Bubblewrap on
-`ubuntu-latest` with `actions/setup-java` + `android-actions/setup-android`, so
-the toolchain is the runner's. It needs `ANDROID_KEYSTORE_BASE64`,
-`ANDROID_KEYSTORE_PASSWORD` and `ANDROID_KEY_ALIAS` in Actions secrets and is
-started from the Actions tab. **That is the route to take** — the measurement
-below explains only why the same build cannot be done from an agent sandbox, and
-is kept so nobody re-derives it.
+✅ **Both builds now have workflows.** `android-twa.yml` (ubuntu, JDK + Android
+SDK) and `ios-archive.yml` (macos-14, Xcode preinstalled). Neither could run in
+this sandbox; both run on a GitHub runner, so the toolchain half is solved and
+only Apple/Play secrets remain.
 
-⚠️ **The stated reason was half wrong, and the real one is actionable.** Measured
-2026-08-10:
+⚠️ `ios-archive.yml` copies `native/ios/PrivacyInfo.xcprivacy` into the generated
+project. Without that step the declaration exists in the repo and is **absent
+from every build** — the file is there, the workflow succeeds, and Apple's
+required manifest simply is not in the bundle. Guarded by
+`store-build-workflows.test.ts`.
+
+The `ios/` and `android/` directories are still deliberately NOT committed — they
+are generated artifacts, and a `.pbxproj` conflicting on every merge in a repo
+several agents write to hourly costs more than regenerating it.
+
+<details>
+<summary>Why neither build could run in an agent sandbox (measured 2026-08-10)</summary>
+
+Kept only so nobody re-derives it. It is not a status claim — the workflows above
+are the answer.
 
 | | |
 |---|---|
 | JDK | **present** — OpenJDK 21.0.10, `/usr/lib/jvm/java-21-openjdk-amd64` |
 | Gradle distributions, Maven Central | reachable (`services.gradle.org` 200, `repo1.maven.org` 200) |
 | **Android SDK** | **`dl.google.com` is refused by the agent proxy — `CONNECT tunnel failed, 403`** |
-| Xcode | not applicable — this host is Linux |
+| Xcode | unavailable — this host is Linux |
 
-So a TWA build does not fail *in a sandbox* for want of a JDK; it fails because
-the **only** host that serves the Android SDK and the Android Gradle plugin
-(`dl.google.com`, `dl.google.com/dl/android/maven2`) is blocked by network
-policy. Bubblewrap would download its own JDK and SDK on first run and dies at
-the SDK step. Worth knowing before anyone spends a session installing Java — and
-worth knowing that **a GitHub runner has no such restriction**, which is exactly
-why the workflow above is the right shape rather than a workaround.
+So the sandbox never lacked a JDK, which an earlier version of this section
+claimed. It lacks reachability to the **only** host serving the Android SDK and
+the Android Gradle plugin. Per `/root/.ccr/README.md` a 403 from the proxy is an
+organization policy denial and is reported rather than retried or worked around
+— and a GitHub runner has no such restriction, which is why the workflows are the
+right shape rather than a workaround.
 
-Per `/root/.ccr/README.md` a 403 from the proxy is an organization policy denial
-and is reported rather than retried or worked around.
+</details>
 
-**iOS is the half that stays open.** Capacitor's build needs Xcode on macOS,
-which neither a Linux sandbox nor `ubuntu-latest` provides — it needs a
-`macos-*` runner or a real Mac, plus an Apple Developer account. The
-`ios/` and `android/` directories are deliberately NOT committed — they are
-generated artifacts, and a `.pbxproj` conflicting on every merge in a repo
-several agents write to hourly costs more than regenerating it.
 
 ### 4. Store credentials, which unblock the association files
 - Play App Signing SHA-256 → `ANDROID_SHA256_FINGERPRINT` + `ANDROID_PACKAGE_NAME`
