@@ -43,6 +43,7 @@
     "audit:web-vitals": "node scripts/audit-web-vitals.mjs",
     "audit:campaign-images:live": "node scripts/audit-campaign-images.mjs --live",
     "check:env": "node scripts/check-env.mjs",
+    "audit:financial-rls": "node scripts/audit-financial-rls.mjs",
     "audit:money-flow": "node scripts/audit-live-money-flow.mjs",
     "generate:store-art": "node scripts/generate-store-art.mjs",
     "capture:screenshots": "node scripts/capture-manifest-screenshots.mjs",
