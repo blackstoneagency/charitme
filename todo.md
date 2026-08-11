@@ -24440,6 +24440,27 @@ stays owner-gated.
 Everything above is verified at the point where the invariants are DECIDED — the
 params handed to `createCheckoutSession`.
 
-**To close the remaining gap, an owner needs to:** put a Stripe TEST key in a
-staging environment and run one charge per method through
-charge → transfer → payout. That is the only step no bot can do from here.
+**The remaining gap is now ONE COMMAND, not a project:**
+
+```
+STRIPE_SECRET_KEY=sk_test_... npm run verify:money-flow --workspace=apps/web
+```
+
+`scripts/verify-stripe-money-flow.mjs` creates a test connected account, puts a
+real charge through Stripe, then asserts what Stripe DID rather than what
+CharitMe sent — the transfer amount, the application fee, and that the two sum to
+the total with nothing unaccounted for. It cleans up the fixture account after.
+
+⚠️ Two refusals are enforced IN CODE, not in prose, and both are guarded by
+`__tests__/verify-money-flow-script.test.ts` (7 tests, mutation-tested):
+
+· **No key → exit 1**, never a skip. A money check that exits 0 having touched
+  nothing reports the guarantees as proven when nothing was proven, which is
+  worse than having no check at all.
+· **Anything that is not `sk_test_` → exit 1.** An ALLOWLIST, not a `sk_live_`
+  blocklist — a blocklist would happily accept a restricted production key. This
+  script creates charges, so "do not use production credentials in tests" cannot
+  live only in a comment.
+
+That is the only step no bot can do from here, and it is now a single command
+whose safety does not depend on the operator being careful.
