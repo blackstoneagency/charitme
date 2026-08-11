@@ -2139,6 +2139,51 @@ async function sendDonorRefundNotification(
 //      transfers that already succeeded. Recording is the part that must be
 //      exactly-once; transferring is the part that must be re-runnable.
 // ─────────────────────────────────────────────────────────────────────────────
+/**
+ * Record money CharitMe is HOLDING because a portfolio transfer did not happen.
+ *
+ * ⚠️ This is the difference between "we briefly held funds" and "we held funds
+ * and nobody knows". The two failure paths below previously did
+ * `console.warn` / `console.error` and `continue`, and the comment above them
+ * claimed the organizer "gets paid when they do [onboard]" and that "a transfer
+ * can be retried by an operator" — but nothing scheduled that payment and the
+ * operator had only a log line, which rotates. Donor money could sit on the
+ * platform balance indefinitely with no durable record of who it belonged to.
+ *
+ * `reconciliation_exceptions` is the existing, applied home for exactly this:
+ * it is read by /api/admin/ledger and swept by the reconcile-ledger cron, so an
+ * outstanding obligation becomes visible and actionable instead of invisible.
+ *
+ * Deliberately best-effort — a failure to RECORD the problem must not throw,
+ * because throwing here would make Stripe redeliver the event and re-run
+ * transfers that already succeeded. The log line is kept as well as the row.
+ */
+async function recordHeldFunds(params: {
+  campaignId: string;
+  amountCents: number;
+  sessionId: string;
+  reason: string;
+}): Promise<void> {
+  try {
+    await supabaseAdmin.from('reconciliation_exceptions').insert({
+      kind: 'payout_mismatch',
+      description:
+        `Portfolio transfer not completed for campaign ${params.campaignId}: ${params.reason}. `
+        + `CharitMe is holding ${params.amountCents} cents owed to this campaign's recipient.`,
+      campaign_id: params.campaignId,
+      stripe_ref: params.sessionId,
+      expected_cents: params.amountCents,
+      actual_cents: 0,
+      difference_cents: params.amountCents,
+    });
+  } catch (err) {
+    console.error('[webhook] could not record held funds', {
+      campaignId: params.campaignId,
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
 async function handlePortfolioComplete(
   eventId: string,
   session: Stripe.Checkout.Session,
@@ -2195,6 +2240,12 @@ async function handlePortfolioComplete(
         console.warn('[webhook] portfolio transfer deferred, no connected account', {
           campaignId: part.campaignId,
         });
+        await recordHeldFunds({
+          campaignId: part.campaignId,
+          amountCents: part.amountCents,
+          sessionId: session.id,
+          reason: 'recipient has no verified connected account',
+        });
         continue;
       }
       await stripe.transfers.create(
@@ -2210,9 +2261,13 @@ async function handlePortfolioComplete(
         { idempotencyKey: `portfolio_transfer_${session.id}_${part.campaignId}` },
       );
     } catch (err) {
-      console.error('[webhook] portfolio transfer failed', {
+      const reason = err instanceof Error ? err.message : String(err);
+      console.error('[webhook] portfolio transfer failed', { campaignId: part.campaignId, error: reason });
+      await recordHeldFunds({
         campaignId: part.campaignId,
-        error: err instanceof Error ? err.message : String(err),
+        amountCents: part.amountCents,
+        sessionId: session.id,
+        reason: `transfer failed (${reason})`,
       });
     }
   }
