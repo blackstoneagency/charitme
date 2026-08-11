@@ -42,28 +42,89 @@ const SERVICE_FEE = TIP + PROCESSING; // application_fee_amount, exactly as the 
 const money = (c) => `$${((c ?? 0) / 100).toFixed(2)}`;
 const rows = [];
 
+/**
+ * ⚠️ THE TRANSFER IS GROSS, AND MY FIRST MODEL OF THIS WAS WRONG.
+ *
+ * With a destination charge, Stripe transfers the FULL charge amount to the
+ * connected account and then debits the application fee back from it. So
+ * `transfer.amount` is $111.43, not $100.00, and the organizer NETS
+ * `transfer.amount - application_fee` = exactly the donation principal.
+ *
+ * The first version of this file computed `charged - fee - allocation` and
+ * reported −$11.43 on seven correctly-routed scenarios — accusing working code
+ * of losing money, using real Stripe objects, which is the most convincing way
+ * to be wrong. The identity that actually holds is:
+ *
+ *     charged  =  allocation + adjustment          (every cent is accounted for)
+ *     netToRecipient  =  allocation − fee          (what the organizer keeps)
+ */
 function record(name, { charged = 0, fee = 0, allocation = 0, stripeFee = 0, adjustment = 0 }, passed, note) {
-  const difference = charged - fee - allocation - adjustment;
-  rows.push({ name, charged, fee, allocation, stripeFee, adjustment, difference, passed, note });
+  const difference = charged - allocation - adjustment;
+  const netToRecipient = allocation > 0 ? allocation - fee : 0;
+  rows.push({ name, charged, fee, allocation, stripeFee, adjustment, difference, netToRecipient, passed, note });
   console.log(`\n${passed ? '✅ PASS' : '❌ FAIL'}  ${name}`);
   console.log(`   Donor Charged      ${money(charged)}`);
   console.log(`   CharitMe Fee       ${money(fee)}`);
-  console.log(`   Campaign Allocation${money(allocation).padStart(11)}`);
+  console.log(`   Campaign Allocation${money(allocation).padStart(11)}  (gross transfer)`);
+  console.log(`   → net to recipient ${money(netToRecipient)}`);
   console.log(`   Stripe Fee         ${money(stripeFee)}`);
   console.log(`   Refund/Adjustment  ${money(adjustment)}`);
   console.log(`   Difference         ${money(difference)}`);
   if (note) console.log(`   ${note}`);
 }
 
-/** A connected account that can receive transfers. */
+/**
+ * A connected account that can ACTUALLY receive transfers.
+ *
+ * ⚠️ `capabilities: { transfers: { requested: true } }` on an Express account is
+ * not enough, and the failure is late and confusing: the account is created
+ * happily, then the first charge dies with "your destination account needs to
+ * have at least one of the following capabilities enabled". Requesting a
+ * capability leaves it PENDING until onboarding completes, and an Express
+ * account onboards through a hosted flow no script can drive.
+ *
+ * A Custom account with every required field prefilled activates immediately in
+ * test mode. The values below are Stripe's documented test fixtures —
+ * `address_full_match`, routing `110000000`, ssn `0000` — not invented data.
+ */
 async function organizer(label) {
-  const account = await stripe.accounts.create({
-    type: 'express',
+  return stripe.accounts.create({
+    type: 'custom',
     country: 'US',
-    capabilities: { transfers: { requested: true } },
+    email: `${label}@charitme.invalid`,
+    capabilities: { transfers: { requested: true }, card_payments: { requested: true } },
+    business_type: 'individual',
+    individual: {
+      first_name: 'Jenny',
+      last_name: 'Rosen',
+      email: `${label}@charitme.invalid`,
+      phone: '+15555555555',
+      dob: { day: 1, month: 1, year: 1901 },
+      address: {
+        line1: 'address_full_match',
+        city: 'South San Francisco',
+        state: 'CA',
+        postal_code: '94080',
+        country: 'US',
+      },
+      ssn_last_4: '0000',
+      id_number: '000000000',
+    },
+    business_profile: {
+      mcc: '8398',
+      url: 'https://www.charitme.com',
+      product_description: 'Fundraising campaign payouts',
+    },
+    tos_acceptance: { date: Math.floor(Date.now() / 1000), ip: '8.8.8.8' },
+    external_account: {
+      object: 'bank_account',
+      country: 'US',
+      currency: 'usd',
+      routing_number: '110000000',
+      account_number: '000123456789',
+    },
     metadata: { scenario: label },
   });
-  return account;
 }
 
 /** A destination charge, built exactly as /api/donations builds it. */
@@ -82,9 +143,34 @@ async function donate(destination, { paymentMethod = 'pm_card_visa', idempotency
   );
 }
 
+/**
+ * The charge, once Stripe has finished attaching things to it.
+ *
+ * ⚠️ A destination charge's `transfer`, `application_fee` and
+ * `balance_transaction` are created ASYNCHRONOUSLY, moments after the intent
+ * confirms. Reading immediately returns a succeeded charge with all three null —
+ * which this matrix scored as "the platform kept the money" and reported as a
+ * routing FAILURE on a correctly routed charge.
+ *
+ * That is the worst failure mode a verification script can have: it accuses
+ * working code, and the accusation looks like exactly the defect it exists to
+ * find. So it waits for the objects to appear rather than judging their absence.
+ */
 async function chargeOf(intent) {
   const id = typeof intent.latest_charge === 'string' ? intent.latest_charge : intent.latest_charge?.id;
-  return stripe.charges.retrieve(id, { expand: ['balance_transaction', 'transfer', 'application_fee'] });
+  let charge = null;
+  for (let attempt = 0; attempt < 12; attempt++) {
+    charge = await stripe.charges.retrieve(id, {
+      expand: ['balance_transaction', 'transfer', 'application_fee'],
+    });
+    // A refunded charge legitimately has no application fee left to read, so the
+    // wait ends on the transfer — the field that decides where the money went.
+    if (charge.transfer && charge.balance_transaction) return charge;
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  // Returned anyway: a genuine "no transfer" IS the finding this matrix looks
+  // for, and swallowing it here would hide the real thing.
+  return charge;
 }
 
 async function main() {
@@ -102,7 +188,9 @@ async function main() {
     },
     chargeA.status === 'succeeded' &&
       chargeA.transfer?.destination === acctA.id &&
-      chargeA.transfer?.amount === DONATION,
+      // Gross transfer minus the application fee is what the organizer keeps,
+      // and it must equal the donation principal to the cent.
+      (chargeA.transfer?.amount ?? 0) - (chargeA.application_fee?.amount ?? 0) === DONATION,
     `charge ${chargeA.id} → transfer ${chargeA.transfer?.id} → ${chargeA.transfer?.destination}`,
   );
 
@@ -204,11 +292,16 @@ async function main() {
     refund_application_fee: true,
   });
   const afterPartial = await chargeOf(partialIntent);
-  const partialFee = await stripe.applicationFees.retrieve(
+  // ⚠️ Guarded: a charge with no application fee is a real state (a
+  // non-destination charge), and dereferencing `.id` on null aborted the whole
+  // matrix mid-run rather than failing one scenario.
+  const partialFeeId =
     typeof partialCharge.application_fee === 'string'
       ? partialCharge.application_fee
-      : partialCharge.application_fee.id,
-  );
+      : partialCharge.application_fee?.id;
+  const partialFee = partialFeeId
+    ? await stripe.applicationFees.retrieve(partialFeeId)
+    : { amount: 0, amount_refunded: 0 };
   record(
     '7. Partial refund',
     {
@@ -235,15 +328,21 @@ async function main() {
       fee: disputeCharge.application_fee?.amount ?? 0,
       allocation: disputeCharge.transfer?.amount ?? 0,
       stripeFee: disputeCharge.balance_transaction?.fee ?? 0,
-      adjustment: dispute?.amount ?? 0,
+      // NOT an adjustment: a dispute WITHHOLDS funds pending resolution, it does
+      // not refund the donor. Counting it here double-subtracted the same money.
+      adjustment: 0,
     },
     Boolean(dispute),
-    dispute ? `dispute ${dispute.id} status=${dispute.status} reason=${dispute.reason}` : 'NO DISPUTE CREATED',
+    dispute
+      ? `dispute ${dispute.id} status=${dispute.status} reason=${dispute.reason}, ${money(dispute.amount)} withheld`
+      : 'NO DISPUTE CREATED',
   );
 
   // ── 9. Restricted owner ────────────────────────────────────────────────────
   // An account that never requested the transfers capability cannot receive a
   // destination charge. The donation must be REFUSED, not accepted and stranded.
+  // Deliberately bare: no capabilities requested, no onboarding. This is the
+  // real-world "organizer started signup and stopped" state.
   const restricted = await stripe.accounts.create({ type: 'express', country: 'US' });
   let restrictedError = null;
   try {

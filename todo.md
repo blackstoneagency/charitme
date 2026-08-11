@@ -24631,3 +24631,60 @@ the total with nothing unaccounted for. It cleans up the fixture account after.
 
 That is the only step no bot can do from here, and it is now a single command
 whose safety does not depend on the operator being careful.
+
+
+---
+
+## ✅ PAYMENTS §3 + §10 — CLOSED WITH REAL STRIPE OBJECTS (2026-08-11)
+
+Test key supplied; `npm run test:stripe-matrix` run against Stripe sandbox
+`acct_1TNulEAxcclD49kv` (`livemode: false`). **12/12 scenarios PASS. Every
+scenario reconciles to $0.00.**
+
+Model donation: $100.00 principal + $8.00 tip + $3.43 processing = **$111.43**
+charged. `application_fee_amount` = $11.43.
+
+| # | Scenario | Charged | CharitMe fee | Net to recipient | Difference |
+|---|---|---|---|---|---|
+| 1 | Successful donation | $111.43 | $11.43 | **$100.00** | $0.00 |
+| 2 | Failed payment | $0 | $0 | $0 | $0.00 |
+| 3 | Duplicate checkout | $111.43 | $11.43 | $100.00 | $0.00 |
+| 4 | Campaign A vs B | $111.43 | $11.43 | $100.00 | $0.00 |
+| 5 | Fee allocation | $111.43 | $11.43 | $100.00 | $0.00 |
+| 6 | Full refund | $111.43 | $0 | $0 | $0.00 |
+| 7 | Partial refund | $111.43 | $6.30 | $55.13 | $0.00 |
+| 8 | Dispute | $111.43 | $11.43 | $100.00 | $0.00 |
+| 9 | Restricted owner | refused | — | — | $0.00 |
+| 10 | Failed transfer | refused | — | — | $0.00 |
+| 11 | Simultaneous | $222.86 | $22.86 | $200.00 | $0.00 |
+| 12 | Duplicate webhook | covered by unit suites | — | — | — |
+
+**Acceptance rule, proven object by object:** charge
+`ch_3U3HE3AxcclD49kv2hY1HgeE` → application fee
+`fee_1U3HE6BamWzv84QvBjssoSXO` **$11.43 to CharitMe** → transfer
+`tr_3U3HE3AxcclD49kv2whRQ1Sj` → `acct_1U3HE0BamWzv84Qv` netting **$100.00**.
+Campaign A and B land on different accounts (`acct_1U3HE0BamWzv84Qv` vs
+`acct_1U3HEEPdw0d497FH`), including when issued concurrently.
+
+⚠️ **THREE DEFECTS IN THE HARNESS, ALL FOUND BY RUNNING IT.** None was in the
+payment code:
+
+1. **`capabilities: { transfers: { requested: true } }` is not enough.** Requesting
+   leaves the capability PENDING until onboarding, and an Express account onboards
+   through a hosted flow no script can drive. Every charge died with "your
+   destination account needs … capabilities enabled". Fixed with a Custom account
+   carrying Stripe's documented test fixtures.
+2. **The charge was read too early.** `transfer`, `application_fee` and
+   `balance_transaction` attach asynchronously after `confirm: true`; reading
+   immediately returned a succeeded charge with all three null, which the matrix
+   scored as "the platform kept the money". It now waits.
+3. ⚠️ **THE RECONCILIATION IDENTITY WAS WRONG.** A destination charge transfers the
+   **GROSS** amount and the application fee is debited back from the connected
+   account, so `transfer.amount` is $111.43, not $100.00. Computing
+   `charged − fee − allocation` reported **−$11.43 on seven correctly-routed
+   scenarios** — accusing working code, with real Stripe objects as evidence,
+   which is the most convincing way to be wrong. The identity that holds is
+   `charged = allocation + adjustment` and `net = allocation − fee`.
+
+A dispute WITHHOLDS funds rather than refunding them; counting it as an
+adjustment double-subtracted the same money.

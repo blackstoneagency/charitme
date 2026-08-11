@@ -103,7 +103,16 @@ describe('the figures come from Stripe, not from our arithmetic', () => {
   });
 
   it('computes the difference and fails the run when it is not zero', () => {
-    expect(source).toContain('const difference = charged - fee - allocation - adjustment');
+    // ⚠️ The identity was WRONG in the first version and real Stripe objects
+    // exposed it. A destination charge transfers the GROSS amount and the
+    // application fee is debited back from the connected account, so
+    // `charged - fee - allocation` reported -$11.43 on seven correctly-routed
+    // scenarios — accusing working code, with real evidence, which is the most
+    // convincing way to be wrong. What holds is:
+    //   charged        = allocation + adjustment
+    //   netToRecipient = allocation - fee
+    expect(source).toContain('const difference = charged - allocation - adjustment');
+    expect(source).toContain('const netToRecipient = allocation > 0 ? allocation - fee : 0');
     expect(source).toMatch(/do not reconcile to \$0\.00/);
   });
 });
