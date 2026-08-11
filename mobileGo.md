@@ -219,6 +219,49 @@ check tests `client.url` — WHICH WINDOW to focus — and never constrains WHER
 window is sent, so an absolute `draft.link` would open another site from a
 notification wearing CharitMe's name and icon. `safeNotificationPath` now guards
 it in both the payload builder and the service worker, mutation-tested.
+| Store listing art | claude/mobile | 2026-08-10 | ✅ done, released — ⚠️ logo source corrected since, see Applied |
+| Native shells (TWA + Capacitor config) | claude/mobile | 2026-08-10 | ✅ config done, released |
+| Privacy declarations | claude/mobile | 2026-08-10 | ✅ done, released |
+| Per-device store screenshots | claude/mobile | 2026-08-10 | ✅ done, released |
+| Push notifications (Guideline 4.2) | claude/mobile | 2026-08-10 | ✅ web push done + crypto path executed, released |
+| Native-shell toolchain — what actually blocks a build | claude/…njok43 | 2026-08-10 | ✅ measured, see item 3 |
+| Native share sheet (4.2 mitigation #2) | claude/…njok43 | 2026-08-11 | ✅ done, in PR #360 |
+| Web push — SSRF + open-redirect hardening | claude/…njok43 | 2026-08-11 | ✅ done, in PR #360 |
+| Tombstone migration apply | — | | 🔓 OWNER, one paste — see Open #1; not blocked on a missing credential |
+
+### ⚠️ This table did not prevent a collision, and here is why
+
+**Web push was built twice, in parallel, on 2026-08-10.** `claude/mobile` shipped
+it to master at 23:56; this session had claimed it at ~23:15 and pushed a
+complete implementation at 00:04. Neither agent did anything wrong by the rules
+written above — and the rules still failed.
+
+The reason is mechanical: **a claim is only visible once it is ON MASTER.** This
+file is the shared ledger, but a claim added on a feature branch lives in that
+branch until it merges, which for a long-CI repo is an hour or more. Both agents
+read a `mobileGo.md` with no push claim in it, because both claims were sitting
+in unmerged branches.
+
+So the protocol needs one more line, and it is now here:
+
+> **Push the claim commit BY ITSELF, first, before writing any code.** A claim
+> that arrives with the feature is not a claim; it is an announcement.
+
+The duplicate cost roughly an hour of one agent's work. It was resolved by
+keeping master's implementation — which is the better one on three counts:
+- it hangs off `notify()`, the choke point every in-app notification already
+  flows through, so the push and the in-app row cannot describe one event
+  differently;
+- it **awaits** delivery, where the duplicate used `void import(...)`. An
+  un-awaited promise in a serverless handler is cancelled when the response
+  returns, so the duplicate's notifications would simply not have been sent on
+  Vercel;
+- it carries APNs `platform` + `device_token` columns, because Capacitor's
+  WKWebView is **not** Safari and has no Web Push at all — the duplicate assumed
+  iOS home-screen push would cover the App Store build. It does not.
+
+Two things from the duplicate were kept, because master's own comments flag both
+gaps as open — see "Web push hardening" under Applied.
 
 ⚠️ **Do not take "blocked on credentials" items.** They are not unclaimed work —
 they cannot be finished by anyone in a sandbox, and a second agent rediscovering
@@ -252,6 +295,50 @@ work is the backend it would reuse.
 ---
 
 ## ✅ Applied
+
+### Web push hardening — two gaps master's own comments flagged as open
+Kept from the duplicate implementation (see the collision note above) rather than
+discarded, because each closes something the merged version left open.
+
+- ⚠️ **The endpoint validator was a DENYLIST, and passed any public host.** It
+  rejects loopback and RFC1918 and says of itself "not exhaustive on its own".
+  What it does not reject is `https://attacker.example/collect` — a signed-in
+  user could register that and have this server POST a VAPID-signed, encrypted
+  payload to it on every notification thereafter. Denying private ranges does
+  not help when the target is public. Now allowlisted to the five hosts that
+  actually operate push services, matched on a **dot-suffix** so
+  `fcm.googleapis.com.attacker.example` does not pass. Extend the list if a
+  vendor is added — a refused subscription presents as "push does not work on
+  <browser>", not as an error.
+- ⚠️ **A notification click target went unvalidated into `client.navigate()` and
+  `openWindow()`.** Both resolve against the app's origin, so an absolute URL in
+  a payload would navigate the INSTALLED APP to an arbitrary site — on a phone,
+  indistinguishable from the app going there itself. Not reachable today: every
+  `link` comes from internal `notify()` callers. It is defence in depth for the
+  first notification whose link is user-influenced, and the service worker
+  enforces it **independently** because a worker outlives the deploy that
+  installed it. The test lifts the worker's own copy out and executes it against
+  the server's cases, so the two cannot drift.
+
+### Native share sheet — the second 4.2 mitigation
+`docs/native-shells.md` ranks it behind push, and `navigator.share` was used
+nowhere. A grid of `target="_blank"` links into facebook.com is exactly the
+interaction that gives a repackaged website away.
+
+Offered only where the OS provides a sheet, feature-detected **after mount**
+(`navigator` does not exist on the server, so branching during render is a
+hydration mismatch). A dismissed sheet rejects with `AbortError` and is **not**
+counted — this feeds the panel an organiser uses to decide where to spend
+effort, and counting every change of mind would inflate it.
+
+⚠️ **Found while wiring it: the Messenger tile's shares were being thrown away.**
+It has always posted `channel: 'messenger'`, which the API's zod enum did not
+list; the client fires with `void fetch(...)`, so the 400 was discarded and the
+share never reached attribution — invisible from the UI and from the data. It
+renders only when `NEXT_PUBLIC_FACEBOOK_APP_ID` is set, which is why it lasted.
+Three lists have to agree — UI channels ⊆ API enum ⊆ DB constraint — and nothing
+made them; `__tests__/share-channels.test.ts` now derives the UI's list from the
+component and fails on a gap.
 
 ### The splash flashed white before a black app
 `background_color` was `#fbfaff` while the app opens **dark** — `layout.tsx` sets
@@ -517,6 +604,29 @@ The `ios/` and `android/` directories are still deliberately NOT committed — t
 are generated artifacts, and a `.pbxproj` conflicting on every merge in a repo
 several agents write to hourly costs more than regenerating it.
 
+<details>
+<summary>Why neither build could run in an agent sandbox (measured 2026-08-10)</summary>
+
+Kept only so nobody re-derives it. It is not a status claim — the workflows above
+are the answer.
+
+| | |
+|---|---|
+| JDK | **present** — OpenJDK 21.0.10, `/usr/lib/jvm/java-21-openjdk-amd64` |
+| Gradle distributions, Maven Central | reachable (`services.gradle.org` 200, `repo1.maven.org` 200) |
+| **Android SDK** | **`dl.google.com` is refused by the agent proxy — `CONNECT tunnel failed, 403`** |
+| Xcode | unavailable — this host is Linux |
+
+So the sandbox never lacked a JDK, which an earlier version of this section
+claimed. It lacks reachability to the **only** host serving the Android SDK and
+the Android Gradle plugin. Per `/root/.ccr/README.md` a 403 from the proxy is an
+organization policy denial and is reported rather than retried or worked around
+— and a GitHub runner has no such restriction, which is why the workflows are the
+right shape rather than a workaround.
+
+</details>
+
+
 ### 4. Store credentials, which unblock the association files
 - Play App Signing SHA-256 → `ANDROID_SHA256_FINGERPRINT` + `ANDROID_PACKAGE_NAME`
   ⚠️ Read it from **Play Console → Setup → App integrity**, not from a local
@@ -624,6 +734,47 @@ native capability, which is app work rather than repo work. Ranked by
 reviewer-visible value in `docs/native-shells.md`; **push notifications** are the
 strongest, being the one thing the site genuinely cannot do on iOS Safari and the
 one organisers actually want (donation alerts).
+
+#### ✅ Web push is now built — the repo half of that mitigation
+
+The one item on this list that was repo work rather than credentials, so it is
+the one that could be finished. Organisers get a donation alert on their phone.
+
+| piece | where |
+|---|---|
+| `push_subscriptions` table, RLS, rollback | `supabase/migrations/20260905000000_web_push_subscriptions.sql` |
+| decisions (payload, endpoint gate, pruning) | `lib/push-core.ts` — pure, executed by tests |
+| VAPID sign + send + prune | `lib/push.ts` |
+| register / unregister a device | `POST`/`DELETE /api/push/subscribe` |
+| `push`, `notificationclick`, `pushsubscriptionchange` | `public/sw.js` |
+| per-device toggle | Settings → Notifications (`PushToggle.tsx`) |
+| donation alert | third channel in `notifyOrganizerDonation`, webhook |
+
+Four things worth knowing before touching it:
+
+- ⚠️ **A subscription row IS the opt-in.** There is deliberately no
+  `notification_push` column: the browser permission grant is a consent record
+  the user can revoke in the OS without telling us, and a second flag would
+  disagree with it invisibly. Turning the toggle off deletes the row.
+- ⚠️ **The alert takes `donorDisplayName`, never a profile.** That name has
+  already been through both anonymity gates. A lock screen is the most public
+  place this app can print a name, so this channel must not be the one that
+  re-derives it. `lib/push-core.ts` cannot even reach Supabase, and a test
+  asserts it never mentions `full_name`.
+- ⚠️ **A stored endpoint is a URL this server later POSTs to.** It is gated to
+  the five real push-service hosts on the way in *and* on the way out —
+  otherwise a row is an SSRF with a signed request attached.
+- **It degrades like every other optional integration.** No VAPID keypair ⇒ the
+  send is a no-op, the API answers 503, and the toggle reads "not enabled on
+  this deployment". `setVapidDetails` is never called at module scope: a throw
+  there would take down the Stripe webhook, where a failure makes Stripe retry a
+  donation it has already taken.
+
+**Still owner-side:** generate a keypair and set `VAPID_PUBLIC_KEY`,
+`NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`
+(`npx web-push generate-vapid-keys`). Nothing is sent until they exist. Apple
+additionally requires the app be installed to the Home Screen before Safari will
+deliver anything — the toggle says so rather than looking broken.
 
 ---
 

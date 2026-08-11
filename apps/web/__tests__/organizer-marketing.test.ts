@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   aggregateSupporters,
+  supporterListRows,
   filterTargets,
   sendsRemainingToday,
   personalize,
@@ -55,12 +56,96 @@ describe('aggregateSupporters', () => {
   });
 
   it('anonymous flag clears when a later named gift arrives', () => {
+    // This is the TARGETING view. One row per person is the point: two rows
+    // would mail the same address twice. Naming them is safe here because the
+    // only thing that reads this name is the greeting on the email sent to that
+    // very person — it is never shown to the organizer. `supporterListRows`
+    // below is what the organizer sees, and it does not merge these.
     const s = aggregateSupporters([
       don({ anonymous: true, created_at: iso(10) }),
       don({ anonymous: false, name: 'Jane Doe', created_at: iso(2) }),
     ]);
+    expect(s).toHaveLength(1);
     expect(s[0].name).toBe('Jane Doe');
     expect(s[0].anonymous).toBe(false);
+  });
+});
+
+describe('supporterListRows — what the organizer actually sees', () => {
+  it('never puts anonymous money on a named row', () => {
+    // The bug: merged, this read "Jane Doe · 2 gifts · $525". The public donor
+    // wall shows Jane's $25 openly, so the organizer could subtract and learn
+    // she also gave $500 anonymously — the one thing the checkbox promised.
+    const rows = supporterListRows([
+      don({ anonymous: true, amount_cents: 50000, created_at: iso(10) }),
+      don({ anonymous: false, amount_cents: 2500, created_at: iso(2) }),
+    ]);
+    expect(rows).toHaveLength(2);
+    const named = rows.find(r => !r.anonymous)!;
+    const hidden = rows.find(r => r.anonymous)!;
+    expect(named.name).toBe('Jane Doe');
+    expect(named.giftCount).toBe(1);
+    expect(named.totalCents).toBe(2500);
+    expect(hidden.name).toBe('Anonymous donor');
+    expect(hidden.giftCount).toBe(1);
+    expect(hidden.totalCents).toBe(50000);
+  });
+
+  it('leaves no field that rejoins the two rows', () => {
+    // Splitting the rows is worthless if either half carries the donor's id or
+    // masked address — the organizer just reads both and pairs them up.
+    const rows = supporterListRows([
+      don({ anonymous: true, amount_cents: 50000 }),
+      don({ anonymous: false, amount_cents: 2500 }),
+    ]);
+    const hidden = rows.find(r => r.anonymous)!;
+    expect(hidden.emailMasked).toBeNull();
+    expect(JSON.stringify(hidden)).not.toContain('u1');            // donor_id
+    expect(JSON.stringify(hidden)).not.toContain('jane');          // email local part
+    expect(rows.some(r => r.key === hidden.key && r !== hidden)).toBe(false);
+  });
+
+  it('still marks an anonymous supporter reachable', () => {
+    // They can be emailed through the engage flow, which addresses the donor
+    // directly. Reporting them unreachable would make the send counts look
+    // wrong and hide real supporters from the organizer.
+    const [row] = supporterListRows([don({ anonymous: true })]);
+    expect(row.reachable).toBe(true);
+    expect(row.emailMasked).toBeNull();
+  });
+
+  it('masks the address on a named row, and drops it when there is none', () => {
+    // Guards the guard: if emailMasked were null everywhere, the assertions
+    // above would pass while the organizer lost every address they may see.
+    const [named] = supporterListRows([don({ anonymous: false })]);
+    expect(named.emailMasked).toBe('ja***@ex***.com');
+    const [offline] = supporterListRows([don({ donor_id: 'off1', email: null, name: 'Cash Donor' })]);
+    expect(offline.emailMasked).toBeNull();
+    expect(offline.reachable).toBe(false);
+  });
+
+  it('keeps collapsing repeat gifts within each half', () => {
+    const older = iso(40);
+    const newer = iso(35);
+    const rows = supporterListRows([
+      don({ anonymous: true, amount_cents: 1000, created_at: older }),
+      don({ anonymous: true, amount_cents: 2000, created_at: newer }),
+    ]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].giftCount).toBe(2);
+    expect(rows[0].totalCents).toBe(3000);
+    expect(rows[0].isRepeat).toBe(true);
+    expect(rows[0].isLapsed).toBe(true);
+    expect(rows[0].lastGiftAt).toBe(newer);
+  });
+
+  it('skips the unreachable guest and sorts by value', () => {
+    const rows = supporterListRows([
+      don({ donor_id: null, email: null, name: null, amount_cents: 9999 }),
+      don({ donor_id: 'a', amount_cents: 1000 }),
+      don({ donor_id: 'b', amount_cents: 9000 }),
+    ]);
+    expect(rows.map(r => r.totalCents)).toEqual([9000, 1000]);
   });
 });
 

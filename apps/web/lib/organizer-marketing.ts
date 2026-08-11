@@ -27,7 +27,18 @@ export interface Supporter {
 
 export const LAPSED_DAYS = 30;
 
-/** Collapse donation rows into one supporter per person. */
+/**
+ * Collapse donation rows into one supporter per person — the TARGETING view.
+ *
+ * This is what decides who receives an organizer send, so it deliberately keeps
+ * one row per reachable person even when some of their gifts were anonymous:
+ * splitting here would mail the same address twice.
+ *
+ * ⚠️ Do NOT serialize this to an organizer. `name` and `totalCents` sit on the
+ * same row, so a donor who gave once anonymously and once openly appears as
+ * "Real Name · 2 gifts · $525" — which tells the organizer exactly who gave the
+ * anonymous gift. `supporterListRows` is the display view; use that instead.
+ */
 export function aggregateSupporters(donations: DonationRow[], now: Date = new Date()): Supporter[] {
   const map = new Map<string, Supporter>();
   for (const d of donations) {
@@ -64,6 +75,101 @@ export function aggregateSupporters(donations: DonationRow[], now: Date = new Da
     s.isLapsed = s.daysSinceLastGift >= LAPSED_DAYS;
   }
   return out.sort((a, b) => b.totalCents - a.totalCents);
+}
+
+// ─────────────────────────────────────────────
+// Supporter list — the DISPLAY view
+// ─────────────────────────────────────────────
+
+/** A supporter-list row as the organizer sees it. Already redacted. */
+export interface SupporterListRow {
+  key: string;
+  name: string;
+  anonymous: boolean;
+  emailMasked: string | null;  // always null on an anonymous row — see below
+  reachable: boolean;          // true even when the address is withheld
+  giftCount: number;
+  totalCents: number;
+  lastGiftAt: string;
+  isRepeat: boolean;
+  isLapsed: boolean;
+}
+
+/**
+ * Build the organizer's supporter list.
+ *
+ * Anonymity is per GIFT, so one person can produce two rows: what they gave
+ * openly, and what they gave anonymously. Merging those — which is what the
+ * targeting view does — republishes the identity the donor opted out of: a row
+ * reading "Real Name · 2 gifts · $525" beside a public donor wall showing a
+ * single $25 gift from Real Name leaves exactly one candidate for the anonymous
+ * $500.
+ *
+ * The two rows must therefore be impossible to rejoin, which is why an
+ * anonymous row carries no name, no masked address, and an opaque key rather
+ * than the donor id. The masked address is the sharpest of those: an organizer
+ * who already knows a donor's email reads `ja***@gm***.com` on both rows and
+ * has the link back. `reachable` survives so the send counts still make sense —
+ * the organizer can email these donors through the engage flow, which addresses
+ * them directly; they just never learn who they are.
+ */
+export function supporterListRows(donations: DonationRow[], now: Date = new Date()): SupporterListRow[] {
+  interface Bucket {
+    person: string;
+    anonymous: boolean;
+    name: string;
+    email: string | null;
+    giftCount: number;
+    totalCents: number;
+    lastGiftAt: string;
+  }
+  const map = new Map<string, Bucket>();
+  for (const d of donations) {
+    const person = d.donor_id ?? d.email ?? null;
+    if (!person) continue; // fully anonymous guest with no email — unreachable, skip
+    // Anonymity is part of the key: anonymous money never lands in a named row.
+    const key = `${d.anonymous ? 'anon' : 'open'}:${person}`;
+    const existing = map.get(key);
+    if (!existing) {
+      map.set(key, {
+        person,
+        anonymous: d.anonymous,
+        name: d.anonymous ? 'Anonymous donor' : (d.name ?? 'Donor'),
+        email: d.email,
+        giftCount: 1,
+        totalCents: d.amount_cents,
+        lastGiftAt: d.created_at,
+      });
+    } else {
+      existing.giftCount += 1;
+      existing.totalCents += d.amount_cents;
+      if (d.created_at > existing.lastGiftAt) existing.lastGiftAt = d.created_at;
+      if (!d.anonymous && d.name) existing.name = d.name;
+      if (d.email && !existing.email) existing.email = d.email;
+    }
+  }
+
+  let anonSeq = 0;
+  return [...map.values()]
+    .sort((a, b) => b.totalCents - a.totalCents)
+    .map((b) => {
+      const daysSince = Math.floor((now.getTime() - new Date(b.lastGiftAt).getTime()) / 86_400_000);
+      return {
+        // React key only — but it ships to the browser, so an anonymous row gets
+        // a positional id. `anon:<donor_id>` would join straight back to the
+        // same donor's named row in the very same response.
+        key: b.anonymous ? `anon-${++anonSeq}` : `open:${b.person}`,
+        name: b.name,
+        anonymous: b.anonymous,
+        emailMasked: b.anonymous || !b.email ? null : maskEmail(b.email),
+        reachable: Boolean(b.email),
+        giftCount: b.giftCount,
+        totalCents: b.totalCents,
+        lastGiftAt: b.lastGiftAt,
+        isRepeat: b.giftCount >= 2,
+        isLapsed: daysSince >= LAPSED_DAYS,
+      };
+    });
 }
 
 // ─────────────────────────────────────────────

@@ -175,8 +175,14 @@ describe('a notification can only ever open this site', () => {
       join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'sw.js'),
       'utf8',
     );
-    expect(sw).toMatch(/raw\.startsWith\('\/'\)/);
-    expect(sw).toMatch(/!raw\.startsWith\('\/\/'\)/);
-    expect(sw).toContain("!raw.includes('\\\\')");
+    // ⚠️ Asserts the RULE, not one spelling of it. Two sessions fixed this
+    // independently — an inline check on master, and `swSafeClickPath` on the
+    // branch that merged — and pinning the inline form made the better
+    // implementation fail a test that agreed with it. The helper is applied at
+    // BOTH the notification-creation point and the click handler; the inline
+    // version covered only the click.
+    expect(sw).toMatch(/function swSafeClickPath/);
+    expect(sw).toMatch(/startsWith\('\/'\)/);
+    expect((sw.match(/swSafeClickPath\(/g) ?? []).length).toBeGreaterThanOrEqual(2);
   });
 });

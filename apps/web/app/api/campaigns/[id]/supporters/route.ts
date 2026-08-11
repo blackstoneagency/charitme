@@ -5,8 +5,8 @@ import { supabaseAdmin } from '../../../../../lib/supabase';
 import { canManageCampaign } from '../../../../../lib/auth';
 import {
   aggregateSupporters,
+  supporterListRows,
   filterTargets,
-  maskEmail,
   sendsRemainingToday,
   TARGET_GROUPS,
   ORGANIZER_TEMPLATES,
@@ -41,26 +41,34 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
   const rows: DonationRow[] = (donations ?? []).map((d) => {
     const profile = d.profiles as unknown as { email: string | null; full_name: string | null; show_public_profile: boolean | null } | null;
+    // A donor who gave anonymously, or who set Profile Visibility to Private,
+    // must not be named to the organizer. This route already masks emails
+    // ("organizers see names + masked emails, never raw addresses") but took
+    // full_name unconditionally, so anonymous gifts were attributed by name in
+    // the supporter list. The organizer can still reach them through the engage
+    // flow, which addresses the donor directly — they just don't learn who it is.
+    //
+    // Both settings feed the same flag, so the redaction is all-or-nothing.
+    // Carrying `anonymous: d.anonymous` here while blanking only the name let
+    // `supporterListRows` file a Private donor's gifts into a named bucket that
+    // happened to have no name — half-redacted, and inconsistent between rows.
+    const hideIdentity = d.anonymous || !(profile?.show_public_profile ?? true);
     return {
       donor_id: d.donor_id,
       amount_cents: d.amount_cents,
       created_at: d.created_at,
-      anonymous: d.anonymous,
+      anonymous: hideIdentity,
       email: profile?.email ?? d.offline_donor_email ?? null,
-      // A donor who gave anonymously, or who set Profile Visibility to Private,
-      // must not be named to the organizer. This route already masks emails
-      // ("organizers see names + masked emails, never raw addresses") but took
-      // full_name unconditionally, so anonymous gifts were attributed by name in
-      // the supporter list. The organizer can still reach them through the
-      // engage flow, which addresses the donor directly — they just don't learn
-      // who it is.
-      name: (d.anonymous || !(profile?.show_public_profile ?? true))
-        ? 'Anonymous donor'
-        : (profile?.full_name ?? d.offline_donor_name ?? null),
+      name: hideIdentity ? 'Anonymous donor' : (profile?.full_name ?? d.offline_donor_name ?? null),
     };
   });
 
+  // Two views of the same donations, deliberately different:
+  //   · `supporters`      — one row per PERSON. Drives the send counts, so it
+  //                         has to match what /engage will actually target.
+  //   · `supporterListRows` — one row per person PER ANONYMITY. What ships.
   const supporters = aggregateSupporters(rows);
+  const listRows = supporterListRows(rows);
 
   // Channel attribution from share_events (tolerate table absence)
   let attribution: { channel: string; clicks: number; conversions: number }[] = [];
@@ -110,18 +118,11 @@ export async function GET(_req: NextRequest, { params }: Params) {
     targetCounts: Object.fromEntries(
       TARGET_GROUPS.map(g => [g.key, filterTargets(supporters, g.key).length]),
     ),
-    // Privacy: organizers see names + masked emails, never raw addresses
-    supporters: supporters.slice(0, 200).map(s => ({
-      key: s.key,
-      name: s.name,
-      emailMasked: s.email ? maskEmail(s.email) : null,
-      reachable: Boolean(s.email),
-      giftCount: s.giftCount,
-      totalCents: s.totalCents,
-      lastGiftAt: s.lastGiftAt,
-      isRepeat: s.isRepeat,
-      isLapsed: s.isLapsed,
-    })),
+    // Privacy: organizers see names + masked emails, never raw addresses — and
+    // never a name beside money that was given anonymously. Already redacted by
+    // `supporterListRows`; this hands the rows over untouched so no field can be
+    // re-derived here.
+    supporters: listRows.slice(0, 200),
     attribution,
     templates: ORGANIZER_TEMPLATES,
     targetGroups: TARGET_GROUPS,
