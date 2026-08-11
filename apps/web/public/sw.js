@@ -203,7 +203,14 @@ self.addEventListener('push', (event) => {
 // donation alerts should not leave three copies of the dashboard open.
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const target = (event.notification.data && event.notification.data.url) || '/dashboard/notifications';
+  // ⚠️ Same rule as lib/push-core.ts safeNotificationPath. The origin check
+  // below is about WHICH WINDOW to focus; it does not constrain WHERE that
+  // window is sent. Without this, an absolute url in the payload would navigate
+  // a CharitMe window to another site from a CharitMe-branded notification.
+  const raw = (event.notification.data && event.notification.data.url) || '/dashboard/notifications';
+  const target = (typeof raw === 'string' && raw.startsWith('/') && !raw.startsWith('//') && !raw.includes('\\'))
+    ? raw
+    : '/dashboard/notifications';
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {

@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   buildPushPayload,
+  safeNotificationPath,
   serialisePayload,
   isValidWebPushSubscription,
   isGoneForever,
@@ -122,5 +126,57 @@ describe('configuration gate', () => {
 
   it('treats whitespace as unset', () => {
     expect(pushConfigured({ VAPID_PUBLIC_KEY: '  ', VAPID_PRIVATE_KEY: '  ' })).toBe(false);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The click target must be a same-origin PATH.
+//
+// Added after two agents built push concurrently: this implementation won (it is
+// integrated with notify-core, caps the payload, and validates the endpoint
+// against SSRF), but its click target was unconstrained. Its same-origin check
+// is on `client.url` — WHICH WINDOW to focus — and does not constrain WHERE that
+// window is then sent. A notification wears CharitMe's name and icon, so an
+// absolute `draft.link` would open somebody else's site from a CharitMe banner.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('a notification can only ever open this site', () => {
+  it.each([
+    'https://evil.example/phish',
+    '//evil.example',
+    '/\\evil.example',
+    'javascript:alert(1)',
+    '',
+  ])('rejects %s', (input) => {
+    expect(safeNotificationPath(input)).toBe('/dashboard/notifications');
+  });
+
+  it.each([null, undefined, 42, {}])('rejects the non-string %s', (input) => {
+    expect(safeNotificationPath(input as unknown)).toBe('/dashboard/notifications');
+  });
+
+  it('keeps an ordinary same-origin path', () => {
+    expect(safeNotificationPath('/campaigns/help-sarah')).toBe('/campaigns/help-sarah');
+  });
+
+  it('is applied by buildPushPayload, not merely exported', () => {
+    const payload = buildPushPayload({
+      kind: 'donation_received',
+      title: 'A donation',
+      body: 'x',
+      link: 'https://evil.example/phish',
+    } as Parameters<typeof buildPushPayload>[0]);
+    expect(payload.url).toBe('/dashboard/notifications');
+  });
+
+  it('the service worker enforces the SAME rule', () => {
+    // Both halves, because a payload arriving encrypted proves it came from us —
+    // not that a future sender bug cannot put an absolute URL in it.
+    const sw = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'sw.js'),
+      'utf8',
+    );
+    expect(sw).toMatch(/raw\.startsWith\('\/'\)/);
+    expect(sw).toMatch(/!raw\.startsWith\('\/\/'\)/);
+    expect(sw).toContain("!raw.includes('\\\\')");
   });
 });

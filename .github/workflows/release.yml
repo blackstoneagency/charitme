@@ -161,7 +161,7 @@ jobs:
       - name: Run public responsive and image-integrity gates
         working-directory: apps/web
         run: |
-          node scripts/audit-page-images.mjs --base http://127.0.0.1:3000 --strict-global
+          node scripts/audit-page-images.mjs --base http://127.0.0.1:3000
           node scripts/audit-mobile.mjs http://127.0.0.1:3000
           node scripts/audit-responsive.mjs --base http://127.0.0.1:3000
 

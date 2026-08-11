@@ -40,12 +40,33 @@ function clamp(value: string, max: number): string {
  * Build the payload from the same draft the in-app notification uses, so the two
  * cannot say different things about one event.
  */
+/**
+ * Constrain a notification's click target to a same-origin PATH.
+ *
+ * ⚠️ Security boundary, not tidiness. The OS renders a notification with
+ * CharitMe's name and icon on it, so if `draft.link` were ever an absolute URL —
+ * and a draft can be built from user-influenced content — tapping a
+ * CharitMe-branded banner would open somebody else's site. That is a phishing
+ * surface with our branding on it.
+ *
+ * The service worker applies the SAME rule on the way out, because a payload
+ * arriving encrypted proves it came from us, not that it is safe.
+ */
+export function safeNotificationPath(raw: unknown): string {
+  if (typeof raw !== 'string' || raw.length === 0) return '/dashboard/notifications';
+  // Absolute and scheme-relative (`//evil.example`) are both rejected.
+  if (!raw.startsWith('/') || raw.startsWith('//')) return '/dashboard/notifications';
+  // Some URL parsers treat a backslash as a slash: `/\evil.example`.
+  if (raw.includes('\\')) return '/dashboard/notifications';
+  return raw;
+}
+
 export function buildPushPayload(draft: NotificationDraft): PushPayload {
   return {
     title: clamp(draft.title, MAX_TITLE),
     body: clamp(draft.body ?? '', MAX_BODY),
     // A notification that opens nothing is a dead end on the lock screen.
-    url: draft.link || '/dashboard/notifications',
+    url: safeNotificationPath(draft.link),
     kind: draft.kind,
     // Collapses repeats: five gifts in a minute replace one another rather than
     // stacking five banners.

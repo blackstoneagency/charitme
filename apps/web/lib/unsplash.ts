@@ -128,16 +128,64 @@ export async function searchUnsplashCovers(query: string, count = 30, page = 1):
 }
 
 /**
- * A single themed cover for a campaign, deterministically keyed on `seed` so the
- * same campaign always resolves to the same photo and distinct campaigns in a
- * category get distinct photos (uniqueness). Returns null when no key is set or
- * the search yields nothing — callers fall back to first-party subject art.
+ * How many search pages to pool per category.
+ *
+ * The largest live categories hold 73 campaigns each (Faith, Education,
+ * Medical), and one page is 30 photos. Three pages (90) clears the largest, so
+ * the pool is at least as large as the population it has to serve — the
+ * precondition for distinctness, though see the warning below for why it is not
+ * sufficient on its own.
+ */
+const POOL_PAGES = 3;
+
+/** Pool several pages of themed covers, de-duplicated by Unsplash photo id. */
+export async function unsplashCoverPool(
+  category: string | null | undefined,
+  pages = POOL_PAGES,
+): Promise<UnsplashCover[]> {
+  const query = categoryQuery(category);
+  const seen = new Set<string>();
+  const pool: UnsplashCover[] = [];
+  for (let page = 1; page <= pages; page++) {
+    const batch = await searchUnsplashCovers(query, 30, page);
+    if (batch.length === 0) break; // exhausted, or no key — either way stop
+    for (const cover of batch) {
+      if (seen.has(cover.id)) continue;
+      seen.add(cover.id);
+      pool.push(cover);
+    }
+  }
+  return pool;
+}
+
+/**
+ * A single themed cover for a campaign, deterministically keyed on `seed`, so the
+ * same campaign always resolves to the same photo.
+ *
+ * ⚠️ **This does NOT guarantee uniqueness across campaigns, and the comment here
+ * used to claim it did.** The claim is false and was measured: hashing a seed
+ * into a 30-photo pool gave **222 of 502 live campaigns (44.2%) a duplicate
+ * cover** — 50 of the 73 Faith campaigns collided, 49 of 73 Education, 47 of 73
+ * Medical. Two separate causes, and enlarging the pool only fixes the first:
+ *
+ *  1. **Pigeonhole.** 73 campaigns cannot have distinct covers from 30 photos.
+ *     `POOL_PAGES` fixes this by pooling 90.
+ *  2. **Birthday collisions.** Independent hashes into N slots collide long
+ *     before the slots run out — with 73 draws from 90 slots the expected number
+ *     of distinct values is only ~55. No per-campaign function can avoid this,
+ *     because uniqueness is a property of the SET and this function can see one
+ *     campaign at a time.
+ *
+ * Real uniqueness therefore has to be assigned globally and persisted:
+ * `scripts/assign-campaign-photos.mjs` does that and writes the result to
+ * `campaigns.cover_image_url`. This function stays the per-request fallback —
+ * on-theme and stable, not guaranteed distinct.
  */
 export async function unsplashCoverForCampaign(
   category: string | null | undefined,
   seed: string,
 ): Promise<UnsplashCover | null> {
-  const covers = await searchUnsplashCovers(categoryQuery(category));
+  const covers = await unsplashCoverPool(category);
   if (covers.length === 0) return null;
   return covers[pickCoverIndex(seed, covers.length)];
 }
