@@ -24,6 +24,28 @@ owns* are, and names precisely what is not.
 
 ---
 
+## 🧭 Where this actually stands
+
+**Everything software-controllable in this repo is done.** Every remaining item
+needs a secret, a developer account, or a build toolchain — none of which exists
+in an agent sandbox, and none of which another agent can unblock by trying
+harder.
+
+⚠️ **Do not re-attempt the blocked items.** Each was attempted and the blocker
+measured, not guessed:
+
+| Blocked on | Item | What was actually tried |
+|---|---|---|
+| `SUPABASE_ACCESS_TOKEN` or DB password | Apply the 49 pending migrations | CLI returns `Access token not provided`; `~/.supabase` empty; service-role key cannot run DDL — PostgREST executes RPCs, not schema changes |
+| Owner env var | `ACCOUNT_SELF_DELETE_ENABLED=true` | Depends on the tombstone migration above |
+| Owner env var | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | A local keypair was generated and the full crypto path executed offline — see below. Production keys must be the owner's |
+| JDK + Android SDK | Bubblewrap AAB | Config generated and sync-tested; the build needs toolchains |
+| macOS + Xcode | iOS archive | Same |
+| Play Console / Apple Developer | Signing fingerprint, `IOS_APP_ID` | Association files are written and 404 until configured, deliberately |
+| Store consoles | Entering privacy answers, uploading art | Answers derived and art generated; entry is a human in a web form |
+
+---
+
 ## 🤝 Coordination — claim before you start
 
 Several agents merge into `master` hourly. This file is the shared ledger; the
@@ -38,7 +60,7 @@ with no claim is free. An item with a claim is someone else's — pick another.
 | Native shells (TWA + Capacitor config) | claude/mobile | 2026-08-10 | ✅ config done, released |
 | Privacy declarations | claude/mobile | 2026-08-10 | ✅ done, released |
 | Per-device store screenshots | claude/mobile | 2026-08-10 | ✅ done, released |
-| Push notifications (Guideline 4.2) | claude/mobile | 2026-08-10 | ✅ web push done, released |
+| Push notifications (Guideline 4.2) | claude/mobile | 2026-08-10 | ✅ web push done + crypto path executed, released |
 | Tombstone migration apply | — | | 🔒 blocked on credentials, not on people |
 
 ⚠️ **Do not take "blocked on credentials" items.** They are not unclaimed work —
@@ -295,6 +317,20 @@ Design decisions worth keeping:
 - **Never prompts on load.** The browser dialog opens only from a click. A user
   who declines the in-app button can be asked again; one who declines the browser
   dialog cannot be asked ever again without visiting site settings by hand.
+
+⚠️ **The crypto path has now been EXECUTED, not just written.** It was the half
+most likely to be wrong and the half that fails invisibly — at the push service,
+on someone's device, with an error nobody sees. `push-delivery.test.ts` generates
+a real VAPID keypair at runtime and calls `generateRequestDetails`, so JWT signing
+and aes128gcm encryption run for real, offline, with no committed secret. It
+asserts the body is **ciphertext** — a test that only checked "a body exists"
+would pass on a payload sent in the clear, with the donor's name and the amount
+readable by the push service.
+
+`push-pruning.test.ts` covers the 410-deletes / 500-keeps branch at the
+integration level, in a separate file: `vi.mock` is hoisted module-wide, so
+mocking web-push beside the real-crypto tests would have silently replaced the
+very thing they exist to execute — and they would still have passed.
 
 **Needs from the owner:** `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`
 (`npx web-push generate-vapid-keys`) and the migration applied. Until both, the
