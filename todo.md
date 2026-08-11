@@ -24405,10 +24405,41 @@ Also destination-charged with no application fee, but the code says so explicitl
 "The creator receives the money; CharitMe takes no platform fee." Recorded so the
 next audit does not re-flag it.
 
-### 🚧 What could NOT be verified here, and why
+### ✅ Recurring donations are now covered too
 
-No live charge → transfer → payout was executed. There are no Stripe test keys in
-this sandbox and using production credentials in a test is forbidden, so the
-end-to-end money movement stays owner-gated. Everything above is verified at the
-point where it is decided — the params sent to `createCheckoutSession` — which is
-the strongest evidence obtainable without test keys.
+`__tests__/recurring-money-flow.test.ts` (14 tests) executes
+`/api/donations/recurring` across all four cadences and all four payment methods.
+A SUBSCRIPTION cannot carry `application_fee_amount`, so the fee is
+`application_fee_percent` derived from the tip — a lossy conversion, asserted by
+applying the rounded percent back to the total and requiring it to reproduce the
+tip to within a cent. Declining the fee must yield `undefined`, not `0`: Stripe
+treats an explicit zero as a fee-bearing subscription.
+
+Mutation-tested with proportionate blast radius, which is itself the evidence the
+assertions are real rather than the file failing to compile: dropping
+`transfer_data` fails 9, bypassing the no-destination guard fails exactly 1, and
+taking 100% as the fee fails 3.
+
+### 🚧 What could NOT be verified here — MEASURED, not assumed
+
+No live charge → transfer → payout was executed, and the reason is now a
+measurement rather than a claim:
+
+```
+STRIPE_* environment variables in this sandbox : 0
+.env files                                     : none
+curl https://api.stripe.com/v1/charges         : 401
+```
+
+The 401 is the important half — **the network works and Stripe answered**; only
+the credentials are absent. This is a missing secret, not an egress problem that
+might lift on its own. A live charge needs a key that does not exist here, and
+using production credentials in a test is forbidden, so end-to-end money movement
+stays owner-gated.
+
+Everything above is verified at the point where the invariants are DECIDED — the
+params handed to `createCheckoutSession`.
+
+**To close the remaining gap, an owner needs to:** put a Stripe TEST key in a
+staging environment and run one charge per method through
+charge → transfer → payout. That is the only step no bot can do from here.
