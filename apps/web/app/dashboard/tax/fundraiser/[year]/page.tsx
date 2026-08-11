@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import type React from 'react';
 import type { Metadata } from 'next';
 import { formatCents } from '@shared/currencies';
+import { CharitMeShell, TopBar } from '../../../../../components/CharitMeShellServer';
 import { requireUser } from '../../../../../lib/auth';
 import { getFundraiserTaxSummary } from '../../../../../lib/tax-server';
 import { MixedCurrencyError, type FundraiserTaxSummary } from '../../../../../lib/tax';
@@ -37,6 +38,8 @@ export default async function FundraiserTaxSummaryPage({
   } catch (error) {
     if (error instanceof MixedCurrencyError) {
       return (
+        <CharitMeShell active="Tax Documents">
+          <TopBar title="Campaign activity summary" subtitle={`${year} — choose a currency to continue.`} />
         <main style={{ maxWidth: 680, margin: '0 auto', padding: '64px 24px' }}>
           <h1>Choose a currency</h1>
           <p style={{ color: 'var(--t2)', lineHeight: 1.6 }}>
@@ -50,12 +53,21 @@ export default async function FundraiserTaxSummaryPage({
             ))}
           </div>
         </main>
+        </CharitMeShell>
       );
     }
     throw error;
   }
 
   return (
+    <CharitMeShell active="Tax Documents">
+      {/* ⚠️ `no-print` on the TopBar, and `@media print` hides `.kf-sidebar` /
+          `.kf-topbar` outright. This page is a printable tax record: without
+          those rules, adding the shell would put the sidebar and the account
+          menu into the printed statement. */}
+      <div className="no-print">
+        <TopBar title="Campaign activity summary" subtitle={`${year} · ${summary.currency.toUpperCase()}`} />
+      </div>
     <main style={{ maxWidth: 820, margin: '0 auto', padding: '32px 24px' }}>
       <div className="no-print" style={{ display: 'flex', minWidth: 0, justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
         <Link href={`/dashboard/tax?year=${year}&currency=${encodeURIComponent(summary.currency)}`} className="kf-link">
@@ -128,5 +140,6 @@ export default async function FundraiserTaxSummaryPage({
         </footer>
       </article>
     </main>
+    </CharitMeShell>
   );
 }

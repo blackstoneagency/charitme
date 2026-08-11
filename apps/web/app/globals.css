@@ -7793,6 +7793,16 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
   body { background: #fff !important; }
   /* Ensure the statement prints crisply regardless of viewer theme. */
   :root { color-scheme: light; }
+
+  /* ⚠️ The signed-in shell must not print.
+     `/dashboard/tax/fundraiser/[year]` is a printable tax record that now
+     renders inside `CharitMeShell` — every dashboard page does, so the header
+     with the account menu is present. Without these rules the sidebar, its
+     navigation and the account menu would be printed onto the statement, and
+     the shell's grid would keep the page squeezed into the content column. */
+  .kf-sidebar, .kf-topbar { display: none !important; }
+  .kf-app { display: block !important; }
+  .kf-main { padding: 0 !important; overflow: visible !important; }
 }
 
 /* ============================================================================
