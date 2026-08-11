@@ -196,6 +196,7 @@ async function findPeerFundraiserPage(base, get) {
  * re-derive it, and does not mistake "not probed" for "not applied".
  */
 const NO_PUBLIC_SIGNAL = [
+  ['20260905000000_push_subscriptions', 'the table has no public SELECT at all and anon is revoked outright — a push subscription is a capability to send that device a notification, so an anonymous probe sees the same empty/401 result whether or not the migration is applied. The subscribe endpoint additionally 404s until VAPID keys are configured, so even an authenticated probe cannot distinguish "table missing" from "push not switched on"'],
   ['20260904020000_volunteer_checkin_code_privacy', 'column-level privilege hardening intentionally makes volunteer check-in codes unreadable to browser roles; a successful public read cannot prove a denied column, so the destructive staging persona matrix verifies both safe shift reads and denied code reads'],
   ['20260904010000_dashboard_financial_reporting', 'service-role-only organizer reporting RPCs are consumed behind authentication; anonymous HTTP output is identical before and after application, so the staging persona matrix and direct RPC checks are authoritative'],
   ['20260904000000_paid_event_tickets', 'paid registration state and inventory transitions require authenticated users plus Stripe test-mode webhooks; an anonymous public event page cannot distinguish an unapplied migration from an event with no paid tiers, so staging checkout/refund/dispute tests are authoritative'],

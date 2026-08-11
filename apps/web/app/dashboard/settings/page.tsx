@@ -8,6 +8,8 @@ import { supabaseAdmin } from '../../../lib/supabase';
 import { getUserEntitlements } from '../../../lib/entitlements';
 import SettingsClient from './SettingsClient';
 import PlanFeaturesCard from './PlanFeaturesCard';
+import PushOptIn from '../../../components/PushOptIn';
+import { pushConfigured } from '../../../lib/push-core';
 
 export const dynamic = 'force-dynamic';
 
@@ -132,6 +134,19 @@ export default async function SettingsPage({ searchParams }: PageProps) {
             navigation, so the control can only ever reorder or hide what the
             role already grants — it cannot be used to surface another route. */}
         <NavigationPreferences items={navItems} />
+        {/* ⚠️ Rendered only when VAPID keys are configured. An opt-in control
+            that cannot subscribe is worse than none: the user grants browser
+            permission — which cannot be re-requested once refused — and then
+            nothing arrives. The public key is public by design; the private one
+            never leaves the server. */}
+        {pushConfigured() && (
+          <section style={{ marginTop: 20, padding: 18, border: '1px solid var(--b1)', borderRadius: 'var(--rl)', background: 'var(--s1)' }}>
+            <h2 style={{ margin: '0 0 8px', fontSize: 15, fontWeight: 750, color: 'var(--t1)' }}>
+              Donation alerts
+            </h2>
+            <PushOptIn vapidPublicKey={process.env.VAPID_PUBLIC_KEY as string} />
+          </section>
+        )}
       </div>
       <SettingsClient
         initialProfile={profile}

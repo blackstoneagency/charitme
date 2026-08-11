@@ -8,6 +8,7 @@ import {
   MONEY_BEARING,
   TOMBSTONE_REASSIGNMENTS,
   TOMBSTONE_PROFILE_ID,
+  tombstoneProfileId,
 } from '../lib/deletion-cascade';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -94,6 +95,29 @@ describe('the tombstone reassignment set covers every path to money', () => {
   });
 });
 
+describe('the tombstone id can be moved without database access', () => {
+  // ⚠️ This exists because the live tombstone's auth row is poisoned:
+  // `banned_until = 'infinity'` cannot be serialised by GoTrue, so every Admin
+  // API call for that id returns 500 and only raw SQL can repair it. The
+  // override turns that recovery into one environment variable.
+  it('defaults to the migration id', () => {
+    expect(tombstoneProfileId({})).toBe(TOMBSTONE_PROFILE_ID);
+  });
+
+  it('accepts a well-formed override', () => {
+    const fresh = '00000000-0000-4000-8000-00000000dead';
+    expect(tombstoneProfileId({ TOMBSTONE_PROFILE_ID: fresh })).toBe(fresh);
+  });
+
+  it('IGNORES a malformed override rather than trusting it', () => {
+    // A bad id points every reassignment at a row that does not exist and fails
+    // on the foreign key — mid-deletion, after the profile has been anonymised.
+    for (const bad of ['', '   ', 'not-a-uuid', '123', '00000000-0000-4000-8000']) {
+      expect(tombstoneProfileId({ TOMBSTONE_PROFILE_ID: bad })).toBe(TOMBSTONE_PROFILE_ID);
+    }
+  });
+});
+
 describe('the tombstone itself', () => {
   const migration = readFileSync(
     path.join(__dirname, '..', '..', '..', 'supabase', 'migrations', '20260904030000_deleted_user_tombstone.sql'),
@@ -104,11 +128,25 @@ describe('the tombstone itself', () => {
     expect(migration).toContain(TOMBSTONE_PROFILE_ID);
   });
 
+  // ⚠️ Strip comments before asserting. The migration EXPLAINS why it avoids
+  // `'infinity'` and necessarily quotes it while doing so, so a check against the
+  // raw file fails on its own commentary — the same trap that has caught guards
+  // in this repo repeatedly.
+  const code = migration.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*--[^\n]*$/gm, '');
+
   it('cannot be signed into', () => {
     // ⚠️ A sign-in-able tombstone is an account that owns every deleted user's
     // campaigns, payouts and Stripe subscriptions.
-    expect(migration).toMatch(/banned_until/);
-    expect(migration).toMatch(/'infinity'::timestamptz/);
+    expect(code).toMatch(/banned_until/);
+    // ⚠️ Was `'infinity'::timestamptz`, and this guard PINNED THE BUG. Valid
+    // PostgreSQL, but GoTrue cannot serialise infinity to JSON, so the auth row
+    // becomes unreadable through the Admin API — getUserById, updateUserById and
+    // deleteUser all 500 for that id, permanently. Confirmed against production:
+    // a real user id 404s, a random id 404s, only the tombstone 500s.
+    // A finite far-future ban is just as unusable for sign-in and stays
+    // readable, so it can be audited and repaired.
+    expect(code, "'infinity' makes the row unreadable through the Auth API").not.toMatch(/'infinity'::timestamptz/);
+    expect(code).toMatch(/'2999-12-31[^']*'::timestamptz/);
     expect(migration, 'a confirmed email would allow a magic-link sign-in').toMatch(/NULL,\s*--\s*never confirmed/);
     expect(migration).not.toMatch(/crypt\(/);
   });

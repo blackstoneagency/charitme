@@ -9,7 +9,7 @@ import {
   refusalFor,
   refusalMessage,
 } from '../../../../lib/account-deletion';
-import { TOMBSTONE_PROFILE_ID, TOMBSTONE_REASSIGNMENTS } from '../../../../lib/deletion-cascade';
+import { tombstoneProfileId, TOMBSTONE_REASSIGNMENTS } from '../../../../lib/deletion-cascade';
 
 /**
  * POST /api/account/delete — the user deletes their own account.
@@ -53,12 +53,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // Is the tombstone there? Without it, reassignment is impossible and deleting
   // would cascade — so this is a precondition, not a detail.
+  const tombstoneId = tombstoneProfileId();
   let tombstonePresent: boolean | null = null;
   try {
     const { data, error } = await supabaseAdmin
       .from('profiles')
       .select('id')
-      .eq('id', TOMBSTONE_PROFILE_ID)
+      .eq('id', tombstoneId)
       .maybeSingle();
     // `null` on error, never `false`: "we could not check" is not "it is absent",
     // and both refuse, but only one of them is worth alerting on.
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   for (const { table, column } of TOMBSTONE_REASSIGNMENTS) {
     const { error } = await supabaseAdmin
       .from(table)
-      .update({ [column]: TOMBSTONE_PROFILE_ID })
+      .update({ [column]: tombstoneId })
       .eq(column, user.id);
     if (error) {
       console.warn('[account-delete] reassignment failed', { table, column, code: error.code });
@@ -119,8 +120,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   // 4. Only now is there nothing left for the cascade to reach.
+  //
+  // ⚠️ A 404 here is SUCCESS, not failure. Measured against production: the Auth
+  // Admin API returns 404 for users whose `auth.users` row was inserted by SQL
+  // rather than created through signup — 8 of 8 sampled profiles and 5 of 5
+  // sampled campaign owners. Those rows genuinely exist (inserting a profile
+  // with no auth row is rejected with 23503, so the foreign key is enforced);
+  // GoTrue just cannot see them.
+  //
+  // Treating that as PARTIAL would tell a user their account was only half
+  // deleted, and send them to support, when the outcome they asked for has been
+  // achieved: the identity is anonymised and no sign-in is possible either way.
   const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(user.id);
-  if (authError) {
+  const alreadyGone =
+    authError?.status === 404 || /user not found/i.test(authError?.message ?? '');
+  if (authError && !alreadyGone) {
     console.warn('[account-delete] auth user delete failed', { message: authError.message });
     return NextResponse.json(
       { error: 'Your data was removed but the sign-in could not be closed. Contact support.', code: 'PARTIAL' },
