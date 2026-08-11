@@ -2165,11 +2165,38 @@ async function recordHeldFunds(params: {
   reason: string;
 }): Promise<void> {
   try {
+    // ⚠️ Look for an OPEN exception for this (session, campaign) first.
+    //
+    // Stripe redelivers events, and an operator may retry a transfer that fails
+    // again. A plain insert opens a second exception for the same debt every
+    // time, so `/api/admin/ledger` reports two, three, four times the money as
+    // outstanding. On the one surface whose entire job is to prove the books
+    // balance, an inflated liability is worse than a missing one — it makes the
+    // real figure unknowable.
+    const { data: open } = await supabaseAdmin
+      .from('reconciliation_exceptions')
+      .select('id')
+      .eq('stripe_ref', params.sessionId)
+      .eq('campaign_id', params.campaignId)
+      .eq('status', 'open')
+      .maybeSingle();
+
+    const description =
+      `Portfolio transfer not completed for campaign ${params.campaignId}: ${params.reason}. `
+      + `CharitMe is holding ${params.amountCents} cents owed to this campaign's recipient.`;
+
+    if (open?.id) {
+      // Same debt, newer reason. Update rather than duplicate.
+      await supabaseAdmin
+        .from('reconciliation_exceptions')
+        .update({ description })
+        .eq('id', open.id);
+      return;
+    }
+
     await supabaseAdmin.from('reconciliation_exceptions').insert({
       kind: 'payout_mismatch',
-      description:
-        `Portfolio transfer not completed for campaign ${params.campaignId}: ${params.reason}. `
-        + `CharitMe is holding ${params.amountCents} cents owed to this campaign's recipient.`,
+      description,
       campaign_id: params.campaignId,
       stripe_ref: params.sessionId,
       expected_cents: params.amountCents,
@@ -2178,6 +2205,51 @@ async function recordHeldFunds(params: {
     });
   } catch (err) {
     console.error('[webhook] could not record held funds', {
+      campaignId: params.campaignId,
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
+/**
+ * Close the held-funds exception once the money actually reaches the recipient.
+ *
+ * ⚠️ Without this the exception stays `open` forever. The debt is settled, the
+ * organizer has been paid, and the reconciliation surface still reports the
+ * money as outstanding — so the admin ledger drifts further from reality with
+ * every recovered transfer, and the figure that is supposed to prove the books
+ * balance becomes the reason nobody trusts them.
+ *
+ * Best-effort and never throws, for the same reason as `recordHeldFunds`: this
+ * runs inside the webhook, and throwing would make Stripe redeliver and re-run
+ * transfers that already succeeded.
+ */
+async function clearHeldFunds(params: {
+  campaignId: string;
+  sessionId: string;
+  transferId: string;
+}): Promise<void> {
+  try {
+    await supabaseAdmin
+      .from('reconciliation_exceptions')
+      .update({
+        status: 'resolved',
+        resolved_at: new Date().toISOString(),
+        // The actual figures now match, so the difference is zero. Leaving the
+        // original difference on a resolved row would keep it counted by any
+        // sum that filters on amount rather than status.
+        actual_cents: null,
+        difference_cents: 0,
+        resolution_note: `Transfer ${params.transferId} completed.`,
+      })
+      .eq('stripe_ref', params.sessionId)
+      .eq('campaign_id', params.campaignId)
+      // ⚠️ Only OPEN rows. Without this a redelivered event overwrites the
+      // original resolution timestamp, destroying the record of when the debt
+      // was actually settled.
+      .eq('status', 'open');
+  } catch (err) {
+    console.error('[webhook] could not clear held funds', {
       campaignId: params.campaignId,
       error: err instanceof Error ? err.message : String(err),
     });
@@ -2248,7 +2320,7 @@ async function handlePortfolioComplete(
         });
         continue;
       }
-      await stripe.transfers.create(
+      const transfer = await stripe.transfers.create(
         {
           amount: part.amountCents,
           currency: 'usd',
@@ -2260,6 +2332,13 @@ async function handlePortfolioComplete(
         // an organizer twice.
         { idempotencyKey: `portfolio_transfer_${session.id}_${part.campaignId}` },
       );
+      // The money reached the recipient, so any held-funds exception for this
+      // line is settled. A no-op on the common path, where none was ever opened.
+      await clearHeldFunds({
+        campaignId: part.campaignId,
+        sessionId: session.id,
+        transferId: transfer.id,
+      });
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
       console.error('[webhook] portfolio transfer failed', { campaignId: part.campaignId, error: reason });
