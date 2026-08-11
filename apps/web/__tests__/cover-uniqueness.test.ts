@@ -28,11 +28,21 @@ describe('the two cover helpers differ in the way that matters', () => {
     expect(getCoverForCategory('Medical')).toBe(getCoverForCategory('Medical'));
   });
 
-  it('getCoverForCampaign is DISTINCT per campaign', () => {
+  it('getCoverForCampaign VARIES per campaign', () => {
+    // ⚠️ Was "DISTINCT", asserting four slugs give four different URLs. That
+    // held only because the helper returned GENERATED ART keyed on the slug —
+    // guaranteed-unique precisely by not being a photograph, which is the defect
+    // this change removes. With ~111 verified photos and ~500 live campaigns,
+    // two campaigns in a category can now share an image.
+    //
+    // What still has to hold is that it varies: a helper returning one constant
+    // photo would make every card in a listing identical, which is the failure
+    // this file was written to catch (getCoverForCategory returning pool[0]).
     const covers = ['alpha', 'beta', 'gamma', 'delta'].map((slug) =>
       getCoverForCampaign('Medical', slug),
     );
-    expect(new Set(covers).size).toBe(covers.length);
+    expect(new Set(covers).size, 'every campaign got the same image').toBeGreaterThan(1);
+    covers.forEach((c) => expect(c).toMatch(/^https:\/\/images\.unsplash\.com\/photo-/));
   });
 
   it('two campaigns in the SAME category do not collide', () => {

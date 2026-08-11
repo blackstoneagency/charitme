@@ -1,5 +1,5 @@
 import 'server-only';
-import { getCoverForCampaign, isCatalogCover, isPlaceholderCover } from './photo-catalog';
+import { getCoverForCampaign, isCatalogCover, isPlaceholderCover, pickCatalogPhoto } from './photo-catalog';
 import { unsplashCoverForCampaign } from './unsplash';
 
 /**
@@ -37,5 +37,12 @@ export async function resolveCampaignCover(
   const live = await unsplashCoverForCampaign(category, key);
   if (live) return live.url;
 
-  return getCoverForCampaign(category, key);
+  // ⚠️ Step 3 used to be `getCoverForCampaign` — GENERATED ART, not a photo.
+  // Since UNSPLASH_ACCESS_KEY is unset in production, step 2 always returns
+  // null, so step 3 was what every campaign actually rendered. That is why the
+  // whole site showed coloured blocks with titles printed across them.
+  //
+  // The verified themed catalog is consulted first now. Generated art survives
+  // only as the last resort, for a category with no pool at all.
+  return pickCatalogPhoto(category, key) ?? getCoverForCampaign(category, key);
 }
