@@ -3834,8 +3834,8 @@ next person does not find out the hard way.
 
 ## 🛑 SUPABASE STAGING — historical audit, and the file-derived upper-bound pending count is **50** (Claude, 2026-08-03)
 
-**Live ledger rechecked 2026-08-10:** 135 local migration files against 87
-production ledger entries. The 48-file upper-bound gap below is therefore a current
+**Live ledger rechecked 2026-08-10:** 137 local migration files against 87
+production ledger entries. The 50-file upper-bound gap below is therefore a current
 measurement, not only historical arithmetic.
 
 **+1 on 2026-08-11: `20260905000000_web_push_subscriptions.sql`** (→ 49). Lands

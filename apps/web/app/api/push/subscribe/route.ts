@@ -1,89 +1,81 @@
 import 'server-only';
-import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
-import { createClient } from '../../../../lib/supabase-server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { supabaseAdmin } from '../../../../lib/supabase';
-import { isSupportedEndpoint, shortUserAgent, pushConfigured } from '../../../../lib/push-core';
+import { createClient } from '../../../../lib/supabase-server';
+import { isValidWebPushSubscription, pushConfigured } from '../../../../lib/push-core';
 
 /**
- * Register or drop this DEVICE for web push.
+ * Register / unregister a browser for push.
  *
- * A subscription row is the opt-in — there is no separate preference column, so
- * DELETE here is the whole "turn push off" path (see the migration's note).
+ * ⚠️ A push subscription is a CAPABILITY: whoever holds the endpoint and keys
+ * can make that device display a notification that looks like it came from
+ * CharitMe. So the row is written against the session's own user id — never a
+ * `userId` from the body, which would let anyone subscribe their own device to
+ * somebody else's alerts and read their donation activity from the lock screen.
  */
 
-const Schema = z.object({
-  endpoint: z.string().url().max(2000),
-  keys: z.object({
-    p256dh: z.string().min(1).max(200),
-    auth: z.string().min(1).max(200),
-  }),
-});
-
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!user) return NextResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 });
 
-  if (!pushConfigured(process.env)) {
-    // Storing endpoints that can never be pushed to is worse than refusing: the
-    // toggle would read "on" while nothing would ever arrive.
-    return NextResponse.json({ error: 'Push is not configured on this deployment.' }, { status: 503 });
+  // A disabled feature should not advertise itself.
+  if (!pushConfigured()) {
+    return NextResponse.json({ error: 'Not found', code: 'NOT_FOUND' }, { status: 404 });
   }
 
-  const parsed = Schema.safeParse(await req.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: 'Invalid subscription' }, { status: 400 });
-  const { endpoint, keys } = parsed.data;
-
-  // Same gate as the send path. A caller can post any URL here, and this row is
-  // what the server later dials — so an unsupported host is rejected on the way
-  // IN rather than discovered on the way out.
-  if (!isSupportedEndpoint(endpoint)) {
-    return NextResponse.json({ error: 'Unrecognized push endpoint' }, { status: 400 });
+  const body = (await request.json().catch(() => null)) as { subscription?: unknown } | null;
+  if (!isValidWebPushSubscription(body?.subscription)) {
+    // The validator rejects non-HTTPS and loopback/private endpoints — an
+    // unvalidated endpoint turns the send path into a request forger.
+    return NextResponse.json({ error: 'Invalid subscription', code: 'INVALID_INPUT' }, { status: 400 });
   }
+  const subscription = body!.subscription;
 
-  // Upsert on the endpoint: a browser returns the SAME endpoint until permission
-  // is revoked, so re-registering must update the row, not add another one, or a
-  // returning device collects a duplicate of every future alert.
-  //
-  // `user_id` is included in the update so an endpoint that moved to a different
-  // account on a shared device follows it, instead of pushing that device's
-  // alerts to whoever registered it first.
   const { error } = await supabaseAdmin
     .from('push_subscriptions')
-    .upsert({
-      user_id: user.id,
-      endpoint,
-      p256dh: keys.p256dh,
-      auth: keys.auth,
-      user_agent: shortUserAgent(req.headers.get('user-agent')),
-    }, { onConflict: 'endpoint' });
+    .upsert(
+      {
+        user_id: user.id,
+        platform: 'web',
+        endpoint: subscription.endpoint,
+        p256dh: subscription.keys.p256dh,
+        auth: subscription.keys.auth,
+        user_agent: request.headers.get('user-agent')?.slice(0, 300) ?? null,
+        failure_count: 0,
+      },
+      // Re-subscribing the same browser must UPDATE. Without this a user who
+      // reinstalls the PWA twice receives every notification three times.
+      { onConflict: 'endpoint' },
+    );
 
   if (error) {
-    console.error('[push] could not store subscription', error);
-    return NextResponse.json({ error: 'Could not save this device' }, { status: 500 });
+    console.warn('[push] subscribe failed', { code: error.code });
+    return NextResponse.json({ error: 'Could not subscribe', code: 'WRITE_FAILED' }, { status: 503 });
   }
   return NextResponse.json({ ok: true });
 }
 
-export async function DELETE(req: NextRequest) {
+export async function DELETE(request: NextRequest): Promise<NextResponse> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!user) return NextResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 });
 
-  const parsed = z.object({ endpoint: z.string().max(2000) })
-    .safeParse(await req.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
+  const body = (await request.json().catch(() => null)) as { endpoint?: unknown } | null;
+  if (typeof body?.endpoint !== 'string') {
+    return NextResponse.json({ error: 'endpoint required', code: 'INVALID_INPUT' }, { status: 400 });
+  }
 
-  // Scoped to the caller: the endpoint alone is enough to push to a device, so
-  // deleting by endpoint without an owner check would let anyone holding one
-  // silently unsubscribe that device.
+  // Scoped to the caller's own rows: an endpoint is guessable-ish and nobody
+  // should be able to unsubscribe someone else's device.
   const { error } = await supabaseAdmin
     .from('push_subscriptions')
     .delete()
     .eq('user_id', user.id)
-    .eq('endpoint', parsed.data.endpoint);
+    .eq('endpoint', body.endpoint);
 
-  if (error) return NextResponse.json({ error: 'Could not remove this device' }, { status: 500 });
+  if (error) {
+    return NextResponse.json({ error: 'Could not unsubscribe', code: 'WRITE_FAILED' }, { status: 503 });
+  }
   return NextResponse.json({ ok: true });
 }

@@ -165,99 +165,75 @@ self.addEventListener('fetch', (event) => {
   // Anything else: let the network handle it, uncached.
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Web push
-//
-// This is the capability that makes an installed app worth installing, and the
-// one mobileGo.md item 5 names as the strongest answer to Apple's "repackaged
-// website" rejection: iOS Safari will not deliver a push to a site that has not
-// been added to the home screen, so it is genuinely something the website
-// cannot do.
-// ─────────────────────────────────────────────────────────────────────────────
-
 /**
  * A click target must be a same-origin PATH.
  *
- * `openWindow` resolves whatever it is given against this origin, so an absolute
- * or protocol-relative URL in a payload would open an arbitrary site FROM the
- * installed app — which on a phone is indistinguishable from the app navigating
- * there itself. The server applies the same rule (`safeClickPath` in
- * lib/push-core.ts); this is the second half of it, because a service worker
- * outlives the deploy that installed it and may still be running against an
- * older server.
+ * `client.navigate()` and `openWindow()` resolve whatever they are given against
+ * this origin, so an absolute or protocol-relative URL would navigate the
+ * INSTALLED APP to an arbitrary site — on a phone, indistinguishable from the
+ * app navigating there itself. The server applies the same rule
+ * (`safeClickPath` in lib/push-core.ts); this is the second copy, deliberately,
+ * because a service worker outlives the deploy that installed it and may still
+ * be running against an older server.
  */
-function safeClickPath(url) {
-  if (typeof url !== 'string' || !url.startsWith('/')) return '/dashboard';
-  if (/^\/[/\\]/.test(url)) return '/dashboard';
+function swSafeClickPath(url) {
+  if (typeof url !== 'string' || !url.startsWith('/')) return '/dashboard/notifications';
+  if (/^\/[/\\]/.test(url)) return '/dashboard/notifications';
   return url;
 }
 
+
+// ─── Push ────────────────────────────────────────────────────────────────────
+//
+// Delivered by lib/push-server.ts, which builds the payload from the SAME
+// NotificationDraft as the in-app notification row, so the two cannot describe
+// one event differently.
+//
+// ⚠️ `showNotification` is not optional. A browser that receives a push and
+// shows nothing is treated as abusing the permission, and Chrome revokes push
+// for the origin after repeated silent pushes. So every branch below — including
+// a malformed payload — ends in a visible notification.
 self.addEventListener('push', (event) => {
-  // A push with no data is a wake-up, not a notification. Showing a generic
-  // "something happened" for it trains people to ignore the real ones.
-  if (!event.data) return;
-
-  let payload;
+  let payload = {};
   try {
-    payload = event.data.json();
+    payload = event.data ? event.data.json() : {};
   } catch {
-    return;
+    payload = {};
   }
-  if (!payload || typeof payload.title !== 'string') return;
 
-  event.waitUntil(
-    self.registration.showNotification(payload.title, {
-      body: typeof payload.body === 'string' ? payload.body : '',
-      icon: '/icons/icon-192.png',
-      badge: '/icons/icon-192.png',
-      // Collapses a burst on one campaign into a single visible notification.
-      tag: typeof payload.tag === 'string' ? payload.tag : undefined,
-      data: { url: safeClickPath(payload.url) },
-    }),
-  );
+  const title = payload.title || 'CharitMe';
+  const options = {
+    body: payload.body || 'You have a new update.',
+    icon: '/icons/icon-192.png',
+    // Android shows this monochrome in the status bar.
+    badge: '/icons/icon-192.png',
+    // Collapses repeats: five gifts in a minute replace one another rather than
+    // stacking five banners.
+    tag: payload.tag || 'charitme',
+    renotify: true,
+    data: { url: swSafeClickPath(payload.url) },
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
 });
 
+// ⚠️ Focus an EXISTING tab rather than always opening a new one. Tapping three
+// donation alerts should not leave three copies of the dashboard open.
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const target = safeClickPath(event.notification.data && event.notification.data.url);
+  const target = swSafeClickPath(event.notification.data && event.notification.data.url);
 
   event.waitUntil(
-    // Focus an open tab rather than stacking a new one. Without this, tapping
-    // three donation alerts leaves three copies of the dashboard open.
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      for (const client of clientList) {
-        if (new URL(client.url).pathname === target && 'focus' in client) return client.focus();
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+      for (const client of windows) {
+        // Same-origin check: `client.url` is whatever page is open, and
+        // navigating a cross-origin window is neither possible nor desirable.
+        if (new URL(client.url).origin === self.location.origin && 'focus' in client) {
+          client.navigate(target);
+          return client.focus();
+        }
       }
       return self.clients.openWindow(target);
     }),
   );
-});
-
-/**
- * The push service can rotate a subscription without the user doing anything.
- * When it does, the old endpoint stops working and the new one is only ever
- * offered here — so a client that never handles this event goes quiet and
- * neither side can tell.
- */
-self.addEventListener('pushsubscriptionchange', (event) => {
-  event.waitUntil((async () => {
-    const applicationServerKey = event.oldSubscription && event.oldSubscription.options
-      ? event.oldSubscription.options.applicationServerKey
-      : undefined;
-    if (!applicationServerKey) return;
-    try {
-      const fresh = await self.registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey,
-      });
-      await fetch('/api/push/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(fresh.toJSON()),
-      });
-    } catch {
-      // Nothing useful to do from here — the settings toggle re-registers on
-      // the user's next visit.
-    }
-  })());
 });

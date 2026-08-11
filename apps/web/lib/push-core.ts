@@ -1,141 +1,171 @@
+import type { NotificationDraft } from './notify-core';
+
 /**
- * Web push — the decisions, with no network and no `web-push` import.
+ * Pure push logic — payload shape, subscription validation, and the rule for
+ * when a failed delivery means "throw this subscription away".
  *
- * `lib/push.ts` is the thin server half that actually encrypts and sends. It is
- * untestable here (it needs a VAPID keypair and a live push service), so
- * everything that can be decided without a socket lives in this file and is
- * executed by `__tests__/web-push.test.ts`.
+ * Kept free of `web-push` and of the database so it can be tested directly. The
+ * decisions here are the ones that go wrong quietly:
+ *   · pruning a subscription on a transient error unsubscribes people during an
+ *     outage, and they never find out
+ *   · a payload built from unvalidated input is a notification an attacker
+ *     writes and CharitMe signs
  */
 
-/** What we send. Kept small on purpose — see `MAX_PAYLOAD_BYTES`. */
+/** What the service worker receives. Deliberately small — see `PUSH_MAX_BYTES`. */
 export interface PushPayload {
   title: string;
   body: string;
-  /** Where a click lands. Same-origin path, never an absolute URL — see below. */
   url: string;
-  tag?: string;
+  kind: string;
+  tag: string;
 }
 
 /**
- * The push protocol caps an encrypted payload at 4096 bytes, and the encryption
- * overhead is ~103 of them. Overshooting is rejected by the push service at send
- * time — i.e. the notification silently never arrives — so the payload is
- * truncated here instead, where the result is visible.
+ * Web Push caps an encrypted payload at ~4KB. Browsers drop an oversized message
+ * silently rather than erroring, so it is truncated here instead — a short
+ * notification beats one nobody receives.
  */
-export const MAX_PAYLOAD_BYTES = 3000;
+export const PUSH_MAX_BYTES = 3500;
+
+const MAX_TITLE = 80;
+const MAX_BODY = 180;
+
+function clamp(value: string, max: number): string {
+  const text = value.trim().replace(/\s+/g, ' ');
+  return text.length <= max ? text : `${text.slice(0, max - 1).trimEnd()}…`;
+}
 
 /**
- * A push service endpoint is a capability URL. These are the only hosts we ever
- * hand a payload to; anything else in the column means the row did not come from
- * a real `PushSubscription` and must not be dialled.
+ * Build the payload from the same draft the in-app notification uses, so the two
+ * cannot say different things about one event.
  */
-const ENDPOINT_HOSTS = [
-  /\.googleapis\.com$/,          // Chrome / Edge / Android (FCM)
-  /\.mozilla\.com$/,             // Firefox
-  /\.push\.apple\.com$/,         // Safari / iOS
-  /\.windows\.com$/,             // legacy Edge / WNS
-  /\.microsoft\.com$/,
+export function buildPushPayload(draft: NotificationDraft): PushPayload {
+  return {
+    title: clamp(draft.title, MAX_TITLE),
+    body: clamp(draft.body ?? '', MAX_BODY),
+    // A notification that opens nothing is a dead end on the lock screen.
+    url: draft.link || '/dashboard/notifications',
+    kind: draft.kind,
+    // Collapses repeats: five gifts in a minute replace one another rather than
+    // stacking five banners.
+    tag: `charitme-${draft.kind}`,
+  };
+}
+
+export function serialisePayload(payload: PushPayload): string {
+  const json = JSON.stringify(payload);
+  if (Buffer.byteLength(json, 'utf8') <= PUSH_MAX_BYTES) return json;
+  // Body is the only field worth sacrificing; title and url carry the meaning.
+  const trimmed = { ...payload, body: clamp(payload.body, 60) };
+  return JSON.stringify(trimmed);
+}
+
+export interface WebPushSubscription {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+}
+
+/**
+ * The hosts that actually operate push services.
+ *
+ * Matched on the FULL hostname or a dot-suffix, never `includes` — otherwise
+ * `fcm.googleapis.com.attacker.example` passes. Extend this list if a browser
+ * vendor adds a service; a subscription refused here is a device that silently
+ * never receives anything, so a missing entry shows up as "push does not work
+ * on <browser>" rather than as an error.
+ */
+const PUSH_SERVICE_SUFFIXES = [
+  '.googleapis.com',   // Chrome, Edge, Android (FCM)
+  '.mozilla.com',      // Firefox (updates.push.services.mozilla.com)
+  '.push.apple.com',   // Safari, iOS home-screen apps
+  '.windows.com',      // legacy Edge (WNS)
+  '.microsoft.com',
 ];
 
-export function isSupportedEndpoint(endpoint: string): boolean {
-  let url: URL;
-  try { url = new URL(endpoint); } catch { return false; }
-  if (url.protocol !== 'https:') return false;
-  return ENDPOINT_HOSTS.some((h) => h.test(url.hostname));
+export function isKnownPushService(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  return PUSH_SERVICE_SUFFIXES.some((suffix) => host.endsWith(suffix));
 }
 
 /**
- * Truncate to fit, on a character boundary, with the ellipsis inside the budget.
- * Measured in BYTES: a body of emoji or non-Latin script is several bytes per
- * character, and a length check in characters would pass a payload the push
- * service then drops.
- */
-export function fitToPayloadBudget(payload: PushPayload): PushPayload {
-  const encoder = new TextEncoder();
-  const size = (p: PushPayload) => encoder.encode(JSON.stringify(p)).length;
-  if (size(payload) <= MAX_PAYLOAD_BYTES) return payload;
-
-  // Title and url are short and load-bearing; the body is what gets cut. Cut by
-  // CODE POINT (`[...body]`, not `.slice`) so a multi-byte character is never
-  // halved into a replacement glyph.
-  const out = { ...payload };
-  const chars = [...payload.body];
-  for (let keep = chars.length; keep > 0; keep -= 16) {
-    out.body = `${chars.slice(0, keep).join('').replace(/[\s.…]+$/, '')}…`;
-    if (size(out) <= MAX_PAYLOAD_BYTES) return out;
-  }
-  out.body = '…';
-  return out;
-}
-
-/**
- * A click target must be a same-origin PATH.
+ * A notification click target must be a same-origin PATH.
  *
- * The service worker resolves this against its own origin and calls
- * `clients.openWindow`. Letting an absolute URL through would turn any code that
- * can write a notification into an open redirect out of the installed app —
- * which on a phone looks exactly like the app itself navigating.
+ * The service worker hands this to `client.navigate()` / `openWindow()`, which
+ * resolve it against the app's origin — so an absolute or protocol-relative URL
+ * would navigate the INSTALLED APP to an arbitrary site, which on a phone is
+ * indistinguishable from the app going there itself.
+ *
+ * Not reachable today: every `link` comes from internal `notify()` callers. It
+ * is defence in depth for the first notification whose link is user-influenced
+ * (a campaign URL, a custom domain), and the worker enforces it independently
+ * because a service worker outlives the deploy that installed it.
  */
-export function safeClickPath(url: string, fallback = '/dashboard'): string {
+export function safeClickPath(url: unknown, fallback = '/dashboard/notifications'): string {
   if (typeof url !== 'string' || !url.startsWith('/')) return fallback;
-  // `//evil.com` and `/\evil.com` are protocol-relative: same first character,
-  // different origin.
+  // `//evil.example` and `/\evil.example` share the first character with a safe
+  // path and resolve to a different origin.
   if (/^\/[/\\]/.test(url)) return fallback;
   return url;
 }
 
 /**
- * Push services report a dead subscription with 404 or 410 — the device was
- * wiped, the app uninstalled, or permission revoked. Those rows must be deleted:
- * an endpoint that is gone stays gone, and retrying it forever is how a table of
- * subscriptions becomes mostly corpses.
+ * Is this a subscription we can actually store?
  *
- * Everything else (a 429, a 500, a timeout) is transient and the row is kept.
+ * ⚠️ The endpoint must be HTTPS. A push endpoint is a URL this server will POST
+ * to on a schedule an attacker partly controls, so an unvalidated one turns the
+ * send path into a request forger — `http://localhost:…` or an internal address
+ * would be reached from inside the network.
  */
-export function isGoneStatus(statusCode: number | undefined): boolean {
+export function isValidWebPushSubscription(value: unknown): value is WebPushSubscription {
+  if (!value || typeof value !== 'object') return false;
+  const sub = value as Record<string, unknown>;
+  if (typeof sub.endpoint !== 'string') return false;
+
+  let url: URL;
+  try {
+    url = new URL(sub.endpoint);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== 'https:') return false;
+  // Blocks the obvious SSRF targets. Not exhaustive on its own — the send path
+  // is service-role and outbound — but there is no reason a real push service
+  // is ever a loopback or link-local address.
+  const host = url.hostname.toLowerCase();
+  if (host === 'localhost' || host.endsWith('.localhost')) return false;
+  if (/^(127\.|10\.|192\.168\.|169\.254\.|::1$|\[::1\])/.test(host)) return false;
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(host)) return false;
+  if (sub.endpoint.length > 1000) return false;
+  // …and then the allowlist, which is what actually closes it. The checks above
+  // are a denylist, and their own comment says they are not exhaustive: they
+  // pass ANY public host. A signed-in user could register
+  // `https://attacker.example/collect` and have this server POST a
+  // VAPID-signed, encrypted payload there on every notification thereafter.
+  // Private-range denial does not help, because the target is public.
+  if (!isKnownPushService(host)) return false;
+
+  const keys = sub.keys as Record<string, unknown> | undefined;
+  if (!keys || typeof keys !== 'object') return false;
+  if (typeof keys.p256dh !== 'string' || typeof keys.auth !== 'string') return false;
+  if (keys.p256dh.length > 200 || keys.auth.length > 100) return false;
+  return true;
+}
+
+/**
+ * Should a delivery failure remove the subscription?
+ *
+ * ⚠️ ONLY on a definitive rejection. 404 and 410 mean the push service has
+ * dropped the endpoint — it will never work again. Everything else (429, 500,
+ * timeouts) is the push service having a bad day, and deleting on those would
+ * silently unsubscribe every user during an outage, with no way for them to know
+ * they had stopped receiving anything.
+ */
+export function isGoneForever(statusCode: number | undefined): boolean {
   return statusCode === 404 || statusCode === 410;
 }
 
-/** Trim a UA string to something displayable without storing a fingerprint. */
-export function shortUserAgent(ua: string | null | undefined): string | null {
-  if (!ua) return null;
-  return ua.slice(0, 180);
-}
-
-/**
- * Is push configured at all?
- *
- * Every optional integration in this app degrades rather than throwing
- * (`RESEND_API_KEY`, `OPENAI_API_KEY`, `UNSPLASH_ACCESS_KEY`), and push follows
- * the same rule: with no keypair the send is a no-op and the UI never offers the
- * toggle. A donation must never fail because a notification could not be sent.
- */
-export function pushConfigured(env: Record<string, string | undefined>): boolean {
-  return Boolean((env.VAPID_PUBLIC_KEY || env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) && env.VAPID_PRIVATE_KEY);
-}
-
-/**
- * The donation alert, built from the SAME redacted display name the in-app
- * notification and the organiser email already use.
- *
- * ⚠️ Takes `donorDisplayName`, never a profile. The webhook resolves that name
- * behind two gates — the per-gift `anonymous` flag and account-wide Profile
- * Visibility — and a new channel that re-derived it from `full_name` would
- * announce an anonymous donor by name on the organiser's lock screen, which is
- * the most public place this app can put a name.
- */
-export function donationPushPayload(input: {
-  donorDisplayName: string;
-  amountFormatted: string;
-  campaignTitle: string;
-  campaignId: string;
-}): PushPayload {
-  return fitToPayloadBudget({
-    title: `New donation: ${input.amountFormatted}`,
-    body: `${input.donorDisplayName} donated ${input.amountFormatted} to "${input.campaignTitle}".`,
-    url: '/dashboard/campaigns',
-    // Collapses a burst on one campaign into a single visible notification
-    // instead of a stack of them.
-    tag: `donation-${input.campaignId}`,
-  });
+/** Push is off unless BOTH VAPID keys are configured. */
+export function pushConfigured(env: Record<string, string | undefined> = process.env): boolean {
+  return Boolean(env.VAPID_PUBLIC_KEY?.trim() && env.VAPID_PRIVATE_KEY?.trim());
 }

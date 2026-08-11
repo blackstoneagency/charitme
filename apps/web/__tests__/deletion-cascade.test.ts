@@ -104,11 +104,25 @@ describe('the tombstone itself', () => {
     expect(migration).toContain(TOMBSTONE_PROFILE_ID);
   });
 
+  // ⚠️ Strip comments before asserting. The migration EXPLAINS why it avoids
+  // `'infinity'` and necessarily quotes it while doing so, so a check against the
+  // raw file fails on its own commentary — the same trap that has caught guards
+  // in this repo repeatedly.
+  const code = migration.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*--[^\n]*$/gm, '');
+
   it('cannot be signed into', () => {
     // ⚠️ A sign-in-able tombstone is an account that owns every deleted user's
     // campaigns, payouts and Stripe subscriptions.
-    expect(migration).toMatch(/banned_until/);
-    expect(migration).toMatch(/'infinity'::timestamptz/);
+    expect(code).toMatch(/banned_until/);
+    // ⚠️ Was `'infinity'::timestamptz`, and this guard PINNED THE BUG. Valid
+    // PostgreSQL, but GoTrue cannot serialise infinity to JSON, so the auth row
+    // becomes unreadable through the Admin API — getUserById, updateUserById and
+    // deleteUser all 500 for that id, permanently. Confirmed against production:
+    // a real user id 404s, a random id 404s, only the tombstone 500s.
+    // A finite far-future ban is just as unusable for sign-in and stays
+    // readable, so it can be audited and repaired.
+    expect(code, "'infinity' makes the row unreadable through the Auth API").not.toMatch(/'infinity'::timestamptz/);
+    expect(code).toMatch(/'2999-12-31[^']*'::timestamptz/);
     expect(migration, 'a confirmed email would allow a magic-link sign-in').toMatch(/NULL,\s*--\s*never confirmed/);
     expect(migration).not.toMatch(/crypt\(/);
   });
