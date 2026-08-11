@@ -1,5 +1,6 @@
 import { boundedQuery } from '../../../lib/query-timeout';
 import 'server-only';
+import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../../lib/supabase';
@@ -61,13 +62,12 @@ export default async function BackupsPage() {
   };
 
   return (
+    <CharitMeShell active="Backups & Recovery" mode="admin">
+      <TopBar
+        title="Backups & Recovery"
+        subtitle="Where CharitMe's data lives, how it is backed up, and how to restore it."
+      />
     <div className="kf-admin-dash" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 20, maxWidth: 880 }}>
-      <header>
-        <h1 style={{ margin: 0, fontSize: 22 }}>Backups &amp; Recovery</h1>
-        <p style={{ margin: '4px 0 0', color: 'var(--t3)', fontSize: 14 }}>
-          Where CharitMe&apos;s data lives, how it is backed up, and how to restore it.
-        </p>
-      </header>
 
       <div
         role="note"
@@ -167,5 +167,6 @@ export default async function BackupsPage() {
         )}
       </section>
     </div>
+    </CharitMeShell>
   );
 }

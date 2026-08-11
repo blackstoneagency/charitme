@@ -1,6 +1,7 @@
 import { boundedQuery } from '../../../lib/query-timeout';
 import 'server-only';
 import type { Metadata } from 'next';
+import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { RETENTION_CATEGORIES } from '../../../lib/retention';
 import RetentionClient, { type Policy, type RetentionRun } from './RetentionClient';
@@ -41,16 +42,22 @@ export default async function RetentionPage() {
   const runs: RetentionRun[] | null = runsRes.error ? null : ((runsRes.data ?? []) as RetentionRun[]);
 
   return (
-    <RetentionClient
-      categories={RETENTION_CATEGORIES.map((c) => ({
-        key: c.key,
-        label: c.label,
-        description: c.description,
-        table: c.table,
-        defaultDays: c.defaultDays,
-      }))}
-      initialPolicies={policies}
-      initialRuns={runs}
-    />
+    <CharitMeShell active="Data Retention" mode="admin">
+      <TopBar
+        title="Data Retention"
+        subtitle="How long operational data is kept. Financial and identity records carry legal retention that overrides any setting here."
+      />
+      <RetentionClient
+        categories={RETENTION_CATEGORIES.map((c) => ({
+          key: c.key,
+          label: c.label,
+          description: c.description,
+          table: c.table,
+          defaultDays: c.defaultDays,
+        }))}
+        initialPolicies={policies}
+        initialRuns={runs}
+      />
+    </CharitMeShell>
   );
 }

@@ -1,6 +1,7 @@
 import { boundedQuery } from '../../../lib/query-timeout';
 import 'server-only';
 import type { Metadata } from 'next';
+import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
 import { supabaseAdmin } from '../../../lib/supabase';
 import IncidentsClient, { type Incident, type MaintenanceWindow } from './IncidentsClient';
 
@@ -43,5 +44,13 @@ export default async function AdminIncidentsPage() {
     ? null
     : ((windowsRes.data ?? []) as MaintenanceWindow[]);
 
-  return <IncidentsClient initialIncidents={incidents} initialWindows={windows} />;
+  return (
+    <CharitMeShell active="Incidents & Maintenance" mode="admin">
+      <TopBar
+        title="Incidents & Maintenance"
+        subtitle="Everything here is published on the public status page immediately."
+      />
+      <IncidentsClient initialIncidents={incidents} initialWindows={windows} />
+    </CharitMeShell>
+  );
 }
