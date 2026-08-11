@@ -114,6 +114,35 @@ export function moneyBearingRoots(keys: ForeignKey[]): string[] {
 export const TOMBSTONE_PROFILE_ID = '00000000-0000-4000-8000-0000deadbeef';
 
 /**
+ * The tombstone actually in use, overridable by the `TOMBSTONE_PROFILE_ID`
+ * environment variable.
+ *
+ * ⚠️ This override exists because of a real, live failure. The first version of
+ * the migration set `banned_until = 'infinity'`, which GoTrue cannot serialise,
+ * so that row's auth record returns 500 from every Admin API call and cannot be
+ * repaired through the API at all — only with raw SQL.
+ *
+ * Without an override, recovering from that needs database access. With one, an
+ * operator provisions a fresh tombstone at a new id and points the application at
+ * it by setting one environment variable — the same kind of change as turning the
+ * feature on, rather than a different kind of access entirely.
+ *
+ * ⚠️ Deletion does NOT depend on the auth row being healthy. Reassignment targets
+ * `profiles.id`, which is readable either way, so the poisoned row is an auditing
+ * problem rather than a functional one. This is for recovery and cleanliness, not
+ * because deletion is broken.
+ */
+const UUID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function tombstoneProfileId(env: Record<string, string | undefined> = process.env): string {
+  const override = env.TOMBSTONE_PROFILE_ID?.trim();
+  // A malformed override would point every reassignment at a non-existent id and
+  // fail on the foreign key — mid-deletion, after the profile was anonymised.
+  // Ignored rather than trusted.
+  return override && UUID_SHAPE.test(override) ? override : TOMBSTONE_PROFILE_ID;
+}
+
+/**
  * The reassignments the deletion performs, as `table.column` pairs.
  *
  * Kept as data rather than as a sequence of update calls so the test can compare

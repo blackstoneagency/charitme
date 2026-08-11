@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import PushOptIn from './PushOptIn';
 
 interface Notification {
   id: string;
@@ -135,10 +134,6 @@ export default function NotificationsPage() {
           </button>
         )}
       </div>
-
-      {/* Device push opt-in. Renders nothing where push cannot work — a control
-          that does nothing when tapped reads as a broken product. */}
-      <PushOptIn />
 
       {/* Filter tabs */}
       <div style={{ display: 'flex', minWidth: 0, gap: 4, marginBottom: 20, borderBottom: '1.5px solid var(--b1, var(--s2))', paddingBottom: 0 }}>

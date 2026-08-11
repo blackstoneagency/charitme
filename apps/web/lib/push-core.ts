@@ -1,116 +1,142 @@
+import type { NotificationDraft } from './notify-core';
+
 /**
- * Pure Web Push helpers — no network, no database, no `web-push` import.
+ * Pure push logic — payload shape, subscription validation, and the rule for
+ * when a failed delivery means "throw this subscription away".
  *
- * Split out so the parts that decide WHAT gets sent can be tested directly. The
- * impure half (VAPID signing, HTTP to the push service) lives in `lib/push.ts`
- * and is thin on purpose.
+ * Kept free of `web-push` and of the database so it can be tested directly. The
+ * decisions here are the ones that go wrong quietly:
+ *   · pruning a subscription on a transient error unsubscribes people during an
+ *     outage, and they never find out
+ *   · a payload built from unvalidated input is a notification an attacker
+ *     writes and CharitMe signs
  */
 
-/** The shape the service worker's `push` handler expects. */
+/** What the service worker receives. Deliberately small — see `PUSH_MAX_BYTES`. */
 export interface PushPayload {
   title: string;
   body: string;
-  /** Same-origin path to open on click. Never an absolute URL — see below. */
   url: string;
-  /** Groups notifications so a burst of donations collapses into one. */
-  tag?: string;
-}
-
-/** A stored subscription, as the send path reads it. */
-export interface StoredSubscription {
-  endpoint: string;
-  p256dh: string;
-  auth: string;
+  kind: string;
+  tag: string;
 }
 
 /**
- * Is this a subscription we can actually encrypt a payload for?
- *
- * All three fields are required by RFC 8291. A row missing `p256dh` or `auth`
- * cannot be sent to at all — and the failure mode if you try is an opaque 400
- * from the push service, so it is worth refusing early and visibly.
+ * Web Push caps an encrypted payload at ~4KB. Browsers drop an oversized message
+ * silently rather than erroring, so it is truncated here instead — a short
+ * notification beats one nobody receives.
  */
-export function isSendableSubscription(value: unknown): value is StoredSubscription {
-  if (!value || typeof value !== 'object') return false;
-  const s = value as Record<string, unknown>;
-  return (
-    typeof s.endpoint === 'string' && /^https:\/\//.test(s.endpoint)
-    && typeof s.p256dh === 'string' && s.p256dh.length > 0
-    && typeof s.auth === 'string' && s.auth.length > 0
-  );
+export const PUSH_MAX_BYTES = 3500;
+
+const MAX_TITLE = 80;
+const MAX_BODY = 180;
+
+function clamp(value: string, max: number): string {
+  const text = value.trim().replace(/\s+/g, ' ');
+  return text.length <= max ? text : `${text.slice(0, max - 1).trimEnd()}…`;
 }
 
 /**
- * Constrain the click-through target to a same-origin PATH.
+ * Build the payload from the same draft the in-app notification uses, so the two
+ * cannot say different things about one event.
+ */
+/**
+ * Constrain a notification's click target to a same-origin PATH.
  *
- * ⚠️ This is a security boundary, not tidiness. A notification is rendered by
- * the OS with the site's name and icon on it; if the payload could carry an
- * absolute URL, anyone who could influence a notification could show a
- * CharitMe-branded prompt that opens somebody else's site. The service worker
- * also resolves this against its own origin, so the two agree.
+ * ⚠️ Security boundary, not tidiness. The OS renders a notification with
+ * CharitMe's name and icon on it, so if `draft.link` were ever an absolute URL —
+ * and a draft can be built from user-influenced content — tapping a
+ * CharitMe-branded banner would open somebody else's site. That is a phishing
+ * surface with our branding on it.
  *
- * Returns `/` for anything that is not a plain same-origin path.
+ * The service worker applies the SAME rule on the way out, because a payload
+ * arriving encrypted proves it came from us, not that it is safe.
  */
 export function safeNotificationPath(raw: unknown): string {
-  if (typeof raw !== 'string' || raw.length === 0) return '/';
-  // Reject scheme-relative (`//evil.com`) and absolute URLs outright.
-  if (!raw.startsWith('/') || raw.startsWith('//')) return '/';
-  // A backslash is treated as a slash by some URL parsers — `/\evil.com`.
-  if (raw.includes('\\')) return '/';
+  if (typeof raw !== 'string' || raw.length === 0) return '/dashboard/notifications';
+  // Absolute and scheme-relative (`//evil.example`) are both rejected.
+  if (!raw.startsWith('/') || raw.startsWith('//')) return '/dashboard/notifications';
+  // Some URL parsers treat a backslash as a slash: `/\evil.example`.
+  if (raw.includes('\\')) return '/dashboard/notifications';
   return raw;
 }
 
-/** Clamp text so a long campaign title cannot push the amount off the banner. */
-export function clampNotificationText(value: string, max: number): string {
-  const trimmed = value.trim().replace(/\s+/g, ' ');
-  if (trimmed.length <= max) return trimmed;
-  return `${trimmed.slice(0, Math.max(0, max - 1)).trimEnd()}…`;
-}
-
-/**
- * The donation alert an organiser receives.
- *
- * Deliberately does NOT name the donor. A notification renders on a lock screen
- * — in front of whoever is holding the phone — and an anonymous donation must
- * stay anonymous there too. The amount and the campaign are the useful parts,
- * and both are the organiser's own data.
- */
-export function buildDonationPush(input: {
-  amountCents: number;
-  campaignTitle: string;
-  campaignSlug: string;
-  currency?: string;
-}): PushPayload {
-  const amount = formatAmount(input.amountCents, input.currency);
+export function buildPushPayload(draft: NotificationDraft): PushPayload {
   return {
-    title: `${amount} donation received`,
-    body: clampNotificationText(input.campaignTitle, 80),
-    // Per-campaign tag: ten donations to one campaign collapse into one
-    // notification instead of ten buzzes, while two campaigns stay distinct.
-    tag: `donation-${input.campaignSlug}`,
-    url: safeNotificationPath(`/campaigns/${input.campaignSlug}`),
+    title: clamp(draft.title, MAX_TITLE),
+    body: clamp(draft.body ?? '', MAX_BODY),
+    // A notification that opens nothing is a dead end on the lock screen.
+    url: safeNotificationPath(draft.link),
+    kind: draft.kind,
+    // Collapses repeats: five gifts in a minute replace one another rather than
+    // stacking five banners.
+    tag: `charitme-${draft.kind}`,
   };
 }
 
-/** Whole units when exact, cents otherwise — "$25" reads better than "$25.00". */
-export function formatAmount(cents: number, currency = 'USD'): string {
-  const safe = Number.isFinite(cents) ? Math.max(0, Math.round(cents)) : 0;
-  const whole = safe % 100 === 0;
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: whole ? 0 : 2,
-    maximumFractionDigits: whole ? 0 : 2,
-  }).format(safe / 100);
+export function serialisePayload(payload: PushPayload): string {
+  const json = JSON.stringify(payload);
+  if (Buffer.byteLength(json, 'utf8') <= PUSH_MAX_BYTES) return json;
+  // Body is the only field worth sacrificing; title and url carry the meaning.
+  const trimmed = { ...payload, body: clamp(payload.body, 60) };
+  return JSON.stringify(trimmed);
+}
+
+export interface WebPushSubscription {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
 }
 
 /**
- * Does a push-service response mean "this subscription is gone for good"?
+ * Is this a subscription we can actually store?
  *
- * 404/410 are the standard tombstones. Everything else — including 429 and 5xx —
- * is transient and must NOT expire the row, or one bad afternoon at a push
- * service silently unsubscribes the entire user base.
+ * ⚠️ The endpoint must be HTTPS. A push endpoint is a URL this server will POST
+ * to on a schedule an attacker partly controls, so an unvalidated one turns the
+ * send path into a request forger — `http://localhost:…` or an internal address
+ * would be reached from inside the network.
  */
-export function isGoneStatus(status: number): boolean {
-  return status === 404 || status === 410;
+export function isValidWebPushSubscription(value: unknown): value is WebPushSubscription {
+  if (!value || typeof value !== 'object') return false;
+  const sub = value as Record<string, unknown>;
+  if (typeof sub.endpoint !== 'string') return false;
+
+  let url: URL;
+  try {
+    url = new URL(sub.endpoint);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== 'https:') return false;
+  // Blocks the obvious SSRF targets. Not exhaustive on its own — the send path
+  // is service-role and outbound — but there is no reason a real push service
+  // is ever a loopback or link-local address.
+  const host = url.hostname.toLowerCase();
+  if (host === 'localhost' || host.endsWith('.localhost')) return false;
+  if (/^(127\.|10\.|192\.168\.|169\.254\.|::1$|\[::1\])/.test(host)) return false;
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(host)) return false;
+  if (sub.endpoint.length > 1000) return false;
+
+  const keys = sub.keys as Record<string, unknown> | undefined;
+  if (!keys || typeof keys !== 'object') return false;
+  if (typeof keys.p256dh !== 'string' || typeof keys.auth !== 'string') return false;
+  if (keys.p256dh.length > 200 || keys.auth.length > 100) return false;
+  return true;
+}
+
+/**
+ * Should a delivery failure remove the subscription?
+ *
+ * ⚠️ ONLY on a definitive rejection. 404 and 410 mean the push service has
+ * dropped the endpoint — it will never work again. Everything else (429, 500,
+ * timeouts) is the push service having a bad day, and deleting on those would
+ * silently unsubscribe every user during an outage, with no way for them to know
+ * they had stopped receiving anything.
+ */
+export function isGoneForever(statusCode: number | undefined): boolean {
+  return statusCode === 404 || statusCode === 410;
+}
+
+/** Push is off unless BOTH VAPID keys are configured. */
+export function pushConfigured(env: Record<string, string | undefined> = process.env): boolean {
+  return Boolean(env.VAPID_PUBLIC_KEY?.trim() && env.VAPID_PRIVATE_KEY?.trim());
 }

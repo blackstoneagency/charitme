@@ -6,6 +6,7 @@ import 'server-only';
 // ─────────────────────────────────────────────────────────────────────────────
 import { supabaseAdmin } from './supabase';
 import type { NotificationDraft } from './notify-core';
+import { pushToUser } from './push-server';
 
 export async function notify(
   userId: string | null | undefined,
@@ -22,6 +23,18 @@ export async function notify(
       link: draft.link,
       meta: meta ?? {},
     });
+
+    // ⚠️ Push rides on THIS function rather than being called from each of the
+    // fifteen routes that notify. One integration point means a new notification
+    // is pushed automatically, and — more importantly — that the push and the
+    // in-app row can never describe the same event differently.
+    //
+    // Awaited, not fired and forgotten: an un-awaited promise in a serverless
+    // handler is cancelled when the response is returned, so the push would be
+    // delivered or not depending on how fast the rest of the request finished.
+    // `pushToUser` never throws and returns 0 when push is unconfigured, so the
+    // cost when nobody has subscribed is one bounded query.
+    await pushToUser(userId, draft);
   } catch {
     // Swallow — notifications are non-critical.
   }

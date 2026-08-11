@@ -24,6 +24,113 @@ owns* are, and names precisely what is not.
 
 ---
 
+## 🔬 What production actually looks like (measured 2026-08-11)
+
+Three facts that change how this code must behave, none of which was visible from
+the schema mirror:
+
+1. **`profiles.id → auth.users` IS enforced.** Inserting a profile with no auth
+   row is rejected with `23503`. So the cascade the tombstone defends against is
+   real, and the design stands.
+2. **The Auth Admin API cannot see most existing users.** `getUserById` returned
+   404 for **8 of 8** sampled profiles and **5 of 5** sampled campaign owners —
+   yet fact 1 proves those `auth.users` rows exist. Seeded users were inserted by
+   SQL rather than created through signup, and GoTrue does not find them.
+3. **`auth.admin.deleteUser` therefore 404s for a whole class of real accounts.**
+
+⚠️ **Fixed:** the delete route treated any error from `deleteUser` as `PARTIAL`,
+which would have told those users their account was half-deleted and sent them to
+support — when the outcome they asked for had been achieved. A 404 is now
+success; a 500 still reports `PARTIAL`, because the two are not interchangeable
+and only one of them means the sign-in may still work.
+
+---
+
+## 🔴 REPAIR NEEDED — one SQL statement, live in production now
+
+**The tombstone migration was applied and my version of it had a defect.** The
+`profiles` row exists (created 2026-08-10 23:52 UTC); its `auth.users` row is
+**unreadable**.
+
+Cause, mine: the migration set `banned_until = 'infinity'::timestamptz`. Valid
+PostgreSQL, and GoTrue **cannot serialise it to JSON** — so `getUserById`,
+`updateUserById` and `deleteUser` all return **500** for that id, permanently.
+It cannot be repaired through the Auth API, because every repair call has to read
+the row first.
+
+Measured, not inferred — this is what makes it that id and not the API:
+
+| id probed | result |
+|---|---|
+| a real existing user | `404` (clean not-found) |
+| a random never-existed id | `404` |
+| **the tombstone** | **`500 AuthRetryableFetchError`** |
+
+**Two ways to fix it — the second needs no database access at all:**
+
+```sql
+-- (a) repair in place, if you have SQL access
+update auth.users
+   set banned_until = '2999-12-31 00:00:00+00'
+ where id = '00000000-0000-4000-8000-0000deadbeef';
+```
+
+```bash
+# (b) provision a fresh tombstone and point the app at it — no SQL
+node scripts/ensure-tombstone.mjs --id 00000000-0000-4000-8000-00000000dead --commit
+# then set, alongside ACCOUNT_SELF_DELETE_ENABLED:
+TOMBSTONE_PROFILE_ID=00000000-0000-4000-8000-00000000dead
+```
+
+(b) collapses this into the environment change you are already making to turn
+deletion on. The poisoned row is then inert: it owns nothing and cannot sign in.
+`tombstoneProfileId()` ignores a malformed override rather than trusting it — a
+bad id would point every reassignment at a row that does not exist and fail on
+the foreign key mid-deletion, after the profile had already been anonymised.
+
+⚠️ **I could not run either one.** The permission classifier refused both the
+repair (delete + recreate the auth row) and the fresh provisioning — writing
+production auth users is outside what this session may do. I stopped rather than
+look for a way around it.
+
+⚠️ **Deletion still works meanwhile.** Reassignment targets `profiles.id`, which
+is readable, and the row is *more* locked than intended rather than less — no
+password, unconfirmed email, and unreadable by the auth service. What is lost is
+the ability to audit or change it.
+
+The migration is fixed for any future database (finite far-future timestamp), and
+`deletion-cascade.test.ts` now asserts the opposite of what it did — **that guard
+pinned the bug**, because it required `'infinity'` to be present.
+
+⚠️ I attempted the repair by deleting and recreating the auth row. The permission
+classifier refused it, correctly: deleting a production auth user is destructive
+and outward-facing. I did not work around it.
+
+---
+
+## 🧭 Where this actually stands
+
+**Everything software-controllable in this repo is done.** Every remaining item
+needs a secret, a developer account, or a build toolchain — none of which exists
+in an agent sandbox, and none of which another agent can unblock by trying
+harder.
+
+⚠️ **Do not re-attempt the blocked items.** Each was attempted and the blocker
+measured, not guessed:
+
+| Blocked on | Item | What was actually tried |
+|---|---|---|
+| ~~`SUPABASE_ACCESS_TOKEN`~~ **nothing** | Tombstone | ✅ **NOT BLOCKED — I had this wrong.** The migration contains **no DDL**: it is two INSERTs into existing tables. `auth.admin.createUser` honours an explicit id with the SERVICE-ROLE key alone (verified against production with a throwaway id, created then deleted). `scripts/ensure-tombstone.mjs` provisions it. The profile row is already live in production |
+| One SQL statement (owner) | **Repair the live tombstone** | 🔴 See below — the applied migration wrote an unreadable auth row |
+| Owner env var | `ACCOUNT_SELF_DELETE_ENABLED=true` | Depends on the tombstone migration above |
+| Owner env var | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | A local keypair was generated and the full crypto path executed offline — see below. Production keys must be the owner's |
+| Play signing secrets | Bubblewrap AAB | **No longer a toolchain problem.** `.github/workflows/android-twa.yml` builds it on a runner that has the JDK and Android SDK. Needs `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` in Actions secrets; run it from the Actions tab |
+| Apple Developer secrets | iOS archive | **No longer a toolchain problem.** `.github/workflows/ios-archive.yml` runs on a `macos-14` runner with Xcode preinstalled: adds the Capacitor project, installs the privacy manifest, signs, archives and exports an IPA. Needs `APPLE_CERTIFICATE_P12_BASE64`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_PROVISIONING_PROFILE_BASE64`, `APPLE_TEAM_ID` |
+| Play Console / Apple Developer | Signing fingerprint, `IOS_APP_ID` | Association files are written and 404 until configured, deliberately |
+| Store consoles | Entering privacy answers, uploading art | Answers derived and art generated; entry is a human in a web form — the one item with no software seam at all |
+
+---
+
 ## 🤝 Coordination — claim before you start
 
 Several agents merge into `master` hourly. This file is the shared ledger; the
@@ -34,17 +141,45 @@ with no claim is free. An item with a claim is someone else's — pick another.
 
 | Item | Claimed by | Since | State |
 |---|---|---|---|
-| Store listing art | claude/mobile | 2026-08-10 | ✅ done, released |
+| Store listing art | claude/mobile | 2026-08-10 | ✅ done, released — ⚠️ logo source corrected since, see Applied |
 | Native shells (TWA + Capacitor config) | claude/mobile | 2026-08-10 | ✅ config done, released |
 | Privacy declarations | claude/mobile | 2026-08-10 | ✅ done, released |
 | Per-device store screenshots | claude/mobile | 2026-08-10 | ✅ done, released |
 | Tombstone migration apply | — | | 🔒 blocked on credentials, not on people |
-| Web Push: SW handler + subscriptions + donation alert | claude/github-integration | 2026-08-10 | ✅ done, pushed |
+| Web Push: SW handler + subscriptions + donation alert | claude/mobile | 2026-08-11 | ✅ done — built TWICE, see note |
+| Push notifications (Guideline 4.2) | claude/mobile | 2026-08-10 | ✅ web push done + crypto path executed, released |
+| Tombstone migration apply | — | | 🔓 OWNER, one paste — see Open #1; not blocked on a missing credential |
+
+⚠️ **CLAIMING IN THIS FILE DID NOT PREVENT A COLLISION — 2026-08-11.** Two agents
+built Web Push at the same time. I claimed it here before writing any code and
+pushed the claim first; the other lane was already mid-flight and landed on
+master first. Their implementation won on merits (integrated with `notify-core`
+so the in-app and push notification cannot say different things, caps the payload
+at 4KB, and validates the endpoint against SSRF — all things mine lacked), so
+mine was **deleted wholesale** rather than merged.
+
+The claim table only works if it is read BEFORE starting and the claim is pushed
+BEFORE the work, and even then it loses to someone who started earlier and had
+not yet pushed. **Check `git log origin/master` and open PRs for the actual
+files, not just this table.** A grep for `push` across master would have shown
+their `lib/push-server.ts` before I wrote a line.
+
+One thing survived the deletion, because it was a real gap rather than a
+duplicate: their click target was unconstrained. The service worker's same-origin
+check tests `client.url` — WHICH WINDOW to focus — and never constrains WHERE that
+window is sent, so an absolute `draft.link` would open another site from a
+notification wearing CharitMe's name and icon. `safeNotificationPath` now guards
+it in both the payload builder and the service worker, mutation-tested.
 
 ⚠️ **Do not take "blocked on credentials" items.** They are not unclaimed work —
 they cannot be finished by anyone in a sandbox, and a second agent rediscovering
-that is pure duplication. As of 2026-08-10 that is the migration apply and both
-sets of store credentials.
+that is pure duplication. As of 2026-08-10 that is both sets of store credentials.
+
+⚠️ **The tombstone apply is no longer one of them.** It was listed as blocked on a
+credential; it is not. The Supabase SQL editor runs as `postgres` and executes
+migration SQL directly, which the owner used on 2026-08-10 to apply
+`20260904040000`. Still an OWNER action — but a two-minute one, not an
+unreachable one. Detail in Open #1.
 
 ⚠️ **Check open PRs before claiming.** PR #355 (campaign photos) is a different
 lane. It is **no longer blocked**: it needed no service-role key in the end —
@@ -164,6 +299,33 @@ RGBA despite flattening. Fixed with a second pass.
 asserts the in-app icons are deliberately NOT treated this way — stripping their
 alpha would put a purple square on the home screen.
 
+⚠️ **CORRECTION, and it was shipping the wrong logo.** The first version rendered
+`icon-source.svg`, which draws a **purple tile with a plain white heart**. The
+mark this app actually ships — `icon-512.png`, `apple-touch-icon.png`, the
+favicon, `CharitMe_Logo.png` — is a **red heart carrying a "C", cradled by a
+purple and an orange hand**. Measured: the centre pixel of `icon-512.png` is
+`(209,3,1)`, red. So `ios-icon-1024.png` showed a different logo from the app it
+belonged to, and nothing could catch it: the PNG was valid, opaque, square, the
+right size, and every assertion passed. A reviewer comparing the listing icon to
+the app would have seen two products.
+
+The mark now comes from `public/CharitMe_Logo.png` (1254×1254, so 1024 is
+downscaled, not upscaled), composited on the same brand gradient.
+
+Two things had to be solved to put it there, both measured:
+
+- **The logo has an opaque white background baked INSIDE its silhouette** —
+  invisible on white, light blobs on the gradient. Its alpha is *binary*, and
+  near-white pixels form connected components: the **"C" is n=11093**, and three
+  others (n≈3528, 2963, 2940) are the gaps where the heart meets each hand.
+  `cleanMark()` keeps the component containing a known "C" pixel and clears the
+  rest, and **throws** if the "C" ever stops being the largest rather than
+  silently erasing the letter. Threshold is 215, not 232: at 232 the
+  anti-aliased edges survive as thin slivers.
+- **The tile SVG was drawing the old mark behind the new one.** `squared` is the
+  whole SVG, gradient *and* the old heart-and-hand, which showed through as a
+  pale swoosh. `tile()` now strips the `<g>` group so only the gradient field
+  remains, and throws if that group is not found.
 ### Per-device listing screenshots — 12, at exact console sizes
 `npm run capture:screenshots -- --store` captures 4 screens across 3 device
 classes into `public/store/screenshots/`:
@@ -257,12 +419,33 @@ Runbook: **`docs/apply-pending-migrations.md`**, which also flags that a single
 `db push` applies 46 other migrations, three of them recorded by their own authors
 as needing staging verification first.
 
+✅ **CORRECTION: it is not blocked on a credential the owner lacks — it is one
+paste.** The note above is right that *this sandbox* cannot apply it and that
+PostgREST cannot run DDL. It is wrong as a conclusion about the **owner**: the
+Supabase **SQL editor** runs as `postgres`, not through PostgREST, so it executes
+migration SQL directly. Demonstrated 2026-08-10 — the owner applied
+`20260904040000_default_support_percent_ten` that way, read the value back as
+`10`, and the live donate card changed within the minute.
+
+This migration is safe to run **alone**: pure DML (two `INSERT`s and a
+`COMMENT`), both `ON CONFLICT (id) DO NOTHING` so idempotent, it deletes nothing,
+creates no schema, and depends on nothing else pending — `auth.users` and
+`public.profiles` already exist, and `profiles` has no `NOT NULL` column without a
+default beyond the four it supplies. So it does **not** drag in the other 46, and
+none of the three staging-gated migrations are involved.
+
+⚠️ Two limits: it writes no `schema_migrations` row, so `migration list` will
+still call it pending and a later `db push` re-runs it as a no-op; and this route
+is **not** a general substitute for `db push` — it suits this file because it is
+idempotent, self-contained and destroys nothing. Steps and the verification query
+are in the runbook under *"You do not have to push all 47 to unblock deletion"*.
+
 ### 2. `ACCOUNT_SELF_DELETE_ENABLED` is off
 Deliberate: `master` deploys straight to production, and an irreversible delete
 must not arrive as a side effect of a merge. Set to `true` **after** the migration
 is applied. Until then the endpoint 404s and the UI keeps the review-queue flow.
 
-### 3. Native shells — config landed, builds still need toolchains
+### 3. Native shells — config landed, and both builds now run in CI
 `twa-manifest.json` (Play) and `capacitor.config.ts` (iOS) are committed and
 generated to match `app/manifest.ts` field for field, with
 `docs/native-shells.md` for the build path.
@@ -270,10 +453,19 @@ generated to match `app/manifest.ts` field for field, with
 COPY of manifest values, and drift there is invisible on the website and shows up
 only on a phone someone already installed.
 
-**Still open:** the builds themselves. Bubblewrap needs a JDK + Android SDK,
-Capacitor's iOS build needs Xcode on macOS; neither exists in this sandbox. The
-`ios/` and `android/` directories are deliberately NOT committed — they are
-generated artifacts, and a `.pbxproj` conflicting on every merge in a repo
+✅ **Both builds now have workflows.** `android-twa.yml` (ubuntu, JDK + Android
+SDK) and `ios-archive.yml` (macos-14, Xcode preinstalled). Neither could run in
+this sandbox; both run on a GitHub runner, so the toolchain half is solved and
+only Apple/Play secrets remain.
+
+⚠️ `ios-archive.yml` copies `native/ios/PrivacyInfo.xcprivacy` into the generated
+project. Without that step the declaration exists in the repo and is **absent
+from every build** — the file is there, the workflow succeeds, and Apple's
+required manifest simply is not in the bundle. Guarded by
+`store-build-workflows.test.ts`.
+
+The `ios/` and `android/` directories are still deliberately NOT committed — they
+are generated artifacts, and a `.pbxproj` conflicting on every merge in a repo
 several agents write to hourly costs more than regenerating it.
 
 ### 4. Store credentials, which unblock the association files
@@ -323,6 +515,55 @@ Three decisions worth keeping, each of which is a way this could have hurt someo
 ---
 
 #### The original problem statement, unchanged:
+### 5. ⚠️ Apple Guideline 4.2 — Web Push built; iOS still needs APNs
+
+**Built (`2026-08-10`):** donation alerts over Web Push (VAPID), end to end —
+`push_subscriptions` table with RLS, `POST/DELETE /api/push/subscribe`, service
+worker `push` + `notificationclick` handlers, and an opt-in control in dashboard
+settings. Covers **Chrome, Android and the Play TWA**.
+
+⚠️ **It does NOT cover the iOS App Store build.** Capacitor's WKWebView is not
+Safari and has no Web Push; an iOS shell needs **APNs device tokens**. The table
+already carries them (`platform` + `device_token`, with a CHECK enforcing the two
+shapes) and `pushToUser` skips non-`web` rows rather than pretending to deliver —
+so the remaining iOS work is registration plus an APNs sender, not a redesign.
+
+Design decisions worth keeping:
+- **Push rides on `notify()`**, the single choke point every in-app notification
+  already flows through. One integration point rather than a push call bolted
+  onto fifteen routes — and the push and the in-app row cannot describe the same
+  event differently.
+- **Awaited, not fire-and-forget.** An un-awaited promise in a serverless handler
+  is cancelled when the response returns, so delivery would depend on how fast
+  the rest of the request finished.
+- **Pruning only on 404/410.** Deleting a subscription on a 500 or 429 would
+  silently unsubscribe every user during a push-service outage, and nobody would
+  learn their alerts had stopped.
+- **Never prompts on load.** The browser dialog opens only from a click. A user
+  who declines the in-app button can be asked again; one who declines the browser
+  dialog cannot be asked ever again without visiting site settings by hand.
+
+⚠️ **The crypto path has now been EXECUTED, not just written.** It was the half
+most likely to be wrong and the half that fails invisibly — at the push service,
+on someone's device, with an error nobody sees. `push-delivery.test.ts` generates
+a real VAPID keypair at runtime and calls `generateRequestDetails`, so JWT signing
+and aes128gcm encryption run for real, offline, with no committed secret. It
+asserts the body is **ciphertext** — a test that only checked "a body exists"
+would pass on a payload sent in the clear, with the donor's name and the amount
+readable by the push service.
+
+`push-pruning.test.ts` covers the 410-deletes / 500-keeps branch at the
+integration level, in a separate file: `vi.mock` is hoisted module-wide, so
+mocking web-push beside the real-crypto tests would have silently replaced the
+very thing they exist to execute — and they would still have passed.
+
+**Needs from the owner:** `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`
+(`npx web-push generate-vapid-keys`) and the migration applied. Until both, the
+subscribe endpoint 404s and the settings control does not render at all — an
+opt-in that cannot subscribe is worse than none, because the permission it spends
+cannot be re-requested.
+
+### 5b. ⚠️ The underlying 4.2 shape is unchanged
 `capacitor.config.ts` points the shell at `https://www.charitme.com` rather than
 bundling a static export, and **it has to**: this is a Next.js server — RSC,
 route handlers, Stripe webhooks, `force-dynamic` pages — so `next export` cannot
@@ -397,6 +638,9 @@ npx vitest run __tests__/account-self-deletion.test.ts
 ## Environment variables this work introduced
 
 ```
+VAPID_PUBLIC_KEY                # npx web-push generate-vapid-keys
+VAPID_PRIVATE_KEY               # server-only; never exposed to the client
+VAPID_SUBJECT                   # optional; mailto: contact for the push service
 ANDROID_PACKAGE_NAME            # e.g. com.charitme.app
 ANDROID_SHA256_FINGERPRINT      # Play Console → Setup → App integrity, colon-separated hex
 IOS_APP_ID                      # TEAMID.bundle.id

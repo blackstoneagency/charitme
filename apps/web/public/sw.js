@@ -28,18 +28,13 @@
 //
 // v3 (2026-08-09): allowlist + no-store guard (above). The bump also EVICTS the
 // v2 caches, which is how already-poisoned installs get cleaned up on activate.
-//
-// v4 (2026-08-10): push + notificationclick handlers appended at the foot. The
-// version bump is what makes an ALREADY-INSTALLED service worker pick them up —
-// without it an existing install keeps running v3 and receives a push it cannot
-// display, which browsers may punish by revoking the subscription.
 // v2 (2026-07-23): the sitewide logo was re-encoded 292KB -> 6.7KB (commit
 // 175ec23) and the hero PNG -> WebP, but `/logo.png` and friends are NOT
 // content-hashed, so the cache-first rule below kept serving the old heavy
 // copies to every returning visitor. Bumping the version drops those caches.
 // That class of bug is now handled without a hand-edit: unhashed assets are
 // stale-while-revalidate, so they self-correct on the next visit.
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v3';
 const CACHE_NAME = `charitme-${CACHE_VERSION}`;
 const OFFLINE_URL = '/offline';
 
@@ -170,75 +165,64 @@ self.addEventListener('fetch', (event) => {
   // Anything else: let the network handle it, uncached.
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Push notifications.
+// ─── Push ────────────────────────────────────────────────────────────────────
 //
-// Donation alerts for organisers — the capability that makes an installed app
-// worth having, and the mitigation mobileGo.md records for Apple's "minimum
-// functionality" rejection risk.
+// Delivered by lib/push-server.ts, which builds the payload from the SAME
+// NotificationDraft as the in-app notification row, so the two cannot describe
+// one event differently.
 //
-// ⚠️ The click target is resolved against THIS ORIGIN and any absolute URL is
-// discarded. A notification carries the site's name and icon, so a payload that
-// could set an arbitrary destination would let anyone able to trigger one show a
-// CharitMe-branded prompt that opens somewhere else. `lib/push-core.ts`
-// (safeNotificationPath) enforces the same rule on the way out; this is the
-// second half of that pair, because the service worker must not trust a payload
-// just because it arrived encrypted.
-// ─────────────────────────────────────────────────────────────────────────────
-
-function samePathOnly(raw) {
-  if (typeof raw !== 'string' || raw.length === 0) return '/';
-  if (!raw.startsWith('/') || raw.startsWith('//') || raw.includes('\\')) return '/';
-  return raw;
-}
-
+// ⚠️ `showNotification` is not optional. A browser that receives a push and
+// shows nothing is treated as abusing the permission, and Chrome revokes push
+// for the origin after repeated silent pushes. So every branch below — including
+// a malformed payload — ends in a visible notification.
 self.addEventListener('push', (event) => {
   let payload = {};
   try {
     payload = event.data ? event.data.json() : {};
   } catch {
-    // A push with no body, or a body that is not ours. Showing SOMETHING is
-    // required: browsers may unsubscribe an origin that receives a push and
-    // displays nothing ("silent push"), so a generic notification is the safe
-    // response rather than returning early.
     payload = {};
   }
 
-  const title = typeof payload.title === 'string' && payload.title ? payload.title : 'CharitMe';
-  const body = typeof payload.body === 'string' ? payload.body : '';
-  const url = samePathOnly(payload.url);
+  const title = payload.title || 'CharitMe';
+  const options = {
+    body: payload.body || 'You have a new update.',
+    icon: '/icons/icon-192.png',
+    // Android shows this monochrome in the status bar.
+    badge: '/icons/icon-192.png',
+    // Collapses repeats: five gifts in a minute replace one another rather than
+    // stacking five banners.
+    tag: payload.tag || 'charitme',
+    renotify: true,
+    data: { url: payload.url || '/dashboard/notifications' },
+  };
 
-  event.waitUntil(
-    self.registration.showNotification(title, {
-      body,
-      icon: '/icons/icon-192.png',
-      badge: '/icons/icon-192.png',
-      // Collapses a burst to one entry per campaign instead of one buzz each.
-      tag: typeof payload.tag === 'string' && payload.tag ? payload.tag : 'charitme',
-      renotify: false,
-      data: { url },
-    }),
-  );
+  event.waitUntil(self.registration.showNotification(title, options));
 });
 
+// ⚠️ Focus an EXISTING tab rather than always opening a new one. Tapping three
+// donation alerts should not leave three copies of the dashboard open.
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const target = samePathOnly(event.notification.data && event.notification.data.url);
-  const absolute = new URL(target, self.location.origin).href;
+  // ⚠️ Same rule as lib/push-core.ts safeNotificationPath. The origin check
+  // below is about WHICH WINDOW to focus; it does not constrain WHERE that
+  // window is sent. Without this, an absolute url in the payload would navigate
+  // a CharitMe window to another site from a CharitMe-branded notification.
+  const raw = (event.notification.data && event.notification.data.url) || '/dashboard/notifications';
+  const target = (typeof raw === 'string' && raw.startsWith('/') && !raw.startsWith('//') && !raw.includes('\\'))
+    ? raw
+    : '/dashboard/notifications';
 
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
-      // Focus an existing tab rather than opening a duplicate — tapping a
-      // notification three times should not leave three copies of the app.
-      for (const client of clients) {
-        if (client.url === absolute && 'focus' in client) return client.focus();
-      }
-      for (const client of clients) {
-        if ('navigate' in client && 'focus' in client) {
-          return client.navigate(absolute).then((c) => (c ? c.focus() : undefined));
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+      for (const client of windows) {
+        // Same-origin check: `client.url` is whatever page is open, and
+        // navigating a cross-origin window is neither possible nor desirable.
+        if (new URL(client.url).origin === self.location.origin && 'focus' in client) {
+          client.navigate(target);
+          return client.focus();
         }
       }
-      return self.clients.openWindow ? self.clients.openWindow(absolute) : undefined;
+      return self.clients.openWindow(target);
     }),
   );
 });

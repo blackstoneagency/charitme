@@ -4045,6 +4045,8 @@ Thirty migrations have been added since. So the count is arithmetic:
 ```
 137 local − 87 applied           = 50
 18 audited pending + 32 added    = 50   ✓ reconciles
+137 local − 87 applied           = 50
+18 audited pending + 32 added    = 50   ✓ reconciles
 ```
 
 All 18 audited-pending versions are still on disk under their original names.

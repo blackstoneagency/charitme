@@ -1,0 +1,111 @@
+# Build the Play Store bundle.
+#
+# WHY THIS EXISTS: the Android build was recorded as blocked on "a machine with a
+# JDK and the Android SDK". A GitHub runner is that machine. This converts the
+# blocker from a toolchain problem, which nobody in a sandbox can solve, into a
+# secrets problem, which the repo owner can solve in two minutes.
+#
+# ⚠️ Manual only (`workflow_dispatch`). A store bundle is not something to
+# produce on every push: each build consumes a version code, and an accidental
+# upload of an unreviewed build is not undoable from the Play Console.
+name: Android TWA build
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: 'Version name, e.g. 1.0.0'
+        required: true
+        default: '1.0.0'
+      version_code:
+        description: 'Version code — MUST be higher than the last uploaded build'
+        required: true
+        default: '1'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+
+      # Bubblewrap generates a Gradle project; both are needed to compile it.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+
+      - name: Check the signing secrets are present
+        id: secrets
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          # ⚠️ Fail here, loudly, rather than later. Bubblewrap will happily
+          # generate a NEW keystore when it cannot find one, producing a bundle
+          # Play rejects as signed by the wrong key — and the error arrives at
+          # upload, long after the build reported success.
+          if [ -z "$KEYSTORE" ]; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 is not set. Add it (plus ANDROID_KEYSTORE_PASSWORD and ANDROID_KEY_ALIAS) in Settings → Secrets → Actions."
+            exit 1
+          fi
+
+      - name: Restore the keystore
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: echo "$KEYSTORE" | base64 -d > "$RUNNER_TEMP/upload.keystore"
+
+      - name: Install Bubblewrap
+        run: npm i -g @bubblewrap/cli
+
+      - name: Build the bundle
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          # ⚠️ Both must be exported, not just interpolated into the YAML: the
+          # node script below reads them from process.env, and an unset one
+          # silently writes `undefined` as the version name into the bundle.
+          VERSION_NAME: ${{ github.event.inputs.version_name }}
+          VERSION_CODE: ${{ github.event.inputs.version_code }}
+        run: |
+          set -euo pipefail
+          # twa-manifest.json is committed and kept in step with app/manifest.ts
+          # by __tests__/twa-manifest-sync.test.ts, so the build is reproducible
+          # instead of depending on what someone typed into `bubblewrap init`.
+          node -e "
+            const fs = require('fs');
+            const m = JSON.parse(fs.readFileSync('twa-manifest.json', 'utf8'));
+            m.appVersionName = process.env.VERSION_NAME;
+            m.appVersion = process.env.VERSION_NAME;
+            m.appVersionCode = Number(process.env.VERSION_CODE);
+            m.signingKey = { path: process.env.RUNNER_TEMP + '/upload.keystore', alias: process.env.KEY_ALIAS };
+            fs.writeFileSync('twa-manifest.json', JSON.stringify(m, null, 2));
+          "
+          bubblewrap build --skipPwaValidation
+
+      - name: Report the signing fingerprint
+        run: |
+          # ⚠️ This is what /.well-known/assetlinks.json must serve, and getting
+          # it wrong is the most common reason a TWA ships with an address bar —
+          # which is what gets the build read as a repackaged website.
+          #
+          # ⚠️ Once Play App Signing is enabled, the fingerprint that matters is
+          # GOOGLE'S, from Play Console → Setup → App integrity — not this one.
+          # This is the UPLOAD certificate.
+          keytool -list -v \
+            -keystore "$RUNNER_TEMP/upload.keystore" \
+            -alias "${{ secrets.ANDROID_KEY_ALIAS }}" \
+            -storepass "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
+            | grep -A1 'SHA256:' || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: charitme-android-${{ github.event.inputs.version_name }}
+          path: |
+            app-release-bundle.aab
+            app-release-signed.apk
+          if-no-files-found: error
+          retention-days: 14

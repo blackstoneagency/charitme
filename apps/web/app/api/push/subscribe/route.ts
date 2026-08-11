@@ -1,124 +1,81 @@
 import 'server-only';
-import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
-import { createClient } from '../../../../lib/supabase-server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { supabaseAdmin } from '../../../../lib/supabase';
-import { pushConfigured } from '../../../../lib/push';
+import { createClient } from '../../../../lib/supabase-server';
+import { isValidWebPushSubscription, pushConfigured } from '../../../../lib/push-core';
 
 /**
- * Register / remove a Web Push subscription for the signed-in user.
+ * Register / unregister a browser for push.
  *
- * ⚠️ AUTHENTICATED, and it must be. A subscription is a capability to buzz
- * somebody's phone; an anonymous endpoint would let anyone attach a device to
- * any account they could name. `user_id` comes from the SESSION and is never
- * read from the body — that is the whole access-control story here.
- *
- * ⚠️ Auth is `supabase.auth.getUser()`, NOT `requireUser()`. The page helper
- * REDIRECTS an unauthenticated visitor, which for an API caller means a 307 to
- * /login where a 401 was expected — a fetch() sees an opaque HTML response and
- * cannot tell "signed out" from "broken". `api-auth-methods.test.ts` caught the
- * first version of this file doing exactly that.
+ * ⚠️ A push subscription is a CAPABILITY: whoever holds the endpoint and keys
+ * can make that device display a notification that looks like it came from
+ * CharitMe. So the row is written against the session's own user id — never a
+ * `userId` from the body, which would let anyone subscribe their own device to
+ * somebody else's alerts and read their donation activity from the lock screen.
  */
 
-export const dynamic = 'force-dynamic';
-
-const SubscriptionSchema = z.object({
-  endpoint: z.string().url().max(2000).refine((v) => v.startsWith('https://'), {
-    message: 'endpoint must be https',
-  }),
-  keys: z.object({
-    p256dh: z.string().min(1).max(255),
-    auth: z.string().min(1).max(255),
-  }),
-});
-
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!user) return NextResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 });
 
-  // 503 rather than 500: the client can tell "the server cannot do this yet"
-  // from "the server broke", and the UI hides the control instead of offering
-  // something that will never work.
+  // A disabled feature should not advertise itself.
   if (!pushConfigured()) {
-    return NextResponse.json({ error: 'PUSH_NOT_CONFIGURED' }, { status: 503 });
+    return NextResponse.json({ error: 'Not found', code: 'NOT_FOUND' }, { status: 404 });
   }
 
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  const body = (await request.json().catch(() => null)) as { subscription?: unknown } | null;
+  if (!isValidWebPushSubscription(body?.subscription)) {
+    // The validator rejects non-HTTPS and loopback/private endpoints — an
+    // unvalidated endpoint turns the send path into a request forger.
+    return NextResponse.json({ error: 'Invalid subscription', code: 'INVALID_INPUT' }, { status: 400 });
   }
+  const subscription = body!.subscription;
 
-  const parsed = SubscriptionSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: 'Invalid subscription' }, { status: 400 });
-  }
-
-  const userAgent = (req.headers.get('user-agent') ?? '').slice(0, 300);
-
-  try {
-    // Upsert on `endpoint`: re-subscribing on the same device returns the same
-    // endpoint, and a second row would deliver every notification twice to one
-    // phone. The upsert also re-points a device to whoever is signed in now and
-    // clears `expired_at`, so a device that was marked gone comes back to life
-    // instead of staying silently dead.
-    const { error } = await supabaseAdmin
-      .from('push_subscriptions')
-      .upsert({
+  const { error } = await supabaseAdmin
+    .from('push_subscriptions')
+    .upsert(
+      {
         user_id: user.id,
-        endpoint: parsed.data.endpoint,
-        p256dh: parsed.data.keys.p256dh,
-        auth: parsed.data.keys.auth,
-        user_agent: userAgent,
-        expired_at: null,
-      }, { onConflict: 'endpoint' });
+        platform: 'web',
+        endpoint: subscription.endpoint,
+        p256dh: subscription.keys.p256dh,
+        auth: subscription.keys.auth,
+        user_agent: request.headers.get('user-agent')?.slice(0, 300) ?? null,
+        failure_count: 0,
+      },
+      // Re-subscribing the same browser must UPDATE. Without this a user who
+      // reinstalls the PWA twice receives every notification three times.
+      { onConflict: 'endpoint' },
+    );
 
-    if (error) {
-      if (error.code === '42P01') {
-        return NextResponse.json({ error: 'PUSH_TABLE_MISSING' }, { status: 503 });
-      }
-      return NextResponse.json({ error: 'Could not save subscription' }, { status: 500 });
-    }
-  } catch {
-    return NextResponse.json({ error: 'Could not save subscription' }, { status: 500 });
+  if (error) {
+    console.warn('[push] subscribe failed', { code: error.code });
+    return NextResponse.json({ error: 'Could not subscribe', code: 'WRITE_FAILED' }, { status: 503 });
   }
-
   return NextResponse.json({ ok: true });
 }
 
-export async function DELETE(req: NextRequest) {
+export async function DELETE(request: NextRequest): Promise<NextResponse> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!user) return NextResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 });
 
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  const body = (await request.json().catch(() => null)) as { endpoint?: unknown } | null;
+  if (typeof body?.endpoint !== 'string') {
+    return NextResponse.json({ error: 'endpoint required', code: 'INVALID_INPUT' }, { status: 400 });
   }
 
-  const endpoint = (body as { endpoint?: unknown })?.endpoint;
-  if (typeof endpoint !== 'string' || !endpoint.startsWith('https://')) {
-    return NextResponse.json({ error: 'Invalid endpoint' }, { status: 400 });
-  }
+  // Scoped to the caller's own rows: an endpoint is guessable-ish and nobody
+  // should be able to unsubscribe someone else's device.
+  const { error } = await supabaseAdmin
+    .from('push_subscriptions')
+    .delete()
+    .eq('user_id', user.id)
+    .eq('endpoint', body.endpoint);
 
-  try {
-    // Scoped to the caller's own rows. Without the user_id predicate, knowing
-    // any endpoint string would let one account unsubscribe another's device.
-    const { error } = await supabaseAdmin
-      .from('push_subscriptions')
-      .delete()
-      .eq('user_id', user.id)
-      .eq('endpoint', endpoint);
-    if (error && error.code !== '42P01') {
-      return NextResponse.json({ error: 'Could not remove subscription' }, { status: 500 });
-    }
-  } catch {
-    return NextResponse.json({ error: 'Could not remove subscription' }, { status: 500 });
+  if (error) {
+    return NextResponse.json({ error: 'Could not unsubscribe', code: 'WRITE_FAILED' }, { status: 503 });
   }
-
   return NextResponse.json({ ok: true });
 }
