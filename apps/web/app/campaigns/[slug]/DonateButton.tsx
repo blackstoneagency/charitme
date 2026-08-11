@@ -142,6 +142,18 @@ export default function DonateButton({
   // Reveals the custom donation-amount field (the big figure is editable, but a
   // plain number is not a discoverable affordance).
   const [showCustomAmount, setShowCustomAmount] = useState(false);
+  // Guards the window between a click and React re-rendering the disabled
+  // button. A ref, because state does not update synchronously.
+  const submittingRef = useRef(false);
+  /**
+   * One idempotency key per checkout ATTEMPT.
+   *
+   * Minted when an attempt begins and reused for anything that retries within
+   * it, so Stripe returns the original Checkout Session rather than creating a
+   * second. Cleared when the attempt ends, so a donor who genuinely gives again
+   * gets a new session.
+   */
+  const attemptKeyRef = useRef<string>('');
   const customAmountRef = useRef<HTMLInputElement>(null);
   const customTipRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading]             = useState(false);
@@ -188,14 +200,27 @@ export default function DonateButton({
   }, [amountCents, tipPercent, customTipCents, isMonthly, preferredMethod, checkout.methodFees]);
 
   const handleDonate = async () => {
-    if (Number.isNaN(amountCents) || amountCents < 100) { setError(`Minimum donation is ${money(100)}`); return; }
-    if (amountCents > MAX_DONATION_CENTS)               { setError(`Maximum donation is ${moneyShort(MAX_DONATION_CENTS)}`); return; }
+    // ⚠️ Synchronous re-entry guard, set BEFORE any await.
+    //
+    // `disabled={loading}` alone does not close this: `setLoading(true)` used to
+    // run AFTER `await supabase.auth.getUser()`, so between the click and the
+    // re-render the button was still live. Two rapid clicks both got through and
+    // created two Stripe Checkout Sessions. A ref updates synchronously, which is
+    // the only thing that can guard a window that closes before React re-renders.
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    if (!attemptKeyRef.current) attemptKeyRef.current = crypto.randomUUID();
+
+    if (Number.isNaN(amountCents) || amountCents < 100) { submittingRef.current = false; setError(`Minimum donation is ${money(100)}`); return; }
+    if (amountCents > MAX_DONATION_CENTS)               { submittingRef.current = false; setError(`Maximum donation is ${moneyShort(MAX_DONATION_CENTS)}`); return; }
 
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    if (!user && isGuest === null) { setIsGuest(true); return; }
-    if (!user && !guestEmail.trim()) { setError('Please enter your email to receive a receipt.'); return; }
+    // Both of these hand control back to the donor, so the guard has to be
+    // released or the button stays dead for the rest of the page's life.
+    if (!user && isGuest === null) { submittingRef.current = false; setIsGuest(true); return; }
+    if (!user && !guestEmail.trim()) { submittingRef.current = false; setError('Please enter your email to receive a receipt.'); return; }
 
     setError('');
     setLoading(true);
@@ -206,7 +231,14 @@ export default function DonateButton({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(!isMonthly ? { 'Idempotency-Key': crypto.randomUUID() } : {}),
+          // ⚠️ Stable for the whole attempt, NOT generated per fetch.
+          //
+          // `crypto.randomUUID()` inline here produced a new key on every call,
+          // which made Stripe's idempotency inert: a retried or duplicated POST
+          // was a different key and therefore a second Checkout Session. The key
+          // is minted once per attempt below and reused, so a retry of the same
+          // attempt returns Stripe's original session instead of a new one.
+          ...(!isMonthly ? { 'Idempotency-Key': attemptKeyRef.current } : {}),
         },
         body: JSON.stringify({
           campaignId,
@@ -244,6 +276,13 @@ export default function DonateButton({
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Something went wrong. Please try again.');
       setLoading(false);
+      // Release the attempt. The guard has to go or the button stays dead; the
+      // key goes with it because the donor may change the amount before trying
+      // again, and reusing the key would return Stripe's session for the OLD
+      // amount. Duplicate POSTs *within* one attempt are what the key prevents;
+      // a deliberate retry afterwards is a new attempt.
+      submittingRef.current = false;
+      attemptKeyRef.current = '';
     }
   };
 
