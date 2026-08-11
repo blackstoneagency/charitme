@@ -6,7 +6,7 @@ import { supabaseAdmin } from '../../../../../lib/supabase';
 import { boundedQuery } from '../../../../../lib/query-timeout';
 import { createClient } from '../../../../../lib/supabase-server';
 import { createCheckoutSession, RECURRING_PAYMENT_METHOD_TYPES } from '../../../../../lib/stripe';
-import { resolvePayoutDestination } from '../../../../../lib/payout-destination';
+import { resolvePayoutDestination, PayoutLookupUnavailableError } from '../../../../../lib/payout-destination';
 import { getAppOrigin } from '../../../../../lib/auth-config';
 import { checkRateLimit } from '../../../../../lib/rate-limit';
 
@@ -102,7 +102,30 @@ export async function POST(request: NextRequest) {
   // CharitMe never holds the money. No payout destination, no subscription —
   // the same gate the donation routes apply, for the same reason: taking a
   // recurring payment we cannot forward would leave funds sitting with us.
-  const destination = await resolvePayoutDestination({ user_id: creator.user_id as string });
+  //
+  // ⚠️ And "could not check" is not "not set up". `resolvePayoutDestination`
+  // throws `PayoutLookupUnavailableError` when the lookup itself fails, which is
+  // a DIFFERENT answer from a creator who has not onboarded: one is retryable,
+  // the other is a fact about the creator. Every other payout-gated route
+  // (donations, recurring, portfolio, tickets) separates them; this one let the
+  // error escape as an unhandled 500, which fails safe on the money — no charge
+  // is created — but tells the supporter nothing and buries the cause in a
+  // generic error page.
+  let destination: Awaited<ReturnType<typeof resolvePayoutDestination>>;
+  try {
+    destination = await resolvePayoutDestination({ user_id: creator.user_id as string });
+  } catch (err) {
+    if (err instanceof PayoutLookupUnavailableError) {
+      return NextResponse.json(
+        {
+          error: 'We could not start this membership right now. Please try again.',
+          code: 'PAYOUT_LOOKUP_UNAVAILABLE',
+        },
+        { status: 503 },
+      );
+    }
+    throw err;
+  }
   if (!destination) {
     return NextResponse.json(
       {

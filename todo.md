@@ -24464,3 +24464,62 @@ the total with nothing unaccounted for. It cleans up the fixture account after.
 
 That is the only step no bot can do from here, and it is now a single command
 whose safety does not depend on the operator being careful.
+
+### ✅ DONE — Claude, 2026-08-11 — every charge route classified, and the classification is now enforced
+
+The per-route money suites each prove ONE route routes correctly. None of them
+can see a route that does not exist yet — so the promise "CharitMe never holds
+funds" was breakable by an ADDITION, silently, with the whole suite green.
+
+`__tests__/money-routing-inventory.test.ts` (27 tests) inverts that: it
+DISCOVERS every route creating a Stripe charge and requires each to be
+classified. Seven routes, three kinds:
+
+| route | kind | money |
+|---|---|---|
+| `/api/donations` | routed | organizer's; CharitMe keeps tip + processing |
+| `/api/donations/recurring` | routed | same, on a subscription |
+| `/api/events/[id]/tickets/checkout` | routed | event organizer's |
+| `/api/creators/tiers/subscribe` | routed | creator's, no fee taken |
+| `/api/campaigns/[id]/feature` | platform | CharitMe IS the merchant |
+| `/api/stripe/checkout` | platform | CharitMe plan subscription |
+| `/api/donations/portfolio` | fan-out | the one real hold — see below |
+
+Every `routed` route must carry `transfer_data.destination`, resolve it rather
+than hardcode it, decline with `PAYOUT_NOT_READY`, and separate that from
+`PayoutLookupUnavailableError`. Every `platform` route must carry NO
+`transfer_data` — asserted in the negative, so one growing a destination breaks
+the classification instead of quietly contradicting it. An unclassified route
+fails the suite with the decision spelled out in the failure message.
+
+**Two real defects, both found by mutating the new test rather than by reading:**
+
+1. ⚠️ **`/api/creators/tiers/subscribe` did not handle
+   `PayoutLookupUnavailableError`** — the only payout-gated route that did not.
+   It escaped as an unhandled 500. That fails SAFE on the money (no charge is
+   created), but it reported a retryable outage as an unexplained error with no
+   `code` for a client to branch on. Now a 503 `PAYOUT_LOOKUP_UNAVAILABLE`,
+   matching donations/recurring/portfolio/tickets. The catch is narrow — an
+   unrelated `TypeError` still propagates, and a test pins that, because a broad
+   catch would hide real bugs behind a plausible 503.
+2. ⚠️ **The discovery itself was weaker than advertised.** `git grep` without
+   `--untracked` searches only COMMITTED files, so a brand-new unclassified
+   charge route was invisible *exactly while its author ran the suite to check
+   their work* — a planted route passed 27/27. Fixed; the planted route now
+   fails.
+
+`__tests__/membership-money-flow.test.ts` (10 tests) additionally EXECUTES the
+membership route: the destination lands under `subscription_data` (not
+`payment_intent_data` — putting it in the wrong place still works for the first
+invoice and leaves every renewal on the platform balance), no
+`application_fee_percent` is set, and both the session and the subscription carry
+`kind: 'membership'` so a renewal is not mistaken for a recurring donation.
+
+Six mutations, six targeted single-test failures. Suite: **4253 tests / 376
+files**, typecheck and lint clean.
+
+**Unchanged and still owner-gated:** the live charge (one command, above), the
+portfolio architecture decision, and the event-ticket fee rate — tickets route
+100% to the organizer and CharitMe absorbs Stripe's cost, which is a deliberate
+fee posture nobody has documented. Setting one is a fee change, which requires
+explicit requirements.
