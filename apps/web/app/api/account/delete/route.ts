@@ -9,7 +9,7 @@ import {
   refusalFor,
   refusalMessage,
 } from '../../../../lib/account-deletion';
-import { TOMBSTONE_PROFILE_ID, TOMBSTONE_REASSIGNMENTS } from '../../../../lib/deletion-cascade';
+import { tombstoneProfileId, TOMBSTONE_REASSIGNMENTS } from '../../../../lib/deletion-cascade';
 
 /**
  * POST /api/account/delete — the user deletes their own account.
@@ -53,12 +53,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // Is the tombstone there? Without it, reassignment is impossible and deleting
   // would cascade — so this is a precondition, not a detail.
+  const tombstoneId = tombstoneProfileId();
   let tombstonePresent: boolean | null = null;
   try {
     const { data, error } = await supabaseAdmin
       .from('profiles')
       .select('id')
-      .eq('id', TOMBSTONE_PROFILE_ID)
+      .eq('id', tombstoneId)
       .maybeSingle();
     // `null` on error, never `false`: "we could not check" is not "it is absent",
     // and both refuse, but only one of them is worth alerting on.
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   for (const { table, column } of TOMBSTONE_REASSIGNMENTS) {
     const { error } = await supabaseAdmin
       .from(table)
-      .update({ [column]: TOMBSTONE_PROFILE_ID })
+      .update({ [column]: tombstoneId })
       .eq(column, user.id);
     if (error) {
       console.warn('[account-delete] reassignment failed', { table, column, code: error.code });

@@ -66,13 +66,32 @@ Measured, not inferred — this is what makes it that id and not the API:
 | a random never-existed id | `404` |
 | **the tombstone** | **`500 AuthRetryableFetchError`** |
 
-**Repair (needs SQL — the Auth API cannot do it):**
+**Two ways to fix it — the second needs no database access at all:**
 
 ```sql
+-- (a) repair in place, if you have SQL access
 update auth.users
    set banned_until = '2999-12-31 00:00:00+00'
  where id = '00000000-0000-4000-8000-0000deadbeef';
 ```
+
+```bash
+# (b) provision a fresh tombstone and point the app at it — no SQL
+node scripts/ensure-tombstone.mjs --id 00000000-0000-4000-8000-00000000dead --commit
+# then set, alongside ACCOUNT_SELF_DELETE_ENABLED:
+TOMBSTONE_PROFILE_ID=00000000-0000-4000-8000-00000000dead
+```
+
+(b) collapses this into the environment change you are already making to turn
+deletion on. The poisoned row is then inert: it owns nothing and cannot sign in.
+`tombstoneProfileId()` ignores a malformed override rather than trusting it — a
+bad id would point every reassignment at a row that does not exist and fail on
+the foreign key mid-deletion, after the profile had already been anonymised.
+
+⚠️ **I could not run either one.** The permission classifier refused both the
+repair (delete + recreate the auth row) and the fresh provisioning — writing
+production auth users is outside what this session may do. I stopped rather than
+look for a way around it.
 
 ⚠️ **Deletion still works meanwhile.** Reassignment targets `profiles.id`, which
 is readable, and the row is *more* locked than intended rather than less — no

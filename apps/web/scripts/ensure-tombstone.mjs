@@ -31,9 +31,25 @@ import { fileURLToPath } from 'node:url';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const WEB_ROOT = join(HERE, '..');
 
-/** Must match `TOMBSTONE_PROFILE_ID` in lib/deletion-cascade.ts. */
-const TOMBSTONE_ID = '00000000-0000-4000-8000-0000deadbeef';
-const TOMBSTONE_EMAIL = 'deleted-user@charitme.invalid';
+/**
+ * Defaults to `TOMBSTONE_PROFILE_ID` in lib/deletion-cascade.ts; `--id <uuid>`
+ * provisions somewhere else.
+ *
+ * ⚠️ Use `--id` when the default tombstone's auth row is poisoned — see the
+ * BROKEN TOMBSTONE branch below. Provision a fresh one, then set the matching
+ * `TOMBSTONE_PROFILE_ID` environment variable so the application uses it. That
+ * recovers without any database access.
+ */
+const idFlag = process.argv.indexOf('--id');
+const TOMBSTONE_ID =
+  idFlag !== -1 && process.argv[idFlag + 1]
+    ? process.argv[idFlag + 1]
+    : '00000000-0000-4000-8000-0000deadbeef';
+const TOMBSTONE_EMAIL =
+  TOMBSTONE_ID === '00000000-0000-4000-8000-0000deadbeef'
+    ? 'deleted-user@charitme.invalid'
+    // Emails are UNIQUE in auth.users, so a second tombstone needs its own.
+    : `deleted-user-${TOMBSTONE_ID.slice(-8)}@charitme.invalid`;
 /** 100 years. The API rejects 'infinity'; this is the practical equivalent. */
 const BAN_DURATION = '876000h';
 
@@ -104,7 +120,11 @@ if (existingProfile) {
       "    update auth.users set banned_until = '2999-12-31 00:00:00+00'\n" +
       `     where id = '${TOMBSTONE_ID}';\n\n` +
       '  Deletion still works meanwhile - reassignment targets profiles.id, which\n' +
-      '  is readable - but the row cannot be audited until this is run.',
+      '  is readable - but the row cannot be audited until this is run.\n\n' +
+      '  OR, with no database access at all:\n\n' +
+      '    node scripts/ensure-tombstone.mjs --id 00000000-0000-4000-8000-00000000dead --commit\n' +
+      '    then set TOMBSTONE_PROFILE_ID=00000000-0000-4000-8000-00000000dead\n\n' +
+      '  The poisoned row is then inert: it owns nothing and cannot sign in.',
     );
     process.exit(1);
   }
