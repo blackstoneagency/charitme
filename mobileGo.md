@@ -394,7 +394,7 @@ Deliberate: `master` deploys straight to production, and an irreversible delete
 must not arrive as a side effect of a merge. Set to `true` **after** the migration
 is applied. Until then the endpoint 404s and the UI keeps the review-queue flow.
 
-### 3. Native shells — config landed, builds still need toolchains
+### 3. Native shells — Android build solved on a runner; iOS still needs a Mac
 `twa-manifest.json` (Play) and `capacitor.config.ts` (iOS) are committed and
 generated to match `app/manifest.ts` field for field, with
 `docs/native-shells.md` for the build path.
@@ -402,7 +402,14 @@ generated to match `app/manifest.ts` field for field, with
 COPY of manifest values, and drift there is invisible on the website and shows up
 only on a phone someone already installed.
 
-**Still open:** the builds themselves.
+**The Android build is SOLVED, and not by unblocking the sandbox.**
+`.github/workflows/android-twa.yml` (`claude/mobile`) runs Bubblewrap on
+`ubuntu-latest` with `actions/setup-java` + `android-actions/setup-android`, so
+the toolchain is the runner's. It needs `ANDROID_KEYSTORE_BASE64`,
+`ANDROID_KEYSTORE_PASSWORD` and `ANDROID_KEY_ALIAS` in Actions secrets and is
+started from the Actions tab. **That is the route to take** — the measurement
+below explains only why the same build cannot be done from an agent sandbox, and
+is kept so nobody re-derives it.
 
 ⚠️ **The stated reason was half wrong, and the real one is actionable.** Measured
 2026-08-10:
@@ -414,17 +421,20 @@ only on a phone someone already installed.
 | **Android SDK** | **`dl.google.com` is refused by the agent proxy — `CONNECT tunnel failed, 403`** |
 | Xcode | not applicable — this host is Linux |
 
-So a TWA build does not fail for want of a JDK; it fails because the **only** host
-that serves the Android SDK and the Android Gradle plugin
+So a TWA build does not fail *in a sandbox* for want of a JDK; it fails because
+the **only** host that serves the Android SDK and the Android Gradle plugin
 (`dl.google.com`, `dl.google.com/dl/android/maven2`) is blocked by network
 policy. Bubblewrap would download its own JDK and SDK on first run and dies at
-the SDK step. That is an **allowlist decision** (or a build machine), not a
-missing toolchain — worth knowing before anyone spends a session installing Java.
+the SDK step. Worth knowing before anyone spends a session installing Java — and
+worth knowing that **a GitHub runner has no such restriction**, which is exactly
+why the workflow above is the right shape rather than a workaround.
 
 Per `/root/.ccr/README.md` a 403 from the proxy is an organization policy denial
 and is reported rather than retried or worked around.
 
-Capacitor's iOS build still needs Xcode on macOS, which no Linux sandbox fixes. The
+**iOS is the half that stays open.** Capacitor's build needs Xcode on macOS,
+which neither a Linux sandbox nor `ubuntu-latest` provides — it needs a
+`macos-*` runner or a real Mac, plus an Apple Developer account. The
 `ios/` and `android/` directories are deliberately NOT committed — they are
 generated artifacts, and a `.pbxproj` conflicting on every merge in a repo
 several agents write to hourly costs more than regenerating it.
