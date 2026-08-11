@@ -24,6 +24,28 @@ owns* are, and names precisely what is not.
 
 ---
 
+## 🔬 What production actually looks like (measured 2026-08-11)
+
+Three facts that change how this code must behave, none of which was visible from
+the schema mirror:
+
+1. **`profiles.id → auth.users` IS enforced.** Inserting a profile with no auth
+   row is rejected with `23503`. So the cascade the tombstone defends against is
+   real, and the design stands.
+2. **The Auth Admin API cannot see most existing users.** `getUserById` returned
+   404 for **8 of 8** sampled profiles and **5 of 5** sampled campaign owners —
+   yet fact 1 proves those `auth.users` rows exist. Seeded users were inserted by
+   SQL rather than created through signup, and GoTrue does not find them.
+3. **`auth.admin.deleteUser` therefore 404s for a whole class of real accounts.**
+
+⚠️ **Fixed:** the delete route treated any error from `deleteUser` as `PARTIAL`,
+which would have told those users their account was half-deleted and sent them to
+support — when the outcome they asked for had been achieved. A 404 is now
+success; a 500 still reports `PARTIAL`, because the two are not interchangeable
+and only one of them means the sign-in may still work.
+
+---
+
 ## 🔴 REPAIR NEEDED — one SQL statement, live in production now
 
 **The tombstone migration was applied and my version of it had a defect.** The
