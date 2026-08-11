@@ -15,6 +15,7 @@ import {
   ReferenceStats,
 } from '../../components/ReferenceMarketing';
 import { EmptyState } from '../../components/ui';
+import { getDistinctDisplayPhotos } from '../../lib/photo-catalog';
 
 export const metadata: Metadata = {
   title: 'Where to Give',
@@ -84,13 +85,13 @@ const CAUSES = [
   { icon: 'leaf', title: 'Environment', body: 'Climate and conservation action.', href: '/causes/environment' },
 ];
 
-function Bucket({ heading, intro, campaigns, emptyBody }: { heading: string; intro: string; campaigns: CampaignCardData[]; emptyBody: string }) {
+function Bucket({ heading, intro, campaigns, emptyBody, covers }: { heading: string; intro: string; campaigns: CampaignCardData[]; emptyBody: string; covers: ReadonlyMap<string, string> }) {
   return (
     <ReferenceSection title={heading} intro={intro}>
       {campaigns.length === 0 ? (
         <EmptyState icon="♡" title="Nothing here right now" body={emptyBody} action={<Link href="/campaigns" className="rp-text-link">Browse all campaigns</Link>} />
       ) : (
-        <CampaignGrid>{campaigns.map((campaign) => <CampaignCard key={campaign.id} campaign={campaign} coverScope="supporter-space" />)}</CampaignGrid>
+        <CampaignGrid>{campaigns.map((campaign) => <CampaignCard key={campaign.id} campaign={campaign} coverScope="supporter-space" coverOverride={covers.get(campaign.id)} />)}</CampaignGrid>
       )}
     </ReferenceSection>
   );
@@ -117,6 +118,13 @@ export default async function SupporterSpacePage() {
     ? [...displayBuckets.closingSoon, ...displayBuckets.verified, ...displayBuckets.furthest]
     : [];
   const visibleCategories = new Set(visibleCampaigns.map((campaign) => campaign.category).filter(Boolean));
+  const distinctCovers = getDistinctDisplayPhotos(visibleCampaigns.map((campaign) => ({
+    category: campaign.category,
+    key: campaign.slug,
+    storedCover: campaign.cover_image_url,
+    pageScope: 'supporter-space',
+  })));
+  const covers = new Map(visibleCampaigns.map((campaign, index) => [campaign.id, distinctCovers[index]!]));
 
   return (
     <ReferencePage>
@@ -147,9 +155,9 @@ export default async function SupporterSpacePage() {
         <div className="rp-section"><EmptyState icon="!" title="We couldn't load campaigns just now" body="This is a temporary data problem, not an empty platform." action={<Link href="/supporter-space" className="rp-text-link">Try again</Link>} /></div>
       ) : (
         <>
-          <Bucket heading="Closing Soonest" intro="Campaigns with an approaching deadline, ordered from live campaign data." campaigns={displayBuckets.closingSoon} emptyBody="No campaigns are closing in the near future." />
-          <Bucket heading="Identity Verified" intro="The fundraiser's identity has been confirmed and payouts are enabled." campaigns={displayBuckets.verified} emptyBody="No verified campaigns are available right now." />
-          <Bucket heading="Furthest From Their Goal" intro="Campaigns that have raised the least and may not have reached many supporters yet." campaigns={displayBuckets.furthest} emptyBody="No campaigns are available right now." />
+          <Bucket heading="Closing Soonest" intro="Campaigns with an approaching deadline, ordered from live campaign data." campaigns={displayBuckets.closingSoon} emptyBody="No campaigns are closing in the near future." covers={covers} />
+          <Bucket heading="Identity Verified" intro="The fundraiser's identity has been confirmed and payouts are enabled." campaigns={displayBuckets.verified} emptyBody="No verified campaigns are available right now." covers={covers} />
+          <Bucket heading="Furthest From Their Goal" intro="Campaigns that have raised the least and may not have reached many supporters yet." campaigns={displayBuckets.furthest} emptyBody="No campaigns are available right now." covers={covers} />
         </>
       )}
 

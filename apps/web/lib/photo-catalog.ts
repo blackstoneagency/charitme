@@ -261,18 +261,29 @@ export function getPhotosForPage(
   // ⚠️ Every entry used to be generated art, so a page built from this helper
   // showed no photography at all. Real photos are drawn from the category pool
   // and rotated by page key, so two pages using the same category still differ.
+  const requests: DistinctDisplayPhotoRequest[] = Array.from({ length: count }, (_, index) => ({
+    category,
+    key: `${pageKey}-${index + 1}`,
+  }));
   const pool = CATEGORY_PHOTOS[category ?? ''] ?? FALLBACK_PHOTOS;
-  if (!pool.length) {
-    return Array.from({ length: count }, (_, i) => getCoverForCampaign(category, `${pageKey}-${i + 1}`));
+  if (requests.length > 0 && pool.length > 0) {
+    let offset = 0;
+    for (let index = 0; index < pageKey.length; index += 1) {
+      offset = (offset * 31 + pageKey.charCodeAt(index)) >>> 0;
+    }
+    requests[0]!.storedCover = pool[offset % pool.length]!;
   }
-  let offset = 0;
-  for (let i = 0; i < pageKey.length; i += 1) offset = (offset * 31 + pageKey.charCodeAt(i)) >>> 0;
-  return Array.from({ length: count }, (_, index) => pool[(offset + index) % pool.length]!);
+  return getDistinctDisplayPhotos(requests);
 }
 
 export type DistinctPhotoRequest = {
   category: string | null | undefined;
   key: string;
+};
+
+export type DistinctDisplayPhotoRequest = DistinctPhotoRequest & {
+  storedCover?: string | null;
+  pageScope?: string;
 };
 
 function photoIdentity(url: string): string {
@@ -318,6 +329,39 @@ export function getDistinctPhotosForItems(requests: readonly DistinctPhotoReques
     if (!selected) return generatedSubjectArt(category, key);
     used.add(photoIdentity(selected));
     return selected;
+  });
+}
+
+/** Preserve unique stored media, then allocate non-repeating page fallbacks. */
+export function getDistinctDisplayPhotos(requests: readonly DistinctDisplayPhotoRequest[]): string[] {
+  const globalPhotos = [...new Map(
+    Object.values(CATEGORY_PHOTOS)
+      .flat()
+      .map((photo) => [photoIdentity(photo), photo]),
+  ).values()];
+  const used = new Set<string>();
+
+  return requests.map(({ category, key, storedCover, pageScope }) => {
+    const resolved = getDisplayCover(storedCover, category, key, pageScope);
+    if (!used.has(photoIdentity(resolved))) {
+      used.add(photoIdentity(resolved));
+      return resolved;
+    }
+
+    const categoryPhotos = CATEGORY_PHOTOS[category ?? ''] ?? FALLBACK_PHOTOS;
+    const candidates = [
+      ...rotatedPhotos(categoryPhotos, `${pageScope ?? 'page'}:${key}`),
+      ...rotatedPhotos(globalPhotos, `global:${pageScope ?? 'page'}:${key}`),
+    ];
+    const selected = candidates.find((photo) => !used.has(photoIdentity(photo)));
+    if (selected) {
+      used.add(photoIdentity(selected));
+      return selected;
+    }
+
+    const generated = generatedSubjectArt(category, `${pageScope ?? 'page'}:${key}`);
+    used.add(photoIdentity(generated));
+    return generated;
   });
 }
 

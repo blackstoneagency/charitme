@@ -16,7 +16,7 @@ import { getTopDonors } from '../../../lib/leaderboard';
 import { getRecentDonations } from '../../../lib/home-data';
 import { formatCents } from '../../../lib/stripe';
 import { optimizedCoverUrl } from '../../../lib/img-optimize';
-import { getCoverForCategory, getDisplayCover } from '../../../lib/photo-catalog';
+import { getDisplayCover } from '../../../lib/photo-catalog';
 import { StatStrip, statValue, moneyValue } from '../../../components/IndexHero';
 import { getCausesIndexData } from '../../../lib/causes-index';
 import { pageWindow } from '../../../lib/pagination';
@@ -502,7 +502,7 @@ export default async function CampaignsPage({ searchParams }: Props) {
             heading beside it already carries the meaning. */}
         <div className="cbx-hero-art" aria-hidden="true">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={getCoverForCategory('Community', 'campaigns-list-hero')} alt="" loading="eager" />
+          <img src="/images/reference/supporter-space-hero.jpg" alt="" loading="eager" />
         </div>
       </section>
 

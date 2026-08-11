@@ -13,7 +13,7 @@ import {
 import { listPublishedEvents } from '../../../lib/events';
 import { getCause } from '../../../lib/causes';
 import { remainingCapacity } from '../../../lib/events-core';
-import { getPhotosForPage } from '../../../lib/photo-catalog';
+import { getDistinctDisplayPhotos } from '../../../lib/photo-catalog';
 
 export const metadata: Metadata = {
   title: 'Events - Gather for Good',
@@ -50,7 +50,12 @@ export default async function EventsPage({ searchParams }: { searchParams?: Prom
     return `${event.title} ${event.description ?? ''} ${event.location ?? ''}`.toLowerCase().includes(query);
   });
   const virtualCount = allEvents.filter((event) => Boolean(event.virtual_url)).length;
-  const photos = getPhotosForPage('Event', 'events-list', Math.max(events.length + 1, 6));
+  const photos = getDistinctDisplayPhotos(events.map((event) => ({
+    category: 'Event',
+    key: event.slug,
+    storedCover: event.cover_image_url,
+    pageScope: 'events-list',
+  })));
 
   return (
     <ReferencePage>
@@ -93,7 +98,7 @@ export default async function EventsPage({ searchParams }: { searchParams?: Prom
                 const full = Number.isFinite(remaining) && remaining <= 0;
                 return (
                   <article className="rp-live-card" key={event.id}>
-                    <Link href={`/events/${event.slug}`} className="rp-live-media"><CampaignImage src={photos[index + 1] ?? photos[0]} category="Event" campaignKey={event.slug} alt="" width={520} height={300} loading="lazy" /></Link>
+                    <Link href={`/events/${event.slug}`} className="rp-live-media"><CampaignImage src={photos[index]} category="Event" campaignKey={event.slug} alt="" width={520} height={300} loading="lazy" /></Link>
                     <div className="rp-live-body">
                       <div className="rp-live-tags"><span>{event.event_type.replaceAll('_', ' ')}</span>{event.virtual_url && <span>Virtual</span>}{full && <span>Full</span>}</div>
                       <h3><Link href={`/events/${event.slug}`}>{event.title}</Link></h3>
