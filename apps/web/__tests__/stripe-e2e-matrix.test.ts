@@ -45,7 +45,7 @@ describe('it cannot be pointed at production', () => {
   it('gates before constructing the client', () => {
     // ⚠️ The check must precede `new Stripe(...)` and any call. A gate placed
     // after the first request has already touched the live account.
-    const gate = source.indexOf("startsWith('sk_test_')");
+    const gate = source.indexOf('/^(?:sk|rk)_test_/');
     const client = source.indexOf('new Stripe(');
     expect(gate).toBeGreaterThan(-1);
     expect(gate).toBeLessThan(client);
@@ -91,15 +91,15 @@ describe('it covers the twelve scenarios the audit names', () => {
 describe('the figures come from Stripe, not from our arithmetic', () => {
   it('reads the fee off the balance transaction', () => {
     // Restating what we SENT would prove nothing about what Stripe DID.
-    expect(source).toContain('balance_transaction?.fee');
+    expect(source).toContain('balanceTransaction?.fee');
   });
 
   it('reads the allocation off the transfer', () => {
-    expect(source).toContain('transfer?.amount');
+    expect(source).toContain('transfer.amount - transfer.amount_reversed');
   });
 
   it('reads the platform fee off the application fee object', () => {
-    expect(source).toContain('application_fee?.amount');
+    expect(source).toContain('applicationFee.amount - applicationFee.amount_refunded');
   });
 
   it('computes the difference and fails the run when it is not zero', () => {
@@ -111,17 +111,19 @@ describe('the figures come from Stripe, not from our arithmetic', () => {
     // convincing way to be wrong. What holds is:
     //   charged        = allocation + adjustment
     //   netToRecipient = allocation - fee
-    expect(source).toContain('const difference = charged - allocation - adjustment');
-    expect(source).toContain('const netToRecipient = allocation > 0 ? allocation - fee : 0');
-    expect(source).toMatch(/do not reconcile to \$0\.00/);
+    expect(source).toContain('const difference = charge.amount - adjustment - campaignNet - platformNet - stripeFee');
+    expect(source).toContain('const platformNet = applicationFeeRemaining - stripeFee');
+    expect(source).toMatch(/do not reconcile/);
   });
 });
 
-describe('it is honest about what it does not prove', () => {
-  it('does not claim to re-prove webhook idempotency', () => {
+describe('duplicate webhook evidence is executable', () => {
+  it('runs the webhook replay test and gates the scenario on its exit status', () => {
     // That idempotency is OURS, in record_donation keyed on p_stripe_event_id,
     // and needs the app plus Supabase running. Silently marking it PASS here
     // would be inventing evidence.
-    expect(source).toMatch(/not re-proved here/);
+    expect(source).toContain('runWebhookReplayTest()');
+    expect(source).toContain('webhookReplay.status === 0');
+    expect(source).not.toMatch(/not re-proved here/);
   });
 });

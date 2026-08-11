@@ -8,6 +8,7 @@ import { createCheckoutSession, checkoutPaymentMethodTypes } from '../../../lib/
 import {
   donorTip,
   supportPercentFromCents,
+  methodProcessorCost,
   methodProcessingFee,
   MIN_DONATION_CENTS,
   MAX_DONATION_CENTS,
@@ -64,12 +65,12 @@ const DonateSchema = z.object({
 //
 // Split-payment flow (Stripe Connect Destination Charges):
 //
-//   Donor pays:  $100 (donation) + $8 (8% tip) + $3.43 (processing) = $111.43
+//   Donor pays:  $100 (donation) + $8 (8% tip) + $3.53 (processing) = $111.53
 //   ┌─────────────────────────────────────────────────────────────────┐
-//   │  application_fee_amount = tipCents + processingFeeCents         │
-//   │  → CharitMe keeps: tipCents ($8) net of Stripe's processing fee │
+//   │  application_fee_amount = tipCents + processorFeeCents          │
+//   │  → CharitMe nets: tipCents ($8) after Stripe's processing fee  │
 //   │  transfer_data.destination = organizer's Stripe account         │
-//   │  → Organizer receives: amountCents ($100) automatically         │
+//   │  → Organizer receives: amountCents ($100) automatically        │
 //   └─────────────────────────────────────────────────────────────────┘
 //
 // ─────────────────────────────────────────────────────────────────────────────
@@ -147,9 +148,12 @@ export async function POST(request: NextRequest) {
 
   // Use per-method fee on (donation + tip) sub-total
   const subTotalCents      = amountCents + tipCents;
-  const processingFeeCents = coverProcessingFee
+  const donorCoversProcessing = coverProcessingFee ?? true;
+  const processorFeeCents = donorCoversProcessing
     ? methodProcessingFee(subTotalCents, paymentMethod, checkout.settings.methodFees)
-    : 0;
+    : methodProcessorCost(subTotalCents, paymentMethod, checkout.settings.methodFees);
+  const processingCoverageCents = donorCoversProcessing ? processorFeeCents : 0;
+  const ownerNetCents = Math.max(0, amountCents - (donorCoversProcessing ? 0 : processorFeeCents));
 
   // ── Fetch campaign ──────────────────────────────────────────────────────────
   // `.maybeSingle()`, not `.single()`: `.single()` reports "no rows" AS AN ERROR,
@@ -395,12 +399,12 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  if (processingFeeCents > 0) {
+  if (processingCoverageCents > 0) {
     lineItems.push({
       price_data: {
         currency,
         product_data: { name: 'Payment processing fee', description: `Covers ${paymentMethod} processing costs` },
-        unit_amount: processingFeeCents,
+        unit_amount: processingCoverageCents,
       },
       quantity: 1,
     });
@@ -408,12 +412,13 @@ export async function POST(request: NextRequest) {
 
   // ── Stripe session params ───────────────────────────────────────────────────
   //
-  // application_fee_amount = tipCents + processingFeeCents
+  // application_fee_amount = tipCents + processorFeeCents
   //   • tipCents      → CharitMe's revenue (8% donor tip)
-  //   • processingFee → offsets Stripe's deduction from CharitMe's balance
+  //   • processorFee  → offsets Stripe's deduction from CharitMe's balance
   //                     so the recipient always receives exactly amountCents
   //
-  // transfer_data.destination → Stripe automatically transfers amountCents
+  // transfer_data.destination routes the charge to the verified recipient.
+  // After the application fee, the recipient nets ownerNetCents.
   //   to the recipient's connected account (beneficiary if set, otherwise the
   //   organizer) when the charge is captured — CharitMe never holds the funds.
   //
@@ -438,7 +443,10 @@ export async function POST(request: NextRequest) {
       donationAmountCents:  String(amountCents),
       tipCents:             String(tipCents),
       tipPercent:           String(tipPercent),
-      processingFeeCents:   String(processingFeeCents),
+      processingFeeCents:   String(processorFeeCents),
+      processingCoverageCents: String(processingCoverageCents),
+      donorCoversProcessing: donorCoversProcessing ? '1' : '0',
+      ownerNetCents:        String(ownerNetCents),
       platformFeeCents:     String(tipCents),            // CharitMe's actual revenue
       paymentMethod,
       checkoutRevision: checkout.revision,
@@ -462,8 +470,10 @@ export async function POST(request: NextRequest) {
       subscribeToUpdates:   subscribeToUpdates ? '1' : '0',
     },
     payment_intent_data: {
-      // CharitMe keeps tip + processing coverage; recipient gets amountCents
-      application_fee_amount: tipCents + processingFeeCents,
+      // CharitMe receives the disclosed tip and processor cost. If the donor
+      // declines coverage, that processor cost is deducted from campaign
+      // proceeds instead of silently becoming a platform loss.
+      application_fee_amount: tipCents + processorFeeCents,
       transfer_data: { destination: destination.stripeAccountId },
     },
   };

@@ -168,6 +168,25 @@ describe('event ticket payment lifecycle contract', () => {
   });
 });
 
+describe('destination-charge loss accounting', () => {
+  it('uses Stripe application-fee refunds to split recipient and platform losses', () => {
+    expect(SRC).toContain('applicationFeeRefundedCents');
+    expect(SRC).toContain('recipientPayableRefund = refund.amount - applicationFeeRefund');
+    expect(SRC).toContain('refundDonationCents: recipientPayableRefund');
+  });
+
+  it('keeps campaign principal separate from recipient payable on a lost dispute', () => {
+    expect(SRC).toContain('amount_cents: campaignPrincipalLoss');
+    expect(SRC).toContain('refundDonationCents: recipientPayableLoss');
+  });
+
+  it('recovers safely when a transfer reversal succeeded before a webhook retry', () => {
+    expect(SRC).toContain('stripe.transfers.listReversals');
+    expect(SRC).toContain('reversal.metadata?.dispute_id === disputeId');
+    expect(SRC).toContain('recipientPayableLoss - priorDisputeReversal');
+  });
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // The dispatch switch had no `default:`.
 //

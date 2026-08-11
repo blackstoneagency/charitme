@@ -1,0 +1,905 @@
+{
+  "generatedAt": "2026-08-11T16:52:59.342Z",
+  "stripeAccountId": "acct_1TNul7BrwQtGmNLk",
+  "architecture": "destination_charges",
+  "constants": {
+    "donationCents": 10000,
+    "tipCents": 800,
+    "processingCents": 353,
+    "totalCents": 11153
+  },
+  "scenarios": [
+    {
+      "name": "1. Successful donation",
+      "charged": 11153,
+      "platformNet": 800,
+      "campaignNet": 10000,
+      "stripeFee": 353,
+      "adjustment": 0,
+      "difference": 0,
+      "objectIds": {
+        "paymentIntentId": "pi_3U3IvDBrwQtGmNLk2fKRBwQL",
+        "chargeId": "ch_3U3IvDBrwQtGmNLk2UJA54gU",
+        "balanceTransactionId": "txn_3U3IvDBrwQtGmNLk2rWSBzpa",
+        "applicationFeeId": "fee_1U3IvHPVsbF5pieOOEmiBuAj",
+        "transferId": "tr_3U3IvDBrwQtGmNLk2tEVGgV9",
+        "destinationAccountId": "acct_1U3IvAPVsbF5pieO"
+      },
+      "applicationFee": {
+        "id": "fee_1U3IvHPVsbF5pieOOEmiBuAj",
+        "object": "application_fee",
+        "account": "acct_1U3IvAPVsbF5pieO",
+        "amount": 1153,
+        "amount_refunded": 0,
+        "application": "ca_Uv9fLKMvDqt0i0Pd3DyOupmPAiLaerj2",
+        "balance_transaction": "txn_1U3IvJBrwQtGmNLk14OOEfwg",
+        "charge": "py_1U3IvHPVsbF5pieOOIQmjNLq",
+        "created": 1786467187,
+        "currency": "usd",
+        "fee_source": {
+          "charge": "py_1U3IvHPVsbF5pieOOIQmjNLq",
+          "type": "charge"
+        },
+        "livemode": false,
+        "originating_transaction": "ch_3U3IvDBrwQtGmNLk2UJA54gU",
+        "refunded": false,
+        "refunds": {
+          "object": "list",
+          "data": [],
+          "has_more": false,
+          "total_count": 0,
+          "url": "/v1/application_fees/fee_1U3IvHPVsbF5pieOOEmiBuAj/refunds"
+        }
+      },
+      "transfer": {
+        "id": "tr_3U3IvDBrwQtGmNLk2tEVGgV9",
+        "object": "transfer",
+        "amount": 11153,
+        "amount_reversed": 0,
+        "balance_transaction": "txn_3U3IvDBrwQtGmNLk2Rzmqot4",
+        "created": 1786467187,
+        "currency": "usd",
+        "description": null,
+        "destination": "acct_1U3IvAPVsbF5pieO",
+        "destination_payment": "py_1U3IvHPVsbF5pieOOIQmjNLq",
+        "livemode": false,
+        "metadata": {},
+        "reversals": {
+          "object": "list",
+          "data": [],
+          "has_more": false,
+          "total_count": 0,
+          "url": "/v1/transfers/tr_3U3IvDBrwQtGmNLk2tEVGgV9/reversals"
+        },
+        "reversed": false,
+        "source_transaction": "ch_3U3IvDBrwQtGmNLk2UJA54gU",
+        "source_type": "card",
+        "transfer_group": "group_pi_3U3IvDBrwQtGmNLk2fKRBwQL"
+      },
+      "balanceTransaction": {
+        "id": "txn_3U3IvDBrwQtGmNLk2rWSBzpa",
+        "object": "balance_transaction",
+        "amount": 11153,
+        "available_on": 1787011200,
+        "balance_type": "payments",
+        "created": 1786467184,
+        "currency": "usd",
+        "description": null,
+        "exchange_rate": null,
+        "fee": 353,
+        "fee_details": [
+          {
+            "amount": 353,
+            "application": null,
+            "currency": "usd",
+            "description": "Stripe processing fees",
+            "type": "stripe_fee"
+          }
+        ],
+        "net": 10800,
+        "reporting_category": "charge",
+        "source": "ch_3U3IvDBrwQtGmNLk2UJA54gU",
+        "status": "pending",
+        "type": "charge"
+      },
+      "passed": true,
+      "note": "PaymentIntent pi_3U3IvDBrwQtGmNLk2fKRBwQL; Charge ch_3U3IvDBrwQtGmNLk2UJA54gU; Transfer tr_3U3IvDBrwQtGmNLk2tEVGgV9; destination acct_1U3IvAPVsbF5pieO"
+    },
+    {
+      "name": "2. Failed payment",
+      "charged": 0,
+      "platformNet": 0,
+      "campaignNet": 0,
+      "stripeFee": 0,
+      "adjustment": 0,
+      "difference": 0,
+      "objectIds": {},
+      "passed": true,
+      "note": "Declined without a transfer: card_declined"
+    },
+    {
+      "name": "3. Duplicate checkout",
+      "charged": 11153,
+      "platformNet": 800,
+      "campaignNet": 10000,
+      "stripeFee": 353,
+      "adjustment": 0,
+      "difference": 0,
+      "objectIds": {
+        "paymentIntentId": "pi_3U3IvKBrwQtGmNLk1px06xCm",
+        "chargeId": "ch_3U3IvKBrwQtGmNLk1zcTm4Qc",
+        "balanceTransactionId": "txn_3U3IvKBrwQtGmNLk1goFgxLA",
+        "applicationFeeId": "fee_1U3IvNPVsbF5pieOFI48XbmF",
+        "transferId": "tr_3U3IvKBrwQtGmNLk1T8VDl5Z",
+        "destinationAccountId": "acct_1U3IvAPVsbF5pieO"
+      },
+      "applicationFee": {
+        "id": "fee_1U3IvNPVsbF5pieOFI48XbmF",
+        "object": "application_fee",
+        "account": "acct_1U3IvAPVsbF5pieO",
+        "amount": 1153,
+        "amount_refunded": 0,
+        "application": "ca_Uv9fLKMvDqt0i0Pd3DyOupmPAiLaerj2",
+        "balance_transaction": "txn_1U3IvPBrwQtGmNLkstjCLuo9",
+        "charge": "py_1U3IvNPVsbF5pieOLcoK7pvV",
+        "created": 1786467193,
+        "currency": "usd",
+        "fee_source": {
+          "charge": "py_1U3IvNPVsbF5pieOLcoK7pvV",
+          "type": "charge"
+        },
+        "livemode": false,
+        "originating_transaction": "ch_3U3IvKBrwQtGmNLk1zcTm4Qc",
+        "refunded": false,
+        "refunds": {
+          "object": "list",
+          "data": [],
+          "has_more": false,
+          "total_count": 0,
+          "url": "/v1/application_fees/fee_1U3IvNPVsbF5pieOFI48XbmF/refunds"
+        }
+      },
+      "transfer": {
+        "id": "tr_3U3IvKBrwQtGmNLk1T8VDl5Z",
+        "object": "transfer",
+        "amount": 11153,
+        "amount_reversed": 0,
+        "balance_transaction": "txn_3U3IvKBrwQtGmNLk1qKrkud2",
+        "created": 1786467193,
+        "currency": "usd",
+        "description": null,
+        "destination": "acct_1U3IvAPVsbF5pieO",
+        "destination_payment": "py_1U3IvNPVsbF5pieOLcoK7pvV",
+        "livemode": false,
+        "metadata": {},
+        "reversals": {
+          "object": "list",
+          "data": [],
+          "has_more": false,
+          "total_count": 0,
+          "url": "/v1/transfers/tr_3U3IvKBrwQtGmNLk1T8VDl5Z/reversals"
+        },
+        "reversed": false,
+        "source_transaction": "ch_3U3IvKBrwQtGmNLk1zcTm4Qc",
+        "source_type": "card",
+        "transfer_group": "group_pi_3U3IvKBrwQtGmNLk1px06xCm"
+      },
+      "balanceTransaction": {
+        "id": "txn_3U3IvKBrwQtGmNLk1goFgxLA",
+        "object": "balance_transaction",
+        "amount": 11153,
+        "available_on": 1787011200,
+        "balance_type": "payments",
+        "created": 1786467190,
+        "currency": "usd",
+        "description": null,
+        "exchange_rate": null,
+        "fee": 353,
+        "fee_details": [
+          {
+            "amount": 353,
+            "application": null,
+            "currency": "usd",
+            "description": "Stripe processing fees",
+            "type": "stripe_fee"
+          }
+        ],
+        "net": 10800,
+        "reporting_category": "charge",
+        "source": "ch_3U3IvKBrwQtGmNLk1zcTm4Qc",
+        "status": "pending",
+        "type": "charge"
+      },
+      "passed": true,
+      "note": "One PaymentIntent pi_3U3IvKBrwQtGmNLk1px06xCm returned for both submissions"
+    },
+    {
+      "name": "4. Campaign A vs Campaign B routing",
+      "charged": 11153,
+      "platformNet": 800,
+      "campaignNet": 10000,
+      "stripeFee": 353,
+      "adjustment": 0,
+      "difference": 0,
+      "objectIds": {
+        "paymentIntentId": "pi_3U3IvTBrwQtGmNLk2oWZmxSi",
+        "chargeId": "ch_3U3IvTBrwQtGmNLk2sWg5cVa",
+        "balanceTransactionId": "txn_3U3IvTBrwQtGmNLk2OeGGrDf",
+        "applicationFeeId": "fee_1U3IvWBePMBvqitRkjRfQWKj",
+        "transferId": "tr_3U3IvTBrwQtGmNLk2U6G4KYN",
+        "destinationAccountId": "acct_1U3IvPBePMBvqitR"
+      },
+      "applicationFee": {
+        "id": "fee_1U3IvWBePMBvqitRkjRfQWKj",
+        "object": "application_fee",
+        "account": "acct_1U3IvPBePMBvqitR",
+        "amount": 1153,
+        "amount_refunded": 0,
+        "application": "ca_Uv9fLKMvDqt0i0Pd3DyOupmPAiLaerj2",
+        "balance_transaction": "txn_1U3IvYBrwQtGmNLkXBvLn47q",
+        "charge": "py_1U3IvWBePMBvqitROVC2DAvI",
+        "created": 1786467202,
+        "currency": "usd",
+        "fee_source": {
+          "charge": "py_1U3IvWBePMBvqitROVC2DAvI",
+          "type": "charge"
+        },
+        "livemode": false,
+        "originating_transaction": "ch_3U3IvTBrwQtGmNLk2sWg5cVa",
+        "refunded": false,
+        "refunds": {
+          "object": "list",
+          "data": [],
+          "has_more": false,
+          "total_count": 0,
+          "url": "/v1/application_fees/fee_1U3IvWBePMBvqitRkjRfQWKj/refunds"
+        }
+      },
+      "transfer": {
+        "id": "tr_3U3IvTBrwQtGmNLk2U6G4KYN",
+        "object": "transfer",
+        "amount": 11153,
+        "amount_reversed": 0,
+        "balance_transaction": "txn_3U3IvTBrwQtGmNLk29XkmbtC",
+        "created": 1786467202,
+        "currency": "usd",
+        "description": null,
+        "destination": "acct_1U3IvPBePMBvqitR",
+        "destination_payment": "py_1U3IvWBePMBvqitROVC2DAvI",
+        "livemode": false,
+        "metadata": {},
+        "reversals": {
+          "object": "list",
+          "data": [],
+          "has_more": false,
+          "total_count": 0,
+          "url": "/v1/transfers/tr_3U3IvTBrwQtGmNLk2U6G4KYN/reversals"
+        },
+        "reversed": false,
+        "source_transaction": "ch_3U3IvTBrwQtGmNLk2sWg5cVa",
+        "source_type": "card",
+        "transfer_group": "group_pi_3U3IvTBrwQtGmNLk2oWZmxSi"
+      },
+      "balanceTransaction": {
+        "id": "txn_3U3IvTBrwQtGmNLk2OeGGrDf",
+        "object": "balance_transaction",
+        "amount": 11153,
+        "available_on": 1787011200,
+        "balance_type": "payments",
+        "created": 1786467199,
+        "currency": "usd",
+        "description": null,
+        "exchange_rate": null,
+        "fee": 353,
+        "fee_details": [
+          {
+            "amount": 353,
+            "application": null,
+            "currency": "usd",
+            "description": "Stripe processing fees",
+            "type": "stripe_fee"
+          }
+        ],
+        "net": 10800,
+        "reporting_category": "charge",
+        "source": "ch_3U3IvTBrwQtGmNLk2sWg5cVa",
+        "status": "pending",
+        "type": "charge"
+      },
+      "passed": true,
+      "note": "Campaign A -> acct_1U3IvAPVsbF5pieO; Campaign B -> acct_1U3IvPBePMBvqitR"
+    },
+    {
+      "name": "5. CharitMe fee allocation",
+      "charged": 11153,
+      "platformNet": 800,
+      "campaignNet": 10000,
+      "stripeFee": 353,
+      "adjustment": 0,
+      "difference": 0,
+      "objectIds": {
+        "paymentIntentId": "pi_3U3IvDBrwQtGmNLk2fKRBwQL",
+        "chargeId": "ch_3U3IvDBrwQtGmNLk2UJA54gU",
+        "balanceTransactionId": "txn_3U3IvDBrwQtGmNLk2rWSBzpa",
+        "applicationFeeId": "fee_1U3IvHPVsbF5pieOOEmiBuAj",
+        "transferId": "tr_3U3IvDBrwQtGmNLk2tEVGgV9",
+        "destinationAccountId": "acct_1U3IvAPVsbF5pieO"
+      },
+      "applicationFee": {
+        "id": "fee_1U3IvHPVsbF5pieOOEmiBuAj",
+        "object": "application_fee",
+        "account": "acct_1U3IvAPVsbF5pieO",
+        "amount": 1153,
+        "amount_refunded": 0,
+        "application": "ca_Uv9fLKMvDqt0i0Pd3DyOupmPAiLaerj2",
+        "balance_transaction": "txn_1U3IvJBrwQtGmNLk14OOEfwg",
+        "charge": "py_1U3IvHPVsbF5pieOOIQmjNLq",
+        "created": 1786467187,
+        "currency": "usd",
+        "fee_source": {
+          "charge": "py_1U3IvHPVsbF5pieOOIQmjNLq",
+          "type": "charge"
+        },
+        "livemode": false,
+        "originating_transaction": "ch_3U3IvDBrwQtGmNLk2UJA54gU",
+        "refunded": false,
+        "refunds": {
+          "object": "list",
+          "data": [],
+          "has_more": false,
+          "total_count": 0,
+          "url": "/v1/application_fees/fee_1U3IvHPVsbF5pieOOEmiBuAj/refunds"
+        }
+      },
+      "transfer": {
+        "id": "tr_3U3IvDBrwQtGmNLk2tEVGgV9",
+        "object": "transfer",
+        "amount": 11153,
+        "amount_reversed": 0,
+        "balance_transaction": "txn_3U3IvDBrwQtGmNLk2Rzmqot4",
+        "created": 1786467187,
+        "currency": "usd",
+        "description": null,
+        "destination": "acct_1U3IvAPVsbF5pieO",
+        "destination_payment": "py_1U3IvHPVsbF5pieOOIQmjNLq",
+        "livemode": false,
+        "metadata": {},
+        "reversals": {
+          "object": "list",
+          "data": [],
+          "has_more": false,
+          "total_count": 0,
+          "url": "/v1/transfers/tr_3U3IvDBrwQtGmNLk2tEVGgV9/reversals"
+        },
+        "reversed": false,
+        "source_transaction": "ch_3U3IvDBrwQtGmNLk2UJA54gU",
+        "source_type": "card",
+        "transfer_group": "group_pi_3U3IvDBrwQtGmNLk2fKRBwQL"
+      },
+      "balanceTransaction": {
+        "id": "txn_3U3IvDBrwQtGmNLk2rWSBzpa",
+        "object": "balance_transaction",
+        "amount": 11153,
+        "available_on": 1787011200,
+        "balance_type": "payments",
+        "created": 1786467184,
+        "currency": "usd",
+        "description": null,
+        "exchange_rate": null,
+        "fee": 353,
+        "fee_details": [
+          {
+            "amount": 353,
+            "application": null,
+            "currency": "usd",
+            "description": "Stripe processing fees",
+            "type": "stripe_fee"
+          }
+        ],
+        "net": 10800,
+        "reporting_category": "charge",
+        "source": "ch_3U3IvDBrwQtGmNLk2UJA54gU",
+        "status": "pending",
+        "type": "charge"
+      },
+      "passed": true,
+      "note": "Application Fee fee_1U3IvHPVsbF5pieOOEmiBuAj gross $11.53; CharitMe net $8.00"
+    },
+    {
+      "name": "6. Full refund",
+      "charged": 11153,
+      "platformNet": -353,
+      "campaignNet": 0,
+      "stripeFee": 353,
+      "adjustment": 11153,
+      "difference": 0,
+      "objectIds": {
+        "paymentIntentId": "pi_3U3IvYBrwQtGmNLk3VBNvZB5",
+        "chargeId": "ch_3U3IvYBrwQtGmNLk3OSMBJtv",
+        "balanceTransactionId": "txn_3U3IvYBrwQtGmNLk3oVZUnR2",
+        "applicationFeeId": "fee_1U3IvbPVsbF5pieOi4Xs7uGE",
+        "transferId": "tr_3U3IvYBrwQtGmNLk3AIFzXT2",
+        "destinationAccountId": "acct_1U3IvAPVsbF5pieO"
+      },
+      "applicationFee": {
+        "id": "fee_1U3IvbPVsbF5pieOi4Xs7uGE",
+        "object": "application_fee",
+        "account": "acct_1U3IvAPVsbF5pieO",
+        "amount": 1153,
+        "amount_refunded": 1153,
+        "application": "ca_Uv9fLKMvDqt0i0Pd3DyOupmPAiLaerj2",
+        "balance_transaction": "txn_1U3IvdBrwQtGmNLkAZSEok06",
+        "charge": "py_1U3IvbPVsbF5pieORsJ6tH53",
+        "created": 1786467207,
+        "currency": "usd",
+        "fee_source": {
+          "charge": "py_1U3IvbPVsbF5pieORsJ6tH53",
+          "type": "charge"
+        },
+        "livemode": false,
+        "originating_transaction": "ch_3U3IvYBrwQtGmNLk3OSMBJtv",
+        "refunded": true,
+        "refunds": {
+          "object": "list",
+          "data": [
+            {
+              "id": "fr_1U3IvdPVsbF5pieOT0MjR8g6",
+              "object": "fee_refund",
+              "amount": 1153,
+              "balance_transaction": "txn_1U3IveBrwQtGmNLk0gIxDGoM",
+              "created": 1786467209,
+              "currency": "usd",
+              "fee": "fee_1U3IvbPVsbF5pieOi4Xs7uGE",
+              "metadata": {}
+            }
+          ],
+          "has_more": false,
+          "total_count": 1,
+          "url": "/v1/application_fees/fee_1U3IvbPVsbF5pieOi4Xs7uGE/refunds"
+        }
+      },
+      "transfer": {
+        "id": "tr_3U3IvYBrwQtGmNLk3AIFzXT2",
+        "object": "transfer",
+        "amount": 11153,
+        "amount_reversed": 11153,
+        "balance_transaction": "txn_3U3IvYBrwQtGmNLk37mB1maF",
+        "created": 1786467207,
+        "currency": "usd",
+        "description": null,
+        "destination": "acct_1U3IvAPVsbF5pieO",
+        "destination_payment": "py_1U3IvbPVsbF5pieORsJ6tH53",
+        "livemode": false,
+        "metadata": {},
+        "reversals": {
+          "object": "list",
+          "data": [
+            {
+              "id": "trr_1U3IvdBrwQtGmNLk8LttIoUH",
+              "object": "transfer_reversal",
+              "amount": 11153,
+              "balance_transaction": "txn_1U3IveBrwQtGmNLkAfvwXhmY",
+              "created": 1786467209,
+              "currency": "usd",
+              "destination_payment_refund": "pyr_1U3IvdPVsbF5pieOlKtB5KO1",
+              "metadata": {},
+              "source_refund": "re_3U3IvYBrwQtGmNLk3ixogBPz",
+              "transfer": "tr_3U3IvYBrwQtGmNLk3AIFzXT2"
+            }
+          ],
+          "has_more": false,
+          "total_count": 1,
+          "url": "/v1/transfers/tr_3U3IvYBrwQtGmNLk3AIFzXT2/reversals"
+        },
+        "reversed": true,
+        "source_transaction": "ch_3U3IvYBrwQtGmNLk3OSMBJtv",
+        "source_type": "card",
+        "transfer_group": "group_pi_3U3IvYBrwQtGmNLk3VBNvZB5"
+      },
+      "balanceTransaction": {
+        "id": "txn_3U3IvYBrwQtGmNLk3oVZUnR2",
+        "object": "balance_transaction",
+        "amount": 11153,
+        "available_on": 1787011200,
+        "balance_type": "payments",
+        "created": 1786467204,
+        "currency": "usd",
+        "description": null,
+        "exchange_rate": null,
+        "fee": 353,
+        "fee_details": [
+          {
+            "amount": 353,
+            "application": null,
+            "currency": "usd",
+            "description": "Stripe processing fees",
+            "type": "stripe_fee"
+          }
+        ],
+        "net": 10800,
+        "reporting_category": "charge",
+        "source": "ch_3U3IvYBrwQtGmNLk3OSMBJtv",
+        "status": "pending",
+        "type": "charge"
+      },
+      "passed": true,
+      "note": "Refund re_3U3IvYBrwQtGmNLk3ixogBPz; transfer reversed $111.53",
+      "refundId": "re_3U3IvYBrwQtGmNLk3ixogBPz"
+    },
+    {
+      "name": "7. Partial refund",
+      "charged": 11153,
+      "platformNet": 223,
+      "campaignNet": 5000,
+      "stripeFee": 353,
+      "adjustment": 5577,
+      "difference": 0,
+      "objectIds": {
+        "paymentIntentId": "pi_3U3IvgBrwQtGmNLk23vL4qCK",
+        "chargeId": "ch_3U3IvgBrwQtGmNLk2wPB7ruZ",
+        "balanceTransactionId": "txn_3U3IvgBrwQtGmNLk2A60KgYo",
+        "applicationFeeId": "fee_1U3IvkPVsbF5pieOdRkzfqpk",
+        "transferId": "tr_3U3IvgBrwQtGmNLk2PvyUavW",
+        "destinationAccountId": "acct_1U3IvAPVsbF5pieO"
+      },
+      "applicationFee": {
+        "id": "fee_1U3IvkPVsbF5pieOdRkzfqpk",
+        "object": "application_fee",
+        "account": "acct_1U3IvAPVsbF5pieO",
+        "amount": 1153,
+        "amount_refunded": 577,
+        "application": "ca_Uv9fLKMvDqt0i0Pd3DyOupmPAiLaerj2",
+        "balance_transaction": "txn_1U3IvlBrwQtGmNLkFqDox8DQ",
+        "charge": "py_1U3IvjPVsbF5pieON6nwrh0L",
+        "created": 1786467216,
+        "currency": "usd",
+        "fee_source": {
+          "charge": "py_1U3IvjPVsbF5pieON6nwrh0L",
+          "type": "charge"
+        },
+        "livemode": false,
+        "originating_transaction": "ch_3U3IvgBrwQtGmNLk2wPB7ruZ",
+        "refunded": false,
+        "refunds": {
+          "object": "list",
+          "data": [
+            {
+              "id": "fr_1U3IvlPVsbF5pieOgRGaxJdd",
+              "object": "fee_refund",
+              "amount": 577,
+              "balance_transaction": "txn_1U3IvlBrwQtGmNLkC5i0mMCN",
+              "created": 1786467217,
+              "currency": "usd",
+              "fee": "fee_1U3IvkPVsbF5pieOdRkzfqpk",
+              "metadata": {}
+            }
+          ],
+          "has_more": false,
+          "total_count": 1,
+          "url": "/v1/application_fees/fee_1U3IvkPVsbF5pieOdRkzfqpk/refunds"
+        }
+      },
+      "transfer": {
+        "id": "tr_3U3IvgBrwQtGmNLk2PvyUavW",
+        "object": "transfer",
+        "amount": 11153,
+        "amount_reversed": 5577,
+        "balance_transaction": "txn_3U3IvgBrwQtGmNLk2iX8vMbW",
+        "created": 1786467215,
+        "currency": "usd",
+        "description": null,
+        "destination": "acct_1U3IvAPVsbF5pieO",
+        "destination_payment": "py_1U3IvjPVsbF5pieON6nwrh0L",
+        "livemode": false,
+        "metadata": {},
+        "reversals": {
+          "object": "list",
+          "data": [
+            {
+              "id": "trr_1U3IvlBrwQtGmNLkr55N2vI3",
+              "object": "transfer_reversal",
+              "amount": 5577,
+              "balance_transaction": "txn_1U3IvmBrwQtGmNLkOE5xsvyu",
+              "created": 1786467218,
+              "currency": "usd",
+              "destination_payment_refund": "pyr_1U3IvlPVsbF5pieOuqkzL3W3",
+              "metadata": {},
+              "source_refund": "re_3U3IvgBrwQtGmNLk2JUsV0PR",
+              "transfer": "tr_3U3IvgBrwQtGmNLk2PvyUavW"
+            }
+          ],
+          "has_more": false,
+          "total_count": 1,
+          "url": "/v1/transfers/tr_3U3IvgBrwQtGmNLk2PvyUavW/reversals"
+        },
+        "reversed": false,
+        "source_transaction": "ch_3U3IvgBrwQtGmNLk2wPB7ruZ",
+        "source_type": "card",
+        "transfer_group": "group_pi_3U3IvgBrwQtGmNLk23vL4qCK"
+      },
+      "balanceTransaction": {
+        "id": "txn_3U3IvgBrwQtGmNLk2A60KgYo",
+        "object": "balance_transaction",
+        "amount": 11153,
+        "available_on": 1787011200,
+        "balance_type": "payments",
+        "created": 1786467213,
+        "currency": "usd",
+        "description": null,
+        "exchange_rate": null,
+        "fee": 353,
+        "fee_details": [
+          {
+            "amount": 353,
+            "application": null,
+            "currency": "usd",
+            "description": "Stripe processing fees",
+            "type": "stripe_fee"
+          }
+        ],
+        "net": 10800,
+        "reporting_category": "charge",
+        "source": "ch_3U3IvgBrwQtGmNLk2wPB7ruZ",
+        "status": "pending",
+        "type": "charge"
+      },
+      "passed": true,
+      "note": "Refund re_3U3IvgBrwQtGmNLk2JUsV0PR; requested principal $50.00; donor adjustment $55.77",
+      "refundId": "re_3U3IvgBrwQtGmNLk2JUsV0PR",
+      "requestedPrincipalCents": 5000
+    },
+    {
+      "name": "8. Dispute",
+      "charged": 11153,
+      "platformNet": 800,
+      "campaignNet": 10000,
+      "stripeFee": 353,
+      "adjustment": 0,
+      "difference": 0,
+      "objectIds": {
+        "paymentIntentId": "pi_3U3IvnBrwQtGmNLk1gtdXfjD",
+        "chargeId": "ch_3U3IvnBrwQtGmNLk1eQ1G0FB",
+        "balanceTransactionId": "txn_3U3IvnBrwQtGmNLk1v8CnDFS",
+        "applicationFeeId": "fee_1U3IvsPVsbF5pieOxkyfj15M",
+        "transferId": "tr_3U3IvnBrwQtGmNLk1r5lyL0h",
+        "destinationAccountId": "acct_1U3IvAPVsbF5pieO"
+      },
+      "applicationFee": {
+        "id": "fee_1U3IvsPVsbF5pieOxkyfj15M",
+        "object": "application_fee",
+        "account": "acct_1U3IvAPVsbF5pieO",
+        "amount": 1153,
+        "amount_refunded": 0,
+        "application": "ca_Uv9fLKMvDqt0i0Pd3DyOupmPAiLaerj2",
+        "balance_transaction": "txn_1U3IvuBrwQtGmNLkljKubXun",
+        "charge": "py_1U3IvsPVsbF5pieObxqHz22j",
+        "created": 1786467224,
+        "currency": "usd",
+        "fee_source": {
+          "charge": "py_1U3IvsPVsbF5pieObxqHz22j",
+          "type": "charge"
+        },
+        "livemode": false,
+        "originating_transaction": "ch_3U3IvnBrwQtGmNLk1eQ1G0FB",
+        "refunded": false,
+        "refunds": {
+          "object": "list",
+          "data": [],
+          "has_more": false,
+          "total_count": 0,
+          "url": "/v1/application_fees/fee_1U3IvsPVsbF5pieOxkyfj15M/refunds"
+        }
+      },
+      "transfer": {
+        "id": "tr_3U3IvnBrwQtGmNLk1r5lyL0h",
+        "object": "transfer",
+        "amount": 11153,
+        "amount_reversed": 0,
+        "balance_transaction": "txn_3U3IvnBrwQtGmNLk1hfEZUiS",
+        "created": 1786467224,
+        "currency": "usd",
+        "description": null,
+        "destination": "acct_1U3IvAPVsbF5pieO",
+        "destination_payment": "py_1U3IvsPVsbF5pieObxqHz22j",
+        "livemode": false,
+        "metadata": {},
+        "reversals": {
+          "object": "list",
+          "data": [],
+          "has_more": false,
+          "total_count": 0,
+          "url": "/v1/transfers/tr_3U3IvnBrwQtGmNLk1r5lyL0h/reversals"
+        },
+        "reversed": false,
+        "source_transaction": "ch_3U3IvnBrwQtGmNLk1eQ1G0FB",
+        "source_type": "card",
+        "transfer_group": "group_pi_3U3IvnBrwQtGmNLk1gtdXfjD"
+      },
+      "balanceTransaction": {
+        "id": "txn_3U3IvnBrwQtGmNLk1v8CnDFS",
+        "object": "balance_transaction",
+        "amount": 11153,
+        "available_on": 1787011200,
+        "balance_type": "payments",
+        "created": 1786467220,
+        "currency": "usd",
+        "description": null,
+        "exchange_rate": null,
+        "fee": 353,
+        "fee_details": [
+          {
+            "amount": 353,
+            "application": null,
+            "currency": "usd",
+            "description": "Stripe processing fees",
+            "type": "stripe_fee"
+          }
+        ],
+        "net": 10800,
+        "reporting_category": "charge",
+        "source": "ch_3U3IvnBrwQtGmNLk1eQ1G0FB",
+        "status": "pending",
+        "type": "charge"
+      },
+      "passed": true,
+      "note": "Dispute du_1U3IvoBrwQtGmNLkb5HtTWXj; status needs_response; amount $111.53",
+      "disputeId": "du_1U3IvoBrwQtGmNLkb5HtTWXj"
+    },
+    {
+      "name": "9. Restricted owner",
+      "charged": 0,
+      "platformNet": 0,
+      "campaignNet": 0,
+      "stripeFee": 0,
+      "adjustment": 0,
+      "difference": 0,
+      "objectIds": {},
+      "passed": true,
+      "note": "Charge refused for restricted account acct_1U3IvuBUNjEnVj2Q",
+      "restrictedAccountId": "acct_1U3IvuBUNjEnVj2Q"
+    },
+    {
+      "name": "10. Failed transfer/payout",
+      "charged": 11153,
+      "platformNet": 800,
+      "campaignNet": 10000,
+      "stripeFee": 353,
+      "adjustment": 0,
+      "difference": 0,
+      "objectIds": {
+        "paymentIntentId": "pi_3U3Iw0BrwQtGmNLk0XhqM906",
+        "chargeId": "ch_3U3Iw0BrwQtGmNLk0X13OYE4",
+        "balanceTransactionId": "txn_3U3Iw0BrwQtGmNLk03K8SRJt",
+        "applicationFeeId": "fee_1U3Iw4Pdp9E738zvRBXzcNqk",
+        "transferId": "tr_3U3Iw0BrwQtGmNLk0FAOI6BX",
+        "destinationAccountId": "acct_1U3IvwPdp9E738zv"
+      },
+      "applicationFee": {
+        "id": "fee_1U3Iw4Pdp9E738zvRBXzcNqk",
+        "object": "application_fee",
+        "account": "acct_1U3IvwPdp9E738zv",
+        "amount": 1153,
+        "amount_refunded": 0,
+        "application": "ca_Uv9fLKMvDqt0i0Pd3DyOupmPAiLaerj2",
+        "balance_transaction": "txn_1U3Iw5BrwQtGmNLkhJmJwooK",
+        "charge": "py_1U3Iw3Pdp9E738zvQyXVPCnX",
+        "created": 1786467236,
+        "currency": "usd",
+        "fee_source": {
+          "charge": "py_1U3Iw3Pdp9E738zvQyXVPCnX",
+          "type": "charge"
+        },
+        "livemode": false,
+        "originating_transaction": "ch_3U3Iw0BrwQtGmNLk0X13OYE4",
+        "refunded": false,
+        "refunds": {
+          "object": "list",
+          "data": [],
+          "has_more": false,
+          "total_count": 0,
+          "url": "/v1/application_fees/fee_1U3Iw4Pdp9E738zvRBXzcNqk/refunds"
+        }
+      },
+      "transfer": {
+        "id": "tr_3U3Iw0BrwQtGmNLk0FAOI6BX",
+        "object": "transfer",
+        "amount": 11153,
+        "amount_reversed": 0,
+        "balance_transaction": "txn_3U3Iw0BrwQtGmNLk0FMHUOND",
+        "created": 1786467235,
+        "currency": "usd",
+        "description": null,
+        "destination": "acct_1U3IvwPdp9E738zv",
+        "destination_payment": "py_1U3Iw3Pdp9E738zvQyXVPCnX",
+        "livemode": false,
+        "metadata": {},
+        "reversals": {
+          "object": "list",
+          "data": [],
+          "has_more": false,
+          "total_count": 0,
+          "url": "/v1/transfers/tr_3U3Iw0BrwQtGmNLk0FAOI6BX/reversals"
+        },
+        "reversed": false,
+        "source_transaction": "ch_3U3Iw0BrwQtGmNLk0X13OYE4",
+        "source_type": "card",
+        "transfer_group": "group_pi_3U3Iw0BrwQtGmNLk0XhqM906"
+      },
+      "balanceTransaction": {
+        "id": "txn_3U3Iw0BrwQtGmNLk03K8SRJt",
+        "object": "balance_transaction",
+        "amount": 11153,
+        "available_on": 1786467233,
+        "balance_type": "payments",
+        "created": 1786467233,
+        "currency": "usd",
+        "description": null,
+        "exchange_rate": null,
+        "fee": 353,
+        "fee_details": [
+          {
+            "amount": 353,
+            "application": null,
+            "currency": "usd",
+            "description": "Stripe processing fees",
+            "type": "stripe_fee"
+          }
+        ],
+        "net": 10800,
+        "reporting_category": "charge",
+        "source": "ch_3U3Iw0BrwQtGmNLk0X13OYE4",
+        "status": "available",
+        "type": "charge"
+      },
+      "passed": true,
+      "note": "Payout po_1U3Iw6Pdp9E738zvXb9mTIzS; status failed; failure no_account",
+      "payoutId": "po_1U3Iw6Pdp9E738zvXb9mTIzS",
+      "connectedAccountId": "acct_1U3IvwPdp9E738zv",
+      "payoutStatus": "failed"
+    },
+    {
+      "name": "11. Simultaneous donations",
+      "charged": 22306,
+      "platformNet": 1600,
+      "campaignNet": 20000,
+      "stripeFee": 706,
+      "adjustment": 0,
+      "difference": 0,
+      "objectIds": {
+        "combinedCharges": [
+          "ch_3U3Iw8BrwQtGmNLk3cLn6lR2",
+          "ch_3U3Iw8BrwQtGmNLk1tl8Ldjc"
+        ]
+      },
+      "passed": true,
+      "note": "A pi_3U3Iw8BrwQtGmNLk3VoE0mkP -> acct_1U3IvAPVsbF5pieO; B pi_3U3Iw8BrwQtGmNLk1PuHs9ED -> acct_1U3IvPBePMBvqitR"
+    },
+    {
+      "name": "12. Duplicate webhook",
+      "charged": 0,
+      "platformNet": 0,
+      "campaignNet": 0,
+      "stripeFee": 0,
+      "adjustment": 0,
+      "difference": 0,
+      "objectIds": {},
+      "passed": true,
+      "note": "Executable webhook replay test passed in this run; the duplicate event produced one donation write"
+    }
+  ],
+  "bankPayoutProof": {
+    "connectedAccountId": "acct_1U3IwFBCPU8oo7wT",
+    "paymentIntentId": "pi_3U3IwIBrwQtGmNLk3C9XOOt2",
+    "chargeId": "ch_3U3IwIBrwQtGmNLk3eV4ZtX2",
+    "transferId": "tr_3U3IwIBrwQtGmNLk3a4FGXbK",
+    "payoutId": "po_1U3IwOBCPU8oo7wTi4FDpHWW",
+    "status": "paid",
+    "amountCents": 10000
+  },
+  "summary": {
+    "passed": 12,
+    "total": 12,
+    "allDifferencesZero": true,
+    "bankPayoutPaid": true
+  }
+}

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   donationTotal, donorTip, platformFee, processingFee,
-  methodProcessingFee, METHOD_FEES, MIN_DONATION_CENTS,
+  methodProcessingFee, methodProcessorCost, METHOD_FEES, MIN_DONATION_CENTS,
   donationBreakdown, SUPPORT_TIER_PERCENTS, SUGGESTED_SUPPORT_PERCENT,
   TIP_OPTIONS, DEFAULT_DONOR_TIP_PERCENT, netToFundraiser,
   DEFAULT_DONATION_CHECKOUT_SETTINGS, normalizeDonationCheckoutSettings,
@@ -69,31 +69,33 @@ describe('CharitMe fee model', () => {
 
 describe('methodProcessingFee — per-method rates (server/client authoritative)', () => {
   it('applies stripe/card 2.9% + $0.30', () => {
-    // 2.9% of $100.00 = $2.90 (290c) + 30c = 320c
-    expect(methodProcessingFee(10_000, 'stripe')).toBe(320);
-    expect(methodProcessingFee(10_000, 'card')).toBe(320);
-    expect(methodProcessingFee(10_000, 'gpay')).toBe(320);
+    expect(methodProcessorCost(10_000, 'stripe')).toBe(320);
+    expect(methodProcessingFee(10_000, 'stripe')).toBe(330);
+    expect(methodProcessingFee(10_000, 'card')).toBe(330);
+    expect(methodProcessingFee(10_000, 'gpay')).toBe(330);
   });
 
   it('applies paypal 3.49% + $0.49', () => {
-    expect(methodProcessingFee(10_000, 'paypal')).toBe(Math.round(10_000 * 0.0349) + 49);
+    expect(methodProcessorCost(10_000, 'paypal')).toBe(Math.round(10_000 * 0.0349) + 49);
+    expect(methodProcessingFee(10_000, 'paypal')).toBe(412);
   });
 
   it('applies venmo 1.9% + $0.10', () => {
-    expect(methodProcessingFee(10_000, 'venmo')).toBe(Math.round(10_000 * 0.019) + 10);
+    expect(methodProcessorCost(10_000, 'venmo')).toBe(Math.round(10_000 * 0.019) + 10);
+    expect(methodProcessingFee(10_000, 'venmo')).toBe(204);
   });
 
   it('caps the bank (ACH) fee at $5.00', () => {
     // 0.8% of $10,000 = $80 → capped to 500c
     expect(methodProcessingFee(1_000_000, 'bank')).toBe(METHOD_FEES.bank.cap);
     // small amount stays under the cap
-    expect(methodProcessingFee(10_000, 'bank')).toBe(Math.round(10_000 * 0.008));
+    expect(methodProcessingFee(10_000, 'bank')).toBe(81);
   });
 
   it('rounds the percentage component (no fractional cents)', () => {
-    const fee = methodProcessingFee(333, 'stripe'); // 2.9% of 333 = 9.657 → round 10, +30 = 40
+    const fee = methodProcessingFee(333, 'stripe');
     expect(Number.isInteger(fee)).toBe(true);
-    expect(fee).toBe(Math.round(333 * 0.029) + 30);
+    expect(methodProcessorCost(333 + fee, 'stripe')).toBe(fee);
   });
 
   it('MATCHES the checkout composition: fee is charged on (donation + tip)', () => {
@@ -110,7 +112,16 @@ describe('methodProcessingFee — per-method rates (server/client authoritative)
   });
 
   it('handles the minimum donation without error', () => {
-    expect(methodProcessingFee(MIN_DONATION_CENTS, 'stripe')).toBe(Math.round(MIN_DONATION_CENTS * 0.029) + 30);
+    expect(methodProcessingFee(MIN_DONATION_CENTS, 'stripe')).toBe(34);
+  });
+
+  it('covers the processor cost on the final charged amount to the cent', () => {
+    for (const method of ['stripe', 'card', 'gpay', 'paypal', 'venmo', 'bank'] as const) {
+      for (const amount of [100, 333, 10_000, 100_000, 1_000_000]) {
+        const coverage = methodProcessingFee(amount, method);
+        expect(methodProcessorCost(amount + coverage, method)).toBe(coverage);
+      }
+    }
   });
 });
 
@@ -144,7 +155,7 @@ describe('donationBreakdown — single source of truth', () => {
 
   it('when the donor does NOT cover processing, only the processor fee comes out of the gift', () => {
     const b = donationBreakdown({ amountCents: 10_000, supportPercent: 0, method: 'card', coverProcessing: false });
-    const proc = methodProcessingFee(10_000, 'card');
+    const proc = methodProcessorCost(10_000, 'card');
     expect(b.supportCents).toBe(0);
     expect(b.netToRecipientCents).toBe(10_000 - proc);
     expect(b.totalChargedCents).toBe(10_000); // support 0, processing not added on top
@@ -234,7 +245,7 @@ describe('Supabase-configurable donation checkout settings', () => {
       coverProcessing: true,
     });
 
-    expect(breakdown.processingCents).toBe(490);
-    expect(breakdown.totalChargedCents).toBe(11_490);
+    expect(breakdown.processingCents).toBe(510);
+    expect(breakdown.totalChargedCents).toBe(11_510);
   });
 });

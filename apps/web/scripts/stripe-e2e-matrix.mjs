@@ -1,93 +1,97 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// The twelve-scenario Stripe test-mode matrix (§10 of the payments audit).
-//
-//   STRIPE_SECRET_KEY=sk_test_… npm run test:stripe-matrix --workspace=apps/web
-//
-// `verify-stripe-money-flow.mjs` proves the happy path. This proves the other
-// eleven, and prints the evidence table the audit asks for, per scenario:
-//
-//   Donor Charged / CharitMe Fee / Campaign Allocation / Stripe Fee /
-//   Refund-Adjustment / Difference / PASS-FAIL
-//
-// ⚠️ REFUSES A LIVE KEY, IN CODE. Every scenario below CREATES objects —
-// charges, disputes, refunds, connected accounts. Against `sk_live_` that is
-// real money and a real dispute fee. The gate is the first thing that runs.
-//
-// ⚠️ Nothing here is asserted from our own arithmetic. Every figure is read back
-// from the Stripe object — balance_transaction.fee, transfer.amount,
-// application_fee.amount — because the point is to prove what Stripe DID, not to
-// restate what we sent.
-// ─────────────────────────────────────────────────────────────────────────────
-
+import { spawnSync } from 'node:child_process';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import Stripe from 'stripe';
 
-const key = (process.env.STRIPE_SECRET_KEY ?? '').trim();
-if (!key.startsWith('sk_test_')) {
+const stdinKey = process.argv.includes('--key-stdin') ? readFileSync(0, 'utf8').trim() : '';
+const key = (process.env.STRIPE_SECRET_KEY ?? stdinKey).trim();
+if (!/^(?:sk|rk)_test_/.test(key)) {
   console.error(
-    '\n❌ This script creates charges, refunds and disputes. It requires a TEST key.\n' +
-    `   Got: ${key ? `${key.slice(0, 8)}…` : '(unset)'}\n\n` +
-    '   Stripe Dashboard → toggle "Test mode" → Developers → API keys → Secret key.\n',
+    '\nThis script creates charges, refunds, disputes, connected accounts, and payouts. ' +
+    'It requires a TEST key.\n',
   );
   process.exit(1);
 }
 
 const stripe = new Stripe(key, { apiVersion: '2025-02-24.acacia' });
-
-const DONATION = 10000; // $100.00 principal
-const TIP = 800;        // $8.00 donor tip — CharitMe revenue
-const PROCESSING = 343; // $3.43 processing coverage
+const DONATION = 10_000;
+const TIP = 800;
+const PROCESSING = processorCostCoverage(DONATION + TIP);
 const TOTAL = DONATION + TIP + PROCESSING;
-const SERVICE_FEE = TIP + PROCESSING; // application_fee_amount, exactly as the route builds it
-
-const money = (c) => `$${((c ?? 0) / 100).toFixed(2)}`;
+const APPLICATION_FEE = TIP + PROCESSING;
 const rows = [];
+const evidence = {
+  generatedAt: new Date().toISOString(),
+  stripeAccountId: null,
+  architecture: 'destination_charges',
+  constants: { donationCents: DONATION, tipCents: TIP, processingCents: PROCESSING, totalCents: TOTAL },
+  scenarios: [],
+};
 
-/**
- * ⚠️ THE TRANSFER IS GROSS, AND MY FIRST MODEL OF THIS WAS WRONG.
- *
- * With a destination charge, Stripe transfers the FULL charge amount to the
- * connected account and then debits the application fee back from it. So
- * `transfer.amount` is $111.43, not $100.00, and the organizer NETS
- * `transfer.amount - application_fee` = exactly the donation principal.
- *
- * The first version of this file computed `charged - fee - allocation` and
- * reported −$11.43 on seven correctly-routed scenarios — accusing working code
- * of losing money, using real Stripe objects, which is the most convincing way
- * to be wrong. The identity that actually holds is:
- *
- *     charged  =  allocation + adjustment          (every cent is accounted for)
- *     netToRecipient  =  allocation − fee          (what the organizer keeps)
- */
-function record(name, { charged = 0, fee = 0, allocation = 0, stripeFee = 0, adjustment = 0 }, passed, note) {
-  const difference = charged - allocation - adjustment;
-  const netToRecipient = allocation > 0 ? allocation - fee : 0;
-  rows.push({ name, charged, fee, allocation, stripeFee, adjustment, difference, netToRecipient, passed, note });
-  console.log(`\n${passed ? '✅ PASS' : '❌ FAIL'}  ${name}`);
-  console.log(`   Donor Charged      ${money(charged)}`);
-  console.log(`   CharitMe Fee       ${money(fee)}`);
-  console.log(`   Campaign Allocation${money(allocation).padStart(11)}  (gross transfer)`);
-  console.log(`   → net to recipient ${money(netToRecipient)}`);
-  console.log(`   Stripe Fee         ${money(stripeFee)}`);
-  console.log(`   Refund/Adjustment  ${money(adjustment)}`);
-  console.log(`   Difference         ${money(difference)}`);
+function processorCost(amountCents) {
+  return Math.round(amountCents * 0.029) + 30;
+}
+
+function processorCostCoverage(baseCents) {
+  let coverage = processorCost(baseCents);
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const next = processorCost(baseCents + coverage);
+    if (next === coverage) return coverage;
+    coverage = next;
+  }
+  throw new Error('Processing coverage did not converge');
+}
+
+function money(cents) {
+  return `$${((cents ?? 0) / 100).toFixed(2)}`;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function emptySnapshot() {
+  return {
+    charged: 0,
+    platformNet: 0,
+    campaignNet: 0,
+    stripeFee: 0,
+    adjustment: 0,
+    difference: 0,
+    objectIds: {},
+  };
+}
+
+function combineSnapshots(...snapshots) {
+  const combined = emptySnapshot();
+  for (const snapshot of snapshots) {
+    combined.charged += snapshot.charged;
+    combined.platformNet += snapshot.platformNet;
+    combined.campaignNet += snapshot.campaignNet;
+    combined.stripeFee += snapshot.stripeFee;
+    combined.adjustment += snapshot.adjustment;
+    combined.difference += snapshot.difference;
+  }
+  combined.objectIds = { combinedCharges: snapshots.map((snapshot) => snapshot.objectIds.chargeId) };
+  return combined;
+}
+
+function record(name, snapshot, passed, note, extraEvidence = {}) {
+  const finalPass = Boolean(passed) && snapshot.difference === 0;
+  const row = { name, ...snapshot, passed: finalPass, note };
+  rows.push(row);
+  evidence.scenarios.push({ ...row, ...extraEvidence });
+  console.log(`\n${finalPass ? 'PASS' : 'FAIL'}  ${name}`);
+  console.log(`   Donor Charged       ${money(snapshot.charged)}`);
+  console.log(`   CharitMe Fee        ${money(snapshot.platformNet)}`);
+  console.log(`   Campaign Allocation${money(snapshot.campaignNet).padStart(12)}`);
+  console.log(`   Stripe Fee          ${money(snapshot.stripeFee)}`);
+  console.log(`   Refund/Adjustment   ${money(snapshot.adjustment)}`);
+  console.log(`   Difference          ${money(snapshot.difference)}`);
   if (note) console.log(`   ${note}`);
 }
 
-/**
- * A connected account that can ACTUALLY receive transfers.
- *
- * ⚠️ `capabilities: { transfers: { requested: true } }` on an Express account is
- * not enough, and the failure is late and confusing: the account is created
- * happily, then the first charge dies with "your destination account needs to
- * have at least one of the following capabilities enabled". Requesting a
- * capability leaves it PENDING until onboarding completes, and an Express
- * account onboards through a hosted flow no script can drive.
- *
- * A Custom account with every required field prefilled activates immediately in
- * test mode. The values below are Stripe's documented test fixtures —
- * `address_full_match`, routing `110000000`, ssn `0000` — not invented data.
- */
-async function organizer(label) {
+async function organizer(label, accountNumber = '000123456789') {
   return stripe.accounts.create({
     type: 'custom',
     country: 'US',
@@ -121,311 +125,358 @@ async function organizer(label) {
       country: 'US',
       currency: 'usd',
       routing_number: '110000000',
-      account_number: '000123456789',
+      account_number: accountNumber,
     },
-    metadata: { scenario: label },
+    metadata: { audit: 'stripe-funds-flow', scenario: label },
   });
 }
 
-/** A destination charge, built exactly as /api/donations builds it. */
 async function donate(destination, { paymentMethod = 'pm_card_visa', idempotencyKey } = {}) {
   return stripe.paymentIntents.create(
     {
       amount: TOTAL,
       currency: 'usd',
       payment_method_types: ['card'],
-      application_fee_amount: SERVICE_FEE,
+      application_fee_amount: APPLICATION_FEE,
       transfer_data: { destination },
       confirm: true,
       payment_method: paymentMethod,
+      metadata: {
+        audit: 'stripe-funds-flow',
+        donationAmountCents: String(DONATION),
+        tipCents: String(TIP),
+        processingFeeCents: String(PROCESSING),
+        ownerNetCents: String(DONATION),
+        connectedAccountId: destination,
+      },
     },
     idempotencyKey ? { idempotencyKey } : undefined,
   );
 }
 
-/**
- * The charge, once Stripe has finished attaching things to it.
- *
- * ⚠️ A destination charge's `transfer`, `application_fee` and
- * `balance_transaction` are created ASYNCHRONOUSLY, moments after the intent
- * confirms. Reading immediately returns a succeeded charge with all three null —
- * which this matrix scored as "the platform kept the money" and reported as a
- * routing FAILURE on a correctly routed charge.
- *
- * That is the worst failure mode a verification script can have: it accuses
- * working code, and the accusation looks like exactly the defect it exists to
- * find. So it waits for the objects to appear rather than judging their absence.
- */
 async function chargeOf(intent) {
-  const id = typeof intent.latest_charge === 'string' ? intent.latest_charge : intent.latest_charge?.id;
-  let charge = null;
-  for (let attempt = 0; attempt < 12; attempt++) {
-    charge = await stripe.charges.retrieve(id, {
-      expand: ['balance_transaction', 'transfer', 'application_fee'],
-    });
-    // A refunded charge legitimately has no application fee left to read, so the
-    // wait ends on the transfer — the field that decides where the money went.
-    if (charge.transfer && charge.balance_transaction) return charge;
-    await new Promise((resolve) => setTimeout(resolve, 500));
+  const chargeId = typeof intent.latest_charge === 'string'
+    ? intent.latest_charge
+    : intent.latest_charge?.id;
+  if (!chargeId) throw new Error(`PaymentIntent ${intent.id} has no charge`);
+
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    const charge = await stripe.charges.retrieve(chargeId);
+    if (charge.balance_transaction && charge.application_fee && charge.transfer) return charge;
+    await sleep(500);
   }
-  // Returned anyway: a genuine "no transfer" IS the finding this matrix looks
-  // for, and swallowing it here would hide the real thing.
-  return charge;
+  throw new Error(`Charge ${chargeId} never exposed its fee, transfer, and balance transaction`);
+}
+
+async function expandedSnapshot(charge) {
+  const balanceTransactionId = typeof charge.balance_transaction === 'string'
+    ? charge.balance_transaction
+    : charge.balance_transaction?.id;
+  const applicationFeeId = typeof charge.application_fee === 'string'
+    ? charge.application_fee
+    : charge.application_fee?.id;
+  const transferId = typeof charge.transfer === 'string' ? charge.transfer : charge.transfer?.id;
+
+  const [balanceTransaction, applicationFee, transfer] = await Promise.all([
+    balanceTransactionId ? stripe.balanceTransactions.retrieve(balanceTransactionId) : null,
+    applicationFeeId ? stripe.applicationFees.retrieve(applicationFeeId) : null,
+    transferId ? stripe.transfers.retrieve(transferId) : null,
+  ]);
+
+  const applicationFeeRemaining = applicationFee
+    ? applicationFee.amount - applicationFee.amount_refunded
+    : 0;
+  const transferRemaining = transfer ? transfer.amount - transfer.amount_reversed : 0;
+  const stripeFee = balanceTransaction?.fee ?? 0;
+  const platformNet = applicationFeeRemaining - stripeFee;
+  const campaignNet = transferRemaining - applicationFeeRemaining;
+  const adjustment = charge.amount_refunded ?? 0;
+  const difference = charge.amount - adjustment - campaignNet - platformNet - stripeFee;
+
+  return {
+    charged: charge.amount,
+    platformNet,
+    campaignNet,
+    stripeFee,
+    adjustment,
+    difference,
+    objectIds: {
+      paymentIntentId: typeof charge.payment_intent === 'string' ? charge.payment_intent : charge.payment_intent?.id,
+      chargeId: charge.id,
+      balanceTransactionId,
+      applicationFeeId,
+      transferId,
+      destinationAccountId: typeof transfer?.destination === 'string' ? transfer.destination : transfer?.destination?.id,
+    },
+    applicationFee,
+    transfer,
+    balanceTransaction,
+  };
+}
+
+async function pollPayout(payoutId, stripeAccountId, expectedStatuses, timeoutMs = 90_000) {
+  const started = Date.now();
+  let payout = await stripe.payouts.retrieve(payoutId, {}, { stripeAccount: stripeAccountId });
+  while (!expectedStatuses.includes(payout.status) && Date.now() - started < timeoutMs) {
+    await sleep(2_000);
+    payout = await stripe.payouts.retrieve(payoutId, {}, { stripeAccount: stripeAccountId });
+  }
+  return payout;
+}
+
+async function waitForAvailableBalance(stripeAccountId, amountCents) {
+  const started = Date.now();
+  while (Date.now() - started < 30_000) {
+    const balance = await stripe.balance.retrieve({}, { stripeAccount: stripeAccountId });
+    const available = balance.available.find((entry) => entry.currency === 'usd')?.amount ?? 0;
+    if (available >= amountCents) return available;
+    await sleep(1_000);
+  }
+  throw new Error(`Connected account ${stripeAccountId} never reached an available balance of ${amountCents}`);
+}
+
+function runWebhookReplayTest() {
+  const vitestEntry = fileURLToPath(new URL('./vitest.mjs', import.meta.resolve('vitest/package.json')));
+  const webRoot = fileURLToPath(new URL('..', import.meta.url));
+  return spawnSync(
+    process.execPath,
+    [vitestEntry, 'run', '__tests__/stripe-webhook-behaviour.test.ts', '--reporter=dot'],
+    { cwd: webRoot, encoding: 'utf8', env: process.env },
+  );
 }
 
 async function main() {
-  // ── 1. Successful donation ─────────────────────────────────────────────────
-  const acctA = await organizer('campaign-a');
+  const account = await stripe.accounts.retrieve();
+  evidence.stripeAccountId = account.id;
+  console.log(`Stripe test account: ${account.id}`);
+  console.log(`Fee fixture: ${money(DONATION)} donation + ${money(TIP)} tip + ${money(PROCESSING)} processing = ${money(TOTAL)}`);
+
+  const acctA = await organizer(`campaign-a-${Date.now()}`);
   const intentA = await donate(acctA.id);
   const chargeA = await chargeOf(intentA);
+  const snapshotA = await expandedSnapshot(chargeA);
   record(
     '1. Successful donation',
-    {
-      charged: chargeA.amount,
-      fee: chargeA.application_fee?.amount ?? chargeA.application_fee_amount ?? 0,
-      allocation: chargeA.transfer?.amount ?? 0,
-      stripeFee: chargeA.balance_transaction?.fee ?? 0,
-    },
-    chargeA.status === 'succeeded' &&
-      chargeA.transfer?.destination === acctA.id &&
-      // Gross transfer minus the application fee is what the organizer keeps,
-      // and it must equal the donation principal to the cent.
-      (chargeA.transfer?.amount ?? 0) - (chargeA.application_fee?.amount ?? 0) === DONATION,
-    `charge ${chargeA.id} → transfer ${chargeA.transfer?.id} → ${chargeA.transfer?.destination}`,
+    snapshotA,
+    snapshotA.campaignNet === DONATION
+      && snapshotA.platformNet === TIP
+      && snapshotA.stripeFee === PROCESSING
+      && snapshotA.objectIds.destinationAccountId === acctA.id,
+    `PaymentIntent ${intentA.id}; Charge ${chargeA.id}; Transfer ${snapshotA.objectIds.transferId}; destination ${acctA.id}`,
   );
 
-  // ── 2. Failed payment ──────────────────────────────────────────────────────
   let declined = null;
   try {
     await donate(acctA.id, { paymentMethod: 'pm_card_chargeDeclined' });
-  } catch (err) {
-    declined = err;
+  } catch (error) {
+    declined = error;
   }
   record(
     '2. Failed payment',
-    {},
+    emptySnapshot(),
     Boolean(declined),
-    // Nothing moves, so every figure is zero and the difference is zero. That is
-    // the assertion: a declined card must not transfer or fee anything.
-    declined ? `declined: ${declined.code ?? declined.message}` : 'CARD WAS NOT DECLINED',
+    declined ? `Declined without a transfer: ${declined.code ?? declined.type ?? 'card_error'}` : 'Card was not declined',
   );
 
-  // ── 3. Duplicate checkout ──────────────────────────────────────────────────
-  const dupKey = `matrix-dup-${Date.now()}`;
-  const first = await donate(acctA.id, { idempotencyKey: dupKey });
-  const second = await donate(acctA.id, { idempotencyKey: dupKey });
-  const firstCharge = await chargeOf(first);
+  const duplicateKey = `matrix-duplicate-${Date.now()}`;
+  const duplicateOne = await donate(acctA.id, { idempotencyKey: duplicateKey });
+  const duplicateTwo = await donate(acctA.id, { idempotencyKey: duplicateKey });
+  const duplicateCharge = await chargeOf(duplicateOne);
+  const duplicateSnapshot = await expandedSnapshot(duplicateCharge);
   record(
-    '3. Duplicate checkout (same idempotency key)',
-    {
-      charged: firstCharge.amount,
-      fee: firstCharge.application_fee?.amount ?? 0,
-      allocation: firstCharge.transfer?.amount ?? 0,
-      stripeFee: firstCharge.balance_transaction?.fee ?? 0,
-    },
-    first.id === second.id,
-    first.id === second.id
-      ? `one intent ${first.id}, replayed — donor charged once`
-      : `TWO INTENTS: ${first.id} and ${second.id} — the donor was charged twice`,
+    '3. Duplicate checkout',
+    duplicateSnapshot,
+    duplicateOne.id === duplicateTwo.id,
+    `One PaymentIntent ${duplicateOne.id} returned for both submissions`,
   );
 
-  // ── 4. Campaign A vs Campaign B routing ────────────────────────────────────
-  const acctB = await organizer('campaign-b');
+  const acctB = await organizer(`campaign-b-${Date.now()}`);
   const intentB = await donate(acctB.id);
   const chargeB = await chargeOf(intentB);
+  const snapshotB = await expandedSnapshot(chargeB);
   record(
     '4. Campaign A vs Campaign B routing',
-    {
-      charged: chargeB.amount,
-      fee: chargeB.application_fee?.amount ?? 0,
-      allocation: chargeB.transfer?.amount ?? 0,
-      stripeFee: chargeB.balance_transaction?.fee ?? 0,
-    },
-    chargeB.transfer?.destination === acctB.id && chargeB.transfer?.destination !== acctA.id,
-    `B → ${chargeB.transfer?.destination}, A → ${chargeA.transfer?.destination}`,
+    snapshotB,
+    snapshotA.objectIds.destinationAccountId === acctA.id
+      && snapshotB.objectIds.destinationAccountId === acctB.id
+      && snapshotB.objectIds.destinationAccountId !== acctA.id,
+    `Campaign A -> ${snapshotA.objectIds.destinationAccountId}; Campaign B -> ${snapshotB.objectIds.destinationAccountId}`,
   );
 
-  // ── 5. CharitMe fee allocation ─────────────────────────────────────────────
-  const feeObject = chargeA.application_fee;
   record(
     '5. CharitMe fee allocation',
-    {
-      charged: chargeA.amount,
-      fee: feeObject?.amount ?? 0,
-      allocation: chargeA.transfer?.amount ?? 0,
-      stripeFee: chargeA.balance_transaction?.fee ?? 0,
-    },
-    feeObject?.amount === SERVICE_FEE,
-    `application fee ${feeObject?.id} = ${money(feeObject?.amount)} (tip ${money(TIP)} + processing ${money(PROCESSING)})`,
+    snapshotA,
+    snapshotA.applicationFee?.amount === APPLICATION_FEE
+      && snapshotA.platformNet === TIP
+      && snapshotA.stripeFee === PROCESSING,
+    `Application Fee ${snapshotA.objectIds.applicationFeeId} gross ${money(APPLICATION_FEE)}; CharitMe net ${money(TIP)}`,
   );
 
-  // ── 6. Full refund ─────────────────────────────────────────────────────────
-  const fullRefundIntent = await donate(acctA.id);
-  const fullRefundCharge = await chargeOf(fullRefundIntent);
+  const fullIntent = await donate(acctA.id);
+  const fullCharge = await chargeOf(fullIntent);
   const fullRefund = await stripe.refunds.create({
-    charge: fullRefundCharge.id,
+    charge: fullCharge.id,
     reverse_transfer: true,
     refund_application_fee: true,
+    metadata: { donation_principal_cents: String(DONATION), audit: 'stripe-funds-flow' },
   });
-  const afterFull = await chargeOf(fullRefundIntent);
+  const fullAfter = await chargeOf(fullIntent);
+  const fullSnapshot = await expandedSnapshot(fullAfter);
   record(
     '6. Full refund',
-    {
-      charged: afterFull.amount,
-      fee: 0,
-      allocation: 0,
-      stripeFee: afterFull.balance_transaction?.fee ?? 0,
-      adjustment: afterFull.amount_refunded,
-    },
-    fullRefund.status === 'succeeded' && afterFull.amount_refunded === TOTAL,
-    `refunded ${money(afterFull.amount_refunded)} of ${money(TOTAL)}; transfer reversed`,
+    fullSnapshot,
+    fullRefund.status === 'succeeded'
+      && fullSnapshot.adjustment === TOTAL
+      && fullSnapshot.campaignNet === 0,
+    `Refund ${fullRefund.id}; transfer reversed ${money(fullSnapshot.transfer?.amount_reversed ?? 0)}`,
+    { refundId: fullRefund.id },
   );
 
-  // ── 7. Partial refund ──────────────────────────────────────────────────────
   const partialIntent = await donate(acctA.id);
   const partialCharge = await chargeOf(partialIntent);
-  const HALF = Math.floor(DONATION / 2);
-  await stripe.refunds.create({
+  const principalHalf = Math.floor(DONATION / 2);
+  const partialGross = Math.round((principalHalf * TOTAL) / DONATION);
+  const partialRefund = await stripe.refunds.create({
     charge: partialCharge.id,
-    amount: HALF,
+    amount: partialGross,
     reverse_transfer: true,
     refund_application_fee: true,
+    metadata: { donation_principal_cents: String(principalHalf), audit: 'stripe-funds-flow' },
   });
-  const afterPartial = await chargeOf(partialIntent);
-  // ⚠️ Guarded: a charge with no application fee is a real state (a
-  // non-destination charge), and dereferencing `.id` on null aborted the whole
-  // matrix mid-run rather than failing one scenario.
-  const partialFeeId =
-    typeof partialCharge.application_fee === 'string'
-      ? partialCharge.application_fee
-      : partialCharge.application_fee?.id;
-  const partialFee = partialFeeId
-    ? await stripe.applicationFees.retrieve(partialFeeId)
-    : { amount: 0, amount_refunded: 0 };
+  const partialAfter = await chargeOf(partialIntent);
+  const partialSnapshot = await expandedSnapshot(partialAfter);
   record(
     '7. Partial refund',
-    {
-      charged: afterPartial.amount,
-      // Stripe prorates the application fee refund; what REMAINS is the fee.
-      fee: (partialFee.amount ?? 0) - (partialFee.amount_refunded ?? 0),
-      allocation: (afterPartial.transfer?.amount ?? 0) - HALF,
-      stripeFee: afterPartial.balance_transaction?.fee ?? 0,
-      adjustment: afterPartial.amount_refunded,
-    },
-    afterPartial.amount_refunded === HALF,
-    `refunded ${money(HALF)}; application fee refunded ${money(partialFee.amount_refunded)} (prorated by Stripe)`,
+    partialSnapshot,
+    partialRefund.status === 'succeeded'
+      && partialSnapshot.adjustment === partialGross
+      && Math.abs(partialSnapshot.campaignNet - principalHalf) <= 1,
+    `Refund ${partialRefund.id}; requested principal ${money(principalHalf)}; donor adjustment ${money(partialGross)}`,
+    { refundId: partialRefund.id, requestedPrincipalCents: principalHalf },
   );
 
-  // ── 8. Dispute ─────────────────────────────────────────────────────────────
   const disputeIntent = await donate(acctA.id, { paymentMethod: 'pm_card_createDispute' });
   const disputeCharge = await chargeOf(disputeIntent);
-  const disputes = await stripe.disputes.list({ charge: disputeCharge.id, limit: 1 });
-  const dispute = disputes.data[0];
+  let dispute = null;
+  for (let attempt = 0; attempt < 30 && !dispute; attempt += 1) {
+    const list = await stripe.disputes.list({ charge: disputeCharge.id, limit: 1 });
+    dispute = list.data[0] ?? null;
+    if (!dispute) await sleep(1_000);
+  }
+  const disputeSnapshot = await expandedSnapshot(disputeCharge);
   record(
     '8. Dispute',
-    {
-      charged: disputeCharge.amount,
-      fee: disputeCharge.application_fee?.amount ?? 0,
-      allocation: disputeCharge.transfer?.amount ?? 0,
-      stripeFee: disputeCharge.balance_transaction?.fee ?? 0,
-      // NOT an adjustment: a dispute WITHHOLDS funds pending resolution, it does
-      // not refund the donor. Counting it here double-subtracted the same money.
-      adjustment: 0,
-    },
+    disputeSnapshot,
     Boolean(dispute),
-    dispute
-      ? `dispute ${dispute.id} status=${dispute.status} reason=${dispute.reason}, ${money(dispute.amount)} withheld`
-      : 'NO DISPUTE CREATED',
+    dispute ? `Dispute ${dispute.id}; status ${dispute.status}; amount ${money(dispute.amount)}` : 'No dispute was created',
+    { disputeId: dispute?.id ?? null },
   );
 
-  // ── 9. Restricted owner ────────────────────────────────────────────────────
-  // An account that never requested the transfers capability cannot receive a
-  // destination charge. The donation must be REFUSED, not accepted and stranded.
-  // Deliberately bare: no capabilities requested, no onboarding. This is the
-  // real-world "organizer started signup and stopped" state.
-  const restricted = await stripe.accounts.create({ type: 'express', country: 'US' });
+  const restricted = await stripe.accounts.create({
+    type: 'express',
+    country: 'US',
+    metadata: { audit: 'stripe-funds-flow', scenario: 'restricted-owner' },
+  });
   let restrictedError = null;
   try {
     await donate(restricted.id);
-  } catch (err) {
-    restrictedError = err;
+  } catch (error) {
+    restrictedError = error;
   }
   record(
     '9. Restricted owner',
-    {},
+    emptySnapshot(),
     Boolean(restrictedError),
-    restrictedError
-      ? `refused: ${String(restrictedError.message).slice(0, 90)}`
-      : 'A CHARGE WAS ACCEPTED FOR AN ACCOUNT THAT CANNOT RECEIVE IT',
+    restrictedError ? `Charge refused for restricted account ${restricted.id}` : 'Charge unexpectedly succeeded',
+    { restrictedAccountId: restricted.id },
   );
 
-  // ── 10. Failed transfer ────────────────────────────────────────────────────
-  let transferError = null;
-  try {
-    await stripe.transfers.create({ amount: DONATION, currency: 'usd', destination: restricted.id });
-  } catch (err) {
-    transferError = err;
-  }
+  const failedPayoutAccount = await organizer(`failed-payout-${Date.now()}`, '000111111116');
+  const failedPayoutIntent = await donate(failedPayoutAccount.id, { paymentMethod: 'pm_card_bypassPending' });
+  const failedPayoutCharge = await chargeOf(failedPayoutIntent);
+  const failedPayoutSnapshot = await expandedSnapshot(failedPayoutCharge);
+  await waitForAvailableBalance(failedPayoutAccount.id, DONATION);
+  const createdFailedPayout = await stripe.payouts.create(
+    { amount: DONATION, currency: 'usd', method: 'standard', metadata: { audit: 'stripe-funds-flow' } },
+    { stripeAccount: failedPayoutAccount.id },
+  );
+  const failedPayout = await pollPayout(createdFailedPayout.id, failedPayoutAccount.id, ['failed', 'canceled']);
   record(
-    '10. Failed transfer',
-    {},
-    Boolean(transferError),
-    transferError ? `refused: ${String(transferError.message).slice(0, 90)}` : 'TRANSFER SUCCEEDED UNEXPECTEDLY',
+    '10. Failed transfer/payout',
+    failedPayoutSnapshot,
+    failedPayout.status === 'failed' || failedPayout.status === 'canceled',
+    `Payout ${failedPayout.id}; status ${failedPayout.status}; failure ${failedPayout.failure_code ?? 'none'}`,
+    { payoutId: failedPayout.id, connectedAccountId: failedPayoutAccount.id, payoutStatus: failedPayout.status },
   );
 
-  // ── 11. Simultaneous donations ─────────────────────────────────────────────
-  // Distinct idempotency keys, issued together: both must succeed and each must
-  // land on its own campaign. This is the concurrency case where a shared key or
-  // a cached destination would cross the two.
   const [simA, simB] = await Promise.all([
     donate(acctA.id, { idempotencyKey: `sim-a-${Date.now()}` }),
     donate(acctB.id, { idempotencyKey: `sim-b-${Date.now()}` }),
   ]);
   const [simChargeA, simChargeB] = await Promise.all([chargeOf(simA), chargeOf(simB)]);
+  const [simSnapshotA, simSnapshotB] = await Promise.all([
+    expandedSnapshot(simChargeA),
+    expandedSnapshot(simChargeB),
+  ]);
+  const simultaneousSnapshot = combineSnapshots(simSnapshotA, simSnapshotB);
   record(
     '11. Simultaneous donations',
-    {
-      charged: simChargeA.amount + simChargeB.amount,
-      fee: (simChargeA.application_fee?.amount ?? 0) + (simChargeB.application_fee?.amount ?? 0),
-      allocation: (simChargeA.transfer?.amount ?? 0) + (simChargeB.transfer?.amount ?? 0),
-      stripeFee: (simChargeA.balance_transaction?.fee ?? 0) + (simChargeB.balance_transaction?.fee ?? 0),
-    },
-    simChargeA.transfer?.destination === acctA.id && simChargeB.transfer?.destination === acctB.id,
-    `A → ${simChargeA.transfer?.destination}, B → ${simChargeB.transfer?.destination}`,
+    simultaneousSnapshot,
+    simSnapshotA.objectIds.destinationAccountId === acctA.id
+      && simSnapshotB.objectIds.destinationAccountId === acctB.id,
+    `A ${simA.id} -> ${acctA.id}; B ${simB.id} -> ${acctB.id}`,
   );
 
-  // ── 12. Duplicate webhook ──────────────────────────────────────────────────
-  // Deliberately NOT simulated by replaying a Stripe event: the idempotency that
-  // matters is OURS, in `record_donation` keyed on p_stripe_event_id, and it is
-  // covered by the webhook unit suites against the database. Asserting it here
-  // would require the app and Supabase running, which is a different harness.
+  const webhookReplay = runWebhookReplayTest();
   record(
     '12. Duplicate webhook',
-    {},
-    true,
-    'covered by the webhook suites (record_donation is idempotent on p_stripe_event_id) — not re-proved here',
+    emptySnapshot(),
+    webhookReplay.status === 0,
+    webhookReplay.status === 0
+      ? 'Executable webhook replay test passed in this run; the duplicate event produced one donation write'
+      : `Webhook replay test failed: ${(webhookReplay.stderr || webhookReplay.stdout || '').slice(0, 200)}`,
   );
 
-  // ── Summary ────────────────────────────────────────────────────────────────
-  const failures = rows.filter((r) => !r.passed);
-  const unbalanced = rows.filter((r) => r.difference !== 0);
+  const payoutAccount = await organizer(`paid-payout-${Date.now()}`);
+  const payoutIntent = await donate(payoutAccount.id, { paymentMethod: 'pm_card_bypassPending' });
+  const payoutCharge = await chargeOf(payoutIntent);
+  const payoutSnapshot = await expandedSnapshot(payoutCharge);
+  await waitForAvailableBalance(payoutAccount.id, DONATION);
+  const createdPayout = await stripe.payouts.create(
+    { amount: DONATION, currency: 'usd', method: 'standard', metadata: { audit: 'stripe-funds-flow' } },
+    { stripeAccount: payoutAccount.id },
+  );
+  const paidPayout = await pollPayout(createdPayout.id, payoutAccount.id, ['paid', 'failed', 'canceled']);
+  evidence.bankPayoutProof = {
+    connectedAccountId: payoutAccount.id,
+    paymentIntentId: payoutIntent.id,
+    chargeId: payoutCharge.id,
+    transferId: payoutSnapshot.objectIds.transferId,
+    payoutId: paidPayout.id,
+    status: paidPayout.status,
+    amountCents: paidPayout.amount,
+  };
 
-  console.log('\n───────────────────────────────────────────────────────────────');
+  const failures = rows.filter((row) => !row.passed);
+  const unbalanced = rows.filter((row) => row.difference !== 0);
+  evidence.summary = {
+    passed: rows.length - failures.length,
+    total: rows.length,
+    allDifferencesZero: unbalanced.length === 0,
+    bankPayoutPaid: paidPayout.status === 'paid',
+  };
+  const evidencePath = fileURLToPath(new URL('../../../docs/payments/stripe-test-evidence.latest.json', import.meta.url));
+  writeFileSync(evidencePath, `${JSON.stringify(evidence, null, 2)}\n`, 'utf8');
+
+  console.log('\n------------------------------------------------------------');
   console.log(`${rows.length - failures.length}/${rows.length} scenarios PASS`);
-  if (unbalanced.length > 0) {
-    console.log(`\n⚠ ${unbalanced.length} scenario(s) do not reconcile to $0.00:`);
-    for (const r of unbalanced) console.log(`   ${r.name}: ${money(r.difference)}`);
-  } else {
-    console.log('Every scenario reconciles to $0.00.');
-  }
-  if (failures.length > 0) {
-    console.log('\nFailures:');
-    for (const r of failures) console.log(`   ${r.name} — ${r.note}`);
-    process.exit(1);
-  }
+  console.log(unbalanced.length === 0 ? 'Every scenario reconciles to $0.00.' : `${unbalanced.length} scenario(s) do not reconcile.`);
+  console.log(`Bank payout proof: ${paidPayout.id} status=${paidPayout.status} amount=${money(paidPayout.amount)}`);
+  console.log(`Evidence: ${evidencePath}`);
+  if (failures.length > 0 || unbalanced.length > 0 || paidPayout.status !== 'paid') process.exit(1);
 }
 
-main().catch((err) => {
-  console.error(`\n❌ matrix aborted: ${err instanceof Error ? err.message : String(err)}`);
+main().catch((error) => {
+  console.error(`\nMatrix aborted: ${error instanceof Error ? error.message : String(error)}`);
   process.exit(1);
 });

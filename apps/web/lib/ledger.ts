@@ -131,18 +131,19 @@ export interface ReconciliationException {
  */
 export async function openReconciliationException(x: ReconciliationException): Promise<void> {
   if (x.stripeRef) {
-    const { data: existing } = await supabaseAdmin
+    const { data: existing, error: readError } = await supabaseAdmin
       .from('reconciliation_exceptions')
       .select('id')
       .eq('status', 'open')
       .eq('kind', x.kind)
       .eq('stripe_ref', x.stripeRef)
       .limit(1);
+    if (readError) throw new Error('Reconciliation exceptions could not be read.');
     if (existing && existing.length) return; // already flagged, don't duplicate
   }
   const difference =
     x.expectedCents != null && x.actualCents != null ? x.expectedCents - x.actualCents : null;
-  await supabaseAdmin.from('reconciliation_exceptions').insert({
+  const { error: insertError } = await supabaseAdmin.from('reconciliation_exceptions').insert({
     kind: x.kind,
     description: x.description,
     campaign_id: x.campaignId ?? null,
@@ -152,4 +153,5 @@ export async function openReconciliationException(x: ReconciliationException): P
     actual_cents: x.actualCents ?? null,
     difference_cents: difference,
   });
+  if (insertError) throw new Error('Reconciliation exception could not be recorded.');
 }

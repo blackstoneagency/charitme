@@ -2,84 +2,65 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// §7 of the payments audit: partial refunds must not, in aggregate, refund more
-// than was given.
-//
-// THE BUG THIS PINS. A partial refund leaves the donation `completed` — the
-// status enum has no `partially_refunded` — so the "already refunded?" guard at
-// the top of the route does not stop a second one. Each call was then clamped to
-// the FULL principal, independently:
-//
-//   $100 donation, charge $111.43 ($100 + $8 tip + $3.43 processing)
-//   refund $55  -> allowed, status stays `completed`
-//   refund $55  -> allowed again; $110 refunded on a $100 donation
-//
-// $10 of that is CharitMe's tip and processing revenue, handed back without
-// anyone asking for it, and the donation still reads `completed`.
-//
-// ⚠️ Stripe is only a backstop, and a loose one: it rejects once cumulative
-// refunds exceed the CHARGE, and the charge is principal + tip + processing. The
-// headroom above the principal is exactly where this happens quietly.
-// ─────────────────────────────────────────────────────────────────────────────
-
 const route = readFileSync(
   path.join(__dirname, '..', 'app', 'api', 'admin', 'donations', '[id]', 'refund', 'route.ts'),
   'utf8',
 );
+const migration = readFileSync(
+  path.resolve(__dirname, '../../../supabase/migrations/20260906010000_stripe_money_flow_integrity.sql'),
+  'utf8',
+);
 
-describe('the cap is cumulative', () => {
-  it('reads the prior refunds for this donation', () => {
-    expect(route).toMatch(/from\('refunds'\)[\s\S]{0,120}\.eq\('donation_id', id\)/);
+describe('admin refunds reserve principal atomically', () => {
+  it('uses the locked Supabase reservation instead of a racy read and insert', () => {
+    expect(route).toContain("'reserve_admin_donation_refund'");
+    expect(route).toContain('p_requested_cents: input.amount_cents');
+    expect(migration).toMatch(/where id = p_donation_id\s+for update/i);
+    expect(migration).toMatch(/sum\(amount_cents\)[\s\S]+status not in \('declined', 'failed', 'canceled'\)/i);
   });
 
-  it('sums them in integer cents', () => {
-    expect(route).toMatch(/reduce\(\(sum, r\) => sum \+ Number\(r\.amount_cents \?\? 0\), 0\)/);
+  it('refuses missing, invalid, and fully refunded donations', () => {
+    expect(route).toContain("refundError('DONATION_NOT_FOUND', 404");
+    expect(route).toContain("refundError('ALREADY_REFUNDED', 409");
+    expect(route).toContain("refundError('INVALID_REFUND_REQUEST', 400");
   });
 
-  it('clamps this refund to what REMAINS, not to the full principal', () => {
-    // The whole defect in one line: the old clamp used don.amount_cents.
-    expect(route).toContain('const remainingCents = don.amount_cents - alreadyRefunded');
-    expect(route).toMatch(/Math\.min\(Math\.max\(1, Math\.round\(rawAmount\)\), remainingCents\)/);
-    expect(route, 'the per-call clamp against the full principal must be gone').not.toMatch(
-      /Math\.min\(Math\.max\(1, Math\.round\(rawAmount\)\), don\.amount_cents\)/,
-    );
-  });
-
-  it('refuses outright when nothing remains', () => {
-    expect(route).toContain("code: 'ALREADY_REFUNDED'");
-    expect(route).toMatch(/if \(remainingCents <= 0\)/);
-  });
-
-  it('counts prior refunds when deciding this is the final one', () => {
-    // Otherwise a donation refunded in two halves never flips to `refunded`, and
-    // the ledger disagrees with Stripe about whether it is settled.
-    expect(route).toContain('const isFullRefund = alreadyRefunded + refundCents >= don.amount_cents');
+  it('marks failed reservations so a safe retry can reserve the amount again', () => {
+    expect(route).toContain(".update({ status: 'failed', notes: reason })");
+    expect(route).toContain("markReservationFailed(reservation.refund_id, 'Stripe rejected the refund')");
   });
 });
 
-describe('an unreadable refund history refuses the refund', () => {
-  it('fails closed with 503 rather than assuming zero', () => {
-    // ⚠️ Same rule as the ownership read and the tombstone check: an unknown
-    // history is not an empty history, and guessing here refunds money that was
-    // already returned.
-    expect(route).toContain("code: 'REFUND_HISTORY_UNAVAILABLE'");
-    expect(route).toMatch(/if \(priorError\)/);
-    expect(route).toMatch(/status: 503/);
+describe('the Stripe refund follows the actual charge architecture', () => {
+  it('uses deterministic Stripe idempotency', () => {
+    expect(route).toContain('idempotencyKey: `admin-donation-refund-${reservation.refund_id}`');
+  });
+
+  it('reverses only objects proven to exist on the charge', () => {
+    expect(route).toContain("expand: ['latest_charge']");
+    expect(route).toContain('...(transferId ? { reverse_transfer: true } : {})');
+    expect(route).toContain('...(applicationFeeId ? { refund_application_fee: true } : {})');
+    expect(route).not.toMatch(/transfer\|application fee\|no such/i);
+  });
+
+  it('converts requested campaign principal into the proportional donor refund', () => {
+    expect(route).toContain('(reservation.refund_cents * charge.amount) / reservation.donation_cents');
+    expect(route).toContain('reservation.is_full_refund');
+    expect(route).toContain('chargeRemainingCents');
   });
 });
 
-describe('the Stripe call still reverses correctly', () => {
-  it('reverses the transfer and the application fee', () => {
-    // Destination charges: the principal already sits in the recipient's
-    // account. A plain refund would come out of the PLATFORM balance while the
-    // recipient keeps the money. Stripe prorates both flags for a partial
-    // refund, so they stay correct under the new cumulative cap.
-    expect(route).toContain('reverse_transfer: true');
-    expect(route).toContain('refund_application_fee: true');
+describe('refund accounting is retry-safe', () => {
+  it('stores both principal and gross donor refund amounts', () => {
+    expect(migration).toContain('gross_amount_cents bigint');
+    expect(route).toContain('refund_reservation_id: reservation.refund_id');
+    expect(route).toContain('principal_amount_cents: reservation.refund_cents');
+    expect(route).toContain('gross_amount_cents: stripeRefundCents');
   });
 
-  it('falls back to a plain refund only for non-destination charges', () => {
-    expect(route).toMatch(/\/transfer\|application fee\|no such\/i\.test\(msg\)/);
+  it('updates campaign totals exactly once through a locked database function', () => {
+    expect(migration).toContain('create or replace function public.apply_campaign_refund_stats');
+    expect(migration).toContain('refund_row.stats_reversed_at is not null');
+    expect(migration).toContain('raised_amount = greatest(0, raised_amount - refund_row.amount_cents)');
   });
 });
