@@ -8,7 +8,7 @@ import path from 'node:path';
 // fees, amounts, ledger, transfer or payout records.
 //
 // Measured against production 2026-08-11 with the public anon key:
-//   10/10 financial tables         → 0 rows
+//   12/12 financial tables         → 0 rows
 //   connected_accounts UPDATE      → denied (200, 0 rows affected)
 //   donations INSERT               → denied (42501 insufficient_privilege)
 //
@@ -39,6 +39,8 @@ describe('the audit probes with a browser credential', () => {
       'donations',
       'ledger_entries',
       'campaign_owner_transfers',
+      'stripe_connected_payouts',
+      'stripe_connected_payout_allocations',
     ]) {
       expect(script, `${table} not probed`).toContain(`'${table}'`);
     }

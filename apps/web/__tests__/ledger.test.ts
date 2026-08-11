@@ -106,6 +106,30 @@ describe('buildRefundEntries', () => {
     expect(accountBalance(lines, 'refunds')).toBe(10000);
   });
 
+  it('records returned processing coverage as a platform adjustment', () => {
+    const lines = buildRefundEntries({
+      refundDonationCents: 10000,
+      refundPlatformFeeCents: 800,
+      refundProcessingCoverageCents: 353,
+    });
+    expect(accountBalance(lines, 'adjustments')).toBe(-353);
+    expect(accountBalance(lines, 'refunds')).toBe(11153);
+    expect(isBalanced(lines)).toBe(true);
+  });
+
+  it('separates recipient loss when campaign proceeds originally covered processing', () => {
+    const lines = buildRefundEntries({
+      refundDonationCents: 4828,
+      refundPlatformFeeCents: 400,
+      refundProcessingCoverageCents: 172,
+    });
+    expect(accountBalance(lines, 'recipient_payable')).toBe(-4828);
+    expect(accountBalance(lines, 'platform_revenue')).toBe(-400);
+    expect(accountBalance(lines, 'adjustments')).toBe(-172);
+    expect(accountBalance(lines, 'refunds')).toBe(5400);
+    expect(isBalanced(lines)).toBe(true);
+  });
+
   it('rejects negative refund amounts', () => {
     expect(() => buildRefundEntries({ refundDonationCents: -100 })).toThrow(/non-negative/i);
   });
@@ -131,6 +155,17 @@ describe('buildDisputeLossEntries', () => {
 
   it('rejects negative dispute amounts', () => {
     expect(() => buildDisputeLossEntries({ refundDonationCents: -1 })).toThrow(/non-negative/i);
+  });
+
+  it('balances a lost dispute including returned processing coverage', () => {
+    const lines = buildDisputeLossEntries({
+      refundDonationCents: 10000,
+      refundPlatformFeeCents: 800,
+      refundProcessingCoverageCents: 353,
+    });
+    expect(accountBalance(lines, 'adjustments')).toBe(-353);
+    expect(accountBalance(lines, 'disputes')).toBe(11153);
+    expect(isBalanced(lines)).toBe(true);
   });
 });
 

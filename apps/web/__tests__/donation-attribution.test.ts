@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { reconcileMoneyFlow, summarizePaymentRows, type AdminPaymentRow } from '../lib/payment-flow-core';
+import { methodProcessingFee, methodProcessorCost, type PaymentMethod } from '@shared/fees';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // G25-02: Donor donates — full checkout flow logic
@@ -22,27 +23,19 @@ describe('donation checkout flow', () => {
     organizerReceives: number;
   }
 
-  const PROCESSING_RATES: Record<string, { pct: number; fixed: number; cap?: number }> = {
-    stripe: { pct: 2.9, fixed: 30 },
-    paypal: { pct: 3.49, fixed: 49 },
-    venmo:  { pct: 1.9, fixed: 10 },
-    bank:   { pct: 0.8, fixed: 0, cap: 500 },
-  };
-
   function calcBreakdown(input: CheckoutInput): CheckoutBreakdown {
     const tip = Math.round(input.amountCents * (input.tipPercent / 100));
     const subTotal = input.amountCents + tip;
+    const method = input.paymentMethod as PaymentMethod;
+    const processingFee = input.coverProcessingFee
+      ? methodProcessingFee(subTotal, method)
+      : methodProcessorCost(subTotal, method);
 
-    let processingFee = 0;
-    if (input.coverProcessingFee) {
-      const rate = PROCESSING_RATES[input.paymentMethod];
-      processingFee = Math.round(subTotal * (rate.pct / 100)) + rate.fixed;
-      if (rate.cap !== undefined) processingFee = Math.min(processingFee, rate.cap);
-    }
-
-    const total = subTotal + processingFee;
+    const total = subTotal + (input.coverProcessingFee ? processingFee : 0);
     const applicationFeeAmount = input.hasConnectedAccount ? tip + processingFee : 0;
-    const organizerReceives = input.hasConnectedAccount ? input.amountCents : 0;
+    const organizerReceives = input.hasConnectedAccount
+      ? Math.max(0, input.amountCents - (input.coverProcessingFee ? 0 : processingFee))
+      : 0;
 
     return { donation: input.amountCents, tip, processingFee, total, applicationFeeAmount, organizerReceives };
   }
@@ -61,15 +54,13 @@ describe('donation checkout flow', () => {
 
   it('adds Stripe processing fee when donor covers it', () => {
     const b = calcBreakdown({ amountCents: 10000, tipPercent: 8, coverProcessingFee: true, paymentMethod: 'stripe', hasConnectedAccount: true });
-    // 10800 * 2.9% + $0.30 = 313.2 + 30 = 343
-    expect(b.processingFee).toBe(343);
-    expect(b.total).toBe(10800 + 343);
+    expect(b.processingFee).toBe(353);
+    expect(b.total).toBe(11153);
   });
 
   it('adds PayPal processing fee at higher rate', () => {
     const b = calcBreakdown({ amountCents: 10000, tipPercent: 0, coverProcessingFee: true, paymentMethod: 'paypal', hasConnectedAccount: true });
-    // 10000 * 3.49% + $0.49 = 349 + 49 = 398
-    expect(b.processingFee).toBe(398);
+    expect(b.processingFee).toBe(412);
   });
 
   it('caps bank transfer fee at $5.00', () => {

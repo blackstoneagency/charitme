@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
+vi.mock('server-only', () => ({}));
+
 const CAMPAIGN_ID = '22222222-2222-4222-8222-222222222222';
 const USER_ID = '11111111-1111-4111-8111-111111111111';
 
@@ -143,7 +145,7 @@ describe('portfolio donation checkout', () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({
       url: 'https://checkout.stripe.test/portfolio',
-      breakdown: { donationCents: 5_000, tipCents: 750, processingFeeCents: 197 },
+      breakdown: { donationCents: 5_000, tipCents: 750, processingFeeCents: 203 },
     });
     expect(checkoutPaymentMethodTypes).toHaveBeenCalledWith('stripe', 'payment');
     expect(createCheckoutSession).toHaveBeenCalledWith(
@@ -151,7 +153,7 @@ describe('portfolio donation checkout', () => {
         line_items: expect.arrayContaining([
           expect.objectContaining({ price_data: expect.objectContaining({ unit_amount: 5_000 }) }),
           expect.objectContaining({ price_data: expect.objectContaining({ unit_amount: 750 }) }),
-          expect.objectContaining({ price_data: expect.objectContaining({ unit_amount: 197 }) }),
+          expect.objectContaining({ price_data: expect.objectContaining({ unit_amount: 203 }) }),
         ]),
       }),
       expect.stringContaining('portfolio_guest_5000_'),

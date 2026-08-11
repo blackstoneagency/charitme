@@ -1,5 +1,31 @@
 # CharitMe — Execution Tracker
 
+## Stripe Connect funds-flow integrity release - active (Codex, 2026-08-11)
+
+- [x] Prove the implementation uses Stripe Connect destination charges with
+  server-owned `application_fee_amount` and `transfer_data.destination`.
+- [x] Correct processor-fee gross-up and campaign net allocation in integer cents.
+- [x] Replace synthetic transfer/payout success with authoritative Stripe object
+  reconciliation and connected payout allocations.
+- [x] Make full/partial refunds, lost disputes, transfer reversals, refund caps,
+  ledger entries, and reconciliation exceptions retry-safe and idempotent.
+- [x] Add RLS-protected connected payout tables plus locked service-role refund
+  reservation and campaign-stat RPCs with a matching rollback migration.
+- [x] Pass the real Stripe sandbox matrix: 12/12 scenarios, every difference
+  $0.00, one failed payout proved, and a separate $100.00 bank payout paid.
+- [x] Pass TypeScript, ESLint, the full 387-file / 4,406-test suite, the
+  production build, credential scan, and live 12-table financial RLS audit.
+- [x] Verify the manually applied production SQL created every required column,
+  table, RPC, unique index, RLS setting, and policy. Migration inventory is
+  138/140 ledgered; upstream tombstone repair `20260906000000` and Stripe
+  integrity migration `20260906010000` remain for the release workflow.
+- [ ] Pass zero-state migration replay and rollback rehearsal in GitHub's Docker
+  release jobs; Docker is not installed on this Windows host.
+- [ ] Open and merge the PR through `master`, verify repository CI, then publish
+  a version tag through the release workflow.
+- [ ] Verify isolated staging migration/smoke evidence, production migration,
+  deployment SHA, and `www.charitme.com` before declaring production complete.
+
 ## Immediate completion release candidate — local gates complete, release pending (Codex, 2026-08-10)
 
 This is the current execution handoff. The implementation is complete locally;
@@ -33,7 +59,7 @@ production-complete until the tagged workflow records them.
 - [ ] Open the PR, pass repository CI, and merge through `master`.
 - [ ] Run the expanded platform matrix against the release workflow's isolated
   staging Supabase instance. Production currently has 87 ledger entries against 137
-  local migration files, so the file-derived upper-bound pending count remains 46.
+  local migration files, so the file-derived upper-bound pending count is now 52.
 - [ ] Run Stripe test-mode feature purchase, event checkout, webhook replay,
   charge-to-transfer-to-payout reconciliation, refund, and dispute/test-clock flows
   with staging test credentials. Production credentials are never used for this gate.
@@ -3914,11 +3940,12 @@ skipped workflow leaves its check pending forever and would deadlock a docs-only
 PR. Nothing is required today, which is why this is safe now — recorded so the
 next person does not find out the hard way.
 
-## 🛑 SUPABASE STAGING — historical audit, and the file-derived upper-bound pending count is **52** (Claude, 2026-08-03)
+## 🛑 SUPABASE STAGING — historical audit, and the file-derived upper-bound pending count is **53** (Claude, 2026-08-03)
 
-**Live ledger rechecked 2026-08-11:** 139 local migration files against 87
-production ledger entries. The 52-file upper-bound gap below is therefore a current
-measurement, not only historical arithmetic.
+**Live ledger rechecked 2026-08-11:** 140 local migration files against 138
+production ledger entries, so the authoritative current pending count is 2. The
+53-file figure below is retained only as the guard's historical upper-bound
+arithmetic against the 87-entry snapshot.
 
 **+1 on 2026-08-11: `20260905000000_web_push_subscriptions.sql`** (→ 49). Lands
 `push_subscriptions` for the web-push work in `mobileGo.md` item 5. Unapplied is
@@ -3944,6 +3971,11 @@ production auth rows stay unreadable** and `listUsers` 500s, which blanks the
 email column on `/admin/donations` and `/admin/payouts`. Nothing is lost by
 waiting — the repair is `NULL → ''`, scoped to `IS NULL`, and cannot touch a
 working account.
+
+**+1 on 2026-08-11: `20260906010000_stripe_money_flow_integrity.sql`** (→ 53).
+The Stripe objects are already live because the SQL was applied manually, but the
+migration is not recorded in Supabase's ledger. The tagged release must replay its
+idempotent statements to record it and prove the same schema from zero.
 
 ⚠️ The newest of them, `20260904030000_deleted_user_tombstone`, is a
 **precondition for self-service account deletion** — until it is applied,
@@ -4065,20 +4097,16 @@ that day**:
 dump confirmed the objects were absent, and a restored production clone applied
 all 18 in order and proved rollback.
 
-Thirty-four migrations have been added since. So the count is arithmetic:
+Thirty-five migrations have been added since. So the count is arithmetic:
 
 ```
-139 local − 87 applied           = 52
-18 audited pending + 34 added    = 52   ✓ reconciles
-138 local − 87 applied           = 51
-18 audited pending + 33 added    = 51   ✓ reconciles
-137 local − 87 applied           = 50
-18 audited pending + 32 added    = 50   ✓ reconciles
+140 local − 87 applied           = 53
+18 audited pending + 35 added    = 53   ✓ reconciles
 ```
 
 All 18 audited-pending versions are still on disk under their original names.
 
-### ⚠️ Eight of the 46 are SECURITY hardening, not features
+### ⚠️ Eight of the 53 are SECURITY hardening, not features
 
 This is the part that changes the priority. Written, reviewed, merged — and
 **not live**:
@@ -4114,7 +4142,7 @@ miscounting, it was adding migrations and leaving the old number in place.
 
 Owner action unchanged: upgrade Supabase, free a project slot, or provision
 staging elsewhere. Do not bypass the gate — the ledger's last line says so, and
-46 unverified migrations including eight privilege changes is exactly the case the
+53 historically unverified migrations including eight privilege changes is exactly the case the
 gate exists for.
 
 ## ⚪ `/certificate` — NOT a deferral; building it would require inventing data

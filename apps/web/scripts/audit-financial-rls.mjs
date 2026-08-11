@@ -50,10 +50,16 @@ if (!url || !anonKey) {
   process.exit(1);
 }
 
+class DisabledRealtimeTransport {}
+const clientOptions = {
+  auth: { persistSession: false },
+  realtime: { transport: DisabledRealtimeTransport },
+};
+
 /** Exactly what a browser holds. */
-const anon = createClient(url, anonKey, { auth: { persistSession: false } });
+const anon = createClient(url, anonKey, clientOptions);
 /** Only to find a real row id to aim the probe at, and to confirm it is unchanged. */
-const admin = serviceKey ? createClient(url, serviceKey, { auth: { persistSession: false } }) : null;
+const admin = serviceKey ? createClient(url, serviceKey, clientOptions) : null;
 
 /** Tables that hold money, identity of payees, or the audit trail of both. */
 const FINANCIAL_TABLES = [
@@ -65,6 +71,8 @@ const FINANCIAL_TABLES = [
   'campaign_processor_fees',
   'campaign_payment_refunds',
   'campaign_owner_transfers',
+  'stripe_connected_payouts',
+  'stripe_connected_payout_allocations',
   'subscriptions',
   'matching_claims',
 ];

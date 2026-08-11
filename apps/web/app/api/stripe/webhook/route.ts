@@ -159,10 +159,10 @@ async function handleEvent(event: Stripe.Event) {
     // ── Charges ───────────────────────────────────────────────────────────────
     case 'charge.succeeded':
     case 'charge.updated':
-      await handleChargeObserved(event.data.object as Stripe.Charge);
+      await handleChargeObserved(event.data.object as Stripe.Charge, event.type);
       break;
     case 'charge.refunded':
-      await handleChargeRefunded(event.data.object as Stripe.Charge);
+      await handleChargeRefunded(event.data.object as Stripe.Charge, event.id);
       break;
 
     // ── Disputes / chargebacks ────────────────────────────────────────────────
@@ -197,10 +197,10 @@ async function handleEvent(event: Stripe.Event) {
     // ── Payouts (on connected accounts) ──────────────────────────────────────
     case 'payout.created':
     case 'payout.paid':
-      await handlePayoutPaid(event.data.object as Stripe.Payout);
+      await handlePayoutPaid(event.data.object as Stripe.Payout, event.account ?? null);
       break;
     case 'payout.failed':
-      await handlePayoutFailed(event.data.object as Stripe.Payout);
+      await handlePayoutFailed(event.data.object as Stripe.Payout, event.account ?? null);
       break;
     default:
       // Stripe delivers whatever the Dashboard subscribes to, which changes
@@ -445,7 +445,9 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
     const amountCents        = Number(meta.donationAmountCents ?? session.amount_total ?? 0);
     const tipCents           = Number(meta.tipCents ?? 0);
     const processingFeeCents = Number(meta.processingFeeCents ?? 0);
+    const processingCoverageCents = Number(meta.processingCoverageCents ?? processingFeeCents);
     const platformFeeCents   = Number(meta.platformFeeCents ?? tipCents);
+    const ownerNetCents      = Number(meta.ownerNetCents ?? amountCents);
     const paymentMethod      = meta.paymentMethod ?? 'stripe';
     const hasConnected       = meta.hasConnectedAccount === '1';
     const connectedAccountId = meta.connectedAccountId ?? '';
@@ -493,7 +495,7 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
         // the nightly reconciliation would false-flag it as missing_ledger).
         const donationId = await findDonationId({ paymentIntentId, checkoutSessionId: session.id });
         await postDonation(
-          { donationCents: amountCents, platformFeeCents: platformFeeCents, processorFeeCents: processingFeeCents },
+          { donationCents: ownerNetCents, platformFeeCents: platformFeeCents, processorFeeCents: processingFeeCents },
           {
             idempotencyKey: eventId,
             currency,
@@ -619,35 +621,33 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
       tipAmount: tipCents,
       platformFeeAmount: platformFeeCents,
       processorFeeAmount: 0,
-      ownerNetAmount: amountCents,
+      ownerNetAmount: ownerNetCents,
       currency,
       paymentStatus: 'succeeded',
-      transferStatus: hasConnected ? 'created' : 'pending',
-      payoutStatus: hasConnected ? 'requested' : 'not_applicable',
+      transferStatus: 'pending',
+      payoutStatus: hasConnected ? 'pending' : 'not_applicable',
       paidAt: new Date().toISOString(),
       webhookEventId: eventId,
       metadata: {
         payment_method: paymentMethod,
         connected_account_id: connectedAccountId || null,
-        donor_covered_processing_fee_cents: processingFeeCents,
+        donor_covered_processing_fee_cents: processingCoverageCents,
+        processor_fee_estimate_cents: processingFeeCents,
         stripe_amount_total: session.amount_total ?? null,
       },
     });
 
-    if (!alreadyDone && amountCents > 0 && organizerUserId) {
-      const payoutStatus = hasConnected ? 'requested' : 'requested';
+    if (!alreadyDone && ownerNetCents > 0 && organizerUserId) {
       const feeTotal = tipCents + processingFeeCents;
 
       const { data: payoutRow } = await supabaseAdmin.from('payouts').insert({
         campaign_id:     meta.campaignId,
         user_id:         payoutRecipientId,
-        amount_cents:    amountCents,
+        amount_cents:    ownerNetCents,
         fee_cents:       feeTotal,
         payout_speed:    'standard',
-        status:          payoutStatus,
-        stripe_payout_id: connectedAccountId
-          ? `auto_${paymentIntentId ?? session.id}`
-          : null,
+        status:          'requested',
+        stripe_payout_id: null,
         note: hasConnected
           ? `Stripe Connect transfer requested (${paymentMethod}). Final bank payout remains pending processor confirmation. CharitMe tip: ${formatCents(platformFeeCents, currency)}, donor-covered processing: ${formatCents(processingFeeCents, currency)}.`
           : `Pending manual payout — recipient has no connected Stripe account. Donation via ${paymentMethod}.`,
@@ -655,21 +655,6 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
 
       if (campaignPaymentId) {
         await Promise.all([
-          hasConnected
-            ? supabaseAdmin.from('campaign_owner_transfers').insert({
-                campaign_payment_id: campaignPaymentId,
-                campaign_id: meta.campaignId,
-                campaign_owner_id: organizerUserId,
-                donor_id: meta.donorId || null,
-                processor: 'stripe',
-                processor_account_id: connectedAccountId || null,
-                gross_amount: amountCents,
-                owner_net_amount: amountCents,
-                currency,
-                status: 'created',
-                metadata: { checkout_session_id: session.id, payment_intent_id: paymentIntentId },
-              })
-            : Promise.resolve(),
           supabaseAdmin.from('campaign_owner_payouts').insert({
             campaign_payment_id: campaignPaymentId,
             campaign_id: meta.campaignId,
@@ -679,9 +664,9 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
             processor: 'stripe',
             processor_account_id: connectedAccountId || null,
             gross_amount: amountCents,
-            owner_net_amount: amountCents,
+            owner_net_amount: ownerNetCents,
             currency,
-            status: hasConnected ? 'requested' : 'pending',
+            status: 'pending',
             metadata: { checkout_session_id: session.id, payment_intent_id: paymentIntentId },
           }),
           recordPaymentEvent({
@@ -694,9 +679,9 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
             processorObjectId: session.id,
             eventType: 'checkout.session.completed',
             eventStatus: 'processed',
-            amount: amountCents,
+            amount: ownerNetCents,
             currency,
-            metadata: { payment_intent_id: paymentIntentId, donor_covered_processing_fee_cents: processingFeeCents },
+            metadata: { payment_intent_id: paymentIntentId, donor_covered_processing_fee_cents: processingCoverageCents, processor_fee_estimate_cents: processingFeeCents },
           }),
         ]);
       }
@@ -710,7 +695,7 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
           donation_amount_cents:  amountCents,
           charitme_tip_cents:     platformFeeCents,
           processing_fee_cents:   processingFeeCents,
-          organizer_receives:     amountCents,
+          organizer_receives:     ownerNetCents,
           payment_method:         paymentMethod,
           connected_account_id:   connectedAccountId || null,
           has_connected_account:  hasConnected,
@@ -998,7 +983,10 @@ async function handlePaymentIntentFailed(pi: Stripe.PaymentIntent) {
   ]);
 }
 
-async function handleChargeObserved(charge: Stripe.Charge) {
+async function handleChargeObserved(
+  charge: Stripe.Charge,
+  eventType: 'charge.succeeded' | 'charge.updated',
+): Promise<void> {
   const piId = typeof charge.payment_intent === 'string' ? charge.payment_intent : null;
   const payment = await findCampaignPayment({ paymentIntentId: piId, chargeId: charge.id });
   if (!payment) return;
@@ -1008,6 +996,46 @@ async function handleChargeObserved(charge: Stripe.Charge) {
     ? await stripe.balanceTransactions.retrieve(balanceTransactionId).catch(() => null)
     : null;
   const processorFeeAmount = balanceTransaction?.fee ?? payment.processor_fee_amount;
+  const applicationFeeId = typeof charge.application_fee === 'string'
+    ? charge.application_fee
+    : charge.application_fee?.id ?? null;
+  const applicationFee = applicationFeeId
+    ? await stripe.applicationFees.retrieve(applicationFeeId).catch(() => null)
+    : null;
+  const applicationFeeAmount = applicationFee?.amount ?? payment.processor_application_fee_amount;
+  const platformRevenueAmount = applicationFeeAmount > 0
+    ? Math.max(0, applicationFeeAmount - processorFeeAmount)
+    : payment.platform_fee_amount;
+  const transferId = typeof charge.transfer === 'string' ? charge.transfer : charge.transfer?.id ?? null;
+  const actualDestination = typeof charge.transfer_data?.destination === 'string'
+    ? charge.transfer_data.destination
+    : charge.transfer_data?.destination?.id ?? null;
+  const wrongDestination = Boolean(
+    payment.processor_account_id
+      && actualDestination
+      && payment.processor_account_id !== actualDestination,
+  );
+  const missingTransfer = eventType === 'charge.updated'
+    && charge.status === 'succeeded'
+    && Boolean(payment.processor_account_id)
+    && !transferId;
+  const actualOwnerNet = applicationFeeAmount > 0 ? charge.amount - applicationFeeAmount : null;
+  const amountMismatch = actualOwnerNet !== null
+    && actualOwnerNet !== payment.campaign_owner_net_amount;
+  const feeMismatch = applicationFeeAmount > 0
+    && platformRevenueAmount !== payment.tip_amount;
+  const reconciliationIssue = wrongDestination
+    ? 'wrong_destination'
+    : missingTransfer
+      ? 'missing_transfer'
+      : amountMismatch
+        ? 'owner_net_mismatch'
+        : feeMismatch
+          ? 'platform_fee_mismatch'
+          : null;
+  const hasCompleteStripeData = Boolean(balanceTransaction)
+    && (!payment.processor_account_id || Boolean(transferId))
+    && (applicationFeeAmount === 0 || Boolean(applicationFee));
   const availableOn = balanceTransaction?.available_on
     ? new Date(balanceTransaction.available_on * 1000).toISOString()
     : payment.available_on;
@@ -1015,9 +1043,19 @@ async function handleChargeObserved(charge: Stripe.Charge) {
   await Promise.all([
     supabaseAdmin.from('campaign_payments').update({
       processor_charge_id: charge.id,
+      processor_transfer_id: transferId,
       processor_fee_amount: processorFeeAmount,
+      processor_application_fee_amount: applicationFeeAmount,
+      platform_fee_amount: platformRevenueAmount,
+      transfer_status: wrongDestination || missingTransfer ? 'failed' : transferId ? 'created' : 'pending',
       available_on: availableOn,
       settlement_status: availableOn ? 'available' : payment.settlement_status,
+      reconciliation_status: reconciliationIssue
+        ? 'needs_review'
+        : hasCompleteStripeData
+          ? 'reconciled'
+          : 'pending_data',
+      reconciliation_reason: reconciliationIssue,
       updated_at: new Date().toISOString(),
     }).eq('id', payment.id),
     balanceTransaction
@@ -1048,15 +1086,36 @@ async function handleChargeObserved(charge: Stripe.Charge) {
       eventStatus: charge.status,
       amount: charge.amount,
       currency: charge.currency,
-      metadata: { balance_transaction_id: balanceTransactionId, processor_fee_amount: processorFeeAmount },
+      metadata: {
+        balance_transaction_id: balanceTransactionId,
+        processor_fee_amount: processorFeeAmount,
+        application_fee_id: applicationFeeId,
+        application_fee_amount: applicationFeeAmount,
+        transfer_id: transferId,
+        expected_destination: payment.processor_account_id,
+        actual_destination: actualDestination,
+        reconciliation_issue: reconciliationIssue,
+      },
     }),
   ]);
+
+  if (reconciliationIssue) {
+    await openReconciliationException({
+      kind: reconciliationIssue === 'platform_fee_mismatch' ? 'fee_mismatch' : 'amount_mismatch',
+      description: `Stripe charge ${charge.id} failed money-flow reconciliation: ${reconciliationIssue}.`,
+      campaignId: payment.campaign_id,
+      donationId: payment.donation_id,
+      stripeRef: charge.id,
+      expectedCents: payment.campaign_owner_net_amount,
+      actualCents: actualOwnerNet,
+    });
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // charge.refunded
 // ─────────────────────────────────────────────────────────────────────────────
-async function handleChargeRefunded(charge: Stripe.Charge) {
+async function handleChargeRefunded(charge: Stripe.Charge, eventId: string): Promise<void> {
   const piId = typeof charge.payment_intent === 'string' ? charge.payment_intent : null;
   if (!piId) return;
 
@@ -1071,9 +1130,6 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
     throw new Error('Refunded event ticket could not be reconciled; letting Stripe retry.');
   }
   if (eventTicketRefunded === true) return;
-
-  const isFullRefund = charge.refunded;
-  const newStatus = isFullRefund ? 'refunded' : 'completed'; // partial keeps completed
 
   // Update donation status
   const { data: donation, error: donationError } = await supabaseAdmin.from('donations')
@@ -1099,20 +1155,127 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
   type DonationWithCampaign = { id: string; amount_cents: number; tip_cents: number; campaign_id: string; donor_id: string | null; campaigns: { title: string; slug: string } | null };
   const don = donation as unknown as DonationWithCampaign;
 
-  await supabaseAdmin.from('donations').update({
-    status: newStatus,
-    refunded_at: new Date().toISOString(),
+  const stripeRefunds: Stripe.Refund[] = [];
+  let startingAfter: string | undefined;
+  do {
+    const page = await stripe.refunds.list({ charge: charge.id, limit: 100, starting_after: startingAfter });
+    stripeRefunds.push(...page.data.filter((refund) => refund.status === 'succeeded'));
+    startingAfter = page.has_more ? page.data.at(-1)?.id : undefined;
+  } while (startingAfter);
+
+  stripeRefunds.sort((a, b) => a.created - b.created);
+  const applicationFeeId = typeof charge.application_fee === 'string'
+    ? charge.application_fee
+    : charge.application_fee?.id ?? null;
+  const applicationFee = applicationFeeId
+    ? await stripe.applicationFees.retrieve(applicationFeeId)
+    : null;
+  const applicationFeeRefundedCents = Math.min(
+    applicationFee?.amount_refunded ?? 0,
+    stripeRefunds.reduce((sum, refund) => sum + refund.amount, 0),
+  );
+  const totalTip = Math.max(0, don.tip_cents ?? 0);
+  const applicationFeeAllocations = allocateCentsProportionally(
+    applicationFeeRefundedCents,
+    stripeRefunds.map((refund) => ({ campaignId: refund.id, amountCents: refund.amount })),
+  );
+  const totalTipRefundedCents = applicationFee && applicationFee.amount > 0
+    ? Math.min(totalTip, Math.round((applicationFeeRefundedCents * totalTip) / applicationFee.amount))
+    : 0;
+  const tipAllocations = allocateCentsProportionally(
+    totalTipRefundedCents,
+    applicationFeeAllocations,
+  );
+  const applicationFeeByRefund = new Map(
+    applicationFeeAllocations.map((part) => [part.campaignId, part.amountCents]),
+  );
+  const tipByRefund = new Map(tipAllocations.map((part) => [part.campaignId, part.amountCents]));
+  let refundedAmount = 0;
+
+  for (const refund of stripeRefunds) {
+    const metadataPrincipal = Number(refund.metadata?.donation_principal_cents ?? Number.NaN);
+    const proportionalPrincipal = Math.round((refund.amount * don.amount_cents) / charge.amount);
+    const requestedPrincipal = Number.isInteger(metadataPrincipal) && metadataPrincipal >= 0
+      ? metadataPrincipal
+      : proportionalPrincipal;
+    const principal = Math.min(Math.max(0, requestedPrincipal), don.amount_cents - refundedAmount);
+    refundedAmount += principal;
+
+    const applicationFeeRefund = Math.min(
+      refund.amount,
+      applicationFeeByRefund.get(refund.id) ?? 0,
+    );
+    const tip = Math.min(applicationFeeRefund, tipByRefund.get(refund.id) ?? 0);
+    const processingCoverage = applicationFeeRefund - tip;
+    const recipientPayableRefund = refund.amount - applicationFeeRefund;
+    const processedAt = new Date().toISOString();
+
+    const refundPayload = {
+      donation_id: don.id,
+      amount_cents: principal,
+      gross_amount_cents: refund.amount,
+      reason: refund.reason ?? 'Stripe refund',
+      notes: `Stripe refund ${refund.status}`,
+      status: 'processed',
+      stripe_refund_id: refund.id,
+      processed_at: processedAt,
+    };
+    const reservationId = refund.metadata?.refund_reservation_id ?? '';
+    let refundRow: { id: string } | null = null;
+    let refundRowError: { message: string } | null = null;
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(reservationId)) {
+      const reservationWrite = await supabaseAdmin.from('refunds')
+        .update(refundPayload)
+        .eq('id', reservationId)
+        .eq('donation_id', don.id)
+        .select('id')
+        .maybeSingle();
+      refundRow = reservationWrite.data;
+      refundRowError = reservationWrite.error;
+    }
+    if (!refundRow && !refundRowError) {
+      const refundWrite = await supabaseAdmin.from('refunds')
+        .upsert(refundPayload, { onConflict: 'stripe_refund_id', ignoreDuplicates: false })
+        .select('id')
+        .single();
+      refundRow = refundWrite.data;
+      refundRowError = refundWrite.error;
+    }
+    if (refundRowError || !refundRow?.id) {
+      throw new Error('Refund record could not be persisted; letting Stripe retry.');
+    }
+
+    const { error: statsError } = await supabaseAdmin.rpc('apply_campaign_refund_stats', {
+      p_refund_id: refundRow.id,
+    });
+    if (statsError) throw new Error('Campaign refund totals could not be reconciled; letting Stripe retry.');
+
+    await postRefund(
+      {
+        refundDonationCents: recipientPayableRefund,
+        refundPlatformFeeCents: tip,
+        refundProcessingCoverageCents: processingCoverage,
+      },
+      {
+        idempotencyKey: `${refund.id}:refund`,
+        currency: refund.currency,
+        campaignId: don.campaign_id,
+        donationId: don.id,
+        stripeChargeId: charge.id,
+        stripePaymentIntentId: piId,
+        stripeRefundId: refund.id,
+        source: 'webhook:charge.refunded',
+      },
+    );
+  }
+
+  const isFullRefund = refundedAmount >= don.amount_cents;
+  const { error: donationUpdateError } = await supabaseAdmin.from('donations').update({
+    status: isFullRefund ? 'refunded' : 'completed',
+    ...(isFullRefund ? { refunded_at: new Date().toISOString() } : {}),
     updated_at: new Date().toISOString(),
   }).eq('id', don.id);
-
-  if (isFullRefund) {
-    try {
-      await supabaseAdmin.rpc('decrement_campaign_stats', {
-        p_campaign_id: don.campaign_id,
-        p_amount_cents: don.amount_cents,
-      });
-    } catch { /* non-fatal */ }
-  }
+  if (donationUpdateError) throw new Error('Refunded donation could not be updated; letting Stripe retry.');
 
   // Immutable ledger: reverse the recipient payable on refund (best-effort,
   // never blocks refund processing). A FULL refund is unambiguous — reverse the
@@ -1120,41 +1283,6 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
   // A PARTIAL refund's split across principal vs. fees is ambiguous from the
   // charge alone, so we open a reconciliation exception for finance to reverse
   // by hand rather than guess and post a wrong entry.
-  try {
-    if (isFullRefund) {
-      await postRefund(
-        { refundDonationCents: don.amount_cents, refundPlatformFeeCents: don.tip_cents ?? 0 },
-        {
-          idempotencyKey: `${charge.id}:refund:full`,
-          currency: charge.currency,
-          campaignId: don.campaign_id,
-          donationId: don.id,
-          stripeChargeId: charge.id,
-          stripePaymentIntentId: piId,
-          source: 'webhook:charge.refunded',
-        },
-      );
-    } else {
-      await openReconciliationException({
-        kind: 'amount_mismatch',
-        description: `Partial refund of ${charge.amount_refunded ?? 0} needs a manual ledger reversal (split across principal/fees is ambiguous).`,
-        campaignId: don.campaign_id,
-        donationId: don.id,
-        stripeRef: charge.id,
-        expectedCents: charge.amount_refunded ?? 0,
-        actualCents: 0,
-      });
-    }
-  } catch (e) {
-    console.warn('[ledger] refund reversal failed (non-blocking):', e);
-  }
-
-  // Update any matching refund record
-  await supabaseAdmin.from('refunds')
-    .update({ status: 'processed', processed_at: new Date().toISOString() })
-    .eq('donation_id', don.id)
-    .in('status', ['requested', 'approved']);
-
   // Notify donor of refund (non-blocking)
   if (don.donor_id && isFullRefund && don.campaigns) {
     sendDonorRefundNotification(don.donor_id, don.campaigns.title, don.amount_cents, charge.currency).catch(() => {});
@@ -1163,7 +1291,6 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
   const payment = await findCampaignPayment({ paymentIntentId: piId, chargeId: charge.id });
   if (!payment) return;
 
-  const refundedAmount = charge.amount_refunded ?? 0;
   await Promise.all([
     supabaseAdmin.from('campaign_payments').update({
       payment_status: isFullRefund ? 'refunded' : 'partially_refunded',
@@ -1197,7 +1324,7 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
       eventStatus: isFullRefund ? 'full' : 'partial',
       amount: refundedAmount,
       currency: charge.currency,
-      metadata: { payment_intent_id: piId },
+      metadata: { payment_intent_id: piId, webhook_event_id: eventId, gross_refunded_cents: charge.amount_refunded ?? 0 },
     }),
   ]);
 }
@@ -1303,11 +1430,30 @@ async function handleDisputeCreated(dispute: Stripe.Dispute) {
 // ─────────────────────────────────────────────────────────────────────────────
 // charge.dispute.closed
 // ─────────────────────────────────────────────────────────────────────────────
+async function disputeTransferReversalCents(transferId: string, disputeId: string): Promise<number> {
+  let total = 0;
+  let startingAfter: string | undefined;
+
+  do {
+    const page = await stripe.transfers.listReversals(transferId, {
+      limit: 100,
+      starting_after: startingAfter,
+    });
+    total += page.data
+      .filter((reversal) => reversal.metadata?.dispute_id === disputeId)
+      .reduce((sum, reversal) => sum + reversal.amount, 0);
+    startingAfter = page.has_more ? page.data.at(-1)?.id : undefined;
+  } while (startingAfter);
+
+  return total;
+}
+
 async function handleDisputeClosed(dispute: Stripe.Dispute) {
   const piId = typeof dispute.payment_intent === 'string' ? dispute.payment_intent : null;
   if (!piId) return;
 
   const won = dispute.status === 'won';
+  const payment = await findCampaignPayment({ paymentIntentId: piId });
 
   const { data: eventTicketDisputed, error: eventTicketDisputeError } = await supabaseAdmin.rpc(
     'apply_event_ticket_dispute',
@@ -1330,30 +1476,171 @@ async function handleDisputeClosed(dispute: Stripe.Dispute) {
     .eq('stripe_payment_intent_id', piId)
     .eq('status', 'disputed');
 
-  // Immutable ledger: a LOST dispute is a forced clawback — reverse the recipient
-  // payable + platform fee into the disputes account (best-effort, idempotent by
-  // dispute id). A WON dispute leaves the money in place, so no ledger change.
+  // A lost dispute is a forced clawback. Reverse the recipient and platform
+  // exposures separately, and fail the webhook until every write is durable.
   if (!won) {
-    try {
-      const { data: don } = await supabaseAdmin.from('donations')
-        .select('id, amount_cents, tip_cents, campaign_id')
-        .eq('stripe_payment_intent_id', piId)
-        .maybeSingle();
-      if (don) {
-        await postDisputeLoss(
-          { refundDonationCents: don.amount_cents, refundPlatformFeeCents: don.tip_cents ?? 0 },
-          {
-            idempotencyKey: `${dispute.id}:dispute:lost`,
-            currency: dispute.currency,
+    const { data: don, error: donationError } = await supabaseAdmin.from('donations')
+      .select('id, amount_cents, tip_cents, campaign_id')
+      .eq('stripe_payment_intent_id', piId)
+      .maybeSingle();
+    if (donationError) throw new Error('Disputed donation could not be read; letting Stripe retry.');
+
+    if (don) {
+      const chargeId = typeof dispute.charge === 'string' ? dispute.charge : dispute.charge?.id ?? null;
+      if (!chargeId) throw new Error('Lost dispute has no Stripe charge; letting Stripe retry.');
+      const disputedCharge = await stripe.charges.retrieve(chargeId);
+      const transferId = typeof disputedCharge.transfer === 'string'
+        ? disputedCharge.transfer
+        : disputedCharge.transfer?.id ?? null;
+      const applicationFeeId = typeof disputedCharge.application_fee === 'string'
+        ? disputedCharge.application_fee
+        : disputedCharge.application_fee?.id ?? null;
+      const applicationFee = applicationFeeId
+        ? await stripe.applicationFees.retrieve(applicationFeeId)
+        : null;
+
+      const { data: priorRefundRows, error: priorRefundError } = await supabaseAdmin
+        .from('refunds')
+        .select('amount_cents')
+        .eq('donation_id', don.id)
+        .eq('status', 'processed')
+        .neq('stripe_refund_id', dispute.id);
+      if (priorRefundError) throw new Error('Prior refunds could not be read; letting Stripe retry.');
+
+      const priorPrincipalRefunded = (priorRefundRows ?? []).reduce(
+        (sum, row) => sum + Number(row.amount_cents ?? 0),
+        0,
+      );
+      const remainingChargeCents = Math.max(0, disputedCharge.amount - disputedCharge.amount_refunded);
+      if (dispute.amount > remainingChargeCents) {
+        throw new Error('Lost dispute exceeds the remaining Stripe charge; letting Stripe retry.');
+      }
+      const remainingCampaignPrincipal = Math.max(0, don.amount_cents - priorPrincipalRefunded);
+      const principalAllocation = allocateCentsProportionally(dispute.amount, [
+        { campaignId: 'principal', amountCents: remainingCampaignPrincipal },
+        { campaignId: 'other', amountCents: Math.max(0, remainingChargeCents - remainingCampaignPrincipal) },
+      ]);
+      const campaignPrincipalLoss = principalAllocation.find((part) => part.campaignId === 'principal')?.amountCents ?? 0;
+
+      let recipientPayableLoss = 0;
+      let priorDisputeReversal = 0;
+      let transfer: Stripe.Transfer | null = null;
+      if (transferId) {
+        transfer = await stripe.transfers.retrieve(transferId);
+        priorDisputeReversal = await disputeTransferReversalCents(transferId, dispute.id);
+        const remainingApplicationFee = Math.max(
+          0,
+          (applicationFee?.amount ?? 0) - (applicationFee?.amount_refunded ?? 0),
+        );
+        const transferExposure = Math.max(
+          0,
+          transfer.amount - transfer.amount_reversed + priorDisputeReversal,
+        );
+        const recipientExposure = Math.max(0, transferExposure - remainingApplicationFee);
+        if (recipientExposure + remainingApplicationFee < dispute.amount) {
+          await openReconciliationException({
+            kind: 'amount_mismatch',
+            description: `Lost dispute ${dispute.id} exceeds the remaining destination-charge exposure.`,
             campaignId: don.campaign_id,
             donationId: don.id,
-            stripeRefundId: dispute.id,
-            source: 'webhook:charge.dispute.closed',
-          },
-        );
+            stripeRef: dispute.id,
+            expectedCents: dispute.amount,
+            actualCents: recipientExposure + remainingApplicationFee,
+          });
+          throw new Error('Lost dispute allocation is incomplete; letting Stripe retry.');
+        }
+        const disputeAllocation = allocateCentsProportionally(dispute.amount, [
+          { campaignId: 'recipient', amountCents: recipientExposure },
+          { campaignId: 'platform', amountCents: remainingApplicationFee },
+        ]);
+        recipientPayableLoss = disputeAllocation.find((part) => part.campaignId === 'recipient')?.amountCents ?? 0;
+      } else if (dispute.amount > 0) {
+        throw new Error('Lost destination-charge dispute has no reversible transfer; letting Stripe retry.');
       }
-    } catch (e) {
-      console.warn('[ledger] dispute-loss reversal failed (non-blocking):', e);
+
+      const platformLoss = dispute.amount - recipientPayableLoss;
+      const totalTip = Math.max(0, don.tip_cents ?? 0);
+      const refundedTip = applicationFee && applicationFee.amount > 0
+        ? Math.min(totalTip, Math.round((applicationFee.amount_refunded * totalTip) / applicationFee.amount))
+        : 0;
+      const remainingTip = Math.max(0, totalTip - refundedTip);
+      const remainingApplicationFee = Math.max(
+        0,
+        (applicationFee?.amount ?? 0) - (applicationFee?.amount_refunded ?? 0),
+      );
+      const platformAllocation = allocateCentsProportionally(platformLoss, [
+        { campaignId: 'tip', amountCents: remainingTip },
+        { campaignId: 'processing', amountCents: Math.max(0, remainingApplicationFee - remainingTip) },
+      ]);
+      const tipLoss = platformAllocation.find((part) => part.campaignId === 'tip')?.amountCents ?? 0;
+      const processingCoverageLoss = platformLoss - tipLoss;
+
+      if (transferId && recipientPayableLoss > 0 && transfer) {
+        const reversalStillRequired = Math.max(0, recipientPayableLoss - priorDisputeReversal);
+        const reversibleCents = Math.max(0, transfer.amount - transfer.amount_reversed);
+        if (reversalStillRequired > reversibleCents) {
+          await openReconciliationException({
+            kind: 'amount_mismatch',
+            description: `Lost dispute ${dispute.id} could not reverse all campaign proceeds.`,
+            campaignId: don.campaign_id,
+            donationId: don.id,
+            stripeRef: dispute.id,
+            expectedCents: recipientPayableLoss,
+            actualCents: priorDisputeReversal + reversibleCents,
+          });
+          throw new Error('Lost dispute transfer reversal is incomplete; letting Stripe retry.');
+        }
+        if (reversalStillRequired > 0) {
+          await stripe.transfers.createReversal(
+            transferId,
+            {
+              amount: reversalStillRequired,
+              metadata: { dispute_id: dispute.id, donation_id: don.id },
+            },
+            { idempotencyKey: `lost-dispute-${dispute.id}-owner-reversal` },
+          );
+        }
+      }
+
+      const { data: disputeRefund, error: disputeRefundError } = await supabaseAdmin.from('refunds').upsert({
+        donation_id: don.id,
+        amount_cents: campaignPrincipalLoss,
+        gross_amount_cents: dispute.amount,
+        reason: `Stripe dispute: ${dispute.reason}`,
+        notes: `Dispute ID: ${dispute.id}. Status: lost.`,
+        status: 'processed',
+        stripe_refund_id: dispute.id,
+        processed_at: new Date().toISOString(),
+      }, { onConflict: 'stripe_refund_id', ignoreDuplicates: false }).select('id').single();
+      if (disputeRefundError || !disputeRefund?.id) {
+        throw new Error('Lost dispute record could not be persisted; letting Stripe retry.');
+      }
+      const { error: statsError } = await supabaseAdmin.rpc('apply_campaign_refund_stats', {
+        p_refund_id: disputeRefund.id,
+      });
+      if (statsError) throw new Error('Lost dispute campaign totals could not be reconciled; letting Stripe retry.');
+
+      const { error: donationStatusError } = await supabaseAdmin.from('donations')
+        .update({ status: 'failed', updated_at: new Date().toISOString() })
+        .eq('id', don.id);
+      if (donationStatusError) throw new Error('Lost dispute status could not be recorded; letting Stripe retry.');
+
+      await postDisputeLoss(
+        {
+          refundDonationCents: recipientPayableLoss,
+          refundPlatformFeeCents: tipLoss,
+          refundProcessingCoverageCents: processingCoverageLoss,
+        },
+        {
+          idempotencyKey: `${dispute.id}:dispute:lost`,
+          currency: dispute.currency,
+          campaignId: don.campaign_id,
+          donationId: don.id,
+          stripeChargeId: chargeId,
+          stripeRefundId: dispute.id,
+          source: 'webhook:charge.dispute.closed',
+        },
+      );
     }
   }
 
@@ -1361,7 +1648,6 @@ async function handleDisputeClosed(dispute: Stripe.Dispute) {
     .update({ status: won ? 'declined' : 'processed', processed_at: new Date().toISOString() })
     .eq('stripe_refund_id', dispute.id);
 
-  const payment = await findCampaignPayment({ paymentIntentId: piId });
   if (!payment) return;
 
   await Promise.all([
@@ -1475,6 +1761,9 @@ async function handleAccountUpdated(account: Stripe.Account) {
 // ─────────────────────────────────────────────────────────────────────────────
 async function handleTransferPaid(transfer: Stripe.Transfer) {
   const sourceChargeId = typeof transfer.source_transaction === 'string' ? transfer.source_transaction : null;
+  const destinationPaymentId = typeof transfer.destination_payment === 'string'
+    ? transfer.destination_payment
+    : transfer.destination_payment?.id ?? null;
   const payment = await findCampaignPayment({ transferId: transfer.id, chargeId: sourceChargeId });
   if (!payment) return;
 
@@ -1492,11 +1781,15 @@ async function handleTransferPaid(transfer: Stripe.Transfer) {
       processor: 'stripe',
       processor_account_id: payment.processor_account_id,
       processor_object_id: transfer.id,
-      gross_amount: payment.gross_amount,
-      owner_net_amount: transfer.amount,
+      gross_amount: transfer.amount,
+      owner_net_amount: payment.campaign_owner_net_amount,
       currency: transfer.currency,
       status: 'created',
-      metadata: { destination: typeof transfer.destination === 'string' ? transfer.destination : transfer.destination?.id ?? null, source_charge_id: sourceChargeId },
+      metadata: {
+        destination: typeof transfer.destination === 'string' ? transfer.destination : transfer.destination?.id ?? null,
+        source_charge_id: sourceChargeId,
+        destination_payment_id: destinationPaymentId,
+      },
     }, { onConflict: 'processor,processor_object_id', ignoreDuplicates: false }),
     recordPaymentEvent({
       campaignPaymentId: payment.id,
@@ -1510,7 +1803,11 @@ async function handleTransferPaid(transfer: Stripe.Transfer) {
       eventStatus: 'created',
       amount: transfer.amount,
       currency: transfer.currency,
-      metadata: { destination: typeof transfer.destination === 'string' ? transfer.destination : transfer.destination?.id ?? null, source_charge_id: sourceChargeId },
+      metadata: {
+        destination: typeof transfer.destination === 'string' ? transfer.destination : transfer.destination?.id ?? null,
+        source_charge_id: sourceChargeId,
+        destination_payment_id: destinationPaymentId,
+      },
     }),
   ]);
 }
@@ -1564,25 +1861,37 @@ async function handleApplicationFeeCreated(fee: Stripe.ApplicationFee) {
   const payment = await findCampaignPayment({ chargeId });
   if (!payment) return;
 
+  const charge = chargeId
+    ? await stripe.charges.retrieve(chargeId, { expand: ['balance_transaction'] }).catch(() => null)
+    : null;
+  const balanceTransaction = charge && typeof charge.balance_transaction !== 'string'
+    ? charge.balance_transaction
+    : null;
+  const processorFeeAmount = balanceTransaction?.fee ?? payment.processor_fee_amount;
+  const platformRevenueAmount = Math.max(0, fee.amount - processorFeeAmount);
+  const feeMismatch = platformRevenueAmount !== payment.tip_amount;
+
   await Promise.all([
     supabaseAdmin.from('campaign_payments').update({
-      platform_fee_amount: fee.amount,
+      processor_application_fee_amount: fee.amount,
+      processor_fee_amount: processorFeeAmount,
+      platform_fee_amount: platformRevenueAmount,
+      reconciliation_status: feeMismatch ? 'needs_review' : 'reconciled',
+      reconciliation_reason: feeMismatch ? 'platform_fee_mismatch' : null,
       updated_at: new Date().toISOString(),
     }).eq('id', payment.id),
-    supabaseAdmin.from('campaign_platform_fees').insert({
-      campaign_payment_id: payment.id,
-      campaign_id: payment.campaign_id,
-      campaign_owner_id: payment.campaign_owner_id,
-      donor_id: payment.donor_id,
-      processor: 'stripe',
-      processor_account_id: payment.processor_account_id,
+    supabaseAdmin.from('campaign_platform_fees').update({
       processor_object_id: fee.id,
-      gross_amount: payment.gross_amount,
-      platform_fee_amount: fee.amount,
+      platform_fee_amount: platformRevenueAmount,
       currency: fee.currency,
       status: 'recorded',
-      metadata: { charge_id: chargeId, balance_transaction_id: typeof fee.balance_transaction === 'string' ? fee.balance_transaction : null },
-    }),
+      metadata: {
+        charge_id: chargeId,
+        application_fee_gross_cents: fee.amount,
+        processor_fee_cents: processorFeeAmount,
+        balance_transaction_id: typeof fee.balance_transaction === 'string' ? fee.balance_transaction : null,
+      },
+    }).eq('campaign_payment_id', payment.id),
     recordPaymentEvent({
       campaignPaymentId: payment.id,
       campaignId: payment.campaign_id,
@@ -1593,93 +1902,242 @@ async function handleApplicationFeeCreated(fee: Stripe.ApplicationFee) {
       processorObjectId: fee.id,
       eventType: 'application_fee.created',
       eventStatus: 'recorded',
-      amount: fee.amount,
+      amount: platformRevenueAmount,
       currency: fee.currency,
-      metadata: { charge_id: chargeId },
+      metadata: {
+        charge_id: chargeId,
+        application_fee_gross_cents: fee.amount,
+        processor_fee_cents: processorFeeAmount,
+      },
     }),
   ]);
+
+  if (feeMismatch) {
+    await openReconciliationException({
+      kind: 'fee_mismatch',
+      description: `Application fee ${fee.id} did not net to the disclosed CharitMe tip.`,
+      campaignId: payment.campaign_id,
+      donationId: payment.donation_id,
+      stripeRef: fee.id,
+      expectedCents: payment.tip_amount,
+      actualCents: platformRevenueAmount,
+    });
+  }
 }
 
-async function handlePayoutPaid(payout: Stripe.Payout) {
-  await supabaseAdmin.from('payouts')
-    .update({ status: 'paid', paid_at: new Date().toISOString(), stripe_payout_id: payout.id, updated_at: new Date().toISOString() })
-    .eq('stripe_payout_id', payout.id);
+type PayoutTransferRow = {
+  campaign_payment_id: string;
+  campaign_id: string | null;
+  campaign_owner_id: string | null;
+  donor_id: string | null;
+  processor_account_id: string | null;
+  processor_object_id: string;
+  owner_net_amount: number;
+  currency: string;
+};
 
-  const payment = await findCampaignPayment({ payoutId: payout.id });
-  if (payment) {
+function isPayoutTransferRow(value: unknown): value is PayoutTransferRow {
+  if (!value || typeof value !== 'object') return false;
+  const row = value as Record<string, unknown>;
+  return typeof row.campaign_payment_id === 'string'
+    && typeof row.processor_object_id === 'string'
+    && typeof row.owner_net_amount === 'number'
+    && typeof row.currency === 'string';
+}
+
+async function listPayoutTransferIds(payoutId: string, stripeAccountId: string): Promise<string[]> {
+  const transferIds = new Set<string>();
+  let startingAfter: string | undefined;
+
+  do {
+    const page = await stripe.balanceTransactions.list(
+      { payout: payoutId, limit: 100, starting_after: startingAfter },
+      { stripeAccount: stripeAccountId },
+    );
+    for (const transaction of page.data) {
+      const sourceId = typeof transaction.source === 'string'
+        ? transaction.source
+        : transaction.source?.id ?? null;
+      if (!sourceId) continue;
+      if (sourceId.startsWith('tr_')) {
+        transferIds.add(sourceId);
+        continue;
+      }
+      if (sourceId.startsWith('ch_') || sourceId.startsWith('py_')) {
+        const connectedCharge = await stripe.charges.retrieve(
+          sourceId,
+          {},
+          { stripeAccount: stripeAccountId },
+        ).catch(() => null);
+        const sourceTransferId = connectedCharge
+          ? typeof connectedCharge.source_transfer === 'string'
+            ? connectedCharge.source_transfer
+            : connectedCharge.source_transfer?.id ?? null
+          : null;
+        if (sourceTransferId) transferIds.add(sourceTransferId);
+      }
+    }
+    startingAfter = page.has_more ? page.data.at(-1)?.id : undefined;
+  } while (startingAfter);
+
+  return [...transferIds];
+}
+
+async function reconcileConnectedPayout(payout: Stripe.Payout, stripeAccountId: string | null): Promise<void> {
+  if (!stripeAccountId) return;
+
+  const payoutStatus = payout.status === 'paid'
+    ? 'paid'
+    : payout.status === 'failed'
+      ? 'failed'
+      : payout.status === 'canceled'
+        ? 'canceled'
+        : payout.status === 'in_transit'
+          ? 'in_transit'
+          : 'pending';
+  const { data: connectedPayout, error: payoutError } = await supabaseAdmin
+    .from('stripe_connected_payouts')
+    .upsert({
+      stripe_payout_id: payout.id,
+      stripe_account_id: stripeAccountId,
+      amount_cents: payout.amount,
+      currency: payout.currency,
+      status: payoutStatus,
+      arrival_at: payout.arrival_date ? new Date(payout.arrival_date * 1000).toISOString() : null,
+      failure_code: payout.failure_code ?? null,
+      failure_message: payout.failure_message ?? null,
+      metadata: { method: payout.method, type: payout.type },
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'stripe_payout_id', ignoreDuplicates: false })
+    .select('id')
+    .single();
+  if (payoutError || !connectedPayout?.id) {
+    throw new Error('Connected payout could not be persisted; letting Stripe retry.');
+  }
+
+  const transferIds = await listPayoutTransferIds(payout.id, stripeAccountId);
+  if (transferIds.length === 0) return;
+
+  const { data: transferRows, error: transferError } = await supabaseAdmin
+    .from('campaign_owner_transfers')
+    .select('campaign_payment_id,campaign_id,campaign_owner_id,donor_id,processor_account_id,processor_object_id,owner_net_amount,currency')
+    .eq('processor_account_id', stripeAccountId)
+    .in('processor_object_id', transferIds);
+  if (transferError) throw new Error('Payout allocations could not be read; letting Stripe retry.');
+
+  const allocations = (transferRows ?? []).filter(isPayoutTransferRow);
+  const mappedCents = allocations.reduce((sum, row) => sum + row.owner_net_amount, 0);
+  const payoutFailed = payout.status === 'failed' || payout.status === 'canceled';
+  const allocationStatus = payout.status === 'paid' ? 'paid' : payoutFailed ? 'failed' : 'pending';
+
+  for (const allocation of allocations) {
+    const { error: allocationError } = await supabaseAdmin.from('stripe_connected_payout_allocations').upsert({
+      connected_payout_id: connectedPayout.id,
+      campaign_payment_id: allocation.campaign_payment_id,
+      stripe_transfer_id: allocation.processor_object_id,
+      amount_cents: allocation.owner_net_amount,
+      currency: allocation.currency,
+    }, { onConflict: 'connected_payout_id,campaign_payment_id,stripe_transfer_id', ignoreDuplicates: false });
+    if (allocationError) throw new Error('Payout allocation could not be persisted; letting Stripe retry.');
+
+    const settlementStatus = payout.status === 'paid'
+      ? 'paid_out'
+      : payoutFailed
+        ? 'failed'
+        : 'pending';
     await Promise.all([
       supabaseAdmin.from('campaign_payments').update({
         processor_payout_id: payout.id,
-        payout_status: payout.status === 'paid' ? 'paid' : 'pending',
-        settlement_status: payout.status === 'paid' ? 'paid_out' : 'pending',
-        payout_at: payout.arrival_date ? new Date(payout.arrival_date * 1000).toISOString() : new Date().toISOString(),
+        payout_status: allocationStatus,
+        settlement_status: settlementStatus,
+        payout_at: payout.arrival_date ? new Date(payout.arrival_date * 1000).toISOString() : null,
+        reconciliation_status: payoutFailed
+          ? 'failed'
+          : payout.status === 'paid'
+            ? 'reconciled'
+            : 'pending_data',
+        reconciliation_reason: payoutFailed
+          ? 'payout_failed'
+          : payout.status === 'paid'
+            ? null
+            : `payout_${payoutStatus}`,
         updated_at: new Date().toISOString(),
-      }).eq('id', payment.id),
+      }).eq('id', allocation.campaign_payment_id),
       supabaseAdmin.from('campaign_owner_payouts').update({
         processor_object_id: payout.id,
-        status: payout.status === 'paid' ? 'paid' : 'pending',
+        status: allocationStatus,
         updated_at: new Date().toISOString(),
-      }).eq('campaign_payment_id', payment.id),
+      }).eq('campaign_payment_id', allocation.campaign_payment_id),
       recordPaymentEvent({
-        campaignPaymentId: payment.id,
-        campaignId: payment.campaign_id,
-        campaignOwnerId: payment.campaign_owner_id,
-        donorId: payment.donor_id,
+        campaignPaymentId: allocation.campaign_payment_id,
+        campaignId: allocation.campaign_id,
+        campaignOwnerId: allocation.campaign_owner_id,
+        donorId: allocation.donor_id,
         processor: 'stripe',
-        processorAccountId: payment.processor_account_id,
+        processorAccountId: stripeAccountId,
         processorObjectId: payout.id,
         eventType: `payout.${payout.status}`,
         eventStatus: payout.status,
-        amount: payout.amount,
+        amount: allocation.owner_net_amount,
         currency: payout.currency,
-        metadata: { arrival_date: payout.arrival_date ?? null },
+        metadata: { arrival_date: payout.arrival_date ?? null, stripe_transfer_id: allocation.processor_object_id },
       }),
     ]);
+
+    const { data: ownerPayout } = await supabaseAdmin.from('campaign_owner_payouts')
+      .select('payout_id')
+      .eq('campaign_payment_id', allocation.campaign_payment_id)
+      .maybeSingle();
+    if (ownerPayout?.payout_id) {
+      await supabaseAdmin.from('payouts').update({
+        stripe_payout_id: payout.id,
+        status: allocationStatus === 'pending' ? 'approved' : allocationStatus,
+        ...(payout.status === 'paid' ? { paid_at: new Date().toISOString() } : {}),
+        updated_at: new Date().toISOString(),
+      }).eq('id', ownerPayout.payout_id);
+    }
+
     if (payout.status === 'paid') {
-      notifyOrganizerPayout(payment.campaign_owner_id, payment.campaign_id, payout.amount, 'paid', undefined, payout.currency).catch(() => {});
+      notifyOrganizerPayout(
+        allocation.campaign_owner_id,
+        allocation.campaign_id,
+        allocation.owner_net_amount,
+        'paid',
+        undefined,
+        payout.currency,
+      ).catch(() => {});
+    } else if (payoutFailed) {
+      notifyOrganizerPayout(
+        allocation.campaign_owner_id,
+        allocation.campaign_id,
+        allocation.owner_net_amount,
+        'failed',
+        payout.failure_code ?? payout.status,
+        payout.currency,
+      ).catch(() => {});
     }
   }
+
+  if (mappedCents !== payout.amount) {
+    await openReconciliationException({
+      kind: 'payout_mismatch',
+      description: `Connected payout ${payout.id} does not equal its mapped campaign allocations.`,
+      stripeRef: payout.id,
+      expectedCents: payout.amount,
+      actualCents: mappedCents,
+    });
+  }
+}
+
+async function handlePayoutPaid(payout: Stripe.Payout, stripeAccountId: string | null): Promise<void> {
+  await reconcileConnectedPayout(payout, stripeAccountId);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // payout.failed
 // ─────────────────────────────────────────────────────────────────────────────
-async function handlePayoutFailed(payout: Stripe.Payout) {
-  await supabaseAdmin.from('payouts')
-    .update({ status: 'failed', updated_at: new Date().toISOString() })
-    .eq('stripe_payout_id', payout.id);
-
-  const payment = await findCampaignPayment({ payoutId: payout.id });
-  if (payment) {
-    await Promise.all([
-      supabaseAdmin.from('campaign_payments').update({
-        payout_status: 'failed',
-        settlement_status: 'failed',
-        reconciliation_status: 'failed',
-        reconciliation_reason: 'payout_failed',
-        updated_at: new Date().toISOString(),
-      }).eq('id', payment.id),
-      supabaseAdmin.from('campaign_owner_payouts').update({
-        status: 'failed',
-        updated_at: new Date().toISOString(),
-      }).eq('campaign_payment_id', payment.id),
-      recordPaymentEvent({
-        campaignPaymentId: payment.id,
-        campaignId: payment.campaign_id,
-        campaignOwnerId: payment.campaign_owner_id,
-        donorId: payment.donor_id,
-        processor: 'stripe',
-        processorAccountId: payment.processor_account_id,
-        processorObjectId: payout.id,
-        eventType: 'payout.failed',
-        eventStatus: 'failed',
-        amount: payout.amount,
-        currency: payout.currency,
-        metadata: { failure_code: payout.failure_code ?? null, failure_message: payout.failure_message ?? null },
-      }),
-    ]);
-    notifyOrganizerPayout(payment.campaign_owner_id, payment.campaign_id, payout.amount, 'failed', payout.failure_code, payout.currency).catch(() => {});
-  }
+async function handlePayoutFailed(payout: Stripe.Payout, stripeAccountId: string | null): Promise<void> {
+  await reconcileConnectedPayout(payout, stripeAccountId);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1687,12 +2145,18 @@ async function handlePayoutFailed(payout: Stripe.Payout) {
 // ─────────────────────────────────────────────────────────────────────────────
 type CampaignPaymentLookup = {
   id: string;
+  donation_id: string | null;
   campaign_id: string | null;
   campaign_owner_id: string | null;
   donor_id: string | null;
   processor_account_id: string | null;
   processor_fee_amount: number;
+  processor_application_fee_amount: number;
   gross_amount: number;
+  tip_amount: number;
+  platform_fee_amount: number;
+  campaign_owner_net_amount: number;
+  refunded_amount: number;
   available_on: string | null;
   settlement_status: string;
 };
@@ -1738,7 +2202,7 @@ async function findCampaignPayment({
   transferId?: string | null;
   payoutId?: string | null;
 }): Promise<CampaignPaymentLookup | null> {
-  const select = 'id,campaign_id,campaign_owner_id,donor_id,processor_account_id,processor_fee_amount,gross_amount,available_on,settlement_status';
+  const select = 'id,donation_id,campaign_id,campaign_owner_id,donor_id,processor_account_id,processor_fee_amount,processor_application_fee_amount,gross_amount,tip_amount,platform_fee_amount,campaign_owner_net_amount,refunded_amount,available_on,settlement_status';
   let query = supabaseAdmin.from('campaign_payments').select(select).limit(1);
 
   const clauses = [

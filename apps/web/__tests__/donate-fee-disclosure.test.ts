@@ -129,7 +129,7 @@ describe('the fee model behind the UI is real, and shared with the server', () =
   it('honours the bank-transfer cap the label promises', () => {
     // $5 cap: a $1,000 transfer must not be charged 0.8% ($8).
     expect(methodProcessingFee(100_000, 'bank')).toBe(500);
-    expect(methodProcessingFee(10_000, 'bank')).toBe(80);
+    expect(methodProcessingFee(10_000, 'bank')).toBe(81);
   });
 
   it('computes the shown total with the SAME helper the API charges with', () => {

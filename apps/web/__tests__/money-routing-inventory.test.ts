@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { join, dirname, relative } from 'node:path';
+import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -102,7 +102,7 @@ function discoverChargeRoutes(): string[] {
     ['grep', '-l', '--untracked', '-E', 'createCheckoutSession\\(|paymentIntents\\.create\\(', '--', 'app/api'],
     { cwd: root, encoding: 'utf8' },
   );
-  return out.split('\n').filter(Boolean).map((p) => relative('', p)).sort();
+  return out.split('\n').filter(Boolean).map((p) => p.replace(/\\/g, '/')).sort();
 }
 
 const routes = discoverChargeRoutes();

@@ -30,7 +30,7 @@ const STRIPE_WEBHOOK = 'app/api/stripe/webhook/route.ts';
 
 describe('writes that follow an irreversible side effect capture their error', () => {
   it.each([
-    [REFUND, /const \{ error: \w+ \} = await supabaseAdmin\.from\('refunds'\)\.insert\(/],
+    [REFUND, /const \{ error: \w+ \} = await supabaseAdmin\.from\('refunds'\)\.update\(/],
     [TAX_RECEIPT, /const \{ error: \w+ \} = await supabaseAdmin\.from\('tax_receipts'\)\.upsert\(/],
     [FRAUD_MONITOR, /const \{ error: \w+ \} = await supabaseAdmin\.from\('risk_flags'\)\.insert\(/],
     [IMPACT_SUMMARY, /const \{ error: \w+ \} = await supabaseAdmin\.from\('risk_flags'\)\.insert\(/],
