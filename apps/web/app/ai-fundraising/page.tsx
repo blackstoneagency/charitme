@@ -5,7 +5,7 @@ import { PublicIcon } from '../../components/PublicIcon';
 import { supabaseAdmin } from '../../lib/supabase';
 import { boundedQuery } from '../../lib/query-timeout';
 import { formatHomeCents } from '../../lib/home-utils';
-import { getDisplayCover } from '../../lib/photo-catalog';
+import { getDistinctDisplayPhotos } from '../../lib/photo-catalog';
 
 export const dynamic = 'force-dynamic';
 
@@ -127,6 +127,12 @@ function pct(raised: number, goal: number) {
 
 export default async function AiFundraisingPage() {
   const { statsAvailable, activeCampaigns, totalRaised, donationCount, showcase } = await getAIPageData();
+  const showcaseCovers = getDistinctDisplayPhotos(showcase.map((campaign) => ({
+    storedCover: campaign.cover_image_url,
+    category: campaign.category,
+    key: campaign.slug,
+    pageScope: 'ai-fundraising',
+  })));
 
   return (
     <div className="pub-page aif-page">
@@ -241,10 +247,10 @@ export default async function AiFundraisingPage() {
           <h2>Real Campaigns. Real Results.</h2>
           <p className="aif-section-sub">These fundraisers are live today — each powered by CharitMe AI.</p>
           <div className="aif-showcase-grid">
-            {showcase.map(c => (
+            {showcase.map((c, index) => (
               <Link key={c.slug} href={`/campaigns/${c.slug}`} className="aif-showcase-card">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={getDisplayCover(c.cover_image_url, c.category, c.slug, 'ai-fundraising')} alt={c.title} />
+                <img src={showcaseCovers[index]} alt={c.title} />
                 <div className="aif-showcase-body">
                   <span className="aif-showcase-cat">{c.category}</span>
                   <h3>{c.title}</h3>
