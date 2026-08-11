@@ -49,7 +49,8 @@
     "audit:orphan-tables": "node scripts/audit-orphan-tables.mjs",
     "audit:shell-seam": "node scripts/audit-shell-seam.mjs",
     "audit:maintenance": "node scripts/audit-maintenance-mode.mjs --build",
-    "sweep:production": "node scripts/sweep-production-routes.mjs"
+    "sweep:production": "node scripts/sweep-production-routes.mjs",
+    "verify:money-flow": "node scripts/verify-stripe-money-flow.mjs"
   },
   "dependencies": {
     "@shared/fees": "*",
