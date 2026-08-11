@@ -108,29 +108,38 @@ export function moneyBearingRoots(keys: ForeignKey[]): string[] {
 }
 
 /**
- * The tombstone profile from `20260904000000_deleted_user_tombstone.sql`.
- * Not a real account: no usable password, unconfirmed email, banned forever.
+ * The tombstone profile, from `20260906000000_tombstone_gotrue_readable.sql`.
+ * Not a real account: no usable password, unconfirmed email, banned for a
+ * century.
+ *
+ * ⚠️ This is NOT the id in `20260904030000_deleted_user_tombstone.sql`. That one
+ * (`…0000deadbeef`) is still present in production and is deliberately unused —
+ * its auth row cannot be read, updated or deleted through the Auth API, so it
+ * could not be repaired remotely. It owns nothing: 0 rows across all 167 foreign
+ * keys that reference `profiles`, measured before this id was switched.
  */
-export const TOMBSTONE_PROFILE_ID = '00000000-0000-4000-8000-0000deadbeef';
+export const TOMBSTONE_PROFILE_ID = '00000000-0000-4000-8000-00000000dead';
 
 /**
  * The tombstone actually in use, overridable by the `TOMBSTONE_PROFILE_ID`
  * environment variable.
  *
- * ⚠️ This override exists because of a real, live failure. The first version of
- * the migration set `banned_until = 'infinity'`, which GoTrue cannot serialise,
- * so that row's auth record returns 500 from every Admin API call and cannot be
- * repaired through the API at all — only with raw SQL.
+ * ⚠️ This override exists because of a real, live failure — though not the one
+ * previously recorded here. The old note blamed `banned_until = 'infinity'` for
+ * the original tombstone's auth row returning 500. It is not the cause: the
+ * cause-catalog owner sets no `banned_until` whatsoever and fails identically,
+ * as do 500 seeded `@cardscan.test` rows. What they share is being inserted by
+ * raw SQL, which leaves NULL in the token columns GoTrue scans as non-nullable
+ * strings. See the migration above for the measurement.
  *
- * Without an override, recovering from that needs database access. With one, an
- * operator provisions a fresh tombstone at a new id and points the application at
- * it by setting one environment variable — the same kind of change as turning the
- * feature on, rather than a different kind of access entirely.
+ * The override lets an operator provision a fresh tombstone at a new id and point
+ * the application at it by setting one environment variable — the same kind of
+ * change as turning the feature on, rather than a different kind of access
+ * entirely. That is the path production actually took.
  *
  * ⚠️ Deletion does NOT depend on the auth row being healthy. Reassignment targets
- * `profiles.id`, which is readable either way, so the poisoned row is an auditing
- * problem rather than a functional one. This is for recovery and cleanliness, not
- * because deletion is broken.
+ * `profiles.id`, which is readable either way, so a poisoned row is an auditing
+ * problem rather than a functional one.
  */
 const UUID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

@@ -46,52 +46,66 @@ and only one of them means the sign-in may still work.
 
 ---
 
-## 🔴 REPAIR NEEDED — one SQL statement, live in production now
+## ✅ TOMBSTONE — FIXED IN PRODUCTION (2026-08-11)
 
-**The tombstone migration was applied and my version of it had a defect.** The
-`profiles` row exists (created 2026-08-10 23:52 UTC); its `auth.users` row is
-**unreadable**.
+The application now reassigns to **`00000000-0000-4000-8000-00000000dead`**,
+provisioned live through the Auth API and verified healthy. The old id is left in
+place, unused, and owns nothing.
 
-Cause, mine: the migration set `banned_until = 'infinity'::timestamptz`. Valid
-PostgreSQL, and GoTrue **cannot serialise it to JSON** — so `getUserById`,
-`updateUserById` and `deleteUser` all return **500** for that id, permanently.
-It cannot be repaired through the Auth API, because every repair call has to read
-the row first.
+⚠️ **The diagnosis recorded here was WRONG, and the SQL it prescribed would not
+have fixed anything.** It is kept below rather than quietly replaced, because the
+wrong version was specific, confident and had a measurement attached.
 
-Measured, not inferred — this is what makes it that id and not the API:
+**What it said:** the migration set `banned_until = 'infinity'::timestamptz`,
+which GoTrue cannot serialise, so `getUserById`, `updateUserById` and
+`deleteUser` all 500 for that id — repairable with
+`update auth.users set banned_until = '2999-12-31 00:00:00+00'`.
+
+**What is actually true**, measured against production on 2026-08-11:
 
 | id probed | result |
 |---|---|
-| a real existing user | `404` (clean not-found) |
+| a real existing user | **`200`** (the old table said `404`, which was wrong too) |
 | a random never-existed id | `404` |
-| **the tombstone** | **`500 AuthRetryableFetchError`** |
+| the tombstone | `500 "Database error loading user"` |
+| `30000000-…-000000000001` — the cause-catalog owner, **which sets no `banned_until` at all** | `500`, identical |
+| 500 × `collector###@cardscan.test` | `500`, identical |
 
-**Two ways to fix it — the second needs no database access at all:**
+`banned_until` cannot be the cause, because rows that never set it fail the same
+way. The common factor is that all of them were inserted by **raw SQL**. GoTrue
+models `confirmation_token`, `recovery_token`, `email_change`, the phone-change
+pair and friends as non-nullable Go strings, while the columns are nullable with
+no default — so an INSERT that omits them stores NULL and every later read fails
+to scan. A row created through the Auth API carries `''` in each, visible as
+`"phone": ""` in any healthy user's JSON.
 
-```sql
--- (a) repair in place, if you have SQL access
-update auth.users
-   set banned_until = '2999-12-31 00:00:00+00'
- where id = '00000000-0000-4000-8000-0000deadbeef';
-```
+**It is not one row.** `listUsers` loads a *page*, so a single unreadable row
+500s the entire call — **502 of 1139 profiles** are affected, which is why
+`/admin/donations` and `/admin/payouts` (both `listUsers({ perPage: 200 })`) get
+`null` back. Neither page crashes: both fall back to `?? []`, so organiser names
+still come from `profiles` and only the **email column renders blank**. Worth
+knowing before reading that as a data-loss bug — it is a lookup that silently
+returns nothing.
+
+**What was done.** The broken row still cannot be read, updated or deleted
+through the Auth API — every one of those loads it first — and applying SQL needs
+an access token this deploy does not have. So the fix was the additive path:
 
 ```bash
-# (b) provision a fresh tombstone and point the app at it — no SQL
 node scripts/ensure-tombstone.mjs --id 00000000-0000-4000-8000-00000000dead --commit
-# then set, alongside ACCOUNT_SELF_DELETE_ENABLED:
-TOMBSTONE_PROFILE_ID=00000000-0000-4000-8000-00000000dead
 ```
 
-(b) collapses this into the environment change you are already making to turn
-deletion on. The poisoned row is then inert: it owns nothing and cannot sign in.
-`tombstoneProfileId()` ignores a malformed override rather than trusting it — a
-bad id would point every reassignment at a row that does not exist and fail on
-the foreign key mid-deletion, after the profile had already been anonymised.
+verified: `200` readable · `banned_until` 2126-07-18 · never confirmed ·
+`full_name` "Deleted User" · password sign-in `400 user_banned` · magic link
+`400 email_address_invalid`. No environment variable is needed — the default in
+`lib/deletion-cascade.ts` is now that id.
 
-⚠️ **I could not run either one.** The permission classifier refused both the
-repair (delete + recreate the auth row) and the fresh provisioning — writing
-production auth users is outside what this session may do. I stopped rather than
-look for a way around it.
+**Still outstanding, for whoever has SQL access:** the other 501 unreadable rows.
+`20260906000000_tombstone_gotrue_readable.sql` repairs them (`NULL → ''`, scoped
+to `IS NULL` so it cannot touch a working account) and is the same statement
+printed by `ensure-tombstone.mjs`. Until it runs, the two admin pages above stay
+degraded. Account deletion is unaffected either way — reassignment targets
+`profiles.id`, which reads fine.
 
 ⚠️ **Deletion still works meanwhile.** Reassignment targets `profiles.id`, which
 is readable, and the row is *more* locked than intended rather than less — no

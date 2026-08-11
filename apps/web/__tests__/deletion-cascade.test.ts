@@ -96,16 +96,21 @@ describe('the tombstone reassignment set covers every path to money', () => {
 });
 
 describe('the tombstone id can be moved without database access', () => {
-  // ⚠️ This exists because the live tombstone's auth row is poisoned:
-  // `banned_until = 'infinity'` cannot be serialised by GoTrue, so every Admin
-  // API call for that id returns 500 and only raw SQL can repair it. The
-  // override turns that recovery into one environment variable.
+  // ⚠️ This exists because the FIRST tombstone's auth row is unreadable: it was
+  // inserted by raw SQL, which left NULL in the token columns GoTrue scans as
+  // non-nullable strings, so every Admin API call for that id returns 500 and
+  // only raw SQL can repair it. Production could not be repaired remotely, so
+  // the override is the path it actually took — a fresh id provisioned through
+  // the Auth API, which populates those columns.
   it('defaults to the migration id', () => {
     expect(tombstoneProfileId({})).toBe(TOMBSTONE_PROFILE_ID);
   });
 
   it('accepts a well-formed override', () => {
-    const fresh = '00000000-0000-4000-8000-00000000dead';
+    // ⚠️ Must NOT be the default, or this passes whether or not the override is
+    // read at all. It was `…00000000dead` until that became the default.
+    const fresh = '11111111-2222-4333-8444-555555555555';
+    expect(fresh).not.toBe(TOMBSTONE_PROFILE_ID);
     expect(tombstoneProfileId({ TOMBSTONE_PROFILE_ID: fresh })).toBe(fresh);
   });
 
@@ -120,7 +125,7 @@ describe('the tombstone id can be moved without database access', () => {
 
 describe('the tombstone itself', () => {
   const migration = readFileSync(
-    path.join(__dirname, '..', '..', '..', 'supabase', 'migrations', '20260904030000_deleted_user_tombstone.sql'),
+    path.join(__dirname, '..', '..', '..', 'supabase', 'migrations', '20260906000000_tombstone_gotrue_readable.sql'),
     'utf8',
   );
 
@@ -128,31 +133,68 @@ describe('the tombstone itself', () => {
     expect(migration).toContain(TOMBSTONE_PROFILE_ID);
   });
 
-  // ⚠️ Strip comments before asserting. The migration EXPLAINS why it avoids
-  // `'infinity'` and necessarily quotes it while doing so, so a check against the
-  // raw file fails on its own commentary — the same trap that has caught guards
-  // in this repo repeatedly.
+  // ⚠️ Strip comments before asserting. The migration EXPLAINS what it avoids and
+  // necessarily quotes it while doing so, so a check against the raw file fails
+  // on its own commentary — the trap that has caught guards in this repo
+  // repeatedly.
   const code = migration.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*--[^\n]*$/gm, '');
+  // The first `DO $$ … END $$;` provisions the tombstone; the second repairs
+  // rows that already exist. Only the first is asserted on below — the repair
+  // block legitimately mentions `'infinity'` in a WHERE clause, and a check
+  // against the whole file would read that as the bug it removes.
+  const [provision, repair] = code.split('END $$;');
 
   it('cannot be signed into', () => {
     // ⚠️ A sign-in-able tombstone is an account that owns every deleted user's
     // campaigns, payouts and Stripe subscriptions.
-    expect(code).toMatch(/banned_until/);
-    // ⚠️ Was `'infinity'::timestamptz`, and this guard PINNED THE BUG. Valid
-    // PostgreSQL, but GoTrue cannot serialise infinity to JSON, so the auth row
-    // becomes unreadable through the Admin API — getUserById, updateUserById and
-    // deleteUser all 500 for that id, permanently. Confirmed against production:
-    // a real user id 404s, a random id 404s, only the tombstone 500s.
-    // A finite far-future ban is just as unusable for sign-in and stays
-    // readable, so it can be audited and repaired.
-    expect(code, "'infinity' makes the row unreadable through the Auth API").not.toMatch(/'infinity'::timestamptz/);
-    expect(code).toMatch(/'2999-12-31[^']*'::timestamptz/);
+    expect(provision).toMatch(/banned_until/);
+    expect(provision).toMatch(/'2999-12-31[^']*'::timestamptz/);
+    expect(provision, 'an unbounded ban has no business in a Go time.Time').not.toMatch(/'infinity'/);
     expect(migration, 'a confirmed email would allow a magic-link sign-in').toMatch(/NULL,\s*--\s*never confirmed/);
     expect(migration).not.toMatch(/crypt\(/);
   });
 
+  it('populates every column GoTrue scans as a non-nullable string', () => {
+    // ⚠️ THIS is what made the original tombstone unreadable, not the ban value.
+    // GoTrue models these as Go `string`; the columns are nullable with no
+    // default, so a raw INSERT that omits them stores NULL and every later read
+    // of the row fails to scan with "Database error loading user".
+    //
+    // Measured against production: 502 of 1139 profiles had unreadable auth
+    // rows, including one that sets no `banned_until` at all — which is how the
+    // `'infinity'` theory was ruled out.
+    for (const column of [
+      'confirmation_token',
+      'recovery_token',
+      'email_change',
+      'email_change_token_new',
+      'email_change_token_current',
+      'phone_change',
+      'phone_change_token',
+      'reauthentication_token',
+    ]) {
+      expect(provision, `${column} left NULL makes the row unreadable`).toContain(column);
+    }
+  });
+
+  it('names the tombstone rather than leaving it blank', () => {
+    // ⚠️ `handle_new_user` creates the profile from the auth insert BEFORE this
+    // statement runs, so DO NOTHING writes no name — which is exactly what the
+    // original migration did, leaving production's tombstone with a NULL
+    // full_name and reassigned campaigns showing a blank organiser.
+    expect(provision).toMatch(/ON CONFLICT \(id\) DO UPDATE[\s\S]{0,120}full_name = 'Deleted User'/);
+  });
+
+  it('repairs existing rows without touching working ones', () => {
+    // NULL → '' is what the Auth API would have written. Scoping to IS NULL is
+    // what keeps this from rewriting a live account's tokens.
+    expect(repair).toMatch(/IS NULL/);
+    expect(repair).toMatch(/information_schema\.columns/);
+  });
+
   it('is safe to run twice', () => {
     // Migrations get replayed against existing databases.
-    expect((migration.match(/ON CONFLICT \(id\) DO NOTHING/g) ?? []).length).toBe(2);
+    expect(provision).toMatch(/ON CONFLICT \(id\) DO NOTHING/);
+    expect(provision).toMatch(/ON CONFLICT \(id\) DO UPDATE/);
   });
 });

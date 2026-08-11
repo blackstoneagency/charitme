@@ -120,10 +120,20 @@ below.
 
 ```sql
 select id, full_name from public.profiles
- where id = '00000000-0000-4000-8000-0000deadbeef';   -- tombstone present
-select banned_until, email_confirmed_at from auth.users
- where id = '00000000-0000-4000-8000-0000deadbeef';   -- infinity, null
+ where id = '00000000-0000-4000-8000-00000000dead';   -- 'Deleted User'
+select banned_until, email_confirmed_at, confirmation_token from auth.users
+ where id = '00000000-0000-4000-8000-00000000dead';   -- far future, null, ''
 ```
+
+⚠️ `confirmation_token` is in that list deliberately. If it — or any of
+`recovery_token`, `email_change`, `email_change_token_new`,
+`email_change_token_current`, `phone_change`, `phone_change_token`,
+`reauthentication_token` — comes back **NULL** rather than `''`, GoTrue cannot
+scan the row and every Admin API read of it returns
+`500 "Database error loading user"`. That is what happened to the original
+tombstone (`…0000deadbeef`, now unused) and to 502 rows in production. It is a
+property of inserting into `auth.users` with raw SQL, not of any value stored in
+`banned_until`.
 
 The tombstone is the precondition for self-service account deletion. Until it
 exists, `POST /api/account/delete` refuses with `TOMBSTONE_MISSING` (503) rather

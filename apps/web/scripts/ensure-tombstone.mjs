@@ -44,11 +44,13 @@ const idFlag = process.argv.indexOf('--id');
 const TOMBSTONE_ID =
   idFlag !== -1 && process.argv[idFlag + 1]
     ? process.argv[idFlag + 1]
-    : '00000000-0000-4000-8000-0000deadbeef';
+    : '00000000-0000-4000-8000-00000000dead';
 const TOMBSTONE_EMAIL =
   TOMBSTONE_ID === '00000000-0000-4000-8000-0000deadbeef'
     ? 'deleted-user@charitme.invalid'
-    // Emails are UNIQUE in auth.users, so a second tombstone needs its own.
+    // Emails are UNIQUE in auth.users, and `deleted-user@charitme.invalid` is
+    // still held by the original unreadable row, so every other tombstone needs
+    // its own address.
     : `deleted-user-${TOMBSTONE_ID.slice(-8)}@charitme.invalid`;
 /** 100 years. The API rejects 'infinity'; this is the practical equivalent. */
 const BAN_DURATION = '876000h';
@@ -93,11 +95,15 @@ if (existingProfile) {
   // ⚠️ A profile row is NOT proof of a healthy tombstone, and reporting it as one
   // is exactly how this script first misled me. Verify the AUTH side too.
   //
-  // Measured against production: the tombstone id returned 500 from getUserById
-  // while a real user id returned a clean 404 and a random id returned 404. The
-  // cause was `banned_until = 'infinity'` in the first version of the migration —
-  // valid PostgreSQL, unserialisable by GoTrue, so the row is permanently
-  // unreadable AND unrepairable through the Auth API.
+  // Measured against production: the original tombstone id returned 500 from
+  // getUserById while real user ids returned 200 and a random id returned 404.
+  // The cause is NOT `banned_until = 'infinity'`, which this script used to
+  // claim — the cause-catalog owner sets no `banned_until` at all and fails
+  // identically, as do 500 seeded `@cardscan.test` rows. What they share is a
+  // raw-SQL INSERT that left NULL in the token columns GoTrue scans as
+  // non-nullable Go strings, so the row cannot be scanned at all.
+  //
+  // Rows created HERE go through the Auth API, which populates them.
   const probe = await sb.auth.admin.getUserById(TOMBSTONE_ID);
   if (probe.data?.user) {
     console.log(`auth row : readable (banned_until=${probe.data.user.banned_until ?? 'none'})`);
@@ -112,19 +118,25 @@ if (existingProfile) {
   const status = probe.error?.status ?? 0;
   if (status === 500) {
     console.error(
-      '\nx BROKEN TOMBSTONE. The profile row exists but its auth row returns 500,\n' +
-      '  meaning banned_until holds a value GoTrue cannot serialise - infinity,\n' +
-      '  from the first version of this migration.\n\n' +
+      '\nx BROKEN TOMBSTONE. The profile row exists but its auth row returns 500\n' +
+      '  ("Database error loading user"), because it was inserted by raw SQL that\n' +
+      '  left NULL in the token columns GoTrue scans as non-nullable strings.\n\n' +
       '  It cannot be repaired through the Auth API: getUserById, updateUserById\n' +
-      '  and deleteUser all 500. Repair with ONE SQL statement:\n\n' +
-      "    update auth.users set banned_until = '2999-12-31 00:00:00+00'\n" +
+      '  and deleteUser all 500 - each of them loads the row first. Repair needs\n' +
+      "  SQL. `20260906000000_tombstone_gotrue_readable.sql` does it, or by hand:\n\n" +
+      "    update auth.users set confirmation_token = '', recovery_token = '',\n" +
+      "           email_change = '', email_change_token_new = '',\n" +
+      "           email_change_token_current = '', phone_change = '',\n" +
+      "           phone_change_token = '', reauthentication_token = ''\n" +
       `     where id = '${TOMBSTONE_ID}';\n\n` +
-      '  Deletion still works meanwhile - reassignment targets profiles.id, which\n' +
-      '  is readable - but the row cannot be audited until this is run.\n\n' +
-      '  OR, with no database access at all:\n\n' +
-      '    node scripts/ensure-tombstone.mjs --id 00000000-0000-4000-8000-00000000dead --commit\n' +
-      '    then set TOMBSTONE_PROFILE_ID=00000000-0000-4000-8000-00000000dead\n\n' +
-      '  The poisoned row is then inert: it owns nothing and cannot sign in.',
+      '  ⚠ This is not one row. listUsers loads a PAGE, so ONE unreadable row\n' +
+      '    500s the whole call - dropping the same statement without the WHERE\n' +
+      '    (using `where <column> is null`) repairs every affected account.\n\n' +
+      '  OR, with no SQL access at all:\n\n' +
+      '    node scripts/ensure-tombstone.mjs --id <fresh-uuid> --commit\n' +
+      '    then set TOMBSTONE_PROFILE_ID=<fresh-uuid>\n\n' +
+      '  createUser goes through the Auth API, which populates those columns.\n' +
+      '  The broken row is then inert: it owns nothing and cannot sign in.',
     );
     process.exit(1);
   }

@@ -3914,10 +3914,10 @@ skipped workflow leaves its check pending forever and would deadlock a docs-only
 PR. Nothing is required today, which is why this is safe now — recorded so the
 next person does not find out the hard way.
 
-## 🛑 SUPABASE STAGING — historical audit, and the file-derived upper-bound pending count is **51** (Claude, 2026-08-03)
+## 🛑 SUPABASE STAGING — historical audit, and the file-derived upper-bound pending count is **52** (Claude, 2026-08-03)
 
-**Live ledger rechecked 2026-08-11:** 138 local migration files against 87
-production ledger entries. The 51-file upper-bound gap below is therefore a current
+**Live ledger rechecked 2026-08-11:** 139 local migration files against 87
+production ledger entries. The 52-file upper-bound gap below is therefore a current
 measurement, not only historical arithmetic.
 
 **+1 on 2026-08-11: `20260905000000_web_push_subscriptions.sql`** (→ 49). Lands
@@ -3932,6 +3932,18 @@ deliberately does NOT depend on it: it inserts the true channel and, on 23514,
 retries once as `facebook`/`other`. Applying it upgrades the data; not applying
 it costs precision, not events — which matters, because losing the event is
 exactly the bug this fixes.
+
+**+1 on 2026-08-11: `20260906000000_tombstone_gotrue_readable.sql`** (→ 52).
+⚠️ **Half of this one is already satisfied in production without being applied**,
+which is unusual enough to state plainly. The tombstone it provisions
+(`…00000000dead`) was created live through the Auth API by
+`scripts/ensure-tombstone.mjs`, so production already has the row and the app
+already points at it. What has NOT run anywhere is the second half: the repair
+that rewrites NULL token columns in `auth.users`. Until it does, **502 of 1139
+production auth rows stay unreadable** and `listUsers` 500s, which blanks the
+email column on `/admin/donations` and `/admin/payouts`. Nothing is lost by
+waiting — the repair is `NULL → ''`, scoped to `IS NULL`, and cannot touch a
+working account.
 
 ⚠️ The newest of them, `20260904030000_deleted_user_tombstone`, is a
 **precondition for self-service account deletion** — until it is applied,
@@ -4053,9 +4065,11 @@ that day**:
 dump confirmed the objects were absent, and a restored production clone applied
 all 18 in order and proved rollback.
 
-Thirty-one migrations have been added since. So the count is arithmetic:
+Thirty-four migrations have been added since. So the count is arithmetic:
 
 ```
+139 local − 87 applied           = 52
+18 audited pending + 34 added    = 52   ✓ reconciles
 138 local − 87 applied           = 51
 18 audited pending + 33 added    = 51   ✓ reconciles
 137 local − 87 applied           = 50
@@ -24688,3 +24702,76 @@ payment code:
 
 A dispute WITHHOLDS funds rather than refunding them; counting it as an
 adjustment double-subtracted the same money.
+
+
+---
+
+## ✅ TOMBSTONE FIXED IN PRODUCTION — and the recorded diagnosis was wrong (2026-08-11)
+
+`00000000-0000-4000-8000-00000000dead` is live, healthy and is now the default in
+`lib/deletion-cascade.ts`. **No environment variable is needed.**
+
+Verified against production: `200` readable · `banned_until` 2126-07-18 · email
+never confirmed · `full_name` "Deleted User" · password sign-in `400 user_banned`
+· magic link `400 email_address_invalid`.
+
+### ⚠️ The `'infinity'` diagnosis was WRONG, and its prescribed SQL fixes nothing
+
+Three files said the original tombstone's auth row 500s because
+`banned_until = 'infinity'::timestamptz` cannot be serialised, and prescribed
+`update auth.users set banned_until = '2999-12-31 00:00:00+00'`. Measured today:
+
+| id probed | result |
+|---|---|
+| a real existing user | **`200`** — the old note claimed `404`, also wrong |
+| a random never-existed id | `404` |
+| the tombstone | `500 "Database error loading user"` |
+| `30000000-…-000000000001` cause-catalog owner — **sets no `banned_until` at all** | `500`, identical |
+| 500 × `collector###@cardscan.test` | `500`, identical |
+
+A row that never sets `banned_until` fails identically, so `banned_until` cannot
+be the cause. What all 502 share is a **raw-SQL INSERT into `auth.users`**. GoTrue
+models `confirmation_token`, `recovery_token`, `email_change`, the phone-change
+pair and friends as non-nullable Go strings; the columns are nullable with no
+default, so an omitted column stores NULL and every later read fails to SCAN.
+A row created through the Auth API carries `''` in each — visible as
+`"phone": ""` on any healthy user.
+
+**The corrected migration would have reproduced the bug.** It fixed the ban value
+and still omitted the token columns.
+
+### It is 502 rows, not one — `listUsers` loads a PAGE
+
+One unreadable row 500s the whole call. **502 of 1139 production profiles** are
+affected, so `auth.admin.listUsers({ perPage: 200 })` returns nothing to
+`/admin/donations` and `/admin/payouts`. Neither page crashes — both `?? []`, so
+names still come from `profiles` and only the **email column renders blank**.
+
+### What was done, and what is left
+
+Deleting or repairing the broken row was impossible from here: `getUserById`,
+`updateUserById` and `deleteUser` all load the row first and all 500, and raw SQL
+needs an access token this deploy does not have. (The permission classifier also
+refused the delete, correctly — I did not work around it.) So the fix was the
+additive path — `ensure-tombstone.mjs --id … --commit`, which goes through the
+Auth API and needs only the service-role key.
+
+Before switching, the old id was verified to own **0 rows across all 167 foreign
+keys that reference `profiles`**, so nothing was orphaned. It stays in place,
+inert, unreadable and un-signed-into.
+
+🔧 **Left for whoever has SQL access:**
+`20260906000000_tombstone_gotrue_readable.sql` repairs the remaining 501 rows
+(`NULL → ''`, scoped to `IS NULL`, column-guarded via `information_schema` so it
+survives any GoTrue version). Until it runs, the two admin pages stay
+email-blank. Account deletion is unaffected either way — reassignment targets
+`profiles.id`, which reads fine.
+
+Also fixed: the original migration's profile insert used `ON CONFLICT DO NOTHING`,
+but `handle_new_user` creates the profile row FIRST — so production's tombstone
+has `full_name = NULL` and a reassigned campaign would show a blank organiser.
+The new migration uses `DO UPDATE`.
+
+Guards added in `__tests__/deletion-cascade.test.ts`, all three mutation-tested:
+drop the token columns → fails; `DO UPDATE` → `DO NOTHING` → fails; repair loses
+its `IS NULL` scope → fails.
