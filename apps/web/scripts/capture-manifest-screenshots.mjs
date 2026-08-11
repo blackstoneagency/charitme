@@ -29,6 +29,7 @@
  * If a future run hangs again, suspect the wait condition before the page.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
+import { recordAssets, summarize } from './lib/image-inventory.mjs';
 import { join } from 'node:path';
 import { chromium } from '@playwright/test';
 import { resolveBase } from './lib/audit-base.mjs';
@@ -179,6 +180,23 @@ if (process.argv.includes('--store')) {
     await ctx.close();
   }
   console.log(`\nstore listing screenshots: ${ok} captured, ${bad} failed → public/store/screenshots/`);
+  // ⚠️ Record provenance in the SAME run that writes the pixels. Capturing
+  // without inventorying turned master red three times in one session, and
+  // because CI tests a PR against its merge with master it failed every open
+  // PR too — with an error none of their authors caused.
+  if (bad === 0) {
+    const recorded = STORE_DEVICES.flatMap((device) =>
+      SHOTS.map((shot) => ({
+        path: `store/screenshots/${device.key}-${shot.file}`,
+        subject: `${device.label} screenshot of CharitMe ${shot.path} at ${device.width}x${device.height}`,
+        fit: `Store listing screenshot: ${shot.label}`,
+        source: 'Captured from a local production build by apps/web/scripts/capture-manifest-screenshots.mjs --store',
+        license: "CharitMe-owned: a rendering of this application's own UI",
+        uses: [device.key.startsWith('ios') ? 'App Store listing' : 'Play Store listing'],
+      })),
+    );
+    console.log(summarize(recordAssets(recorded)));
+  }
   if (bad > 0) {
     await browser.close();
     process.exit(1);
@@ -196,6 +214,16 @@ const generated = {
   shots: captured.map((s) => ({ src: `/screenshots/${s.file}`, label: s.label })),
 };
 writeFileSync(join(WEB_ROOT, 'lib', 'manifest-screenshots.json'), `${JSON.stringify(generated, null, 2)}\n`);
+
+const manifestAssets = captured.map((shot) => ({
+  path: `screenshots/${shot.file}`,
+  subject: `Screenshot of CharitMe ${shot.path} at ${generated.width}x${generated.height}`,
+  fit: `Manifest screenshot, labelled "${shot.label}" in the Android install dialog`,
+  source: 'Captured from a local production build by apps/web/scripts/capture-manifest-screenshots.mjs',
+  license: "CharitMe-owned: a rendering of this application's own UI",
+  uses: ['PWA manifest'],
+}));
+console.log(summarize(recordAssets(manifestAssets)));
 
 console.log(`\n${captured.length}/${SHOTS.length} captured at ${generated.width}×${generated.height}`);
 if (failed.length) {

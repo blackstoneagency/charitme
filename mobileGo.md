@@ -141,7 +141,7 @@ with no claim is free. An item with a claim is someone else's — pick another.
 
 | Item | Claimed by | Since | State |
 |---|---|---|---|
-| Store listing art | claude/mobile | 2026-08-10 | ✅ done, released |
+| Store listing art | claude/mobile | 2026-08-10 | ✅ done, released — ⚠️ logo source corrected since, see Applied |
 | Native shells (TWA + Capacitor config) | claude/mobile | 2026-08-10 | ✅ config done, released |
 | Privacy declarations | claude/mobile | 2026-08-10 | ✅ done, released |
 | Per-device store screenshots | claude/mobile | 2026-08-10 | ✅ done, released |
@@ -149,7 +149,7 @@ with no claim is free. An item with a claim is someone else's — pick another.
 | Native-shell toolchain — what actually blocks a build | claude/…njok43 | 2026-08-10 | ✅ measured, see item 3 |
 | Native share sheet (4.2 mitigation #2) | claude/…njok43 | 2026-08-11 | ✅ done, in PR #360 |
 | Web push — SSRF + open-redirect hardening | claude/…njok43 | 2026-08-11 | ✅ done, in PR #360 |
-| Tombstone migration apply | — | | 🔒 blocked on credentials, not on people |
+| Tombstone migration apply | — | | 🔓 OWNER, one paste — see Open #1; not blocked on a missing credential |
 
 ### ⚠️ This table did not prevent a collision, and here is why
 
@@ -187,8 +187,13 @@ gaps as open — see "Web push hardening" under Applied.
 
 ⚠️ **Do not take "blocked on credentials" items.** They are not unclaimed work —
 they cannot be finished by anyone in a sandbox, and a second agent rediscovering
-that is pure duplication. As of 2026-08-10 that is the migration apply and both
-sets of store credentials.
+that is pure duplication. As of 2026-08-10 that is both sets of store credentials.
+
+⚠️ **The tombstone apply is no longer one of them.** It was listed as blocked on a
+credential; it is not. The Supabase SQL editor runs as `postgres` and executes
+migration SQL directly, which the owner used on 2026-08-10 to apply
+`20260904040000`. Still an OWNER action — but a two-minute one, not an
+unreachable one. Detail in Open #1.
 
 ⚠️ **Check open PRs before claiming.** PR #355 (campaign photos) is a different
 lane but is blocked on the SAME rotated `SUPABASE_SERVICE_ROLE_KEY` — a working
@@ -337,6 +342,33 @@ RGBA despite flattening. Fixed with a second pass.
 asserts the in-app icons are deliberately NOT treated this way — stripping their
 alpha would put a purple square on the home screen.
 
+⚠️ **CORRECTION, and it was shipping the wrong logo.** The first version rendered
+`icon-source.svg`, which draws a **purple tile with a plain white heart**. The
+mark this app actually ships — `icon-512.png`, `apple-touch-icon.png`, the
+favicon, `CharitMe_Logo.png` — is a **red heart carrying a "C", cradled by a
+purple and an orange hand**. Measured: the centre pixel of `icon-512.png` is
+`(209,3,1)`, red. So `ios-icon-1024.png` showed a different logo from the app it
+belonged to, and nothing could catch it: the PNG was valid, opaque, square, the
+right size, and every assertion passed. A reviewer comparing the listing icon to
+the app would have seen two products.
+
+The mark now comes from `public/CharitMe_Logo.png` (1254×1254, so 1024 is
+downscaled, not upscaled), composited on the same brand gradient.
+
+Two things had to be solved to put it there, both measured:
+
+- **The logo has an opaque white background baked INSIDE its silhouette** —
+  invisible on white, light blobs on the gradient. Its alpha is *binary*, and
+  near-white pixels form connected components: the **"C" is n=11093**, and three
+  others (n≈3528, 2963, 2940) are the gaps where the heart meets each hand.
+  `cleanMark()` keeps the component containing a known "C" pixel and clears the
+  rest, and **throws** if the "C" ever stops being the largest rather than
+  silently erasing the letter. Threshold is 215, not 232: at 232 the
+  anti-aliased edges survive as thin slivers.
+- **The tile SVG was drawing the old mark behind the new one.** `squared` is the
+  whole SVG, gradient *and* the old heart-and-hand, which showed through as a
+  pale swoosh. `tile()` now strips the `<g>` group so only the gradient field
+  remains, and throws if that group is not found.
 ### Per-device listing screenshots — 12, at exact console sizes
 `npm run capture:screenshots -- --store` captures 4 screens across 3 device
 classes into `public/store/screenshots/`:
@@ -429,6 +461,27 @@ password, neither of which is present.
 Runbook: **`docs/apply-pending-migrations.md`**, which also flags that a single
 `db push` applies 46 other migrations, three of them recorded by their own authors
 as needing staging verification first.
+
+✅ **CORRECTION: it is not blocked on a credential the owner lacks — it is one
+paste.** The note above is right that *this sandbox* cannot apply it and that
+PostgREST cannot run DDL. It is wrong as a conclusion about the **owner**: the
+Supabase **SQL editor** runs as `postgres`, not through PostgREST, so it executes
+migration SQL directly. Demonstrated 2026-08-10 — the owner applied
+`20260904040000_default_support_percent_ten` that way, read the value back as
+`10`, and the live donate card changed within the minute.
+
+This migration is safe to run **alone**: pure DML (two `INSERT`s and a
+`COMMENT`), both `ON CONFLICT (id) DO NOTHING` so idempotent, it deletes nothing,
+creates no schema, and depends on nothing else pending — `auth.users` and
+`public.profiles` already exist, and `profiles` has no `NOT NULL` column without a
+default beyond the four it supplies. So it does **not** drag in the other 46, and
+none of the three staging-gated migrations are involved.
+
+⚠️ Two limits: it writes no `schema_migrations` row, so `migration list` will
+still call it pending and a later `db push` re-runs it as a no-op; and this route
+is **not** a general substitute for `db push` — it suits this file because it is
+idempotent, self-contained and destroys nothing. Steps and the verification query
+are in the runbook under *"You do not have to push all 47 to unblock deletion"*.
 
 ### 2. `ACCOUNT_SELF_DELETE_ENABLED` is off
 Deliberate: `master` deploys straight to production, and an irreversible delete
