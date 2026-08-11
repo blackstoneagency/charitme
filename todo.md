@@ -24320,3 +24320,73 @@ a photo DEPICTS. `unsplash.com/photos/<id>` returns no usable metadata here. So
 enlarging the themed pools needs someone who can see the images — assigning
 subject-unknown photos to named categories risks a wedding photo on a medical
 campaign, which is worse than a correct shared one.
+
+---
+
+## 💳 PAYMENT ROUTING AUDIT — donations are correct; two other routes are not (Claude, 2026-08-11)
+
+Verified the three promises the product makes: CharitMe never holds funds, CharitMe
+is paid the service fee, the recipient receives 100% of the donation.
+
+### ✅ One-off donations (`/api/donations`) — correct, and now TESTED
+
+`payment_intent_data.transfer_data.destination` makes every charge a DESTINATION
+charge, so Stripe moves the money to the recipient's connected account at capture
+and it never enters CharitMe's balance. `application_fee_amount = tipCents +
+processingFeeCents`, so the recipient nets exactly `amountCents`.
+
+Guards, both airtight: no verified destination → **409, no Stripe call**; a
+readiness lookup that FAILS → **503, no Stripe call** (declining is recoverable,
+paying the wrong person is not).
+
+⚠️ **None of this was tested.** `donation-guest-flow.test.ts` looks like coverage
+and is not — it rebuilds the metadata shape locally, never executes the route, and
+its only mention of `application_fee_amount` is a comment.
+`__tests__/donation-money-flow.test.ts` (13 tests) now EXECUTES the route and pins
+the Stripe params. Mutation-tested, each verified to fail for the right reason:
+dropping `transfer_data`, inflating the application fee by the donation, and
+bypassing the no-destination guard are all caught.
+
+### ✅ Recurring donations (`/api/donations/recurring`) — correct
+
+Same destination charge; subscriptions take `application_fee_percent` rather than
+a fixed amount, computed from the tip. Processing is NOT added per cycle — Stripe
+deducts it from the platform, so CharitMe absorbs it on recurring gifts by design.
+
+### ⚠️ Portfolio / split gifts (`/api/donations/portfolio`) — CharitMe DOES hold funds
+
+`payment_intent_data` carries **no `transfer_data`**: the charge lands on the
+PLATFORM balance with a `transfer_group`, and the webhook fans out separate
+transfers. That is "separate charges and transfers" — CharitMe holds the money
+between charge and fan-out.
+
+This is a Stripe constraint, not an oversight: `transfer_data.destination` takes
+exactly ONE connected account, and a portfolio gift splits across several
+campaigns. It is the only route that breaks the never-hold-funds rule.
+
+**Owner decision, NOT a bot fix** — the options are (a) accept it for split gifts,
+(b) issue N separate destination charges (one authorisation per campaign, which
+changes the donor UX), or (c) withdraw the feature. Deleting a working
+customer-facing feature unilaterally is not something to do on inference.
+
+### ⚠️ Event tickets (`/api/events/[id]/tickets/checkout`) — CharitMe collects NOTHING
+
+`transfer_data.destination` is set but there is **no `application_fee_amount`**, and
+the route computes no fee at all. So the full ticket price transfers to the
+organizer and Stripe's processing fee is deducted from CharitMe's balance —
+CharitMe pays to sell someone else's ticket. Unlike creator tiers there is no
+comment saying this is intended, which is what makes it worth surfacing.
+
+### ℹ️ Creator memberships (`/api/creators/tiers/subscribe`) — same shape, DELIBERATE
+
+Also destination-charged with no application fee, but the code says so explicitly:
+"The creator receives the money; CharitMe takes no platform fee." Recorded so the
+next audit does not re-flag it.
+
+### 🚧 What could NOT be verified here, and why
+
+No live charge → transfer → payout was executed. There are no Stripe test keys in
+this sandbox and using production credentials in a test is forbidden, so the
+end-to-end money movement stays owner-gated. Everything above is verified at the
+point where it is decided — the params sent to `createCheckoutSession` — which is
+the strongest evidence obtainable without test keys.
