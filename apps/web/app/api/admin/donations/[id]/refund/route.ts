@@ -46,18 +46,57 @@ export async function POST(
     return NextResponse.json({ error: 'Donation already refunded' }, { status: 400 });
   }
 
+  // ── How much of this donation has ALREADY been refunded ────────────────────
+  //
+  // ⚠️ Without this the clamp is PER CALL, not cumulative. A partial refund
+  // leaves the donation `completed` (there is no `partially_refunded` status),
+  // so the guard above does not stop a second one — and each call was allowed up
+  // to the full principal. Two $55 refunds on a $100 donation both succeed:
+  // $110 refunded, $10 of it CharitMe's tip and processing revenue, and the
+  // donation still reads `completed`.
+  //
+  // Stripe is only a backstop here, and a loose one: it rejects once cumulative
+  // refunds exceed the CHARGE, and the charge is principal + tip + processing —
+  // so there is headroom above the principal for exactly this to happen quietly.
+  const { data: priorRefunds, error: priorError } = await supabaseAdmin
+    .from('refunds')
+    .select('amount_cents')
+    .eq('donation_id', id);
+  if (priorError) {
+    // Fail CLOSED. An unknown refund history is not a zero refund history, and
+    // guessing here refunds someone else's money.
+    return NextResponse.json(
+      { error: 'Could not read this donation\'s refund history. Nothing was refunded.', code: 'REFUND_HISTORY_UNAVAILABLE' },
+      { status: 503 },
+    );
+  }
+  const alreadyRefunded = (priorRefunds ?? []).reduce((sum, r) => sum + Number(r.amount_cents ?? 0), 0);
+  const remainingCents = don.amount_cents - alreadyRefunded;
+
+  if (remainingCents <= 0) {
+    return NextResponse.json(
+      {
+        error: `This donation is fully refunded (${alreadyRefunded} of ${don.amount_cents} cents).`,
+        code: 'ALREADY_REFUNDED',
+      },
+      { status: 400 },
+    );
+  }
+
   const rawAmount = body.amount_cents;
   const refundCents =
     typeof rawAmount === 'number'
-      ? Math.min(Math.max(1, Math.round(rawAmount)), don.amount_cents)
-      : don.amount_cents;
+      ? Math.min(Math.max(1, Math.round(rawAmount)), remainingCents)
+      : remainingCents;
 
   const reason = typeof body.reason === 'string' && body.reason.trim()
     ? body.reason.trim()
     : 'Admin refund';
 
   const now = new Date().toISOString();
-  const isFullRefund = refundCents >= don.amount_cents;
+  // Full means the principal is now entirely refunded — counting what came
+  // before, not just this call.
+  const isFullRefund = alreadyRefunded + refundCents >= don.amount_cents;
   let stripeRefundId: string | null = null;
 
   // Issue Stripe refund if we have a payment intent.
