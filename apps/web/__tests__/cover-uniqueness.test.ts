@@ -91,6 +91,14 @@ describe('per-campaign covers never use the per-category helper', () => {
     const src = read('components/CampaignImage.tsx');
     expect(src).toMatch(/usableSource\?\.startsWith\('\/'\)/);
   });
+
+  it('event overflow explicitly opts into unique first-party subject art', () => {
+    const component = read('components/CampaignImage.tsx');
+    const events = read('app/events/(list)/page.tsx');
+    expect(component).toContain('allowGeneratedFallback');
+    expect(component).toMatch(/generatedAllowed\s*=\s*allowGeneratedFallback/);
+    expect(events).toContain('allowGeneratedFallback');
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

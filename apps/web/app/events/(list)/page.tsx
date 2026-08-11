@@ -98,7 +98,7 @@ export default async function EventsPage({ searchParams }: { searchParams?: Prom
                 const full = Number.isFinite(remaining) && remaining <= 0;
                 return (
                   <article className="rp-live-card" key={event.id}>
-                    <Link href={`/events/${event.slug}`} className="rp-live-media"><CampaignImage src={photos[index]} category="Event" campaignKey={event.slug} alt="" width={520} height={300} loading="lazy" /></Link>
+                    <Link href={`/events/${event.slug}`} className="rp-live-media"><CampaignImage src={photos[index]} category="Event" campaignKey={event.slug} alt="" width={520} height={300} loading="lazy" allowGeneratedFallback /></Link>
                     <div className="rp-live-body">
                       <div className="rp-live-tags"><span>{event.event_type.replaceAll('_', ' ')}</span>{event.virtual_url && <span>Virtual</span>}{full && <span>Full</span>}</div>
                       <h3><Link href={`/events/${event.slug}`}>{event.title}</Link></h3>
