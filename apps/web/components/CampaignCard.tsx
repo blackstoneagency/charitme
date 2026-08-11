@@ -58,6 +58,7 @@ export function CampaignCard({
   variant = 'full',
   highlightFeatured = true,
   coverScope,
+  coverOverride,
 }: {
   campaign: CampaignCardData;
   currency?: string;
@@ -73,6 +74,8 @@ export function CampaignCard({
   highlightFeatured?: boolean;
   /** Replaces known stock catalog media with a route-specific first-party cover. */
   coverScope?: string;
+  /** A page allocator may provide a cover after resolving duplicate media. */
+  coverOverride?: string;
   /**
    * `full` is the dense listing card: trust score, donor count, goal tiles and
    * the countdown. `feature` is the quieter card from the cause-landing
@@ -112,6 +115,7 @@ export function CampaignCard({
   // must render identically to false rather than throwing a highlight around
   // every card on a surface that forgot the column.
   const isFeatured = c.featured === true && highlightFeatured;
+  const coverUrl = coverOverride ?? getDisplayCover(c.cover_image_url, c.category, c.slug, coverScope);
 
   if (variant === 'feature') {
     return (
@@ -122,7 +126,7 @@ export function CampaignCard({
         <div className="cc-feature-media">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={optimizedCoverUrl(getDisplayCover(c.cover_image_url, c.category, c.slug, coverScope), 700)}
+            src={optimizedCoverUrl(coverUrl, 700)}
             data-image-entity={`campaign:${c.id}`}
             alt=""
             loading="lazy"
@@ -167,7 +171,7 @@ export function CampaignCard({
         <div style={{ height: '190px', position: 'relative', flexShrink: 0, overflow: 'hidden', background: 'var(--s3)' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={optimizedCoverUrl(getDisplayCover(c.cover_image_url, c.category, c.slug, coverScope), 700)}
+            src={optimizedCoverUrl(coverUrl, 700)}
             data-image-entity={`campaign:${c.id}`}
             alt=""
             loading="lazy"
