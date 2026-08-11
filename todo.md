@@ -3961,16 +3961,16 @@ it costs precision, not events — which matters, because losing the event is
 exactly the bug this fixes.
 
 **+1 on 2026-08-11: `20260906000000_tombstone_gotrue_readable.sql`** (→ 52).
-⚠️ **Half of this one is already satisfied in production without being applied**,
-which is unusual enough to state plainly. The tombstone it provisions
-(`…00000000dead`) was created live through the Auth API by
-`scripts/ensure-tombstone.mjs`, so production already has the row and the app
-already points at it. What has NOT run anywhere is the second half: the repair
-that rewrites NULL token columns in `auth.users`. Until it does, **502 of 1139
-production auth rows stay unreadable** and `listUsers` 500s, which blanks the
-email column on `/admin/donations` and `/admin/payouts`. Nothing is lost by
-waiting — the repair is `NULL → ''`, scoped to `IS NULL`, and cannot touch a
-working account.
+✅ **APPLIED TO PRODUCTION** — by hand, by the owner, same day. Re-measured after:
+**0 unreadable auth rows, down from 502**, and `listUsers` sweeps all 4 pages
+(640 users) without failing. Both tombstones read `200`.
+
+⚠️ Applied by hand, so it is probably not in `supabase_migrations.schema_migrations`
+and `supabase db push` will try it again. Safe: the inserts are
+`ON CONFLICT DO NOTHING` / `DO UPDATE`, the repair is scoped to `IS NULL`, so a
+second run is a no-op. It is counted as pending in the arithmetic above because
+that number is derived from **disk vs the 2026-07-29 audit snapshot**, which is a
+deliberate upper bound and does not track hand-applied changes.
 
 **+1 on 2026-08-11: `20260906010000_stripe_money_flow_integrity.sql`** (→ 53).
 The Stripe objects are already live because the SQL was applied manually, but the
@@ -24788,12 +24788,27 @@ Before switching, the old id was verified to own **0 rows across all 167 foreign
 keys that reference `profiles`**, so nothing was orphaned. It stays in place,
 inert, unreadable and un-signed-into.
 
-🔧 **Left for whoever has SQL access:**
-`20260906000000_tombstone_gotrue_readable.sql` repairs the remaining 501 rows
-(`NULL → ''`, scoped to `IS NULL`, column-guarded via `information_schema` so it
-survives any GoTrue version). Until it runs, the two admin pages stay
-email-blank. Account deletion is unaffected either way — reassignment targets
-`profiles.id`, which reads fine.
+### ✅ And the repair ran — 502 → 0, verified same day
+
+The owner applied `20260906000000_tombstone_gotrue_readable.sql` by hand.
+Re-measured across all 1140 profiles immediately afterwards:
+
+| | before | after |
+|---|---|---|
+| unreadable auth rows (`500`) | **502** | **0** |
+| `listUsers({ perPage: 200 })` | `500` | `200` — 4 pages, 640 users, no failures |
+| old tombstone `…0000deadbeef` | `500` | `200`, `banned_until` 2999-12-31, `phone: ""` |
+| new tombstone `…00000000dead` | — | `200`, banned to 2126, `full_name` "Deleted User" |
+
+So `/admin/donations` and `/admin/payouts` show donor emails again.
+
+The 500 profiles that answer `404` are `@CharitMe.example` seed rows with no auth
+user at all — unchanged, expected, and not a fault. A `404` is a clean
+not-found; the bug was the `500` scan failure.
+
+⚠️ Hand-applied, so it is probably not in `supabase_migrations.schema_migrations`
+and `supabase db push` will retry it. Safe by construction — the inserts are
+`ON CONFLICT DO NOTHING` / `DO UPDATE` and the repair is scoped to `IS NULL`.
 
 Also fixed: the original migration's profile insert used `ON CONFLICT DO NOTHING`,
 but `handle_new_user` creates the profile row FIRST — so production's tombstone

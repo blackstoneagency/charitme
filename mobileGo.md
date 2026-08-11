@@ -100,12 +100,25 @@ verified: `200` readable · `banned_until` 2126-07-18 · never confirmed ·
 `400 email_address_invalid`. No environment variable is needed — the default in
 `lib/deletion-cascade.ts` is now that id.
 
-**Still outstanding, for whoever has SQL access:** the other 501 unreadable rows.
-`20260906000000_tombstone_gotrue_readable.sql` repairs them (`NULL → ''`, scoped
-to `IS NULL` so it cannot touch a working account) and is the same statement
-printed by `ensure-tombstone.mjs`. Until it runs, the two admin pages above stay
-degraded. Account deletion is unaffected either way — reassignment targets
-`profiles.id`, which reads fine.
+**✅ The repair has now run.** The owner applied
+`20260906000000_tombstone_gotrue_readable.sql` by hand on 2026-08-11. Re-measured
+immediately afterwards across all 1140 profiles:
+
+| | before | after |
+|---|---|---|
+| unreadable auth rows (`500`) | **502** | **0** |
+| `listUsers({ perPage: 200 })` | `500` | `200` — 4 pages, 640 users, no failures |
+| old tombstone `…0000deadbeef` | `500` | `200`, `banned_until` 2999-12-31, `phone: ""` |
+| new tombstone `…00000000dead` | — | `200`, banned to 2126, `full_name` "Deleted User" |
+
+The 500 profiles that answer `404` are the `@CharitMe.example` seed rows, which
+have no auth user at all. Unchanged, expected, and not a fault — `404` is a clean
+not-found, unlike the `500` scan failure this fixed.
+
+⚠️ Applied by hand, so it is probably **not recorded in
+`supabase_migrations.schema_migrations`**, and a later `supabase db push` will try
+it again. That is safe: the inserts are `ON CONFLICT DO NOTHING` / `DO UPDATE` and
+the repair is scoped to `IS NULL`, so a second run is a no-op.
 
 ⚠️ **Deletion still works meanwhile.** Reassignment targets `profiles.id`, which
 is readable, and the row is *more* locked than intended rather than less — no
