@@ -24364,10 +24364,32 @@ This is a Stripe constraint, not an oversight: `transfer_data.destination` takes
 exactly ONE connected account, and a portfolio gift splits across several
 campaigns. It is the only route that breaks the never-hold-funds rule.
 
-**Owner decision, NOT a bot fix** — the options are (a) accept it for split gifts,
-(b) issue N separate destination charges (one authorisation per campaign, which
-changes the donor UX), or (c) withdraw the feature. Deleting a working
-customer-facing feature unilaterally is not something to do on inference.
+✅ **The FIXABLE half is now fixed.** The pre-charge guard was already correct —
+the route resolves a payout destination for EVERY campaign and returns 409/503
+rather than charging money it cannot route, exactly like `/api/donations`. What
+was broken was the other end: when a transfer still did not happen, both paths
+did `console.warn`/`console.error` and `continue`. The comment claimed the
+organizer "gets paid when they do [onboard]" and that "a transfer can be retried
+by an operator" — but **nothing scheduled that payment**, and the operator had
+only a log line. CharitMe could hold donor money indefinitely with no record of
+whose it was.
+
+Both paths now write a `reconciliation_exceptions` row (`kind: 'payout_mismatch'`)
+carrying the campaign, the amount owed and the Stripe session — an EXISTING,
+applied table that `/api/admin/ledger` lists and the reconcile-ledger cron
+sweeps, so the obligation surfaces where money problems are already handled.
+Recording is best-effort and never throws: throwing would make Stripe redeliver
+the event and re-run transfers that already succeeded, i.e. pay someone twice.
+Guarded by `__tests__/portfolio-held-funds.test.ts` (8 tests), mutation-tested
+both ways.
+
+⚠️ **Still an owner decision: the architecture itself.** A portfolio gift is
+still a platform-balance charge, because `transfer_data.destination` takes
+exactly ONE account. The options are (a) accept a brief, now-accounted hold for
+split gifts, (b) issue N separate destination charges (one authorisation per
+campaign, which changes the donor UX), or (c) withdraw the feature. Deleting a
+working customer-facing feature unilaterally is not something to do on
+inference — but it is no longer possible for held funds to go unrecorded.
 
 ### ⚠️ Event tickets (`/api/events/[id]/tickets/checkout`) — CharitMe collects NOTHING
 
