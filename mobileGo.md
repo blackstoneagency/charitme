@@ -108,6 +108,23 @@ and outward-facing. I did not work around it.
 
 ---
 
+## 📌 OWNER DECISION — 2026-08-11
+
+**Portfolio split gifts stay. No 10% event-ticket fee.** PR #368 proposed both;
+closed on that basis.
+
+Its separable half was adapted onto master first (`1bc0cda3`): the money-routing
+inventory test (27), the membership money-flow test (10), and the
+`/api/creators/tiers/subscribe` `PayoutLookupUnavailableError` guard.
+
+⚠️ **`money-routing-inventory.test.ts` now encodes this decision.** It classifies
+`app/api/donations/portfolio/route.ts` as `fan-out` and asserts it is PRESENT —
+the inverse of the withdrawn branch. Reversing the decision means deleting that
+entry and restoring the original "is really gone" assertion; the test fails if
+both are attempted, which is what stops the two states being half-applied.
+
+---
+
 ## ✅ FINAL STATE — everything code, data or CI can do is done
 
 Verified 2026-08-11. Two missions ran through this file: mobile/store readiness
