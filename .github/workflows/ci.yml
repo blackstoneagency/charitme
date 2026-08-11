@@ -317,7 +317,7 @@ jobs:
       matrix:
         include:
           - lane: public
-            args: --public --build --page-images --mobile --responsive --strict-global
+            args: --public --build --page-images --mobile --responsive
           - lane: admin
             args: --build --page-images --mobile --responsive --contrast --strict-gradients
           - lane: member

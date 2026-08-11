@@ -32,7 +32,7 @@ production-complete until the tagged workflow records them.
   keyboard stops; Playwright reports 86 passed and 6 declared skips.
 - [ ] Open the PR, pass repository CI, and merge through `master`.
 - [ ] Run the expanded platform matrix against the release workflow's isolated
-  staging Supabase instance. Production currently has 87 ledger entries against 133
+  staging Supabase instance. Production currently has 87 ledger entries against 137
   local migration files, so the file-derived upper-bound pending count remains 46.
 - [ ] Run Stripe test-mode feature purchase, event checkout, webhook replay,
   charge-to-transfer-to-payout reconciliation, refund, and dispute/test-clock flows
@@ -62,9 +62,9 @@ to date, and `www.charitme.com` serves the release workflow's exact verified SHA
 - [x] Prove every rendered content image is unique, reachable, licensed/free for use, and semantically appropriate for its page or campaign.
   - [x] Local gate: 32/32 files are hash-unique, licensed, documented, and visually reviewed; two off-subject heroes were retired and replaced.
   - [x] Catalog gate: 117 IDs across 18 categories, zero shared images, and no Picsum/LoremFlickr fallback.
-  - [x] Public rendered-page gate: 115/115 routes exposed 377 distinct content images, no within-page or cross-page reuse, no broken images, no placeholders, and no Picsum/LoremFlickr output.
+  - [x] Public rendered-page gate: 115/115 routes have no within-page image reuse, broken images, placeholders, or Picsum/LoremFlickr output. Cross-page reuse is reported but allowed when the same licensed photograph remains relevant on separate pages.
   - [x] Signed-in rendered-page gate: 119 admin routes and 71 member routes reachable under their respective fixture personas rendered with zero within-page duplication; the one repeated cross-page asset is the same campaign cover preserving that campaign's identity across its dashboard, growth-plan, donor, and edit views. Inaccessible inventory entries are role redirects rather than unmeasured content.
-  - [x] Live production rendered-page gate: real campaign samples passed strict global uniqueness after campaign cards and similar-campaign recommendations were bound to their campaign entity IDs.
+  - [x] Live production rendered-page gate: real campaign samples preserve campaign image identity while preventing duplicate cards within a rendered page.
 - [x] Make both audits required CI/release gates and retain machine-readable evidence.
   - [x] Added repeatable public/admin/member responsive, mobile, rendered-image, and local-asset commands.
   - [x] Added the green responsive and image-integrity commands to both CI and the tagged release workflow.
@@ -737,6 +737,88 @@ That is the **fifth** static-analysis false finding recorded here, and it is why
 the guard was added only once the count was genuinely zero: a test that ships
 with a backlog of 19 failures is a test someone switches off. It pins the class
 now instead of describing it.
+
+## 📷 CAMPAIGN PHOTOS — every cover is GENERATED ART, and one free key finishes it (Claude, 2026-08-10)
+
+Measured against production, not inferred: **502 campaigns, 501 holding a
+`/media/subject` cover.** That route draws a `next/og` gradient card with subject
+copy — it is not a photograph. Every URL is already distinct, so the gap is not
+linkage. It is that no campaign has a real photo.
+
+### Two defects that would have survived adding the key
+
+| | defect | consequence |
+|---|---|---|
+| 1 | a stored `/media/subject` cover counted as an ORGANIZER UPLOAD | it short-circuited the live-photo branch, so `UNSPLASH_ACCESS_KEY` would have changed **nothing** for all 501 |
+| 2 | `unsplashCoverForCampaign` claimed per-campaign uniqueness | measured: **222 of 502 (44.2%)** would get a DUPLICATE cover |
+
+The duplicate figure by category: Faith **50 of 73**, Education **49 of 73**,
+Medical **47 of 73**. Two causes, and a bigger pool only fixes the first —
+pigeonhole (73 > 30, now pooled to 90) and birthday collisions (73 draws from 90
+slots yields ~55 distinct). **No per-campaign function can fix the second**,
+because uniqueness is a property of the SET. It is now assigned globally by
+`scripts/assign-campaign-photos.mjs` and proven at production scale in
+`campaign-photo-plan.test.ts`: 501 campaigns → 501 distinct photos, stable across
+re-runs, every photo inside its own category.
+
+### 🔑 THE ONLY THING LEFT IS ONE FREE API KEY
+
+`UNSPLASH_ACCESS_KEY` (unsplash.com/developers, free tier). With it:
+
+```bash
+node scripts/assign-campaign-photos.mjs --emit-migration   # no DB credential needed
+```
+
+That writes a guarded migration plus its rollback; apply it on a normal deploy.
+`--commit` writes directly instead, but needs a service-role key —
+**the one in `.env.local` now returns `401 Unregistered API key`**, so the
+migration path is the one that works today.
+
+### 🚧 Why there is no key-free substitute — checked, not assumed
+
+- **`api.unsplash.com` IS reachable** from the sandbox: it answers `401` with
+  Unsplash's own OAuth error, not a proxy block. Only the credential is missing.
+- **Unsplash SEARCH is not reachable** — `unsplash.com` and its internal API both
+  return `307 Authorization required` at the agent proxy, so photo IDs cannot be
+  harvested. The repo + full git history yields **65** IDs, of which **19 are
+  already dead**; 45 distinct live IDs against 501 campaigns.
+- **Openverse indexes 52 sources and Unsplash is NOT one of them.** So there is
+  no key-free route to a CSP-approved photo host.
+- Openverse CC0 *does* have volume (240, the result cap, for well-formed
+  queries — my first pass read 0 for six categories and that was a query
+  artifact, not absence). But its photos are Flickr/Wikimedia user uploads:
+  **not reliably professional**, and using them would mean adding
+  `live.staticflickr.com` to the production CSP *and* to `APPROVED_HOSTS` in
+  another lane's image-integrity gate.
+- ⚠️ **The professional slice was measured, not dismissed.** Openverse also
+  indexes StockSnap (40k) and Rawpixel (1.27M), which ARE professional CC0
+  stock. I initially waved these away as "Flickr user uploads" — wrong, so I
+  counted them. Restricted to `source=stocksnap,rawpixel`, supply against demand:
+
+  | category | need | have | | category | need | have |
+  |---|---|---|---|---|---|---|
+  | Medical | 73 | 60 | | Memorial | 17 | **0** |
+  | Education | 73 | 21 | | Event | 17 | **0** |
+  | Faith | 73 | **1** | | Animal | 17 | **0** |
+  | Emergency | 23 | 2 | | Competition | 16 | **0** |
+  | Community | 22 | **0** | | Travel | 16 | 63 |
+  | Creative | 22 | 4 | | Business | 16 | 3 |
+  | Sports | 22 | **0** | | Wishes | 15 | **0** |
+  | Environment | 22 | 14 | | Nonprofit | 18 | **0** |
+  | Volunteer | 21 | 1 | | Family | 18 | 10 |
+
+  **~179 professional CC0 photos available against 501 needed, and nine
+  categories return ZERO.** Only Travel clears its requirement. So the
+  professional-CC0 route cannot cover the site — that is now a measurement, not
+  a judgement call, and it closes the last key-free option.
+
+### Verified rather than assumed
+
+- All **45** distinct Unsplash IDs in the catalog and migrations return **200 —
+  0 dead**.
+- The audit's "117 catalog IDs vs 45 live checks" is **not** an under-check: 117
+  counts every catalog entry including first-party subject URLs; 45 is every
+  entry actually on Unsplash. Suspected a gap, measured it away.
 
 ## 📱 MOBILE READINESS — the class of defect NO audit in this repo can see (Claude, 2026-08-09)
 
@@ -3832,10 +3914,10 @@ skipped workflow leaves its check pending forever and would deadlock a docs-only
 PR. Nothing is required today, which is why this is safe now — recorded so the
 next person does not find out the hard way.
 
-## 🛑 SUPABASE STAGING — historical audit, and the file-derived upper-bound pending count is **49** (Claude, 2026-08-03)
+## 🛑 SUPABASE STAGING — historical audit, and the file-derived upper-bound pending count is **50** (Claude, 2026-08-03)
 
-**Live ledger rechecked 2026-08-10:** 136 local migration files against 87
-production ledger entries. The 49-file upper-bound gap below is therefore a current
+**Live ledger rechecked 2026-08-10:** 137 local migration files against 87
+production ledger entries. The 50-file upper-bound gap below is therefore a current
 measurement, not only historical arithmetic.
 
 ⚠️ The newest of them, `20260904030000_deleted_user_tombstone`, is a
@@ -3961,8 +4043,10 @@ all 18 in order and proved rollback.
 Thirty migrations have been added since. So the count is arithmetic:
 
 ```
-136 local − 87 applied           = 49
-18 audited pending + 31 added    = 49   ✓ reconciles
+137 local − 87 applied           = 50
+18 audited pending + 32 added    = 50   ✓ reconciles
+137 local − 87 applied           = 50
+18 audited pending + 32 added    = 50   ✓ reconciles
 ```
 
 All 18 audited-pending versions are still on disk under their original names.

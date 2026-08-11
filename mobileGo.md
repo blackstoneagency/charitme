@@ -145,8 +145,31 @@ with no claim is free. An item with a claim is someone else's — pick another.
 | Native shells (TWA + Capacitor config) | claude/mobile | 2026-08-10 | ✅ config done, released |
 | Privacy declarations | claude/mobile | 2026-08-10 | ✅ done, released |
 | Per-device store screenshots | claude/mobile | 2026-08-10 | ✅ done, released |
+| Tombstone migration apply | — | | 🔒 blocked on credentials, not on people |
+| Web Push: SW handler + subscriptions + donation alert | claude/mobile | 2026-08-11 | ✅ done — built TWICE, see note |
 | Push notifications (Guideline 4.2) | claude/mobile | 2026-08-10 | ✅ web push done + crypto path executed, released |
 | Tombstone migration apply | — | | 🔓 OWNER, one paste — see Open #1; not blocked on a missing credential |
+
+⚠️ **CLAIMING IN THIS FILE DID NOT PREVENT A COLLISION — 2026-08-11.** Two agents
+built Web Push at the same time. I claimed it here before writing any code and
+pushed the claim first; the other lane was already mid-flight and landed on
+master first. Their implementation won on merits (integrated with `notify-core`
+so the in-app and push notification cannot say different things, caps the payload
+at 4KB, and validates the endpoint against SSRF — all things mine lacked), so
+mine was **deleted wholesale** rather than merged.
+
+The claim table only works if it is read BEFORE starting and the claim is pushed
+BEFORE the work, and even then it loses to someone who started earlier and had
+not yet pushed. **Check `git log origin/master` and open PRs for the actual
+files, not just this table.** A grep for `push` across master would have shown
+their `lib/push-server.ts` before I wrote a line.
+
+One thing survived the deletion, because it was a real gap rather than a
+duplicate: their click target was unconstrained. The service worker's same-origin
+check tests `client.url` — WHICH WINDOW to focus — and never constrains WHERE that
+window is sent, so an absolute `draft.link` would open another site from a
+notification wearing CharitMe's name and icon. `safeNotificationPath` now guards
+it in both the payload builder and the service worker, mutation-tested.
 
 ⚠️ **Do not take "blocked on credentials" items.** They are not unclaimed work —
 they cannot be finished by anyone in a sandbox, and a second agent rediscovering
@@ -159,8 +182,23 @@ migration SQL directly, which the owner used on 2026-08-10 to apply
 unreachable one. Detail in Open #1.
 
 ⚠️ **Check open PRs before claiming.** PR #355 (campaign photos) is a different
-lane but is blocked on the SAME rotated `SUPABASE_SERVICE_ROLE_KEY` — a working
-key now exists with the owner, which unblocks it.
+lane. It is **no longer blocked**: it needed no service-role key in the end —
+covers are assigned by a generated migration
+(`20260904020001_campaign_real_cover_photos.sql`, 501 campaigns → 501 distinct
+CC0 photographs), which applies on a normal deploy.
+
+✅ **`audit:image-assets` is GREEN again on master** — 51 rasters, 51 entries.
+It was red for a while (the 12 store screenshots unlisted) and the store-art lane
+landed the repair themselves. Flagged here rather than fixed from another branch,
+and that was the right call: a competing edit to that exact file is what produced
+a duplicate-entry failure earlier the same day. Waiting cost nothing; fixing it
+twice would have cost a red gate for everyone.
+
+**Scope note on the Web Push claim above.** It is the SERVER and SERVICE WORKER
+half only: subscription storage, a send path, and one real trigger. It does not
+touch `@capacitor/push-notifications`, the native shells, or anything needing a
+JDK/Xcode — that half stays with whoever picks up the native builds, and this
+work is the backend it would reuse.
 
 ---
 
@@ -437,6 +475,46 @@ several agents write to hourly costs more than regenerating it.
   ends up present and wrong.
 - Apple `TEAMID.bundle.id` → `IOS_APP_ID`
 
+### 5. ⚠️ Apple Guideline 4.2 "minimum functionality" — the likeliest rejection
+
+✅ **The server half of push notifications now exists** (claude/github-integration,
+2026-08-10) — the capability this section ranks first, and the one an organiser
+actually wants.
+
+| piece | where |
+|---|---|
+| `push_subscriptions` table, RLS owner-only, + rollback | `supabase/migrations/20260904020002_push_subscriptions.sql` |
+| `push` + `notificationclick` handlers | `public/sw.js` (**bumped to v4**) |
+| VAPID send path, fails soft | `lib/push.ts` |
+| Pure payload/policy helpers | `lib/push-core.ts` |
+| Authenticated subscribe/unsubscribe | `POST|DELETE /api/push/subscribe` |
+| Real trigger: donation → organiser alert | `app/api/stripe/webhook/route.ts` |
+
+**Owner action to switch it on:** generate a VAPID pair
+(`npx web-push generate-vapid-keys`) and set `NEXT_PUBLIC_VAPID_PUBLIC_KEY`,
+`VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`. Absent them the feature is simply OFF —
+`/api/push/subscribe` answers 503 and the send path returns `skipped`, so nothing
+errors. The migration must also be applied (it is #50 in the pending ledger).
+
+⚠️ **This does NOT close item 5 on its own.** It ships push for an Android TWA
+and an installed iOS 16.4+ PWA. The Capacitor shell still needs
+`@capacitor/push-notifications` wired to APNs, which needs Xcode — that half
+stays with whoever takes the native builds, and this is the backend it reuses.
+
+Three decisions worth keeping, each of which is a way this could have hurt someone:
+- **The click target is a same-origin PATH, enforced twice** — once when the
+  payload is built and again in the service worker. A notification wears the
+  site's name and icon, so a payload able to set an arbitrary URL would be a
+  branded phishing surface. Neither side trusts the other.
+- **The alert never names the donor.** It renders on a lock screen in front of
+  whoever holds the phone; an anonymous donation stays anonymous there too. The
+  payload has no donor field at all, so there is nothing to leak.
+- **Only 404/410 expire a subscription.** Treating 429/5xx as "gone" would let
+  one bad afternoon at a push service silently unsubscribe every user.
+
+---
+
+#### The original problem statement, unchanged:
 ### 5. ⚠️ Apple Guideline 4.2 — Web Push built; iOS still needs APNs
 
 **Built (`2026-08-10`):** donation alerts over Web Push (VAPID), end to end —

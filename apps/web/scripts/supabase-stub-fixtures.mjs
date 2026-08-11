@@ -18,6 +18,10 @@
  * evidence about real users, real money, or whether a query is correct.
  */
 
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 const USER_ID = '00000000-0000-4000-8000-000000000001';
 
 export const STUB_PERSONAS = [
@@ -97,8 +101,23 @@ const uuid = (prefix, n) =>
 
 const daysAgo = (n) => new Date(Date.now() - n * 86_400_000).toISOString();
 
-const subjectCover = (category, key) =>
-  `/media/subject?${new URLSearchParams({ category, key }).toString()}`;
+const fixtureMigration = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  '../../../supabase/migrations/20260904020001_campaign_real_cover_photos.sql',
+);
+const REAL_CAMPAIGN_PHOTOS = [...new Set(
+  [...readFileSync(fixtureMigration, 'utf8').matchAll(/set cover_image_url = '([^']+)'/g)]
+    .map((match) => match[1]),
+)];
+if (REAL_CAMPAIGN_PHOTOS.length < 120) {
+  throw new Error('The real campaign-photo migration no longer covers the visual fixture population.');
+}
+
+const fixturePhotoIndexes = new Map();
+const subjectCover = (_category, key) => {
+  if (!fixturePhotoIndexes.has(key)) fixturePhotoIndexes.set(key, fixturePhotoIndexes.size);
+  return REAL_CAMPAIGN_PHOTOS[fixturePhotoIndexes.get(key) % REAL_CAMPAIGN_PHOTOS.length];
+};
 
 const CATEGORIES = [
   'Medical', 'Memorial', 'Emergency', 'Nonprofit', 'Education', 'Animal',
@@ -174,7 +193,7 @@ export function buildFixtures() {
       deadline: new Date(Date.now() + (i % 60) * 86_400_000).toISOString().slice(0, 10),
       status: ['active', 'active', 'active', 'draft', 'paused', 'completed'][i % 6],
       cover_image_url: subjectCover(category, `stub-${i + 1}`),
-      image_urls: [subjectCover(category, `stub-${i + 1}`)],
+      image_urls: [subjectCover(category, `stub-gallery-${i + 1}`)],
       trust_status: ['Verified', 'Trusted', 'Needs More Info'][i % 3],
       campaign_health_score: 40 + ((i * 7) % 60),
       payout_frozen: i % 29 === 0,

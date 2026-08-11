@@ -6,7 +6,7 @@ import { formatMoneyCompact } from '@shared/currencies';
 import JsonLd from '../components/JsonLd';
 import { isRotatorEligible } from '../lib/featured';
 import { withQueryTimeout } from '../lib/query-timeout';
-import { getCoverForCategory, getCoverForCampaign, getDisplayCover } from '../lib/photo-catalog';
+import { getCoverForCampaign, getDisplayCover, getDistinctPhotosForItems } from '../lib/photo-catalog';
 import { getCause } from '../lib/causes';
 import { getCategoryStats, getHomeData, getRecentDonations } from '../lib/home-data';
 import { getHomeStories } from '../lib/home-stories';
@@ -131,6 +131,10 @@ export default async function HomePage() {
   const { metrics, rotatorCampaigns } = home.value;
   const metricsAvailable = shouldShowPlatformMetrics(metrics, home.ok);
   const categoryStats = new Map(categoryResult.value.map((row) => [row.category, row]));
+  const homeCausePhotos = getDistinctPhotosForItems(CAUSE_CARDS.map((card) => {
+    const cause = getCause(card.slug);
+    return { category: cause?.categories[0], key: `home-cause-${card.slug}` };
+  }));
   const recentDonations = donationsResult.value;
   const stories = storiesResult.value ?? [];
   const [leadStory, ...sideStories] = stories;
@@ -314,7 +318,7 @@ export default async function HomePage() {
                   <Link href={`/causes/${cause.slug}`}>
                     <div className="mirror-cause-media">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={getCoverForCategory(cause.categories[0], `home-cause-${cause.slug}`)} alt="" width={360} height={250} loading="lazy" decoding="async" />
+                      <img src={homeCausePhotos[index]} alt="" width={360} height={250} loading="lazy" decoding="async" />
                       <span><Icon name={card.icon} /></span>
                     </div>
                     <div className="mirror-cause-copy">

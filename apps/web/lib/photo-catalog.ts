@@ -270,6 +270,57 @@ export function getPhotosForPage(
   return Array.from({ length: count }, (_, index) => pool[(offset + index) % pool.length]!);
 }
 
+export type DistinctPhotoRequest = {
+  category: string | null | undefined;
+  key: string;
+};
+
+function photoIdentity(url: string): string {
+  return (url.match(/photo-([0-9]+-[a-z0-9]+)/i) ?? [])[1] ?? url;
+}
+
+function stablePhotoOffset(key: string, length: number): number {
+  if (length === 0) return 0;
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < key.length; i += 1) {
+    hash ^= key.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash % length;
+}
+
+function rotatedPhotos(photos: readonly string[], key: string): string[] {
+  if (photos.length === 0) return [];
+  const offset = stablePhotoOffset(key, photos.length);
+  return [...photos.slice(offset), ...photos.slice(0, offset)];
+}
+
+/**
+ * Allocate photographs for a whole rendered page. Each request prefers its
+ * cause-specific pool; the verified global catalog supplies a distinct fallback
+ * only when another section on the same page already claimed that photograph.
+ */
+export function getDistinctPhotosForItems(requests: readonly DistinctPhotoRequest[]): string[] {
+  const globalPhotos = [...new Map(
+    Object.values(CATEGORY_PHOTOS)
+      .flat()
+      .map((photo) => [photoIdentity(photo), photo]),
+  ).values()];
+  const used = new Set<string>();
+
+  return requests.map(({ category, key }) => {
+    const categoryPhotos = CATEGORY_PHOTOS[category ?? ''] ?? FALLBACK_PHOTOS;
+    const candidates = [
+      ...rotatedPhotos(categoryPhotos, key),
+      ...rotatedPhotos(globalPhotos, `global:${key}`),
+    ];
+    const selected = candidates.find((photo) => !used.has(photoIdentity(photo)));
+    if (!selected) return generatedSubjectArt(category, key);
+    used.add(photoIdentity(selected));
+    return selected;
+  });
+}
+
 /**
  * The single representative photo for a CATEGORY — e.g. the "Medical
  * fundraisers" tile on the homepage.

@@ -11,7 +11,7 @@ import { EmptyState } from '../../../components/ui';
 import { getTranslator } from '../../../lib/locale-server';
 import { getCauseStats, getCauseStories, getAuthoredStats } from '../../../lib/cause-landing';
 import CampaignImage from '../../../components/CampaignImage';
-import { getCoverForCampaign, getDisplayCover, getPhotosForPage } from '../../../lib/photo-catalog';
+import { getCoverForCampaign, getDisplayCover, getDistinctPhotosForItems } from '../../../lib/photo-catalog';
 import { formatMoneyCompact } from '@shared/currencies';
 import CauseLanding, { CauseCtaBand } from './CauseLanding';
 import HelpGlyph from '../../../components/HelpGlyph';
@@ -169,6 +169,13 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
   const indexableCampaigns = visibleCampaigns.filter((campaign) => campaign.is_demo !== true);
   const hasExampleCatalog = ['health-wellness', 'education', 'faith-belief'].includes(cause.slug)
     || visibleCampaigns.some((campaign) => campaign.is_demo === true);
+  const editorialPhotos = getDistinctPhotosForItems([
+    { category: cause.categories[0], key: `cause-hero-${cause.slug}` },
+    ...(cause.helps ?? []).map((_, index) => ({
+      category: cause.categories[0],
+      key: `${cause.slug}-help-${index}`,
+    })),
+  ]);
   const structuredData = {
     '@context': 'https://schema.org',
     '@graph': [
@@ -214,7 +221,7 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
   return (
     <div className="cause-landing">
       <JsonLd json={safeJsonLd(structuredData)} />
-      <CauseLanding cause={cause} stats={stats} authoredStats={authoredStats} />
+      <CauseLanding cause={cause} stats={stats} authoredStats={authoredStats} heroPhoto={editorialPhotos[0]} />
 
       <div className="container" style={{ padding: '8px 0 72px' }}>
       {/* ── Order, and why ────────────────────────────────────────────────────
@@ -348,7 +355,7 @@ export default async function CausePage({ params }: { params: Promise<{ slug: st
               <li className="cl-helps-card" key={h.title}>
                 <div className="cl-helps-media" aria-hidden="true">
                   <CampaignImage
-                    src={getPhotosForPage(cause.categories[0], `${cause.slug}-help`, cause.helps!.length)[i] ?? null}
+                    src={editorialPhotos[i + 1] ?? null}
                     category={cause.categories[0]}
                     campaignKey={`${cause.slug}-help-${i}`}
                     alt=""
