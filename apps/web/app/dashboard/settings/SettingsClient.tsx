@@ -3,6 +3,7 @@
 import React, { useState, useId, useRef } from 'react';
 import Link from 'next/link';
 import BillingPortalButton from './BillingPortalButton';
+import PushToggle from './PushToggle';
 import { SUPPORTED_CURRENCIES } from '@shared/currencies';
 import { SUPPORTED_LOCALES } from '../../../lib/i18n';
 import { normalizeUrl } from '../../../lib/normalize-url';
@@ -502,7 +503,10 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
               <button type="button" className="kf-setpanel-save" onClick={saveNotifications} disabled={saving}>{saving ? 'Saving…' : 'Save Changes'}</button>
             </div>
             <div className="kf-setpanel-body">
+              {/* This heading had no rows under it — an empty section. The
+                  device toggle is the in-app channel, so it goes here. */}
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 8 }}>In-App Notifications</div>
+              <PushToggle />
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--t3)', margin: '18px 0 8px' }}>Email Notifications</div>
               <PrefRow id={`${uid}-ne1`} label="Receive email notifications" desc="Get notified by email for important events" checked={notifyEmail} onChange={setNotifyEmail} />
               <PrefRow id={`${uid}-ne2`} label="Product news & tips" desc="Occasional marketing emails about new features and fundraising tips" checked={notifyMarketing} onChange={setNotifyMarketing} />

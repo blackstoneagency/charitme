@@ -38,6 +38,8 @@ with no claim is free. An item with a claim is someone else's — pick another.
 | Native shells (TWA + Capacitor config) | claude/mobile | 2026-08-10 | ✅ config done, released |
 | Privacy declarations | claude/mobile | 2026-08-10 | ✅ done, released |
 | Per-device store screenshots | claude/mobile | 2026-08-10 | ✅ done, released |
+| Web push (the 4.2 mitigation, item 5) | claude/…njok43 | 2026-08-10 | 🔨 in progress |
+| Native-shell toolchain — what actually blocks a build | claude/…njok43 | 2026-08-10 | ✅ measured, see item 3 |
 | Tombstone migration apply | — | | 🔒 blocked on credentials, not on people |
 
 ⚠️ **Do not take "blocked on credentials" items.** They are not unclaimed work —
@@ -254,8 +256,29 @@ generated to match `app/manifest.ts` field for field, with
 COPY of manifest values, and drift there is invisible on the website and shows up
 only on a phone someone already installed.
 
-**Still open:** the builds themselves. Bubblewrap needs a JDK + Android SDK,
-Capacitor's iOS build needs Xcode on macOS; neither exists in this sandbox. The
+**Still open:** the builds themselves.
+
+⚠️ **The stated reason was half wrong, and the real one is actionable.** Measured
+2026-08-10:
+
+| | |
+|---|---|
+| JDK | **present** — OpenJDK 21.0.10, `/usr/lib/jvm/java-21-openjdk-amd64` |
+| Gradle distributions, Maven Central | reachable (`services.gradle.org` 200, `repo1.maven.org` 200) |
+| **Android SDK** | **`dl.google.com` is refused by the agent proxy — `CONNECT tunnel failed, 403`** |
+| Xcode | not applicable — this host is Linux |
+
+So a TWA build does not fail for want of a JDK; it fails because the **only** host
+that serves the Android SDK and the Android Gradle plugin
+(`dl.google.com`, `dl.google.com/dl/android/maven2`) is blocked by network
+policy. Bubblewrap would download its own JDK and SDK on first run and dies at
+the SDK step. That is an **allowlist decision** (or a build machine), not a
+missing toolchain — worth knowing before anyone spends a session installing Java.
+
+Per `/root/.ccr/README.md` a 403 from the proxy is an organization policy denial
+and is reported rather than retried or worked around.
+
+Capacitor's iOS build still needs Xcode on macOS, which no Linux sandbox fixes. The
 `ios/` and `android/` directories are deliberately NOT committed — they are
 generated artifacts, and a `.pbxproj` conflicting on every merge in a repo
 several agents write to hourly costs more than regenerating it.
@@ -279,6 +302,47 @@ native capability, which is app work rather than repo work. Ranked by
 reviewer-visible value in `docs/native-shells.md`; **push notifications** are the
 strongest, being the one thing the site genuinely cannot do on iOS Safari and the
 one organisers actually want (donation alerts).
+
+#### ✅ Web push is now built — the repo half of that mitigation
+
+The one item on this list that was repo work rather than credentials, so it is
+the one that could be finished. Organisers get a donation alert on their phone.
+
+| piece | where |
+|---|---|
+| `push_subscriptions` table, RLS, rollback | `supabase/migrations/20260905000000_web_push_subscriptions.sql` |
+| decisions (payload, endpoint gate, pruning) | `lib/push-core.ts` — pure, executed by tests |
+| VAPID sign + send + prune | `lib/push.ts` |
+| register / unregister a device | `POST`/`DELETE /api/push/subscribe` |
+| `push`, `notificationclick`, `pushsubscriptionchange` | `public/sw.js` |
+| per-device toggle | Settings → Notifications (`PushToggle.tsx`) |
+| donation alert | third channel in `notifyOrganizerDonation`, webhook |
+
+Four things worth knowing before touching it:
+
+- ⚠️ **A subscription row IS the opt-in.** There is deliberately no
+  `notification_push` column: the browser permission grant is a consent record
+  the user can revoke in the OS without telling us, and a second flag would
+  disagree with it invisibly. Turning the toggle off deletes the row.
+- ⚠️ **The alert takes `donorDisplayName`, never a profile.** That name has
+  already been through both anonymity gates. A lock screen is the most public
+  place this app can print a name, so this channel must not be the one that
+  re-derives it. `lib/push-core.ts` cannot even reach Supabase, and a test
+  asserts it never mentions `full_name`.
+- ⚠️ **A stored endpoint is a URL this server later POSTs to.** It is gated to
+  the five real push-service hosts on the way in *and* on the way out —
+  otherwise a row is an SSRF with a signed request attached.
+- **It degrades like every other optional integration.** No VAPID keypair ⇒ the
+  send is a no-op, the API answers 503, and the toggle reads "not enabled on
+  this deployment". `setVapidDetails` is never called at module scope: a throw
+  there would take down the Stripe webhook, where a failure makes Stripe retry a
+  donation it has already taken.
+
+**Still owner-side:** generate a keypair and set `VAPID_PUBLIC_KEY`,
+`NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`
+(`npx web-push generate-vapid-keys`). Nothing is sent until they exist. Apple
+additionally requires the app be installed to the Home Screen before Safari will
+deliver anything — the toggle says so rather than looking broken.
 
 ---
 

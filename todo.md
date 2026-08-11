@@ -3832,11 +3832,17 @@ skipped workflow leaves its check pending forever and would deadlock a docs-only
 PR. Nothing is required today, which is why this is safe now — recorded so the
 next person does not find out the hard way.
 
-## 🛑 SUPABASE STAGING — historical audit, and the file-derived upper-bound pending count is **48** (Claude, 2026-08-03)
+## 🛑 SUPABASE STAGING — historical audit, and the file-derived upper-bound pending count is **49** (Claude, 2026-08-03)
 
 **Live ledger rechecked 2026-08-10:** 135 local migration files against 87
 production ledger entries. The 48-file upper-bound gap below is therefore a current
 measurement, not only historical arithmetic.
+
+**+1 on 2026-08-11: `20260905000000_web_push_subscriptions.sql`** (→ 49). Lands
+`push_subscriptions` for the web-push work in `mobileGo.md` item 5. Unapplied is
+the safe state: the send path catches its own errors, so push is simply silent
+and nothing else changes. Not publicly probeable — RLS-scoped to the owner, and
+the only surface that could differ is behind auth *and* a VAPID keypair.
 
 ⚠️ The newest of them, `20260904030000_deleted_user_tombstone`, is a
 **precondition for self-service account deletion** — until it is applied,
@@ -3958,11 +3964,11 @@ that day**:
 dump confirmed the objects were absent, and a restored production clone applied
 all 18 in order and proved rollback.
 
-Thirty migrations have been added since. So the count is arithmetic:
+Thirty-one migrations have been added since. So the count is arithmetic:
 
 ```
-135 local − 87 applied           = 48
-18 audited pending + 30 added    = 48   ✓ reconciles
+136 local − 87 applied           = 49
+18 audited pending + 31 added    = 49   ✓ reconciles
 ```
 
 All 18 audited-pending versions are still on disk under their original names.

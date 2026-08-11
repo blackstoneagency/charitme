@@ -14,6 +14,11 @@ import { postDonation, postRefund, postDisputeLoss, openReconciliationException 
 import { boundedQuery } from '../../../../lib/query-timeout';
 import { resolveRecurringRenewalAmounts } from '../../../../lib/recurring-payment';
 import { normalizeReceiptEmail } from '../../../../lib/tax-receipt-access';
+// Pure, no `web-push` and no network. The sending half (`lib/push.ts`) is
+// imported lazily at the call site so an invalid VAPID key can never break
+// module load for this route — the one route where a throw makes Stripe retry a
+// donation it has already taken.
+import { donationPushPayload } from '../../../../lib/push-core';
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -2022,6 +2027,21 @@ async function sendOrganizerDonationNotification(
       link: `/dashboard/campaigns`,
       meta: { campaign_id: campaignId, amount_cents: amountCents, donor_id: donorId },
     });
+
+    // Web push, to whatever devices the organiser has registered. Third channel
+    // for the same event, and it takes `donorDisplayName` — the name already put
+    // through BOTH anonymity gates above — rather than re-reading the profile. A
+    // lock screen is the most public place this app can print a name, so it must
+    // not be the one channel that re-derives it. Fire-and-forget with its own
+    // catch: a notification must never fail a donation Stripe has already taken.
+    void import('../../../../lib/push').then(({ sendPushToUser }) =>
+      sendPushToUser(organizerUserId, donationPushPayload({
+        donorDisplayName,
+        amountFormatted: fmt(amountCents, currency),
+        campaignTitle: camp.title,
+        campaignId,
+      })),
+    ).catch(() => {});
 
     if (organizer.notification_email === false) return; // organizer opted out of account emails
 
