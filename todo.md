@@ -24578,3 +24578,64 @@ now a parameter with a default, so a >100% rate reaches the clamp and the guard
 is genuinely exercised.
 
 **Suite: 4257 tests / 376 files**, typecheck and lint clean.
+
+### ✅ DONE — Claude, 2026-08-12 — the iOS project is generatable, and complete when it is
+
+`npx cap add ios` is now the one command that produces an Xcode-openable project.
+It previously failed at the first step: `capacitor.config.ts` and
+`docs/native-shells.md` both existed and were thorough, but **Capacitor was never
+installed** — no `@capacitor/*` in any package.json.
+
+```bash
+npm install
+npm run ios:add      # cap add ios  + prepare
+npm run ios:sync     # cap sync ios + prepare — after any config change
+npm run ios:open     # macOS + Xcode
+```
+
+**⚠️ `webDir` was shipping the server build to every device.** It read
+`apps/web/.next`, on the reasoning that `webDir` is unused while `server.url` is
+set. The CLI copies it regardless — measured at **2.0 GB and 115 seconds**, of
+which 2.0 GB was `.next/cache` and 56 MB was compiled server code, bundled into
+the `.ipa` and never loaded. Checked before claiming worse: no secret *values*
+were inlined; the `SUPABASE_SERVICE_ROLE_KEY` matches were env-var names in error
+paths. Now `native/www` — one self-contained page, **8 KB, 0.9 s** — which
+`server.errorPath` turns into the offline screen.
+
+**`ios/` stays uncommitted, so nothing about the native project survived
+regeneration.** That was the unclosed gap, and two of its consequences are hard
+failures rather than polish. `scripts/prepare-ios.mjs` reapplies them:
+
+| Missing | Consequence |
+|---|---|
+| Camera / photo-library usage strings | **iOS TERMINATES the app** on "Take Photo" from any `<input type="file" accept="image/*">` — campaign creation, profile, admin |
+| `NSLocationWhenInUseUsageDescription` | Same, for `navigator.geolocation` on `/nearby` |
+| `PrivacyInfo.xcprivacy` not in the target | Upload **rejected** by App Store Connect, after a successful archive |
+| App icon | Ships **Capacitor's own logo** — a finished 1024×1024 image, so nothing looks unfinished |
+| Alpha channel | Every web icon is RGBA and Apple refuses transparency; rendered from `icon-source.svg` and flattened |
+| `ITSAppUsesNonExemptEncryption` | Every upload held on the export-compliance question |
+
+Idempotent, verifies its own `.pbxproj` edits rather than assuming a string
+replace landed, and refuses to report success if the project was not modified.
+Validated by running `npx cap sync ios` afterwards — Capacitor reparses and
+rewrites the project, and all four privacy references survive.
+
+`apps/web/__tests__/ios-shell-readiness.test.ts` (19 tests) guards both files,
+since they are the only part of the native build under review. It scans the web
+source for native APIs and requires a matching usage string, so adding one
+without it is a red test rather than a crash report.
+
+⚠️ **A mutation exposed that the most important assertion was hollow.** Renaming
+`NSCameraUsageDescription` → `...DescriptionX` PASSED, because `toContain`
+matches the real key as a substring of the typo. The guard standing between a
+code change and a device crash was satisfied by a key iOS has never heard of. It
+now parses the declared keys and validates their shape.
+
+**Suite: 4276 tests / 377 files**, typecheck and lint clean.
+
+**Still needs a Mac, and cannot be done here:** `pod install`/SPM resolution, the
+archive, signing (Team + provisioning), and Associated Domains
+(`applinks:www.charitme.com`) which is Xcode UI. And Guideline 4.2 is unchanged —
+a WebView pointed at a URL is the shape Apple rejects as a repackaged website;
+the mitigation is native capability (push notifications first), listed in
+`docs/native-shells.md`.

@@ -15,9 +15,16 @@
     "test:rls-live": "node scripts/rls-live-smoke.mjs",
     "test:campaign-builder-db": "node scripts/campaign-builder-db-smoke.mjs",
     "test:platform-matrix": "node scripts/staging-platform-matrix.mjs",
-    "provision": "node scripts/provision-supabase-vercel.mjs"
+    "provision": "node scripts/provision-supabase-vercel.mjs",
+    "ios:add": "npx cap add ios && npm run ios:prepare",
+    "ios:sync": "npx cap sync ios && npm run ios:prepare",
+    "ios:prepare": "node scripts/prepare-ios.mjs",
+    "ios:open": "npx cap open ios"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
+    "@capacitor/ios": "^8.5.0",
     "@supabase/supabase-js": "2.109.0",
     "supabase": "^2.101.0",
     "vercel": "^54.4.1"
