@@ -20,6 +20,7 @@ export default function CampaignImage({
   height,
   loading = 'lazy',
   fetchPriority,
+  allowGeneratedFallback = false,
 }: {
   src: string | null | undefined;
   category: string | null;
@@ -31,6 +32,8 @@ export default function CampaignImage({
   height?: number;
   loading?: 'lazy' | 'eager';
   fetchPriority?: 'high' | 'low' | 'auto';
+  /** Editorial collections may deliberately use unique first-party subject art. */
+  allowGeneratedFallback?: boolean;
 }) {
   // Request a card-sized WebP from known hosts (2× the CSS width for retina);
   // genuine uploads pass through unchanged.
@@ -39,7 +42,11 @@ export default function CampaignImage({
     ? getCoverForCampaign(category, campaignKey)
     : getCoverForCategory(category);
   const fallback = optimizedCoverUrl(rawFallback, targetW);
-  const usableSource = src?.trim() && !isPlaceholderCover(src) ? src.trim() : null;
+  const trimmedSource = src?.trim() ?? '';
+  const generatedAllowed = allowGeneratedFallback && /^\/media\/subject(\?|$)/.test(trimmedSource);
+  const usableSource = trimmedSource && (!isPlaceholderCover(trimmedSource) || generatedAllowed)
+    ? trimmedSource
+    : null;
   const initial = usableSource?.startsWith('/')
     ? usableSource
     : usableSource?.startsWith('http')

@@ -18,6 +18,10 @@
  * evidence about real users, real money, or whether a query is correct.
  */
 
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 const USER_ID = '00000000-0000-4000-8000-000000000001';
 
 export const STUB_PERSONAS = [
@@ -97,8 +101,23 @@ const uuid = (prefix, n) =>
 
 const daysAgo = (n) => new Date(Date.now() - n * 86_400_000).toISOString();
 
-const subjectCover = (category, key) =>
-  `/media/subject?${new URLSearchParams({ category, key }).toString()}`;
+const fixtureMigration = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  '../../../supabase/migrations/20260904020001_campaign_real_cover_photos.sql',
+);
+const REAL_CAMPAIGN_PHOTOS = [...new Set(
+  [...readFileSync(fixtureMigration, 'utf8').matchAll(/set cover_image_url = '([^']+)'/g)]
+    .map((match) => match[1]),
+)];
+if (REAL_CAMPAIGN_PHOTOS.length < 120) {
+  throw new Error('The real campaign-photo migration no longer covers the visual fixture population.');
+}
+
+const fixturePhotoIndexes = new Map();
+const subjectCover = (_category, key) => {
+  if (!fixturePhotoIndexes.has(key)) fixturePhotoIndexes.set(key, fixturePhotoIndexes.size);
+  return REAL_CAMPAIGN_PHOTOS[fixturePhotoIndexes.get(key) % REAL_CAMPAIGN_PHOTOS.length];
+};
 
 const CATEGORIES = [
   'Medical', 'Memorial', 'Emergency', 'Nonprofit', 'Education', 'Animal',
@@ -174,7 +193,7 @@ export function buildFixtures() {
       deadline: new Date(Date.now() + (i % 60) * 86_400_000).toISOString().slice(0, 10),
       status: ['active', 'active', 'active', 'draft', 'paused', 'completed'][i % 6],
       cover_image_url: subjectCover(category, `stub-${i + 1}`),
-      image_urls: [subjectCover(category, `stub-${i + 1}`)],
+      image_urls: [subjectCover(category, `stub-gallery-${i + 1}`)],
       trust_status: ['Verified', 'Trusted', 'Needs More Info'][i % 3],
       campaign_health_score: 40 + ((i * 7) % 60),
       payout_frozen: i % 29 === 0,
@@ -196,6 +215,15 @@ export function buildFixtures() {
       id: uuid('dona', i + 1),
       campaign_id: campaign.id,
       donor_id: i % 5 === 0 ? null : USER_ID,
+      // A guest checkout has no profile row, so the organizer surfaces resolve
+      // the donor from these two columns instead. They were absent, which made
+      // every guest gift — a fifth of the table — key on `donor_id ?? email ??
+      // null` and get DROPPED, so the supporter list rendered under every sweep
+      // with the guest half missing and nothing reachable in it. The modulus is
+      // 8 so a campaign's four gifts come from one guest, which is what makes a
+      // repeat (and a mixed-anonymity) supporter possible at all.
+      offline_donor_email: i % 5 === 0 ? `guest${i % 8}@example.com` : null,
+      offline_donor_name: i % 5 === 0 ? `Guest Donor ${i % 8}` : null,
       amount_cents: [500, 1000, 2500, 5000, 10_000, 25_000, 100_000][i % 7],
       // A mix of empty, short and long messages: the long one is what catches a
       // comment card that has no wrapping or overflow rule.
@@ -204,7 +232,14 @@ export function buildFixtures() {
         : i % 3 === 1
           ? 'Thinking of you.'
           : 'We have been following this since the beginning and could not be prouder of how the whole neighbourhood turned out. Sending love from three states away.',
-      anonymous: i % 6 === 0,
+      // Anonymity has to VARY WITHIN a campaign, and `i % 6` could not do that:
+      // gifts are dealt round-robin across 120 campaigns and 6 divides 120, so
+      // every gift on a given campaign landed on the same residue — each
+      // campaign came out entirely anonymous or entirely named. No sweep could
+      // render an organizer surface holding both, which is precisely where the
+      // supporter list was folding anonymous money into a named row. 7 does not
+      // divide 120, so each campaign now gets a mix.
+      anonymous: i % 7 === 0,
       // lib/reconciliation.ts and lib/pricing-analytics.ts both filter
       // `.eq('offline', false)` to mean "came through Stripe". SQL equality
       // excludes NULL, so an absent column made both surfaces report zero over a

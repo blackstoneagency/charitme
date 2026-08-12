@@ -124,16 +124,16 @@ export default function IncidentsClient({
 
   return (
     <div className="kf-admin-dash" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 20, maxWidth: 900 }}>
-      <header>
-        <h1 style={{ margin: 0, fontSize: 22 }}>Incidents &amp; Maintenance</h1>
-        <p style={{ margin: '4px 0 0', color: 'var(--t3)', fontSize: 14 }}>
-          Everything here is published on the public{' '}
-          <a href="/status" style={{ color: 'var(--violet-ink)', fontWeight: 700 }}>
-            status page
-          </a>{' '}
-          immediately.
-        </p>
-      </header>
+      {/* ⚠️ The <h1> that was here is now the shell's TopBar title. Keeping both
+          put two competing headings on the page. Only the status-page LINK
+          survives, because TopBar's subtitle is plain text and cannot carry it. */}
+      <p style={{ margin: 0, color: 'var(--t3)', fontSize: 14 }}>
+        Everything here is published on the public{' '}
+        <a href="/status" style={{ color: 'var(--violet-ink)', fontWeight: 700 }}>
+          status page
+        </a>{' '}
+        immediately.
+      </p>
 
       {err && (
         <p role="alert" style={{ color: 'var(--red)', fontSize: 14, margin: 0 }}>

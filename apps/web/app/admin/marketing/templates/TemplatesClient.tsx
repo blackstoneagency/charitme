@@ -77,13 +77,10 @@ export default function TemplatesClient({
 
   return (
     <div className="kf-admin-dash" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 20 }}>
-      <header style={{ display: 'flex', minWidth: 0, gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-        <div style={{ flex: '1 1 240px' }}>
-          <h1 style={{ margin: 0, fontSize: 22 }}>Email Templates</h1>
-          <p style={{ margin: '4px 0 0', color: 'var(--t3)', fontSize: 14 }}>
-            The copy your marketing automations send. Automations select a template by category.
-          </p>
-        </div>
+      {/* Heading and subtitle now come from the shell's TopBar. The action stays
+          here rather than moving into TopBar's `actions` slot, because it needs
+          this component's `create`/`busy` state and TopBar renders on the server. */}
+      <header style={{ display: 'flex', minWidth: 0, gap: 12, alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
         <Btn type="button" onClick={create} disabled={busy}>
           {busy ? 'Creating…' : 'New template'}
         </Btn>

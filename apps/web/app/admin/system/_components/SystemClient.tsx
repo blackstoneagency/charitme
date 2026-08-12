@@ -507,9 +507,9 @@ export default function SystemClient({ categories, overview, recentActivity, res
         </div>
         <div className="sys-form-section">
           <h3>Email Templates</h3>
-          <a href="/admin/content" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 38, padding: '0 16px', border: '1px solid #d8d2ff', borderRadius: 9, color: 'var(--brand-text)', fontWeight: 650, fontSize: 13, textDecoration: 'none' }}>
+          <Link href="/admin/content" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 38, padding: '0 16px', border: '1px solid #d8d2ff', borderRadius: 9, color: 'var(--brand-text)', fontWeight: 650, fontSize: 13, textDecoration: 'none' }}>
             Manage Templates →
-          </a>
+          </Link>
         </div>
         <div className="sys-form-section">
           <h3>Email Verification</h3>

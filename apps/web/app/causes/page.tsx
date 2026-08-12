@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { CAUSES, POPULAR_CAUSES } from '../../lib/causes';
 import { getTranslator } from '../../lib/locale-server';
 import { getCausesIndexData } from '../../lib/causes-index';
-import { getCoverForCampaign } from '../../lib/photo-catalog';
+import { getDistinctPhotosForItems } from '../../lib/photo-catalog';
 import { IndexHero, StatStrip, statValue, moneyValue } from '../../components/IndexHero';
 import CausesBrowser, { type BrowseCause } from './CausesBrowser';
 import StayInformed from '../../components/StayInformed';
@@ -21,6 +21,10 @@ export default async function CausesPage() {
   const [data, t] = await Promise.all([getCausesIndexData(), getTranslator()]);
 
   const ordered = [...POPULAR_CAUSES, ...CAUSES.filter((c) => !POPULAR_CAUSES.some((p) => p.slug === c.slug))];
+  const [heroPhoto, ...causePhotos] = getDistinctPhotosForItems([
+    { category: 'Environment', key: 'causes-index-hero' },
+    ...ordered.map((cause) => ({ category: cause.categories[0], key: `cause-card-${cause.slug}` })),
+  ]);
   const browse: BrowseCause[] = ordered.map((cause, rank) => {
     const label = t(`nav.cause.${cause.slug}`);
     const figures = data.perCause.get(cause.slug);
@@ -29,7 +33,7 @@ export default async function CausesPage() {
       // Same key the mega-menu renders, so the twenty names cannot drift apart.
       label: label === `nav.cause.${cause.slug}` ? cause.label : label,
       blurb: cause.blurb,
-      photo: getCoverForCampaign(cause.categories[0], `cause-card-${cause.slug}`),
+      photo: causePhotos[rank],
       campaigns: figures?.campaigns,
       raisedCents: figures?.raisedCents,
       rank,
@@ -49,7 +53,7 @@ export default async function CausesPage() {
         crumbs={[{ label: t('nav.home'), href: '/' }, { label: t('nav.group.causes') }]}
         title={t('causes.page_title')}
         lede={t('causes.page_intro')}
-        photo={getCoverForCampaign('Environment', 'causes-index-hero')}
+        photo={heroPhoto}
         photoCategory="Environment"
         photoKey="causes-index"
         card={{

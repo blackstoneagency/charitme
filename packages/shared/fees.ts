@@ -214,19 +214,41 @@ export function normalizeDonationCheckoutSettings(value: unknown): DonationCheck
   };
 }
 
+/** The processor's fee on the final amount submitted for payment. */
+export function methodProcessorCost(
+  chargeAmountCents: number,
+  method: PaymentMethod,
+  methodFees: Partial<Record<PaymentMethod, MethodFeeConfig>> = METHOD_FEES,
+): number {
+  const cfg = methodFees[method] ?? METHOD_FEES[method];
+  const amount = Math.max(0, Math.round(chargeAmountCents));
+  const fee = Math.round(amount * (cfg.pct / 100)) + cfg.fixed;
+  return cfg.cap !== undefined ? Math.min(fee, cfg.cap) : fee;
+}
+
 /**
- * Calculate the processing fee for a given amount and payment method.
- * This is the fee that goes DIRECTLY TO THE PAYMENT PROCESSOR (Stripe, etc.)
- * and is shown transparently to donors before checkout.
+ * Calculate the additive amount that covers processing on the final charge.
+ *
+ * Processor percentages apply to the total after the coverage amount is added.
+ * A one-pass `base * rate + fixed` calculation under-collects because it never
+ * charges the percentage on itself. Iterating to the fixed point returns the
+ * smallest whole-cent amount whose configured processor cost is fully covered.
  */
 export function methodProcessingFee(
   amountCents: number,
   method: PaymentMethod,
   methodFees: Partial<Record<PaymentMethod, MethodFeeConfig>> = METHOD_FEES,
 ): number {
-  const cfg = methodFees[method] ?? METHOD_FEES[method];
-  const fee = Math.round(amountCents * (cfg.pct / 100)) + cfg.fixed;
-  return cfg.cap !== undefined ? Math.min(fee, cfg.cap) : fee;
+  const amount = Math.max(0, Math.round(amountCents));
+  let coverage = methodProcessorCost(amount, method, methodFees);
+
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const next = methodProcessorCost(amount + coverage, method, methodFees);
+    if (next === coverage) return coverage;
+    coverage = next;
+  }
+
+  throw new Error('Processing fee coverage did not converge');
 }
 
 export const CAMPAIGN_CATEGORIES = [
@@ -340,7 +362,9 @@ export function donationBreakdown(input: DonationBreakdownInput): DonationBreakd
   const supportCents = hasOverride
     ? Math.max(0, Math.round(input.supportCentsOverride as number))
     : donorTip(donationCents, supportPercent);
-  const processingCents = methodProcessingFee(donationCents + supportCents, method, input.methodFees);
+  const processingCents = coverProcessing
+    ? methodProcessingFee(donationCents + supportCents, method, input.methodFees)
+    : methodProcessorCost(donationCents + supportCents, method, input.methodFees);
 
   const totalChargedCents = donationCents + supportCents + (coverProcessing ? processingCents : 0);
   const netToRecipientCents = coverProcessing ? donationCents : Math.max(0, donationCents - processingCents);

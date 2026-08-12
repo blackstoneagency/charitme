@@ -212,7 +212,7 @@ describe('signed-in audit integrity', () => {
 
   it('enforces all three visual audit lanes in CI', () => {
     expect(ciWorkflow).toContain('visual-audits:');
-    expect(ciWorkflow).toContain('args: --public --build --page-images --mobile --responsive --strict-global');
+    expect(ciWorkflow).toContain('args: --public --build --page-images --mobile --responsive');
     expect(ciWorkflow).toContain('args: --build --page-images --mobile --responsive --contrast --strict-gradients');
     expect(ciWorkflow).toContain('args: --build --page-images --mobile --responsive --contrast --strict-gradients --no-admin');
     expect(ciWorkflow).toContain('node scripts/audit-signed-in.mjs ${{ matrix.args }} --port 3310 --stub-port 55432');

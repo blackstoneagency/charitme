@@ -6,6 +6,8 @@ import {
   getCoverForCategory,
   getCoverForCampaign,
   getDisplayCover,
+  getDistinctDisplayPhotos,
+  getDistinctPhotosForItems,
   getPhotosForCategory,
   getPhotosForPage,
   isCatalogCover,
@@ -235,5 +237,34 @@ describe('getCoverForCategory / getPhotosForCategory (existing API preserved)', 
     expect(new Set(second).size).toBe(second.length);
     expect(first[0], 'two pages start on the same image').not.toBe(second[0]);
     expect([...first, ...second].every((u) => u.startsWith('https://images.unsplash.com/photo-'))).toBe(true);
+  });
+
+  it('coordinates sections so a rendered page never repeats a photograph', () => {
+    const photos = getDistinctPhotosForItems(Array.from({ length: 20 }, (_, index) => ({
+      category: index < 8 ? 'Community' : index < 14 ? 'Education' : 'Medical',
+      key: `page-section-${index}`,
+    })));
+    expect(photos).toHaveLength(20);
+    expect(new Set(photos.map(idOf)).size).toBe(photos.length);
+    expect(photos.every((url) => url.startsWith('https://images.unsplash.com/photo-'))).toBe(true);
+  });
+
+  it('keeps large page collections distinct after the verified photo pool is exhausted', () => {
+    const photos = getPhotosForPage('Event', 'events-volume', 60);
+    expect(photos).toHaveLength(60);
+    expect(new Set(photos.map(idOf)).size).toBe(photos.length);
+  });
+
+  it('preserves unique stored covers and replaces only repeated page media', () => {
+    const stored = 'https://cdn.example.com/organizer-cover.jpg';
+    const photos = getDistinctDisplayPhotos([
+      { category: 'Community', key: 'first', storedCover: stored, pageScope: 'supporters' },
+      { category: 'Community', key: 'second', storedCover: stored, pageScope: 'supporters' },
+      { category: 'Education', key: 'third', storedCover: 'https://cdn.example.com/third.jpg', pageScope: 'supporters' },
+    ]);
+    expect(photos[0]).toBe(stored);
+    expect(photos[1]).not.toBe(stored);
+    expect(photos[2]).toBe('https://cdn.example.com/third.jpg');
+    expect(new Set(photos.map(idOf)).size).toBe(photos.length);
   });
 });

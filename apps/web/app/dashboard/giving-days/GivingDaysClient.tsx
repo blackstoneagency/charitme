@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 type Nonprofit = { id: string; name: string };
 type Day = {
@@ -106,7 +107,7 @@ export default function GivingDaysClient({
         {/* Said plainly rather than showing a form whose every submission would
             be refused: the table's foreign key requires a nonprofit profile. */}
         A giving day belongs to a nonprofit profile, and this account does not own
-        one yet. Set one up under <a href="/dashboard/nonprofit">Your Organization</a> and
+        one yet. Set one up under <Link href="/dashboard/nonprofit">Your Organization</Link> and
         this page turns on.
       </p>
     );

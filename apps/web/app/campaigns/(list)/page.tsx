@@ -16,7 +16,7 @@ import { getTopDonors } from '../../../lib/leaderboard';
 import { getRecentDonations } from '../../../lib/home-data';
 import { formatCents } from '../../../lib/stripe';
 import { optimizedCoverUrl } from '../../../lib/img-optimize';
-import { getCoverForCategory, getDisplayCover } from '../../../lib/photo-catalog';
+import { getDistinctDisplayPhotos } from '../../../lib/photo-catalog';
 import { StatStrip, statValue, moneyValue } from '../../../components/IndexHero';
 import { getCausesIndexData } from '../../../lib/causes-index';
 import { pageWindow } from '../../../lib/pagination';
@@ -453,6 +453,23 @@ export default async function CampaignsPage({ searchParams }: Props) {
   const timeLabelFor = (c: CampaignRow) =>
     campaignTimeLabel({ status: c.status ?? 'active', deadline: c.deadline });
   const daysLeftFor = (c: CampaignRow) => campaignDaysLeft(c.deadline);
+  const featuredCampaigns = featured ?? [];
+  const pageCovers = getDistinctDisplayPhotos([
+    ...featuredCampaigns.map((campaign) => ({
+      storedCover: campaign.cover_image_url,
+      category: campaign.category,
+      key: `featured:${campaign.slug}`,
+      pageScope: 'campaigns-list',
+    })),
+    ...campaigns.map((campaign) => ({
+      storedCover: campaign.cover_image_url,
+      category: campaign.category,
+      key: `listing:${campaign.slug}`,
+      pageScope: 'campaigns-list',
+    })),
+  ]);
+  const featuredCovers = pageCovers.slice(0, featuredCampaigns.length);
+  const listingCovers = pageCovers.slice(featuredCampaigns.length);
 
   return (
     <div className="cb-page">
@@ -502,7 +519,7 @@ export default async function CampaignsPage({ searchParams }: Props) {
             heading beside it already carries the meaning. */}
         <div className="cbx-hero-art" aria-hidden="true">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={getCoverForCategory('Community', 'campaigns-list-hero')} alt="" loading="eager" />
+          <img src="/images/reference/supporter-space-hero.jpg" alt="" loading="eager" />
         </div>
       </section>
 
@@ -691,13 +708,13 @@ export default async function CampaignsPage({ searchParams }: Props) {
                 <Link href="/campaigns?sort=raised">View All Featured <span aria-hidden="true">&rarr;</span></Link>
               </div>
               <div className="cbx-feat-grid">
-                {featured.map((c) => {
+                {featured.map((c, index) => {
                   const d = daysLeftFor(c);
                   return (
                     <article key={c.id} className="cbx-feat">
                       <Link href={`/campaigns/${c.slug}`} className="cbx-feat-media">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={optimizedCoverUrl(getDisplayCover(c.cover_image_url, c.category, c.slug, 'campaigns-list-featured'), 700)} alt="" loading="lazy" />
+                        <img src={optimizedCoverUrl(featuredCovers[index], 700)} alt="" loading="lazy" />
                         {c.category && <span className="cbx-feat-badge">{c.category}</span>}
                       </Link>
                       <div className="cbx-feat-body">
@@ -761,13 +778,13 @@ export default async function CampaignsPage({ searchParams }: Props) {
             />
           ) : (
             <ul className="cbx-list">
-              {campaigns.map((c) => {
+              {campaigns.map((c, index) => {
                 const d = daysLeftFor(c);
                 return (
                   <li key={c.id} className="cbx-row">
                     <Link href={`/campaigns/${c.slug}`} className="cbx-row-media" aria-hidden="true" tabIndex={-1}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={optimizedCoverUrl(getDisplayCover(c.cover_image_url, c.category, c.slug, 'campaigns-list-compact'), 200)} alt="" loading="lazy" />
+                      <img src={optimizedCoverUrl(listingCovers[index], 200)} alt="" loading="lazy" />
                     </Link>
                     <div className="cbx-row-body">
                       {c.category && <span className="cbx-row-badge">{c.category}</span>}

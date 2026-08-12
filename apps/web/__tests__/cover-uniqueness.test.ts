@@ -69,11 +69,14 @@ describe('per-campaign covers never use the per-category helper', () => {
     expect(src).toMatch(/fallbackCover:\s*getCoverForCampaign\(c\.category,\s*c\.slug\)/);
   });
 
-  it('getCoverForCategory survives only for category tiles', () => {
+  it('the homepage coordinates category tiles as one distinct image set', () => {
     const src = read('app/page.tsx');
     // Every remaining call must sit on the browse-by-category tile, which is
     // one image standing for a whole category — the helper's actual purpose.
     const calls = [...src.matchAll(/getCoverForCategory\([^)]*\)/g)];
+    expect(src).toContain('getDistinctPhotosForItems');
+    expect(src).toContain('homeCausePhotos[index]');
+    if (calls.length === 0) return;
     expect(calls.length, 'unexpected getCoverForCategory call — is it per-campaign?').toBe(1);
     const at = src.indexOf(calls[0][0]);
     expect(src.slice(Math.max(0, at - 400), at)).toMatch(/(?:home|mirror)-cause-media/);
@@ -87,6 +90,14 @@ describe('per-campaign covers never use the per-category helper', () => {
   it('CampaignImage accepts optimized project-local artwork', () => {
     const src = read('components/CampaignImage.tsx');
     expect(src).toMatch(/usableSource\?\.startsWith\('\/'\)/);
+  });
+
+  it('event overflow explicitly opts into unique first-party subject art', () => {
+    const component = read('components/CampaignImage.tsx');
+    const events = read('app/events/(list)/page.tsx');
+    expect(component).toContain('allowGeneratedFallback');
+    expect(component).toMatch(/generatedAllowed\s*=\s*allowGeneratedFallback/);
+    expect(events).toContain('allowGeneratedFallback');
   });
 });
 

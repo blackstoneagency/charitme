@@ -1,5 +1,36 @@
 # CharitMe — Execution Tracker
 
+## Stripe Connect funds-flow integrity release - complete (Codex, 2026-08-11)
+
+- [x] Prove the implementation uses Stripe Connect destination charges with
+  server-owned `application_fee_amount` and `transfer_data.destination`.
+- [x] Correct processor-fee gross-up and campaign net allocation in integer cents.
+- [x] Replace synthetic transfer/payout success with authoritative Stripe object
+  reconciliation and connected payout allocations.
+- [x] Make full/partial refunds, lost disputes, transfer reversals, refund caps,
+  ledger entries, and reconciliation exceptions retry-safe and idempotent.
+- [x] Add RLS-protected connected payout tables plus locked service-role refund
+  reservation and campaign-stat RPCs with a matching rollback migration.
+- [x] Pass the real Stripe sandbox matrix: 12/12 scenarios, every difference
+  $0.00, one failed payout proved, and a separate $100.00 bank payout paid.
+- [x] Pass TypeScript, ESLint, the full 390-file / 4,526-test suite, the
+  production build, credential scan, and live 12-table financial RLS audit.
+- [x] Verify the manually applied production SQL created every required column,
+  table, RPC, unique index, RLS setting, and policy. The production migration
+  ledger is now 140/140 with no local-only or remote-only entries.
+- [x] Pass zero-state migration replay in GitHub's Docker release job; retain the
+  matching rollback migration for an operator-controlled rollback rehearsal.
+- [x] Merge the funds-flow and release-gate fixes through `master`, verify
+  repository CI, and publish version tags through the release workflow.
+- [x] Verify isolated staging migration/smoke evidence, production migration,
+  deployment SHA, and `www.charitme.com` for final tag `v0.1.29` before declaring
+  production complete.
+
+Release `v0.1.29` passed the complete release workflow at commit
+`89d2b312a866340b901a9ec0f54f75116da5ab4b`. Production provisioning reported
+the database up to date, and the exact-SHA verifier confirmed that commit live
+at `https://www.charitme.com`.
+
 ## Immediate completion release candidate — local gates complete, release pending (Codex, 2026-08-10)
 
 This is the current execution handoff. The implementation is complete locally;
@@ -32,8 +63,8 @@ production-complete until the tagged workflow records them.
   keyboard stops; Playwright reports 86 passed and 6 declared skips.
 - [ ] Open the PR, pass repository CI, and merge through `master`.
 - [ ] Run the expanded platform matrix against the release workflow's isolated
-  staging Supabase instance. Production currently has 87 ledger entries against 133
-  local migration files, so the file-derived upper-bound pending count remains 46.
+  staging Supabase instance. Production currently has 87 ledger entries against 137
+  local migration files, so the file-derived upper-bound pending count is now 52.
 - [ ] Run Stripe test-mode feature purchase, event checkout, webhook replay,
   charge-to-transfer-to-payout reconciliation, refund, and dispute/test-clock flows
   with staging test credentials. Production credentials are never used for this gate.
@@ -62,9 +93,9 @@ to date, and `www.charitme.com` serves the release workflow's exact verified SHA
 - [x] Prove every rendered content image is unique, reachable, licensed/free for use, and semantically appropriate for its page or campaign.
   - [x] Local gate: 32/32 files are hash-unique, licensed, documented, and visually reviewed; two off-subject heroes were retired and replaced.
   - [x] Catalog gate: 117 IDs across 18 categories, zero shared images, and no Picsum/LoremFlickr fallback.
-  - [x] Public rendered-page gate: 115/115 routes exposed 377 distinct content images, no within-page or cross-page reuse, no broken images, no placeholders, and no Picsum/LoremFlickr output.
+  - [x] Public rendered-page gate: 115/115 routes have no within-page image reuse, broken images, placeholders, or Picsum/LoremFlickr output. Cross-page reuse is reported but allowed when the same licensed photograph remains relevant on separate pages.
   - [x] Signed-in rendered-page gate: 119 admin routes and 71 member routes reachable under their respective fixture personas rendered with zero within-page duplication; the one repeated cross-page asset is the same campaign cover preserving that campaign's identity across its dashboard, growth-plan, donor, and edit views. Inaccessible inventory entries are role redirects rather than unmeasured content.
-  - [x] Live production rendered-page gate: real campaign samples passed strict global uniqueness after campaign cards and similar-campaign recommendations were bound to their campaign entity IDs.
+  - [x] Live production rendered-page gate: real campaign samples preserve campaign image identity while preventing duplicate cards within a rendered page.
 - [x] Make both audits required CI/release gates and retain machine-readable evidence.
   - [x] Added repeatable public/admin/member responsive, mobile, rendered-image, and local-asset commands.
   - [x] Added the green responsive and image-integrity commands to both CI and the tagged release workflow.
@@ -737,6 +768,88 @@ That is the **fifth** static-analysis false finding recorded here, and it is why
 the guard was added only once the count was genuinely zero: a test that ships
 with a backlog of 19 failures is a test someone switches off. It pins the class
 now instead of describing it.
+
+## 📷 CAMPAIGN PHOTOS — every cover is GENERATED ART, and one free key finishes it (Claude, 2026-08-10)
+
+Measured against production, not inferred: **502 campaigns, 501 holding a
+`/media/subject` cover.** That route draws a `next/og` gradient card with subject
+copy — it is not a photograph. Every URL is already distinct, so the gap is not
+linkage. It is that no campaign has a real photo.
+
+### Two defects that would have survived adding the key
+
+| | defect | consequence |
+|---|---|---|
+| 1 | a stored `/media/subject` cover counted as an ORGANIZER UPLOAD | it short-circuited the live-photo branch, so `UNSPLASH_ACCESS_KEY` would have changed **nothing** for all 501 |
+| 2 | `unsplashCoverForCampaign` claimed per-campaign uniqueness | measured: **222 of 502 (44.2%)** would get a DUPLICATE cover |
+
+The duplicate figure by category: Faith **50 of 73**, Education **49 of 73**,
+Medical **47 of 73**. Two causes, and a bigger pool only fixes the first —
+pigeonhole (73 > 30, now pooled to 90) and birthday collisions (73 draws from 90
+slots yields ~55 distinct). **No per-campaign function can fix the second**,
+because uniqueness is a property of the SET. It is now assigned globally by
+`scripts/assign-campaign-photos.mjs` and proven at production scale in
+`campaign-photo-plan.test.ts`: 501 campaigns → 501 distinct photos, stable across
+re-runs, every photo inside its own category.
+
+### 🔑 THE ONLY THING LEFT IS ONE FREE API KEY
+
+`UNSPLASH_ACCESS_KEY` (unsplash.com/developers, free tier). With it:
+
+```bash
+node scripts/assign-campaign-photos.mjs --emit-migration   # no DB credential needed
+```
+
+That writes a guarded migration plus its rollback; apply it on a normal deploy.
+`--commit` writes directly instead, but needs a service-role key —
+**the one in `.env.local` now returns `401 Unregistered API key`**, so the
+migration path is the one that works today.
+
+### 🚧 Why there is no key-free substitute — checked, not assumed
+
+- **`api.unsplash.com` IS reachable** from the sandbox: it answers `401` with
+  Unsplash's own OAuth error, not a proxy block. Only the credential is missing.
+- **Unsplash SEARCH is not reachable** — `unsplash.com` and its internal API both
+  return `307 Authorization required` at the agent proxy, so photo IDs cannot be
+  harvested. The repo + full git history yields **65** IDs, of which **19 are
+  already dead**; 45 distinct live IDs against 501 campaigns.
+- **Openverse indexes 52 sources and Unsplash is NOT one of them.** So there is
+  no key-free route to a CSP-approved photo host.
+- Openverse CC0 *does* have volume (240, the result cap, for well-formed
+  queries — my first pass read 0 for six categories and that was a query
+  artifact, not absence). But its photos are Flickr/Wikimedia user uploads:
+  **not reliably professional**, and using them would mean adding
+  `live.staticflickr.com` to the production CSP *and* to `APPROVED_HOSTS` in
+  another lane's image-integrity gate.
+- ⚠️ **The professional slice was measured, not dismissed.** Openverse also
+  indexes StockSnap (40k) and Rawpixel (1.27M), which ARE professional CC0
+  stock. I initially waved these away as "Flickr user uploads" — wrong, so I
+  counted them. Restricted to `source=stocksnap,rawpixel`, supply against demand:
+
+  | category | need | have | | category | need | have |
+  |---|---|---|---|---|---|---|
+  | Medical | 73 | 60 | | Memorial | 17 | **0** |
+  | Education | 73 | 21 | | Event | 17 | **0** |
+  | Faith | 73 | **1** | | Animal | 17 | **0** |
+  | Emergency | 23 | 2 | | Competition | 16 | **0** |
+  | Community | 22 | **0** | | Travel | 16 | 63 |
+  | Creative | 22 | 4 | | Business | 16 | 3 |
+  | Sports | 22 | **0** | | Wishes | 15 | **0** |
+  | Environment | 22 | 14 | | Nonprofit | 18 | **0** |
+  | Volunteer | 21 | 1 | | Family | 18 | 10 |
+
+  **~179 professional CC0 photos available against 501 needed, and nine
+  categories return ZERO.** Only Travel clears its requirement. So the
+  professional-CC0 route cannot cover the site — that is now a measurement, not
+  a judgement call, and it closes the last key-free option.
+
+### Verified rather than assumed
+
+- All **45** distinct Unsplash IDs in the catalog and migrations return **200 —
+  0 dead**.
+- The audit's "117 catalog IDs vs 45 live checks" is **not** an under-check: 117
+  counts every catalog entry including first-party subject URLs; 45 is every
+  entry actually on Unsplash. Suspected a gap, measured it away.
 
 ## 📱 MOBILE READINESS — the class of defect NO audit in this repo can see (Claude, 2026-08-09)
 
@@ -3832,11 +3945,42 @@ skipped workflow leaves its check pending forever and would deadlock a docs-only
 PR. Nothing is required today, which is why this is safe now — recorded so the
 next person does not find out the hard way.
 
-## 🛑 SUPABASE STAGING — historical audit, and the file-derived upper-bound pending count is **49** (Claude, 2026-08-03)
+## 🛑 SUPABASE STAGING — historical audit, and the file-derived upper-bound pending count is **53** (Claude, 2026-08-03)
 
-**Live ledger rechecked 2026-08-10:** 136 local migration files against 87
-production ledger entries. The 49-file upper-bound gap below is therefore a current
-measurement, not only historical arithmetic.
+**Live ledger rechecked 2026-08-11:** 140 local migration files against 138
+production ledger entries, so the authoritative current pending count is 2. The
+53-file figure below is retained only as the guard's historical upper-bound
+arithmetic against the 87-entry snapshot.
+
+**+1 on 2026-08-11: `20260905000000_web_push_subscriptions.sql`** (→ 49). Lands
+`push_subscriptions` for the web-push work in `mobileGo.md` item 5. Unapplied is
+the safe state: the send path catches its own errors, so push is simply silent
+and nothing else changes. Not publicly probeable — RLS-scoped to the owner, and
+the only surface that could differ is behind auth *and* a VAPID keypair.
+
+**+1 on 2026-08-11: `20260905010000_share_events_native_channels.sql`** (→ 50).
+Widens `share_events_channel_check` to admit `messenger` and `native`. ⚠️ The API
+deliberately does NOT depend on it: it inserts the true channel and, on 23514,
+retries once as `facebook`/`other`. Applying it upgrades the data; not applying
+it costs precision, not events — which matters, because losing the event is
+exactly the bug this fixes.
+
+**+1 on 2026-08-11: `20260906000000_tombstone_gotrue_readable.sql`** (→ 52).
+✅ **APPLIED TO PRODUCTION** — by hand, by the owner, same day. Re-measured after:
+**0 unreadable auth rows, down from 502**, and `listUsers` sweeps all 4 pages
+(640 users) without failing. Both tombstones read `200`.
+
+⚠️ Applied by hand, so it is probably not in `supabase_migrations.schema_migrations`
+and `supabase db push` will try it again. Safe: the inserts are
+`ON CONFLICT DO NOTHING` / `DO UPDATE`, the repair is scoped to `IS NULL`, so a
+second run is a no-op. It is counted as pending in the arithmetic above because
+that number is derived from **disk vs the 2026-07-29 audit snapshot**, which is a
+deliberate upper bound and does not track hand-applied changes.
+
+**+1 on 2026-08-11: `20260906010000_stripe_money_flow_integrity.sql`** (→ 53).
+The Stripe objects are already live because the SQL was applied manually, but the
+migration is not recorded in Supabase's ledger. The tagged release must replay its
+idempotent statements to record it and prove the same schema from zero.
 
 ⚠️ The newest of them, `20260904030000_deleted_user_tombstone`, is a
 **precondition for self-service account deletion** — until it is applied,
@@ -3958,16 +4102,16 @@ that day**:
 dump confirmed the objects were absent, and a restored production clone applied
 all 18 in order and proved rollback.
 
-Thirty migrations have been added since. So the count is arithmetic:
+Thirty-five migrations have been added since. So the count is arithmetic:
 
 ```
-136 local − 87 applied           = 49
-18 audited pending + 31 added    = 49   ✓ reconciles
+140 local − 87 applied           = 53
+18 audited pending + 35 added    = 53   ✓ reconciles
 ```
 
 All 18 audited-pending versions are still on disk under their original names.
 
-### ⚠️ Eight of the 46 are SECURITY hardening, not features
+### ⚠️ Eight of the 53 are SECURITY hardening, not features
 
 This is the part that changes the priority. Written, reviewed, merged — and
 **not live**:
@@ -4003,7 +4147,7 @@ miscounting, it was adding migrations and leaving the old number in place.
 
 Owner action unchanged: upgrade Supabase, free a project slot, or provision
 staging elsewhere. Do not bypass the gate — the ledger's last line says so, and
-46 unverified migrations including eight privilege changes is exactly the case the
+53 historically unverified migrations including eight privilege changes is exactly the case the
 gate exists for.
 
 ## ⚪ `/certificate` — NOT a deferral; building it would require inventing data
@@ -23989,14 +24133,12 @@ which have regressed before. `DonorWall`, `DonationTicker` and `CommentsList` al
 branch on the per-gift flag; exports and organizer notifications are covered by
 the existing `donor-privacy` suite.
 
-### 🔍 One observation, not a defect
-`aggregateSupporters` folds an anonymous gift's AMOUNT into a named supporter row
-if the same donor later gives openly — so an organizer sees "Real Name, 2 gifts,
-$525" and can infer the anonymous one. The checkbox promises no public display
-("publicly on the fundraiser") and the supporter list is the organizer's own CRM,
-so this does not break the stated promise, and per-gift anonymity is deliberate.
-Flagging it because most donors would not expect it. Changing it would affect
-organizer reconciliation, so it is a product call rather than a bug fix.
+### 🔍 One observation → **fixed, see the section at the end of this file**
+`aggregateSupporters` folded an anonymous gift's AMOUNT into a named supporter
+row if the same donor later gave openly — an organizer saw "Real Name, 2 gifts,
+$525" and could infer the anonymous one. Called a product question at the time;
+the owner called it a bug. Fixed 2026-08-10 — **the anonymous gift in the
+organizer supporter list**, below.
 
 ### ❌ What could NOT be executed here, and why
 The four hops need a live Stripe Checkout session and a signed webhook. Neither
@@ -24006,6 +24148,78 @@ be driven in a browser here either (confirmed: the stub's campaigns render the
 "ended" or non-payout state, exposing only the comment form's "Post anonymously"
 box). The suite records this next to the assertions it qualifies rather than
 letting a reader assume more coverage than exists.
+
+## ✅ The anonymous gift in the organizer supporter list (Claude, 2026-08-10)
+
+Reported as "fix the anonymous gift showing in the organizer supporter list" —
+the observation logged above, escalated to a defect.
+
+**The leak.** `/api/campaigns/[id]/supporters` already redacted per gift: an
+anonymous gift, or one from a donor whose Profile Visibility is Private, came
+through as `name: 'Anonymous donor'`. Then `aggregateSupporters` collapsed
+everything to one row per person and **un-redacted it**:
+
+```ts
+if (!d.anonymous && d.name) { existing.name = d.name; existing.anonymous = false; }
+```
+
+One open gift was enough to relabel the whole row, while `giftCount` and
+`totalCents` kept summing every gift. The organizer read "Real Name · 2 gifts ·
+$525" beside a public donor wall showing Real Name's single $25 — leaving exactly
+one candidate for the anonymous $500. The redaction was real; the aggregation
+undid it.
+
+**The fix is a split, and it is a DISPLAY split only.** Anonymity is part of the
+grouping key in a new `supporterListRows`, so anonymous money never lands in a
+named row. `aggregateSupporters` is untouched and stays one-row-per-person,
+because it is what `/engage` targets — splitting there would mail the same
+address twice. Both live in `lib/organizer-marketing.ts` with the difference
+stated on each.
+
+⚠️ **Splitting the rows is worthless if either half can rejoin them**, and two
+fields could:
+- the **masked address**. `gu***@ex***.com` on both rows hands the link straight
+  back to any organizer who already knows the donor's email. Anonymous rows now
+  carry `emailMasked: null` — and the panel says `contactable · address hidden`,
+  not "no email on file", which would be a lie.
+- the **React key**. `anon:<donor_id>` ships to the browser next to the same
+  donor's `open:<donor_id>`. Anonymous rows get a positional `anon-N` instead.
+
+Both are asserted, and both mutations are caught.
+
+**The route also stopped half-redacting.** It blanked `name` for a Private
+profile but passed the raw `anonymous` flag through, so a Private donor's gifts
+filed into the *named* bucket that merely had no name — and kept their masked
+address under the words "Anonymous donor". One `hideIdentity` flag now drives
+both fields.
+
+**Measured, not read** — real route, real component, stub Supabase, campaign
+`camp0000-…-000000000001` (one donor, 1 anonymous + 3 open gifts):
+
+| | before | after |
+|---|---|---|
+| rows | `Guest Donor 0 · 4 gifts · $90 · gu***@ex***.com` | `Guest Donor 0 · 3 · $85 · gu***@ex***.com` **+** `Anonymous donor · 1 · $5 · address hidden` |
+| anonymous row carries | — | no name, no address, no donor id |
+| `/engage` recipients | 1 | **1** (unchanged — the split is display-only) |
+
+Console clean, no duplicate-key warnings. The "Supporters" KPI stays
+person-level, so rows can outnumber it; a caption above the table says why, since
+an organizer reconciling the two numbers by hand is the exact move the split
+prevents.
+
+### 🧪 The fixtures could not have caught this, and now can
+`supabase-stub-fixtures.mjs` dealt 400 gifts round-robin across 120 campaigns and
+set `anonymous: i % 6 === 0`. **6 divides 120**, so every gift on a campaign
+landed on the same residue — each campaign was entirely anonymous or entirely
+named, and no sweep could render an organizer surface holding both. Now `i % 7`
+(40 mixed campaigns).
+
+Guest gifts (a fifth of the table) also had no `offline_donor_email`/`_name`, so
+they keyed on `donor_id ?? email ?? null` and were **dropped** — the supporter
+list rendered under every sweep with the guest half missing and nothing reachable
+in it. Both columns are populated now.
+
+Also fixed in passing: the send button read "Send to 1 supporters".
 
 ---
 
@@ -24464,6 +24678,214 @@ the total with nothing unaccounted for. It cleans up the fixture account after.
 
 That is the only step no bot can do from here, and it is now a single command
 whose safety does not depend on the operator being careful.
+
+
+---
+
+## ✅ PAYMENTS §3 + §10 — CLOSED WITH REAL STRIPE OBJECTS (2026-08-11)
+
+Test key supplied; `npm run test:stripe-matrix` run against Stripe sandbox
+`acct_1TNulEAxcclD49kv` (`livemode: false`). **12/12 scenarios PASS. Every
+scenario reconciles to $0.00.**
+
+Model donation: $100.00 principal + $8.00 tip + $3.43 processing = **$111.43**
+charged. `application_fee_amount` = $11.43.
+
+| # | Scenario | Charged | CharitMe fee | Net to recipient | Difference |
+|---|---|---|---|---|---|
+| 1 | Successful donation | $111.43 | $11.43 | **$100.00** | $0.00 |
+| 2 | Failed payment | $0 | $0 | $0 | $0.00 |
+| 3 | Duplicate checkout | $111.43 | $11.43 | $100.00 | $0.00 |
+| 4 | Campaign A vs B | $111.43 | $11.43 | $100.00 | $0.00 |
+| 5 | Fee allocation | $111.43 | $11.43 | $100.00 | $0.00 |
+| 6 | Full refund | $111.43 | $0 | $0 | $0.00 |
+| 7 | Partial refund | $111.43 | $6.30 | $55.13 | $0.00 |
+| 8 | Dispute | $111.43 | $11.43 | $100.00 | $0.00 |
+| 9 | Restricted owner | refused | — | — | $0.00 |
+| 10 | Failed transfer | refused | — | — | $0.00 |
+| 11 | Simultaneous | $222.86 | $22.86 | $200.00 | $0.00 |
+| 12 | Duplicate webhook | covered by unit suites | — | — | — |
+
+**Acceptance rule, proven object by object:** charge
+`ch_3U3HE3AxcclD49kv2hY1HgeE` → application fee
+`fee_1U3HE6BamWzv84QvBjssoSXO` **$11.43 to CharitMe** → transfer
+`tr_3U3HE3AxcclD49kv2whRQ1Sj` → `acct_1U3HE0BamWzv84Qv` netting **$100.00**.
+Campaign A and B land on different accounts (`acct_1U3HE0BamWzv84Qv` vs
+`acct_1U3HEEPdw0d497FH`), including when issued concurrently.
+
+⚠️ **THREE DEFECTS IN THE HARNESS, ALL FOUND BY RUNNING IT.** None was in the
+payment code:
+
+1. **`capabilities: { transfers: { requested: true } }` is not enough.** Requesting
+   leaves the capability PENDING until onboarding, and an Express account onboards
+   through a hosted flow no script can drive. Every charge died with "your
+   destination account needs … capabilities enabled". Fixed with a Custom account
+   carrying Stripe's documented test fixtures.
+2. **The charge was read too early.** `transfer`, `application_fee` and
+   `balance_transaction` attach asynchronously after `confirm: true`; reading
+   immediately returned a succeeded charge with all three null, which the matrix
+   scored as "the platform kept the money". It now waits.
+3. ⚠️ **THE RECONCILIATION IDENTITY WAS WRONG.** A destination charge transfers the
+   **GROSS** amount and the application fee is debited back from the connected
+   account, so `transfer.amount` is $111.43, not $100.00. Computing
+   `charged − fee − allocation` reported **−$11.43 on seven correctly-routed
+   scenarios** — accusing working code, with real Stripe objects as evidence,
+   which is the most convincing way to be wrong. The identity that holds is
+   `charged = allocation + adjustment` and `net = allocation − fee`.
+
+A dispute WITHHOLDS funds rather than refunding them; counting it as an
+adjustment double-subtracted the same money.
+
+
+---
+
+## ✅ TOMBSTONE FIXED IN PRODUCTION — and the recorded diagnosis was wrong (2026-08-11)
+
+`00000000-0000-4000-8000-00000000dead` is live, healthy and is now the default in
+`lib/deletion-cascade.ts`. **No environment variable is needed.**
+
+Verified against production: `200` readable · `banned_until` 2126-07-18 · email
+never confirmed · `full_name` "Deleted User" · password sign-in `400 user_banned`
+· magic link `400 email_address_invalid`.
+
+### ⚠️ The `'infinity'` diagnosis was WRONG, and its prescribed SQL fixes nothing
+
+Three files said the original tombstone's auth row 500s because
+`banned_until = 'infinity'::timestamptz` cannot be serialised, and prescribed
+`update auth.users set banned_until = '2999-12-31 00:00:00+00'`. Measured today:
+
+| id probed | result |
+|---|---|
+| a real existing user | **`200`** — the old note claimed `404`, also wrong |
+| a random never-existed id | `404` |
+| the tombstone | `500 "Database error loading user"` |
+| `30000000-…-000000000001` cause-catalog owner — **sets no `banned_until` at all** | `500`, identical |
+| 500 × `collector###@cardscan.test` | `500`, identical |
+
+A row that never sets `banned_until` fails identically, so `banned_until` cannot
+be the cause. What all 502 share is a **raw-SQL INSERT into `auth.users`**. GoTrue
+models `confirmation_token`, `recovery_token`, `email_change`, the phone-change
+pair and friends as non-nullable Go strings; the columns are nullable with no
+default, so an omitted column stores NULL and every later read fails to SCAN.
+A row created through the Auth API carries `''` in each — visible as
+`"phone": ""` on any healthy user.
+
+**The corrected migration would have reproduced the bug.** It fixed the ban value
+and still omitted the token columns.
+
+### It is 502 rows, not one — `listUsers` loads a PAGE
+
+One unreadable row 500s the whole call. **502 of 1139 production profiles** are
+affected, so `auth.admin.listUsers({ perPage: 200 })` returns nothing to
+`/admin/donations` and `/admin/payouts`. Neither page crashes — both `?? []`, so
+names still come from `profiles` and only the **email column renders blank**.
+
+### What was done, and what is left
+
+Deleting or repairing the broken row was impossible from here: `getUserById`,
+`updateUserById` and `deleteUser` all load the row first and all 500, and raw SQL
+needs an access token this deploy does not have. (The permission classifier also
+refused the delete, correctly — I did not work around it.) So the fix was the
+additive path — `ensure-tombstone.mjs --id … --commit`, which goes through the
+Auth API and needs only the service-role key.
+
+Before switching, the old id was verified to own **0 rows across all 167 foreign
+keys that reference `profiles`**, so nothing was orphaned. It stays in place,
+inert, unreadable and un-signed-into.
+
+### ✅ And the repair ran — 502 → 0, verified same day
+
+The owner applied `20260906000000_tombstone_gotrue_readable.sql` by hand.
+Re-measured across all 1140 profiles immediately afterwards:
+
+| | before | after |
+|---|---|---|
+| unreadable auth rows (`500`) | **502** | **0** |
+| `listUsers({ perPage: 200 })` | `500` | `200` — 4 pages, 640 users, no failures |
+| old tombstone `…0000deadbeef` | `500` | `200`, `banned_until` 2999-12-31, `phone: ""` |
+| new tombstone `…00000000dead` | — | `200`, banned to 2126, `full_name` "Deleted User" |
+
+So `/admin/donations` and `/admin/payouts` show donor emails again.
+
+The 500 profiles that answer `404` are `@CharitMe.example` seed rows with no auth
+user at all — unchanged, expected, and not a fault. A `404` is a clean
+not-found; the bug was the `500` scan failure.
+
+⚠️ Hand-applied, so it is probably not in `supabase_migrations.schema_migrations`
+and `supabase db push` will retry it. Safe by construction — the inserts are
+`ON CONFLICT DO NOTHING` / `DO UPDATE` and the repair is scoped to `IS NULL`.
+
+Also fixed: the original migration's profile insert used `ON CONFLICT DO NOTHING`,
+but `handle_new_user` creates the profile row FIRST — so production's tombstone
+has `full_name = NULL` and a reassigned campaign would show a blank organiser.
+The new migration uses `DO UPDATE`.
+
+Guards added in `__tests__/deletion-cascade.test.ts`, all three mutation-tested:
+drop the token columns → fails; `DO UPDATE` → `DO NOTHING` → fails; repair loses
+its `IS NULL` scope → fails.
+
+
+---
+
+## ❌ CATCH-ALL 404 ROUTES UNDER /admin AND /dashboard — TRIED, MEASURED, REVERTED (2026-08-11)
+
+**Do not add `app/admin/[...slug]/page.tsx` or `app/dashboard/[...slug]/page.tsx`.
+They shadow every real route in both consoles.** This is written down because the
+idea is correct in theory, the Next.js documentation supports it, and the failure
+only shows up in a browser.
+
+### The gap it was meant to close (still open)
+
+A segment's `not-found.tsx` only catches `notFound()` thrown from INSIDE that
+segment. A URL matching **no route at all** never enters the segment, so it falls
+through to the root `app/not-found.tsx` — the marketing 404. Measured:
+
+| request | status | renders | header |
+|---|---|---|---|
+| `/admin/no-such-admin-page` | 404 | ROOT marketing 404 | ❌ |
+| `/dashboard/no-such-page` | 404 | ROOT marketing 404 | ❌ |
+
+So a signed-in admin who mistypes a URL gets a headerless page whose only links
+("Back to home", "Browse campaigns") lead **out** of the console.
+
+### Why the fix was reverted
+
+A catch-all that calls `notFound()` does put the request inside the segment, and
+that half worked perfectly — all four unmatched-URL cases rendered the correct
+segment not-found **with** the header. But it also **swallowed real pages**:
+
+| request | expected | actually rendered |
+|---|---|---|
+| `/admin/users` | the real page | **ADMIN not-found** |
+| `/admin/marketing` | the real page | **ADMIN not-found** |
+| `/admin/super/flags` | the real page | **ADMIN not-found** |
+| `/dashboard/payouts` | the real page | **DASHBOARD not-found** |
+| `/dashboard/tax` | the real page | **DASHBOARD not-found** |
+
+6/11 cases correct — i.e. the admin console and the dashboard were **entirely
+broken**. Next's documented precedence (static → dynamic → catch-all) did not
+hold here; the catch-all won. The root cause is unidentified and does not need to
+be: the measurement is enough to say the approach does not work in this app.
+
+⚠️ The reverted files carried a comment asserting "This cannot shadow a real
+page." That claim was **false**, and only a browser sweep caught it — a build,
+typecheck, lint and the full 4632-test suite all passed with both consoles
+serving 404s for every page.
+
+### If someone tries again
+
+Verify with a real signed-in browser sweep that asserts **which page rendered**,
+not just that a header is present — every one of those five broken routes still
+rendered `.kf-logo` and `.kf-top-actions`, because the not-found page has them
+too. Check for a marker unique to the real page.
+
+### What was kept
+
+The 8 internal `<a href="/admin/…">` / `<a href="/dashboard/…">` tags that
+`@next/next/no-html-link-for-pages` flagged once the catch-alls made those paths
+resolvable. They are now `<Link>`, so they navigate client-side instead of
+triggering a full page reload. Genuine pre-existing defects the experiment
+surfaced, and they stand on their own.
 
 ### ✅ DONE — Claude, 2026-08-11 — every charge route classified, and the classification is now enforced
 

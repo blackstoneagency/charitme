@@ -111,10 +111,12 @@ export function buildDonationEntries(split: DonationSplit): LedgerLine[] {
 }
 
 export interface RefundInput {
-  /** Amount of the donation principal being refunded to the donor. */
+  /** Recipient payable actually reversed by Stripe. */
   refundDonationCents: number;
   /** Platform fee being refunded (0 if CharitMe retains its fee). */
   refundPlatformFeeCents?: number;
+  /** Processor-cost portion returned while Stripe keeps its processing fee. */
+  refundProcessingCoverageCents?: number;
 }
 
 /**
@@ -128,11 +130,13 @@ export interface RefundInput {
 export function buildRefundEntries(input: RefundInput): LedgerLine[] {
   const donation = input.refundDonationCents;
   const fee = input.refundPlatformFeeCents ?? 0;
-  if (donation < 0 || fee < 0) throw new Error('Refund amounts must be non-negative');
-  const total = donation + fee;
+  const processingCoverage = input.refundProcessingCoverageCents ?? 0;
+  if (donation < 0 || fee < 0 || processingCoverage < 0) throw new Error('Refund amounts must be non-negative');
+  const total = donation + fee + processingCoverage;
   const all: LedgerLine[] = [
     { account: 'recipient_payable', direction: 'debit', amount_cents: donation },
     { account: 'platform_revenue', direction: 'debit', amount_cents: fee },
+    { account: 'adjustments', direction: 'debit', amount_cents: processingCoverage },
     { account: 'refunds', direction: 'credit', amount_cents: total },
   ];
   const lines = all.filter((l) => l.amount_cents > 0);
@@ -153,11 +157,13 @@ export function buildRefundEntries(input: RefundInput): LedgerLine[] {
 export function buildDisputeLossEntries(input: RefundInput): LedgerLine[] {
   const donation = input.refundDonationCents;
   const fee = input.refundPlatformFeeCents ?? 0;
-  if (donation < 0 || fee < 0) throw new Error('Dispute amounts must be non-negative');
-  const total = donation + fee;
+  const processingCoverage = input.refundProcessingCoverageCents ?? 0;
+  if (donation < 0 || fee < 0 || processingCoverage < 0) throw new Error('Dispute amounts must be non-negative');
+  const total = donation + fee + processingCoverage;
   const all: LedgerLine[] = [
     { account: 'recipient_payable', direction: 'debit', amount_cents: donation },
     { account: 'platform_revenue', direction: 'debit', amount_cents: fee },
+    { account: 'adjustments', direction: 'debit', amount_cents: processingCoverage },
     { account: 'disputes', direction: 'credit', amount_cents: total },
   ];
   const lines = all.filter((l) => l.amount_cents > 0);

@@ -6,7 +6,7 @@ import { formatMoneyCompact } from '@shared/currencies';
 import JsonLd from '../components/JsonLd';
 import { isRotatorEligible } from '../lib/featured';
 import { withQueryTimeout } from '../lib/query-timeout';
-import { getCoverForCategory, getCoverForCampaign, getDisplayCover } from '../lib/photo-catalog';
+import { getCoverForCampaign, getDisplayCover, getDistinctPhotosForItems } from '../lib/photo-catalog';
 import { getCause } from '../lib/causes';
 import { getCategoryStats, getHomeData, getRecentDonations } from '../lib/home-data';
 import { getHomeStories } from '../lib/home-stories';
@@ -131,6 +131,10 @@ export default async function HomePage() {
   const { metrics, rotatorCampaigns } = home.value;
   const metricsAvailable = shouldShowPlatformMetrics(metrics, home.ok);
   const categoryStats = new Map(categoryResult.value.map((row) => [row.category, row]));
+  const homeCausePhotos = getDistinctPhotosForItems(CAUSE_CARDS.map((card) => {
+    const cause = getCause(card.slug);
+    return { category: cause?.categories[0], key: `home-cause-${card.slug}` };
+  }));
   const recentDonations = donationsResult.value;
   const stories = storiesResult.value ?? [];
   const [leadStory, ...sideStories] = stories;
@@ -314,7 +318,7 @@ export default async function HomePage() {
                   <Link href={`/causes/${cause.slug}`}>
                     <div className="mirror-cause-media">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={getCoverForCategory(cause.categories[0], `home-cause-${cause.slug}`)} alt="" width={360} height={250} loading="lazy" decoding="async" />
+                      <img src={homeCausePhotos[index]} alt="" width={360} height={250} loading="lazy" decoding="async" />
                       <span><Icon name={card.icon} /></span>
                     </div>
                     <div className="mirror-cause-copy">
@@ -362,7 +366,12 @@ export default async function HomePage() {
                 own rule forbids: "labels that say exactly what was counted." */}
             <dl className="mirror-metric-1"><div><dt><Icon name="users" /> Donations</dt><dd><CountUp value={metrics.donations} kind="int" /></dd></div></dl>
             <dl className="mirror-metric-2"><div><dt><Icon name="globe" /> Active causes</dt><dd><CountUp value={metrics.campaigns} kind="int" /></dd></div></dl>
-            <dl className="mirror-metric-3"><div><dt><Icon name="shield" /> Average trust score</dt><dd><CountUp value={metrics.trustAvg} kind="percent" /></dd></div></dl>
+            {/* ⚠️ A fourth tile, "Average trust score", was removed here on the
+                owner's instruction. The band is now three metrics wide and the
+                grid track count in `globals.css` was cut to match — a stale
+                `repeat(4, …)` would leave an empty column with a divider in it.
+                `metrics.trustAvg` is still read and still rendered, in the hero
+                proof slot above; this removed the tile, not the figure. */}
           </div>
         </section>
       )}

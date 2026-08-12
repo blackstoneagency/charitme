@@ -1,6 +1,7 @@
 import { boundedQuery } from '../../../../lib/query-timeout';
 import 'server-only';
 import type { Metadata } from 'next';
+import { CharitMeShell, TopBar } from '../../../../components/CharitMeShellServer';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import TemplatesClient, { type EmailTemplate } from './TemplatesClient';
 
@@ -43,5 +44,13 @@ export default async function EmailTemplatesPage() {
   // select by category, a duplicate changes what gets sent.
   const templates: EmailTemplate[] | null = error ? null : ((data ?? []) as EmailTemplate[]);
 
-  return <TemplatesClient initialTemplates={templates} />;
+  return (
+    <CharitMeShell active="Marketing" mode="admin">
+      <TopBar
+        title="Email Templates"
+        subtitle="The copy your marketing automations send. Automations select a template by category."
+      />
+      <TemplatesClient initialTemplates={templates} />
+    </CharitMeShell>
+  );
 }

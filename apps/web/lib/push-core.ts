@@ -40,12 +40,33 @@ function clamp(value: string, max: number): string {
  * Build the payload from the same draft the in-app notification uses, so the two
  * cannot say different things about one event.
  */
+/**
+ * Constrain a notification's click target to a same-origin PATH.
+ *
+ * ⚠️ Security boundary, not tidiness. The OS renders a notification with
+ * CharitMe's name and icon on it, so if `draft.link` were ever an absolute URL —
+ * and a draft can be built from user-influenced content — tapping a
+ * CharitMe-branded banner would open somebody else's site. That is a phishing
+ * surface with our branding on it.
+ *
+ * The service worker applies the SAME rule on the way out, because a payload
+ * arriving encrypted proves it came from us, not that it is safe.
+ */
+export function safeNotificationPath(raw: unknown): string {
+  if (typeof raw !== 'string' || raw.length === 0) return '/dashboard/notifications';
+  // Absolute and scheme-relative (`//evil.example`) are both rejected.
+  if (!raw.startsWith('/') || raw.startsWith('//')) return '/dashboard/notifications';
+  // Some URL parsers treat a backslash as a slash: `/\evil.example`.
+  if (raw.includes('\\')) return '/dashboard/notifications';
+  return raw;
+}
+
 export function buildPushPayload(draft: NotificationDraft): PushPayload {
   return {
     title: clamp(draft.title, MAX_TITLE),
     body: clamp(draft.body ?? '', MAX_BODY),
     // A notification that opens nothing is a dead end on the lock screen.
-    url: draft.link || '/dashboard/notifications',
+    url: safeNotificationPath(draft.link),
     kind: draft.kind,
     // Collapses repeats: five gifts in a minute replace one another rather than
     // stacking five banners.
@@ -64,6 +85,49 @@ export function serialisePayload(payload: PushPayload): string {
 export interface WebPushSubscription {
   endpoint: string;
   keys: { p256dh: string; auth: string };
+}
+
+/**
+ * The hosts that actually operate push services.
+ *
+ * Matched on the FULL hostname or a dot-suffix, never `includes` — otherwise
+ * `fcm.googleapis.com.attacker.example` passes. Extend this list if a browser
+ * vendor adds a service; a subscription refused here is a device that silently
+ * never receives anything, so a missing entry shows up as "push does not work
+ * on <browser>" rather than as an error.
+ */
+const PUSH_SERVICE_SUFFIXES = [
+  '.googleapis.com',   // Chrome, Edge, Android (FCM)
+  '.mozilla.com',      // Firefox (updates.push.services.mozilla.com)
+  '.push.apple.com',   // Safari, iOS home-screen apps
+  '.windows.com',      // legacy Edge (WNS)
+  '.microsoft.com',
+];
+
+export function isKnownPushService(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  return PUSH_SERVICE_SUFFIXES.some((suffix) => host.endsWith(suffix));
+}
+
+/**
+ * A notification click target must be a same-origin PATH.
+ *
+ * The service worker hands this to `client.navigate()` / `openWindow()`, which
+ * resolve it against the app's origin — so an absolute or protocol-relative URL
+ * would navigate the INSTALLED APP to an arbitrary site, which on a phone is
+ * indistinguishable from the app going there itself.
+ *
+ * Not reachable today: every `link` comes from internal `notify()` callers. It
+ * is defence in depth for the first notification whose link is user-influenced
+ * (a campaign URL, a custom domain), and the worker enforces it independently
+ * because a service worker outlives the deploy that installed it.
+ */
+export function safeClickPath(url: unknown, fallback = '/dashboard/notifications'): string {
+  if (typeof url !== 'string' || !url.startsWith('/')) return fallback;
+  // `//evil.example` and `/\evil.example` share the first character with a safe
+  // path and resolve to a different origin.
+  if (/^\/[/\\]/.test(url)) return fallback;
+  return url;
 }
 
 /**
@@ -94,6 +158,13 @@ export function isValidWebPushSubscription(value: unknown): value is WebPushSubs
   if (/^(127\.|10\.|192\.168\.|169\.254\.|::1$|\[::1\])/.test(host)) return false;
   if (/^172\.(1[6-9]|2\d|3[01])\./.test(host)) return false;
   if (sub.endpoint.length > 1000) return false;
+  // …and then the allowlist, which is what actually closes it. The checks above
+  // are a denylist, and their own comment says they are not exhaustive: they
+  // pass ANY public host. A signed-in user could register
+  // `https://attacker.example/collect` and have this server POST a
+  // VAPID-signed, encrypted payload there on every notification thereafter.
+  // Private-range denial does not help, because the target is public.
+  if (!isKnownPushService(host)) return false;
 
   const keys = sub.keys as Record<string, unknown> | undefined;
   if (!keys || typeof keys !== 'object') return false;

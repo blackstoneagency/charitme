@@ -7,7 +7,7 @@ import RecordOfflineDonation from './RecordOfflineDonation';
 
 /* ── types mirroring /api/campaigns/[id]/supporters ── */
 interface SupporterRow {
-  key: string; name: string; emailMasked: string | null; reachable: boolean;
+  key: string; name: string; anonymous: boolean; emailMasked: string | null; reachable: boolean;
   giftCount: number; totalCents: number; lastGiftAt: string; isRepeat: boolean; isLapsed: boolean;
 }
 interface TemplateDef { key: string; label: string; description: string; defaultTarget: string; subject: string; body: string }
@@ -193,13 +193,21 @@ export default function SupportersPanel({
           style={{ padding: '12px 26px', background: data.sendsRemainingToday <= 0 ? 'var(--b2)' : 'var(--violet)', color: '#fff', border: 'none', borderRadius: 11, fontSize: 14, fontWeight: 700, cursor: data.sendsRemainingToday <= 0 ? 'not-allowed' : 'pointer' }}>
           {sending ? 'Sending…'
             : data.sendsRemainingToday <= 0 ? 'Daily limit reached (2/day)'
-            : `Send to ${data.targetCounts[targetGroup] ?? 0} supporters →`}
+            : `Send to ${data.targetCounts[targetGroup] ?? 0} supporter${(data.targetCounts[targetGroup] ?? 0) === 1 ? '' : 's'} →`}
         </button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '2fr minmax(0, 1fr)', gap: 16, alignItems: 'start' }}>
         {/* ── Supporters table ── */}
         <div style={{ ...card, padding: 0, overflow: 'auto' }}>
+          {/* Says why the rows can outnumber the Supporters KPI above. Without
+              it, a donor who gave both ways looks like two people — or, worse,
+              gets matched back up by an organizer trying to reconcile the two
+              numbers, which is the whole thing this split prevents. */}
+          <p style={{ margin: 0, padding: '14px 14px 0', fontSize: 12, color: 'var(--t3)' }}>
+            Anonymous gifts are listed on their own, apart from the donor&rsquo;s named giving. You can still
+            email them — CharitMe addresses them for you.
+          </p>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead><tr>
               <th style={th}>Supporter</th><th style={th}>Gifts</th><th style={th}>Total</th><th style={th}>Last gift</th><th style={th}>Status</th>
@@ -210,7 +218,13 @@ export default function SupportersPanel({
                 <tr key={s.key}>
                   <td style={td}>
                     <div style={{ fontWeight: 650, color: 'var(--t1)' }}>{s.name}</div>
-                    <div style={{ fontSize: 11.5, color: 'var(--t4)', fontFamily: 'var(--mono)' }}>{s.emailMasked ?? 'no email on file'}</div>
+                    {/* An anonymous row is reachable but withheld — showing even a
+                        masked address here would identify the donor to anyone who
+                        already knows it, and would link this row to the same
+                        person's named row. "no email on file" would be a lie. */}
+                    <div style={{ fontSize: 11.5, color: 'var(--t4)', fontFamily: 'var(--mono)' }}>
+                      {s.emailMasked ?? (s.reachable ? 'contactable · address hidden' : 'no email on file')}
+                    </div>
                   </td>
                   <td style={td}>{s.giftCount}{s.isRepeat && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: 'var(--green-text)', background: 'rgba(5,150,105,.1)', padding: '2px 7px', borderRadius: 999 }}>REPEAT</span>}</td>
                   <td style={td}><b style={{ color: 'var(--t1)' }}>{money(s.totalCents)}</b></td>

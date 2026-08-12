@@ -54,8 +54,11 @@ than ever falling back to a platform charge.
 | Optional processing-fee coverage | Offsets Stripe's deduction | only when donor opts in |
 
 Amounts are computed on the server (`@shared/fees`: `donorTip`,
-`methodProcessingFee`); the client cannot alter the fee. Tips are opt-in and
-must never use dark patterns (see prompt §1.4).
+`methodProcessingFee`, `methodProcessorCost`); the client cannot alter the fee.
+Processing coverage is solved against the final donor charge in integer cents,
+so the campaign receives the promised principal and CharitMe nets the disclosed
+tip. If the donor declines processing coverage, Stripe's cost is deducted from
+campaign proceeds instead. Tips are opt-in and must never use dark patterns.
 
 ## Idempotency
 
@@ -89,10 +92,23 @@ destination charges only with documentation. CharitMe currently uses
   that no recipient funds become available for CharitMe operating use. Record the
   final decision (and approvals) in `decisions.md` as an ADR.
 
-## Open items (tracked)
+## Reconciliation, refunds, disputes, and payouts
 
-- Daily automated reconciliation between donations, Stripe balance
-  transactions, application fees, refunds, disputes, payouts, and the Supabase
-  ledger, with incident creation on mismatch (prompt §1.7).
-- Direct-charge feature-flag path per country/recipient type (prompt §1.1).
-- Refund fee-allocation and negative-balance recovery workflows (prompt §1.6).
+Authoritative Stripe events reconcile Charge, Balance Transaction, Application
+Fee, Transfer, connected account, and Payout IDs against immutable Supabase
+ledger entries. Missing transfers, wrong destinations, amount/fee differences,
+failed transfers, and payout allocation differences open reconciliation
+exceptions. Refunds preserve donor gross and campaign principal separately;
+lost disputes reverse the proven destination transfer before the event is
+acknowledged.
+
+See `docs/payments/stripe-connect-audit.md` and the generated sandbox evidence
+in `docs/payments/stripe-test-evidence.latest.json`.
+
+## Remaining policy decision
+
+The direct-charge feature-flag path by country and recipient type remains a
+future architecture option. It is not silently mixed into the current flow.
+Qualified payments and legal counsel must approve the destination-charge
+merchant-of-record, dispute, and negative-balance posture before general
+availability.

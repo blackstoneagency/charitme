@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { TopBar } from '../../../components/CharitMeApp';
+import { CharitMeShell } from '../../../components/ShellSessionProvider';
 
 interface Notification {
   id: string;
@@ -100,28 +101,18 @@ export default function NotificationsPage() {
 
   const unreadCount = notifications.filter(n => !n.read_at).length;
 
+  // ⚠️ The page's own <h1> and "← Dashboard" link are GONE, replaced by the
+  // shell's TopBar. Keeping both would put two competing headings on the screen
+  // and two routes back to the dashboard — the sidebar already provides one.
+  // "Mark all read" moves into the TopBar's `actions` slot rather than being
+  // dropped, and the unread count moves to the subtitle where it still reads as
+  // a count rather than a decorative pill.
   return (
-    <div style={{ padding: '32px 24px', maxWidth: 720, margin: '0 auto' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', minWidth: 0, alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-        <div>
-          <div style={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 12 }}>
-            <Link href="/dashboard" style={{ color: 'var(--t3, var(--t3))', fontSize: 13, textDecoration: 'none' }}>← Dashboard</Link>
-          </div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--t1)', margin: '8px 0 0' }}>
-            Notifications
-            {unreadCount > 0 && (
-              <span style={{
-                marginLeft: 10, background: 'var(--violet, var(--violet))', color: '#fff',
-                fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
-                verticalAlign: 'middle',
-              }}>
-                {unreadCount}
-              </span>
-            )}
-          </h1>
-        </div>
-        {unreadCount > 0 && (
+    <CharitMeShell active="">
+      <TopBar
+        title="Notifications"
+        subtitle={unreadCount > 0 ? `${unreadCount} unread` : 'You are all caught up.'}
+        actions={unreadCount > 0 ? (
           <button
             onClick={markAllRead}
             style={{
@@ -132,8 +123,9 @@ export default function NotificationsPage() {
           >
             Mark all read
           </button>
-        )}
-      </div>
+        ) : undefined}
+      />
+      <div style={{ padding: '32px 24px', maxWidth: 720, margin: '0 auto' }}>
 
       {/* Filter tabs */}
       <div style={{ display: 'flex', minWidth: 0, gap: 4, marginBottom: 20, borderBottom: '1.5px solid var(--b1, var(--s2))', paddingBottom: 0 }}>
@@ -251,6 +243,7 @@ export default function NotificationsPage() {
           ))}
         </div>
       )}
-    </div>
+      </div>
+    </CharitMeShell>
   );
 }

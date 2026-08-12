@@ -16,13 +16,13 @@ const code = src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ');
 // processing line rendered this for a $50 donation with a $122.00 custom fee:
 //
 //     Donation                        $50.00
-//     Processing Fee (Estimated)     $127.29     ← $122.00 ours + $5.29 Stripe
+//     Processing Fee (Estimated)     $127.45     ← $122.00 ours + $5.45 Stripe
 //     Recipient receives              $50.00
-//     You pay                        $177.29
+//     You pay                        $177.45
 //
 // Every number was arithmetically correct and the recipient really did receive
 // $50, so nothing looked broken. It simply told the donor that Stripe charged
-// $127.29, when Stripe charged $5.29 and the remaining $122 was our own optional
+// $127.45, when Stripe charged $5.45 and the remaining $122 was our own optional
 // fee — which the donor had set themselves and could have set to zero.
 //
 // The reproduction below is the actual arithmetic, kept as executable evidence.
@@ -39,15 +39,15 @@ describe('the merged-row defect, reproduced exactly', () => {
 
   it('produces the screenshot to the cent', () => {
     expect(b.supportCents).toBe(12_200);          // $122.00 — ours, donor-set
-    expect(b.processingCents).toBe(529);          // $5.29   — Stripe's
-    expect(b.supportCents + b.processingCents).toBe(12_729); // the $127.29 shown
-    expect(b.totalChargedCents).toBe(17_729);     // "You pay $177.29"
+    expect(b.processingCents).toBe(545);          // $5.45   — Stripe's
+    expect(b.supportCents + b.processingCents).toBe(12_745); // the $127.45 shown
+    expect(b.totalChargedCents).toBe(17_745);     // "You pay $177.45"
     expect(b.netToRecipientCents).toBe(5_000);    // "Recipient receives $50.00"
   });
 
-  it('shows how badly the merge misattributes — 24x Stripe\'s actual fee', () => {
+  it('shows how badly the merge misattributes — over 23x Stripe\'s actual fee', () => {
     const merged = b.supportCents + b.processingCents;
-    expect(merged / b.processingCents).toBeGreaterThan(24);
+    expect(merged / b.processingCents).toBeGreaterThan(23);
   });
 });
 
@@ -95,8 +95,8 @@ describe('the zero-fee case is the clean three-row breakdown', () => {
     expect(b.supportCents).toBe(0);
     // The rendered shape is Donation / Fees (estimated) / Recipient receives /
     // You pay in every case — three rows above the total, as requested.
-    expect(b.processingCents).toBe(175);
-    expect(b.totalChargedCents).toBe(5_175);
+    expect(b.processingCents).toBe(180);
+    expect(b.totalChargedCents).toBe(5_180);
     expect(b.netToRecipientCents).toBe(5_000);
   });
 
@@ -109,7 +109,7 @@ describe('the zero-fee case is the clean three-row breakdown', () => {
     });
     // 10% of $50.00 — the suggested rate, not the top of the ladder.
     expect(b.supportCents).toBe(500);
-    // $50.00 + $5.00 support + 2.9% & 30c on that subtotal.
-    expect(b.totalChargedCents).toBe(5_690);
+    // $50.00 + $5.00 support + enough coverage for 2.9% + 30c on the final charge.
+    expect(b.totalChargedCents).toBe(5_695);
   });
 });

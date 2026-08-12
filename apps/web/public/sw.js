@@ -165,6 +165,24 @@ self.addEventListener('fetch', (event) => {
   // Anything else: let the network handle it, uncached.
 });
 
+/**
+ * A click target must be a same-origin PATH.
+ *
+ * `client.navigate()` and `openWindow()` resolve whatever they are given against
+ * this origin, so an absolute or protocol-relative URL would navigate the
+ * INSTALLED APP to an arbitrary site — on a phone, indistinguishable from the
+ * app navigating there itself. The server applies the same rule
+ * (`safeClickPath` in lib/push-core.ts); this is the second copy, deliberately,
+ * because a service worker outlives the deploy that installed it and may still
+ * be running against an older server.
+ */
+function swSafeClickPath(url) {
+  if (typeof url !== 'string' || !url.startsWith('/')) return '/dashboard/notifications';
+  if (/^\/[/\\]/.test(url)) return '/dashboard/notifications';
+  return url;
+}
+
+
 // ─── Push ────────────────────────────────────────────────────────────────────
 //
 // Delivered by lib/push-server.ts, which builds the payload from the SAME
@@ -193,7 +211,7 @@ self.addEventListener('push', (event) => {
     // stacking five banners.
     tag: payload.tag || 'charitme',
     renotify: true,
-    data: { url: payload.url || '/dashboard/notifications' },
+    data: { url: swSafeClickPath(payload.url) },
   };
 
   event.waitUntil(self.registration.showNotification(title, options));
@@ -203,7 +221,7 @@ self.addEventListener('push', (event) => {
 // donation alerts should not leave three copies of the dashboard open.
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const target = (event.notification.data && event.notification.data.url) || '/dashboard/notifications';
+  const target = swSafeClickPath(event.notification.data && event.notification.data.url);
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {

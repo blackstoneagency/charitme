@@ -5,7 +5,7 @@ import CampaignImage from '../../components/CampaignImage';
 import { IndexHero, StatStrip, statValue, moneyValue } from '../../components/IndexHero';
 import { getCausesIndexData } from '../../lib/causes-index';
 import { getHowItWorksFaqs } from '../../lib/how-it-works';
-import { getCoverForCategory, getPhotosForPage } from '../../lib/photo-catalog';
+import { getDistinctPhotosForItems } from '../../lib/photo-catalog';
 import HowItWorksFaq from './HowItWorksFaq';
 
 export const metadata: Metadata = {
@@ -66,7 +66,13 @@ const TRUST_POINTS = [
 export default async function HowItWorksPage() {
   // Independent reads, so they run together rather than in series.
   const [platform, faqs] = await Promise.all([getCausesIndexData(), getHowItWorksFaqs(5)]);
-  const ripplePhotos = getPhotosForPage('Community', 'how-it-works-ripple', RIPPLE.length);
+  const [heroPhoto, ...supportingPhotos] = getDistinctPhotosForItems([
+    { category: 'Volunteer', key: 'how-it-works-hero' },
+    ...RIPPLE.map((_, index) => ({ category: 'Community', key: `how-it-works-ripple-${index}` })),
+    { category: 'Family', key: 'how-it-works-family' },
+  ]);
+  const ripplePhotos = supportingPhotos.slice(0, RIPPLE.length);
+  const trustPhoto = supportingPhotos[RIPPLE.length];
 
   return (
     <div className="hw-page">
@@ -75,7 +81,7 @@ export default async function HowItWorksPage() {
         title="How it works"
         heart
         lede="CharitMe makes it easy to create change. Whether you want to donate, fundraise, or start a campaign, we are here to guide you every step of the way."
-        photo={getCoverForCategory('Volunteer', 'how-it-works-hero')}
+        photo={heroPhoto}
         photoCategory="Volunteer"
         photoKey="how-it-works"
       />
@@ -172,7 +178,7 @@ export default async function HowItWorksPage() {
             </Link>
             <span className="hw-trust-media" aria-hidden="true">
               <CampaignImage
-                src={getCoverForCategory('Family', 'how-it-works-family')}
+                src={trustPhoto}
                 category="Family"
                 campaignKey="hiw-trust"
                 alt=""
