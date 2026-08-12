@@ -25145,3 +25145,40 @@ must have run on the build machine before `pod install`.
 
 **What genuinely cannot be verified here:** compilation, code signing, the
 archive, and upload. Those need Xcode. Everything short of them is verified.
+
+### ✅ DONE — Claude, 2026-08-12 — `npm run ios:verify`: readiness you can check, not take on trust
+
+`scripts/prepare-ios.mjs` applies the configuration; `scripts/verify-ios-project.mjs`
+grades the result. Separate on purpose — a script that grades its own work
+reports success on whatever it happened to produce.
+
+20 checks, all passing on a clean generate + `pod install`. Each one is a failure
+that is silent until it is expensive:
+
+| Check | What it prevents |
+|---|---|
+| storyboard custom class is compiled | builds fine, then **crashes at launch** — "Unknown class in Interface Builder file" |
+| 4 usage descriptions, each specific | iOS **terminates the process** on camera/photos/location |
+| privacy manifest in a Resources phase | present on disk, absent from the `.ipa` — only App Store Connect tells you |
+| shared scheme, pointing at the real target | invisible in the GUI (Xcode auto-creates a user scheme), fatal to `xcodebuild` |
+| workspace + both `xcconfig`s resolve | opening a workspace `pod install` never generated |
+| bundle id matches `appId`; HTTPS-only | identity and transport |
+
+Mutation-tested: dropping `NSCameraUsageDescription`, deleting the scheme, and
+un-bundling the privacy manifest each produce a targeted failure.
+
+⚠️ It **prints what it does not cover on every run** — compilation, code signing,
+the archive, upload, Associated Domains — so a green result cannot be mistaken
+for "ready to ship".
+
+**The launch chain was traced end to end and resolves:** `AppDelegate` (entry
+point, compiled by the app target) → `Main.storyboard` → `CAPBridgeViewController`
+(one of 82 Swift paths in the Pods project, in a Sources build phase) →
+`LaunchScreen.storyboard` → the `Splash` imageset. Pods xcconfigs are wired and
+the Pods frameworks are embedded.
+
+Two of my own checks were wrong before they were right, and both were corrected
+by measuring rather than reasoning: Capacitor 7 has **no** `SceneDelegate` or
+`UIApplicationSceneManifest` (that was a v8 assumption), and local path pods are
+**referenced in place** rather than copied into `Pods/`, so searching there for
+`CAPBridgeViewController` found nothing while the class exists.

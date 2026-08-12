@@ -129,6 +129,29 @@ order of effort against reviewer-visible value:
 Push is the strongest: it is the one capability the site genuinely cannot do on
 iOS Safari, and organisers actually want it.
 
+### Confirm it yourself: `npm run ios:verify`
+
+`scripts/prepare-ios.mjs` applies the configuration; `scripts/verify-ios-project.mjs`
+grades the result. They are separate on purpose — a script that grades its own
+work reports success on whatever it happened to produce.
+
+```bash
+npm run ios:add      # generate + prepare
+npm run ios:verify   # 20 checks against the generated project
+npm run ios:open     # macOS + Xcode
+```
+
+Every check corresponds to a failure that is silent until it is expensive: a
+storyboard class nothing compiles (builds fine, then crashes at launch with
+"Unknown class in Interface Builder file"), a missing usage description (iOS
+terminates the process), a privacy manifest present on disk but absent from the
+`.ipa` (only App Store Connect tells you), a missing shared scheme (invisible in
+the GUI, fatal to `xcodebuild`). Mutation-tested: dropping the camera string,
+deleting the scheme, or un-bundling the privacy manifest each fails it.
+
+It prints what it does **not** cover, every run: compilation, code signing, the
+archive, upload, and Associated Domains.
+
 ### Verified from Linux — including `pod install`
 
 More of this is checkable without a Mac than you would expect, and it was checked
