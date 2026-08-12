@@ -25286,3 +25286,23 @@ logo over a white splash and crashed on create-a-campaign. Now it runs
 
 Unsigned builds cannot produce an installable `.ipa` — that still needs the
 Apple Developer secrets. But "does it compile" is no longer an open question.
+
+### ✅ DONE — Claude, 2026-08-12 — the archive step is proven too, unsigned
+
+`archive` is a **different operation** from `build`, not a formality: it runs the
+scheme's ArchiveAction, builds Release for a generic device, generates dSYMs and
+assembles the `.xcarchive` layout. A project can compile cleanly and still fail
+there — a scheme with no ArchiveAction, a target excluded from the archive, a
+missing dSYM setting.
+
+Signing is the only part of archiving that needs an Apple account, so with it
+disabled the rest is verifiable. `ios-build.yml` now archives, asserts the
+archive is **well-formed** (payload at `Products/Applications/App.app`, bundle id
+and version read from `Info.plist`, dSYMs listed) rather than trusting
+`xcodebuild` exit 0, and uploads it as an artifact.
+
+**The residue is exactly one thing, and it is a credential, not a capability:**
+an Apple-issued signing certificate. Only Apple can issue one, to an enrolled
+account. Add `APPLE_CERTIFICATE_P12_BASE64`,
+`APPLE_PROVISIONING_PROFILE_BASE64` and `APPLE_TEAM_ID` under Settings → Secrets
+→ Actions, run `ios-archive.yml`, and the `.ipa` comes out of CI.

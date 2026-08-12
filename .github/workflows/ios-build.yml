@@ -15,8 +15,12 @@
 # That is the difference between "the project is configured correctly" and "the
 # code builds", and it is worth a separate workflow to have the second one.
 #
-# It cannot produce an installable .ipa: an unsigned bundle will not run on a
-# device. That remains `ios-archive.yml`'s job, and still needs the secrets.
+# It also ARCHIVES, unsigned — a distinct operation from `build` that exercises
+# the scheme's ArchiveAction, dSYM generation and the .xcarchive layout.
+#
+# What it cannot do is SIGN. An unsigned archive cannot be exported to an .ipa
+# and will not run on a device, because only Apple can issue the certificate.
+# That last step remains `ios-archive.yml`'s job and needs the three secrets.
 name: iOS build (unsigned)
 
 on:
@@ -95,6 +99,51 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             | xcpretty || exit "${PIPESTATUS[0]}"
+
+      - name: Archive (unsigned)
+        # ⚠️ A DIFFERENT operation from `build`, not a formality. `archive` runs
+        # the scheme's ArchiveAction, builds with the Release configuration for a
+        # generic device, generates dSYMs, and assembles the .xcarchive layout —
+        # a project can compile cleanly and still fail here (a scheme with no
+        # ArchiveAction, a target excluded from the archive, a missing dSYM
+        # setting). Signing is the only part of archiving that needs an Apple
+        # account, so with it disabled the rest is verifiable.
+        run: |
+          set -euo pipefail
+          cd ios/App
+          xcodebuild archive \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            | xcpretty || exit "${PIPESTATUS[0]}"
+
+      - name: Confirm the archive is well-formed
+        # An .xcarchive is a directory with a required layout. Asserting the
+        # payload and its Info.plist is what distinguishes "xcodebuild exited 0"
+        # from "there is something here that could be exported".
+        run: |
+          set -euo pipefail
+          ARCHIVE="$RUNNER_TEMP/App.xcarchive"
+          test -d "$ARCHIVE" || { echo "::error::no .xcarchive produced"; exit 1; }
+          test -d "$ARCHIVE/Products/Applications/App.app" \
+            || { echo "::error::archive contains no app payload"; exit 1; }
+          echo "Archive contents:"; ls "$ARCHIVE"
+          /usr/libexec/PlistBuddy -c 'Print :ApplicationProperties:CFBundleIdentifier' "$ARCHIVE/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :ApplicationProperties:CFBundleShortVersionString' "$ARCHIVE/Info.plist"
+          echo "dSYMs:"; ls "$ARCHIVE/dSYMs" 2>/dev/null || echo "  (none)"
+
+      - name: Upload the unsigned archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: charitme-ios-unsigned-archive
+          path: ${{ runner.temp }}/App.xcarchive
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Confirm an app bundle was actually produced
         # A build that "succeeds" without emitting a bundle is the failure mode
