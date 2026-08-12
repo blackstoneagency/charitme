@@ -244,4 +244,23 @@ describe('the generated project stays out of version control', () => {
     expect(pkg.scripts['ios:add']).toMatch(/ios:prepare/);
     expect(pkg.scripts['ios:sync']).toMatch(/ios:prepare/);
   });
+
+  it('does NOT gate prepare behind && — a failed pod install must not skip it', () => {
+    // ⚠️ Found by running the documented flow end to end. `cap add` shells out to
+    // `pod install`; when that fails, `cap add` exits non-zero, and with `&&` the
+    // prepare step is silently skipped. The result is a project with no usage
+    // descriptions (crashes on camera), no privacy manifest (upload rejected), no
+    // scheme, and Capacitor's logo and white splash — while the log still reads
+    // like success.
+    //
+    // `;` runs prepare regardless; the captured status is re-raised at the end so
+    // the command still REPORTS cap's failure instead of swallowing it.
+    const pkg = JSON.parse(read('package.json')) as { scripts: Record<string, string> };
+    for (const name of ['ios:add', 'ios:sync']) {
+      expect(pkg.scripts[name], `${name} must not && the prepare step`)
+        .not.toMatch(/&&\s*npm run ios:prepare/);
+      expect(pkg.scripts[name], `${name} must still surface a failure from cap`)
+        .toMatch(/exit \$status/);
+    }
+  });
 });

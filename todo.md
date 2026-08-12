@@ -25114,3 +25114,34 @@ scale filenames from `Contents.json` rather than guessing.
 
 Full audit on a clean regeneration: 16/16 structural checks, icon 1024×1024 with
 no alpha, splash at 7/255. **4664 tests / 392 files**, typecheck and lint clean.
+
+### ✅ DONE — Claude, 2026-08-12 — `ios:add` could silently skip everything that makes the project shippable
+
+Found by running the documented flow end to end rather than trusting it.
+
+`npx cap add ios` shells out to `pod install`. When that fails, `cap add` exits
+non-zero — and the script was `cap add ios && npm run ios:prepare`, so **the
+prepare step was skipped**. The resulting project has no usage descriptions
+(crashes on the camera), no privacy manifest (upload rejected), no shared scheme,
+and Capacitor's own logo and white splash. The log still reads like success.
+
+Now `;` with the status captured and re-raised: prepare always runs, and the
+command still REPORTS cap's failure instead of swallowing it. Verified by
+triggering the real failure — `ios:add` exits 1 and all four prepare steps are
+applied anyway.
+
+### 🔬 Verified from Linux, including `pod install`
+
+More is checkable without a Mac than expected, and it was checked rather than
+assumed. `pod install` **runs on Linux** (needs `LANG=C.UTF-8`, else it dies in
+`unicode_normalize`, and `--allow-root` in a root shell — neither applies on a
+Mac). It resolved both Capacitor pods, generated `Pods.xcodeproj`, `Podfile.lock`
+and the workspace, and both `xcconfig`s the app target references now exist.
+Everything the prepare step applied **survived** `pod install` rewriting the
+`.pbxproj`.
+
+⚠️ The Podfile references `../../node_modules/@capacitor/ios`, so `npm install`
+must have run on the build machine before `pod install`.
+
+**What genuinely cannot be verified here:** compilation, code signing, the
+archive, and upload. Those need Xcode. Everything short of them is verified.

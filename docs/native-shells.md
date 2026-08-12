@@ -129,6 +129,32 @@ order of effort against reviewer-visible value:
 Push is the strongest: it is the one capability the site genuinely cannot do on
 iOS Safari, and organisers actually want it.
 
+### Verified from Linux — including `pod install`
+
+More of this is checkable without a Mac than you would expect, and it was checked
+rather than assumed:
+
+| Verified here | How |
+|---|---|
+| Project generates and regenerates cleanly | `npm run ios:add` from scratch |
+| Every file the `.pbxproj` references exists | parsed the project, resolved each `PBXFileReference` |
+| `Info.plist`, `PrivacyInfo.xcprivacy`, storyboards, all `Contents.json` parse | Python `plistlib` / `ElementTree` / `json` |
+| Bundle id matches `appId`; deployment target consistent with the Podfile | both read from the generated project |
+| App icon is 1024×1024 with **no alpha** | `sharp` metadata |
+| Launch screen is dark, not the white vendor default | `sharp` channel stats |
+| Shared scheme points at the **real** target | compared the scheme's `BlueprintIdentifier` to the `PBXNativeTarget` id |
+| **The Podfile actually resolves** | `pod install` — CocoaPods runs on Linux |
+| The workspace references both projects, and both `xcconfig`s exist | read `contents.xcworkspacedata` and resolved each referenced path |
+| All of the above survives `pod install`, which rewrites the `.pbxproj` | re-ran the audit afterwards |
+
+CocoaPods needs two things on Linux: a UTF-8 locale (`LANG=C.UTF-8`, else it dies
+in `unicode_normalize`) and `--allow-root` if the shell is root. Neither applies
+on a Mac. Note the Podfile references `../../node_modules/@capacitor/ios`, so
+**`npm install` must have run on the build machine** before `pod install`.
+
+**What genuinely cannot be checked without Xcode:** compilation, code signing,
+the archive, and upload. Everything up to those is verified above.
+
 ### Universal links
 
 `IOS_APP_ID` (`TEAMID.bundle.id`) makes

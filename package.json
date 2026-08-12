@@ -16,8 +16,8 @@
     "test:campaign-builder-db": "node scripts/campaign-builder-db-smoke.mjs",
     "test:platform-matrix": "node scripts/staging-platform-matrix.mjs",
     "provision": "node scripts/provision-supabase-vercel.mjs",
-    "ios:add": "npx cap add ios && npm run ios:prepare",
-    "ios:sync": "npx cap sync ios && npm run ios:prepare",
+    "ios:add": "npx cap add ios; status=$?; npm run ios:prepare; exit $status",
+    "ios:sync": "npx cap sync ios; status=$?; npm run ios:prepare; exit $status",
     "ios:prepare": "node scripts/prepare-ios.mjs",
     "ios:open": "npx cap open ios"
   },
