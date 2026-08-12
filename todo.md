@@ -25223,3 +25223,33 @@ un-wiring it and using a bare hostname fail.
 
 **The residue is now three items, all pure toolchain execution:** compilation,
 the archive, and upload.
+
+### ✅ DONE — Claude, 2026-08-12 — `npm run ios:build`, and the Linux boundary measured
+
+**The compile boundary is now measured rather than asserted.** Swift ships a
+Linux toolchain, so it was tested:
+
+| | Result |
+|---|---|
+| `swiftc -parse`, all 37 Swift sources (AppDelegate + 36 Capacitor pod files) | ✅ **37/37, zero failures** |
+| `swiftc -typecheck` | ❌ `no such module 'UIKit'` |
+| `swiftc -target arm64-apple-ios14.0` | ❌ `unable to load standard library for target` |
+
+The compiler **frontend accepts every source in this project**. Type-checking and
+codegen need Apple's SDKs, which ship only with Xcode. That is a measurement, not
+an opinion — and it is the exact reason the last three steps cannot run here.
+
+**They no longer have to be three steps.** `scripts/build-ios.sh` →
+`npm run ios:build`: sync → verify → archive → export an `.ipa`, generating the
+`ExportOptions.plist`. `ios:verify` runs **before** the archive on purpose, since
+everything it catches otherwise surfaces as a launch crash or an App Store
+Connect rejection — after a build that looked fine.
+
+It refuses to run off macOS or without `xcodebuild` rather than "succeeding" and
+leaving a missing artifact to be discovered later. Validated without a Mac:
+`bash -n` parses it, it exits 1 on Linux and 2 on a bad argument, and the
+`ExportOptions.plist` it generates parses with the correct method, teamID and
+bitcode values.
+
+**Remaining owner work is now literally one command on a Mac**, plus an Apple
+Developer account for signing.

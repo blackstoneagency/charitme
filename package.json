@@ -20,7 +20,8 @@
     "ios:sync": "npx cap sync ios; status=$?; npm run ios:prepare; exit $status",
     "ios:prepare": "node scripts/prepare-ios.mjs",
     "ios:open": "npx cap open ios",
-    "ios:verify": "node scripts/verify-ios-project.mjs"
+    "ios:verify": "node scripts/verify-ios-project.mjs",
+    "ios:build": "bash scripts/build-ios.sh"
   },
   "devDependencies": {
     "@capacitor/cli": "^7.6.8",

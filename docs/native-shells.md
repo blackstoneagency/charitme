@@ -129,6 +129,37 @@ order of effort against reviewer-visible value:
 Push is the strongest: it is the one capability the site genuinely cannot do on
 iOS Safari, and organisers actually want it.
 
+### The whole build, in one command (macOS)
+
+```bash
+npm run ios:build                 # sync → verify → archive → export an .ipa
+npm run ios:build -- development  # a build for your own devices
+npm run ios:build -- --archive-only
+```
+
+`scripts/build-ios.sh` runs `ios:sync`, then `ios:verify` **before** archiving —
+every check there catches something that otherwise surfaces as a launch crash or
+an App Store Connect rejection, i.e. after a build that appeared to succeed. Then
+`xcodebuild archive` and `-exportArchive`, generating the `ExportOptions.plist`
+for you.
+
+It refuses to run anywhere but macOS with a real `xcodebuild`, rather than
+"succeeding" and leaving you to discover a missing artifact later.
+
+### ⚠️ Exactly where Linux stops — measured, not assumed
+
+Swift ships a Linux toolchain, so this was tested rather than guessed:
+
+| | Result |
+|---|---|
+| `swiftc -parse` on all 37 Swift sources (app + Capacitor pod) | ✅ 37/37, zero failures |
+| `swiftc -typecheck` | ❌ `error: no such module 'UIKit'` |
+| `swiftc -target arm64-apple-ios14.0` | ❌ `error: unable to load standard library for target` |
+
+So the compiler *frontend* accepts every source in this project. Type-checking
+and code generation need Apple's SDKs, which are distributed only with Xcode.
+That is the boundary — not an opinion about it.
+
 ### Signing and universal links are scriptable too
 
 Both were written off as "manual Xcode steps". They are plain build settings:
