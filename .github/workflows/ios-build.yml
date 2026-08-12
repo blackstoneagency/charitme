@@ -1,0 +1,117 @@
+# Compile the iOS app — no Apple account required.
+#
+# ⚠️ WHY THIS EXISTS, when `ios-archive.yml` is right there. That workflow builds
+# a SIGNED archive, and its first step fails when the signing secrets are absent.
+# Since those secrets have never been set, it has never run — which means
+# **nothing has ever proven this app compiles**. Every other check in the repo,
+# including `npm run ios:verify`, inspects the project's configuration; none of
+# them invokes a compiler against the iOS SDK.
+#
+# Code signing is the only part that needs an Apple Developer account.
+# Compilation does not. With `CODE_SIGNING_ALLOWED=NO` a macOS runner will
+# type-check, compile and link the whole app — the app target, the Capacitor
+# pods, and the storyboard/asset compilation — using the real iOS SDK.
+#
+# That is the difference between "the project is configured correctly" and "the
+# code builds", and it is worth a separate workflow to have the second one.
+#
+# It cannot produce an installable .ipa: an unsigned bundle will not run on a
+# device. That remains `ios-archive.yml`'s job, and still needs the secrets.
+name: iOS build (unsigned)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - 'capacitor.config.ts'
+      - 'native/**'
+      - 'scripts/prepare-ios.mjs'
+      - 'scripts/verify-ios-project.mjs'
+      - 'scripts/build-ios.sh'
+      - '.github/workflows/ios-build.yml'
+      - 'package.json'
+  pull_request:
+    paths:
+      - 'capacitor.config.ts'
+      - 'native/**'
+      - 'scripts/prepare-ios.mjs'
+      - 'scripts/verify-ios-project.mjs'
+      - '.github/workflows/ios-build.yml'
+
+# macOS runners are billed at a higher rate than ubuntu ones, so this is scoped
+# to the paths that can actually break the native build rather than every push.
+concurrency:
+  group: ios-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate and prepare the Xcode project
+        # `ios:sync` runs `cap sync` AND `scripts/prepare-ios.mjs`. Doing the two
+        # by hand — as ios-archive.yml did — silently skips the usage
+        # descriptions, the shared scheme, the app icon and the launch screen.
+        run: npm run ios:add
+
+      - name: Verify the generated project
+        # Before the compiler, deliberately: these are the failures a successful
+        # build does NOT catch — a launch crash from a missing usage description,
+        # or a rejected upload from an unbundled privacy manifest.
+        run: npm run ios:verify
+
+      - name: Show the toolchain being used
+        run: |
+          xcodebuild -version
+          xcodebuild -showsdks | grep -i ios || true
+
+      - name: Compile for iOS (unsigned)
+        # THE STEP THIS WORKFLOW EXISTS FOR. Type-checks and compiles every Swift
+        # source against the real iOS SDK, compiles the storyboards and asset
+        # catalog, and links the app — all of which are unreachable on Linux,
+        # where `swiftc -typecheck` fails with "no such module 'UIKit'".
+        run: |
+          set -euo pipefail
+          cd ios/App
+          xcodebuild build \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            | xcpretty || exit "${PIPESTATUS[0]}"
+
+      - name: Confirm an app bundle was actually produced
+        # A build that "succeeds" without emitting a bundle is the failure mode
+        # every audit in this repo has hit at least once. Assert the artifact.
+        run: |
+          set -euo pipefail
+          APP="$(find "$RUNNER_TEMP/DerivedData" -name 'App.app' -type d | head -1)"
+          if [ -z "$APP" ]; then
+            echo "::error::Build reported success but produced no App.app"
+            exit 1
+          fi
+          echo "Built: $APP"
+          echo "Binary:"; file "$APP/App"
+          # The compiled Info.plist proves the usage descriptions survived into
+          # the bundle, not merely into the source project.
+          /usr/libexec/PlistBuddy -c 'Print :NSCameraUsageDescription' "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist"
+          test -f "$APP/PrivacyInfo.xcprivacy" \
+            && echo "PrivacyInfo.xcprivacy IS in the bundle" \
+            || { echo "::error::privacy manifest missing from the built bundle"; exit 1; }

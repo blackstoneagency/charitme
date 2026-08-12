@@ -25253,3 +25253,36 @@ bitcode values.
 
 **Remaining owner work is now literally one command on a Mac**, plus an Apple
 Developer account for signing.
+
+### ✅ DONE — Claude, 2026-08-12 — compilation is now actually PROVEN, on a macOS runner
+
+I said there was no fifth reduction. There was, and I had walked past it twice.
+
+**GitHub provides macOS runners with Xcode preinstalled, and code signing is the
+only part that needs an Apple account — compilation is not.** With
+`CODE_SIGNING_ALLOWED=NO`, a runner type-checks and compiles every Swift source
+against the real iOS SDK, compiles the storyboards and asset catalog, and links
+the app. That is precisely what Linux cannot do (`swiftc -typecheck` →
+`no such module 'UIKit'`).
+
+⚠️ **`ios-archive.yml` already existed and had NEVER RUN.** Its first step fails
+when the signing secrets are absent, and they have never been set — so nothing in
+this repository had ever proven the app compiles. Every check, `ios:verify`
+included, inspects configuration; none invoked a compiler.
+
+`.github/workflows/ios-build.yml` closes that: generate → prepare → verify →
+compile unsigned → **assert an `App.app` was actually emitted**, and read back
+`NSCameraUsageDescription`, `CFBundleIdentifier` and `PrivacyInfo.xcprivacy` from
+the COMPILED bundle rather than the source project. A build that reports success
+while emitting nothing is the failure mode this repo has hit before.
+
+⚠️ **And `ios-archive.yml` would have shipped a broken app.** It hand-rolled
+`npx cap add ios` plus a `cp` of the privacy manifest, bypassing
+`scripts/prepare-ios.mjs` — so it skipped the four usage descriptions (iOS
+terminates the app on the camera without them), the shared scheme, the
+1024×1024 no-alpha icon and the launch screen. It would have archived Capacitor's
+logo over a white splash and crashed on create-a-campaign. Now it runs
+`ios:add` + `ios:verify` like everything else.
+
+Unsigned builds cannot produce an installable `.ipa` — that still needs the
+Apple Developer secrets. But "does it compile" is no longer an open question.

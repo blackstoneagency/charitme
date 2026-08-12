@@ -58,27 +58,26 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Add the Capacitor iOS project
-        run: |
-          set -euo pipefail
-          # ⚠️ Installed HERE, not in apps/web/package.json. These are native
-          # build tooling, not runtime dependencies of the website, and adding
-          # them to the app would put native plugins into every Vercel install.
-          npm i --no-save @capacitor/core @capacitor/cli @capacitor/ios
-          # capacitor.config.ts at the repo root points the shell at the live
-          # origin; see docs/native-shells.md for why a static export is not
-          # possible for this app.
-          npx cap add ios
-          npx cap sync ios
+      - name: Generate and prepare the Xcode project
+        env:
+          IOS_DEVELOPMENT_TEAM: ${{ secrets.APPLE_TEAM_ID }}
+        run: npm run ios:add
+        # ⚠️ This was a hand-rolled `npx cap add ios` plus a `cp` of the privacy
+        # manifest. Both are now done by `scripts/prepare-ios.mjs`, and doing
+        # them by hand SKIPPED everything else it applies: the four usage
+        # descriptions (without which iOS terminates the app on the camera), the
+        # shared scheme, the 1024×1024 no-alpha app icon, and the launch screen —
+        # so this workflow would have archived Capacitor's logo over a white
+        # splash, and crashed on the create-a-campaign flow.
+        #
+        # Capacitor is a devDependency now, so `npm ci` above already installed
+        # it; the previous `npm i --no-save` is gone with it.
 
-      - name: Install the privacy manifest
-        run: |
-          # Apple requires this in the app bundle. It is committed at
-          # native/ios/PrivacyInfo.xcprivacy precisely because ios/ is generated
-          # and therefore not in the repo — without this copy the declaration
-          # would exist in the repo and be absent from every build.
-          cp native/ios/PrivacyInfo.xcprivacy ios/App/App/PrivacyInfo.xcprivacy
-          echo "privacy manifest installed"
+      - name: Verify the generated project
+        # Before the archive: everything here is a failure that a SUCCESSFUL
+        # build does not catch, and that App Store Connect reports only after the
+        # upload finishes.
+        run: npm run ios:verify
 
       - name: Import the signing certificate
         env:
