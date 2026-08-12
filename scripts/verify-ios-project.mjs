@@ -140,6 +140,35 @@ function main() {
     );
   }
 
+  // ── Signing, when it has been asked for ───────────────────────────────────
+  //
+  // Both are opt-in (IOS_DEVELOPMENT_TEAM / IOS_ASSOCIATED_DOMAINS). Absent, the
+  // project is still valid — Xcode prompts for a team, universal links are off.
+  // What is checked is the HALF-CONFIGURED state, which is the one that fails
+  // confusingly: an entitlements file nothing points at is inert, and the
+  // capability simply does not apply with no error anywhere.
+  const team = /DEVELOPMENT_TEAM = (\w+);/.exec(pbx)?.[1];
+  console.log(team ? `  · signing team: ${team}` : '  · signing team: not set (Xcode will prompt — set IOS_DEVELOPMENT_TEAM to script it)');
+
+  const entPath = join(APP, 'App.entitlements');
+  if (existsSync(entPath)) {
+    check(
+      pbx.includes('CODE_SIGN_ENTITLEMENTS = App/App.entitlements'),
+      'entitlements file is wired into build settings',
+      'App.entitlements exists but no configuration points at it, so the capability is inert — there is no error anywhere, the feature just does not work.',
+    );
+    const ent = parsePlistArrays(readFileSync(entPath, 'utf8'));
+    const domains = ent['com.apple.developer.associated-domains'] ?? [];
+    check(
+      domains.every((d) => /^(applinks|webcredentials|activitycontinuation):/.test(d)),
+      `associated domains carry a service prefix (${domains.join(', ') || 'none'})`,
+      'A bare hostname is accepted by the plist and silently does nothing.',
+    );
+    console.log('  · ⚠️  associated-domains requires the capability enabled on the App ID, or signing fails');
+  } else {
+    console.log('  · associated domains: not configured (set IOS_ASSOCIATED_DOMAINS to script it)');
+  }
+
   // ── CocoaPods actually wired ──────────────────────────────────────────────
   if (existsSync(join(IOS, 'App', 'Podfile'))) {
     const wsData = join(IOS, 'App', 'App.xcworkspace', 'contents.xcworkspacedata');
@@ -158,6 +187,15 @@ function main() {
   }
 
   report();
+}
+
+/** Array-valued plist keys, which the scalar reader below ignores. */
+function parsePlistArrays(xml) {
+  const out = {};
+  for (const m of xml.matchAll(/<key>([^<]+)<\/key>\s*<array>([\s\S]*?)<\/array>/g)) {
+    out[m[1]] = [...m[2].matchAll(/<string>([\s\S]*?)<\/string>/g)].map((s) => s[1].trim());
+  }
+  return out;
 }
 
 /** Minimal plist reader — only the scalar shapes this file needs. */
@@ -189,9 +227,9 @@ function report() {
   }
   console.log('\n✅ The generated project is complete.');
   console.log('   Still requires Xcode, and is NOT verified by this script:');
-  console.log('     · compilation      · code signing (set your Team)');
-  console.log('     · the archive      · upload to App Store Connect');
-  console.log('     · Associated Domains (applinks:www.charitme.com)');
+  console.log('     · compilation   · the archive   · upload to App Store Connect');
+  console.log('   Signing team and Associated Domains are scriptable — see');
+  console.log('   IOS_DEVELOPMENT_TEAM / IOS_ASSOCIATED_DOMAINS in docs/native-shells.md.');
 }
 
 main();

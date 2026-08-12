@@ -373,6 +373,125 @@ function writeSharedScheme() {
 
 writeSharedScheme();
 
+// ── 7. Signing team and Associated Domains — OPT-IN, via env ─────────────────
+//
+// Both of these were written off as "manual Xcode steps". They are not: they are
+// plain build settings, and scripting them removes two error-prone trips through
+// the Signing & Capabilities UI on every regenerated project.
+//
+// ⚠️ THEY ARE OPT-IN, AND THAT IS NOT TIMIDITY. Setting either unconditionally
+// makes the project WORSE for anyone who has not done the matching Apple
+// Developer Portal work:
+//   · a DEVELOPMENT_TEAM you are not a member of fails signing outright;
+//   · `com.apple.developer.associated-domains` fails signing with "Provisioning
+//     profile doesn't include the ... entitlement" unless the App ID has the
+//     Associated Domains capability enabled.
+// Unset, the project behaves exactly as before — Xcode prompts for a team, and
+// universal links simply do not work until someone asks for them.
+const TEAM = process.env.IOS_DEVELOPMENT_TEAM?.trim();
+const DOMAINS = process.env.IOS_ASSOCIATED_DOMAINS?.trim();
+
+/**
+ * Insert or replace a build setting in every configuration of the app target.
+ *
+ * Returns the number of configurations whose text actually CHANGED, not the
+ * number visited. ⚠️ It counted visits first, so a second run with identical
+ * env reported "2 changes" and rewrote the file — which made this script's own
+ * change log untrustworthy, in a script whose whole job is to be re-run.
+ */
+function setAppBuildSetting(source, key, value) {
+  let count = 0;
+  const updated = source.replace(
+    /(buildSettings = \{\n)([\s\S]*?)(\t\t\t\};)/g,
+    (match, open, body, close) => {
+      // Only the app target's configurations — identified by the setting that
+      // only it carries. Editing the Pods configurations would be wrong and
+      // would be silently overwritten by the next `pod install`.
+      if (!body.includes('PRODUCT_BUNDLE_IDENTIFIER')) return match;
+      const line = `\t\t\t\t${key} = ${value};\n`;
+      const next = new RegExp(`^\\t{4}${key} = `, 'm').test(body)
+        ? open + body.replace(new RegExp(`^\\t{4}${key} = [^\\n]*\\n`, 'm'), line) + close
+        : open + line + body + close;
+      if (next !== match) count += 1;
+      return next;
+    },
+  );
+  return { updated, count };
+}
+
+if (TEAM || DOMAINS) {
+  let project = readFileSync(PBXPROJ, 'utf8');
+  const before = project;
+
+  if (TEAM) {
+    if (!/^[A-Z0-9]{10}$/.test(TEAM)) {
+      die(
+        `IOS_DEVELOPMENT_TEAM="${TEAM}" is not a Team ID.`,
+        'An Apple Team ID is 10 uppercase alphanumerics (Apple Developer →\n'
+        + 'Membership details). Writing a wrong one produces a signing failure\n'
+        + 'whose message does not mention this script.',
+      );
+    }
+    const { updated, count } = setAppBuildSetting(project, 'DEVELOPMENT_TEAM', TEAM);
+    if (!updated.includes(`DEVELOPMENT_TEAM = ${TEAM}`)) {
+      die('Could not find the app target build configurations to set DEVELOPMENT_TEAM.');
+    }
+    project = updated;
+    if (count) note(`set DEVELOPMENT_TEAM=${TEAM} on ${count} configuration(s)`);
+  }
+
+  if (DOMAINS) {
+    const entries = DOMAINS.split(/[,\s]+/).filter(Boolean);
+    const malformed = entries.filter((d) => !/^(applinks|webcredentials|activitycontinuation):/.test(d));
+    if (malformed.length) {
+      die(
+        `IOS_ASSOCIATED_DOMAINS entries must carry a service prefix: ${malformed.join(', ')}`,
+        'Expected e.g. `applinks:www.charitme.com`. A bare hostname is accepted by\n'
+        + 'the plist and then silently does nothing.',
+      );
+    }
+
+    const entitlements = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+\t<key>com.apple.developer.associated-domains</key>
+\t<array>
+${entries.map((d) => `\t\t<string>${d}</string>`).join('\n')}
+\t</array>
+</dict>
+</plist>
+`;
+    const entPath = join(APP, 'App.entitlements');
+    if (!existsSync(entPath) || readFileSync(entPath, 'utf8') !== entitlements) {
+      writeFileSync(entPath, entitlements);
+      note(`wrote App.entitlements (${entries.join(', ')})`);
+    }
+
+    const ENT_REF = 'CAFE0003000000000000ENTL';
+    if (!project.includes('App.entitlements')) {
+      project = project.replace(
+        '/* End PBXFileReference section */',
+        `\t\t${ENT_REF} /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };\n/* End PBXFileReference section */`,
+      );
+      project = project.replace(
+        /(\/\* App \*\/ = \{\n\t\t\tisa = PBXGroup;\n\t\t\tchildren = \(\n)/,
+        `$1\t\t\t\t${ENT_REF} /* App.entitlements */,\n`,
+      );
+    }
+    // An entitlements file Xcode does not point at is inert — the capability
+    // simply does not apply, with no error anywhere.
+    const { updated, count } = setAppBuildSetting(project, 'CODE_SIGN_ENTITLEMENTS', 'App/App.entitlements');
+    if (!updated.includes('CODE_SIGN_ENTITLEMENTS = App/App.entitlements')) {
+      die('Could not find the app target build configurations to set CODE_SIGN_ENTITLEMENTS.');
+    }
+    project = updated;
+    if (count) note(`wired CODE_SIGN_ENTITLEMENTS on ${count} configuration(s)`);
+  }
+
+  if (project !== before) writeFileSync(PBXPROJ, project);
+}
+
 console.log(
   changes.length
     ? `\n✅ iOS project prepared (${changes.length} change${changes.length === 1 ? '' : 's'}).`

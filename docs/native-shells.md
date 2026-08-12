@@ -129,6 +129,33 @@ order of effort against reviewer-visible value:
 Push is the strongest: it is the one capability the site genuinely cannot do on
 iOS Safari, and organisers actually want it.
 
+### Signing and universal links are scriptable too
+
+Both were written off as "manual Xcode steps". They are plain build settings:
+
+```bash
+IOS_DEVELOPMENT_TEAM=ABCDE12345 \
+IOS_ASSOCIATED_DOMAINS=applinks:www.charitme.com \
+  npm run ios:sync
+```
+
+`IOS_DEVELOPMENT_TEAM` writes `DEVELOPMENT_TEAM` into both configurations of the
+app target (and only the app target — the Pods configurations are left alone,
+since `pod install` would overwrite them anyway). `IOS_ASSOCIATED_DOMAINS`
+generates `App.entitlements` and wires `CODE_SIGN_ENTITLEMENTS`.
+
+⚠️ **Both are opt-in, and that is not timidity.** Set unconditionally they make
+the project *worse* for anyone who has not done the matching Apple Developer
+Portal work: a team you are not a member of fails signing outright, and
+`com.apple.developer.associated-domains` fails with "Provisioning profile doesn't
+include the ... entitlement" unless the App ID has the capability enabled. Unset,
+the project behaves as before — Xcode prompts for a team, universal links are
+simply off.
+
+Inputs are validated rather than trusted: a Team ID must be 10 uppercase
+alphanumerics, and each domain must carry a service prefix (`applinks:`) — a bare
+hostname is accepted by the plist and then silently does nothing.
+
 ### Confirm it yourself: `npm run ios:verify`
 
 `scripts/prepare-ios.mjs` applies the configuration; `scripts/verify-ios-project.mjs`
@@ -137,7 +164,7 @@ work reports success on whatever it happened to produce.
 
 ```bash
 npm run ios:add      # generate + prepare
-npm run ios:verify   # 20 checks against the generated project
+npm run ios:verify   # 20 checks (22 with signing configured)
 npm run ios:open     # macOS + Xcode
 ```
 

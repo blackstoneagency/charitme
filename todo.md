@@ -25182,3 +25182,44 @@ by measuring rather than reasoning: Capacitor 7 has **no** `SceneDelegate` or
 `UIApplicationSceneManifest` (that was a v8 assumption), and local path pods are
 **referenced in place** rather than copied into `Pods/`, so searching there for
 `CAPBridgeViewController` found nothing while the class exists.
+
+### ✅ DONE — Claude, 2026-08-12 — two of the five "manual Xcode steps" were not manual
+
+I had listed compilation, signing, archive, upload and Associated Domains as
+requiring Xcode. Two of those were filed wrong: **`DEVELOPMENT_TEAM` and
+`CODE_SIGN_ENTITLEMENTS` are plain build settings**, not UI work.
+
+```bash
+IOS_DEVELOPMENT_TEAM=ABCDE12345 \
+IOS_ASSOCIATED_DOMAINS=applinks:www.charitme.com \
+  npm run ios:sync
+```
+
+Writes the team into both configurations of the app target — and only that target;
+the Pods configurations are left alone, since `pod install` would overwrite them.
+Generates `App.entitlements` and wires `CODE_SIGN_ENTITLEMENTS`.
+
+⚠️ **Opt-in on purpose.** Set unconditionally they make the project *worse* for
+anyone without the matching Apple Developer Portal work: a team you are not a
+member of fails signing, and `associated-domains` fails with "Provisioning
+profile doesn't include the ... entitlement" unless the App ID has the capability.
+Unset, nothing changes.
+
+Inputs are validated, not trusted: a Team ID must be 10 uppercase alphanumerics,
+and every domain must carry a service prefix — a bare hostname is accepted by the
+plist and then silently does nothing.
+
+⚠️ **A defect in my own idempotency, caught by re-running rather than reasoning.**
+`setAppBuildSetting` counted configurations *visited*, not *changed*, so a second
+run with identical env reported "2 changes" and rewrote the file. In a script
+whose entire purpose is to be re-run after every `cap sync`, that made its own
+change log untrustworthy. It now counts real edits; same env → "nothing to do",
+changed value → applied.
+
+`ios:verify` grew to **22 checks** when signing is configured, 20 otherwise, and
+reports the half-configured state that fails most confusingly: an entitlements
+file nothing points at is inert, with no error anywhere. Mutation-tested — both
+un-wiring it and using a bare hostname fail.
+
+**The residue is now three items, all pure toolchain execution:** compilation,
+the archive, and upload.
