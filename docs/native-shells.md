@@ -59,8 +59,26 @@ the generated project is **incomplete on its own**:
 npm install             # Capacitor is already in devDependencies
 npm run ios:add         # cap add ios  + the prepare step
 npm run ios:sync        # cap sync ios + the prepare step — after any config change
-npm run ios:open        # requires macOS + Xcode
+npm run ios:open        # requires macOS + Xcode; opens App.xcworkspace
 ```
+
+Capacitor 7 uses **CocoaPods**, so the thing you open is `ios/App/App.xcworkspace`,
+not `App.xcodeproj` — opening the bare project gives the classic "missing Pods"
+build failure. `npx cap sync ios` runs `pod install` on macOS.
+
+### ⚠️ Capacitor is pinned to v7, and the pin is load-bearing
+
+v8 declares `engines: { node: ">=22.0.0" }`. `.node-version` pins **20.19.0** and
+`.npmrc` sets `engine-strict=true`, so `npm ci` **fails** rather than warns —
+which took out all five CI jobs and Vercel deploys, since both read those same two
+files. v7 requires only `>=20.0.0`.
+
+This is invisible on a dev machine running a newer Node: install, build and the
+full test suite all pass there. `apps/web/__tests__/pinned-node-engines.test.ts`
+checks every dependency's declared range against the **pinned** version rather
+than `process.version`, which is the only form of the check that holds no matter
+who runs it. Do not bump the Capacitor major without moving the Node pin first —
+that changes the production runtime.
 
 ### What `ios:prepare` fixes, and why it is not optional
 

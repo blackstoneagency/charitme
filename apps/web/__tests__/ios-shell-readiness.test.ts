@@ -176,6 +176,43 @@ describe('what App Store Connect rejects after a successful archive', () => {
   });
 });
 
+describe('what is missing from the generated project but invisible in Xcode', () => {
+  it('writes a SHARED scheme, not just whatever Xcode auto-creates', () => {
+    // ⚠️ `cap add ios` generates no scheme. Opening the project makes Xcode
+    // auto-create a USER scheme under xcuserdata/, so it builds fine on the
+    // machine that opened it and the gap is invisible. Nothing scripted works:
+    // `xcodebuild -scheme App` — how an archive, an export or any CI build
+    // selects what to build — fails on a project nobody has opened.
+    expect(prepare).toMatch(/xcshareddata/);
+    expect(prepare).toMatch(/xcschemes/);
+    expect(prepare).toMatch(/ArchiveAction/);
+  });
+
+  it('reads the target id from the project instead of hardcoding it', () => {
+    // Capacitor owns project.pbxproj. A stale hardcoded blueprint id would
+    // produce a scheme Xcode lists and cannot build — worse than having none.
+    expect(prepare).toMatch(/isa = PBXNativeTarget/);
+    expect(prepare).toMatch(/refusing to write a scheme with a guessed id/);
+  });
+
+  it('renders a launch screen that matches the app background', () => {
+    // ⚠️ Capacitor's template splash is WHITE and carries Capacitor's logo,
+    // while capacitor.config.ts sets backgroundColor '#000000' with the comment
+    // that "a white shell behind a black page flashes on every launch". The
+    // splash WAS the white shell — launch went white → black on every cold start.
+    expect(prepare).toMatch(/Splash\.imageset/);
+    expect(prepare).toMatch(/meanLuma/);
+  });
+
+  it('reads the splash filenames from Contents.json rather than guessing', () => {
+    // The imageset lists three scale variants by name. Hardcoding them means a
+    // template change writes files the catalog does not reference, leaving the
+    // vendor splash in place while reporting success.
+    expect(prepare).toMatch(/Contents\.json/);
+    expect(prepare).toMatch(/refusing to guess filenames/);
+  });
+});
+
 describe('the shell and the web manifest agree', () => {
   const manifest = read('apps/web/app/manifest.ts');
 

@@ -22,9 +22,9 @@
     "ios:open": "npx cap open ios"
   },
   "devDependencies": {
-    "@capacitor/cli": "^8.5.0",
-    "@capacitor/core": "^8.5.0",
-    "@capacitor/ios": "^8.5.0",
+    "@capacitor/cli": "^7.6.8",
+    "@capacitor/core": "^7.6.8",
+    "@capacitor/ios": "^7.6.8",
     "@supabase/supabase-js": "2.109.0",
     "supabase": "^2.101.0",
     "vercel": "^54.4.1"

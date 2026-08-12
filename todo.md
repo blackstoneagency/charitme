@@ -25061,3 +25061,56 @@ archive, signing (Team + provisioning), and Associated Domains
 a WebView pointed at a URL is the shape Apple rejects as a repackaged website;
 the mitigation is native capability (push notifications first), listed in
 `docs/native-shells.md`.
+
+### ✅ FIXED — Claude, 2026-08-12 — I broke master with Capacitor 8; Node pin mismatch
+
+`@capacitor/cli@8` declares `engines: { node: ">=22.0.0" }`. `.node-version`
+pins **20.19.0** and `.npmrc` sets `engine-strict=true`, so `npm ci` **fails**
+rather than warns:
+
+```
+npm error code EBADENGINE
+npm error Not compatible with your version of node/npm: @capacitor/cli@8.5.0
+npm error notsup Required: {"node":">=22.0.0"}  Actual: {"node":"v20.20.2"}
+```
+
+All **five** CI jobs on master died at "Install dependencies" in ~1 second, and
+Vercel reads the same two files — so **production deploys were failing too**.
+
+**Why it was not caught before pushing, which is the real lesson:** this sandbox
+runs Node 22. `npm install`, `npm ci`, the production build and all 4,659 tests
+passed locally. Nothing that executes on the developer's machine can see this,
+because the developer's machine is not the pinned version.
+
+Fixed by pinning Capacitor to **v7** (`>=20.0.0`) rather than moving the Node pin
+— raising the pin would change the production runtime, which is not a side effect
+to take on while fixing a build. v7 uses **CocoaPods** instead of SPM, so the
+thing you open is `ios/App/App.xcworkspace`, and `npx cap sync ios` runs
+`pod install`. Every prepare step still applies; the full readiness audit passes
+on the v7 project (deployment target 14.0).
+
+`apps/web/__tests__/pinned-node-engines.test.ts` (5 tests) checks every installed
+dependency's declared `engines.node` against the **pinned** version rather than
+`process.version` — the only form of the check that holds regardless of who runs
+it. Mutation-tested by reinstalling Capacitor 8: it fails and names the package
+and its requirement.
+
+### ✅ DONE — Claude, 2026-08-12 — two more gaps that are invisible in Xcode
+
+**No shared scheme.** `cap add ios` generates none. Opening the project makes
+Xcode auto-create a *user* scheme under `xcuserdata/`, so it builds fine on the
+machine that opened it and the gap looks like nothing. Anything scripted fails:
+`xcodebuild -scheme App` — how an archive, an export or any CI build selects what
+to build — errors on a project nobody has opened. Now generated, with the target
+id **read from the pbxproj** rather than hardcoded (a stale id yields a scheme
+Xcode lists and cannot build, which is worse than none).
+
+**The launch screen was white, with Capacitor's logo.** `capacitor.config.ts`
+sets `backgroundColor: '#000000'` with the comment that "a white shell behind a
+black page flashes on every launch" — the splash *was* the white shell, so launch
+went white → black on every cold start. Now rendered black with the CharitMe
+mark; the script verifies mean luma < 60/255 before writing, and reads the three
+scale filenames from `Contents.json` rather than guessing.
+
+Full audit on a clean regeneration: 16/16 structural checks, icon 1024×1024 with
+no alpha, splash at 7/255. **4664 tests / 392 files**, typecheck and lint clean.

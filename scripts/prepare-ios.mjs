@@ -27,9 +27,16 @@
  *
  * This script is IDEMPOTENT: running it twice is a no-op, so it is safe to wire
  * after every `cap sync`.
+ *
+ * ⚠️ CAPACITOR IS PINNED TO v7 ON PURPOSE. v8 declares
+ * `engines: { node: ">=22.0.0" }` while `.node-version` pins 20.19.0 and
+ * `.npmrc` sets `engine-strict=true` — so `npm ci` FAILS rather than warns, in
+ * CI and on Vercel alike. v7 requires only `>=20.0.0`. Do not bump the major
+ * without moving the Node pin first, which changes the production runtime.
+ * `apps/web/__tests__/pinned-node-engines.test.ts` fails if this regresses.
  */
 
-import { readFileSync, writeFileSync, copyFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, copyFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -220,12 +227,162 @@ async function writeAppIcon() {
 
 await writeAppIcon();
 
+// ── 5. Launch screen ─────────────────────────────────────────────────────────
+//
+// ⚠️ Capacitor's template splash is WHITE and carries CAPACITOR'S LOGO. Two
+// problems, and the second is the one the config file already warned about:
+//
+//   · It is someone else's branding on the first screen of the app.
+//   · `capacitor.config.ts` sets `backgroundColor: '#000000'` with the comment
+//     "a white shell behind a black page flashes on every launch". The splash
+//     itself was the white shell. Launch went white → black on every cold start,
+//     which is exactly the flash that setting exists to prevent.
+//
+// Rendered black with the CharitMe mark centred, so the launch screen and the
+// first painted page are the same colour and the transition is invisible.
+const SPLASH_DIR = join(APP, 'Assets.xcassets', 'Splash.imageset');
+const SPLASH_PX = 2732;
+// The mark sits at ~22% of the canvas. The imageset is scaled to fill screens of
+// very different sizes, so a large mark crops badly on the narrowest devices.
+const MARK_PX = 600;
+
+async function writeSplash() {
+  const { default: sharp } = await import('sharp');
+
+  const mark = await sharp(ICON_SRC, { density: 600 })
+    .resize(MARK_PX, MARK_PX, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .png()
+    .toBuffer();
+
+  const png = await sharp({
+    create: {
+      width: SPLASH_PX, height: SPLASH_PX, channels: 3,
+      background: ICON_BG,
+    },
+  })
+    .composite([{ input: mark, gravity: 'centre' }])
+    .png({ compressionLevel: 9 })
+    .toBuffer();
+
+  // Verify it is actually dark before shipping it — a regression that silently
+  // restored a white splash would reintroduce the launch flash, and nothing else
+  // here would notice.
+  const { channels } = await sharp(png).stats();
+  const meanLuma = (channels[0].mean + channels[1].mean + channels[2].mean) / 3;
+  if (meanLuma > 60) die(`Rendered splash is too light (mean ${meanLuma.toFixed(0)}/255) — it would flash white on launch.`);
+
+  const manifest = JSON.parse(readFileSync(join(SPLASH_DIR, 'Contents.json'), 'utf8'));
+  const names = manifest.images.map((i) => i.filename).filter(Boolean);
+  if (names.length === 0) die('Splash.imageset lists no images — refusing to guess filenames.');
+
+  let wrote = 0;
+  for (const name of names) {
+    const dest = join(SPLASH_DIR, name);
+    if (existsSync(dest) && readFileSync(dest).equals(png)) continue;
+    writeFileSync(dest, png);
+    wrote += 1;
+  }
+  if (wrote) note(`rendered the CharitMe launch screen on ${ICON_BG} (${wrote} image${wrote === 1 ? '' : 's'})`);
+}
+
+await writeSplash();
+
+// ── 6. A SHARED scheme ───────────────────────────────────────────────────────
+//
+// ⚠️ `cap add ios` generates no scheme at all, and the gap is invisible in the
+// GUI: opening the project makes Xcode auto-create a *user* scheme under
+// `xcuserdata/`, so it builds and runs on the machine that opened it. Nothing
+// looks wrong.
+//
+// It is not there for anything scripted. `xcodebuild -scheme App` — which is how
+// an archive, an export, or any CI build selects what to build — fails with "The
+// project named 'App' does not contain a scheme named 'App'" on a project nobody
+// has opened yet. A user scheme also lives in a directory Xcode treats as
+// per-developer state, so it is exactly the thing that does not travel.
+//
+// The target id is READ from the project rather than hardcoded: Capacitor owns
+// that file and a stale id would produce a scheme that Xcode lists and cannot
+// build, which is a worse failure than having none.
+function writeSharedScheme() {
+  const schemeDir = join(IOS, 'App', 'App.xcodeproj', 'xcshareddata', 'xcschemes');
+  const schemePath = join(schemeDir, 'App.xcscheme');
+
+  const target = /([0-9A-F]{24}) \/\* (\w+) \*\/ = \{\s*\n\s*isa = PBXNativeTarget;/.exec(pbx ?? readFileSync(PBXPROJ, 'utf8'));
+  if (!target) {
+    die(
+      'Could not find the native target in project.pbxproj — refusing to write a scheme with a guessed id.',
+      'A scheme pointing at the wrong blueprint appears in Xcode and cannot build,\n'
+      + 'which is harder to diagnose than no scheme at all.',
+    );
+  }
+  const [, blueprintId, targetName] = target;
+
+  const scheme = `<?xml version="1.0" encoding="UTF-8"?>
+<Scheme LastUpgradeVersion = "1500" version = "1.7">
+   <BuildAction parallelizeBuildables = "YES" buildImplicitDependencies = "YES">
+      <BuildActionEntries>
+         <BuildActionEntry buildForTesting = "YES" buildForRunning = "YES" buildForProfiling = "YES" buildForArchiving = "YES" buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "${blueprintId}"
+               BuildableName = "${targetName}.app"
+               BlueprintName = "${targetName}"
+               ReferencedContainer = "container:${targetName}.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+      </BuildActionEntries>
+   </BuildAction>
+   <TestAction buildConfiguration = "Debug" selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB" shouldUseLaunchSchemeArgsEnv = "YES">
+      <Testables>
+      </Testables>
+   </TestAction>
+   <LaunchAction buildConfiguration = "Debug" selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB" launchStyle = "0" useCustomWorkingDirectory = "NO" ignoresPersistentStateOnLaunch = "NO" debugDocumentVersioning = "YES" debugServiceExtension = "internal" allowLocationSimulation = "YES">
+      <BuildableProductRunnable runnableDebuggingMode = "0">
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "${blueprintId}"
+            BuildableName = "${targetName}.app"
+            BlueprintName = "${targetName}"
+            ReferencedContainer = "container:${targetName}.xcodeproj">
+         </BuildableReference>
+      </BuildableProductRunnable>
+   </LaunchAction>
+   <ProfileAction buildConfiguration = "Release" shouldUseLaunchSchemeArgsEnv = "YES" savedToolIdentifier = "" useCustomWorkingDirectory = "NO" debugDocumentVersioning = "YES">
+      <BuildableProductRunnable runnableDebuggingMode = "0">
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "${blueprintId}"
+            BuildableName = "${targetName}.app"
+            BlueprintName = "${targetName}"
+            ReferencedContainer = "container:${targetName}.xcodeproj">
+         </BuildableReference>
+      </BuildableProductRunnable>
+   </ProfileAction>
+   <AnalyzeAction buildConfiguration = "Debug">
+   </AnalyzeAction>
+   <ArchiveAction buildConfiguration = "Release" revealArchiveInOrganizer = "YES">
+   </ArchiveAction>
+</Scheme>
+`;
+
+  if (existsSync(schemePath) && readFileSync(schemePath, 'utf8') === scheme) return;
+  mkdirSync(schemeDir, { recursive: true });
+  writeFileSync(schemePath, scheme);
+  note(`wrote a shared "${targetName}" scheme (xcodebuild -scheme ${targetName})`);
+}
+
+writeSharedScheme();
+
 console.log(
   changes.length
     ? `\n✅ iOS project prepared (${changes.length} change${changes.length === 1 ? '' : 's'}).`
     : '\n✅ iOS project already prepared — nothing to do.',
 );
 console.log('\nNext, on macOS:');
-console.log('  npx cap open ios');
+// `cap open ios` opens App.xcworkspace, not App.xcodeproj. With CocoaPods the
+// bare project does not build — opening the wrong one is the classic "missing
+// Pods" failure — and `cap sync ios` is what runs `pod install`.
+console.log('  npx cap sync ios     # runs pod install');
+console.log('  npx cap open ios     # opens App.xcworkspace (NOT App.xcodeproj)');
 console.log('  Signing & Capabilities → set your Team, then add Associated Domains:');
 console.log('    applinks:www.charitme.com');
