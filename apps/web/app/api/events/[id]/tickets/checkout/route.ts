@@ -15,6 +15,7 @@ import {
   PayoutLookupUnavailableError,
   resolvePayoutDestination,
 } from '../../../../../../lib/payout-destination';
+import { eventTicketFee } from '@shared/fees';
 
 export const dynamic = 'force-dynamic';
 
@@ -147,6 +148,12 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
   }
 
   const origin = getAppOrigin();
+  // CharitMe's commission on the sale. Computed from the RESERVATION total, not
+  // from the ticket row: the reservation is what was verified against
+  // `price_cents * quantity` two lines above, so the fee cannot be computed from
+  // a price the buyer is not actually being charged.
+  const platformFeeCents = eventTicketFee(reservation.total_cents);
+
   const metadata = {
     type: 'event_ticket',
     registrationId: reservation.registration_id,
@@ -154,6 +161,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     ticketId: ticket.id,
     attendeeId: user.id,
     quantity: String(parsed.data.quantity),
+    platformFeeCents: String(platformFeeCents),
   };
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
     mode: 'payment',
@@ -176,6 +184,17 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     metadata,
     payment_intent_data: {
       metadata,
+      // A destination charge: Stripe moves the sale to the organizer's connected
+      // account at capture, and CharitMe keeps only `application_fee_amount`. The
+      // organizer nets total − fee; CharitMe never holds the rest.
+      //
+      // ⚠️ Omitted entirely when the fee rounds to 0. A free ticket cannot reach
+      // here — `price_cents <= 0` is refused above as FREE_TICKET — so this is
+      // depth, not the live path: it matters if that guard is ever relaxed, or if
+      // EVENT_TICKET_FEE_PERCENT is set low enough for a cheap ticket to round to
+      // zero. Stripe rejects `application_fee_amount: 0`, which would turn the
+      // sale into a failed checkout rather than a fee-free one.
+      ...(platformFeeCents > 0 ? { application_fee_amount: platformFeeCents } : {}),
       transfer_data: { destination: destination.stripeAccountId },
     },
   };

@@ -1,81 +1,31 @@
-import type { Metadata } from 'next';
-import { supabaseAdmin } from '../../lib/supabase';
-import { boundedQuery } from '../../lib/query-timeout';
-import { campaignColumns, applyLiveFilters } from '../../lib/campaign-visibility';
-import GiveClient, { type GiveCampaign } from './GiveClient';
-import { getDonationCheckoutSnapshot } from '../../lib/donation-checkout-settings';
+import { permanentRedirect } from 'next/navigation';
 
-export const dynamic = 'force-dynamic';
-
-export const metadata: Metadata = {
-  title: 'Give Once, Fund Many | CharitMe',
-  description:
-    'Support several fundraisers with a single donation. Choose your causes, give one amount, and CharitMe splits it to the cent. 0% platform fee.',
-  alternates: { canonical: 'https://www.charitme.com/give' },
-};
-
-// G4 from the GoFundMe teardown. Their answer is a "Nonprofit Giving Cart";
-// this is deliberately not a cart — one amount, several causes, one receipt.
+// ─────────────────────────────────────────────────────────────────────────────
+// "Give once, fund many" (portfolio split gifts) has been WITHDRAWN.
 //
-// Ranked by campaign health rather than amount raised: a portfolio page that
-// lists the biggest campaigns first would funnel a "spread it around" donor into
-// the fundraisers that need it least, which is the opposite of the point.
+// The feature took one payment and divided it across several campaigns. Stripe's
+// `transfer_data.destination` accepts exactly ONE connected account, so a split
+// gift could not be a destination charge: the money landed on CharitMe's own
+// balance and a webhook fanned it out afterwards. That made this the only place
+// in the product where CharitMe genuinely held donor funds — briefly when the
+// fan-out worked, and indefinitely when a leg of it did not.
+//
+// This page is a REDIRECT rather than a deletion, on purpose:
+//   · `/give` was linked from the footer, the supporter space, and the campaigns
+//     list, and is a canonical URL that has been indexed. A 404 is a worse
+//     answer than the page that now does the job.
+//   · The withdrawn checkout used `${origin}/give` as its Stripe cancel_url, so
+//     a session created before this shipped still lands somewhere sane if the
+//     donor backs out.
+//
+// ⚠️ The webhook's portfolio settle path is deliberately still in place. Nothing
+// can create a new portfolio session now, but Checkout Sessions live ~24h, so
+// one opened before deploy can still be PAID after it. Without that handler the
+// donation would go unrecorded and the money would sit on the platform balance
+// with nothing saying whose it is. It can be deleted once no unpaid portfolio
+// session can remain — see `handlePortfolioComplete` in the Stripe webhook.
+// ─────────────────────────────────────────────────────────────────────────────
 
-async function getCampaigns(): Promise<GiveCampaign[]> {
-  try {
-    const cols = await campaignColumns();
-    const { data } = await boundedQuery(() =>
-  applyLiveFilters(
-        supabaseAdmin
-          .from('campaigns')
-          .select('id, slug, title, tagline, category, cover_image_url, raised_amount, goal_amount, campaign_health_score'),
-        cols,
-      )
-        .order('campaign_health_score', { ascending: false, nullsFirst: false })
-        .limit(24),
-    );
-    return (data ?? []) as GiveCampaign[];
-  } catch {
-    return [];
-  }
-}
-
-export default async function GivePage() {
-  const [campaigns, checkout] = await Promise.all([
-    getCampaigns(),
-    getDonationCheckoutSnapshot(),
-  ]);
-
-  return (
-    <main id="main-content" style={{ maxWidth: 900, margin: '0 auto', padding: '40px 24px 64px' }}>
-      <header style={{ marginBottom: 28 }}>
-        <span
-          style={{
-            display: 'inline-block',
-            fontSize: 11,
-            fontWeight: 900,
-            letterSpacing: 0,
-            textTransform: 'uppercase',
-            color: 'var(--violet-ink)',
-            marginBottom: 10,
-          }}
-        >
-          Give once, fund many
-        </span>
-        <h1 style={{ fontSize: 36, lineHeight: 1.15, fontWeight: 900, margin: '0 0 10px', color: 'var(--t1)' }}>
-          One gift. Several causes.
-        </h1>
-        <p style={{ fontSize: 15.5, color: 'var(--t2)', margin: 0, maxWidth: 640, lineHeight: 1.6 }}>
-          Choose the fundraisers you want to back, name one amount, and we divide it to the cent —
-          one payment, one receipt, and <strong>0%</strong> taken by the platform.
-        </p>
-      </header>
-
-      <GiveClient
-        campaigns={campaigns}
-        checkoutSettings={checkout.settings}
-        checkoutRevision={checkout.revision}
-      />
-    </main>
-  );
+export default function GivePage(): never {
+  permanentRedirect('/campaigns');
 }

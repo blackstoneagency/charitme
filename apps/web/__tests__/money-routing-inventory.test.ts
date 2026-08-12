@@ -48,18 +48,6 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 type Kind = 'routed' | 'platform' | 'fan-out';
 
 const EXPECTED: Record<string, { kind: Kind; why: string }> = {
-  // ⚠️ Adapted when this test was taken from PR #368 onto master. That branch
-  // WITHDRAWS the portfolio route, so its version omitted this entry and
-  // asserted the file was gone. Withdrawing a shipped feature is a product
-  // decision that has not been made, and the route is live on master — so it is
-  // classified here instead. If the withdrawal does ship, delete this entry and
-  // restore that assertion; the two must not both be true.
-  'app/api/donations/portfolio/route.ts': {
-    kind: 'fan-out',
-    why: 'one gift across several campaigns. transfer_data.destination takes exactly ONE '
-      + 'account, so the charge lands on the platform with a transfer_group and the webhook '
-      + 'fans out per campaign. The only route that holds funds, and it is forced, not chosen.',
-  },
   'app/api/donations/route.ts': {
     kind: 'routed',
     why: "a donation is the organizer's money; CharitMe keeps only tip + processing",
@@ -204,20 +192,13 @@ describe('no route charges to the platform balance any more', () => {
   it('is EMPTY — CharitMe holds nobody else\'s money', () => {
     // The whole promise, in one assertion. Portfolio split gifts were the only
     // route that landed donor money on CharitMe's balance; withdrawing them
-    // ⚠️ On master the fan-out set is NOT empty: the portfolio route is live.
-    // PR #368's version asserted emptiness because it withdraws that route. What
-    // matters either way is that fan-out is the EXCEPTION and is named — a new
-    // route may not join it silently.
-    expect(fanOut).toEqual(['app/api/donations/portfolio/route.ts']);
+    // removed the exception rather than shrinking it.
+    expect(fanOut).toEqual([]);
   });
 
-  it('the portfolio checkout is still present and still classified', () => {
-    // The inverse of PR #368's assertion, because that withdrawal has not
-    // shipped. Kept as an explicit check so the route cannot vanish unnoticed:
-    // deleting it is a product decision, and a silent deletion would take the
-    // only split-gift path with it.
-    expect(routes).toContain('app/api/donations/portfolio/route.ts');
-    expect(EXPECTED['app/api/donations/portfolio/route.ts']?.kind).toBe('fan-out');
+  it('the withdrawn portfolio checkout is really gone', () => {
+    expect(routes, 'a portfolio charge route is back')
+      .not.toContain('app/api/donations/portfolio/route.ts');
   });
 
   it('but the webhook can STILL settle a session created before the withdrawal', () => {

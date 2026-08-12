@@ -25,12 +25,27 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.charitme.app',
   appName: 'CharitMe',
-  // Unused while `server.url` is set, but required by the CLI, and it is where a
-  // future static build would land.
-  webDir: 'apps/web/.next',
+  // ⚠️ NOT the Next.js build directory, and that is the whole point.
+  //
+  // This read `apps/web/.next`, on the reasoning that `webDir` is "unused while
+  // `server.url` is set". The CLI does not agree: `npx cap add ios` COPIES
+  // `webDir` into the app bundle whether or not the WebView will ever read it.
+  // Measured — 2.0 GB and 115 seconds, of which 2.0 GB was `.next/cache` and
+  // 56 MB was compiled server code, shipped to every device to be ignored.
+  // (No secret values were inlined; the matches for `SUPABASE_SERVICE_ROLE_KEY`
+  // were env-var names in error paths. The cost was size and shipping the server
+  // build, not a leaked key.)
+  //
+  // `native/www` holds one self-contained page instead, which `server.errorPath`
+  // below turns into something useful.
+  webDir: 'native/www',
 
   server: {
     url: 'https://www.charitme.com',
+    // Shown when the WebView cannot reach the site at all — offline, captive
+    // portal, outage. Without it iOS renders its own network error page, which
+    // reads as "this app is broken" rather than "you have no signal".
+    errorPath: 'index.html',
     // No cleartext. The site is HTTPS-only and an app that permits plain HTTP
     // will happily load a downgraded page on a hostile network — with a session
     // cookie and a donation form on it.

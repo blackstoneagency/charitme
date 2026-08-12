@@ -24886,3 +24886,178 @@ The 8 internal `<a href="/admin/…">` / `<a href="/dashboard/…">` tags that
 resolvable. They are now `<Link>`, so they navigate client-side instead of
 triggering a full page reload. Genuine pre-existing defects the experiment
 surfaced, and they stand on their own.
+
+### ✅ DONE — Claude, 2026-08-11 — every charge route classified, and the classification is now enforced
+
+The per-route money suites each prove ONE route routes correctly. None of them
+can see a route that does not exist yet — so the promise "CharitMe never holds
+funds" was breakable by an ADDITION, silently, with the whole suite green.
+
+`__tests__/money-routing-inventory.test.ts` (27 tests) inverts that: it
+DISCOVERS every route creating a Stripe charge and requires each to be
+classified. Seven routes, three kinds:
+
+| route | kind | money |
+|---|---|---|
+| `/api/donations` | routed | organizer's; CharitMe keeps tip + processing |
+| `/api/donations/recurring` | routed | same, on a subscription |
+| `/api/events/[id]/tickets/checkout` | routed | event organizer's |
+| `/api/creators/tiers/subscribe` | routed | creator's, no fee taken |
+| `/api/campaigns/[id]/feature` | platform | CharitMe IS the merchant |
+| `/api/stripe/checkout` | platform | CharitMe plan subscription |
+| `/api/donations/portfolio` | fan-out | the one real hold — see below |
+
+Every `routed` route must carry `transfer_data.destination`, resolve it rather
+than hardcode it, decline with `PAYOUT_NOT_READY`, and separate that from
+`PayoutLookupUnavailableError`. Every `platform` route must carry NO
+`transfer_data` — asserted in the negative, so one growing a destination breaks
+the classification instead of quietly contradicting it. An unclassified route
+fails the suite with the decision spelled out in the failure message.
+
+**Two real defects, both found by mutating the new test rather than by reading:**
+
+1. ⚠️ **`/api/creators/tiers/subscribe` did not handle
+   `PayoutLookupUnavailableError`** — the only payout-gated route that did not.
+   It escaped as an unhandled 500. That fails SAFE on the money (no charge is
+   created), but it reported a retryable outage as an unexplained error with no
+   `code` for a client to branch on. Now a 503 `PAYOUT_LOOKUP_UNAVAILABLE`,
+   matching donations/recurring/portfolio/tickets. The catch is narrow — an
+   unrelated `TypeError` still propagates, and a test pins that, because a broad
+   catch would hide real bugs behind a plausible 503.
+2. ⚠️ **The discovery itself was weaker than advertised.** `git grep` without
+   `--untracked` searches only COMMITTED files, so a brand-new unclassified
+   charge route was invisible *exactly while its author ran the suite to check
+   their work* — a planted route passed 27/27. Fixed; the planted route now
+   fails.
+
+`__tests__/membership-money-flow.test.ts` (10 tests) additionally EXECUTES the
+membership route: the destination lands under `subscription_data` (not
+`payment_intent_data` — putting it in the wrong place still works for the first
+invoice and leaves every renewal on the platform balance), no
+`application_fee_percent` is set, and both the session and the subscription carry
+`kind: 'membership'` so a renewal is not mistaken for a recurring donation.
+
+Six mutations, six targeted single-test failures. Suite: **4253 tests / 376
+files**, typecheck and lint clean.
+
+**Unchanged and still owner-gated:** the live charge (one command, above), the
+portfolio architecture decision, and the event-ticket fee rate — tickets route
+100% to the organizer and CharitMe absorbs Stripe's cost, which is a deliberate
+fee posture nobody has documented. Setting one is a fee change, which requires
+explicit requirements.
+
+### ✅ DONE — Claude, 2026-08-11 — portfolio split gifts withdrawn; event tickets now carry a 10% fee
+
+**Portfolio split gifts are gone.** They were the only route where CharitMe
+genuinely held donor money: Stripe's `transfer_data.destination` takes exactly
+ONE connected account, and a split gift has several, so the charge landed on the
+platform balance and the webhook fanned it out afterwards. Withdrawn rather than
+re-architected.
+
+Removed: `POST /api/donations/portfolio`, the `/give` builder UI, and every link
+into it (footer "Ways to Give", supporter-space tile + CTA, the campaigns-list
+rail, the sitemap entry, the e2e route list).
+
+`/give` is a **permanent redirect to `/campaigns`**, not a deletion: it was an
+indexed canonical URL linked from three surfaces, and it was the withdrawn
+checkout's Stripe `cancel_url`.
+
+⚠️ **The webhook's settle path is deliberately KEPT, and must not be deleted with
+the feature.** A Checkout Session lives ~24h, so a portfolio session opened
+before this shipped can still be PAID after it. Without `handlePortfolioComplete`
+that donation is never recorded and the money sits on the platform balance with
+nothing saying whose it is — exactly the failure the withdrawal was meant to end.
+`portfolio-held-funds.test.ts` now asserts the asymmetry directly: the charge
+route must NOT exist, the settle path must. It can go once no unpaid portfolio
+session can remain.
+
+`money-routing-inventory` keeps the `fan-out` kind **defined and asserted
+EMPTY**. Deleting it would make reintroducing a platform-balance charge a matter
+of adding a route; leaving it means reintroducing one has to say so out loud.
+
+**Event tickets now take a 10% CharitMe commission.** The route set a payout
+destination but NO `application_fee_amount`, so CharitMe collected nothing on a
+ticket sale and still absorbed Stripe's processing cost — every ticket sold lost
+money. `EVENT_TICKET_FEE_PERCENT` + `eventTicketFee()` live in `@shared/fees`;
+the fee is computed from the RESERVATION total (already verified against
+`price_cents × quantity`), so it cannot be taken on a price the buyer is not
+being charged. Still a destination charge: the organizer nets total − fee.
+
+⚠️ **ASSUMPTION, flagged for confirmation.** The instruction was "update the
+events tickets without a 10% share at me fee", dictated. It is read as WITH a 10%
+CharitMe fee — a rate is only named to specify one, and it answers the open
+question this file recorded ("needs the intended rate from the user"). If the
+intent was the opposite, it is one constant: set `EVENT_TICKET_FEE_PERCENT = 0`.
+
+`__tests__/event-ticket-money-flow.test.ts` (13 tests) executes the route.
+Mutation-tested: removing the fee fails 4 tests, computing it per-unit instead of
+per-order fails 4, `floor` instead of `round` fails 1.
+
+⚠️ **One mutation initially passed and the fix was a design change, not a bigger
+assertion.** Deleting the `[0, total]` clamp changed nothing, because at 10% the
+clamp can never bind — it was dead code that a test claimed to cover. The rate is
+now a parameter with a default, so a >100% rate reaches the clamp and the guard
+is genuinely exercised.
+
+**Suite: 4257 tests / 376 files**, typecheck and lint clean.
+
+### ✅ DONE — Claude, 2026-08-12 — the iOS project is generatable, and complete when it is
+
+`npx cap add ios` is now the one command that produces an Xcode-openable project.
+It previously failed at the first step: `capacitor.config.ts` and
+`docs/native-shells.md` both existed and were thorough, but **Capacitor was never
+installed** — no `@capacitor/*` in any package.json.
+
+```bash
+npm install
+npm run ios:add      # cap add ios  + prepare
+npm run ios:sync     # cap sync ios + prepare — after any config change
+npm run ios:open     # macOS + Xcode
+```
+
+**⚠️ `webDir` was shipping the server build to every device.** It read
+`apps/web/.next`, on the reasoning that `webDir` is unused while `server.url` is
+set. The CLI copies it regardless — measured at **2.0 GB and 115 seconds**, of
+which 2.0 GB was `.next/cache` and 56 MB was compiled server code, bundled into
+the `.ipa` and never loaded. Checked before claiming worse: no secret *values*
+were inlined; the `SUPABASE_SERVICE_ROLE_KEY` matches were env-var names in error
+paths. Now `native/www` — one self-contained page, **8 KB, 0.9 s** — which
+`server.errorPath` turns into the offline screen.
+
+**`ios/` stays uncommitted, so nothing about the native project survived
+regeneration.** That was the unclosed gap, and two of its consequences are hard
+failures rather than polish. `scripts/prepare-ios.mjs` reapplies them:
+
+| Missing | Consequence |
+|---|---|
+| Camera / photo-library usage strings | **iOS TERMINATES the app** on "Take Photo" from any `<input type="file" accept="image/*">` — campaign creation, profile, admin |
+| `NSLocationWhenInUseUsageDescription` | Same, for `navigator.geolocation` on `/nearby` |
+| `PrivacyInfo.xcprivacy` not in the target | Upload **rejected** by App Store Connect, after a successful archive |
+| App icon | Ships **Capacitor's own logo** — a finished 1024×1024 image, so nothing looks unfinished |
+| Alpha channel | Every web icon is RGBA and Apple refuses transparency; rendered from `icon-source.svg` and flattened |
+| `ITSAppUsesNonExemptEncryption` | Every upload held on the export-compliance question |
+
+Idempotent, verifies its own `.pbxproj` edits rather than assuming a string
+replace landed, and refuses to report success if the project was not modified.
+Validated by running `npx cap sync ios` afterwards — Capacitor reparses and
+rewrites the project, and all four privacy references survive.
+
+`apps/web/__tests__/ios-shell-readiness.test.ts` (19 tests) guards both files,
+since they are the only part of the native build under review. It scans the web
+source for native APIs and requires a matching usage string, so adding one
+without it is a red test rather than a crash report.
+
+⚠️ **A mutation exposed that the most important assertion was hollow.** Renaming
+`NSCameraUsageDescription` → `...DescriptionX` PASSED, because `toContain`
+matches the real key as a substring of the typo. The guard standing between a
+code change and a device crash was satisfied by a key iOS has never heard of. It
+now parses the declared keys and validates their shape.
+
+**Suite: 4276 tests / 377 files**, typecheck and lint clean.
+
+**Still needs a Mac, and cannot be done here:** `pod install`/SPM resolution, the
+archive, signing (Team + provisioning), and Associated Domains
+(`applinks:www.charitme.com`) which is Xcode UI. And Guideline 4.2 is unchanged —
+a WebView pointed at a URL is the shape Apple rejects as a repackaged website;
+the mitigation is native capability (push notifications first), listed in
+`docs/native-shells.md`.

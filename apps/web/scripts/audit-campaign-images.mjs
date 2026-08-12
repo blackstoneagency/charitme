@@ -14,6 +14,11 @@
  *     (no two categories share the same hero image).
  *   - Every URL uses an approved host and carries width + quality params.
  *   - No pool contains a duplicate photo ID within itself.
+ *   - Photo-variety RATCHETS (shared photos, worst per-photo spread, categories
+ *     with no photo unique to them). These are ratchets, not absolutes: the
+ *     catalog has 45 photos for 18 categories, so "every category gets its own
+ *     images" needs 72+ and is not reachable today. See the block comment at the
+ *     ratchet constants for why an absolute rule there was actively harmful.
  *
  * Live check (opt-in with `--live`, used in CI where network is allowed):
  *   - Every distinct photo ID returns HTTP 200 — across BOTH the catalog and
@@ -107,14 +112,76 @@ for (const [cat, pool] of Object.entries(categories)) {
   }
 }
 
+// ⚠️ THIS WAS "0 SHARED PHOTOS, OR FAIL", AND THAT RULE WAS UNSATISFIABLE.
+//
+// 18 categories × MIN_POOL(4) needs at least 72 distinct photos. The catalog has
+// 45. So "give each category its own image" cannot be met, and the only way it
+// ever passed was while the catalog deduplicated GLOBALLY — which starved the
+// later categories below their minimum and made them render generated art
+// instead of photographs across the whole site. That was the bug fixed in #362.
+// The gate, as written, was satisfiable only while that bug existed.
+//
+// So the absolute rule is replaced by RATCHETS. They do not claim the problem is
+// solved; they stop it getting worse, and they name the real deficit — which is
+// not "duplicates" but MISSING PHOTOS, quantified below.
+const MAX_SHARED_PHOTOS = 10;   // distinct photos appearing in >1 category
+const MAX_CATEGORY_SPREAD = 15; // categories any single photo may appear in
+const MAX_UNDIFFERENTIATED_CATEGORIES = 6; // categories with NO photo unique to them
+
 let sharedPhotos = 0;
+let worstSpread = 0;
+let worstSpreadId = null;
 for (const [id, catSet] of Object.entries(idToCats)) {
   if (catSet.size < 2) continue;
   sharedPhotos++;
-  const cats = [...catSet].sort().join(', ');
-  warn(`Cross-category reuse: image ${id} in ${cats}.`);
+  if (catSet.size > worstSpread) { worstSpread = catSet.size; worstSpreadId = id; }
+  if (catSet.size > MAX_CATEGORY_SPREAD) {
+    fail(
+      `Photo ${id} now appears in ${catSet.size} categories (was at most ${MAX_CATEGORY_SPREAD}): `
+      + `${[...catSet].sort().join(', ')}. Padding one more category with an existing filler photo `
+      + 'makes the site look more repetitive, not less — add a photo for that category instead.',
+    );
+  }
 }
-console.log(`Shared photos:       ${sharedPhotos} (reported; rendered-page audits enforce no repeated cards)`);
+if (sharedPhotos > MAX_SHARED_PHOTOS) {
+  fail(
+    `${sharedPhotos} photos are shared across categories, up from ${MAX_SHARED_PHOTOS}. `
+    + 'This ratchet only moves down: a new category pool must be filled with new photos, '
+    + 'not by spreading the existing filler set wider.',
+  );
+}
+
+// The deficit the duplicate list was really describing. A category with no photo
+// UNIQUE to it is visually indistinguishable from some other category: Nonprofit
+// renders "volunteers serving food" and nothing else, while Competition and
+// Sports draw from an identical pool, so the two are the same page with two
+// names. Counting that directly says what to fix in a way a duplicate list does
+// not — the fix is photographs, not rearrangement.
+// "Generic" is derived, not read from a named filler list in the catalog: a
+// photo is generic exactly when more than one category uses it. Deriving it
+// means renaming or restructuring the catalog's filler constants cannot make
+// this check silently stop measuring anything.
+const genericOnly = Object.entries(categories)
+  .filter(([, pool]) => pool.every((url) => (idToCats[idOf(url)]?.size ?? 0) > 1))
+  .map(([cat]) => cat);
+if (genericOnly.length > MAX_UNDIFFERENTIATED_CATEGORIES) {
+  fail(
+    `${genericOnly.length} categories have no photo unique to them (${genericOnly.join(', ')}), `
+    + `up from ${MAX_UNDIFFERENTIATED_CATEGORIES}. Every category must bring at least one photograph `
+    + 'of its own, or it is just another category wearing a different label.',
+  );
+}
+
+console.log(`Shared photos:       ${sharedPhotos} (ratchet: ≤ ${MAX_SHARED_PHOTOS})`);
+console.log(`Worst spread:        ${worstSpread}× ${worstSpreadId ?? '—'} (ratchet: ≤ ${MAX_CATEGORY_SPREAD})`);
+console.log(`Undifferentiated:    ${genericOnly.length} (ratchet: ≤ ${MAX_UNDIFFERENTIATED_CATEGORIES})${genericOnly.length ? ` — ${genericOnly.join(', ')}` : ''}`);
+if (genericOnly.length) {
+  warn(
+    `${genericOnly.length} categories have no photograph of their own (${genericOnly.join(', ')}). `
+    + 'Clearing this needs real category photographs — either curated Unsplash IDs or '
+    + 'UNSPLASH_ACCESS_KEY set in production, which resolves live themed covers per campaign.',
+  );
+}
 
 // ---- SQL migration images (what actually lands in the DB) -----------------
 // The catalog is the app-render source of truth, but campaign covers are also

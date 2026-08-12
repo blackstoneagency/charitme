@@ -14,7 +14,6 @@ describe('one Supabase-backed checkout configuration reaches every donation surf
     'app/campaigns/[slug]/team/[peerSlug]/page.tsx',
     'app/donate/[slug]/page.tsx',
     'app/donate/page.tsx',
-    'app/give/page.tsx',
     'app/transparency/page.tsx',
   ];
 
@@ -44,7 +43,6 @@ describe('checkout pricing is authoritative at session creation', () => {
   const routes = [
     'app/api/donations/route.ts',
     'app/api/donations/recurring/route.ts',
-    'app/api/donations/portfolio/route.ts',
   ];
 
   it.each(routes)('%s rejects a stale settings revision', (path) => {
@@ -59,21 +57,17 @@ describe('checkout pricing is authoritative at session creation', () => {
     expect(readWeb(path)).toContain('checkout.settings.defaultSupportPercent');
   });
 
-  it('records portfolio support and processor coverage to the cent per campaign', () => {
+  // ⚠️ Portfolio split gifts are WITHDRAWN, but this stays: the webhook must
+  // still settle a session created before the withdrawal shipped, and getting
+  // the per-campaign allocation wrong there misreports money that has already
+  // been charged. It can go once no unpaid portfolio session can remain.
+  it('still records support and processor coverage to the cent for in-flight portfolio gifts', () => {
     const webhook = readWeb('app/api/stripe/webhook/route.ts');
     expect(webhook).toContain('allocateCentsProportionally');
     expect(webhook).toContain('Number(meta.tipCents ?? 0)');
     expect(webhook).toContain('Number(meta.processingFeeCents ?? 0)');
   });
 
-  it('verifies every portfolio recipient before creating a Stripe session', () => {
-    const route = readWeb('app/api/donations/portfolio/route.ts');
-    expect(route).toContain('resolvePayoutDestination');
-    expect(route).toContain("code: 'PAYOUT_LOOKUP_UNAVAILABLE'");
-    expect(route.indexOf('Promise.all')).toBeLessThan(
-      route.indexOf('const session = await createCheckoutSession'),
-    );
-  });
 });
 
 describe('Super Admin owns the checkout pricing record', () => {

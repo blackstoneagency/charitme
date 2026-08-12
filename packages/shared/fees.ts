@@ -8,6 +8,38 @@ export const SUGGESTED_SUPPORT_PERCENT = 10;
 export const SUPPORT_TIER_PERCENTS = [15, 12, 10, 8, 5, 3, 1, 0] as const;
 /** Back-compat alias — the initial/fallback support percent. */
 export const DEFAULT_DONOR_TIP_PERCENT = SUGGESTED_SUPPORT_PERCENT;
+// ── Paid event tickets ────────────────────────────────────────────────────────
+// ⚠️ NOT a donation, and deliberately not governed by the rules above. A ticket
+// is a PURCHASE: the buyer receives admission, there is no optional-support
+// prompt, and nothing here is reducible by the buyer. So CharitMe's cut is a
+// fixed commission on the sale rather than a tip.
+//
+// Before this existed the ticket checkout set a payout destination but NO
+// application fee, so CharitMe collected nothing on a ticket sale and still
+// absorbed Stripe's processing cost on it — every ticket sold lost money.
+export const EVENT_TICKET_FEE_PERCENT = 10;
+
+/**
+ * CharitMe's commission on a ticket sale, in cents.
+ *
+ * Rounded to the nearest cent and clamped into `[0, totalCents]`: a fee larger
+ * than the sale would make Stripe reject the charge, and a negative total (which
+ * cannot happen today) must not invert into CharitMe paying the organizer a fee.
+ * Free tickets yield 0 rather than a rounding artefact.
+ */
+// ⚠️ `percent` is a parameter, not a closed-over constant, so the clamp below is
+// REACHABLE and therefore testable. With the shipped 10% it can never bind —
+// `round(0.1 × total)` is always within `[0, total]` — and a first version of
+// this took the constant directly, which made the clamp dead code that a test
+// nonetheless claimed to cover. A mutation removing it passed. Injecting the
+// rate is what turns that safety net back into something real.
+export function eventTicketFee(totalCents: number, percent = EVENT_TICKET_FEE_PERCENT): number {
+  if (!Number.isFinite(totalCents) || totalCents <= 0) return 0;
+  if (!Number.isFinite(percent) || percent <= 0) return 0;
+  const fee = Math.round((totalCents * percent) / 100);
+  return Math.min(Math.max(fee, 0), totalCents);
+}
+
 export const PROCESSING_FEE_PERCENT = 2.9;
 export const PROCESSING_FEE_FIXED_CENTS = 30;
 export const MIN_DONATION_CENTS = 100;

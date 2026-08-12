@@ -833,7 +833,7 @@ export default async function CampaignsPage({ searchParams }: Props) {
             <p className="cb-panel-lede">Small actions lead to big changes.</p>
             <ul className="cb-actions">
               <li>
-                <Link href="/give">
+                <Link href="/causes">
                   <strong>Donate</strong>
                   <span>Support a campaign that matters to you.</span>
                 </Link>

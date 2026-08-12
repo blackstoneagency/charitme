@@ -63,12 +63,12 @@ export const FOOTER_SECTIONS: Record<FooterSectionName, readonly FooterLink[]> =
   // it is better navigation besides: a donor looking for somewhere to give was
   // reading a list that opened with "AI Campaign Builder".
   //
-  // /give, /crisis, /nearby and /developers had all shipped and were linked from
-  // nowhere in the footer.
+  // /crisis, /nearby and /developers had all shipped and were linked from
+  // nowhere in the footer. (/give was here too, until portfolio split gifts were
+  // withdrawn — it now redirects to /campaigns and is no longer navigation.)
   'Ways to Give': [
     { label: 'Browse Campaigns', href: '/campaigns', labelKey: 'footer.link.campaigns' },
     { label: 'Current Needs', href: '/needs', labelKey: 'footer.link.needs' },
-    { label: 'Give to Many Causes', href: '/give', labelKey: 'footer.link.give' },
     { label: 'Crisis Relief', href: '/crisis', labelKey: 'footer.link.crisis' },
     { label: 'Fundraisers Near You', href: '/nearby', labelKey: 'footer.link.nearby' },
     { label: 'Volunteer', href: '/volunteer', labelKey: 'footer.link.volunteer' },

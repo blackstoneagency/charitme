@@ -51,12 +51,47 @@ origin. `npx cap add ios` generates the Xcode project; it is **not** committed
 because it is a build artifact regenerated from this config, and committing it
 means merge conflicts in a `.pbxproj` nobody can read.
 
+Capacitor is now a devDependency (it was documented here but never installed, so
+`npx cap add ios` failed at the first step). The wrapper scripts exist because
+the generated project is **incomplete on its own**:
+
 ```bash
-npm i @capacitor/core @capacitor/cli @capacitor/ios
-npx cap add ios
-npx cap sync ios
-npx cap open ios        # requires macOS + Xcode
+npm install             # Capacitor is already in devDependencies
+npm run ios:add         # cap add ios  + the prepare step
+npm run ios:sync        # cap sync ios + the prepare step — after any config change
+npm run ios:open        # requires macOS + Xcode
 ```
+
+### What `ios:prepare` fixes, and why it is not optional
+
+`ios/` is a build artifact and is not committed, so **no project-level
+configuration survives regeneration**. `scripts/prepare-ios.mjs` reapplies it.
+Every item below was measured on a generated project:
+
+| Missing | Consequence |
+|---|---|
+| `NSCameraUsageDescription`, `NSPhotoLibraryUsageDescription`, `NSPhotoLibraryAddUsageDescription` | **App is terminated by iOS** the moment a user taps "Take Photo" on any `<input type="file" accept="image/*">` — campaign creation, profile, admin |
+| `NSLocationWhenInUseUsageDescription` | Same, for `navigator.geolocation` on `/nearby` |
+| `PrivacyInfo.xcprivacy` not in the target | Upload **rejected** by App Store Connect, after a successful archive |
+| App icon | Ships **Capacitor's own logo** — a finished 1024×1024 image, so nothing looks unfinished |
+| Alpha channel in the icon | "The app icon can't be transparent nor contain an alpha channel" — every web icon is RGBA, so it is rendered from `icon-source.svg` and flattened |
+| `ITSAppUsesNonExemptEncryption` | Every upload held on the export-compliance question |
+
+The script is idempotent, verifies its own `.pbxproj` edits rather than assuming
+a string replace landed, and refuses to report success if the project was not
+modified. `apps/web/__tests__/ios-shell-readiness.test.ts` guards it — including
+a scan of the web source for native APIs, so adding one without a usage string
+is a red test rather than a crash report.
+
+### ⚠️ `webDir` must not be a build directory
+
+It was `apps/web/.next`, on the reasoning that `webDir` is unused while
+`server.url` is set. The CLI copies it into the app bundle regardless: **2.0 GB
+and 115 seconds**, of which 2.0 GB was `.next/cache` and 56 MB was compiled
+server code — shipped to every device and never loaded. (No secret *values* were
+inlined; the matches for `SUPABASE_SERVICE_ROLE_KEY` were env-var names in error
+paths.) It now points at `native/www`, one self-contained page, which
+`server.errorPath` shows when the site cannot be reached: 8 KB, 0.9 seconds.
 
 ### ⚠️ Guideline 4.2 — the risk this does not solve
 

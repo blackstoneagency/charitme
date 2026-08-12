@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>CharitMe</title>
+<!--
+  The native shell's LOCAL web directory.
+
+  ⚠️ This is deliberately tiny, and the reason is measured rather than stylistic.
+  `capacitor.config.ts` previously set `webDir` to the Next.js build directory.
+  `npx cap add ios` then copied it into the app bundle: 2.0 GB, 115 seconds, of
+  which 2.0 GB was `.next/cache` and 56 MB was compiled SERVER code — none of it
+  reachable, because `server.url` makes the WebView load the live site instead.
+  It shipped the server build to every device to be ignored.
+
+  (Checked, so as not to overstate it: no secret VALUES were inlined — the
+  matches for `SUPABASE_SERVICE_ROLE_KEY` and friends were env-var names in error
+  paths. The problem is size and shipping proprietary server code, not a leaked
+  key.)
+
+  So `webDir` points here, and this file earns its place: `server.errorPath`
+  makes it the screen shown when the WebView cannot reach the site at all —
+  offline, captive portal, or an outage. Without it the user gets the iOS network
+  error page, which looks like the app is broken rather than the connection.
+
+  It must stay self-contained: no external CSS, fonts, or scripts. It is the page
+  shown precisely when the network is unavailable, so anything it fetches is
+  guaranteed to fail.
+-->
+<style>
+  :root { color-scheme: dark; }
+  html, body {
+    margin: 0; height: 100%;
+    background: #000; color: #fff;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  main {
+    min-height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center;
+    padding: 32px 24px calc(32px + env(safe-area-inset-bottom));
+    box-sizing: border-box;
+  }
+  .mark {
+    font-size: 26px; font-weight: 800; letter-spacing: -0.02em;
+    margin: 0 0 20px;
+  }
+  h1 { font-size: 20px; font-weight: 700; margin: 0 0 10px; }
+  p { font-size: 15px; line-height: 1.55; color: #b9b9c0; margin: 0 0 24px; max-width: 32ch; }
+  button {
+    font: inherit; font-size: 16px; font-weight: 600;
+    color: #000; background: #fff;
+    border: 0; border-radius: 999px;
+    padding: 13px 30px;
+    cursor: pointer;
+    /* 44pt is Apple's minimum touch target; this is the only control here. */
+    min-height: 44px; min-width: 44px;
+  }
+  button:active { opacity: 0.75; }
+</style>
+</head>
+<body>
+  <main>
+    <p class="mark">CharitMe</p>
+    <h1>You're offline</h1>
+    <p>We couldn't reach CharitMe. Check your connection and try again — nothing you were doing has been lost.</p>
+    <button type="button" onclick="location.replace('https://www.charitme.com/')">Try again</button>
+  </main>
+</body>
+</html>
